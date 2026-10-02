@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.21 - 6 s scan cooldown
+
+- The shared /who cooldown on Scan, Scan All, Custom and Guild Search is now 6 s (was 10 s).
+- Version 2.0.21.
+
 => 2.0.20 - Guild sweep in its own file
 
 - The guild sweep (the PSS Harvest /who logic) now lives in PSS_WhoisHarvest.lua: search planning, the per-guild sweep state, Scan All, the key binding and the Scan tooltips. PSS_GuildIgnoreList.lua still sends the /who and stores what it finds. No change to how Scan behaves: the whole guild first (no level or class), then any answer capped at 50 is split by level bracket (1-9 upwards), then class, then single level.
