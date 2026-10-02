@@ -50,6 +50,7 @@ function M.PSS_StartScanCooldown()
         scanCooldownTimer = nil
         refreshGuildScanButtons()
         if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+        if M.PSS_RefreshScanTooltip then M.PSS_RefreshScanTooltip() end
     end)
 end
 
@@ -1226,31 +1227,111 @@ local function splitBrackets(s)
     return out
 end
 
-local function defaultGuildScanBrackets()
-    -- Nine level brackets per guild. Scan 1/9 is the HIGHEST bracket, where
-    -- most players are (2.0.9 started at 1-9, so a single click usually
-    -- found nobody).
-    local maxLevel = (GetMaxPlayerLevel and GetMaxPlayerLevel()) or UnitLevel("player") or 80
-    maxLevel = math.max(9, tonumber(maxLevel) or 80)
-    local width = math.ceil(maxLevel / 9)
-    local up = {}
-    local lo = 1
-    for i = 1, 9 do
-        local hi = (i == 9) and maxLevel or math.min(maxLevel, lo + width - 1)
-        if lo > hi then lo, hi = hi, hi end
-        up[i] = ("%d-%d"):format(lo, hi)
+------------------------------------------------------------------------
+-- GUILD SWEEP (2.0.19, the PSS Harvest logic)
+--
+-- Scan on a guild row is one /who per click, for that guild: first the
+-- whole guild, and every answer that hits the /who cap (50) is split into
+-- narrower searches - level brackets, then class, then single levels - and
+-- queued for the next clicks, until every search is under the cap. Scan
+-- All (top of the tab, or the key binding) walks every guild row the same
+-- way, one guild after another. Session state only.
+------------------------------------------------------------------------
+local WHO_CAP = 50
+local sweeps = {}       -- [guildKey] = { name, queue = { items }, sent, capped, gaveUp, seen, added, moved, done }
+local sweepRound = 0    -- Scan All rounds completed this session
+local sweepStats = { sent = 0, capped = 0, gaveUp = 0, seen = 0, matched = 0, added = 0, moved = 0 }
+
+local function sweepMaxLevel()
+    local m = tonumber((GetMaxPlayerLevel and GetMaxPlayerLevel()) or UnitLevel("player") or 60)
+    return math.max(10, m or 60)
+end
+
+-- 1-9, 10-19, ... up to max-1, then the max level on its own (most players).
+local function sweepBrackets()
+    local max, out, lo = sweepMaxLevel(), {}, 1
+    while lo < max do
+        local hi = math.min(lo == 1 and 9 or lo + 9, max - 1)
+        out[#out + 1] = { lo, hi }
         lo = hi + 1
     end
-    local out = {}
-    for i = 9, 1, -1 do out[#out + 1] = up[i] end
+    out[#out + 1] = { max, max }
     return out
 end
 
-local function guildQueries(g)
-    g.scanTotal = 9
-    local brackets = defaultGuildScanBrackets()
-    g.scanBrackets = brackets
-    return brackets
+local CLASSIC_CLASSES = { WARRIOR = true, PALADIN = true, HUNTER = true, ROGUE = true, PRIEST = true,
+    SHAMAN = true, MAGE = true, WARLOCK = true, DRUID = true, DEATHKNIGHT = true, MONK = true,
+    DEMONHUNTER = true, EVOKER = true }
+local function sweepClasses()
+    local out, faction = {}, UnitFactionGroup and UnitFactionGroup("player")
+    local n = (GetNumClasses and GetNumClasses()) or 0
+    local classic = sweepMaxLevel() <= 60
+    for id = 1, math.max(n, 13) do
+        local name, file = GetClassInfo(id)
+        if name and file and CLASSIC_CLASSES[file] then
+            local skip = classic and ((faction == "Alliance" and file == "SHAMAN") or (faction == "Horde" and file == "PALADIN")
+                or file == "DEATHKNIGHT" or file == "MONK" or file == "DEMONHUNTER" or file == "EVOKER")
+            if not skip then out[#out + 1] = name end
+        end
+    end
+    return out
+end
+
+local function sweepFilter(name, it)
+    local f = 'g-"' .. name:gsub('"', "") .. '"'
+    if it.c then f = f .. ' c-"' .. it.c .. '"' end
+    if it.lo then f = f .. (" %d-%d"):format(it.lo, it.hi) end
+    return f
+end
+
+-- The narrower searches a capped one is split into (none: as narrow as /who goes).
+local function sweepSplit(it)
+    local out = {}
+    if not it.lo then
+        for _, b in ipairs(sweepBrackets()) do out[#out + 1] = { lo = b[1], hi = b[2] } end
+    elseif not it.c then
+        for _, c in ipairs(sweepClasses()) do out[#out + 1] = { lo = it.lo, hi = it.hi, c = c } end
+    elseif it.hi > it.lo then
+        for l = it.lo, it.hi do out[#out + 1] = { lo = l, hi = l, c = it.c } end
+    end
+    return out
+end
+
+local function sweepFor(g, restart)
+    local key = normalizeGuild(g.name)
+    local sw = key and sweeps[key]
+    if restart or not sw or sw.done then
+        sw = { name = g.name, queue = { {} }, sent = 0, capped = 0, gaveUp = 0, seen = 0, added = 0, moved = 0 }
+        if key then sweeps[key] = sw end
+    end
+    return sw
+end
+
+function M.PSS_GuildSweep(gkey) return gkey and sweeps[gkey] end
+
+-- Called by finishScan for a sweep search: totals, and the split when capped.
+-- Returns the number of narrower searches queued (0 = none).
+local function sweepAnswered(scan, numWhos, total)
+    local sw = scan.sweep
+    if not sw then return 0 end
+    sw.seen, sw.added, sw.moved = sw.seen + scan.seen, sw.added + scan.added, sw.moved + (scan.moved or 0)
+    sweepStats.seen = sweepStats.seen + scan.seen
+    sweepStats.matched = sweepStats.matched + scan.matched
+    sweepStats.added = sweepStats.added + scan.added
+    sweepStats.moved = sweepStats.moved + (scan.moved or 0)
+    local shown = tonumber(numWhos) or scan.seen
+    local split = 0
+    if shown >= WHO_CAP or (tonumber(total) and tonumber(total) > shown) then
+        sw.capped, sweepStats.capped = sw.capped + 1, sweepStats.capped + 1
+        local parts = sweepSplit(scan.item)
+        if #parts == 0 then
+            sw.gaveUp, sweepStats.gaveUp = sw.gaveUp + 1, sweepStats.gaveUp + 1
+        end
+        for k = #parts, 1, -1 do table.insert(sw.queue, 1, parts[k]) end
+        split = #parts
+    end
+    if #sw.queue == 0 then sw.done = true end
+    return split
 end
 
 -- Proven guild WHO path retained from the original 12.1.8 build: a plain
@@ -1364,23 +1445,26 @@ local function addWhoResultToGuildMember(info, guildRowName, actualGuild)
     return member and status or nil
 end
 
-function M.PSS_ScanGuild(guildName, mode)
+function M.PSS_ScanGuild(guildName, mode, restart)
     local g = ensureGuild(guildName)
     if not g then return false end
     if not g.ruleOrigin then g.ruleOrigin = "scan" end
 
     mode = mode or "level"
-    local filter, bracket, step
+    local filter, bracket, step, sw, item
     if mode == "custom" then
         -- Custom Scan Fields text is sent as-is after the guild name,
         -- e.g. g-"Olympus" 80 c-"Mage"
         bracket = trim(g.customScan or "")
         filter = 'g-"' .. g.name:gsub('"', "") .. '"' .. (bracket ~= "" and (" " .. bracket) or "")
     else
-        local q = guildQueries(g)
-        step = (tonumber(g.scan) or 0) % 9 + 1
-        bracket = q[step]
-        filter = 'g-"' .. g.name:gsub('"', "") .. '" ' .. bracket
+        -- the sweep: the next search of this guild's queue
+        sw = sweepFor(g, restart)
+        item = sw.queue[1]
+        if not item then return false end
+        filter = sweepFilter(g.name, item)
+        bracket = filter:match('^g%-".-"%s*(.*)$') or ""
+        step = sw.sent + 1
     end
 
     pendingGuildScan = {
@@ -1390,6 +1474,8 @@ function M.PSS_ScanGuild(guildName, mode)
         filter = filter,
         mode = mode,
         step = step,
+        sweep = sw,
+        item = item,
         startedAt = GetTime(),
         seen = 0, matched = 0, added = 0, other = 0, moved = 0,
     }
@@ -1403,7 +1489,14 @@ function M.PSS_ScanGuild(guildName, mode)
         pendingGuildScan = nil
         return false
     end
-    if step then g.scan = step end   -- only advance when the /who really went out
+    if sw then
+        -- only advance when the /who really went out
+        table.remove(sw.queue, 1)
+        sw.sent = sw.sent + 1
+        sweepStats.sent = sweepStats.sent + 1
+        sweepStats.last, sweepStats.lastGuild = filter, g.name
+        g.scan = sw.sent
+    end
     -- no answer within 5 s (nobody online): report it and free the scan
     local thisScan = pendingGuildScan
     C_Timer.After(5, function() if pendingGuildScan == thisScan then finishScan() end end)
@@ -1417,6 +1510,138 @@ end
 
 function M.PSS_ScanGuildLevel(guildName)
     return M.PSS_ScanGuild(guildName, "level")
+end
+
+-- Scan All: every guild row, A-Z, one sweep after another. Returns the guild
+-- row (table) that the next click will search, and how many are complete.
+local function sweepTargets()
+    local list = {}
+    for key, g in pairs(PourSocialScoreDB and PourSocialScoreDB.guildData or {}) do
+        if type(g) == "table" and type(g.name) == "string" and not g.name:find('"', 1, true) then
+            list[#list + 1] = { key = key, g = g }
+        end
+    end
+    table.sort(list, function(a, b)
+        local la, lb = a.g.name:lower(), b.g.name:lower()
+        if la ~= lb then return la < lb end
+        return tostring(a.key) < tostring(b.key)
+    end)
+    return list
+end
+
+function M.PSS_ScanAllNext()
+    local list, done, nextG = sweepTargets(), 0, nil
+    for _, it in ipairs(list) do
+        local sw = sweeps[it.key]
+        if sw and sw.done then done = done + 1
+        elseif not nextG then nextG = it.g end
+    end
+    return nextG, done, #list
+end
+
+-- One Scan All click (must run inside a click or key press).
+function M.PSS_ScanAll()
+    if M.PSS_ScanBlockedMsg() then return false end
+    local g, done, n = M.PSS_ScanAllNext()
+    if n == 0 then M.ShowMsg("No guild rows to scan - add a guild first.") return false end
+    if not g then
+        -- every guild swept: the next round starts over (players come and go)
+        sweepRound = sweepRound + 1
+        for _, it in ipairs(sweepTargets()) do sweeps[it.key] = nil end
+        M.ShowMsg(("Scan All: all %d guilds swept (round %d). Starting over."):format(n, sweepRound))
+        g = M.PSS_ScanAllNext()
+        if not g then return false end
+    end
+    return M.PSS_ScanGuild(g.name, "level")
+end
+
+-- Key binding (Bindings.xml): Key Bindings > AddOns > Pour Social Score.
+BINDING_HEADER_POURSOCIALSCORE = "Pour Social Score"
+BINDING_NAME_PSS_SCAN_ALL = "Scan All: next guild /who"
+function PSS_ScanAllBinding() M.PSS_ScanAll() end
+
+-- The status (the old /pssh window) on the Scan buttons' tooltip.
+-- g: a guild row (its Scan button), or nil (Scan All).
+local tipOwner, tipGuild
+function M.PSS_ScanTooltip(owner, g)
+    if owner then
+        tipOwner, tipGuild = owner, g          -- OnEnter: always drawn
+    elseif not (tipOwner and GameTooltip:IsOwned(tipOwner)) then
+        return                                 -- a refresh, and the tooltip moved on
+    end
+    owner, g = tipOwner, tipGuild
+    GameTooltip:SetOwner(owner, "ANCHOR_TOP")
+    local function line(t, r, gg, b) GameTooltip:AddLine(t, r or 1, gg or 0.82, b or 0, true) end
+    local function pair(a, b) GameTooltip:AddDoubleLine(a, b, 0.75, 0.75, 0.75, 1, 1, 1) end
+    if g then
+        GameTooltip:AddLine("Scan <" .. tostring(g.name) .. ">", 1, 1, 1)
+        line("One /who per click. An answer of 50 (the /who cap) is split into narrower searches - level brackets, then class, then single level - until each is under the cap.", 0.85, 0.85, 0.85)
+        local sw = sweeps[normalizeGuild(g.name)]
+        GameTooltip:AddLine(" ")
+        if not sw then
+            pair("This guild", "not swept yet")
+            pair("Next", sweepFilter(g.name, {}))
+        else
+            pair("Searches", ("%d sent, %d queued"):format(sw.sent, #sw.queue))
+            pair("Capped / split", ("%d%s"):format(sw.capped, sw.gaveUp > 0 and (" (" .. sw.gaveUp .. " still capped)") or ""))
+            pair("Players found", ("%d  (|cff00ff00%d new|r, %d moved here)"):format(sw.seen, sw.added, sw.moved))
+            if sw.done then
+                line("Sweep complete - click to start it again.", 0, 1, 0)
+            else
+                pair("Next", sweepFilter(g.name, sw.queue[1] or {}))
+            end
+        end
+    else
+        GameTooltip:AddLine("Scan All", 1, 1, 1)
+        line("One /who per click across every guild row, A-Z: each guild is swept to the end (capped answers split by level bracket, class, single level) before the next.", 0.85, 0.85, 0.85)
+        local nextG, done, n = M.PSS_ScanAllNext()
+        GameTooltip:AddLine(" ")
+        pair("Guilds swept", ("%d / %d%s"):format(done, n, sweepRound > 0 and (" (round " .. (sweepRound + 1) .. ")") or ""))
+        if nextG then
+            local sw = sweeps[normalizeGuild(nextG.name)]
+            pair("Now", ("%s  %s"):format(nextG.name, sw and ("%d/%d"):format(sw.sent, sw.sent + #sw.queue) or ""))
+            pair("Next", sweepFilter(nextG.name, (sw and sw.queue[1]) or {}))
+        end
+    end
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine("This session", 1, 0.82, 0)
+    pair("Searches", ("%d sent, %d capped/split, %d still capped"):format(sweepStats.sent, sweepStats.capped, sweepStats.gaveUp))
+    pair("Players found", ("%d, %d in a matching guild"):format(sweepStats.seen, sweepStats.matched))
+    pair("Captured", ("|cff00ff00%d new|r, %d moved from another rule"):format(sweepStats.added, sweepStats.moved))
+    pair("Last", sweepStats.last or "-")
+    GameTooltip:AddLine(" ")
+    local wait = scanCooldownRemaining()
+    if pendingGuildScan or pendingGuildSearch then
+        line("Waiting for the /who answer...", 1, 1, 0)
+    elseif wait > 0 then
+        line(("Ready in %d s"):format(math.ceil(wait)), 1, 0.5, 0)
+    else
+        line("Ready - click for the next search", 0, 1, 0)
+    end
+    if g then line("Shift-click: start this guild's sweep over.", 0.6, 0.6, 0.6) end
+    line("Key binding for Scan All: Key Bindings > AddOns > Pour Social Score.", 0.6, 0.6, 0.6)
+    line("Only online players on your realm show in /who: sweep again later to catch more.", 0.6, 0.6, 0.6)
+    GameTooltip:Show()
+end
+local function refreshScanTooltip()
+    if tipOwner and tipOwner:IsVisible() and GameTooltip:IsOwned(tipOwner) then M.PSS_ScanTooltip() end
+end
+M.PSS_RefreshScanTooltip = refreshScanTooltip
+
+-- OnEnter / OnLeave for a Scan button: the tooltip, kept current once a second.
+local tipTicker
+function M.PSS_ScanTipEnter(owner, g)
+    M.PSS_ScanTooltip(owner, g)
+    if tipTicker then tipTicker:Cancel() end
+    tipTicker = C_Timer.NewTicker(1, function()
+        if tipOwner and tipOwner:IsVisible() and GameTooltip:IsOwned(tipOwner) then M.PSS_ScanTooltip()
+        elseif tipTicker then tipTicker:Cancel(); tipTicker = nil end
+    end)
+end
+function M.PSS_ScanTipLeave()
+    if tipTicker then tipTicker:Cancel(); tipTicker = nil end
+    tipOwner, tipGuild = nil, nil
+    GameTooltip:Hide()
 end
 
 ------------------------------------------------------------------------
@@ -1577,9 +1802,12 @@ finishScan = function(numWhos, total, how)
     local moved = scan and scan.moved or 0
     if (scan or captured) and M.PSS_ReconcileGuildMembers then moved = moved + (M.PSS_ReconcileGuildMembers() or 0) end
 
+    local split = scan and scan.sweep and sweepAnswered(scan, numWhos, total) or 0
+
     if scan then
+        local sw = scan.sweep
         local what = (scan.mode == "custom") and ("Custom (" .. (scan.bracket ~= "" and scan.bracket or "no fields") .. ")")
-            or ("Scan %d/9 (levels %s)"):format(scan.step or 0, scan.bracket or "?")
+            or ("Scan %d/%d (%s)"):format(scan.step or 0, (sw and (sw.sent + #sw.queue)) or 0, scan.bracket ~= "" and scan.bracket or "whole guild")
         if scan.seen == 0 then
             M.ShowMsg(("%s for <%s>: /who found nobody. Only online players show in /who - try another bracket or Custom."):format(what, scan.guildName))
         else
@@ -1588,7 +1816,11 @@ finishScan = function(numWhos, total, how)
                 moved > 0 and (", " .. moved .. " moved here from another guild rule") or "",
                 scan.other > 0 and (", " .. scan.other .. " in other guilds skipped") or ""))
         end
-        if tonumber(total) and tonumber(numWhos) and total > numWhos then
+        if split > 0 then
+            M.ShowMsg(("|cffff9900/who capped at %d: split into %d narrower searches - keep clicking Scan.|r"):format(WHO_CAP, split))
+        elseif sw and sw.done then
+            M.ShowMsg(("|cff00ff00Sweep of <%s> complete|r: %d searches, %d players found, %d newly captured."):format(scan.guildName, sw.sent, sw.seen, sw.added))
+        elseif not sw and tonumber(total) and tonumber(numWhos) and total > numWhos then
             M.ShowMsg(("|cffff9900/who shows at most %d players; this search matched %d. Narrow it with Custom and the Scan Fields (e.g. 85-90 or 90 c-\"Mage\") to reach the rest.|r"):format(numWhos, total))
         end
     elseif moved > 0 and DEFAULT_CHAT_FRAME then
@@ -1597,6 +1829,7 @@ finishScan = function(numWhos, total, how)
 
     C_Timer.After(0, function()
         if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+        refreshScanTooltip()
         local d = M.PSSGuildDetailFrame
         if d and d:IsShown() and d.refresh then d.refresh(true) end
         if M.PSSUpdateUI then M.PSSUpdateUI(true) end
@@ -2472,6 +2705,17 @@ function M.PSS_BuildGuildUI(parent)
     search:SetScript("OnLeave", function() GameTooltip:Hide() end)
     registerGuildScanButton(search)
 
+    -- Scan All: the next /who of the guild sweep, across every guild row.
+    searchBox:SetWidth(150)   -- room for Scan All without reaching the summary text
+    local scanAll = UI.TopButton(frame, "Scan All", searchBox, 80, "PSSGuildScanAllButton")
+    scanAll:ClearAllPoints()
+    scanAll:SetPoint("RIGHT", searchBox, "LEFT", -10, 0)
+    scanAll:SetScript("OnClick", function() M.PSS_ScanAll() end)   -- /who first, UI after
+    scanAll:SetScript("OnEnter", function(self) M.PSS_ScanTipEnter(self, nil) end)
+    scanAll:SetScript("OnLeave", function() M.PSS_ScanTipLeave() end)
+    registerGuildScanButton(scanAll)
+    frame.scanAllButton = scanAll
+
     -- Columns (every column sorts): the block metrics, then the per-guild
     -- W I G P C exclusions (tickboxes).
     local COLS = {
@@ -2482,7 +2726,7 @@ function M.PSS_BuildGuildUI(parent)
     for _, c in ipairs({
         { key = "excl",    letters = "excl", width = UI.EXCL_W, lettersTitle = "Per-guild exclusions",
           lettersNote = "Ticked = allowed from every member of the guild, unticked = blocked. A member's own W I G P C (members window) wins." },
-        { key = "scan",    text = "Scan",    width = 74, tip = "Scan n/9 sends the next /who level bracket for this guild, highest levels first (1/9 = top bracket). Each scan reports in chat what it found. Sorts by this session's progress." },
+        { key = "scan",    text = "Scan",    width = 74, tip = "Sweeps the guild with /who, one search per click: the whole guild first, then any answer capped at 50 is split by level bracket, class and single level. Scan n/m = searches sent / planned so far. Hover a Scan button for the full status. Sorts by searches sent this session." },
         { key = "fields",  text = "Scan Fields", width = 120, tip = "Extra /who filters sent with the guild name by Custom Scan, e.g. 80  or  70-80 c-\"Mage\"." },
         { key = "custom",  text = "Custom",  width = 72, tip = "Custom Scan: /who for the guild plus its Scan Fields. Sorts by whether Scan Fields are set." },
     }) do COLS[#COLS + 1] = c end
@@ -2707,6 +2951,7 @@ function M.PSS_BuildGuildUI(parent)
         end)
 
         row.scan = UI.TRowButton(row, hr, "scan", "Scan")
+        row.scan:SetScript("OnLeave", function() M.PSS_ScanTipLeave() end)
 
         -- Custom Scan Fields: one free-text /who filter
         row.customScan = UI.TRowEditBox(row, hr, "fields", 128)
@@ -2847,7 +3092,10 @@ function M.PSS_BuildGuildUI(parent)
                 local gb = guildBlock(g)
                 for c, box in pairs(row.ex) do box:SetChecked(UI.ExclChecked(gb[c] == true)) end
                 if not row.customScan:HasFocus() then row.customScan:SetText(g.customScan or "") end
-                row.scan:SetText(("Scan %d/9"):format(tonumber(g.scan) or 0))
+                local sw = M.PSS_GuildSweep(key)
+                if not sw then row.scan:SetText("Scan")
+                elseif sw.done then row.scan:SetText("|cff00ff00Rescan|r")
+                else row.scan:SetText(("Scan %d/%d"):format(sw.sent, sw.sent + #sw.queue)) end
                 row.levelScan:SetText("Scan")
                 row.scan:SetEnabled(not M.PSS_ScanCooldownActive())
                 row.levelScan:SetEnabled(not M.PSS_ScanCooldownActive())
@@ -2863,8 +3111,9 @@ function M.PSS_BuildGuildUI(parent)
                 row.customScan:SetScript("OnEditFocusLost", readCustom)
                 row.scan:SetScript("OnClick", function()
                     if M.PSS_ScanBlockedMsg() then return end
-                    M.PSS_ScanGuild(g.name, "level")   -- /who first, UI after
+                    M.PSS_ScanGuild(g.name, "level", IsShiftKeyDown())   -- /who first, UI after
                 end)
+                row.scan:SetScript("OnEnter", function(self) M.PSS_ScanTipEnter(self, g) end)
                 row.levelScan:SetScript("OnClick", function()
                     if M.PSS_ScanBlockedMsg() then return end
                     readCustom()
@@ -2877,11 +3126,11 @@ function M.PSS_BuildGuildUI(parent)
     end
 
     frame:SetScript("OnShow", function()
-        -- Scan progress is session/UI state, not a persistent setting.
-        for _, guild in pairs(PourSocialScoreDB.guildData or {}) do
-            guild.scan = 0
+        -- Scan progress is session state (the sweeps), not a persistent setting.
+        for key, guild in pairs(PourSocialScoreDB.guildData or {}) do
+            local sw = M.PSS_GuildSweep(key)
+            guild.scan = sw and sw.sent or 0
         end
-        pendingGuildScan = nil
         -- Always come back to the list view, sorted by guild name A-Z.
         closeHistoryPanel()
         frame.sortKey, frame.sortAsc = "guild", true
@@ -3481,7 +3730,7 @@ SlashCmdList["PSSGUILD"] = function(msg)
         gp(("test %q -> lookup key %q"):format(name, tostring(ex.canon)))
         if #ex.sources == 0 then
             gp("|cffff5555NOT BLOCKED|r: not on the Player Ignore List and not stored under any guild rule.")
-            gp("Guild rules only block characters captured by a guild Scan (or a guild invite). Run Scan n/9 / Custom Scan on the guild, then /pssguild check " .. name)
+            gp("Guild rules only block characters captured by a guild Scan (or a guild invite). Run Scan (or Scan All) / Custom Scan on the guild, then /pssguild check " .. name)
             return
         end
         local labels = { whisper = "Whispers", partyRaid = "Party/Raid", world = "World chat", guildChat = "Guild chat",

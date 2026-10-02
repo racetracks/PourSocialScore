@@ -26,8 +26,11 @@ Player Ignore List
 * Ignore from right-click menus on targets, raid frames and the LFG list
 
 Guild Ignore List
-* Ignore whole guilds. Members are captured by guild Scan (a 9-step /who
-  sweep by level, highest levels first), Custom Scan (your own /who filter;
+* Ignore whole guilds. Members are captured by guild Scan (a /who sweep of
+  the guild, one search per click: the whole guild first, then every answer
+  capped at 50 is split by level bracket, class and single level until each
+  search is under the cap), Scan All (the same sweep across every guild row,
+  A-Z; also on a key binding), Custom Scan (your own /who filter;
   Scan Fields start as 1-60), guild invites, and any /who you run yourself
   whose results include members of a saved guild. Each scan reports in chat
   how many players it found and captured.
@@ -194,10 +197,15 @@ Removing
   finds them. /pssguild check Name-Realm shows whether a character is stored.
 
 * /who is hardware-event protected, so guild scans only run from a real
-  button click, and all scan buttons share a short cooldown.
+  button click or key press (Key Bindings > AddOns > Pour Social Score >
+  Scan All), and all scan buttons share a short cooldown. Hover a Scan
+  button for the sweep status: searches sent and queued, players found and
+  captured, the next search, and when the next click is allowed.
 
-* /who returns at most 50 players. When a bracket has more, the scan says
-  so: narrow it with Custom and the Scan Fields (e.g. 85-90, or 90 c-"Mage").
+* /who returns at most 50 players. Scan splits a capped answer on its own;
+  a search that is still capped at one level and one class is reported in
+  the tooltip ("still capped"). Custom and the Scan Fields remain for any
+  filter of your own (e.g. 85-90, or 90 c-"Mage").
   Only players who are online and visible to /who can be captured.
 
 * Character names that contain a space ("First Last-Realm") are supported
