@@ -1,0 +1,24 @@
+## Interface: 120007, 16001
+## Title: PourSocialScore
+## Notes: Sometimes you dont wanna know when a man gotta slur a little
+## Author: Boaties
+## Version: 2.0.18
+## SavedVariables: PourSocialScoreDB
+
+PSS_Localization.lua
+PSS_Globals.lua
+PSS_Perf.lua
+PSS_GuildIgnore_Managed.lua
+PSS_MainlineCompat.lua
+PSS_UIKit.lua
+PSS_ChatHistory.lua
+PSS_ChatBlock.lua
+PSS_ChatFilters.lua
+PSS_PlayerIgnoreList.lua
+PSS_GuildIgnoreList.lua
+PSS_PlayerDetail.lua
+PourSocialScore.lua
+PSS_Options.lua
+PSS_ImportExport.lua
+PSS_UI.lua
+PSS_BlizzardUI.lua
