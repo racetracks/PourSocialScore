@@ -1,5 +1,5 @@
 POUR SOCIAL SCORE AND CHAT SPAM FILTER
-Version 2.0.21 - by Boaties
+Version 2.0.22 - by Boaties
 
 Pour Social Score is a quality-of-life addon with an unlimited, account-wide
 ignore list, a guild ignore list, and a chat/spam filter engine. It removes
@@ -207,6 +207,12 @@ Removing
   the tooltip ("still capped"). Custom and the Scan Fields remain for any
   filter of your own (e.g. 85-90, or 90 c-"Mage").
   Only players who are online and visible to /who can be captured.
+
+* Options > Whois Scan Options > Enable scan level cap (with the cap in the
+  field next to it, required to tick it): no scan searches above that level.
+  Scan and Scan All search 1-cap first and stop their level brackets at the
+  cap; Custom and Guild Search have their levels cut to the cap (or get
+  1-cap added when they have none).
 
 * Character names that contain a space ("First Last-Realm") are supported
   everywhere: Add Player, Player Search, /pss add, remove and expire, and
