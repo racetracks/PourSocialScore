@@ -1,6 +1,16 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.19 - Guild Scan sweeps the whole guild, Scan All
+
+- Scan on a guild row is now a full /who sweep of that guild (from PSS Harvest), one search per click: the whole guild first, and every answer that hits the /who cap of 50 is split into narrower searches - level brackets (1-9, 10-19 ... max-1, then max level on its own), then class, then single levels - queued for the next clicks until every search is under the cap. Replaces the fixed 9-bracket cycle, which missed everyone past the first 50 of a busy bracket.
+- The button shows progress: Scan n/m (searches sent / planned so far), Rescan once the sweep is complete. Shift-click starts a guild's sweep over. Progress is kept for the session (it is no longer reset when the tab is reopened).
+- New Scan All button (top of the Guild Ignore List): the same sweep across every guild row A-Z, each guild swept to the end before the next; when all are done the next click starts a new round. Key binding: Key Bindings > AddOns > Pour Social Score > "Scan All: next guild /who".
+- Scan and Scan All tooltips show the sweep status: searches sent / queued / capped / still capped, players found, newly captured and moved, the next search, the last search, the session totals, and whether the next click is allowed yet (counts down live).
+- Each answer still reports in chat; a capped one says how many narrower searches it was split into, and a finished sweep says so with its totals.
+- /who still goes out straight from the click with the same 10 s shared cooldown; Custom Scan and Guild Search are unchanged.
+- Version 2.0.19.
+
 => 2.0.18 - Cyrillic chat filter
 
 - New filter tag [cyrillic]: matches any message containing Cyrillic letters (Russian, Ukrainian, Belarusian, Bulgarian, Serbian, Kazakh ...), including English spam that swaps in Cyrillic lookalike letters. [cyrillic=N] needs at least N Cyrillic letters.
