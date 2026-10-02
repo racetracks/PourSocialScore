@@ -45,13 +45,16 @@ local function refreshGuildScanButtons()
     end
 end
 
+-- Seconds every scan button waits after a /who (Scan, Scan All, Custom, Guild Search).
+local SCAN_COOLDOWN = 6
+
 function M.PSS_StartScanCooldown()
-    scanCooldownUntil = GetTime() + 10
+    scanCooldownUntil = GetTime() + SCAN_COOLDOWN
     refreshGuildScanButtons()
     if scanCooldownTimer and scanCooldownTimer.Cancel then
         scanCooldownTimer:Cancel()
     end
-    scanCooldownTimer = C_Timer.NewTimer(10, function()
+    scanCooldownTimer = C_Timer.NewTimer(SCAN_COOLDOWN, function()
         scanCooldownUntil = 0
         scanCooldownTimer = nil
         refreshGuildScanButtons()
