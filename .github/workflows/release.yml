@@ -1,0 +1,61 @@
+# Publishes a GitHub release whenever the version in PourSocialScore.toc
+# changes on main: tags vX.Y.Z and attaches PourSocialScore-X.Y.Z.zip
+# (the addon folder, without .github / tools), with that version's section
+# of history.txt as the release notes. Does nothing if the release exists.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: v
+        run: |
+          ver=$(sed -n 's/^## Version: *//p' PourSocialScore.toc | tr -d '\r')
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          if gh release view "v$ver" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build zip and notes
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          ver=${{ steps.v.outputs.version }}
+          mkdir -p build/PourSocialScore
+          cp *.lua *.toc readme.txt history.txt build/PourSocialScore/
+          (cd build && zip -qr "../PourSocialScore-$ver.zip" PourSocialScore)
+          {
+            echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\` so you get \`AddOns/PourSocialScore/PourSocialScore.toc\`. Retail (Midnight) and Camelot are supported."
+            echo
+            echo "### Changes"
+            awk -v v="$ver" '
+              index($0, "=> " v " ") == 1 { on = 1; next }
+              on && /^=> / { exit }
+              on { print }
+            ' history.txt
+            echo
+            echo "Full changelog: history.txt"
+          } > notes.md
+
+      - name: Publish release
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          ver=${{ steps.v.outputs.version }}
+          gh release create "v$ver" "PourSocialScore-$ver.zip" \
+            --target "$GITHUB_SHA" --title "Pour Social Score $ver" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
