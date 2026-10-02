@@ -54,8 +54,13 @@ local OPTIONS = {
     { key = "gcEnabled",      kind = "bool",   default = true,  section = 4, label = "Background memory cleanup (out of combat, never causes a hitch)" },
     { key = "frameStrata",    kind = "choice", default = 3,     section = 4, label = L["OPT_25"],
       choices = { { 0, "LOW" }, { 1, "MEDIUM" }, { 2, "HIGH" }, { 3, "DIALOG" } } },
+    -- Whois scans (Scan, Scan All, Custom, Guild Search): see PSS_WhoisHarvest.lua.
+    -- The cap is drawn in the tickbox's row (field) and must be set to tick it.
+    { key = "whoLevelCapOn",  kind = "bool",   default = false, section = 5, label = "Enable scan level cap", field = "whoLevelCap",
+      tip = "When ticked, no /who scan searches above this level: Scan and Scan All stop their level brackets at the cap, Custom and Guild Search are limited to it." },
+    { key = "whoLevelCap",    kind = "number", default = nil,   section = 5, min = 1, max = 999, inline = true, label = "Scan level cap" },
 }
-local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"] }
+local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:" }
 
 local REG = {}
 for _, o in ipairs(OPTIONS) do REG[o.key] = o end
@@ -216,8 +221,20 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
     end
     frame.refreshAll = refreshAll
 
+    -- the number option drawn next to a tickbox (o.field): a valid value is
+    -- required while the box is ticked
+    local function fieldValue(f, text)
+        local n = tonumber(text)
+        if not n then return nil end
+        n = math.floor(n)
+        if f.min and n < f.min then n = f.min end
+        if f.max and n > f.max then n = f.max end
+        return n
+    end
+
     local section = 0
     for _, o in ipairs(OPTIONS) do
+      if not o.inline then
         if o.section ~= section then
             section = o.section
             y = y - 6
@@ -236,7 +253,77 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
         label:SetText((o.label or o.key) .. (o.target and " |cff66ccff*|r" or ""))
         row.option = o
 
-        if o.kind == "bool" then
+        if o.tip then
+            row:EnableMouse(true)
+            row:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_TOP")
+                GameTooltip:AddLine(o.label, 1, 1, 1)
+                GameTooltip:AddLine(o.tip, nil, nil, nil, true)
+                GameTooltip:Show()
+            end)
+            row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        end
+
+        if o.kind == "bool" and o.field then
+            local f = REG[o.field]
+            local g = M.UI.Check(row)
+            local e = CreateFrame("EditBox", nil, row, "InputBoxTemplate")
+            e:SetSize(50, 18); e:SetAutoFocus(false); e:SetNumeric(true); e:SetJustifyH("CENTER")
+            hr:Track("all", function(x, w)
+                g:ClearAllPoints(); g:SetPoint("CENTER", row, "LEFT", x + w / 2 - 34, 0)
+                e:ClearAllPoints(); e:SetPoint("LEFT", g, "RIGHT", 10, 0)
+            end)
+            local function saved() return PourSocialScoreDB and fieldValue(f, PourSocialScoreDB[f.key]) end
+            local function warn(msg)
+                M.ShowMsg("|cffff5555" .. msg .. "|r")
+                e:SetFocus()
+            end
+            g:SetScript("OnClick", function(self)
+                if self:GetChecked() then
+                    -- ticking needs a cap: the one being typed, else the saved one
+                    local n = fieldValue(f, e:GetText()) or saved()
+                    if not n then
+                        self:SetChecked(false)
+                        warn(("%s: enter the %s first (%d-%d)."):format(o.label, f.label:lower(), f.min, f.max))
+                        return
+                    end
+                    M.PSS_SetOpt(f.key, "global", n)
+                end
+                M.PSS_SetOpt(o.key, "global", self:GetChecked() == true)
+                refreshAll()
+            end)
+            local busy   -- ClearFocus below fires OnEditFocusLost: commit once
+            local function commit(self)
+                if busy then return end
+                busy = true
+                local n = fieldValue(f, self:GetText())
+                if n then
+                    M.PSS_SetOpt(f.key, "global", n)
+                elseif PourSocialScoreDB and PourSocialScoreDB[o.key] then
+                    -- ticked: the cap is mandatory, keep the saved one
+                    M.ShowMsg(("|cffff5555%s is required while %s is ticked.|r"):format(f.label, o.label))
+                else
+                    M.PSS_SetOpt(f.key, "global", nil)
+                end
+                self:ClearFocus(); refreshAll()
+                busy = false
+            end
+            e:SetScript("OnEnterPressed", commit)
+            e:SetScript("OnEditFocusLost", commit)
+            e:SetScript("OnEscapePressed", function(self) self:ClearFocus(); refreshAll() end)
+            e:SetScript("OnEnter", row:GetScript("OnEnter"))
+            e:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            row.global, row.field = g, e
+            row.refresh = function()
+                local on = PourSocialScoreDB and PourSocialScoreDB[o.key] == true and saved() ~= nil
+                g:SetChecked(on)
+                if not e:HasFocus() then
+                    local n = saved()
+                    e:SetText(n and tostring(n) or "")
+                end
+                e:SetTextColor(on and 1 or 0.6, on and 1 or 0.6, on and 1 or 0.6)
+            end
+        elseif o.kind == "bool" then
             local g = M.UI.Check(row)
             UI.TCenter(g, row, hr, "all")
             g:SetScript("OnClick", function(self) M.PSS_SetOpt(o.key, "global", self:GetChecked() == true); refreshAll() end)
@@ -280,6 +367,7 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
         end
         rows[#rows + 1] = row
         y = y - 26
+      end
     end
 
     slate:SetHeight(-y + 20)

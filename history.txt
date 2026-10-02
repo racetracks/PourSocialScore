@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.22 - Whois Scan Options: scan level cap
+
+- New Options section "Whois Scan Options" with "Enable scan level cap" and a level field next to it. The field is required: the box can't be ticked without a cap, and the cap can't be cleared while it is ticked.
+- With the cap on, it is the highest level any scan searches. Scan and Scan All send g-"Guild" 1-cap first and split capped answers into brackets that end at the cap (the cap on its own last). Custom Scan Fields and Guild Search have every level or range cut to the cap, and get 1-cap added when they have none.
+- The Scan and Scan All tooltips show the level cap.
+- Version 2.0.22.
+
 => 2.0.21 - 6 s scan cooldown
 
 - The shared /who cooldown on Scan, Scan All, Custom and Guild Search is now 6 s (was 10 s).

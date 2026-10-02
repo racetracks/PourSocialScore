@@ -39,9 +39,26 @@ local function maxLevel()
     return math.max(10, m or 60)
 end
 
+-- Options > Whois Scan Options > Enable scan level cap: the highest level any
+-- scan searches (Scan, Scan All, Custom, Guild Search), or nil when off.
+-- Ticked without a valid cap (e.g. from an import) counts as off.
+function M.PSS_ScanLevelCap()
+    if not M.PSS_Opt("whoLevelCapOn") then return nil end
+    local cap = tonumber(M.PSS_Opt("whoLevelCap"))
+    if not cap or cap < 1 then return nil end
+    return math.floor(cap)
+end
+
+-- The highest level the sweep searches: the cap, or the game's max level.
+local function scanMaxLevel()
+    local max, cap = maxLevel(), M.PSS_ScanLevelCap()
+    return cap and math.min(cap, max) or max
+end
+
 -- 1-9, 10-19, ... up to max-1, then the max level on its own (most players).
+-- max is the level cap when one is set.
 local function brackets()
-    local max, out, lo = maxLevel(), {}, 1
+    local max, out, lo = scanMaxLevel(), {}, 1
     while lo < max do
         local hi = math.min(lo == 1 and 9 or lo + 9, max - 1)
         out[#out + 1] = { lo, hi }
@@ -73,12 +90,46 @@ local function classes()
     return out
 end
 
--- g-"Guild" [c-"Class"] [lo-hi]; an empty item is the whole guild.
+-- g-"Guild" [c-"Class"] [lo-hi]; an empty item is the whole guild (1-cap
+-- when a level cap is set).
 local function filterFor(name, it)
     local f = 'g-"' .. name:gsub('"', "") .. '"'
     if it.c then f = f .. ' c-"' .. it.c .. '"' end
-    if it.lo then f = f .. (" %d-%d"):format(it.lo, it.hi) end
+    if it.lo then
+        f = f .. (" %d-%d"):format(it.lo, it.hi)
+    elseif M.PSS_ScanLevelCap() then
+        f = f .. (" 1-%d"):format(scanMaxLevel())
+    end
     return f
+end
+
+-- A /who filter typed by hand (Custom Scan Fields, Guild Search) held to the
+-- level cap: every level or range outside quotes is cut to the cap, and one
+-- with no level gets 1-cap. Unchanged when no cap is set.
+function M.PSS_CapWhoFilter(filter)
+    local cap = M.PSS_ScanLevelCap()
+    if not cap or type(filter) ~= "string" then return filter end
+    local quoted = {}
+    local s = filter:gsub('"[^"]*"', function(q)
+        quoted[#quoted + 1] = q
+        return "\001" .. #quoted .. "\001"
+    end)
+    local out, hasLevel = {}, false
+    for tok in s:gmatch("%S+") do
+        local lo, hi = tok:match("^(%d+)%-(%d+)$")
+        local one = tok:match("^(%d+)$")
+        if lo then
+            hasLevel = true
+            hi = math.min(tonumber(hi), cap)
+            tok = ("%d-%d"):format(math.min(tonumber(lo), hi), hi)
+        elseif one then
+            hasLevel = true
+            tok = tostring(math.min(tonumber(one), cap))
+        end
+        out[#out + 1] = tok
+    end
+    if not hasLevel then out[#out + 1] = ("1-%d"):format(cap) end
+    return (table.concat(out, " "):gsub("\001(%d+)\001", function(i) return quoted[tonumber(i)] end))
 end
 M.PSS_HarvestFilter = filterFor
 
@@ -272,6 +323,8 @@ function M.PSS_ScanTooltip(owner, g)
     pair("Players found", ("%d, %d in a matching guild"):format(stats.seen, stats.matched))
     pair("Captured", ("|cff00ff00%d new|r, %d moved from another rule"):format(stats.added, stats.moved))
     pair("Last", stats.last or "-")
+    local cap = M.PSS_ScanLevelCap()
+    pair("Level cap", cap and tostring(cap) or "off (Options > Whois Scan Options)")
     GameTooltip:AddLine(" ")
     local wait = M.PSS_ScanCooldownRemaining()
     if M.PSS_WhoPending() then

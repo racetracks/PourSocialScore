@@ -1349,6 +1349,8 @@ function M.PSS_ScanGuild(guildName, mode, restart)
         -- e.g. g-"Olympus" 80 c-"Mage"
         bracket = trim(g.customScan or "")
         filter = 'g-"' .. g.name:gsub('"', "") .. '"' .. (bracket ~= "" and (" " .. bracket) or "")
+        filter = M.PSS_CapWhoFilter(filter)   -- Options: scan level cap
+        bracket = filter:match('^g%-".-"%s*(.*)$') or ""
     else
         sw, item, filter = M.PSS_HarvestNext(g, restart)
         if not item then
@@ -1633,6 +1635,7 @@ function M.PSS_GuildSearch(text)
     else
         filter = 'g-"' .. (text:gsub('"', "")) .. '"'
     end
+    filter = M.PSS_CapWhoFilter(filter)   -- Options: scan level cap
 
     pendingGuildSearch = { query = text, startedAt = GetTime(), found = {} }
 
