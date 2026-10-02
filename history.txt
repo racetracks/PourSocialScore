@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.20 - Guild sweep in its own file
+
+- The guild sweep (the PSS Harvest /who logic) now lives in PSS_WhoisHarvest.lua: search planning, the per-guild sweep state, Scan All, the key binding and the Scan tooltips. PSS_GuildIgnoreList.lua still sends the /who and stores what it finds. No change to how Scan behaves: the whole guild first (no level or class), then any answer capped at 50 is split by level bracket (1-9 upwards), then class, then single level.
+- The old Scan n/9 leftovers are gone: guild rules no longer save scan / scanTotal (old values are dropped when the rule is next loaded), and the unused bracket helpers are removed. The Scan column sorts by this session's searches sent.
+- The Scan column is wider so Scan n/m fits. A click while the guild's last search is still waiting for its answer now says so instead of doing nothing.
+- Version 2.0.20.
+
 => 2.0.19 - Guild Scan sweeps the whole guild, Scan All
 
 - Scan on a guild row is now a full /who sweep of that guild (from PSS Harvest), one search per click: the whole guild first, and every answer that hits the /who cap of 50 is split into narrower searches - level brackets (1-9, 10-19 ... max-1, then max level on its own), then class, then single levels - queued for the next clicks until every search is under the cap. Replaces the fixed 9-bracket cycle, which missed everyone past the first 50 of a busy bracket.
