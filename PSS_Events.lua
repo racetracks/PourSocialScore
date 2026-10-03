@@ -10,10 +10,19 @@
 --   M.Events.Fire("WHOIS_COOLDOWN", true)
 --
 -- Events fired so far:
---   WHOIS_COOLDOWN (active)  the shared /who cooldown started (true) or ended (false)
---   WHOIS_ANSWERED (req)     a /who answer (or a timeout) was handled; req may be nil
---   ASK_NOTE (name)          a player was just listed and Options asks for a note
---   GROUP_WARNING (names)    listed players are in your group (list of names)
+--   WHOIS_COOLDOWN (active)      the shared /who cooldown started (true) or ended (false)
+--   WHOIS_ANSWERED (req)         a /who answer (or a timeout) was handled; req may be nil
+--   ASK_NOTE (name)              a player was just listed and Options asks for a note
+--   GROUP_WARNING (names)        listed players are in your group (list of names)
+--   PLAYERS_CHANGED (forced)     the Player Ignore List changed (forced: re-sort)
+--   PLAYER_BLOCKED               a listed player's block counts went up
+--   FILTERS_CHANGED              chat filters or their counts changed
+--   FILTER_HISTORY_CHANGED (n)   chat filter n blocked a line or was reset
+--   GUILDS_CHANGED               guild rules or members changed
+--   GUILD_BLOCKS_CHANGED         guild block counts changed (at most 4 a second)
+--   GUILD_SCAN_DONE              a /who answer was stored under the guild rules
+--   GUILD_REMOVED (key)          a guild rule was removed
+--   GUILD_SEARCH_RESULTS (list, query, mode)  Guild Search found these guilds
 ------------------------------------------------------------------------
 local addonName, addon = ...
 local M = addon.M

@@ -92,6 +92,12 @@ step("player detail", function() M.PSS_ShowPlayerDetail("Tourplayer-Realm") end)
 if manual then step("guild history", function() M.PSS_ShowGuildBlockHistory(manual) end) end
 step("player history", function() M.PSS_ShowPlayerBlockHistory("Tourplayer-Realm") end)
 
+-- changes made while the windows are open must redraw them (core events)
+step("late player", function() click("PSSTab1"); M.PSS_AddIgnore("Tourlate-Realm", true) end)
+step("late filter", function() click("PSSTab2"); M.PSS_AddCustomFilter("Late filter", "[word=lateword]", true) end)
+step("late guild", function() click("PSSTabGuild"); M.PSS_AddGuild("Tour Late Guild") end)
+if manual then step("late guild detail", function() M.PSS_ShowGuildDetail(manual); M.PSS_SetGuildBlock(manual, "whisper", false) end) end
+
 local chatStart = #H.chat + 1
 step("slash pss", function() SlashCmdList.PSS("") end)
 step("slash pss mem", function() SlashCmdList.PSS("mem") end)

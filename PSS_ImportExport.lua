@@ -397,8 +397,8 @@ function M.PSS_ApplyImport(data, mode, sections)
 	if M.PSS_MarkIgnoreIndexDirty then M.PSS_MarkIgnoreIndexDirty() end
 	if M.PSS_RequestGC then M.PSS_RequestGC("import") end
 	V.needSorted = true
-	if M.PSSUpdateUI then pcall(M.PSSUpdateUI, true) end
-	if M.PSSUpdateGuildUI then pcall(M.PSSUpdateGuildUI) end
-	if M.PSSUpdateChatCount then pcall(M.PSSUpdateChatCount) end
+	M.Events.Fire("PLAYERS_CHANGED", true)
+	M.Events.Fire("GUILDS_CHANGED")
+	M.Events.Fire("FILTERS_CHANGED")
 	return table.concat(report, ", ")
 end

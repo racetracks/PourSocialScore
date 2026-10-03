@@ -148,7 +148,7 @@ function M.PSS_ResetFilterHistory(filterNum)
 	History.Clear(function(h) return h.o == key end)
 	db.filterBlocked[filterNum] = { counts = History.EmptyCounts() }
 	db.filterBlockedLast[filterNum] = 0
-	if M.PSSUpdateBlockHistory then M.PSSUpdateBlockHistory(filterNum) end
+	M.Events.Fire("FILTER_HISTORY_CHANGED", filterNum)
 end
 
 local function AddToBlockHistory (filterNum, ctx, from, chNumber, chName)
@@ -157,7 +157,7 @@ local function AddToBlockHistory (filterNum, ctx, from, chNumber, chName)
 	local channel = M.PSS_ChannelLabel and M.PSS_ChannelLabel(ctx.event, ctx.channelString, chNumber, chName) or nil
 	local entry = History.NewEntry(ctx.cat, ctx.event, ctx.msg, channel, from)
 	History.Add(M.PSS_FilterOwnerKey(filterNum), counts, entry)
-	M.PSSUpdateBlockHistory(filterNum)
+	M.Events.Fire("FILTER_HISTORY_CHANGED", filterNum)
 end
 
 -- Guild rules ("InfluencerGuild=<Name>", and any later guild rule) only
@@ -304,7 +304,7 @@ end
 function M.PSS_SetManagedGroupActive(groupKey, on)
 	local i = groupFilterIndex(groupKey)
 	if i then PourSocialScoreDB.filterActive[i] = on == true end
-	if M.PSSUpdateChatCount then M.PSSUpdateChatCount() end
+	M.Events.Fire("FILTERS_CHANGED")
 	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
 end
 
@@ -921,7 +921,7 @@ function M.PSS_ChatFilters_Evaluate(ctx)
 		-- the sender's display name is only built for a hidden line
 		local from = M.Proper(M.addServer(ctx.author or _G.UNKNOWN))
 		AddToBlockHistory(filterNum, ctx, from, chNumber, chName)
-		if M.PSSUpdateChatCount then M.PSSUpdateChatCount() end
+		M.Events.Fire("FILTERS_CHANGED")
 		return true, filterNum
 	end
 	if invert then

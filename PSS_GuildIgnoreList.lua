@@ -158,7 +158,7 @@ M.PSS_DEFAULT_SCAN_FIELDS = "1-60"
 
 local EXCL_CATS = {}
 M.PSS_EXCL_INFO = {}
-for _, e in ipairs(M.UI.EXCL) do			-- order and wording: PSS_UIKit.lua
+for _, e in ipairs(M.EXCL) do				-- order and wording: PSS_Globals.lua
 	EXCL_CATS[#EXCL_CATS + 1] = e.cat
 	M.PSS_EXCL_INFO[e.cat] = { letter = e.letter, label = e.label }
 end
@@ -874,7 +874,8 @@ end
 M.PSS_LookupGuildMember = lookupGuildMember
 
 ------------------------------------------------------------------------
--- UI refresh throttle (spam can fire many blocks per second).
+-- Block counts changed: one GUILD_BLOCKS_CHANGED per 0.25 s at most (spam
+-- can fire many blocks per second).
 ------------------------------------------------------------------------
 local guildUIRefreshPending = false
 local function requestGuildUIRefresh()
@@ -882,10 +883,7 @@ local function requestGuildUIRefresh()
 	guildUIRefreshPending = true
 	local function run()
 		guildUIRefreshPending = false
-		if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-		local d = M.PSSGuildDetailFrame
-		if d and d:IsShown() and d.refresh then d.refresh(true) end
-		if M.PSS_RefreshHistoryPopup then M.PSS_RefreshHistoryPopup() end
+		M.Events.Fire("GUILD_BLOCKS_CHANGED")
 	end
 	if C_Timer and C_Timer.After then C_Timer.After(0.25, run) else run() end
 end
@@ -932,7 +930,7 @@ function M.PSS_SetGuildBlock(guildNameOrKey, cat, value)
 	guildBlock(g)[cat] = value == true
 	refreshGuildActive(g)
 	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
-	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	M.Events.Fire("GUILDS_CHANGED")
 end
 
 -- "W I G P C" with blocked letters lit, for diagnostics.
@@ -1292,7 +1290,7 @@ function M.PSS_ScanGuild(guildName, mode, restart)
 	if not Whois.Request(req) then return false end
 	if sw then M.PSS_HarvestSent(sw, filter) end	-- only advance when the /who really went out
 	C_Timer.After(0, function()
-		if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+		M.Events.Fire("GUILDS_CHANGED")
 	end)
 	return true
 end
@@ -1397,13 +1395,7 @@ local function finishScan(req, numWhos, total, how)
 		M.ChatMsg(("PSS: %d member(s) belonged to a more specific saved guild and were moved there."):format(moved))
 	end
 
-	C_Timer.After(0, function()
-		if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-		M.PSS_RefreshScanTooltip()
-		local d = M.PSSGuildDetailFrame
-		if d and d:IsShown() and d.refresh then d.refresh(true) end
-		if M.PSSUpdateUI then M.PSSUpdateUI(true) end
-	end)
+	C_Timer.After(0, function() M.Events.Fire("GUILD_SCAN_DONE") end)
 end
 
 Whois.Listen({
@@ -1485,7 +1477,7 @@ local function saveGuildSearch(names)
 	if M.PSS_ReconcileGuildMembers then M.PSS_ReconcileGuildMembers() end
 	guildSearchChat(("%d guild(s) added to the Guild Ignore List with %d member(s) seen by the search%s."):format(
 		added, members, moved > 0 and (" (" .. moved .. " moved from another guild rule)") or ""))
-	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	M.Events.Fire("GUILDS_CHANGED")
 end
 
 local function saveGuildExclusions(names)
@@ -1494,7 +1486,7 @@ local function saveGuildExclusions(names)
 		if M.PSS_AddGuildExclusion(name) then added = added + 1 end
 	end
 	guildSearchChat(("%d guild(s) added to the Guild Exclusion List."):format(added))
-	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	M.Events.Fire("GUILDS_CHANGED")
 end
 M.PSS_SaveGuildSearch = saveGuildSearch
 M.PSS_SaveGuildExclusions = saveGuildExclusions
@@ -1701,7 +1693,7 @@ function M.PSS_SetGuildSetting(guildName, field, value)
 	if not g then return end
 	g[field] = value == true
 	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
-	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	M.Events.Fire("GUILDS_CHANGED")
 end
 
 function M.PSS_AddGuild(guildName)
@@ -1709,7 +1701,7 @@ function M.PSS_AddGuild(guildName)
 	if not g then return end
 	g.ruleOrigin = "manual"
 	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
-	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	M.Events.Fire("GUILDS_CHANGED")
 end
 
 -- canonPlayer / canonGuild are defined near the top of this file.
@@ -1831,7 +1823,7 @@ function M.PSS_AddGuildExclusion(name)
 	if ex[ck] then return false end
 	ex[ck] = trim(name):gsub("%s+", " ")
 	markMemberIndexDirty()
-	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	M.Events.Fire("GUILDS_CHANGED")
 	return true
 end
 
@@ -1841,7 +1833,7 @@ function M.PSS_RemoveGuildExclusion(name)
 	if not ck or not ex[ck] then return false end
 	ex[ck] = nil
 	markMemberIndexDirty()
-	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	M.Events.Fire("GUILDS_CHANGED")
 	return true
 end
 
@@ -2082,7 +2074,7 @@ function M.PSS_AddCapturedGuild(actualGuild, fromGroup)
 	recountGuildMembers()
 	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
 	table.sort(perSource, function(a, b) return (a.moved or 0) > (b.moved or 0) end)
-	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	M.Events.Fire("GUILDS_CHANGED")
 	return added, added + alreadyThere, removedRefs, perSource, leftover
 end
 
@@ -2127,7 +2119,7 @@ function M.PSS_RemoveGuild(guildNameOrKey)
 
 	PourSocialScoreDB.guildData[key] = nil
 	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
-	if M.PSSGuildTabFrame then M.PSSGuildTabFrame.selectedGuildKey = nil end
+	M.Events.Fire("GUILD_REMOVED", key)
 	if PourSocialScoreDB.playerData then
 		for memberKey in pairs(memberKeys) do
 			-- Keep playerData if the player is still present elsewhere in the
@@ -2142,8 +2134,8 @@ function M.PSS_RemoveGuild(guildNameOrKey)
 		end
 	end
 
-	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-	if M.PSSUpdateUI then M.PSSUpdateUI(true) end
+	M.Events.Fire("GUILDS_CHANGED")
+	M.Events.Fire("PLAYERS_CHANGED", true)
 	return removedGlobal, memberCount, true
 end
 

@@ -370,3 +370,12 @@ function M.PSS_ShowPlayerDetail(name)
 	f:Raise()
 	M.PSS_RefreshPlayerDetail(true)
 end
+
+-- The Player Block History popup (PSS_ChatHistoryUI.lua).
+function M.PSS_ShowPlayerBlockHistory(name)
+	local p = M.PSS_GetPlayerPrefs(name)
+	if not p then return end
+	M.PSS_History.ShowPopup(function()
+		return "Player Block History: " .. (p.name or name), M.PSS_GetPlayerBlockHistory(name), M.PSS_GetPlayerBlockCounts(p)
+	end, function() M.PSS_ResetPlayerBlockHistory(name) end)
+end

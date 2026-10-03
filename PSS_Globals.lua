@@ -530,3 +530,18 @@ function M.dayString (value)
 		return L["DAYS"]
 	end
 end
+
+--------------------------
+-- W I G P C CATEGORIES --
+--------------------------
+
+-- The five things a person or guild rule can be blocked from, in the order
+-- every W I G P C header shows them: block category, header letter, the
+-- player record field that stores "blocked", and the label.
+M.EXCL = {
+	{ cat = "whisper",		letter = "W", field = "whispersBlocked",		label = "Whispers" },
+	{ cat = "partyInvite", letter = "I", field = "partyInvitesBlocked", label = "Party invites" },
+	{ cat = "guildInvite", letter = "G", field = "guildInvitesBlocked", label = "Guild invites" },
+	{ cat = "partyRaid",	letter = "P", field = "partyRaidBlocked",		label = "Party/Raid chat (incl. raid warnings)" },
+	{ cat = "world",		letter = "C", field = "channelsBlocked",		label = "Chat channels (Trade, General, LFG, communities) and public chat (say, yell, emotes)" },
+}

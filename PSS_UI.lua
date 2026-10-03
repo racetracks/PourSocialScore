@@ -1916,6 +1916,12 @@ function M.PSS_RequestUIRefresh()
 	if C_Timer and C_Timer.After then C_Timer.After(0.25, run) else run() end
 end
 
+-- Core events: redraw what shows players and chat filters.
+M.Events.Register("PLAYERS_CHANGED", function(forced) M.PSSUpdateUI(forced) end)
+M.Events.Register("PLAYER_BLOCKED", function() M.PSS_RequestUIRefresh() end)
+M.Events.Register("FILTERS_CHANGED", function() M.PSSUpdateChatCount() end)
+M.Events.Register("FILTER_HISTORY_CHANGED", function(filterNum) M.PSSUpdateBlockHistory(filterNum) end)
+
 function M.PSS_GUI()
 	CreateUIFrames()
 end

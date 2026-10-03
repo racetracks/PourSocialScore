@@ -541,7 +541,7 @@ function M.SyncIgnoreList (silent)
 
 	V.PSS_InSync = false
 	V.PSS_SyncOK = true
-	M.PSSUpdateUI(true)
+	M.Events.Fire("PLAYERS_CHANGED", true)
 end
 
 function M.PruneIgnoreList (days, doit)
@@ -584,7 +584,7 @@ function M.PruneIgnoreList (days, doit)
 	if doit == true then
 		V.needSorted = true
 		M.ShowMsg(("Pruned %d entr%s listed for %d or more days."):format(targets, targets == 1 and "y" or "ies", days))
-		if M.PSSUpdateUI then M.PSSUpdateUI(true) end
+		M.Events.Fire("PLAYERS_CHANGED", true)
 	end
 
 	return targets
@@ -723,7 +723,7 @@ M.PSS_AddIgnore = function(name, noNote, exactName)
 
 		--removeDeleted(name)
 
-		M.PSSUpdateUI()
+		M.Events.Fire("PLAYERS_CHANGED")
 	else
 		if okDisplay == true then
 			M.ShowMsg(L["ADD_3"])
@@ -745,7 +745,7 @@ function M.PSS_AddPlayer(name, note, days, unit)
 		if unit and M.PSS_SetPlayerMeta then M.PSS_SetPlayerMeta(full, unit) end
 	end
 	V.needSorted = true
-	if M.PSSUpdateUI then pcall(M.PSSUpdateUI, true) end
+	M.Events.Fire("PLAYERS_CHANGED", true)
 end
 
 -- Player Search: a /who for a player name (PSS_Whois.lua). Core only - the
@@ -805,7 +805,7 @@ M.PSS_DelIgnore = function(idxpos, isPSS)
 			-- NPC / server entry: no Blizzard ignore to touch
 			RemoveFromList(index)
 			V.needSorted = true
-			M.PSSUpdateUI()
+			M.Events.Fire("PLAYERS_CHANGED")
 			return
 		end
 	elseif isPSS then
@@ -837,7 +837,7 @@ M.PSS_DelIgnore = function(idxpos, isPSS)
 		pssHookGuard = true; BlizzardDelIgnoreByIndex(blizIdx); pssHookGuard = false
 	end
 
-	M.PSSUpdateUI()
+	M.Events.Fire("PLAYERS_CHANGED")
 end
 
 M.PSS_AddOrDelIgnore = function(name)
@@ -984,7 +984,7 @@ local function addFromBlizzard(name)
 	AddToList(full, currentFaction())
 	V.needSorted = true
 	if M.PSS_Opt("chatmsg") ~= false then M.ShowMsg(format(L["ADD_2"], full)) end
-	M.PSSUpdateUI(true)
+	M.Events.Fire("PLAYERS_CHANGED", true)
 end
 
 local function removeFromBlizzard(name)
@@ -993,7 +993,7 @@ local function removeFromBlizzard(name)
 	if index > 0 then
 		RemoveFromList(index)
 		V.needSorted = true
-		M.PSSUpdateUI(true)
+		M.Events.Fire("PLAYERS_CHANGED", true)
 	end
 end
 
@@ -1256,7 +1256,7 @@ function M.PSS_RecordPlayerBlock(name, event, message, inviteKind, cat)
 		p.blockedChatMessages = (p.blockedChatMessages or 0) + 1
 	end
 	-- the window is redrawn at most a few times a second, not once per line
-	if M.PSS_RequestUIRefresh then M.PSS_RequestUIRefresh() elseif M.PSSUpdateUI then M.PSSUpdateUI() end
+	M.Events.Fire("PLAYER_BLOCKED")
 end
 
 -- Per-player counters by type (totals; not limited by the history cap).
@@ -1300,14 +1300,6 @@ function M.PSS_GetPlayerBlockHistory(name)
 	return History.For(key)
 end
 
-function M.PSS_ShowPlayerBlockHistory(name)
-	local p = ensurePlayer(name)
-	if not p then return end
-	History.ShowPopup(function()
-		return "Player Block History: " .. (p.name or name), M.PSS_GetPlayerBlockHistory(name), M.PSS_GetPlayerBlockCounts(p)
-	end, function() M.PSS_ResetPlayerBlockHistory(name) end)
-end
-
 function M.PSS_ResetPlayerBlockHistory(name)
 	local p = ensurePlayer(name)
 	if p then
@@ -1320,7 +1312,7 @@ function M.PSS_ResetPlayerBlockHistory(name)
 		p.blockedChatMessages = 0
 		p.blockedInvites = 0
 		p.blockCounts = History.EmptyCounts()
-		if M.PSSUpdateUI then M.PSSUpdateUI() end
+		M.Events.Fire("PLAYERS_CHANGED")
 	end
 end
 

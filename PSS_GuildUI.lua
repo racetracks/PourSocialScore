@@ -111,6 +111,29 @@ local function showGuildSearchResults(list, query, mode)
 end
 M.Events.Register("GUILD_SEARCH_RESULTS", showGuildSearchResults)
 
+-- Core events (PSS_GuildIgnoreList.lua): redraw what shows guild data.
+local function refreshDetail()
+	local d = M.PSSGuildDetailFrame
+	if d and d:IsShown() and d.refresh then d.refresh(true) end
+end
+M.Events.Register("GUILDS_CHANGED", function()
+	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+end)
+M.Events.Register("GUILD_BLOCKS_CHANGED", function()
+	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	refreshDetail()
+	if M.PSS_RefreshHistoryPopup then M.PSS_RefreshHistoryPopup() end
+end)
+M.Events.Register("GUILD_SCAN_DONE", function()
+	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	M.PSS_RefreshScanTooltip()
+	refreshDetail()
+	if M.PSSUpdateUI then M.PSSUpdateUI(true) end
+end)
+M.Events.Register("GUILD_REMOVED", function()
+	if M.PSSGuildTabFrame then M.PSSGuildTabFrame.selectedGuildKey = nil end
+end)
+
 ------------------------------------------------------------------------
 -- GUILD ENTRY ROWS (Guild Ignore List tab, top right)
 --

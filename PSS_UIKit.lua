@@ -52,13 +52,7 @@ UI.PORTRAIT		= "Interface\\FriendsFrame\\Battlenet-Portrait"	-- also the addon-l
 -- m.block[cat]); every W I G P C tickbox shows the inverse: ticked = that
 -- feature is allowed through, unticked = blocked. Always go through
 -- UI.ExclChecked / UI.ExclBlocked so no frame gets this backwards.
-UI.EXCL = {
-	{ cat = "whisper",		letter = "W", field = "whispersBlocked",		label = "Whispers" },
-	{ cat = "partyInvite", letter = "I", field = "partyInvitesBlocked", label = "Party invites" },
-	{ cat = "guildInvite", letter = "G", field = "guildInvitesBlocked", label = "Guild invites" },
-	{ cat = "partyRaid",	letter = "P", field = "partyRaidBlocked",		label = "Party/Raid chat (incl. raid warnings)" },
-	{ cat = "world",		letter = "C", field = "channelsBlocked",		label = "Chat channels (Trade, General, LFG, communities) and public chat (say, yell, emotes)" },
-}
+UI.EXCL = M.EXCL			-- the five categories (PSS_Globals.lua)
 UI.EXCL_BY_CAT = {}
 for _, e in ipairs(UI.EXCL) do UI.EXCL_BY_CAT[e.cat] = e end
 
