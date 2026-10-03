@@ -1666,175 +1666,93 @@ end
 -- How long Guild Search results are kept for Save (seconds).
 local GUILD_SEARCH_CACHE_TTL = 600
 
-local function buildGuildSearchFrame()
-    if M.PSSGuildSearchFrame then return M.PSSGuildSearchFrame end
-    local UI = M.UI
+-- Guild Search results: the shared picker (UI.Picker in PSS_UIKit.lua).
+--   mode nil       : ticked guilds become guild rules, with the players the
+--                    search saw in them as members
+--   mode "exclude" : ticked guilds go on the Guild Exclusion List
+local function saveGuildSearch(names)
+	local added, members, moved = 0, 0, 0
+	local cache = M.PSS_GuildSearchCache
+	-- the cache is only trusted for a while: players move guilds
+	if cache and GetTime() - (cache.at or 0) > GUILD_SEARCH_CACHE_TTL then cache = nil end
+	M.PSS__purgeBatch = M.PSS__purgeBatch or {}
 
-    local f = UI.CreateWindow("PSSGuildSearchFrame", "Guild Search Results", 420, 440,
-        { strata = "DIALOG", minW = 380, minH = 300, saveKey = "guildSearch" })
-    local inset = f.inset
-    f.heading, f.subtitle = UI.CreateSummary(inset, "Tick the guilds to add.", 380)
+	for _, name in ipairs(names) do
+		M.PSS_AddGuild(name)
+		added = added + 1
+		-- everyone the search saw in this guild becomes a member of it
+		local seen = cache and cache.byGuild[normalizeGuild(name)]
+		for _, info in ipairs(seen or {}) do
+			local res = addWhoResultToGuildMember(info, name, info.fullGuildName or name)
+			if res == "new" then
+				members = members + 1
+			elseif res == "moved" then
+				moved = moved + 1
+				members = members + 1
+			end
+		end
+	end
 
-    f.hr = UI.CreateHeaderRow(inset, {
-        { key = "add",   text = "Add",   width = 44, sort = false, tip = "Ticked guilds are added when you press Save." },
-        { key = "guild", text = "Guild", width = 330, sort = false, fill = true, minWidth = 120 },
-    }, 1, UI.HEADER_Y, nil, { id = "guildSearch", onLayout = function(h)
-        if f.content then f.content:SetWidth(math.max(f.scroll and f.scroll:GetWidth() or 0, h.total)) end
-        for _, r in ipairs(f.rows or {}) do r:SetWidth(h.total) end
-    end })
+	M.PSS_GuildSearchCache = nil
+	local batch = M.PSS__purgeBatch
+	M.PSS__purgeBatch = nil
+	if batch and next(batch) and M.PSS_PurgeChatFrom then pcall(M.PSS_PurgeChatFrom, batch) end
+	if M.PSS_ReconcileGuildMembers then M.PSS_ReconcileGuildMembers() end
+	guildSearchChat(("%d guild(s) added to the Guild Ignore List with %d member(s) seen by the search%s."):format(
+		added, members, moved > 0 and (" (" .. moved .. " moved from another guild rule)") or ""))
+	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+end
 
-    local scroll = CreateFrame("ScrollFrame", "PSSGuildSearchScroll", inset, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 1, -UI.LIST_TOP)
-    scroll:SetPoint("BOTTOMRIGHT", -27, 4)
-    local content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(f.hr.total, 1)
-    scroll:SetScrollChild(content)
-    f.content = content
-    f.scroll = scroll
-    f.rows, f.checks = {}, {}
-
-    -- bottom bar: Cancel (right), Save
-    local cancel = UI.BarButton(inset, CANCEL or "Cancel")
-    cancel:SetScript("OnClick", function() f:Hide() end)
-    -- closing the results (Cancel, Escape, X) forgets the cached players
-    f:HookScript("OnHide", function() M.PSS_GuildSearchCache = nil end)
-    f.cancel = cancel
-    local save = UI.BarButton(inset, "Save", cancel)
-    f.save = save
-
-    save:SetScript("OnClick", function()
-        if f.mode == "exclude" then
-            local added = 0
-            for _, c in ipairs(f.checks) do
-                if c:IsShown() and c:IsEnabled() and c:GetChecked() and c.guildName then
-                    if M.PSS_AddGuildExclusion(c.guildName) then added = added + 1 end
-                end
-            end
-            f:Hide()
-            guildSearchChat(("%d guild(s) added to the Guild Exclusion List."):format(added))
-            if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-            return
-        end
-        local added, members, moved = 0, 0, 0
-        local cache = M.PSS_GuildSearchCache
-        -- the cache is only trusted for a while: players move guilds
-        if cache and GetTime() - (cache.at or 0) > GUILD_SEARCH_CACHE_TTL then cache = nil end
-        M.PSS__purgeBatch = M.PSS__purgeBatch or {}
-        for _, c in ipairs(f.checks) do
-            if c:IsShown() and c:IsEnabled() and c:GetChecked() and c.guildName then
-                M.PSS_AddGuild(c.guildName)
-                added = added + 1
-                -- everyone the search saw in this guild becomes a member of it
-                local seen = cache and cache.byGuild[normalizeGuild(c.guildName)]
-                for _, info in ipairs(seen or {}) do
-                    local res = addWhoResultToGuildMember(info, c.guildName, info.fullGuildName or c.guildName)
-                    if res == "new" then members = members + 1 elseif res == "moved" then moved = moved + 1; members = members + 1 end
-                end
-            end
-        end
-        M.PSS_GuildSearchCache = nil
-        local batch = M.PSS__purgeBatch
-        M.PSS__purgeBatch = nil
-        if batch and next(batch) and M.PSS_PurgeChatFrom then pcall(M.PSS_PurgeChatFrom, batch) end
-        if M.PSS_ReconcileGuildMembers then M.PSS_ReconcileGuildMembers() end
-        f:Hide()
-        guildSearchChat(("%d guild(s) added to the Guild Ignore List with %d member(s) seen by the search%s."):format(
-            added, members, moved > 0 and (" (" .. moved .. " moved from another guild rule)") or ""))
-        if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-    end)
-
-    -- the Guild column follows the window width
-    local function fit()
-        local w = scroll:GetWidth() or 0
-        if w <= 0 then return end
-        f.hr:SetAvailableWidth(w)
-        content:SetWidth(math.max(w, f.hr.total))
-    end
-    f.fitList = fit
-    scroll:HookScript("OnSizeChanged", fit)
-
-    M.PSSGuildSearchFrame = f
-    return f
+local function saveGuildExclusions(names)
+	local added = 0
+	for _, name in ipairs(names) do
+		if M.PSS_AddGuildExclusion(name) then added = added + 1 end
+	end
+	guildSearchChat(("%d guild(s) added to the Guild Exclusion List."):format(added))
+	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
 end
 
 showGuildSearchResults = function(list, query, mode)
-    ensureDB()
-    local exclude = mode == "exclude"
-    if not list or #list == 0 then
-        if exclude then
-            -- nobody online in a guild by that name: offer to add it anyway
-			local name = trim((query or ""):gsub('"', ""))
-			M.UI.Prompt({
-				text = ("No guild named |cffffd100<%s>|r was found online.\n\nAdd it to the Guild Exclusion List anyway?"):format(name),
-				buttons = {
-					{
-						text = "Add Anyway",
-						onClick = function()
-							M.PSS_AddGuildExclusion(name)
-							guildSearchChat(("<%s> added to the Guild Exclusion List."):format(name))
-						end,
-					},
-					{ text = CANCEL or "Cancel" },
-				},
+	ensureDB()
+	local exclude = mode == "exclude"
+
+	if not list or #list == 0 then
+		if exclude then
+			-- nobody online in a guild by that name: offer to add it anyway
+			M.UI.PromptAddAnyway(trim((query or ""):gsub('"', "")), {
+				what     = "guild",
+				listName = "Guild Exclusion List",
+				add      = M.PSS_AddGuildExclusion,
 			})
-			return
-        end
-        guildSearchChat(("Guild Search found no guilds for \"%s\"."):format(query or ""))
-        return
-    end
+		else
+			guildSearchChat(("Guild Search found no guilds for \"%s\"."):format(query or ""))
+		end
+		return
+	end
 
-    local f = buildGuildSearchFrame()
-    f.mode = exclude and "exclude" or nil
-    if f.title then f.title:SetText(exclude and "Guild Exclusion Search" or "Guild Search Results") end
-    f.subtitle:SetText(("%d guild(s) found for \"%s\"."):format(#list, query or "")
-        .. (exclude and " Tick the guilds to exclude." or ""))
+	local items = {}
+	for _, name in ipairs(list) do
+		local listed
+		if exclude then
+			listed = M.PSS_IsGuildExcluded(name)
+		else
+			listed = PourSocialScoreDB.guildData[normalizeGuild(name)] ~= nil
+		end
+		items[#items + 1] = { cells = { guild = name }, value = name, listed = listed }
+	end
 
-    local UI = M.UI
-    for _, r in ipairs(f.rows) do r:Hide() end
-
-    local rowHeight = UI.ROW_H
-    for i, name in ipairs(list) do
-        local r = f.rows[i]
-        if not r then
-            r = UI.CreateRow(f.content, f.hr.total)
-            r.check = UI.Check(r)
-            UI.TCenter(r.check, r, f.hr, "add")
-            r.name = UI.TCell(r, f.hr, "guild")
-            r:SetScript("OnClick", function(self)
-                if self.check:IsEnabled() then self.check:SetChecked(not self.check:GetChecked()) end
-            end)
-            f.rows[i] = r
-            f.checks[i] = r.check
-        end
-        local c = r.check
-        r:ClearAllPoints()
-        r:SetPoint("TOPLEFT", f.content, "TOPLEFT", 0, -(i - 1) * rowHeight)
-        c.guildName = name
-
-        local exists
-        if exclude then
-            exists = M.PSS_IsGuildExcluded(name)
-        else
-            exists = PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[normalizeGuild(name)]
-        end
-        if exists then
-            c:SetChecked(false)
-            c:Disable()
-            r.name:SetText(name .. " |cff999999(already in list)|r")
-        else
-            c:Enable()
-            c:SetChecked(true)
-            r.name:SetText(name)
-        end
-        c:Show()
-        r:Show()
-    end
-    for i = #list + 1, #f.checks do f.checks[i]:Hide() end
-    if f.fitList then f.fitList() end
-    f.content:SetHeight(math.max(1, #list * rowHeight + 4))
-
-    f:Show()
-    f:Raise()
+	M.PSSGuildSearchFrame = M.UI.Picker({
+		name     = "PSSGuildSearchFrame",
+		saveKey  = "guildSearch",
+		title    = exclude and "Guild Exclusion Search" or "Guild Search Results",
+		subtitle = ("%d guild(s) found for \"%s\"."):format(#list, query or "")
+			.. (exclude and " Tick the guilds to exclude." or ""),
+		columns  = { { key = "guild", text = "Guild", width = 330, minWidth = 120 } },
+		items    = items,
+		onSave   = exclude and saveGuildExclusions or saveGuildSearch,
+		-- closing the results (Save, Cancel, Escape, X) forgets the cached players
+		onHide   = function() if not exclude then C_Timer.After(0, function() M.PSS_GuildSearchCache = nil end) end end,
+	})
 end
 
 local rosterScanQueued = false
