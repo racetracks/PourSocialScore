@@ -906,16 +906,6 @@ BlizzardDelIgnore			= C_FriendList.DelIgnore
 BlizzardDelIgnoreByIndex	= C_FriendList.DelIgnoreByIndex
 local pssHookGuard = false
 
-StaticPopupDialogs["PSS_PARTYWARN"] = {
-
-	preferredIndex	= STATICPOPUPS_NUMDIALOGS,
-	text			= L["BOX_8"],
-	button1			= L["BOX_6"],
-	timeout			= 15,
-	whileDead		= true,
-	hideOnEscape	= true,
-}
-
 -- name: "Name[-Realm] [days] [note]" as typed, or with exactName = true the
 -- whole string is the character name (it may contain a space).
 M.PSS_AddIgnore = function(name, noNote, exactName)
@@ -984,8 +974,7 @@ M.PSS_AddIgnore = function(name, noNote, exactName)
 
 			if M.PSS_Opt("asknote") == true and not noNote then
 
-				V.nameUI = name
-				StaticPopup_Show("PSS_REASON", V.nameUI)
+				M.Events.Fire("ASK_NOTE", name)
 			end
 
 			if okDisplay == true then

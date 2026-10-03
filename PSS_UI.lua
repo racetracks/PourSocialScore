@@ -84,6 +84,27 @@ StaticPopupDialogs["PSS_REASON"] = {
 	end
 }
 
+StaticPopupDialogs["PSS_PARTYWARN"] = {
+
+	preferredIndex	= STATICPOPUPS_NUMDIALOGS,
+	text			= L["BOX_8"],
+	button1			= L["BOX_6"],
+	timeout			= 15,
+	whileDead		= true,
+	hideOnEscape	= true,
+}
+
+-- a player was just listed and Options asks for a note
+M.Events.Register("ASK_NOTE", function(name)
+	V.nameUI = name
+	StaticPopup_Show("PSS_REASON", V.nameUI)
+end)
+
+-- listed players are in your group (names: the players warned about)
+M.Events.Register("GROUP_WARNING", function(names)
+	StaticPopup_Show("PSS_PARTYWARN", #names, "\n" .. table.concat(names, "\n"))
+end)
+
 local function setExpire (text)
 	local idx = M.hasAnyIgnored(V.nameUI)
 	if tonumber(text) and idx > 0 then

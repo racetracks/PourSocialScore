@@ -937,3 +937,104 @@ M.Events.Register("WHOIS_COOLDOWN", function(active)
 		if button.SetEnabled then button:SetEnabled(not active) end
 	end
 end)
+
+------------------------------------------------------------------------
+-- Resize grip (every resizable window)
+------------------------------------------------------------------------
+-- Adds a drag grip to the bottom-right corner of a top-level window.
+--   Left-drag the grip  : resize the window
+--   Right-click the grip: reset the window to its default size
+-- The size is remembered per window in PourSocialScoreDB.windowSizes[saveKey].
+-- opts = { minW, minH, maxW, maxH, saveKey, onResize = function(frame, w, h) }
+function M.PSS_MakeResizable(frame, opts)
+	if not frame or frame.PSS_ResizeGrip then return frame and frame.PSS_ResizeGrip end
+	opts = opts or {}
+
+	local defW, defH = frame:GetWidth(), frame:GetHeight()
+	local screenW = (UIParent and UIParent:GetWidth()) or 1920
+	local screenH = (UIParent and UIParent:GetHeight()) or 1080
+	local minW = opts.minW or math.min(defW, 300)
+	local minH = opts.minH or math.min(defH, 200)
+	local maxW = math.max(minW, opts.maxW or screenW)
+	local maxH = math.max(minH, opts.maxH or screenH)
+
+	frame:SetResizable(true)
+	if frame.SetResizeBounds then
+		frame:SetResizeBounds(minW, minH, maxW, maxH)
+	else
+		-- older client builds
+		if frame.SetMinResize then frame:SetMinResize(minW, minH) end
+		if frame.SetMaxResize then frame:SetMaxResize(maxW, maxH) end
+	end
+
+	local function clamp(w, h)
+		return math.max(minW, math.min(maxW, w)), math.max(minH, math.min(maxH, h))
+	end
+
+	local function saved()
+		local db = PourSocialScoreDB
+		if type(db) ~= "table" or not opts.saveKey then return nil end
+		db.windowSizes = type(db.windowSizes) == "table" and db.windowSizes or {}
+		return db.windowSizes
+	end
+
+	-- Restore a previously saved size.
+	local store = saved()
+	local s = store and store[opts.saveKey]
+	if type(s) == "table" and tonumber(s.w) and tonumber(s.h) then
+		frame:SetSize(clamp(tonumber(s.w), tonumber(s.h)))
+	end
+
+	local grip = CreateFrame("Button", nil, frame)
+	grip:SetSize(16, 16)
+	grip:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", opts.gripX or -4, opts.gripY or 4)
+	grip:SetFrameLevel(frame:GetFrameLevel() + 20)
+	grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+	grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+	grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+	grip:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	frame.PSS_ResizeGrip = grip
+
+	local function save()
+		local st = saved()
+		if st then st[opts.saveKey] = { w = math.floor(frame:GetWidth() + 0.5), h = math.floor(frame:GetHeight() + 0.5) } end
+	end
+
+	grip:SetScript("OnMouseDown", function(self, button)
+		if button ~= "LeftButton" then return end
+		frame.PSS_Sizing = true
+		frame:StartSizing("BOTTOMRIGHT")
+	end)
+	grip:SetScript("OnMouseUp", function(self, button)
+		if frame.PSS_Sizing then
+			frame.PSS_Sizing = nil
+			frame:StopMovingOrSizing()
+			save()
+		elseif button == "RightButton" then
+			frame:SetSize(clamp(defW, defH))
+			local st = saved()
+			if st then st[opts.saveKey] = nil end
+		end
+	end)
+	-- Safety net if the window is hidden mid-drag.
+	frame:HookScript("OnHide", function(self)
+		if self.PSS_Sizing then
+			self.PSS_Sizing = nil
+			self:StopMovingOrSizing()
+			save()
+		end
+	end)
+	grip:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine("Resize", 1, 1, 1)
+		GameTooltip:AddLine("Drag to resize this window.", 0.8, 0.8, 0.8)
+		GameTooltip:AddLine("Right-click to reset to the default size.", 0.8, 0.8, 0.8)
+		GameTooltip:Show()
+	end)
+	grip:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+	if opts.onResize then
+		frame:HookScript("OnSizeChanged", function(self, w, h) opts.onResize(self, w, h) end)
+	end
+	return grip
+end

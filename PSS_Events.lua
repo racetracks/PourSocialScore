@@ -9,9 +9,11 @@
 --   M.Events.Unregister("WHOIS_COOLDOWN", id)
 --   M.Events.Fire("WHOIS_COOLDOWN", true)
 --
--- Events fired so far (see PSS_Whois.lua):
+-- Events fired so far:
 --   WHOIS_COOLDOWN (active)  the shared /who cooldown started (true) or ended (false)
 --   WHOIS_ANSWERED (req)     a /who answer (or a timeout) was handled; req may be nil
+--   ASK_NOTE (name)          a player was just listed and Options asks for a note
+--   GROUP_WARNING (names)    listed players are in your group (list of names)
 ------------------------------------------------------------------------
 local addonName, addon = ...
 local M = addon.M

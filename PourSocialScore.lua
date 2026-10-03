@@ -298,7 +298,7 @@ local function CheckGroupForIgnored()
 	end
 	if doWarn then
 		M.ShowMsg(format(L["CHAT_1"], #V.groupWarning, table.concat(V.groupWarning, "\n")))
-		StaticPopup_Show("PSS_PARTYWARN", #V.groupWarning, "\n" .. table.concat(V.groupWarning, "\n"))
+		M.Events.Fire("GROUP_WARNING", V.groupWarning)
 	end
 end
 

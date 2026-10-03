@@ -24,6 +24,7 @@ PSS_ChatFilters.lua
 PSS_PlayerIgnoreList.lua
 PSS_GuildIgnoreList.lua
 PSS_WhoisHarvest.lua
+PSS_WhoisHarvestUI.lua
 PSS_PlayerDetail.lua
 PourSocialScore.lua
 PSS_Options.lua
