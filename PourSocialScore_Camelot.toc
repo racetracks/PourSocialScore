@@ -1,8 +1,10 @@
 ## Interface: 16001
 ## Title: Pour Social Score and Chat Spam Filter
 ## Notes: Unlimited account-wide player and guild ignore lists with powerful chat/spam filters.
+## Category: PSS
+## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
-## Version: 2.0.26
+## Version: 2.0.27
 ## SavedVariables: PourSocialScoreDB
 ## OptionalDeps: PoorSocialScore, GlobalIgnoreList
 
