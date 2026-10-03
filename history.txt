@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.31 - Escape closes the main window
+
+- Pressing Escape now closes the main PourSocialScore window, the same as the Block History, Guild Members, Player and picker windows and the prompt dialog already did.
+- Version 2.0.31.
+
 => 2.0.30 - Addon list title and note
 
 - The Mainline and Camelot TOCs now use the title "PourSocialScore" and the original note, the same as PourSocialScore.toc.
