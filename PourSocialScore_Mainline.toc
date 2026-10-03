@@ -1,10 +1,10 @@
 ## Interface: 120007
-## Title: Pour Social Score and Chat Spam Filter
-## Notes: Unlimited account-wide player and guild ignore lists with powerful chat/spam filters.
+## Title: PourSocialScore
+## Notes: Sometimes you dont wanna know when a man gotta slur a little
 ## Category: PSS
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
-## Version: 2.0.29
+## Version: 2.0.30
 ## SavedVariables: PourSocialScoreDB
 ## OptionalDeps: PoorSocialScore, GlobalIgnoreList
 

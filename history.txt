@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.30 - Addon list title and note
+
+- The Mainline and Camelot TOCs now use the title "PourSocialScore" and the original note, the same as PourSocialScore.toc.
+- Version 2.0.30.
+
 => 2.0.29 - Guild members stored compactly (memory back down)
 
 - Since 2.0.19 Scan and Scan All sweep whole guilds, so the Guild Ignore List can hold thousands of captured players. Each one was saved with four Allow flags, an empty block-choice table, a zero blockCounts table and /who details nothing reads (online, race, class name), and every login added another empty table to each: about 1.5-2 KB per player once loaded. 5,000 captured players came to about 10.6 MB.
