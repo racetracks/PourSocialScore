@@ -11,69 +11,17 @@ local M = addon.M
 local V = addon.V
 local L = addon.L -- localization entries
 
-local pendingGuildScan = nil
-local pendingGuildSearch = nil
 local showGuildSearchResults
-local processWho
-local finishScan
-local scanCooldownUntil = 0
-local scanCooldownTimer = nil
-local guildScanButtons = {}
+local Whois = M.Whois   -- /who sending, cooldown and answers (PSS_Whois.lua)
 
-local function scanCooldownRemaining()
-    return math.max(0, scanCooldownUntil - GetTime())
-end
+-- Scan / Guild Search buttons are disabled while /who cools down (PSS_UIKit.lua).
+local function registerGuildScanButton(button) M.UI.RegisterWhoisButton(button) end
 
-function M.PSS_ScanCooldownActive()
-    return scanCooldownRemaining() > 0
-end
-M.PSS_ScanCooldownRemaining = scanCooldownRemaining
+-- the cooldown ending re-enables the row Scan buttons: redraw the list
+M.Events.Register("WHOIS_COOLDOWN", function(active)
+	if not active and M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+end)
 
--- A guild Scan or Guild Search /who is waiting for its answer.
-function M.PSS_WhoPending()
-    return (pendingGuildScan or pendingGuildSearch) and true or false
-end
-
-local function refreshGuildScanButtons()
-    local active = M.PSS_ScanCooldownActive()
-    for button in pairs(guildScanButtons) do
-        if button and button.SetEnabled then
-            button:SetEnabled(not active)
-        else
-            guildScanButtons[button] = nil
-        end
-    end
-end
-
--- Seconds every scan button waits after a /who (Scan, Scan All, Custom, Guild Search).
-local SCAN_COOLDOWN = 6
-
-function M.PSS_StartScanCooldown()
-    scanCooldownUntil = GetTime() + SCAN_COOLDOWN
-    refreshGuildScanButtons()
-    if scanCooldownTimer and scanCooldownTimer.Cancel then
-        scanCooldownTimer:Cancel()
-    end
-    scanCooldownTimer = C_Timer.NewTimer(SCAN_COOLDOWN, function()
-        scanCooldownUntil = 0
-        scanCooldownTimer = nil
-        refreshGuildScanButtons()
-        if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-        if M.PSS_RefreshScanTooltip then M.PSS_RefreshScanTooltip() end
-    end)
-end
-
--- A click while /who is cooling down says so instead of doing nothing.
-function M.PSS_ScanBlockedMsg()
-    if not M.PSS_ScanCooldownActive() then return false end
-    M.ShowMsg(("/who is cooling down - try again in %d s."):format(math.ceil(scanCooldownRemaining())))
-    return true
-end
-
-local function registerGuildScanButton(button)
-    guildScanButtons[button] = true
-    button:SetEnabled(not M.PSS_ScanCooldownActive())
-end
 local trim            = M.PSS_Trim
 local normalizePlayer = M.PSS_NormalizePlayer
 local displayPlayer   = M.PSS_DisplayPlayer
@@ -1224,37 +1172,6 @@ function M.PSS_ShowGuildBlockHistory(guildNameOrKey)
     end, function() M.PSS_ResetGuildBlockHistory(guildNameOrKey) end)
 end
 
--- Proven guild WHO path retained from the original 12.1.8 build: a plain
--- C_FriendList.SendWho(filter) straight from the click, no FriendsFrame
--- event manipulation, secure delegates or SetWhoToUi.
-local WHO_REPEAT_WINDOW = 3
-local lastWhoFilter, lastWhoTime = nil, 0
-
-local function whoAllowed(filter)
-    local now = GetTime()
-    if filter == lastWhoFilter and now - lastWhoTime < WHO_REPEAT_WINDOW then
-        return false
-    end
-    lastWhoFilter, lastWhoTime = filter, now
-    return true
-end
-
-local function sendWhoInternal(filter)
-    if not filter or filter == "" then return false end
-    if not whoAllowed(filter) then
-        M.ShowMsg("That /who was just sent - wait a few seconds before repeating it.")
-        return false
-    end
-    if C_FriendList and C_FriendList.SendWho then
-        C_FriendList.SendWho(filter)
-        return true
-    elseif SendWho then
-        SendWho(filter)
-        return true
-    end
-    return false
-end
-
 -- Store one /who result under a guild rule. Returns "new" (not stored under
 -- that rule before), "known", or nil (no rule / no guild).
 local function addWhoResultToGuildMember(info, guildRowName, actualGuild)
@@ -1337,290 +1254,184 @@ local function addWhoResultToGuildMember(info, guildRowName, actualGuild)
 end
 
 function M.PSS_ScanGuild(guildName, mode, restart)
-    local g = ensureGuild(guildName)
-    if not g then return false end
-    if not g.ruleOrigin then g.ruleOrigin = "scan" end
+	local g = ensureGuild(guildName)
+	if not g then return false end
+	if not g.ruleOrigin then g.ruleOrigin = "scan" end
 
-    -- mode "custom": the guild plus its Scan Fields; anything else: the
-    -- next search of the guild's sweep (PSS_WhoisHarvest.lua)
-    mode = (mode == "custom") and "custom" or "sweep"
-    local filter, bracket, step, sw, item
-    if mode == "custom" then
-        -- Custom Scan Fields text is sent as-is after the guild name,
-        -- e.g. g-"Olympus" 80 c-"Mage"
-        bracket = trim(g.customScan or "")
-        filter = 'g-"' .. g.name:gsub('"', "") .. '"' .. (bracket ~= "" and (" " .. bracket) or "")
-        filter = M.PSS_CapWhoFilter(filter)   -- Options: scan level cap
-        bracket = filter:match('^g%-".-"%s*(.*)$') or ""
-    else
-        sw, item, filter = M.PSS_HarvestNext(g, restart)
-        if not item then
-            M.ShowMsg(("Scan <%s>: waiting for the answer to the last search."):format(g.name))
-            return false
-        end
-        bracket = filter:match('^g%-".-"%s*(.*)$') or ""
-        step = sw.sent + 1
-    end
+	-- mode "custom": the guild plus its Scan Fields; anything else: the
+	-- next search of the guild's sweep (PSS_WhoisHarvest.lua)
+	mode = (mode == "custom") and "custom" or "sweep"
+	local filter, bracket, step, sw, item
+	if mode == "custom" then
+		-- Custom Scan Fields text is sent as-is after the guild name,
+		-- e.g. g-"Olympus" 80 c-"Mage"
+		bracket = trim(g.customScan or "")
+		filter = 'g-"' .. g.name:gsub('"', "") .. '"' .. (bracket ~= "" and (" " .. bracket) or "")
+		filter = M.PSS_CapWhoFilter(filter)   -- Options: scan level cap
+		bracket = filter:match('^g%-".-"%s*(.*)$') or ""
+	else
+		sw, item, filter = M.PSS_HarvestNext(g, restart)
+		if not item then
+			M.ShowMsg(("Scan <%s>: waiting for the answer to the last search."):format(g.name))
+			return false
+		end
+		bracket = filter:match('^g%-".-"%s*(.*)$') or ""
+		step = sw.sent + 1
+	end
 
-    pendingGuildScan = {
-        guildKey = normalizeGuild(g.name),
-        guildName = g.name,
-        bracket = bracket or "",
-        filter = filter,
-        mode = mode,
-        step = step,
-        sweep = sw,
-        item = item,
-        startedAt = GetTime(),
-        seen = 0, matched = 0, added = 0, other = 0, moved = 0,
-    }
+	local req = {
+		kind = "guildScan",
+		guildKey = normalizeGuild(g.name),
+		guildName = g.name,
+		bracket = bracket or "",
+		filter = filter,
+		mode = mode,
+		step = step,
+		sweep = sw,
+		item = item,
+		startedAt = GetTime(),
+		seen = 0, matched = 0, added = 0, other = 0, moved = 0,
+	}
 
-    -- Mirrors OlympusMute's WhoScan(): the /who goes out straight from the
-    -- button's OnClick with nothing UI-related having run first.  Cooldown,
-    -- button state and list refresh all happen on the next frame, so the
-    -- click handler never disables/hides/re-scripts the button it is running
-    -- from before the protected call has been made.
-    if not sendWhoInternal(filter) then
-        pendingGuildScan = nil
-        return false
-    end
-    if sw then M.PSS_HarvestSent(sw, filter) end   -- only advance when the /who really went out
-    -- no answer within 5 s (nobody online): report it and free the scan
-    local thisScan = pendingGuildScan
-    C_Timer.After(5, function() if pendingGuildScan == thisScan then finishScan() end end)
-
-    C_Timer.After(0, function()
-        M.PSS_StartScanCooldown()
-        if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-    end)
-    return true
+	-- Mirrors OlympusMute's WhoScan(): the /who goes out straight from the
+	-- button's OnClick with nothing UI-related having run first.  Cooldown,
+	-- button state and list refresh all happen on the next frame, so the
+	-- click handler never disables/hides/re-scripts the button it is running
+	-- from before the protected call has been made.
+	-- (Whois.Request starts the cooldown and the 5 s "nobody answered"
+	-- timer itself, both after the /who has gone out.)
+	if not Whois.Request(req) then return false end
+	if sw then M.PSS_HarvestSent(sw, filter) end   -- only advance when the /who really went out
+	C_Timer.After(0, function()
+		if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	end)
+	return true
 end
 
 ------------------------------------------------------------------------
--- /who RESULTS
+-- /who RESULTS (from PSS_Whois.lua)
 --
--- The game delivers /who results in one of two ways (Blizzard_FriendsFrame):
---   * WHO_LIST_UPDATE + C_FriendList.GetWhoInfo  - when the Who window is
---     open (it calls SetWhoToUi(true)) or the result is large
---   * one CHAT_MSG_SYSTEM line per player (WHO_LIST_GUILD_FORMAT) - when the
---     Who window is closed and the result is small
--- 2.0.9 only read the first, so a scan whose players were printed in chat
--- captured nobody. Both are read now, and every result - from a Scan, a
--- Guild Search or your own /who - is stored under the saved guild rule that
--- owns the player's guild. (A /who never CREATES a guild rule.)
+-- Every /who answer - from a Scan, a Guild Search, a Player Search or your
+-- own /who - is read here: each player is stored under the saved guild rule
+-- that owns their guild. (A /who never CREATES a guild rule.) A guild Scan
+-- or Guild Search request also keeps its own counts and results.
 ------------------------------------------------------------------------
--- one result from either path; returns "new" / "known" / nil
-local function captureWho(info)
-    local guild = info.fullGuildName or info.guild or ""
-    if type(guild) ~= "string" or isSecret(guild) then guild = "" end
-    local scan = pendingGuildScan
-    if scan then scan.seen = scan.seen + 1 end
-    if pendingGuildSearch and guild ~= "" then
-        local gkey = normalizeGuild(guild)
-        pendingGuildSearch.found = pendingGuildSearch.found or {}
-        pendingGuildSearch.players = pendingGuildSearch.players or {}
-        if gkey and not pendingGuildSearch.found[gkey] then pendingGuildSearch.found[gkey] = trim(guild) end
-        -- remembered so the guilds you add from the results get these players
-        local fn = info.fullName or info.name
-        if gkey and type(fn) == "string" and not isSecret(fn) and fn ~= "" then
-            local list = pendingGuildSearch.players[gkey] or {}
-            pendingGuildSearch.players[gkey] = list
-            list[#list + 1] = {
-                fullName = fn, fullGuildName = guild, level = info.level,
-                classStr = info.classStr, className = info.className, filename = info.filename,
-                raceStr = info.raceStr or info.race,
-            }
-        end
-    end
-    if guild == "" then
-        if scan then scan.other = scan.other + 1 end
-        return nil
-    end
-    local res
-    if scan and guildMatches(scan.guildName, guild) then
-        scan.matched = scan.matched + 1
-        res = addWhoResultToGuildMember(info, scan.guildName, guild)
-    else
-        if scan then scan.other = scan.other + 1 end
-        local ownerKey, owner = M.PSS_BestGuildRowFor(guild)
-        if owner then res = addWhoResultToGuildMember(info, owner.name or ownerKey, guild) end
-    end
-    if scan and res == "new" then scan.added = scan.added + 1 end
-    if scan and res == "moved" then scan.moved = (scan.moved or 0) + 1 end
-    if res then M.PSS__whoCaptured = true end
-    return res
-end
+-- one result; returns "new" / "known" / "moved" / nil
+local function captureWho(info, req)
+	local guild = info.fullGuildName or info.guild or ""
+	if type(guild) ~= "string" or isSecret(guild) then guild = "" end
+	local scan = (req and req.kind == "guildScan") and req or nil
+	local search = (req and req.kind == "guildSearch") and req or nil
+	if scan then scan.seen = scan.seen + 1 end
 
--- Who chat lines: patterns built from the client's own format strings, so
--- they follow the game language.
-local whoLinePatterns
-local function buildWhoLinePatterns()
-    whoLinePatterns = {}
-    for _, gname in ipairs({ "WHO_LIST_GUILD_FORMAT", "WHO_LIST_GUILD_TIMERUNNING_FORMAT" }) do
-        local fmt = _G[gname]
-        if type(fmt) == "string" and fmt:find("<", 1, true) then
-            local specs, argN = {}, 0
-            local pat = ""
-            local i = 1
-            while i <= #fmt do
-                local n, t, len
-                local s1, e1, num, typ = fmt:find("^%%(%d+)%$([sd])", i)
-                if s1 then n, t, len = tonumber(num), typ, e1 - i + 1
-                else
-                    local s2, e2, typ2 = fmt:find("^%%([sd])", i)
-                    if s2 then argN = argN + 1; n, t, len = argN, typ2, e2 - i + 1 end
-                end
-                if n then
-                    specs[#specs + 1] = { arg = n, kind = t, inGuild = fmt:sub(i - 1, i - 1) == "<" }
-                    pat = pat .. (t == "d" and "(%d+)" or "(.-)")
-                    i = i + len
-                else
-                    local c = fmt:sub(i, i)
-                    if c == "%" and fmt:sub(i + 1, i + 1) == "%" then c = "%"; i = i + 1 end
-                    pat = pat .. c:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
-                    i = i + 1
-                end
-            end
-            local nameCap, guildCap, levelCap
-            for ci, sp in ipairs(specs) do
-                if sp.arg == 1 then nameCap = ci end
-                if sp.inGuild then guildCap = ci end
-                if sp.kind == "d" and not levelCap then levelCap = ci end
-            end
-            if nameCap and guildCap then
-                whoLinePatterns[#whoLinePatterns + 1] = { pat = "^" .. pat .. "$", name = nameCap, guild = guildCap, level = levelCap }
-            end
-        end
-    end
-end
+	if search and guild ~= "" then
+		local gkey = normalizeGuild(guild)
+		search.found = search.found or {}
+		search.players = search.players or {}
+		if gkey and not search.found[gkey] then search.found[gkey] = trim(guild) end
+		-- remembered so the guilds you add from the results get these players
+		local fn = info.fullName or info.name
+		if gkey and type(fn) == "string" and not isSecret(fn) and fn ~= "" then
+			local list = search.players[gkey] or {}
+			search.players[gkey] = list
+			list[#list + 1] = {
+				fullName = fn, fullGuildName = guild, level = info.level,
+				classStr = info.classStr, className = info.className, filename = info.filename,
+				raceStr = info.raceStr or info.race,
+			}
+		end
+	end
 
-local function parseWhoLine(msg)
-    if type(msg) ~= "string" or isSecret(msg) or not msg:find("|Hplayer:", 1, true) then return nil end
-    if not whoLinePatterns then buildWhoLinePatterns() end
-    for _, p in ipairs(whoLinePatterns) do
-        local caps = { msg:match(p.pat) }
-        if caps[1] then
-            return { fullName = caps[p.name], fullGuildName = caps[p.guild], level = p.level and tonumber(caps[p.level]) }
-        end
-    end
-    -- language-neutral fallback, only while one of our own /who is pending:
-    -- "|Hplayer:Name-Realm|h[Name]|h: ... 80 ... <Guild> - Zone"
-    if pendingGuildScan or pendingGuildSearch then
-        local name, level, guild = msg:match("^|Hplayer:([^:|]+)[^|]*|h%[.-%]|h: %D-(%d+).-<(.-)>")
-        if name then return { fullName = name, fullGuildName = guild, level = tonumber(level) } end
-    end
-    return nil
-end
-
-local chatFinishQueued = false
-local function onWhoChatLine(msg)
-    local info = parseWhoLine(msg)
-    if not info then return end
-    M.PSS__purgeBatch = M.PSS__purgeBatch or {}
-    pcall(captureWho, info)
-    if not chatFinishQueued then
-        -- the lines arrive one per player; wrap up shortly after the last one
-        chatFinishQueued = true
-        C_Timer.After(1, function()
-            chatFinishQueued = false
-            local batch = M.PSS__purgeBatch
-            M.PSS__purgeBatch = nil
-            if batch and next(batch) and M.PSS_PurgeChatFrom then pcall(M.PSS_PurgeChatFrom, batch) end
-            finishScan(nil, nil, "chat")
-        end)
-    end
+	if guild == "" then
+		if scan then scan.other = scan.other + 1 end
+		return nil
+	end
+	local res
+	if scan and guildMatches(scan.guildName, guild) then
+		scan.matched = scan.matched + 1
+		res = addWhoResultToGuildMember(info, scan.guildName, guild)
+	else
+		if scan then scan.other = scan.other + 1 end
+		local ownerKey, owner = M.PSS_BestGuildRowFor(guild)
+		if owner then res = addWhoResultToGuildMember(info, owner.name or ownerKey, guild) end
+	end
+	if scan and res == "new" then scan.added = scan.added + 1 end
+	if scan and res == "moved" then scan.moved = (scan.moved or 0) + 1 end
+	if res then M.PSS__whoCaptured = true end
+	return res
 end
 
 -- After a /who answer: show Guild Search results, move members to the most
 -- specific rule, report what the scan did, refresh.
-finishScan = function(numWhos, total, how)
-    if M.PSS_RequestGC then M.PSS_RequestGC("who results") end
-    local scan, searchState = pendingGuildScan, pendingGuildSearch
-    pendingGuildScan, pendingGuildSearch = nil, nil
-    local captured = M.PSS__whoCaptured
-    M.PSS__whoCaptured = nil
+local function finishScan(req, numWhos, total, how)
+	if M.PSS_RequestGC then M.PSS_RequestGC("who results") end
+	local scan = (req and req.kind == "guildScan") and req or nil
+	local searchState = (req and req.kind == "guildSearch") and req or nil
+	local captured = M.PSS__whoCaptured
+	M.PSS__whoCaptured = nil
+	if searchState then
+		local list = {}
+		for _, name in pairs(searchState.found or {}) do list[#list + 1] = name end
+		table.sort(list, function(a, b) return a:lower() < b:lower() end)
+		-- temporary cache of who was seen in each guild (used by Save)
+		M.PSS_GuildSearchCache = { at = GetTime(), byGuild = searchState.players or {} }
+		C_Timer.After(0, function()
+			if showGuildSearchResults then showGuildSearchResults(list, searchState.query, searchState.mode) end
+		end)
+	end
 
-    if searchState then
-        local list = {}
-        for _, name in pairs(searchState.found or {}) do list[#list + 1] = name end
-        table.sort(list, function(a, b) return a:lower() < b:lower() end)
-        -- temporary cache of who was seen in each guild (used by Save)
-        M.PSS_GuildSearchCache = { at = GetTime(), byGuild = searchState.players or {} }
-        C_Timer.After(0, function()
-            if showGuildSearchResults then showGuildSearchResults(list, searchState.query, searchState.mode) end
-        end)
-    end
+	local moved = scan and scan.moved or 0
+	if (scan or captured) and M.PSS_ReconcileGuildMembers then moved = moved + (M.PSS_ReconcileGuildMembers() or 0) end
 
-    local moved = scan and scan.moved or 0
-    if (scan or captured) and M.PSS_ReconcileGuildMembers then moved = moved + (M.PSS_ReconcileGuildMembers() or 0) end
+	local split = scan and scan.sweep and M.PSS_HarvestAnswered(scan, numWhos, total) or 0
 
-    local split = scan and scan.sweep and M.PSS_HarvestAnswered(scan, numWhos, total) or 0
+	if scan then
+		local sw = scan.sweep
+		local what = (scan.mode == "custom") and ("Custom (" .. (scan.bracket ~= "" and scan.bracket or "no fields") .. ")")
+			or ("Scan %d/%d (%s)"):format(scan.step or 0, (sw and (sw.sent + #sw.queue)) or 0, scan.bracket ~= "" and scan.bracket or "whole guild")
+		if scan.seen == 0 then
+			M.ShowMsg(("%s for <%s>: /who found nobody. Only online players show in /who - try another bracket or Custom."):format(what, scan.guildName))
+		else
+			M.ShowMsg(("%s for <%s>: %d player(s) found, %d in a matching guild, %d newly captured%s%s."):format(
+				what, scan.guildName, scan.seen, scan.matched, scan.added,
+				moved > 0 and (", " .. moved .. " moved here from another guild rule") or "",
+				scan.other > 0 and (", " .. scan.other .. " in other guilds skipped") or ""))
+		end
+		if split > 0 then
+			M.ShowMsg(("|cffff9900/who capped at %d: split into %d narrower searches - keep clicking Scan.|r"):format(M.PSS_WHO_CAP, split))
+		elseif sw and sw.done then
+			M.ShowMsg(("|cff00ff00Sweep of <%s> complete|r: %d searches, %d players found, %d newly captured."):format(scan.guildName, sw.sent, sw.seen, sw.added))
+		elseif not sw and tonumber(total) and tonumber(numWhos) and total > numWhos then
+			M.ShowMsg(("|cffff9900/who shows at most %d players; this search matched %d. Narrow it with Custom and the Scan Fields (e.g. 85-90 or 90 c-\"Mage\") to reach the rest.|r"):format(numWhos, total))
+		end
+	elseif moved > 0 and DEFAULT_CHAT_FRAME then
+		DEFAULT_CHAT_FRAME:AddMessage(("PSS: %d member(s) belonged to a more specific saved guild and were moved there."):format(moved))
+	end
 
-    if scan then
-        local sw = scan.sweep
-        local what = (scan.mode == "custom") and ("Custom (" .. (scan.bracket ~= "" and scan.bracket or "no fields") .. ")")
-            or ("Scan %d/%d (%s)"):format(scan.step or 0, (sw and (sw.sent + #sw.queue)) or 0, scan.bracket ~= "" and scan.bracket or "whole guild")
-        if scan.seen == 0 then
-            M.ShowMsg(("%s for <%s>: /who found nobody. Only online players show in /who - try another bracket or Custom."):format(what, scan.guildName))
-        else
-            M.ShowMsg(("%s for <%s>: %d player(s) found, %d in a matching guild, %d newly captured%s%s."):format(
-                what, scan.guildName, scan.seen, scan.matched, scan.added,
-                moved > 0 and (", " .. moved .. " moved here from another guild rule") or "",
-                scan.other > 0 and (", " .. scan.other .. " in other guilds skipped") or ""))
-        end
-        if split > 0 then
-            M.ShowMsg(("|cffff9900/who capped at %d: split into %d narrower searches - keep clicking Scan.|r"):format(M.PSS_WHO_CAP, split))
-        elseif sw and sw.done then
-            M.ShowMsg(("|cff00ff00Sweep of <%s> complete|r: %d searches, %d players found, %d newly captured."):format(scan.guildName, sw.sent, sw.seen, sw.added))
-        elseif not sw and tonumber(total) and tonumber(numWhos) and total > numWhos then
-            M.ShowMsg(("|cffff9900/who shows at most %d players; this search matched %d. Narrow it with Custom and the Scan Fields (e.g. 85-90 or 90 c-\"Mage\") to reach the rest.|r"):format(numWhos, total))
-        end
-    elseif moved > 0 and DEFAULT_CHAT_FRAME then
-        DEFAULT_CHAT_FRAME:AddMessage(("PSS: %d member(s) belonged to a more specific saved guild and were moved there."):format(moved))
-    end
-
-    C_Timer.After(0, function()
-        if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-        M.PSS_RefreshScanTooltip()
-        local d = M.PSSGuildDetailFrame
-        if d and d:IsShown() and d.refresh then d.refresh(true) end
-        if M.PSSUpdateUI then M.PSSUpdateUI(true) end
-    end)
+	C_Timer.After(0, function()
+		if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+		M.PSS_RefreshScanTooltip()
+		local d = M.PSSGuildDetailFrame
+		if d and d:IsShown() and d.refresh then d.refresh(true) end
+		if M.PSSUpdateUI then M.PSSUpdateUI(true) end
+	end)
 end
 
-processWho = function()
-    local getNum, getInfo
-    if C_FriendList and C_FriendList.GetNumWhoResults and C_FriendList.GetWhoInfo then
-        getNum, getInfo = C_FriendList.GetNumWhoResults, C_FriendList.GetWhoInfo
-    elseif GetNumWhoResults and GetWhoInfo then
-        getNum, getInfo = GetNumWhoResults, GetWhoInfo
-    else
-        return
-    end
-
-    -- expire a scan / search that never got an answer
-    if pendingGuildScan and GetTime() - (pendingGuildScan.startedAt or 0) > 30 then pendingGuildScan = nil end
-    if pendingGuildSearch and GetTime() - (pendingGuildSearch.startedAt or 0) > 30 then pendingGuildSearch = nil end
-
-    local numWhos, total = getNum()
-    if type(numWhos) == "table" then numWhos = numWhos[1] end
-    numWhos = tonumber(numWhos) or 0
-    total = tonumber(total) or numWhos
-
-    for i = 1, numWhos do
-        local first = getInfo(i)
-        local info
-        if type(first) == "table" then
-            info = first
-        else
-            local a,b,c,d,e,f,g,h = getInfo(i)
-            info = { fullName = a, fullGuildName = b, level = c, race = d, classStr = e, zone = f, filename = g, sex = h }
-        end
-        pcall(captureWho, info)
-    end
-
-    finishScan(numWhos, total, "list")
-end
+Whois.Listen({
+	-- one chat-history sweep for everyone newly captured by this answer
+	begin = function()
+		M.PSS__purgeBatch = M.PSS__purgeBatch or {}
+	end,
+	info = function(info, req)
+		captureWho(info, req)
+	end,
+	finish = function(req, numWhos, total, how)
+		local batch = M.PSS__purgeBatch
+		M.PSS__purgeBatch = nil
+		if batch and next(batch) and M.PSS_PurgeChatFrom then pcall(M.PSS_PurgeChatFrom, batch) end
+		finishScan(req, numWhos, total, how)
+	end,
+})
 
 -- GUILD SEARCH ---------------------------------------------------------
 -- Sends a normal /who and collects the distinct guild names in the results.
@@ -1629,32 +1440,19 @@ end
 -- mode "exclude" (the Guild Exclusion List search): the text is always a
 -- guild name, and the results picker adds to the exclusion list instead.
 function M.PSS_GuildSearch(text, mode)
-    text = trim(text or "")
-    if text == "" then return false end
+	text = trim(text or "")
+	if text == "" then return false end
 
-    local filter
-    if mode ~= "exclude" and text:find('"', 1, true) then
-        filter = text
-    else
-        filter = 'g-"' .. (text:gsub('"', "")) .. '"'
-    end
-    filter = M.PSS_CapWhoFilter(filter)   -- Options: scan level cap
+	local filter
+	if mode ~= "exclude" and text:find('"', 1, true) then
+		filter = text
+	else
+		filter = 'g-"' .. (text:gsub('"', "")) .. '"'
+	end
+	filter = M.PSS_CapWhoFilter(filter)   -- Options: scan level cap
 
-    pendingGuildSearch = { query = text, mode = mode, startedAt = GetTime(), found = {} }
-
-    -- /who must go out straight from the click (hardware event); UI work is
-    -- deferred one frame, exactly like the guild scan buttons.
-    if not sendWhoInternal(filter) then
-        pendingGuildSearch = nil
-        return false
-    end
-
-    C_Timer.After(0, function()
-        M.PSS_StartScanCooldown()
-    end)
-    local thisSearch = pendingGuildSearch
-    C_Timer.After(5, function() if pendingGuildSearch == thisSearch then finishScan() end end)
-    return true
+	-- /who must go out straight from the click (hardware event)
+	return Whois.Request({ kind = "guildSearch", filter = filter, query = text, mode = mode, found = {} })
 end
 
 local function guildSearchChat(msg)
@@ -1666,175 +1464,94 @@ end
 -- How long Guild Search results are kept for Save (seconds).
 local GUILD_SEARCH_CACHE_TTL = 600
 
-local function buildGuildSearchFrame()
-    if M.PSSGuildSearchFrame then return M.PSSGuildSearchFrame end
-    local UI = M.UI
+-- Guild Search results: the shared picker (UI.Picker in PSS_UIKit.lua).
+--   mode nil       : ticked guilds become guild rules, with the players the
+--                    search saw in them as members
+--   mode "exclude" : ticked guilds go on the Guild Exclusion List
+local function saveGuildSearch(names)
+	local added, members, moved = 0, 0, 0
+	local cache = M.PSS_GuildSearchCache
+	-- the cache is only trusted for a while: players move guilds
+	if cache and GetTime() - (cache.at or 0) > GUILD_SEARCH_CACHE_TTL then cache = nil end
+	M.PSS__purgeBatch = M.PSS__purgeBatch or {}
 
-    local f = UI.CreateWindow("PSSGuildSearchFrame", "Guild Search Results", 420, 440,
-        { strata = "DIALOG", minW = 380, minH = 300, saveKey = "guildSearch" })
-    local inset = f.inset
-    f.heading, f.subtitle = UI.CreateSummary(inset, "Tick the guilds to add.", 380)
+	for _, name in ipairs(names) do
+		M.PSS_AddGuild(name)
+		added = added + 1
+		-- everyone the search saw in this guild becomes a member of it
+		local seen = cache and cache.byGuild[normalizeGuild(name)]
+		for _, info in ipairs(seen or {}) do
+			local res = addWhoResultToGuildMember(info, name, info.fullGuildName or name)
+			if res == "new" then
+				members = members + 1
+			elseif res == "moved" then
+				moved = moved + 1
+				members = members + 1
+			end
+		end
+	end
 
-    f.hr = UI.CreateHeaderRow(inset, {
-        { key = "add",   text = "Add",   width = 44, sort = false, tip = "Ticked guilds are added when you press Save." },
-        { key = "guild", text = "Guild", width = 330, sort = false, fill = true, minWidth = 120 },
-    }, 1, UI.HEADER_Y, nil, { id = "guildSearch", onLayout = function(h)
-        if f.content then f.content:SetWidth(math.max(f.scroll and f.scroll:GetWidth() or 0, h.total)) end
-        for _, r in ipairs(f.rows or {}) do r:SetWidth(h.total) end
-    end })
+	M.PSS_GuildSearchCache = nil
+	local batch = M.PSS__purgeBatch
+	M.PSS__purgeBatch = nil
+	if batch and next(batch) and M.PSS_PurgeChatFrom then pcall(M.PSS_PurgeChatFrom, batch) end
+	if M.PSS_ReconcileGuildMembers then M.PSS_ReconcileGuildMembers() end
+	guildSearchChat(("%d guild(s) added to the Guild Ignore List with %d member(s) seen by the search%s."):format(
+		added, members, moved > 0 and (" (" .. moved .. " moved from another guild rule)") or ""))
+	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+end
 
-    local scroll = CreateFrame("ScrollFrame", "PSSGuildSearchScroll", inset, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 1, -UI.LIST_TOP)
-    scroll:SetPoint("BOTTOMRIGHT", -27, 4)
-    local content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(f.hr.total, 1)
-    scroll:SetScrollChild(content)
-    f.content = content
-    f.scroll = scroll
-    f.rows, f.checks = {}, {}
-
-    -- bottom bar: Cancel (right), Save
-    local cancel = UI.BarButton(inset, CANCEL or "Cancel")
-    cancel:SetScript("OnClick", function() f:Hide() end)
-    -- closing the results (Cancel, Escape, X) forgets the cached players
-    f:HookScript("OnHide", function() M.PSS_GuildSearchCache = nil end)
-    f.cancel = cancel
-    local save = UI.BarButton(inset, "Save", cancel)
-    f.save = save
-
-    save:SetScript("OnClick", function()
-        if f.mode == "exclude" then
-            local added = 0
-            for _, c in ipairs(f.checks) do
-                if c:IsShown() and c:IsEnabled() and c:GetChecked() and c.guildName then
-                    if M.PSS_AddGuildExclusion(c.guildName) then added = added + 1 end
-                end
-            end
-            f:Hide()
-            guildSearchChat(("%d guild(s) added to the Guild Exclusion List."):format(added))
-            if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-            return
-        end
-        local added, members, moved = 0, 0, 0
-        local cache = M.PSS_GuildSearchCache
-        -- the cache is only trusted for a while: players move guilds
-        if cache and GetTime() - (cache.at or 0) > GUILD_SEARCH_CACHE_TTL then cache = nil end
-        M.PSS__purgeBatch = M.PSS__purgeBatch or {}
-        for _, c in ipairs(f.checks) do
-            if c:IsShown() and c:IsEnabled() and c:GetChecked() and c.guildName then
-                M.PSS_AddGuild(c.guildName)
-                added = added + 1
-                -- everyone the search saw in this guild becomes a member of it
-                local seen = cache and cache.byGuild[normalizeGuild(c.guildName)]
-                for _, info in ipairs(seen or {}) do
-                    local res = addWhoResultToGuildMember(info, c.guildName, info.fullGuildName or c.guildName)
-                    if res == "new" then members = members + 1 elseif res == "moved" then moved = moved + 1; members = members + 1 end
-                end
-            end
-        end
-        M.PSS_GuildSearchCache = nil
-        local batch = M.PSS__purgeBatch
-        M.PSS__purgeBatch = nil
-        if batch and next(batch) and M.PSS_PurgeChatFrom then pcall(M.PSS_PurgeChatFrom, batch) end
-        if M.PSS_ReconcileGuildMembers then M.PSS_ReconcileGuildMembers() end
-        f:Hide()
-        guildSearchChat(("%d guild(s) added to the Guild Ignore List with %d member(s) seen by the search%s."):format(
-            added, members, moved > 0 and (" (" .. moved .. " moved from another guild rule)") or ""))
-        if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-    end)
-
-    -- the Guild column follows the window width
-    local function fit()
-        local w = scroll:GetWidth() or 0
-        if w <= 0 then return end
-        f.hr:SetAvailableWidth(w)
-        content:SetWidth(math.max(w, f.hr.total))
-    end
-    f.fitList = fit
-    scroll:HookScript("OnSizeChanged", fit)
-
-    M.PSSGuildSearchFrame = f
-    return f
+local function saveGuildExclusions(names)
+	local added = 0
+	for _, name in ipairs(names) do
+		if M.PSS_AddGuildExclusion(name) then added = added + 1 end
+	end
+	guildSearchChat(("%d guild(s) added to the Guild Exclusion List."):format(added))
+	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
 end
 
 showGuildSearchResults = function(list, query, mode)
-    ensureDB()
-    local exclude = mode == "exclude"
-    if not list or #list == 0 then
-        if exclude then
-            -- nobody online in a guild by that name: offer to add it anyway
-			local name = trim((query or ""):gsub('"', ""))
-			M.UI.Prompt({
-				text = ("No guild named |cffffd100<%s>|r was found online.\n\nAdd it to the Guild Exclusion List anyway?"):format(name),
-				buttons = {
-					{
-						text = "Add Anyway",
-						onClick = function()
-							M.PSS_AddGuildExclusion(name)
-							guildSearchChat(("<%s> added to the Guild Exclusion List."):format(name))
-						end,
-					},
-					{ text = CANCEL or "Cancel" },
-				},
+	ensureDB()
+	local exclude = mode == "exclude"
+
+	if not list or #list == 0 then
+		if exclude then
+			-- nobody online in a guild by that name: offer to add it anyway
+			M.Widgets.PromptAddAnyway(trim((query or ""):gsub('"', "")), {
+				say      = guildSearchChat,
+				what     = "guild",
+				listName = "Guild Exclusion List",
+				add      = M.PSS_AddGuildExclusion,
 			})
-			return
-        end
-        guildSearchChat(("Guild Search found no guilds for \"%s\"."):format(query or ""))
-        return
-    end
+		else
+			guildSearchChat(("Guild Search found no guilds for \"%s\"."):format(query or ""))
+		end
+		return
+	end
 
-    local f = buildGuildSearchFrame()
-    f.mode = exclude and "exclude" or nil
-    if f.title then f.title:SetText(exclude and "Guild Exclusion Search" or "Guild Search Results") end
-    f.subtitle:SetText(("%d guild(s) found for \"%s\"."):format(#list, query or "")
-        .. (exclude and " Tick the guilds to exclude." or ""))
+	local items = {}
+	for _, name in ipairs(list) do
+		local listed
+		if exclude then
+			listed = M.PSS_IsGuildExcluded(name)
+		else
+			listed = PourSocialScoreDB.guildData[normalizeGuild(name)] ~= nil
+		end
+		items[#items + 1] = { cells = { guild = name }, value = name, listed = listed }
+	end
 
-    local UI = M.UI
-    for _, r in ipairs(f.rows) do r:Hide() end
-
-    local rowHeight = UI.ROW_H
-    for i, name in ipairs(list) do
-        local r = f.rows[i]
-        if not r then
-            r = UI.CreateRow(f.content, f.hr.total)
-            r.check = UI.Check(r)
-            UI.TCenter(r.check, r, f.hr, "add")
-            r.name = UI.TCell(r, f.hr, "guild")
-            r:SetScript("OnClick", function(self)
-                if self.check:IsEnabled() then self.check:SetChecked(not self.check:GetChecked()) end
-            end)
-            f.rows[i] = r
-            f.checks[i] = r.check
-        end
-        local c = r.check
-        r:ClearAllPoints()
-        r:SetPoint("TOPLEFT", f.content, "TOPLEFT", 0, -(i - 1) * rowHeight)
-        c.guildName = name
-
-        local exists
-        if exclude then
-            exists = M.PSS_IsGuildExcluded(name)
-        else
-            exists = PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[normalizeGuild(name)]
-        end
-        if exists then
-            c:SetChecked(false)
-            c:Disable()
-            r.name:SetText(name .. " |cff999999(already in list)|r")
-        else
-            c:Enable()
-            c:SetChecked(true)
-            r.name:SetText(name)
-        end
-        c:Show()
-        r:Show()
-    end
-    for i = #list + 1, #f.checks do f.checks[i]:Hide() end
-    if f.fitList then f.fitList() end
-    f.content:SetHeight(math.max(1, #list * rowHeight + 4))
-
-    f:Show()
-    f:Raise()
+	M.PSSGuildSearchFrame = M.Widgets.Picker({
+		name     = "PSSGuildSearchFrame",
+		saveKey  = "guildSearch",
+		title    = exclude and "Guild Exclusion Search" or "Guild Search Results",
+		subtitle = ("%d guild(s) found for \"%s\"."):format(#list, query or "")
+			.. (exclude and " Tick the guilds to exclude." or ""),
+		columns  = { { key = "guild", text = "Guild", width = 330, minWidth = 120 } },
+		items    = items,
+		onSave   = exclude and saveGuildExclusions or saveGuildSearch,
+		-- closing the results (Save, Cancel, Escape, X) forgets the cached players
+		onHide   = function() if not exclude then C_Timer.After(0, function() M.PSS_GuildSearchCache = nil end) end end,
+	})
 end
 
 local rosterScanQueued = false
@@ -1872,19 +1589,7 @@ frame:SetScript("OnEvent", function(self, event, arg1, ...)
         self:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
         self:RegisterEvent("NAME_PLATE_UNIT_ADDED")
         self:RegisterEvent("GROUP_ROSTER_UPDATE")
-        self:RegisterEvent("WHO_LIST_UPDATE")
-        self:RegisterEvent("CHAT_MSG_SYSTEM")
         if V.PSS_Loaded and M.PSS_UpgradeLegacyData then M.PSS_UpgradeLegacyData() end
-    elseif event == "CHAT_MSG_SYSTEM" then
-        -- /who results printed in chat (Who window closed)
-        pcall(onWhoChatLine, arg1)
-    elseif event == "WHO_LIST_UPDATE" then
-        -- one chat-history sweep for everyone newly captured by this result
-        M.PSS__purgeBatch = {}
-        pcall(processWho)
-        local batch = M.PSS__purgeBatch
-        M.PSS__purgeBatch = nil
-        if batch and next(batch) and M.PSS_PurgeChatFrom then pcall(M.PSS_PurgeChatFrom, batch) end
     elseif event == "PLAYER_TARGET_CHANGED" or event == "UPDATE_MOUSEOVER_UNIT" or
            event == "NAME_PLATE_UNIT_ADDED" or event == "GROUP_ROSTER_UPDATE" then
         handleUnitEvents(event, arg1)
@@ -2504,129 +2209,22 @@ end
 ------------------------------------------------------------------------
 -- GUILD ENTRY ROWS (Guild Ignore List tab, top right)
 --
--- Each row is a text box, a Guild Search button and an Add Guild button.
--- Guild Search runs a /who for the text; Add Guild asks first:
---     Add <Name> to the <list> without searching?   [Okay] [Search] [Cancel]
+-- Each row is the shared EntryRow widget (PSS_Widgets.lua): a box, Guild
+-- Search and Add Guild. This fills in what both guild rows share.
 ------------------------------------------------------------------------
-
-local function chatNote(msg)
+local function pssSay(msg)
 	if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("PSS: " .. msg) end
 end
+M.PSS_Say = pssSay
 
--- Ask whether to add `name` to a list without searching.
---   opts.listName : "Guild Ignore List" / "Guild Exclusion List"
---   opts.add      : function(name)  - Okay
---   opts.search   : function(name)  - Search (runs from the click, so /who may go out)
---   opts.onDone   : function()      - after Okay or a search that went out
-local function promptAddGuild(name, opts)
-	M.UI.Prompt({
-		text = ("Add |cffffd100<%s>|r to the %s without searching?"):format(name, opts.listName),
-		buttons = {
-			{
-				text = OKAY or "Okay",
-				onClick = function()
-					opts.add(name)
-					chatNote(("<%s> added to the %s."):format(name, opts.listName))
-					if opts.onDone then opts.onDone() end
-				end,
-			},
-			{
-				text = SEARCH or "Search",
-				onClick = function()
-					if M.PSS_ScanBlockedMsg() then return end
-					if opts.search(name) and opts.onDone then opts.onDone() end
-				end,
-			},
-			{ text = CANCEL or "Cancel" },
-		},
-	})
-end
+local function canSendWho() return not Whois.BlockedMsg() end
 
--- One row: [box] [Guild Search] [Add Guild], top right of `frame`, or
--- directly beneath another row when opts.below is given.
---   opts.hint          : grey text in the empty box
---   opts.listName      : list the row adds to (prompt and chat text)
---   opts.emptyMsg      : chat line when a button is pressed with an empty box
---   opts.searchTip     : { line, line ... } for the Guild Search tooltip
---   opts.isListed      : function(name) -> true when already on the list
---   opts.add           : function(name) adds to the list
---   opts.search        : function(text) -> true when the /who went out
---   opts.clearOnSearch : empty the box once a search has gone out
--- Returns { box =, search =, add = }.
 local function createGuildEntryRow(frame, opts)
-	local UI = M.UI
-	local row = {}
-
-	-- buttons: right to left, like the Player Ignore List
-	row.add = UI.TopButton(frame, "Add Guild")
-	row.search = UI.TopButton(frame, "Guild Search", row.add)
-	if opts.below then
-		row.add:ClearAllPoints()
-		row.add:SetPoint("TOPLEFT", opts.below.add, "BOTTOMLEFT", 0, -4)
-	end
-
-	row.box = UI.SearchBox(frame, row.search, 150)
-	UI.BoxHint(row.box, opts.hint)
-
-	local function boxText()
-		local text = trim(row.box:GetText() or "")
-		if text == "" then
-			chatNote(opts.emptyMsg)
-			return nil
-		end
-		return text
-	end
-
-	local function doSearch()
-		if M.PSS_ScanBlockedMsg() then return end
-		local text = boxText()
-		if not text then return end
-		if opts.search(text) and opts.clearOnSearch then row.box:SetText("") end
-	end
-
-	local function doAdd()
-		local text = boxText()
-		if not text then return end
-		if opts.isListed(text) then
-			chatNote(("<%s> is already on the %s."):format(text, opts.listName))
-			return
-		end
-		promptAddGuild(text, {
-			listName = opts.listName,
-			add      = opts.add,
-			search   = opts.search,
-			onDone   = function() row.box:SetText("") end,
-		})
-	end
-
-	row.search:SetScript("OnClick", doSearch)
-	row.box:SetScript("OnEnterPressed", function(self)
-		self:ClearFocus()
-		doSearch()
-	end)
-	row.add:SetScript("OnClick", doAdd)
-
-	row.search:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-		GameTooltip:AddLine("Guild Search - " .. opts.listName, 1, 1, 1)
-		for i, line in ipairs(opts.searchTip or {}) do
-			if i == 1 then
-				GameTooltip:AddLine(line, nil, nil, nil, true)
-			else
-				GameTooltip:AddLine(line, 0.7, 0.7, 0.7, true)
-			end
-		end
-		GameTooltip:Show()
-	end)
-	row.add:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-		GameTooltip:AddLine("Add Guild - " .. opts.listName, 1, 1, 1)
-		GameTooltip:AddLine("Adds the guild name typed in the box. You are asked first: Okay adds it without searching, Search runs Guild Search for it instead.", nil, nil, nil, true)
-		GameTooltip:Show()
-	end)
-	row.search:SetScript("OnLeave", function() GameTooltip:Hide() end)
-	row.add:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
+	opts.searchText = "Guild Search"
+	opts.addText    = "Add Guild"
+	opts.canSend    = canSendWho
+	opts.say        = pssSay
+	local row = M.Widgets.EntryRow(frame, opts)
 	registerGuildScanButton(row.search)
 	return row
 end
@@ -3602,31 +3200,6 @@ function M.PSS_ShowGuildDetail(guildNameOrKey)
     refresh()
 end
 
-StaticPopupDialogs["PSS_ADD_PLAYER_EXT"] = {
-    text = "Add Player",
-    button1 = "Add",
-    button2 = CANCEL,
-    hasEditBox = true,
-    maxLetters = 128,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-    OnShow = function(self)
-        self.EditBox:SetText("")
-        self.EditBox:SetFocus()
-        if self.extra then
-            self.extra.note:SetText("")
-            self.extra.days:SetText("")
-        end
-    end,
-    OnAccept = function(self)
-        local name = trim(self.EditBox:GetText())
-        local note = self.extra and self.extra.note:GetText() or ""
-        local days = self.extra and tonumber(self.extra.days:GetText()) or 0
-        M.PSS_AddPlayer(name, note, days)
-    end,
-}
 -- Remove a guild rule straight away (no confirmation) and report in chat.
 function M.PSS_RemoveGuildNow(guildKey)
     local g = guildKey and PourSocialScoreDB.guildData[guildKey]
@@ -3641,36 +3214,6 @@ function M.PSS_RemoveGuildNow(guildKey)
         :format(tostring(name), memberCount or 0))
 end
 
--- Add secondary fields to the player popup after Blizzard creates it.
-local function patchPlayerPopup()
-    local dialog = StaticPopupDialogs["PSS_ADD_PLAYER_EXT"]
-    dialog.OnShow = function(self)
-        self.EditBox:SetText("")
-        self.EditBox:SetFocus()
-        if not self.extra then
-            self.extra = {}
-            local note = CreateFrame("EditBox", nil, self, "InputBoxTemplate")
-            note:SetSize(180, 20)
-            note:SetPoint("TOPLEFT", self, "TOPLEFT", 20, -78)
-            note:SetAutoFocus(false)
-            self.extra.note = note
-            local days = CreateFrame("EditBox", nil, self, "InputBoxTemplate")
-            days:SetSize(80, 20)
-            days:SetPoint("LEFT", note, "RIGHT", 12, 0)
-            days:SetAutoFocus(false)
-            self.extra.days = days
-            self.extra.noteLabel = self:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            self.extra.noteLabel:SetPoint("BOTTOMLEFT", note, "TOPLEFT", 0, 4)
-            self.extra.noteLabel:SetText("Note")
-            self.extra.daysLabel = self:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            self.extra.daysLabel:SetPoint("BOTTOMLEFT", days, "TOPLEFT", 0, 4)
-            self.extra.daysLabel:SetText("Expire days (0 = never)")
-        end
-        self.extra.note:SetText("")
-        self.extra.days:SetText("")
-    end
-end
-C_Timer.After(0, patchPlayerPopup)
 
 ------------------------------------------------------------------------
 -- "guild" person source for the core (PSS_ChatBlock.lua)

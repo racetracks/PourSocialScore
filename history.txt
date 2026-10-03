@@ -1,6 +1,17 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.25 - Player Search, and the UI / logic split begins
+
+- Player Ignore List tab: the top right now works like the guild tab. "Player Search" runs a real /who for the name in the box (n-"Name"; /who can't search by realm, so only the name part is used) and lists the players found with level, class and guild; tick who to add and Save. If nobody is found you are offered "Add Anyway". "Add Player" uses the name in the box and asks "Add <Name> to the Player Ignore List without searching?" with Okay / Search / Cancel; with the box empty it still adds your target (a player of your faction). The box shows "Add a Player...". The old Add Player popup (name, note, expire days) is gone; a listed player's note and expiry are still set from their row.
+- Player Search shares the 6 s /who cooldown with every guild Scan and Guild Search.
+- Code (no change in behaviour for the guild tab):
+  - New PSS_Whois.lua: the /who service - sending, the shared cooldown, reading answers from the Who list and from chat lines, and requests by kind (guild scan, Scan All, Custom, Guild Search, exclusion search, Player Search). Moved out of PSS_GuildIgnoreList.lua, which now only stores what an answer finds.
+  - New PSS_Events.lua: a small register / fire list; the /who cooldown and answers are announced as events, and the buttons and Scan tooltip listen instead of being called from the /who code.
+  - New PSS_Widgets.lua: the UI-only widgets - Prompt, PromptAdd, PromptAddAnyway, BoxHint, EntryRow and Picker (the search results window). They take every decision and message as parameters and never read saved data. The guild and player tabs both use them.
+  - This is the first step toward keeping the logic and the UI in separate files (see the project notes).
+- Version 2.0.25.
+
 => 2.0.24 - Add Guild uses the box, in-game style prompt
 
 - Guild Ignore List tab: the top right now has two matching rows, each a box, a Guild Search button and an Add Guild button. The top row works on the Guild Ignore List (box hint "Add a Guild..."), the row beneath it on the Guild Exclusion List (box hint "Exclude a Guild..."). The exclusion row's "Search" button is now "Guild Search", and it has its own Add Guild button.

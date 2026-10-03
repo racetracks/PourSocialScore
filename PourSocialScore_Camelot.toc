@@ -2,16 +2,19 @@
 ## Title: Pour Social Score and Chat Spam Filter
 ## Notes: Unlimited account-wide player and guild ignore lists with powerful chat/spam filters.
 ## Author: Boaties
-## Version: 2.0.24
+## Version: 2.0.25
 ## SavedVariables: PourSocialScoreDB
 ## OptionalDeps: PoorSocialScore, GlobalIgnoreList
 
 PSS_Localization.lua
 PSS_Globals.lua
 PSS_Perf.lua
+PSS_Events.lua
+PSS_Whois.lua
 PSS_GuildIgnore_Managed.lua
 PSS_MainlineCompat.lua
 PSS_UIKit.lua
+PSS_Widgets.lua
 PSS_ChatHistory.lua
 PSS_ChatBlock.lua
 PSS_ChatFilters.lua
