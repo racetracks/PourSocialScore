@@ -15,7 +15,6 @@ local doLoginIgnore		= true
 local maxIgnoreSize		= 50
 local maxSyncTries		= 3
 local maxHistorySize	= 250
-local firstClear		= false
 
 local BlizzardAddIgnore			= nil
 local BlizzardDelIgnore			= nil
@@ -23,17 +22,6 @@ local BlizzardDelIgnoreByIndex = nil
 
 -- faction is learned at startup (V.faction)
 local function currentFaction() return V.faction or (UnitFactionGroup and UnitFactionGroup("player")) end
-
-local function OnOff (value)
-	if value == nil or value == false then
-		return "|cffffff00" .. L["OFF"] .. "|cffffffff"
-	elseif value == true then
-		return "|cffffff00" .. L["ON"] .. "|cffffffff"
-	else
-		return "|cffff0000nil"
-	end
-end
-
 
 local function hasDeleted (name)
 
@@ -148,6 +136,7 @@ local function RemoveFromList (index)
 		if M.PSS_MarkIgnoreIndexDirty then M.PSS_MarkIgnoreIndexDirty() end
 	end
 end
+M.PSS_RemoveFromList = RemoveFromList
 
 
 -- Import/Export entry points (PSS_ImportExport.lua)
@@ -204,6 +193,7 @@ local function isServerMatch (server1, server2)
 
 	return M.Proper(server1) == M.Proper(server2)
 end
+M.PSS_IsServerMatch = isServerMatch
 
 
 local function hasIgnored (name)
@@ -296,83 +286,13 @@ function M.hasAnyIgnored (name)
 	return 0
 end
 
-local function ShowIgnoreList (param)
-	local days		= tonumber(param)
-	local sName		= ""
-
-	if not days then
-
-		days	= 0
-		sName = param
-
-		if not sName then
-			sName = ""
-		end
-	end
-
-	if days > 0 then
-		M.ShowMsg("|cffffff00" .. format(L["LIST_1"], days))
-	else
-		if sName ~= "" then
-			sName = M.Proper(sName)
-
-			if sName == "Npc" then
-				M.ShowMsg("|cffffff00".. L["LIST_2"])
-			else
-				if sName == "Server" then
-					sName = V.serverName
-				end
-
-				M.ShowMsg("|cffffff00" .. format(L["LIST_3"], sName))
-			end
-		else
-			M.ShowMsg("|cffffff00" .. L["LIST_4"])
-		end
-	end
-
-	local count = 0
-
-	for key,value in pairs(PourSocialScoreDB.ignoreList) do
-
-		local ok	= true
-		local type = "P"
-
-		if PourSocialScoreDB.typeList[key] == "npc" then
-			type = "N"
-		elseif PourSocialScoreDB.typeList[key] == "server" then
-			type = "S"
-		end
-
-		if days > 0 then
-			ok = M.daysFromToday(PourSocialScoreDB.dateList[key]) >= days
-		elseif sName ~= "" then
-			ok = (type == "N" and sName == "Npc") or (type == "P" and isServerMatch(sName, M.getServer(value))) or (type == "S" and isServerMatch(sName, value))
-		end
-
-		if ok then
-			local str = "  (" .. key .. ") [" .. type.. "] " .. value .. " (" .. (PourSocialScoreDB.factionList[key] or "Unknown") .. ") " .. "[".. M.daysFromToday(PourSocialScoreDB.dateList[key]) .. " "..L["DAYS"] .. "]"
-
-			if PourSocialScoreDB.notes[key] ~= "" then
-				str = str .." (" .. PourSocialScoreDB.notes[key] .. ")"
-			end
-
-			M.ShowMsg(str)
-
-			count = count + 1
-		end
-
-	end
-
-	M.ShowMsg("|cffffff00" .. format(L["LIST_5"], count))
-end
-
-
 local function ResetBlizzardIgnore()
 	-- backwards: removing an entry moves every later one up a place
 	for count = C_FriendList.GetNumIgnores(), 1, -1 do
 		BlizzardDelIgnoreByIndex(count)
 	end
 end
+M.PSS_ResetBlizzardIgnore = ResetBlizzardIgnore
 
 local function ResetIgnoreDB()
 
@@ -675,9 +595,6 @@ end
 -- CHAT COMMANDS --
 -------------------
 
-local function PSSTest()
-end
-
 function M.ignoreFromCmd (argStr)
 	-- not Proper()-ed here: that would glue the note onto the name. The name
 	-- part is split off and normalised by PSS_AddIgnore.
@@ -697,199 +614,6 @@ function M.ignoreFromCmd (argStr)
 
 	if argStr ~= "" then
 		M.PSS_AddIgnore (argStr)
-	end
-end
-
-function SlashCmdList.PSS (msg)
-
-	-- Keywords are matched in lower case; everything after the command word
-	-- (names, notes) keeps the case it was typed in (2.0.8 lowercased notes).
-	local raw = M.trim(msg or "")
-	msg = M.strDown(raw)
-
-	local args, rawArgs = {}, {}
-	for w in msg:gmatch("%S+") do args[#args + 1] = w end
-	for w in raw:gmatch("%S+") do rawArgs[#rawArgs + 1] = w end
-	local argStr = (#rawArgs >= 2) and table.concat(rawArgs, " ", 2) or ""
-	msg = table.concat(args, " ")
-
-	if args[1] == "test" then
-
-		PSSTest()
-
-	elseif args[1] == "clear" then
-
-		if firstClear and args[2] ~= nil and args[2] == "confirm" then
-			ResetIgnoreDB()
-			ResetBlizzardIgnore()
-			M.ShowMsg(L["CMD_2"])
-			--M.SyncIgnoreList(M.PSS_Opt("chatmsg") == false)
-			firstClear = false
-		else
-			M.ShowMsg("|cffff0000" .. L["CMD_1"])
-			firstClear = true
-		end
-
-	elseif args[1] == "defexpire" then
-
-		if tonumber(args[2]) then
-			PourSocialScoreDB.defexpire = tonumber(args[2])
-
-			M.ShowMsg (format(L["CMD_3"], M.PSS_Opt("defexpire"), M.dayString(M.PSS_Opt("defexpire"))))
-		end
-
-	elseif msg == "asknote true" or msg == "asknote on" then
-
-		PourSocialScoreDB.asknote = true
-		M.ShowMsg (L["CMD_4"])
-
-	elseif msg == "asknote false" or msg == "asknote off" then
-
-		PourSocialScoreDB.asknote = false
-		M.ShowMsg (L["CMD_5"])
-
-	elseif msg == "showmsg true" or msg == "showmsg on" then
-
-		PourSocialScoreDB.chatmsg = true
-		M.ShowMsg (L["CMD_6"])
-
-	elseif msg == "showmsg false" or msg == "showmsg off" then
-
-		PourSocialScoreDB.chatmsg = false
-		M.ShowMsg (L["CMD_7"])
-
-	elseif msg == "sameserver true" or msg == "sameserver on" then
-
-		PourSocialScoreDB.sameserver = true
-		M.ShowMsg(L["CMD_10"])
-
-	elseif msg == "sameserver false" or msg == "sameserver off" then
-
-		PourSocialScoreDB.sameserver = false
-		M.ShowMsg(L["CMD_11"])
-
-	elseif args[1] == "list" then
-
-		ShowIgnoreList(argStr)
-
-	elseif (args[1] == "add" or args[1] == "ignore") then
-
-		M.ignoreFromCmd(argStr)
-
-	elseif (args[1] == "remove" or args[1] == "delete") and args[2] ~= nil and args[2] ~= "" then
-
-		if tonumber(argStr) then
-			-- by list position, whatever the entry type (player, NPC or server)
-			local index = tonumber(argStr)
-			local str = PourSocialScoreDB.typeList[index]
-
-			if str == "npc" then
-				M.AddOrDelNPC(index)
-			elseif str == "server" then
-				M.AddOrDelServer(index)
-			elseif str == "player" then
-				M.PSS_DelIgnore(index, true)
-			end
-			V.needSorted = true
-			M.PSSUpdateUI(true)
-		else
-			argStr = M.Proper(argStr, true)
-
-			local npcIndex = M.hasNPCIgnored(argStr)
-
-			if npcIndex > 0 then
-				M.ShowMsg (format(L["CMD_12"], argStr))
-				RemoveFromList(npcIndex)
-				M.PSSUpdateUI(true)
-			else
-				M.PSS_DelIgnore ((M.PSS_SplitNameArg(argStr)), true)
-			end
-		end
-
-	elseif (args[1] == "server" or args[1] == "addserver") and args[2] ~= nil and args[2] ~= "" then
-
-		M.AddOrDelServer(argStr)
-		M.PSSUpdateUI(true)
-
-	elseif (args[1] == "npc" or args[1] == "addnpc") then
-
-		M.AddOrDelNPC(argStr)
-		M.PSSUpdateUI(true)
-
-	elseif args[1] == "expire" and #args >= 3 and tonumber(args[#args]) then
-		-- "/pss expire First Last-Realm 30" or "/pss expire \"First Last\" 30"
-		local days = args[#args]
-		args[2] = M.PSS_SplitNameArg((argStr:gsub("%s*%S+$", "")))
-		args[3] = days
-
-		if tonumber(args[2]) then
-			local index = tonumber(args[2])
-
-			if (index > 0) and (PourSocialScoreDB.ignoreList[index]) then
-
-				PourSocialScoreDB.expList[index] = tonumber(args[3])
-				M.ShowMsg(format(L["CMD_14"], PourSocialScoreDB.ignoreList[index], tonumber(args[3])))
-			end
-
-		else
-			local name			= M.Proper(M.addServer(args[2]))
-			local playerIndex = M.hasGlobalIgnored(name)
-			if playerIndex > 0 then name = PourSocialScoreDB.ignoreList[playerIndex] end
-
-			if playerIndex > 0 then
-				PourSocialScoreDB.expList[playerIndex] = tonumber(args[3])
-				M.ShowMsg(format(L["CMD_14"], name, tonumber(args[3])))
-			end
-		end
-
-	elseif args[1] == "mem" or args[1] == "memory" then
-
-		if M.PSS_MemReport then M.PSS_MemReport(args[2] == "full") end
-
-	elseif args[1] == "gui" or args[1] == "ui" then
-
-		M.PSS_GUI()
-
-	elseif args[1] == "sync" then
-
-		M.SyncIgnoreList(false)
-
-	elseif args[1] == "dellist" then
-
-		for count = 1, #PourSocialScoreDB.delList do
-			print(PourSocialScoreDB.delList[count])
-		end
-
-	elseif args[1] == "prune" then
-
-		-- "/pss prune 90" removes straight away (no confirmation)
-		if args[2] == nil or tonumber(args[2]) == nil then
-			M.ShowMsg(L["CMD_15"])
-		else
-			M.PruneIgnoreList(tonumber(args[2]), true)
-		end
-
-	else
-		M.ShowMsg (L["HELP_1"])
-		M.ShowMsg ("")
-		M.ShowMsg ("  " .. L["HELP_2"])
-		M.ShowMsg ("  " .. L["HELP_3"])
-		M.ShowMsg ("  " .. L["HELP_4"])
-		M.ShowMsg ("  " .. L["HELP_5"])
-		M.ShowMsg ("  " .. L["HELP_6"])
-		M.ShowMsg ("  " .. L["HELP_7"])
-		M.ShowMsg ("  " .. L["HELP_8"])
-		M.ShowMsg ("  " .. L["HELP_15"])
-		M.ShowMsg ("  " .. L["HELP_16"])
-		M.ShowMsg ("  " .. L["HELP_17"])
-		M.ShowMsg ("  " .. L["HELP_9"])
-		M.ShowMsg ("")
-		M.ShowMsg ("  " .. format(L["HELP_10"], OnOff(M.PSS_Opt("chatmsg"))))
-		M.ShowMsg ("  " .. format(L["HELP_11"], OnOff(M.PSS_Opt("sameserver"))))
-		M.ShowMsg ("  " .. format(L["HELP_12"], M.PSS_Opt("defexpire")))
-		M.ShowMsg ("  " .. format(L["HELP_13"], OnOff(M.PSS_Opt("asknote"))))
-		M.ShowMsg ("")
-		M.ShowMsg (L["HELP_14"])
 	end
 end
 

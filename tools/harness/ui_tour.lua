@@ -95,7 +95,12 @@ step("player history", function() M.PSS_ShowPlayerBlockHistory("Tourplayer-Realm
 local chatStart = #H.chat + 1
 step("slash pss", function() SlashCmdList.PSS("") end)
 step("slash pss mem", function() SlashCmdList.PSS("mem") end)
-step("slash pssguild", function() SlashCmdList.PSSGUILD("status") end)
+for _, c in ipairs({ "list", "list npc", "list 5", "clear", "help" }) do
+	step("slash pss " .. c, function() SlashCmdList.PSS(c) end)
+end
+for _, c in ipairs({ "status", "test Tourplayer-Realm", "chat", "debug", "check Tourplayer-Realm" }) do
+	step("slash pssguild " .. c, function() SlashCmdList.PSSGUILD(c) end)
+end
 
 -- dump ----------------------------------------------------------------------
 local paths = {}

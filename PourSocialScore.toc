@@ -28,6 +28,7 @@ PSS_WhoisHarvest.lua
 PSS_WhoisHarvestUI.lua
 PSS_PlayerDetail.lua
 PourSocialScore.lua
+PSS_Commands.lua
 PSS_Options.lua
 PSS_OptionsUI.lua
 PSS_ImportExport.lua
