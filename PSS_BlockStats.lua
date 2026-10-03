@@ -139,7 +139,6 @@ end
 local function seedFromLog(s)
 	local History = M.PSS_History
 	if not History then return 0 end
-	local log = History.Log()
 	local oldest = hourOf(now()) - Stats.HOURS + 1
 	local n = 0
 	local db = PourSocialScoreDB
@@ -150,8 +149,8 @@ local function seedFromLog(s)
 		bump(b, cat)
 		n = n + 1
 	end
-	for i = 1, #log do
-		local e = log[i]
+	-- the log and the per-player keep: every line is in one of them only
+	History.Each(function(e)
 		local h = type(e) == "table" and hourOf(e.ts) or 0
 		if h > 0 and h >= oldest then
 			local o = type(e.o) == "string" and e.o:sub(1, 2) or ""
@@ -169,7 +168,7 @@ local function seedFromLog(s)
 			end
 			if e.r and o ~= "f:" then add("filter", h, nil) end
 		end
-	end
+	end)
 	return n
 end
 

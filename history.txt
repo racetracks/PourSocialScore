@@ -1,6 +1,16 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.37 - Per-player block history
+
+- Block history stays one shared log of the last 2,000 lines (Options setting unchanged). In addition, every player on the Player Ignore List and every guild member keeps their newest 10 chat lines, 5 emotes, 5 party invites and 5 guild invites when their lines leave the log. A player's Block History shows those together with any of their lines still in the log.
+- A line is in one place only: when it leaves the log it is moved to the person's keep (PourSocialScoreDB.blockKeep), never copied. Block counts (session, last 24 hours and total) are kept on each person and filter as before and are never worked out from history lines, so nothing is counted twice. Chat filter lines are not kept per sender.
+- Upgrade: on the first login the log is trimmed to the setting and the lines it drops go to their person's keep. Saves from before 2.0.17 (one list per person) are merged into the log first, so their older lines are kept too. Lines older versions already dropped cannot be brought back. Tested by loading saves from 2.0.1, 2.0.8, 2.0.17, 2.0.18, 2.0.19, 2.0.22, 2.0.35 and 2.0.36, each also with more history than the log holds (sh tools/harness/validate_all.sh).
+- Tidy-up after the upgrade, on every login: block history lines of players no longer on the Player Ignore List, of guild members in no guild rule whose rule was removed, and of chat filters that no longer exist (such as retired built-in filters) are removed; rule tags of removed rules are cleared. Counts are not changed.
+- Background memory cleanup runs at least once a minute (was every 10 minutes), still only out of combat and in small steps. Right after login the addon briefly shows about twice its real size: loading leaves about 4 MB of temporary data that the first cleanup frees.
+- /pss mem shows how many lines are kept per person.
+- Version 2.0.37.
+
 => 2.0.36 - Block counts for this session and the last 24 hours
 
 - The block counts of the Player Ignore List, Guild Ignore List and Chat Filters tabs move out of the list panel into the strip at the top of the window, as three lines: This session, Last 24 hours and Total. Each line has the same per-type breakdown, in columns that line up. Total is the count shown before.
