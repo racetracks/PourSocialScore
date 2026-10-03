@@ -46,6 +46,84 @@ local function canonPlayer(name)
 	return (base .. "-" .. realm):lower()
 end
 
+------------------------------------------------------------------------
+-- The game's string.lower also lowers non-ASCII letters ("\195\141nsane" ->
+-- "\195\173nsane"), plain Lua only lowers A-Z. Names with such letters get a
+-- second index key in the game's spelling. UPPER_RANGES: { first, last,
+-- delta, step } code point runs (Latin, Greek, Cyrillic, Armenian, Latin
+-- Extended Additional, Greek Extended), from Unicode simple lowercase.
+------------------------------------------------------------------------
+local UPPER_RANGES = {
+	{ 0xC0, 0xD6, 32, 1 }, { 0xD8, 0xDE, 32, 1 }, { 0x100, 0x12E, 1, 2 }, { 0x132, 0x136, 1, 2 },
+	{ 0x139, 0x147, 1, 2 }, { 0x14A, 0x176, 1, 2 }, { 0x178, 0x178, -121, 1 }, { 0x179, 0x17D, 1, 2 },
+	{ 0x181, 0x181, 210, 1 }, { 0x182, 0x184, 1, 2 }, { 0x186, 0x186, 206, 1 },
+	{ 0x187, 0x187, 1, 1 }, { 0x189, 0x18A, 205, 1 }, { 0x18B, 0x18B, 1, 1 }, { 0x18E, 0x18E, 79, 1 },
+	{ 0x18F, 0x18F, 202, 1 }, { 0x190, 0x190, 203, 1 }, { 0x191, 0x191, 1, 1 },
+	{ 0x193, 0x193, 205, 1 }, { 0x194, 0x194, 207, 1 }, { 0x196, 0x196, 211, 1 },
+	{ 0x197, 0x197, 209, 1 }, { 0x198, 0x198, 1, 1 }, { 0x19C, 0x19C, 211, 1 },
+	{ 0x19D, 0x19D, 213, 1 }, { 0x19F, 0x19F, 214, 1 }, { 0x1A0, 0x1A4, 1, 2 },
+	{ 0x1A6, 0x1A6, 218, 1 }, { 0x1A7, 0x1A7, 1, 1 }, { 0x1A9, 0x1A9, 218, 1 },
+	{ 0x1AC, 0x1AC, 1, 1 }, { 0x1AE, 0x1AE, 218, 1 }, { 0x1AF, 0x1AF, 1, 1 },
+	{ 0x1B1, 0x1B2, 217, 1 }, { 0x1B3, 0x1B5, 1, 2 }, { 0x1B7, 0x1B7, 219, 1 },
+	{ 0x1B8, 0x1B8, 1, 1 }, { 0x1BC, 0x1BC, 1, 1 }, { 0x1C4, 0x1C4, 2, 1 }, { 0x1C5, 0x1C5, 1, 1 },
+	{ 0x1C7, 0x1C7, 2, 1 }, { 0x1C8, 0x1C8, 1, 1 }, { 0x1CA, 0x1CA, 2, 1 }, { 0x1CB, 0x1DB, 1, 2 },
+	{ 0x1DE, 0x1EE, 1, 2 }, { 0x1F1, 0x1F1, 2, 1 }, { 0x1F2, 0x1F4, 1, 2 }, { 0x1F6, 0x1F6, -97, 1 },
+	{ 0x1F7, 0x1F7, -56, 1 }, { 0x1F8, 0x21E, 1, 2 }, { 0x220, 0x220, -130, 1 },
+	{ 0x222, 0x232, 1, 2 }, { 0x23A, 0x23A, 10795, 1 }, { 0x23B, 0x23B, 1, 1 },
+	{ 0x23D, 0x23D, -163, 1 }, { 0x23E, 0x23E, 10792, 1 }, { 0x241, 0x241, 1, 1 },
+	{ 0x243, 0x243, -195, 1 }, { 0x244, 0x244, 69, 1 }, { 0x245, 0x245, 71, 1 },
+	{ 0x246, 0x24E, 1, 2 }, { 0x370, 0x372, 1, 2 }, { 0x376, 0x376, 1, 1 }, { 0x37F, 0x37F, 116, 1 },
+	{ 0x386, 0x386, 38, 1 }, { 0x388, 0x38A, 37, 1 }, { 0x38C, 0x38C, 64, 1 },
+	{ 0x38E, 0x38F, 63, 1 }, { 0x391, 0x3A1, 32, 1 }, { 0x3A3, 0x3AB, 32, 1 }, { 0x3CF, 0x3CF, 8, 1 },
+	{ 0x3D8, 0x3EE, 1, 2 }, { 0x3F4, 0x3F4, -60, 1 }, { 0x3F7, 0x3F7, 1, 1 }, { 0x3F9, 0x3F9, -7, 1 },
+	{ 0x3FA, 0x3FA, 1, 1 }, { 0x3FD, 0x3FF, -130, 1 }, { 0x400, 0x40F, 80, 1 },
+	{ 0x410, 0x42F, 32, 1 }, { 0x460, 0x480, 1, 2 }, { 0x48A, 0x4BE, 1, 2 }, { 0x4C0, 0x4C0, 15, 1 },
+	{ 0x4C1, 0x4CD, 1, 2 }, { 0x4D0, 0x52E, 1, 2 }, { 0x531, 0x556, 48, 1 }, { 0x1E00, 0x1E94, 1, 2 },
+	{ 0x1E9E, 0x1E9E, -7615, 1 }, { 0x1EA0, 0x1EFE, 1, 2 }, { 0x1F08, 0x1F0F, -8, 1 },
+	{ 0x1F18, 0x1F1D, -8, 1 }, { 0x1F28, 0x1F2F, -8, 1 }, { 0x1F38, 0x1F3F, -8, 1 },
+	{ 0x1F48, 0x1F4D, -8, 1 }, { 0x1F59, 0x1F5F, -8, 2 }, { 0x1F68, 0x1F6F, -8, 1 },
+	{ 0x1F88, 0x1F8F, -8, 1 }, { 0x1F98, 0x1F9F, -8, 1 }, { 0x1FA8, 0x1FAF, -8, 1 },
+	{ 0x1FB8, 0x1FB9, -8, 1 }, { 0x1FBA, 0x1FBB, -74, 1 }, { 0x1FBC, 0x1FBC, -9, 1 },
+	{ 0x1FC8, 0x1FCB, -86, 1 }, { 0x1FCC, 0x1FCC, -9, 1 }, { 0x1FD8, 0x1FD9, -8, 1 },
+	{ 0x1FDA, 0x1FDB, -100, 1 }, { 0x1FE8, 0x1FE9, -8, 1 }, { 0x1FEA, 0x1FEB, -112, 1 },
+	{ 0x1FEC, 0x1FEC, -7, 1 }, { 0x1FF8, 0x1FF9, -128, 1 }, { 0x1FFA, 0x1FFB, -126, 1 },
+	{ 0x1FFC, 0x1FFC, -9, 1 }
+}
+
+local function lowerCode(cp)
+	for _, r in ipairs(UPPER_RANGES) do
+		if cp >= r[1] and cp <= r[2] and (cp - r[1]) % r[4] == 0 then return cp + r[3] end
+	end
+	return cp
+end
+
+local function utf8Char(cp)
+	if cp < 0x80 then return string.char(cp) end
+	if cp < 0x800 then return string.char(0xC0 + math.floor(cp / 64), 0x80 + cp % 64) end
+	return string.char(0xE0 + math.floor(cp / 4096), 0x80 + math.floor(cp / 64) % 64, 0x80 + cp % 64)
+end
+
+-- s:lower() plus non-ASCII letters (2 and 3 byte UTF-8 sequences)
+local function gameLower(s)
+	s = s:lower()
+	if not s:find("[\192-\239]") then return s end
+	return (s:gsub("[\192-\223][\128-\191]", function(c)
+		local a, b = c:byte(1, 2)
+		return utf8Char(lowerCode((a - 0xC0) * 64 + (b - 0x80)))
+	end):gsub("[\224-\239][\128-\191][\128-\191]", function(c)
+		local a, b, d = c:byte(1, 3)
+		return utf8Char(lowerCode((a - 0xE0) * 4096 + (b - 0x80) * 64 + (d - 0x80)))
+	end))
+end
+
+-- every index key for a name: plain Lua's and, when different, the game's
+local function indexKeys(name)
+	local ck = canonPlayer(name)
+	local gk = gameLower(ck)
+	if gk ~= ck then return ck, gk end
+	return ck
+end
+
 local function q(s) return string.format("%q", s) end
 local function byLower(a, b) return a:lower() < b:lower() end
 
@@ -80,12 +158,13 @@ local function write(group, members, notes)
 		table.sort(src, byLower)
 		local list = {}
 		for _, n in ipairs(src) do
-			local ck = canonPlayer(n)
-			if taken[ck] then
+			local ck, gk = indexKeys(n)
+			if taken[ck] or (gk and taken[gk]) then
 				dropped = dropped + 1
 			else
 				list[#list + 1] = n
 				taken[ck] = gi * 65536 + #list
+				if gk then taken[gk] = taken[ck] end
 			end
 		end
 		assert(#list < 65536, "too many members in " .. g)
@@ -117,7 +196,11 @@ local function write(group, members, notes)
 	out[#out + 1] = "\tindex = {"
 	for gi, list in ipairs(lists) do
 		local parts = {}
-		for pos, n in ipairs(list) do parts[#parts + 1] = ("[%s] = %d"):format(q(canonPlayer(n)), gi * 65536 + pos) end
+		for pos, n in ipairs(list) do
+			local ck, gk = indexKeys(n)
+			parts[#parts + 1] = ("[%s] = %d"):format(q(ck), gi * 65536 + pos)
+			if gk then parts[#parts + 1] = ("[%s] = %d"):format(q(gk), gi * 65536 + pos) end
+		end
 		if #parts > 0 then out[#out + 1] = ("\t\t%s,"):format(table.concat(parts, ", ")) end
 	end
 	out[#out + 1] = "\t},"
