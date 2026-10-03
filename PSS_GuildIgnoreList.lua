@@ -2331,12 +2331,7 @@ function M.PSS_BuildGuildUI(parent)
 	local X, W = hr.x, hr.w
 	frame.columns, frame.columnX = W, X
 
-	local scroll = CreateFrame("ScrollFrame", "PSSGuildListScroll", frame, "UIPanelScrollFrameTemplate")
-	scroll:SetPoint("TOPLEFT", 1, -UI.LIST_TOP)
-	scroll:SetPoint("BOTTOMRIGHT", -27, 4)
-	local content = CreateFrame("Frame", nil, scroll)
-	content:SetSize(hr.total, 1)
-	scroll:SetScrollChild(content)
+	local scroll, content = UI.ScrollList(frame, "PSSGuildListScroll", hr.total)
 	frame.scroll = scroll
 	frame.content = content
 	frame.rows = {}
@@ -2891,12 +2886,7 @@ function M.PSS_ShowGuildDetail(guildNameOrKey)
 		f.tableWidth = f.hr.total
 		inset:HookScript("OnSizeChanged", function(self, w) if w and w > 0 then f.hr:SetAvailableWidth(w - 28) end end)
 
-		local scroll = CreateFrame("ScrollFrame", nil, inset, "UIPanelScrollFrameTemplate")
-		scroll:SetPoint("TOPLEFT", 1, -UI.LIST_TOP)
-		scroll:SetPoint("BOTTOMRIGHT", -27, 4)
-		local content = CreateFrame("Frame", nil, scroll)
-		content:SetSize(f.tableWidth, 1)
-		scroll:SetScrollChild(content)
+		local scroll, content = UI.ScrollList(inset, nil, f.tableWidth)
 		f.scroll = scroll; f.content = content; f.rows = {}
 
 		-- bottom bar: Remove Member (right), Block History

@@ -188,6 +188,51 @@ function UI.RowEditBox(row, x, w, maxLetters)
 	return e
 end
 
+-- Free-standing edit box. w = nil sets only the height (for boxes anchored
+-- left and right); maxLetters = nil keeps the template's limit.
+function UI.InputBox(parent, w, h, name, maxLetters)
+	local e = CreateFrame("EditBox", name, parent, "InputBoxTemplate")
+	if w then e:SetSize(w, h or 20) else e:SetHeight(h or 20) end
+	e:SetAutoFocus(false)
+	if maxLetters then e:SetMaxLetters(maxLetters) end
+	e:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+	return e
+end
+
+-- Small centred box for a number (Options values, expiry days).
+function UI.NumberBox(parent, w, h, maxLetters)
+	local e = UI.InputBox(parent, w, h, nil, maxLetters)
+	e:SetNumeric(true)
+	e:SetJustifyH("CENTER")
+	return e
+end
+
+-- Multi-line text box (InputScrollFrameTemplate): the text keeps wrapping to
+-- the box when it is resized (inner box = width - pad), no character count.
+function UI.TextArea(parent, name, maxLetters, font, pad)
+	local box = CreateFrame("ScrollFrame", name, parent, "InputScrollFrameTemplate")
+	box.EditBox:SetAutoFocus(false)
+	box.EditBox:SetMaxLetters(maxLetters or 0)
+	box.EditBox:SetFontObject(font or "ChatFontNormal")
+	box:HookScript("OnSizeChanged", function(self, w)
+		if w and w > 40 then self.EditBox:SetWidth(w - (pad or 18)) end
+	end)
+	if type(box.CharCount) == "table" and box.CharCount.Hide then box.CharCount:Hide() end
+	return box
+end
+
+-- Scrolling list inside a panel (below the summary and header row). Returns
+-- the scroll frame and its content frame (contentW wide).
+function UI.ScrollList(parent, name, contentW, contentH)
+	local scroll = CreateFrame("ScrollFrame", name, parent, "UIPanelScrollFrameTemplate")
+	scroll:SetPoint("TOPLEFT", 1, -UI.LIST_TOP)
+	scroll:SetPoint("BOTTOMRIGHT", -27, 4)
+	local content = CreateFrame("Frame", nil, scroll)
+	content:SetSize(contentW, contentH or 1)
+	scroll:SetScrollChild(content)
+	return scroll, content
+end
+
 function UI.Check(parent, size)
 	local c = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
 	c:SetSize(size or UI.CHECK, size or UI.CHECK)

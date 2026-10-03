@@ -203,12 +203,7 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
 	end })
 	frame:HookScript("OnSizeChanged", function(self, w) if w and w > 0 then hr:SetAvailableWidth(w - 28) end end)
 
-	local scroll = CreateFrame("ScrollFrame", "PSSSlate3", frame, "UIPanelScrollFrameTemplate")
-	scroll:SetPoint("TOPLEFT", 1, -UI.LIST_TOP)
-	scroll:SetPoint("BOTTOMRIGHT", -27, 4)
-	local slate = CreateFrame("Frame", nil, scroll)
-	slate:SetSize(COL_OPTION_W + COL_ALL_W, 10)
-	scroll:SetScrollChild(slate)
+	local scroll, slate = UI.ScrollList(frame, "PSSSlate3", COL_OPTION_W + COL_ALL_W, 10)
 	frame.ScrollFrame, frame.Slate = scroll, slate
 
 	frame.rows = rows
@@ -267,8 +262,7 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
 		if o.kind == "bool" and o.field then
 			local f = REG[o.field]
 			local g = M.UI.Check(row)
-			local e = CreateFrame("EditBox", nil, row, "InputBoxTemplate")
-			e:SetSize(50, 18); e:SetAutoFocus(false); e:SetNumeric(true); e:SetJustifyH("CENTER")
+			local e = UI.NumberBox(row, 50, 18)
 			hr:Track("all", function(x, w)
 				g:ClearAllPoints(); g:SetPoint("CENTER", row, "LEFT", x + w / 2 - 34, 0)
 				e:ClearAllPoints(); e:SetPoint("LEFT", g, "RIGHT", 10, 0)
@@ -332,8 +326,8 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
 				g:SetChecked(PourSocialScoreDB and PourSocialScoreDB[o.key] == true)
 			end
 		elseif o.kind == "number" then
-			local g = CreateFrame("EditBox", nil, row, "InputBoxTemplate")
-			g:SetSize(50, 18); UI.TCenter(g, row, hr, "all"); g:SetAutoFocus(false); g:SetNumeric(true); g:SetJustifyH("CENTER")
+			local g = UI.NumberBox(row, 50, 18)
+			UI.TCenter(g, row, hr, "all")
 			g:SetScript("OnEnterPressed", function(self)
 				local n = tonumber(self:GetText())
 				if n then

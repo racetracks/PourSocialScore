@@ -456,21 +456,13 @@ function M.PSS_BuildImportExportTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WIND
 		return s
 	end
 
-	local box = CreateFrame("ScrollFrame", "PSSImportExportText", f, "InputScrollFrameTemplate")
+	local box = UI.TextArea(f, "PSSImportExportText", 0, "ChatFontSmall", 24)
 	hr:Track("text", function(x)
 		box:ClearAllPoints()
 		box:SetPoint("TOPLEFT", f, "TOPLEFT", x + 14, -UI.LIST_TOP - 6)
 		box:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -16, 30)
 	end)
-	box.EditBox:SetAutoFocus(false)
-	box.EditBox:SetMaxLetters(0)
-	box.EditBox:SetFontObject("ChatFontSmall")
 	box.EditBox:SetWidth(WINDOW_WIDTH - 19 - 262 - 40)
-	-- keep the text wrapping to the box when the main window is resized
-	box:HookScript("OnSizeChanged", function(self, w)
-		if w and w > 40 then self.EditBox:SetWidth(w - 24) end
-	end)
-	if type(box.CharCount) == "table" and box.CharCount.Hide then box.CharCount:Hide() end
 	f.box = box
 
 	local status = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
