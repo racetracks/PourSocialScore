@@ -96,6 +96,15 @@ step("player history", function() M.PSS_ShowPlayerBlockHistory("Tourplayer-Realm
 step("late player", function() click("PSSTab1"); M.PSS_AddIgnore("Tourlate-Realm", true) end)
 step("late filter", function() click("PSSTab2"); M.PSS_AddCustomFilter("Late filter", "[word=lateword]", true) end)
 step("late guild", function() click("PSSTabGuild"); M.PSS_AddGuild("Tour Late Guild") end)
+step("new filter", function() click("PSSTab2"); click("PSSFrame2CreateButton") end)
+for _, c in ipairs({ "asknote on", "showmsg on", "sameserver off", "defexpire 7", "expire Tourplayer-Realm 3", "expire 1 4" }) do
+	step("slash pss " .. c, function() SlashCmdList.PSS(c) end)
+end
+step("detail note", function()
+	M.PSS_ShowPlayerDetail("Tourplayer-Realm")
+	local f = _G.PSSPlayerDetailFrame
+	if f and f.noteBox then f.noteBox:SetText("edited note"); local fn = f.noteBox:GetScript("OnEnterPressed"); if fn then fn(f.noteBox) end end
+end)
 if manual then step("late guild detail", function() M.PSS_ShowGuildDetail(manual); M.PSS_SetGuildBlock(manual, "whisper", false) end) end
 
 local chatStart = #H.chat + 1
@@ -184,9 +193,19 @@ for name, d in pairs(StaticPopupDialogs) do
 end
 table.sort(dlg)
 
+local saved = {}
+for _, k in ipairs({ "asknote", "chatmsg", "sameserver", "defexpire" }) do saved[#saved + 1] = k .. "=" .. val(db[k]) end
+for i, n in ipairs(db.ignoreList or {}) do
+	saved[#saved + 1] = ("player %d %s note=%s exp=%s"):format(i, n, val(db.notes[i]), val(db.expList[i]))
+end
+for i, f in ipairs(db.filterList or {}) do
+	saved[#saved + 1] = ("filter %d %s desc=%s on=%s count=%s"):format(i, val(f), val(db.filterDesc[i]), val(db.filterActive[i]), val(db.filterCount[i]))
+end
+
 local fh = assert(io.open(out, "w"))
 for _, l in ipairs(lines) do fh:write(l, "\n") end
 for _, l in ipairs(dlg) do fh:write(l, "\n") end
+for _, l in ipairs(saved) do fh:write("saved ", l, "\n") end
 -- memory figures change with garbage collection timing, not with the look
 for i = chatStart, #H.chat do fh:write("chat ", (H.chat[i]:gsub("[%d%.]+ [KM]B", "n MB")), "\n") end
 for _, e in ipairs(errors) do fh:write("ERROR ", e, "\n") end

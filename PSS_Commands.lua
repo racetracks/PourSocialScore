@@ -142,39 +142,39 @@ function SlashCmdList.PSS (msg)
 	elseif args[1] == "defexpire" then
 
 		if tonumber(args[2]) then
-			PourSocialScoreDB.defexpire = tonumber(args[2])
+			M.PSS_SetOpt("defexpire", "global", tonumber(args[2]))
 
 			M.ShowMsg (format(L["CMD_3"], M.PSS_Opt("defexpire"), M.dayString(M.PSS_Opt("defexpire"))))
 		end
 
 	elseif msg == "asknote true" or msg == "asknote on" then
 
-		PourSocialScoreDB.asknote = true
+		M.PSS_SetOpt("asknote", "global", true)
 		M.ShowMsg (L["CMD_4"])
 
 	elseif msg == "asknote false" or msg == "asknote off" then
 
-		PourSocialScoreDB.asknote = false
+		M.PSS_SetOpt("asknote", "global", false)
 		M.ShowMsg (L["CMD_5"])
 
 	elseif msg == "showmsg true" or msg == "showmsg on" then
 
-		PourSocialScoreDB.chatmsg = true
+		M.PSS_SetOpt("chatmsg", "global", true)
 		M.ShowMsg (L["CMD_6"])
 
 	elseif msg == "showmsg false" or msg == "showmsg off" then
 
-		PourSocialScoreDB.chatmsg = false
+		M.PSS_SetOpt("chatmsg", "global", false)
 		M.ShowMsg (L["CMD_7"])
 
 	elseif msg == "sameserver true" or msg == "sameserver on" then
 
-		PourSocialScoreDB.sameserver = true
+		M.PSS_SetOpt("sameserver", "global", true)
 		M.ShowMsg(L["CMD_10"])
 
 	elseif msg == "sameserver false" or msg == "sameserver off" then
 
-		PourSocialScoreDB.sameserver = false
+		M.PSS_SetOpt("sameserver", "global", false)
 		M.ShowMsg(L["CMD_11"])
 
 	elseif args[1] == "list" then
@@ -236,7 +236,7 @@ function SlashCmdList.PSS (msg)
 
 			if (index > 0) and (PourSocialScoreDB.ignoreList[index]) then
 
-				PourSocialScoreDB.expList[index] = tonumber(args[3])
+				M.PSS_SetExpiry(index, tonumber(args[3]))
 				M.ShowMsg(format(L["CMD_14"], PourSocialScoreDB.ignoreList[index], tonumber(args[3])))
 			end
 
@@ -246,7 +246,7 @@ function SlashCmdList.PSS (msg)
 			if playerIndex > 0 then name = PourSocialScoreDB.ignoreList[playerIndex] end
 
 			if playerIndex > 0 then
-				PourSocialScoreDB.expList[playerIndex] = tonumber(args[3])
+				M.PSS_SetExpiry(playerIndex, tonumber(args[3]))
 				M.ShowMsg(format(L["CMD_14"], name, tonumber(args[3])))
 			end
 		end

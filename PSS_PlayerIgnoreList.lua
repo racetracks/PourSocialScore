@@ -1191,6 +1191,18 @@ function M.PSS_GetPlayerPrefsByIndex(index)
 	return ensurePlayer(name)
 end
 
+-- The note of list entry index.
+function M.PSS_SetNote(index, note)
+	if not PourSocialScoreDB.ignoreList[index] then return end
+	PourSocialScoreDB.notes[index] = note
+end
+
+-- Days after the date added that list entry index expires (0 = never).
+function M.PSS_SetExpiry(index, days)
+	if not PourSocialScoreDB.ignoreList[index] then return end
+	PourSocialScoreDB.expList[index] = days
+end
+
 -- Per-player block parameters
 local PLAYER_FIELDS = { whispersBlocked = true, partyInvitesBlocked = true, guildInvitesBlocked = true, partyRaidBlocked = true, channelsBlocked = true }
 function M.PSS_SetPlayerSetting(name, field, value)

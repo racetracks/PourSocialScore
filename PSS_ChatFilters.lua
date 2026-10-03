@@ -475,6 +475,21 @@ function M.PSS_SetFilterActive(index, active)
 	if M.PSS_IsGuildRuleText(db.filterList[index]) and M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
 end
 
+-- An edited custom chat filter: its description and filter text.
+function M.PSS_SaveChatFilter(index, desc, filter)
+	local db = PourSocialScoreDB
+	if not (db and db.filterList and db.filterList[index]) then return end
+	db.filterDesc[index] = desc
+	db.filterList[index] = filter
+end
+
+-- The filter's blocked count starts again from 0 (its lines are kept).
+function M.PSS_ResetFilterCount(index)
+	local db = PourSocialScoreDB
+	if not (db and db.filterList and db.filterList[index]) then return end
+	db.filterCount[index] = 0
+end
+
 
 -- Very old saves had no filter IDs: match them to built-ins by description.
 function M.PSS_AssignLegacyFilterIDs()

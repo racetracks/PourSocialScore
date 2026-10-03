@@ -103,7 +103,7 @@ local function buildFrame()
 		local idx = entryIndex()
 		local days = tonumber(exp:GetText())
 		if idx > 0 and days then
-			PourSocialScoreDB.expList[idx] = days
+			M.PSS_SetExpiry(idx, days)
 			if M.PSSUpdateUI then M.PSSUpdateUI() end
 		end
 		exp:ClearFocus()
@@ -201,7 +201,7 @@ local function buildFrame()
 	local function commitNote()
 		local idx = entryIndex()
 		if idx > 0 then
-			PourSocialScoreDB.notes[idx] = trim(note:GetText())
+			M.PSS_SetNote(idx, trim(note:GetText()))
 			if M.PSSUpdateUI then M.PSSUpdateUI() end
 		end
 	end

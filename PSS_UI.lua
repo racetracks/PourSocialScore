@@ -70,12 +70,12 @@ StaticPopupDialogs["PSS_REASON"] = {
 	end,
 	OnAccept = function(self)
 		local idx = M.hasAnyIgnored(V.nameUI)
-		if idx > 0 then PourSocialScoreDB.notes[idx] = self.EditBox:GetText() end
+		if idx > 0 then M.PSS_SetNote(idx, self.EditBox:GetText()) end
 		M.PSSUpdateUI()
 	end,
 	EditBoxOnEnterPressed = function(self)
 		local idx = M.hasAnyIgnored(V.nameUI)
-		if idx > 0 then PourSocialScoreDB.notes[idx] = self:GetParent().EditBox:GetText() end
+		if idx > 0 then M.PSS_SetNote(idx, self:GetParent().EditBox:GetText()) end
 		self:GetParent():Hide()
 		M.PSSUpdateUI()
 	end,
@@ -108,7 +108,7 @@ end)
 local function setExpire (text)
 	local idx = M.hasAnyIgnored(V.nameUI)
 	if tonumber(text) and idx > 0 then
-		PourSocialScoreDB.expList[idx] = tonumber(text)
+		M.PSS_SetExpiry(idx, tonumber(text))
 		M.PSSUpdateUI()
 	end
 end
@@ -645,7 +645,7 @@ function M.FilterScrollClick(self, button, down)
 					root:CreateDivider()
 					root:CreateButton(L["RCM_14"],
 						function()
-							PourSocialScoreDB.filterCount[FilterScrollSelect] = 0
+							M.PSS_ResetFilterCount(FilterScrollSelect)
 							M.PSSUpdateChatCount()
 						end
 					)
@@ -1454,15 +1454,7 @@ local function BuildFilterTab()
 	-- bottom bar: Create (right), Remove, Block History, Copy ... Reset (left)
 	local create = UI.BarButton(Tab2Frame, L["BUT_5"], nil, nil, "PSSFrame2CreateButton")
 	create:SetScript("OnClick", function()
-		local idx = #PourSocialScoreDB.filterList + 1
-		PourSocialScoreDB.filterList[idx]			= "[word=NewChatFilter]"
-		PourSocialScoreDB.filterDesc[idx]			= "New Chat Filter"
-		PourSocialScoreDB.filterCount[idx]			= 0
-		PourSocialScoreDB.filterActive[idx]			= false
-		PourSocialScoreDB.filterID[idx]				= ""
-		PourSocialScoreDB.filterBlocked[idx]		= {}
-		PourSocialScoreDB.filterBlockedLast[idx]	= 0
-		FilterScrollSelect = idx
+		FilterScrollSelect = M.PSS_AddCustomFilter("New Chat Filter", "[word=NewChatFilter]", false)
 		M.FilterListDrawUpdate(FilterScrollFrame)
 	end)
 	local remove = UI.BarButton(Tab2Frame, L["BUT_6"], create, nil, "PSSFrame2RemoveButton")
@@ -1552,8 +1544,7 @@ local function BuildFilterEditor()
 		end
 		Tab2EditDesc	= PSSFrame2EditDescField:GetText()
 		Tab2EditFilter = PSSFrame2EditFilterField.EditBox:GetText()
-		PourSocialScoreDB.filterDesc[FilterScrollSelect] = Tab2EditDesc
-		PourSocialScoreDB.filterList[FilterScrollSelect] = Tab2EditFilter
+		M.PSS_SaveChatFilter(FilterScrollSelect, Tab2EditDesc, Tab2EditFilter)
 		M.PSS_SetFilterActive(FilterScrollSelect, Tab2EditActive)
 		M.FilterScrollChangeState(0)
 	end)
