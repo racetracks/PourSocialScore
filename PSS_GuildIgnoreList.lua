@@ -186,18 +186,32 @@ M.PSS_GuildBlock = guildBlock
 
 -- The member's own flags (nil entries inherit); converts the old
 -- Allow Whispers / Allow Group Invites / Allow Guild Invites / Allow All Chat.
+-- Most members never get a choice of their own, so reading one that has no
+-- flags returns the shared NO_BLOCK (never written to) instead of storing an
+-- empty table on every member. Writers use memberBlockW.
+local NO_BLOCK = setmetatable({}, { __newindex = function() error("PSS: write to NO_BLOCK", 2) end })
 local function memberBlock(m)
-    if type(m.block) ~= "table" then
-        local b = {}
-        if m.excludedWhispers == true then b.whisper = false end
-        if m.excludedGroup == true then b.partyInvite = false end
-        if m.excludedGuildInvite == true then b.guildInvite = false end
-        if m.excludedChat == true then b.partyRaid = false; b.world = false end
-        m.block = b
-    end
-    return m.block
+	if type(m.block) == "table" then return m.block end
+	if m.excludedWhispers ~= true and m.excludedGroup ~= true and m.excludedGuildInvite ~= true and m.excludedChat ~= true then
+		return NO_BLOCK
+	end
+	local b = {}
+	if m.excludedWhispers == true then b.whisper = false end
+	if m.excludedGroup == true then b.partyInvite = false end
+	if m.excludedGuildInvite == true then b.guildInvite = false end
+	if m.excludedChat == true then b.partyRaid = false; b.world = false end
+	m.block = b
+	m.excludedWhispers, m.excludedGroup, m.excludedGuildInvite, m.excludedChat = nil, nil, nil, nil
+	return b
 end
 M.PSS_MemberBlock = memberBlock
+
+-- the member's own flags, created to be written
+local function memberBlockW(m)
+	local b = memberBlock(m)
+	if b == NO_BLOCK then b = {}; m.block = b end
+	return b
+end
 
 -- Effective setting for a member (own flag, else the guild's).
 local function memberBlocks(g, m, cat)
@@ -309,25 +323,19 @@ function M.PSS_UpdateGuildMember(guildName, playerName, unit)
     local pkey = memberKey(playerName)
     if not g or not pkey then return end
 
+    -- A new member stores only what is known about them. Everything else
+    -- reads as its default when missing (Allow flags false, no block
+    -- choices, no counts, no last invite), so a guild sweep that captures
+    -- thousands of players keeps each one small (see compactMember).
     local isNew = g.members[pkey] == nil
     local m = g.members[pkey] or {
         name = displayPlayer(playerName),
         guild = g.name,
         whenBlocked = nowString(),
-        excludedGroup = false,
-        excludedGuildInvite = false,
-        excludedWhispers = false,
-        excludedChat = false,
-        lastBlockedInvite = "",
-        blockCounts = {},
-        _blockV2 = true,
     }
     m.name = displayPlayer(playerName)
     m.guild = guildName
-    if m.excludedGroup == nil then m.excludedGroup = false end
-    if m.excludedGuildInvite == nil then m.excludedGuildInvite = m.excludedGroup end
-    if m.excludedWhispers == nil then m.excludedWhispers = false end
-    if m.excludedChat == nil then m.excludedChat = false end
+    if m.excludedGroup == true and m.excludedGuildInvite == nil then m.excludedGuildInvite = true end
     if not m.whenBlocked or m.whenBlocked == "" then m.whenBlocked = nowString() end
     if M.PSS_EnsureMemberBlockData then M.PSS_EnsureMemberBlockData(m) end
     if isNew and M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
@@ -341,9 +349,8 @@ function M.PSS_UpdateGuildMember(guildName, playerName, unit)
     end
     if unit and UnitExists(unit) then
         local faction = UnitFactionGroup(unit)
-        local className, classToken = UnitClass(unit)
+        local _, classToken = UnitClass(unit)
         if classToken and not isSecret(classToken) then m.class = classToken end
-        if className and not isSecret(className) then m.className = className end
         if faction and not isSecret(faction) then m.faction = faction end
     end
     g.members[pkey] = m
@@ -385,44 +392,105 @@ local normalizeEntry = History.Normalize
 
 local entrySig = History.Sig
 
--- Make sure a member record has blockCounts in the current format. Older
--- counter fields are folded in once (flag _blockV2). Old per-member history
--- lists are moved into the shared log by the 2.0.17 upgrade.
-local function ensureMemberBlockData(m)
+-- Bring a member record to the current block-data format. Older counter
+-- fields are folded in once (flag _blockV2). Old per-member history lists
+-- are moved into the shared log by the 2.0.17 upgrade.
+-- blockCounts is only kept by members that were blocked at least once: a
+-- member without it reads as all zero (memberCounts). Pass create = true
+-- before writing to it.
+local LEGACY_COUNT_FIELDS = { "blockedWhispers", "blockedPrivateMessages", "privateMessagesBlocked", "blockedChatMessages",
+                              "chatMessagesBlocked", "blockedInvites", "partyInvitesBlocked", "partyRaidMessagesBlocked" }
+local function hasLegacyBlockData(m)
+	if type(m.blockHistory) == "table" and #m.blockHistory > 0 then return true end
+	for _, f in ipairs(LEGACY_COUNT_FIELDS) do
+		if m[f] ~= nil then return true end
+	end
+	return false
+end
+
+local function ensureMemberBlockData(m, create)
     if type(m) ~= "table" then return end
-    m.blockCounts = History.EnsureCounts(m.blockCounts)
-    if m._blockV2 then return end
-    if type(m.blockHistory) == "table" and #m.blockHistory > 0 then
-        -- very old saves wrote a line once per chat window: collapse repeats
-        local out, prev = {}, nil
-        for _, h in ipairs(m.blockHistory) do
-            if History.Normalize(h) then
-                local sig = History.Sig(h)
-                if sig ~= prev then
-                    h.member = h.member or m.name
-                    out[#out + 1] = h
-                    m.blockCounts[h.cat] = (m.blockCounts[h.cat] or 0) + 1
+    if not m._blockV2 and hasLegacyBlockData(m) then
+        m.blockCounts = History.EnsureCounts(m.blockCounts)
+        if type(m.blockHistory) == "table" and #m.blockHistory > 0 then
+            -- very old saves wrote a line once per chat window: collapse repeats
+            local out, prev = {}, nil
+            for _, h in ipairs(m.blockHistory) do
+                if History.Normalize(h) then
+                    local sig = History.Sig(h)
+                    if sig ~= prev then
+                        h.member = h.member or m.name
+                        out[#out + 1] = h
+                        m.blockCounts[h.cat] = (m.blockCounts[h.cat] or 0) + 1
+                    end
+                    prev = sig
                 end
-                prev = sig
             end
+            m.blockHistory = out
+        else
+            m.blockCounts.whisper = m.blockCounts.whisper + (tonumber(m.blockedWhispers) or 0)
+                + (tonumber(m.blockedPrivateMessages) or tonumber(m.privateMessagesBlocked) or 0)
+            m.blockCounts.partyRaid = m.blockCounts.partyRaid
+                + (tonumber(m.blockedChatMessages) or tonumber(m.chatMessagesBlocked) or 0)
+            m.blockCounts.partyInvite = m.blockCounts.partyInvite
+                + (tonumber(m.blockedInvites) or tonumber(m.partyInvitesBlocked) or 0)
         end
-        m.blockHistory = out
-        m.blockCounts = History.EnsureCounts(m.blockCounts)
-    else
-        m.blockCounts.whisper = m.blockCounts.whisper + (tonumber(m.blockedWhispers) or 0)
-            + (tonumber(m.blockedPrivateMessages) or tonumber(m.privateMessagesBlocked) or 0)
-        m.blockCounts.partyRaid = m.blockCounts.partyRaid
-            + (tonumber(m.blockedChatMessages) or tonumber(m.chatMessagesBlocked) or 0)
-        m.blockCounts.partyInvite = m.blockCounts.partyInvite
-            + (tonumber(m.blockedInvites) or tonumber(m.partyInvitesBlocked) or 0)
-        m.blockCounts = History.EnsureCounts(m.blockCounts)
+        -- Old counter fields are superseded by blockCounts.
+        for _, f in ipairs(LEGACY_COUNT_FIELDS) do m[f] = nil end
+        m._blockV2 = true
     end
-    -- Old counter fields are superseded by blockCounts.
-    m.blockedWhispers, m.blockedPrivateMessages, m.blockedChatMessages, m.blockedInvites = nil, nil, nil, nil
-    m.privateMessagesBlocked, m.chatMessagesBlocked, m.partyInvitesBlocked, m.partyRaidMessagesBlocked = nil, nil, nil, nil
-    m._blockV2 = true
+    if create or m.blockCounts ~= nil then m.blockCounts = History.EnsureCounts(m.blockCounts) end
 end
 M.PSS_EnsureMemberBlockData = ensureMemberBlockData
+
+-- Drop every field a stored member holds at its default, so SavedVariables
+-- (and the memory it is loaded into) only carry what is known about them.
+-- Before 2.0.29 each member was saved with four Allow flags, an empty block
+-- table, a zero blockCounts table and session-only /who details: about
+-- 1.2 KB each, which full guild sweeps (2.0.19) multiplied by thousands.
+local DROP_ALWAYS = { "online", "race", "className" }   -- never read for members
+local ALLOW_FLAGS = { "excludedGroup", "excludedGuildInvite", "excludedWhispers", "excludedChat" }
+local function compactMember(m)
+	if type(m) ~= "table" then return end
+	ensureMemberBlockData(m)
+	if type(m.block) ~= "table" then memberBlock(m) end   -- folds true Allow flags into m.block
+	for _, f in ipairs(ALLOW_FLAGS) do
+		if m[f] ~= true then m[f] = nil end
+	end
+	if type(m.block) == "table" and next(m.block) == nil then m.block = nil end
+	if m.lastBlockedInvite == "" then m.lastBlockedInvite = nil end
+	local bc = m.blockCounts
+	if type(bc) == "table" then
+		local zero = (tonumber(bc.total) or 0) == 0
+		for _, c in ipairs(History.ALL_CATS) do
+			if (tonumber(bc[c]) or 0) ~= 0 then zero = false break end
+		end
+		if zero then m.blockCounts = nil end
+	end
+	if m._blockV2 and not hasLegacyBlockData(m) then m._blockV2 = nil end
+	for _, f in ipairs(DROP_ALWAYS) do m[f] = nil end
+end
+M.PSS_CompactMember = compactMember
+
+-- every stored member of every guild rule
+local function compactAllMembers()
+	local n = 0
+	for _, g in pairs((PourSocialScoreDB and PourSocialScoreDB.guildData) or {}) do
+		if type(g) == "table" and type(g.members) == "table" then
+			for _, m in pairs(g.members) do
+				if type(m) == "table" then compactMember(m); n = n + 1 end
+			end
+		end
+	end
+	return n
+end
+M.PSS_CompactAllMembers = compactAllMembers
+
+-- forget a member's counts (Reset): no counts stored = all zero
+local function clearMemberBlockData(m)
+	m.blockHistory, m.blockCounts, m.lastBlockedInvite, m._blockV2 = nil, nil, nil, nil
+	for _, f in ipairs(LEGACY_COUNT_FIELDS) do m[f] = nil end
+end
 
 -- Fields that must never be copied by reference between member records.
 local BLOCK_FIELDS = {
@@ -439,10 +507,13 @@ local function mergeBlockData(dst, src)
     if type(dst) ~= "table" or type(src) ~= "table" or dst == src then return end
     ensureMemberBlockData(dst)
     ensureMemberBlockData(src)
-    for _, c in ipairs(History.ALL_CATS) do
-        dst.blockCounts[c] = (dst.blockCounts[c] or 0) + (src.blockCounts[c] or 0)
+    if src.blockCounts then
+        ensureMemberBlockData(dst, true)
+        for _, c in ipairs(History.ALL_CATS) do
+            dst.blockCounts[c] = (dst.blockCounts[c] or 0) + (src.blockCounts[c] or 0)
+        end
+        dst.blockCounts.total = (dst.blockCounts.total or 0) + (src.blockCounts.total or 0)
     end
-    dst.blockCounts.total = (dst.blockCounts.total or 0) + (src.blockCounts.total or 0)
     if (src.lastBlockedInvite or "") ~= "" and (dst.lastBlockedInvite or "") == "" then
         dst.lastBlockedInvite = src.lastBlockedInvite
     end
@@ -628,11 +699,10 @@ local function vrec(ck, gkey)
     local gk, pos = unpackIndex(m, m.index[ck])
     local name = (gk == gkey) and m.names[gkey][pos]
     if not name then return nil end
+    -- flags, counts and block choices are created when first set
     r = {
         name = displayPlayer(name), guild = m.guildName[gkey] or gkey, whenBlocked = "Managed list",
-        excludedGroup = false, excludedGuildInvite = false, excludedWhispers = false, excludedChat = false,
-        lastBlockedInvite = "", block = {}, blockCounts = History.EmptyCounts(),
-        _blockV2 = true, _managed = true, _virtual = true, _canon = ck, _gkey = gkey,
+        _managed = true, _virtual = true, _canon = ck, _gkey = gkey,
         _playerKey = normalizePlayer(name),
     }
     vcache[ck] = r
@@ -780,21 +850,24 @@ function M.PSS_FlushManaged()
             g.memberCount = nil
         end
     end
+    compactAllMembers()
 end
 
 ------------------------------------------------------------------------
--- Member lookup index: canonical player key -> { gkey, key }.
+-- Member lookup index: canonical player key -> guild key, stored key.
 -- Chat events arrive with several name spellings ("Name", "Name-Realm",
 -- "Name-Aman'Thul", Proper-cased names from the core filter...). The index
 -- uses canonPlayer() so all of them resolve to the stored member record.
 ------------------------------------------------------------------------
-local memberIndex, memberIndexDirty, memberIndexBuilt = {}, true, 0
+-- Two flat maps (ck -> guild key, ck -> stored key) rather than a small
+-- table per member: no per-member allocation on each rebuild.
+local memberIndexG, memberIndexK, memberIndexDirty, memberIndexBuilt = {}, {}, true, 0
 
 local function markMemberIndexDirty() memberIndexDirty = true end
 M.PSS_MarkGuildIndexDirty = markMemberIndexDirty
 
 local function rebuildMemberIndex()
-    local idx, score = {}, {}
+    local idxG, idxK, score = {}, {}, {}
     local bestCache = {}
     for gkey, g in pairs((PourSocialScoreDB and PourSocialScoreDB.guildData) or {}) do
         if type(g) == "table" and type(g.members) == "table" then
@@ -812,8 +885,8 @@ local function rebuildMemberIndex()
                             bestCache[actual] = best
                         end
                         local s = (g.enabled and 2 or 0) + ((best == gkey) and 1 or 0)
-                        if not idx[ck] or s > score[ck] then
-                            idx[ck] = { gkey = gkey, key = storedKey }
+                        if not idxG[ck] or s > score[ck] then
+                            idxG[ck], idxK[ck] = gkey, storedKey
                             score[ck] = s
                         end
                     end
@@ -821,7 +894,7 @@ local function rebuildMemberIndex()
             end
         end
     end
-    memberIndex = idx
+    memberIndexG, memberIndexK = idxG, idxK
     memberIndexDirty = false
     memberIndexBuilt = GetTime and GetTime() or 0
 end
@@ -837,8 +910,8 @@ local function lookupGuildMember(name)
     if memberIndexDirty then rebuildMemberIndex() end
 
     for attempt = 1, 2 do
-        local hit = memberIndex[ck]
-        if not hit then
+        local hitG, hitK = memberIndexG[ck], memberIndexK[ck]
+        if not hitG then
             -- a shipped member of a managed guild (not stored)
             local gkey, g = staticGuildOf(ck)
             if gkey and g.managed then
@@ -847,9 +920,9 @@ local function lookupGuildMember(name)
             end
             return nil
         end
-        local g = PourSocialScoreDB.guildData[hit.gkey]
-        local m = g and g.members and g.members[hit.key]
-        if m then return g, hit.gkey, m, hit.key end
+        local g = PourSocialScoreDB.guildData[hitG]
+        local m = g and g.members and g.members[hitK]
+        if m then return g, hitG, m, hitK end
         if attempt == 1 then rebuildMemberIndex() end   -- stale entry
     end
     return nil
@@ -876,7 +949,7 @@ M.PSS_RequestGuildUIRefresh = requestGuildUIRefresh
 
 local function recordGuildBlock(g, m, cat, event, message, channel, gkey)
     keepManaged(m)
-    ensureMemberBlockData(m)
+    ensureMemberBlockData(m, true)
     local entry = History.NewEntry(cat, event, message, channel, m.name)
     entry.gk = gkey      -- the rule at the time (used if they leave every rule)
     History.Add(History.MemberKey(m), m.blockCounts, entry)
@@ -893,7 +966,7 @@ function M.PSS_SetMemberBlock(g, member, cat, value)
     if type(member) ~= "table" or not M.PSS_EXCL_INFO[cat] then return false end
     local was = g and memberBlocks(g, member, cat)
     keepManaged(member)
-    if value == nil then memberBlock(member)[cat] = nil else memberBlock(member)[cat] = value == true end
+    if value == nil then memberBlockW(member)[cat] = nil else memberBlockW(member)[cat] = value == true end
     if g then
         refreshGuildActive(g)
         -- newly blocked: clear their earlier lines from chat, decline an open invite
@@ -937,7 +1010,10 @@ function M.PSS_SetMemberFlag(member, field, value)
     local cats = ALLOW_FIELD[field]
     if type(member) ~= "table" or not cats then return false end
     keepManaged(member)
-    for _, c in ipairs(cats) do memberBlock(member)[c] = (value == true) and false or nil end
+    local b = memberBlockW(member)
+    for _, c in ipairs(cats) do
+        if value == true then b[c] = false else b[c] = nil end   -- (x and false or nil) is always nil
+    end
     return true
 end
 
@@ -1002,6 +1078,9 @@ end
 -- Totals and history (guild = sum/merge of its members)
 ------------------------------------------------------------------------
 local function emptyCounts() return History.EmptyCounts() end
+-- a member's counts for reading (members never blocked keep none)
+local NO_COUNTS = History.EmptyCounts()
+local function memberCounts(m) return m.blockCounts or NO_COUNTS end
 
 local function findGuildRecord(guildNameOrKey)
     if not PourSocialScoreDB or not PourSocialScoreDB.guildData then return nil end
@@ -1030,7 +1109,8 @@ function M.PSS_GetGuildBlockCounts(guildNameOrKey)
     for _, gg in ipairs(guilds) do
         forEachMember(gg.g, gg.key, function(m)
             ensureMemberBlockData(m)
-            for _, c in ipairs(History.ALL_CATS) do out[c] = out[c] + (m.blockCounts[c] or 0) end
+            local bc = memberCounts(m)
+            for _, c in ipairs(History.ALL_CATS) do out[c] = out[c] + (bc[c] or 0) end
         end)
     end
     local total = 0
@@ -1043,8 +1123,8 @@ function M.PSS_GetMemberBlockCounts(m)
     local out = emptyCounts()
     if type(m) ~= "table" then out.total = 0 return out end
     ensureMemberBlockData(m)
-    local total = 0
-    for _, c in ipairs(History.ALL_CATS) do out[c] = m.blockCounts[c] or 0; total = total + out[c] end
+    local bc, total = memberCounts(m), 0
+    for _, c in ipairs(History.ALL_CATS) do out[c] = bc[c] or 0; total = total + out[c] end
     out.total = total
     return out
 end
@@ -1122,12 +1202,7 @@ function M.PSS_ResetGuildBlockHistory(guildNameOrKey)
     local g, gkey = findGuildRecord(guildNameOrKey)
     if not g then return end
     History.Clear(guildLineMatcher(g, gkey))
-    forEachMember(g, gkey, function(m)
-        m.blockHistory = nil
-        m.blockCounts = emptyCounts()
-        m.lastBlockedInvite = ""
-        m._blockV2 = true
-    end)
+    forEachMember(g, gkey, clearMemberBlockData)
     g.blockHistory = nil
     requestGuildUIRefresh()
 end
@@ -1141,10 +1216,7 @@ function M.PSS_ResetMemberBlockHistory(member)
     if type(member) ~= "table" then return end
     local key = History.MemberKey(member)
     if key then History.Clear(function(h) return h.o == key end) end
-    member.blockHistory = nil
-    member.blockCounts = emptyCounts()
-    member.lastBlockedInvite = ""
-    member._blockV2 = true
+    clearMemberBlockData(member)
     requestGuildUIRefresh()
 end
 
@@ -1206,9 +1278,7 @@ local function addWhoResultToGuildMember(info, guildRowName, actualGuild)
             local moved = M.PSS_MoveOtherCopies and M.PSS_MoveOtherCopies(fullName, rowKey, r) or 0
             r.guild = actualGuild
             r.class = classTokenFromInfo(info.filename or info.classFileName or info.classFile or info.classStr or info.class) or r.class
-            r.className = info.classStr or info.className or info.class or r.className
             r.level = tonumber(info.level) or r.level
-            r.online = true
             markMemberIndexDirty()
             if moved > 0 then return "moved" end
             return wasGone and "new" or "known"
@@ -1230,10 +1300,7 @@ local function addWhoResultToGuildMember(info, guildRowName, actualGuild)
             info.filename or info.classFileName or info.classFile or
             info.classStr or info.class
         ) or member.class or ""
-        member.className = info.classStr or info.className or info.class or member.className
         member.level = tonumber(info.level) or member.level
-        member.race = info.raceStr or info.race or member.race
-        member.online = true
         -- Store the canonical player key on the member record. This makes the
         -- later exact-guild migration independent of display-name formatting,
         -- realm-name casing, or which broad guild filter originally captured it.
@@ -1247,7 +1314,7 @@ local function addWhoResultToGuildMember(info, guildRowName, actualGuild)
         p.online = true
         if member then
             p.class = member.class or p.class or ""
-            p.className = member.className or p.className
+            p.className = info.classStr or info.className or p.className
         end
     end
     return member and status or nil
@@ -1709,9 +1776,9 @@ function M.PSS_UpgradeLegacyData()
         if type(g) == "table" then
             for _, m in pairs(g.members or {}) do
                 if type(m) == "table" then
-                    if M.PSS_EnsureMemberBlockData then M.PSS_EnsureMemberBlockData(m) end
                     -- guild invites used to share the "Allow Group Invites" box
-                    if m.excludedGuildInvite == nil then m.excludedGuildInvite = m.excludedGroup == true end
+                    if m.excludedGroup == true and m.excludedGuildInvite == nil then m.excludedGuildInvite = true end
+                    compactMember(m)
                 end
             end
             g.blockHistory = nil
@@ -1775,12 +1842,12 @@ local function mergeMemberRecord(existing, m)
     for field, value in pairs(m) do
         if not MERGE_SKIP[field] and (existing[field] == nil or existing[field] == "") then existing[field] = value end
     end
-    existing.excludedGroup = existing.excludedGroup == true or m.excludedGroup == true
-    existing.excludedGuildInvite = existing.excludedGuildInvite == true or m.excludedGuildInvite == true
-    existing.excludedWhispers = existing.excludedWhispers == true or m.excludedWhispers == true
-    existing.excludedChat = existing.excludedChat == true or m.excludedChat == true
+    -- (only true is stored: a missing flag means false)
+    for _, f in ipairs({ "excludedGroup", "excludedGuildInvite", "excludedWhispers", "excludedChat" }) do
+        if m[f] == true then existing[f] = true end
+    end
     -- W I G P C: keep the existing record's own choices, fill the gaps from m
-    local eb, mb = memberBlock(existing), memberBlock(m)
+    local eb, mb = memberBlockW(existing), memberBlock(m)
     for _, c in ipairs(EXCL_CATS) do
         if eb[c] == nil and mb[c] ~= nil then eb[c] = mb[c] end
     end
