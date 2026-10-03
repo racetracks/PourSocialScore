@@ -1,6 +1,15 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.43 - Removed players leave nothing saved
+
+- Removing a player from the Player Ignore List (by hand, expiry, prune, /pss, or Blizzard's Unignore) now also removes their saved record and their block history lines.
+- If that player is on a built-in guild list (which ships with the addon and can't be edited), they stay on it with every W I G P C switch blocked, and their member note is set to your old list note, or "Removed from player list" if there was none. A member note you already wrote is kept.
+- Removing a guild member, or a whole guild rule, also removes their block history lines once they are in no guild rule.
+- Login tidy-up: player records left behind by earlier versions for players no longer on the list are removed (236 in the 2.0.40 save tested, about 0.4 MB), with the built-in list treatment above for the 2 who are on one.
+- Player records no longer store copies or empty values: the copied note and expiry, the nickname when it equals the name, the "seen online" flag, the old per-type counters (now in the block counts) and empty text fields.
+- Version 2.0.43.
+
 => 2.0.42 - Smoother guild windows (same look)
 
 - Guild members window: only the rows in view are built, and they are reused as you scroll. Opening your largest guild (934 members) used to build a row for every member and keep them all; now it builds about 17. In the test setup opening it went from about 168 ms to 16 ms and from about 34 MB to under 2 MB of window parts. The scroll bar, row look and selection are the same; a selected member stays selected (and Remove Member stays available) while scrolled out of view, and a note being typed is saved before its row moves.

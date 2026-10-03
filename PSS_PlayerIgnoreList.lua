@@ -125,6 +125,9 @@ local function RemoveFromList (index)
 	local name = PourSocialScoreDB.ignoreList[index]
 	if name then
 		addDeleted(name)
+		if (PourSocialScoreDB.typeList[index] or "player") == "player" and M.PSS_ForgetPlayer then
+			M.PSS_ForgetPlayer(name, PourSocialScoreDB.notes[index])
+		end
 
 		table.remove(PourSocialScoreDB.ignoreList, index)
 		table.remove(PourSocialScoreDB.factionList, index)
@@ -1143,19 +1146,15 @@ local function ensurePlayer(name)
 	if not key then return nil end
 	local p = PourSocialScoreDB.playerData[key]
 	if not p then
+		-- only what is known; empty text and zero counters are not stored
 		p = {
-			name = displayPlayer(name), nickname = displayPlayer(name), whenBlocked = nowString(),
+			name = displayPlayer(name), whenBlocked = nowString(),
 			whispersBlocked = true, partyInvitesBlocked = true, guildInvitesBlocked = true, partyRaidBlocked = true,
 			channelsBlocked = true,
-			guildWhenBlocked = "", currentGuild = "", lastBlockedInvite = "",
-			blockedInvites = 0, blockedWhisperMessages = 0,
-			blockedPrivateMessages = 0, blockedChatMessages = 0,
-			class = "", online = false, faction = "",
 		}
 		PourSocialScoreDB.playerData[key] = p
 	else
 		p.name = p.name or displayPlayer(name)
-		p.nickname = p.nickname or p.name
 		p.whenBlocked = p.whenBlocked or nowString()
 		if p.whispersBlocked == nil then p.whispersBlocked = true end
 		if p.partyInvitesBlocked == nil then p.partyInvitesBlocked = true end
@@ -1164,15 +1163,6 @@ local function ensurePlayer(name)
 		if p.partyRaidBlocked == nil then p.partyRaidBlocked = true end
 		-- C (chat channels / public chat) was always blocked before it became a switch
 		if p.channelsBlocked == nil then p.channelsBlocked = true end
-		p.guildWhenBlocked = p.guildWhenBlocked or ""
-		p.currentGuild = p.currentGuild or ""
-		p.lastBlockedInvite = p.lastBlockedInvite or ""
-		p.blockedWhispers = nil			-- duplicate of the history; dropped
-		p.blockedInvites = p.blockedInvites or 0
-		p.blockedPrivateMessages = p.blockedPrivateMessages or 0
-		p.blockedChatMessages = p.blockedChatMessages or 0
-		p.class = p.class or ""
-		p.faction = p.faction or ""
 	end
 	return p, key
 end
@@ -1183,6 +1173,64 @@ function M.PSS_GetPlayerPrefs(name) return ensurePlayer(name) end
 function M.PSS_GetPlayerRecord(name)
 	local key = normalizePlayer(name)
 	return key and PourSocialScoreDB and PourSocialScoreDB.playerData and PourSocialScoreDB.playerData[key]
+end
+
+-- A player left the Player Ignore List: nothing about them stays saved (their
+-- record and block history lines). If they are on a built-in guild list
+-- they stay blocked there, see M.PSS_KeepBlockedOnBuiltIn.
+function M.PSS_ForgetPlayer(name, note)
+	local key = normalizePlayer(name)
+	local p = key and PourSocialScoreDB.playerData and PourSocialScoreDB.playerData[key]
+	if M.PSS_KeepBlockedOnBuiltIn then M.PSS_KeepBlockedOnBuiltIn(p and p.name or name, note) end
+	local owner = History.PlayerKey(p and p.name or name)
+	if owner then History.Clear(function(h) return h.o == owner end) end
+	if p then PourSocialScoreDB.playerData[key] = nil end
+end
+
+-- Fields older builds stored on every player record: copies of the list's
+-- note and expiry, a nickname equal to the name, the "seen online" flag and
+-- the counters that p.blockCounts replaced. Empty text is not stored.
+local DROPPED_FIELDS = { "note", "expireDays", "online", "blockedWhispers", "blockHistory",
+						"blockedInvites", "blockedWhisperMessages", "blockedPrivateMessages", "blockedChatMessages" }
+local EMPTY_FIELDS = { "guildWhenBlocked", "currentGuild", "lastBlockedInvite", "class", "faction", "className" }
+
+-- Login tidy-up (after the upgrades): a record of a player no longer on the
+-- Player Ignore List is removed (left by builds before 2.0.43; one on a
+-- built-in guild list stays blocked there first), and the records that stay
+-- lose the fields above. Returns the number of records removed.
+function M.PSS_TidyPlayerData()
+	ensureDB()
+	local db = PourSocialScoreDB
+	local listed = {}
+	for i, name in ipairs(db.ignoreList or {}) do
+		if (db.typeList[i] or "player") == "player" then
+			local k = normalizePlayer(name)
+			if k then listed[k] = true end
+		end
+	end
+	local gone = {}
+	for key, p in pairs(db.playerData) do
+		if not listed[key] or type(p) ~= "table" then gone[#gone + 1] = key end
+	end
+	for _, key in ipairs(gone) do
+		-- (their block lines go in the history tidy that runs next)
+		local p = db.playerData[key]
+		if type(p) == "table" and M.PSS_KeepBlockedOnBuiltIn then M.PSS_KeepBlockedOnBuiltIn(p.name or key, p.note) end
+		db.playerData[key] = nil
+	end
+	for _, p in pairs(db.playerData) do
+		-- older counters are folded into p.blockCounts first (once)
+		if type(p.blockCounts) ~= "table" and ((tonumber(p.blockedInvites) or 0) + (tonumber(p.blockedWhisperMessages) or 0)
+			+ (tonumber(p.blockedPrivateMessages) or 0) + (tonumber(p.blockedChatMessages) or 0)) > 0 then
+			M.PSS_GetPlayerBlockCounts(p)
+		end
+		if p.nickname == p.name then p.nickname = nil end
+		for _, f in ipairs(DROPPED_FIELDS) do p[f] = nil end
+		for _, f in ipairs(EMPTY_FIELDS) do
+			if p[f] == "" then p[f] = nil end
+		end
+	end
+	return #gone
 end
 
 function M.PSS_GetPlayerPrefsByIndex(index)
@@ -1230,7 +1278,6 @@ function M.PSS_SetPlayerMeta(name, unit, guild)
 	if unit and UnitExists and UnitExists(unit) then
 		local fac = UnitFactionGroup(unit)
 		local className, classToken = UnitClass(unit)
-		p.online = true
 		if fac and not sec(fac) then p.faction = fac end
 		if classToken and not sec(classToken) then p.class = classToken end
 		if className and not sec(className) then p.className = className end
@@ -1257,16 +1304,8 @@ function M.PSS_RecordPlayerBlock(name, event, message, inviteKind, cat)
 	local entry = History.Add(History.PlayerKey(p.name or name), p.blockCounts,
 		History.NewEntry(ccat, event or "", message, M.PSS_ChannelLabel and M.PSS_ChannelLabel(event or "") or nil, p.name or name))
 	if M.PSS_Stats then M.PSS_Stats.Count("player", entry.cat) end
-	if inviteKind then
-		p.blockedInvites = (p.blockedInvites or 0) + 1
-		p.lastBlockedInvite = entry.time
-	elseif ccat == "whisper" then
-		p.blockedWhisperMessages = (p.blockedWhisperMessages or 0) + 1
-		-- (the last whispers are in the block history; no second copy kept)
-		p.blockedWhispers = nil
-	else
-		p.blockedChatMessages = (p.blockedChatMessages or 0) + 1
-	end
+	-- (the counts are in p.blockCounts and the lines in the block history)
+	if inviteKind then p.lastBlockedInvite = entry.time end
 	-- the window is redrawn at most a few times a second, not once per line
 	M.Events.Fire("PLAYER_BLOCKED")
 end
@@ -1318,11 +1357,8 @@ function M.PSS_ResetPlayerBlockHistory(name)
 		local key = History.PlayerKey(p.name or name)
 		History.Clear(function(h) return h.o == key end)
 		p.blockHistory = nil
-		p.blockedWhispers = nil
-		p.blockedWhisperMessages = 0
-		p.blockedPrivateMessages = 0
-		p.blockedChatMessages = 0
-		p.blockedInvites = 0
+		p.blockedWhispers, p.blockedWhisperMessages, p.blockedPrivateMessages = nil, nil, nil
+		p.blockedChatMessages, p.blockedInvites = nil, nil
 		p.blockCounts = History.EmptyCounts()
 		M.Events.Fire("PLAYERS_CHANGED")
 	end

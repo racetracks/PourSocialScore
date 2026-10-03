@@ -1,6 +1,6 @@
 #!/bin/sh
 # SavedVariables upgrade test for 2.0.1, 2.0.8, 2.0.17, 2.0.18, 2.0.19,
-# 2.0.22, 2.0.35, 2.0.36, 2.0.37, 2.0.38, 2.0.39 and 2.0.40 (run from the
+# 2.0.22, 2.0.35, 2.0.36, 2.0.37, 2.0.38, 2.0.39, 2.0.40, 2.0.41 and 2.0.42, and removals (run from the
 # repo root, needs lua5.1 and git).
 #   sh tools/harness/validate_all.sh
 # PSS_REAL_SAVES=<dir> also loads every real save (*.lua) found under that
@@ -14,7 +14,7 @@ rm -rf "$work"; mkdir -p "$work"
 t0=1790000000
 fail=0
 
-for pair in 2.0.18:d885cd0 2.0.19:4b7066c 2.0.22:2837de0 2.0.35:9646596 2.0.36:9bfba2e 2.0.37:710d180 2.0.38:d331f82 2.0.39:24d234c 2.0.40:34092f7; do
+for pair in 2.0.18:d885cd0 2.0.19:4b7066c 2.0.22:2837de0 2.0.35:9646596 2.0.36:9bfba2e 2.0.37:710d180 2.0.38:d331f82 2.0.39:24d234c 2.0.40:34092f7 2.0.41:35742b2 2.0.42:8a8a8fd; do
 	v=${pair%%:*}; c=${pair#*:}
 	mkdir -p "$work/src-$v"
 	git archive "$c" | tar -x -C "$work/src-$v"
@@ -26,7 +26,7 @@ for v in 2.0.17 2.0.8 2.0.1; do
 	cp "$work/expect-2.0.18.lua" "$work/expect-$v.lua"
 done
 
-for v in 2.0.1 2.0.8 2.0.17 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40; do
+for v in 2.0.1 2.0.8 2.0.17 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40 2.0.41 2.0.42; do
 	out=$(sh "$here/validate.sh" "$v" "$work/sv-$v.lua" "$work/expect-$v.lua" 2>&1)
 	echo "$out"
 	echo "$out" | grep -q "PASS phase 3" || fail=1
@@ -39,9 +39,23 @@ for v in 2.0.1 2.0.8 2.0.17 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0
 	echo "$out" | grep -q "FAIL" && fail=1
 done
 
+# removals (2.0.43): a player taken off any list leaves nothing saved, and a
+# built-in list member stays blocked there with a note. Run on the save each
+# version's upgrade wrote (validate.sh phase 3).
+for v in 2.0.1 2.0.8 2.0.17 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40 2.0.41 2.0.42; do
+	echo "== $v removals"
+	src=${TMPDIR:-/tmp}/pss-validate-$v/after-login2.lua
+	for ph in forget1 forget2; do
+		out=$(PSS_PHASE=$ph lua5.1 "$here/run.lua" . "$src" "$work/forget-$v-$ph.lua" "$here/check_forget.lua" 2>&1 | grep -v '^|cff')
+		echo "$out"
+		echo "$out" | grep -q "PASS $ph" || fail=1
+		src=$work/forget-$v-$ph.lua
+	done
+done
+
 # guild rule blocks (2.0.39): counted once, linked to the rule, no combat
 # discovery. Saves written by each version's own code (2.0.18 and later).
-for v in 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40; do
+for v in 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40 2.0.41 2.0.42; do
 	echo "== $v guild rule"
 	PSS_TIME=$t0 PSS_EXPECT="$work/expect-gr-$v.lua" \
 		lua5.1 "$here/run.lua" "$work/src-$v" - "$work/sv-gr-$v.lua" "$here/make_guildrule.lua" | grep '^made' || fail=1

@@ -1,7 +1,9 @@
 -- Real save check (validate_all.sh with PSS_REAL_SAVES).
 -- As a run.lua script: fails on any Lua error printed to chat.
 -- Standalone: lua5.1 check_real.lua <before.lua> <after.lua> checks that two
--- logins kept every rule, member, player, chat filter and block total.
+-- logins kept every rule, member, listed player, chat filter and block
+-- total, dropped the records of players no longer listed (2.0.43) and left
+-- no copied or empty fields on the records that stay.
 local function count(t) local n = 0 for _ in pairs(t or {}) do n = n + 1 end return n end
 
 if M then
@@ -22,7 +24,15 @@ local function load(path)
 	local db = PourSocialScoreDB
 	local s = { rules = {}, players = {}, filters = {}, total = 0 }
 	for k, g in pairs(db.guildData or {}) do s.rules[k] = count(g.members) end
-	for k in pairs(db.playerData or {}) do s.players[k] = true end
+	local listed = {}
+	for i, name in ipairs(db.ignoreList or {}) do
+		if ((db.typeList or {})[i] or "player") == "player" then listed[name:lower()] = true end
+	end
+	s.records = db.playerData or {}
+	for k, p in pairs(s.records) do
+		-- a record only counts as needed while its player is on the list
+		s.players[k] = listed[tostring(p.name):lower()] == true
+	end
 	for i, f in ipairs(db.filterList or {}) do s.filters[i] = f end
 	s.list = #(db.ignoreList or {})
 	s.filterTotal = db.filterTotal
@@ -37,7 +47,17 @@ for k, n in pairs(a.rules) do
 	if b.rules[k] == nil then fail("rule lost: " .. k)
 	elseif b.rules[k] < n then fail(("rule %s lost members: %d -> %d"):format(k, n, b.rules[k])) end
 end
-for k in pairs(a.players) do if not b.players[k] then fail("player record lost: " .. k) end end
+for k, needed in pairs(a.players) do if needed and not b.players[k] then fail("player record lost: " .. k) end end
+local DROPPED = { "nickname", "note", "expireDays", "online", "blockedWhispers", "blockHistory",
+	"blockedInvites", "blockedWhisperMessages", "blockedPrivateMessages", "blockedChatMessages" }
+for k, needed in pairs(b.players) do
+	if not needed then fail("record of a player not on the list kept: " .. k) end
+	local p = b.records[k]
+	for _, f in ipairs(DROPPED) do
+		if p[f] ~= nil and not (f == "nickname" and p[f] ~= p.name) then fail("old field kept: " .. k .. "." .. f) end
+	end
+	for f, v in pairs(p) do if v == "" then fail("empty field kept: " .. k .. "." .. f) end end
+end
 for i, f in ipairs(a.filters) do if b.filters[i] ~= f then fail("chat filter changed: " .. i) end end
 if a.list ~= b.list then fail(("player list size %d -> %d"):format(a.list, b.list)) end
 if a.countsV1 and a.filterTotal ~= b.filterTotal then fail("filter total changed") end

@@ -974,6 +974,25 @@ function M.PSS_SetMemberNote(member, text)
 	member.note = (text ~= "") and text or nil
 end
 
+-- A player taken off the Player Ignore List who is also on a built-in guild
+-- list stays there (those members ship with the addon and can't be edited
+-- in its files): every W I G P C switch is blocked on them in that guild rule
+-- and, if they have no member note yet, one says why (their old list note,
+-- else REMOVED_NOTE). Returns true if they are on a built-in list.
+local REMOVED_NOTE = "Removed from player list"
+function M.PSS_KeepBlockedOnBuiltIn(name, note)
+	local g, _, m = lookupGuildMember(name)
+	if not g or not g.managed or type(m) ~= "table" then return false end
+	for _, cat in ipairs(EXCL_CATS) do M.PSS_SetMemberBlock(g, m, cat, true) end
+	if (m.note or "") == "" then
+		note = type(note) == "string" and M.trim(note) or ""
+		if #note > 25 then note = note:sub(1, 25):gsub("[\192-\255][\128-\191]*$", "") end	-- whole letters only
+		M.PSS_SetMemberNote(m, note ~= "" and note or REMOVED_NOTE)
+	end
+	M.Events.Fire("GUILDS_CHANGED")
+	return true
+end
+
 -- Older API (Allow* = "do not block"), kept for compatibility.
 local ALLOW_FIELD = { allowGroup = { "partyInvite" }, allowGuildInvite = { "guildInvite" }, allowWhispers = { "whisper" },
 						allowChat = { "partyRaid", "world" },
@@ -1043,6 +1062,11 @@ function M.PSS_RemoveGuildMember(guildName, playerName, sourceGuildKey, storedKe
 		g.memberCount = 0
 		for _ in pairs(g.members) do g.memberCount = g.memberCount + 1 end
 		markMemberIndexDirty()
+		-- in no guild rule now: their block lines go too (counts went with the record)
+		if rck and not lookupGuildMemberCanon(rck) then
+			local owner = "g:" .. rck
+			History.Clear(function(h) return h.o == owner end)
+		end
 	end
 	return removed
 end
@@ -1261,7 +1285,6 @@ local function addWhoResultToGuildMember(info, guildRowName, actualGuild)
 	local p = pkey and PourSocialScoreDB.playerData and PourSocialScoreDB.playerData[pkey]
 	if p then
 		p.currentGuild = actualGuild
-		p.online = true
 		if member then
 			p.class = member.class or p.class or ""
 			p.className = info.classStr or info.className or p.className
@@ -1589,11 +1612,10 @@ function M.PSS_UpgradeLegacyData()
 		local p = ((PourSocialScoreDB.typeList or {})[i] or "player") == "player" and M.PSS_GetPlayerPrefs and M.PSS_GetPlayerPrefs(name)
 		if p then
 		p.name = name
-		p.nickname = p.nickname or name
 		p.whenBlocked = p.whenBlocked or PourSocialScoreDB.dateList[i] or nowString()
-		p.note = p.note or PourSocialScoreDB.notes[i] or ""
-		p.expireDays = p.expireDays or PourSocialScoreDB.expList[i] or 0
-		p.faction = p.faction ~= "" and p.faction or (PourSocialScoreDB.factionList[i] or "")
+		-- (the note and expiry live in the list itself, not on the record)
+		local fac = PourSocialScoreDB.factionList[i]
+		if (p.faction or "") == "" and type(fac) == "string" and fac ~= "" then p.faction = fac end
 		end
 	end
 	cleanupLegacyGuildPlayers()
@@ -2163,6 +2185,9 @@ function M.PSS_RemoveGuild(guildNameOrKey)
 			end
 		end
 	end
+
+	-- block lines of members who are in no guild rule now go with it
+	if M.PSS_TidyBlockHistory then M.PSS_TidyBlockHistory() end
 
 	M.Events.Fire("GUILDS_CHANGED")
 	M.Events.Fire("PLAYERS_CHANGED", true)
