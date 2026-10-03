@@ -1,10 +1,19 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
-=> 2.0.28 - Addon list title and note
+=> 2.0.30 - Addon list title and note
 
 - The Mainline and Camelot TOCs now use the title "PourSocialScore" and the original note, the same as PourSocialScore.toc.
-- Version 2.0.28.
+- Version 2.0.30.
+
+=> 2.0.29 - Guild members stored compactly (memory back down)
+
+- Since 2.0.19 Scan and Scan All sweep whole guilds, so the Guild Ignore List can hold thousands of captured players. Each one was saved with four Allow flags, an empty block-choice table, a zero blockCounts table and /who details nothing reads (online, race, class name), and every login added another empty table to each: about 1.5-2 KB per player once loaded. 5,000 captured players came to about 10.6 MB.
+- Members now keep only what is known about them: name, guild, when captured, class, level, and any note, own W I G P C choice, block counts or last invite they actually have. A missing value reads as its default, so nothing changes in game. Counts are created on a player's first block.
+- Existing saves are compacted at login and again at logout. Measured with 5,000 captured players: about 10.6 MB -> 5.0 MB on the first login with 2.0.29, about 2.9 MB from the next login on (the saved file shrinks too).
+- The chat-line member lookup keeps two flat maps instead of a small table per member.
+- Fixed: the older Allow-flag setter (PSS_SetMemberFlag) cleared the choice instead of allowing.
+- Version 2.0.29.
 
 => 2.0.27 - PSS folder and icon in the addon list
 
