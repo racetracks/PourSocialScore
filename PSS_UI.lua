@@ -100,6 +100,14 @@ M.Events.Register("ASK_NOTE", function(name)
 	StaticPopup_Show("PSS_REASON", V.nameUI)
 end)
 
+-- you whispered a player whose whispers are blocked: raid warning style notice
+M.Events.Register("WHISPER_WARNING", function(name, label)
+	if RaidNotice_AddMessage and RaidWarningFrame then
+		RaidNotice_AddMessage(RaidWarningFrame, format(L["WARN_WHISPER"], name, label), ChatTypeInfo and ChatTypeInfo["RAID_WARNING"] or { r = 1, g = 0.28, b = 0 })
+	end
+	if PlaySound and SOUNDKIT and SOUNDKIT.RAID_WARNING then PlaySound(SOUNDKIT.RAID_WARNING) end
+end)
+
 -- listed players are in your group (names: the players warned about)
 M.Events.Register("GROUP_WARNING", function(names)
 	StaticPopup_Show("PSS_PARTYWARN", #names, "\n" .. table.concat(names, "\n"))

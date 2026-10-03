@@ -22,6 +22,12 @@ Player Ignore List
 * Per-player overrides for ignore response, declines, duels and trades
 * Player detail window: double-click an entry (see THE WINDOWS below)
 * Warnings when you invite, or are grouped with, someone on your list
+* Group warning covers every list: the Player Ignore List and guild rules
+  that are on (once per player per group, checked after combat)
+* Whisper warning: whispering someone whose whispers a list blocks prints a
+  chat warning and a raid warning style notice, once per player per session.
+  No warning when their whispers are allowed (W ticked). Options: "Warn when
+  grouped with, or whispering, a player on any list"
 * Automatic decline of duels, trades and party invites from ignored players
 * Ignore from right-click menus on targets, raid frames and the LFG list
 

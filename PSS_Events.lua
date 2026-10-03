@@ -14,6 +14,7 @@
 --   WHOIS_ANSWERED (req)         a /who answer (or a timeout) was handled; req may be nil
 --   ASK_NOTE (name)              a player was just listed and Options asks for a note
 --   GROUP_WARNING (names)        listed players are in your group (list of names)
+--   WHISPER_WARNING (name, list) you whispered a player whose whispers a list blocks
 --   PLAYERS_CHANGED (forced)     the Player Ignore List changed (forced: re-sort)
 --   PLAYER_BLOCKED               a listed player's block counts went up
 --   FILTERS_CHANGED              chat filters or their counts changed

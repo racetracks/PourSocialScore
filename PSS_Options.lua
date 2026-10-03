@@ -27,6 +27,7 @@ local OPTIONS = {
 	{ key = "samefaction",		kind = "bool",		default = true,		section = 1, label = L["OPT_27"] },
 	{ key = "trackChanges",		kind = "bool",		default = true,		section = 1, label = L["OPT_6"] },
 	{ key = "chatmsg",			kind = "bool",		default = true,		section = 1, label = L["OPT_26"] },
+	{ key = "listWarnings",		kind = "bool",		default = true,		section = 1, label = L["OPT_29"] },
 	{ key = "showWarning",		kind = "bool",		default = true, section = 1, label = L["OPT_18"] },
 	{ key = "defexpire",		kind = "number", default = 0,		section = 1, label = L["OPT_5"] },
 	-- Blocking (people)

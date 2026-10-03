@@ -705,6 +705,47 @@ local function handleTrade(name)
 end
 
 ------------------------------------------------------------------------
+-- Alerts: listed players in your group, whispers you send to them
+------------------------------------------------------------------------
+-- Any list: the Player Ignore List always counts; a guild member counts
+-- only while their guild rule blocks them in some way (a rule that is off,
+-- or a guild on the Guild Exclusion List, does not).
+local LISTED_CATS = { "other", "whisper", "partyRaid", "world", "partyInvite", "guildInvite" }
+local listedCtx = {}	-- read only: no new table per group member checked
+
+function M.PSS_PersonListed(name)
+	local canon = canonPlayer(name)
+	if not canon then return false end
+	local found = lookupPeople(canon, listedCtx)
+	if not found then return false end
+	for _, f in ipairs(found) do
+		for _, cat in ipairs(LISTED_CATS) do
+			local ok, b = pcall(f.src.decide, f.entry, cat, listedCtx)
+			if ok and b then return true end
+		end
+	end
+	return false
+end
+
+-- Whispers you send: one alert per player per session, and only when a
+-- list blocks their whispers (W ticked = allowed = no alert).
+local whisperWarned = {}
+
+local function handleWhisperSent(target)
+	if not V.PSS_Loaded or type(target) ~= "string" or target == "" or isSecret(target) then return end
+	if opt("listWarnings", {}) == false then return end
+	local canon = canonPlayer(target)
+	if not canon or whisperWarned[canon] then return end
+	local hits = personHits(canon, "whisper", { event = "CHAT_MSG_WHISPER_INFORM", cat = "whisper", author = target })
+	if not hits then return end
+	whisperWarned[canon] = true
+	local name = M.PSS_DisplayPlayer(target)
+	local label = hits[1].src.label or ""
+	M.ShowMsg(format(L["WARN_WHISPER"], name, label))
+	M.Events.Fire("WHISPER_WARNING", name, label)
+end
+
+------------------------------------------------------------------------
 -- Registration with the game
 ------------------------------------------------------------------------
 local CFU = type(ChatFrameUtil) == "table" and ChatFrameUtil or nil
@@ -722,6 +763,7 @@ ev:RegisterEvent("GUILD_INVITE_REQUEST")
 ev:RegisterEvent("DUEL_REQUESTED")
 ev:RegisterEvent("TRADE_SHOW")
 ev:RegisterEvent("GROUP_ROSTER_UPDATE")
+ev:RegisterEvent("CHAT_MSG_WHISPER_INFORM")
 pcall(ev.RegisterEvent, ev, "TRADE_REQUEST")	-- not on every client
 ev:SetScript("OnEvent", function(_, event, arg1, ...)
 	local ok, err = true, nil
@@ -738,6 +780,9 @@ ev:SetScript("OnEvent", function(_, event, arg1, ...)
 		ok, err = pcall(handleTrade, arg1)
 	elseif event == "TRADE_SHOW" then
 		ok, err = pcall(handleTrade, nil)
+	elseif event == "CHAT_MSG_WHISPER_INFORM" then
+		local target = ...
+		ok, err = pcall(handleWhisperSent, target)
 	elseif event == "PARTY_INVITE_CANCEL" or event == "GROUP_ROSTER_UPDATE" then
 		pendingInvite = nil
 	end
@@ -747,6 +792,7 @@ end)
 -- Test hooks for an offline test harness (not shipped with the addon).
 M.PSS__CoreTest = {
 	handlePartyInvite = handlePartyInvite, handleGuildInvite = handleGuildInvite,
-	handleDuel = handleDuel, handleTrade = handleTrade,
+	handleDuel = handleDuel, handleTrade = handleTrade, handleWhisperSent = handleWhisperSent,
+	resetWhisperWarned = function() whisperWarned = {} end,
 	resetCache = function() decisionCache, ringKeys, ringPos = {}, {}, 0 end,
 }

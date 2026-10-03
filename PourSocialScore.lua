@@ -277,20 +277,21 @@ function M.PSS_ImportLegacyDB()
 	return true
 end
 
--- Warn about listed players in the group (once per player per group).
+-- Warn about players on any list in the group (once per player per group).
 local rosterCheckQueued, rosterCheckDeferred = false, false
 local function CheckGroupForIgnored()
 	rosterCheckQueued = false
 	if not IsInGroup() or not PourSocialScoreDB then return end
+	if M.PSS_Opt("listWarnings") == false then return end
 	if InCombatLockdown and InCombatLockdown() then rosterCheckDeferred = true return end
 	gotGroup = true
 	local prefix	= IsInRaid() and "raid" or "party"
 	local doWarn	= false
 	for count = 1, GetNumGroupMembers() do
 		local name = GetUnitName(prefix..count, true)
-		-- O(1) list lookup on the raw name; the display name is only built
-		-- for a player who is actually listed
-		if type(name) == "string" and not M.PSS_IsSecret(name) and name ~= "" and M.PSS_IsPlayerListed(name) then
+		-- O(1) lookups on the raw name (every list); the display name is
+		-- only built for a player who is actually listed
+		if type(name) == "string" and not M.PSS_IsSecret(name) and name ~= "" and M.PSS_PersonListed(name) then
 			name = M.Proper(M.addServer(name))
 			if M.hasGroupWarning(name) == 0 then
 				doWarn = true
