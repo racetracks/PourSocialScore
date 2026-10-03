@@ -804,3 +804,128 @@ function UI.ExclusionLegend(title, note)
     if note then GameTooltip:AddLine(note, 0.8, 0.8, 0.8, true) end
     for _, e in ipairs(UI.EXCL) do GameTooltip:AddLine(e.letter .. " = " .. e.label, 1, 1, 1, true) end
 end
+
+------------------------------------------------------------------------
+-- Grey hint text inside an edit box ("Add a Guild..."), shown while the
+-- box is empty and not being typed in.
+------------------------------------------------------------------------
+function UI.BoxHint(box, text)
+	local hint = box:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+	hint:SetPoint("LEFT", box, "LEFT", 6, 0)
+	hint:SetText(text or "")
+
+	local function update()
+		hint:SetShown(box:GetText() == "" and not box:HasFocus())
+	end
+	box:HookScript("OnTextChanged", update)
+	box:HookScript("OnEditFocusGained", update)
+	box:HookScript("OnEditFocusLost", update)
+	box.hint = hint
+	return hint
+end
+
+------------------------------------------------------------------------
+-- Prompt: a question with up to three buttons, drawn with the game's own
+-- dialog art (the StaticPopup box, border, font, buttons and sounds).
+--
+--   UI.Prompt({
+--   	text    = "Add <Name> without searching?",
+--   	buttons = {                                   -- left to right
+--   		{ text = OKAY,   onClick = function() ... end },
+--   		{ text = SEARCH, onClick = function() ... end },
+--   		{ text = CANCEL },                        -- no onClick: just closes
+--   	},
+--   })
+--
+-- One prompt is shown at a time; a new one replaces the last. Escape and
+-- the close button act like a button with no onClick. Each onClick runs
+-- straight from the click, so it may send a /who.
+------------------------------------------------------------------------
+local PROMPT_BUTTON_W, PROMPT_BUTTON_H, PROMPT_BUTTON_GAP = 128, 21, 8
+local PROMPT_WIDTH = 420
+
+local DIALOG_BACKDROP = BACKDROP_DIALOG_32_32 or {
+	bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background",
+	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+	tile     = true, tileSize = 32, edgeSize = 32,
+	insets   = { left = 11, right = 12, top = 12, bottom = 11 },
+}
+
+local function promptSound(kit)
+	if PlaySound and SOUNDKIT and SOUNDKIT[kit] then PlaySound(SOUNDKIT[kit]) end
+end
+
+local function buildPrompt()
+	if UI.promptFrame then return UI.promptFrame end
+
+	local f = CreateFrame("Frame", "PSSPromptDialog", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+	f:Hide()
+	f:SetWidth(PROMPT_WIDTH)
+	f:SetPoint("TOP", UIParent, "TOP", 0, -135)   -- where StaticPopup1 sits
+	f:SetFrameStrata("DIALOG")
+	f:SetToplevel(true)
+	f:EnableMouse(true)
+	f:SetClampedToScreen(true)
+	if f.SetBackdrop then f:SetBackdrop(DIALOG_BACKDROP) end
+	tinsert(UISpecialFrames, "PSSPromptDialog")   -- Escape closes it
+
+	local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+	close:SetPoint("TOPRIGHT", -3, -3)
+	close:SetScript("OnClick", function() f:Hide() end)
+
+	f.text = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	f.text:SetPoint("TOP", f, "TOP", 0, -16)
+	f.text:SetWidth(PROMPT_WIDTH - 60)
+	f.text:SetJustifyH("CENTER")
+
+	f.buttons = {}
+	for i = 1, 3 do
+		local b = CreateFrame("Button", "PSSPromptDialogButton" .. i, f, "UIPanelButtonTemplate")
+		b:SetSize(PROMPT_BUTTON_W, PROMPT_BUTTON_H)
+		b:SetScript("OnClick", function(self)
+			local onClick = self.onClick
+			f:Hide()
+			if onClick then onClick() end
+		end)
+		f.buttons[i] = b
+	end
+
+	f:SetScript("OnShow", function() promptSound("IG_MAINMENU_OPEN") end)
+	f:SetScript("OnHide", function() promptSound("IG_MAINMENU_CLOSE") end)
+
+	UI.promptFrame = f
+	return f
+end
+
+function UI.Prompt(opts)
+	local f = buildPrompt()
+	local list = opts.buttons or { { text = OKAY or "Okay" } }
+	local count = math.min(#list, #f.buttons)
+
+	f.text:SetText(opts.text or "")
+
+	-- buttons centred in one row, in the order given
+	local rowWidth = count * PROMPT_BUTTON_W + (count - 1) * PROMPT_BUTTON_GAP
+	f:SetWidth(math.max(PROMPT_WIDTH, rowWidth + 40))
+	for i, b in ipairs(f.buttons) do
+		local spec = list[i]
+		if i <= count and spec then
+			b:SetText(spec.text or "")
+			b.onClick = spec.onClick
+			b:ClearAllPoints()
+			b:SetPoint("BOTTOMLEFT", f, "BOTTOM",
+				-rowWidth / 2 + (i - 1) * (PROMPT_BUTTON_W + PROMPT_BUTTON_GAP), 16)
+			b:Show()
+		else
+			b.onClick = nil
+			b:Hide()
+		end
+	end
+
+	-- text + gap + buttons + padding
+	f:SetHeight(16 + (f.text:GetStringHeight() or 14) + 20 + PROMPT_BUTTON_H + 16)
+	if f:IsShown() then f:Hide() end
+	f:Show()
+	f:Raise()
+	return f
+end
