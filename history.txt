@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.24 - Add Guild uses the box, in-game style prompt
+
+- Guild Ignore List tab: the top right now has two matching rows, each a box, a Guild Search button and an Add Guild button. The top row works on the Guild Ignore List (box hint "Add a Guild..."), the row beneath it on the Guild Exclusion List (box hint "Exclude a Guild..."). The exclusion row's "Search" button is now "Guild Search", and it has its own Add Guild button.
+- Add Guild no longer opens a popup with its own text field: it uses the name typed in the box next to it and asks "Add <Name> to the ... without searching?" with Okay (adds it), Search (runs Guild Search for it) and Cancel.
+- The prompts (Add Guild, and "Add Anyway" when an exclusion search finds nothing) use the game's own dialog art: the StaticPopup box and border, font, buttons and open / close sounds. Escape closes them.
+- Code: the rows are built by one function (createGuildEntryRow) and the prompt by one (promptAddGuild, on top of UI.Prompt in PSS_UIKit.lua), so each is set up by passing parameters.
+- Version 2.0.24.
+
 => 2.0.23 - Guild Exclusion List
 
 - New Guild Exclusion List on the Guild Ignore List tab: guilds that no guild rule ever blocks, captures or scans in, even a rule whose name they contain (a rule for "Olympus" no longer catches an excluded <Olympus Friends>) or a default list such as Olympus. Names match exactly, ignoring case.
