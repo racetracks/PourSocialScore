@@ -18,6 +18,7 @@ PSS_MainlineCompat.lua
 PSS_UIKit.lua
 PSS_Widgets.lua
 PSS_ChatHistory.lua
+PSS_ChatHistoryUI.lua
 PSS_BlockStats.lua
 PSS_ChatBlock.lua
 PSS_ChatFilters.lua

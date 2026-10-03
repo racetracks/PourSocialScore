@@ -176,7 +176,8 @@ table.sort(dlg)
 local fh = assert(io.open(out, "w"))
 for _, l in ipairs(lines) do fh:write(l, "\n") end
 for _, l in ipairs(dlg) do fh:write(l, "\n") end
-for i = chatStart, #H.chat do fh:write("chat ", H.chat[i], "\n") end
+-- memory figures change with garbage collection timing, not with the look
+for i = chatStart, #H.chat do fh:write("chat ", (H.chat[i]:gsub("[%d%.]+ [KM]B", "n MB")), "\n") end
 for _, e in ipairs(errors) do fh:write("ERROR ", e, "\n") end
 fh:close()
 print(("ui tour: %d frames, %d dialogs, %d errors"):format(#lines, #dlg, #errors))
