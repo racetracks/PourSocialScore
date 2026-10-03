@@ -1,6 +1,15 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.42 - Smoother guild windows (same look)
+
+- Guild members window: only the rows in view are built, and they are reused as you scroll. Opening your largest guild (934 members) used to build a row for every member and keep them all; now it builds about 17. In the test setup opening it went from about 168 ms to 16 ms and from about 34 MB to under 2 MB of window parts. The scroll bar, row look and selection are the same; a selected member stays selected (and Remove Member stays available) while scrolled out of view, and a note being typed is saved before its row moves.
+- Members search waits for a short pause in typing (0.25 s) instead of re-searching every member on each key press.
+- Guild list: changes that arrive together (such as saving several Guild Search results) redraw it once, the member counts of the default guild lists are worked out again only when members change, and each redraw reuses its working tables (about 16 % less garbage per redraw).
+- Player Ignore List: no longer re-sorted while it is not on screen; it is sorted when shown, as before.
+- Resetting a player's expiry from the right-click menu now goes through the core like every other edit.
+- Version 2.0.42.
+
 => 2.0.41 - Code rules uplift (no visible change)
 
 - Nothing looks or works differently: every window, tab, dialog and chat command was built and compared with 2.0.40 (frames, sizes, anchors, text, dialogs, slash command output and the values saved after editing), using your 2.0.34 and 2.0.40 saves, and was identical.

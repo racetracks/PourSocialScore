@@ -34,8 +34,20 @@ local saveGuildExclusions = M.PSS_SaveGuildExclusions
 local function registerGuildScanButton(button) M.UI.RegisterWhoisButton(button) end
 
 -- the cooldown ending re-enables the row Scan buttons: redraw the list
+-- One guild list redraw per frame however many changes arrive in it
+-- (saving Guild Search results adds many guilds at once).
+local guildRedrawQueued = false
+local function requestGuildRedraw()
+	if guildRedrawQueued then return end
+	guildRedrawQueued = true
+	C_Timer.After(0, function()
+		guildRedrawQueued = false
+		if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	end)
+end
+
 M.Events.Register("WHOIS_COOLDOWN", function(active)
-	if not active and M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+	if not active then requestGuildRedraw() end
 end)
 
 local showHistoryPopup = History.ShowPopup
@@ -115,9 +127,7 @@ local function refreshDetail()
 	local d = M.PSSGuildDetailFrame
 	if d and d:IsShown() and d.refresh then d.refresh(true) end
 end
-M.Events.Register("GUILDS_CHANGED", function()
-	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
-end)
+M.Events.Register("GUILDS_CHANGED", requestGuildRedraw)
 M.Events.Register("GUILD_BLOCKS_CHANGED", function()
 	if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
 	refreshDetail()
@@ -277,6 +287,7 @@ local function buildGuildList(frame)
 	frame.rows = {}
 	frame.groupRows = {}
 	frame.exclRows = {}
+	frame.itemPool, frame.listBuf, frame.groupBuf = {}, {}, {}
 end
 
 -- Remove Guild and Block History on the bottom bar.
@@ -564,12 +575,25 @@ end
 ---------------------------------------------------------------- list contents
 -- Every guild rule as { key, g, bc }: the top-level ones, and each managed
 -- group's under groups[group key].
-local function collectGuilds()
-	local list, groups = {}, {}
+-- The tables are the tab's own and reused on every redraw (one item per
+-- guild rule, kept while the rule exists), so a redraw makes little garbage.
+local function collectGuilds(frame)
+	local pool = frame.itemPool
+	local list, groups = frame.listBuf, frame.groupBuf
+	for i = #list, 1, -1 do list[i] = nil end
+	for k, items in pairs(groups) do
+		for i = #items, 1, -1 do items[i] = nil end
+	end
+	for key in pairs(pool) do
+		if not PourSocialScoreDB.guildData[key] then pool[key] = nil end
+	end
 	for key, g in pairs(PourSocialScoreDB.guildData or {}) do
 		if type(g) == "table" then
 			g.memberCount = M.PSS_GuildMemberCount(g, key)
-			local item = { key = key, g = g, bc = M.PSS_GetGuildBlockCounts(key) }
+			local item = pool[key] or {}
+			pool[key] = item
+			item.key, item.g, item.bc = key, g, M.PSS_GetGuildBlockCounts(key)
+			item.inGroup, item.groupOn, item.sv, item.nv = nil, nil, nil, nil
 			if g.managed then
 				groups[g.managed] = groups[g.managed] or {}
 				table.insert(groups[g.managed], item)
@@ -577,6 +601,10 @@ local function collectGuilds()
 				list[#list + 1] = item
 			end
 		end
+	end
+	-- a group left with no guilds is not shown
+	for k, items in pairs(groups) do
+		if #items == 0 then groups[k] = nil end
 	end
 	return list, groups
 end
@@ -705,7 +733,7 @@ local function refreshGuildList(frame)
 	for _, row in ipairs(frame.exclRows) do row:Hide() end
 	if frame.exclHeader then frame.exclHeader:Hide() end
 
-	local list, groups = collectGuilds()
+	local list, groups = collectGuilds(frame)
 	sortGuildItems(frame, list)
 	frame.header:SetSort(frame.sortKey or "guild", frame.sortAsc ~= false)
 	if frame.selectedGuildKey and not PourSocialScoreDB.guildData[frame.selectedGuildKey] then
@@ -843,6 +871,8 @@ local function paintMemberExclusions(f, r)
 	end
 end
 
+-- The selection is a member, not a row: it stays selected (and Remove
+-- Member stays enabled) while its row is scrolled out of view.
 local function updateMemberSelection(f)
 	f.selectedRow = nil
 	for _, r in ipairs(f.rows) do
@@ -850,7 +880,13 @@ local function updateMemberSelection(f)
 		r:SetSelected(sel)
 		if sel then f.selectedRow = r end
 	end
-	f.removeButton:SetEnabled(f.selectedRow ~= nil)
+	f.selectedEntry = nil
+	if f.selectedMember then
+		for _, e in ipairs(f.filtered or {}) do
+			if e.member == f.selectedMember then f.selectedEntry = e break end
+		end
+	end
+	f.removeButton:SetEnabled(f.selectedEntry ~= nil)
 end
 
 -- Save a note box into its member record.
@@ -867,9 +903,9 @@ end
 local function buildMembersBottomBar(f, inset)
 	local removeBtn = UI.BarButton(inset, "Remove Member")
 	removeBtn:SetScript("OnClick", function()
-		local r = f.selectedRow
-		if r and r.member and M.PSS_RemoveGuildMember then
-			M.PSS_RemoveGuildMember(f.guildKey, r.memberName, r.memberGuildKey, r.storedKey)
+		local e = f.selectedEntry
+		if e and e.member and M.PSS_RemoveGuildMember then
+			M.PSS_RemoveGuildMember(f.guildKey, e.member.name, e.sourceKey, e.storedKey)
 			f.selectedMember = nil
 			if f.refresh then f.refresh() end
 			if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
@@ -902,7 +938,8 @@ local function buildMembersBottomBar(f, inset)
 	histBtn:SetScript("OnLeave", hideTip)
 end
 
-local refreshMembers
+local refreshMembers, layoutMemberRows
+local SEARCH_PAUSE = 0.25		-- seconds of no typing before the members search runs
 
 -- Same window style as the main window. Above the main window whatever
 -- strata it was given in Options, so nothing can sit over this one.
@@ -923,7 +960,19 @@ local function buildMembersWindow()
 	local search = UI.SearchBox(inset)
 	search:ClearAllPoints()
 	search:SetPoint("TOPRIGHT", f.metrics, "TOPLEFT", -20, 1)
-	search:SetScript("OnTextChanged", function() if f.refresh then f.refresh() end end)
+	-- typing waits for a short pause before the list is searched again;
+	-- a change made by the addon (clearing the box) refreshes at once
+	search:SetScript("OnTextChanged", function(self, userInput)
+		if not userInput then
+			if f.refresh then f.refresh() end
+			return
+		end
+		f.searchToken = (f.searchToken or 0) + 1
+		local token = f.searchToken
+		C_Timer.After(SEARCH_PAUSE, function()
+			if f.searchToken == token and f:IsShown() and f.refresh then f.refresh() end
+		end)
+	end)
 	f.search = search
 	local hint = inset:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 	hint:SetPoint("RIGHT", search, "LEFT", -10, 0)
@@ -944,6 +993,8 @@ local function buildMembersWindow()
 
 	local scroll, content = UI.ScrollList(inset, nil, f.tableWidth)
 	f.scroll = scroll; f.content = content; f.rows = {}
+	scroll:HookScript("OnVerticalScroll", function() layoutMemberRows(f) end)
+	f:HookScript("OnSizeChanged", function() if f:IsShown() and f.filtered then layoutMemberRows(f) end end)
 
 	-- bottom bar: Remove Member (right), Block History
 	buildMembersBottomBar(f, inset)
@@ -1152,6 +1203,38 @@ local function fillMemberRow(f, r, entry, baseGuild)
 	r:Show()
 end
 
+-- Only the rows in view exist: a pool of rows (enough for the window's
+-- height) is placed on the members currently scrolled into view. The
+-- scroll area keeps the height of the whole list, so the scroll bar is the
+-- same as when every member had a row (a guild can have 900+ members).
+layoutMemberRows = function(f)
+	local filtered = f.filtered or {}
+	local rowH = UI.ROW_H
+	-- a note being typed belongs to its member: save it before the row moves
+	local er = f.editingRow
+	if er then
+		commitMemberNote(er)
+		f.editingRow = nil
+		er.note:ClearFocus()
+	end
+	local first = math.floor((f.scroll:GetVerticalScroll() or 0) / rowH) + 1
+	local slots = math.ceil(math.max(f.scroll:GetHeight() or 0, f:GetHeight() or 0) / rowH) + 1
+	for j = 1, slots do
+		local i = first + j - 1
+		local entry = filtered[i]
+		local r = f.rows[j]
+		if entry then
+			r = r or makeMemberRow(f, j)
+			r:ClearAllPoints(); r:SetPoint("TOPLEFT", f.content, 0, -(i - 1) * rowH)
+			fillMemberRow(f, r, entry, f.baseGuild)
+		elseif r then
+			r:Hide()
+		end
+	end
+	for j = slots + 1, #f.rows do f.rows[j]:Hide() end
+	f.updateSelection()
+end
+
 -- auto: a background refresh (a block came in), which waits while a note
 -- is being typed.
 refreshMembers = function(f, auto)
@@ -1186,13 +1269,9 @@ refreshMembers = function(f, auto)
 	f.content:SetHeight(math.max(1, #filtered * rowH))
 	for _, r in ipairs(f.rows) do r:Hide() end
 
-	local baseGuild = normalizeGuild(f.guildName)
-	for i, entry in ipairs(filtered) do
-		local r = f.rows[i] or makeMemberRow(f, i)
-		r:ClearAllPoints(); r:SetPoint("TOPLEFT", f.content, 0, -(i - 1) * rowH)
-		fillMemberRow(f, r, entry, baseGuild)
-	end
-	f.updateSelection()
+	f.filtered = filtered
+	f.baseGuild = normalizeGuild(f.guildName)
+	layoutMemberRows(f)
 end
 
 function M.PSS_ShowGuildDetail(guildNameOrKey)

@@ -872,7 +872,7 @@ function M.IgnoreScrollClick(self, button, down)
 				end)
 			root:CreateButton(L["RCM_3"],
 				function()
-					PourSocialScoreDB.expList[IgnoreScrollIndex[IgnoreScrollSelect]] = 0
+					M.PSS_SetExpiry(IgnoreScrollIndex[IgnoreScrollSelect], 0)
 					M.PSSUpdateUI()
 				end)
 			root:CreateDivider()
@@ -1889,9 +1889,9 @@ function M.PSSUpdateUI (forced)
 			IgnoreListDrawUpdate(IgnoreScrollFrame)
 		end
 	else
-		if V.needSorted or (forced and forced == true) then
-			createSortedIndex(IgnoreScrollType)
-		end
+		-- hidden: sort when the list is shown (Tab1 OnShow and opening the
+		-- window always sort), not on every change while nobody sees it
+		if forced == true then V.needSorted = true end
 	end
 end
 
