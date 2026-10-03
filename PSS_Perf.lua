@@ -201,8 +201,8 @@ function M.PSS_MemReport(full)
         players, pd, rules, stored))
     if M.PSS_ManagedStats then
         local ms = M.PSS_ManagedStats()
-        out(("  shipped guild lists: %d names in %d rules, index %s (%d), %d records in use, %d changed (saved at logout)"):format(
-            ms.shipped, managedRules, ms.built and "built" or "building", ms.indexed, ms.cached, ms.kept))
+        out(("  shipped guild lists: %d names in %d rules, %d indexed, %d records in use, %d changed (saved at logout)"):format(
+            ms.shipped, managedRules, ms.indexed, ms.cached, ms.kept))
     end
     local active = 0
     for i = 1, #(db.filterList or {}) do if db.filterActive[i] then active = active + 1 end end

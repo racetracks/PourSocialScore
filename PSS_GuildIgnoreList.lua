@@ -546,123 +546,59 @@ local managed = nil           -- guild-level data, built on first use
 local vcache = setmetatable({}, { __mode = "v" })
 local vkeep = {}
 
--- Guild-level data (cheap). The per-member index is built in the
--- background, a slice per frame and never in combat (see buildStep), so a
--- large shipped list can't cause a hitch at login or on the first chat line.
+-- Guild-level data (cheap: one entry per guild). The per-member index
+-- (canon key -> guild number * 65536 + position) ships prebuilt in
+-- PSS_GuildIgnore_Managed.lua (tools/PSS_BuildManaged.lua), so nothing is
+-- built per member at login and every shipped member matches from the
+-- first chat line.
 local function buildManaged()
-    if managed then return managed end
-    -- index[canon] = guildNumber * 65536 + position in that guild's list:
-    -- one number per member (no second copy of any name is kept)
-    managed = { index = {}, gkeys = {}, names = {}, count = {}, groupOf = {}, guildName = {}, groups = {},
-                queue = {}, qGuild = 1, qPos = 1, built = false }
-    for _, grp in ipairs(MANAGED.groups or {}) do
-        managed.groups[grp.key] = grp
-        for gname, list in pairs(grp.guilds or {}) do
-            local gkey = normalizeGuild(gname)
-            if gkey then
-                managed.groupOf[gkey] = grp.key
-                managed.guildName[gkey] = gname
-                managed.names[gkey] = list
-                managed.count[gkey] = 0
-                managed.queue[#managed.queue + 1] = gkey
-                managed.gkeys[#managed.queue] = gkey
-            end
-        end
-    end
-    if #managed.queue == 0 then managed.built = true end
-    return managed
+	if managed then return managed end
+	managed = { lists = {}, names = {}, groupOf = {}, guildName = {}, groups = {} }
+	for _, grp in ipairs(MANAGED.groups or {}) do
+		managed.groups[grp.key] = grp
+		local gkeys = {}
+		for gi, list in ipairs(grp.guilds or {}) do
+			local gkey = normalizeGuild(list.name)
+			gkeys[gi] = gkey or false
+			if gkey then
+				managed.groupOf[gkey] = grp.key
+				managed.guildName[gkey] = list.name
+				managed.names[gkey] = list
+			end
+		end
+		managed.lists[#managed.lists + 1] = { index = grp.index or {}, gkeys = gkeys }
+	end
+	return managed
 end
 
--- decode an index entry -> guild key, position
-local function unpackIndex(m, v)
-    if not v then return nil end
-    local gi = math.floor(v / 65536)
-    return m.gkeys[gi], v - gi * 65536
-end
-
--- index names for up to budgetMs milliseconds (or `budgetNames` names when
--- no clock is available); returns true when everything is indexed
-local clock = debugprofilestop
-local function buildStep(budgetMs, budgetNames)
-    local m = buildManaged()
-    if m.built then return true end
-    local start = clock and clock()
-    local budget = budgetNames or 50
-    while true do
-        if start then
-            if budget <= 0 then
-                if clock() - start >= budgetMs then return false end
-                budget = 50            -- check the clock every 50 names
-            end
-        elseif budget <= 0 then
-            return false
-        end
-        local gkey = m.queue[m.qGuild]
-        if not gkey then
-            m.built = true
-            m.queue = nil
-            if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
-            return true
-        end
-        local list = m.names[gkey]
-        local name = list[m.qPos]
-        if name == nil then
-            m.qGuild, m.qPos = m.qGuild + 1, 1
-        else
-            m.qPos = m.qPos + 1
-            budget = budget - 1
-            local ck = canonPlayer(name)
-            -- a character listed under two shipped guilds keeps the first
-            if ck and not m.index[ck] then
-                m.index[ck] = m.qGuild * 65536 + (m.qPos - 1)
-                m.count[gkey] = m.count[gkey] + 1
-            end
-        end
-    end
-    return false
-end
-
-local BUILD_SLICE_MS = 0.5      -- per frame (leaves headroom for the game's own work)
-local buildScheduled = false
-local function scheduleBuild()
-    if buildScheduled or buildManaged().built then return end
-    buildScheduled = true
-    local function tick()
-        buildScheduled = false
-        if InCombatLockdown and InCombatLockdown() then
-            -- wait for combat to end
-            buildScheduled = true
-            C_Timer.After(2, tick)
-            return
-        end
-        if not buildStep(BUILD_SLICE_MS) then
-            buildScheduled = true
-            C_Timer.After(0, tick)
-        elseif M.PSS_RequestGC then
-            M.PSS_RequestGC("managed index built")
-        end
-    end
-    C_Timer.After(0, tick)
-end
-M.PSS_ScheduleManagedBuild = scheduleBuild
-
--- needed right now (e.g. a members window): finish synchronously
-local function finishBuild()
-    while not buildStep(1e9, 1e9) do end
+-- canon key -> shipped guild key, position in its list (nil if not shipped).
+-- A character listed by two groups belongs to the first.
+local function shippedOf(ck)
+	if not ck then return nil end
+	local lists = (managed or buildManaged()).lists
+	for i = 1, #lists do
+		local v = lists[i].index[ck]
+		if v then
+			local gi = math.floor(v / 65536)
+			local gkey = lists[i].gkeys[gi]
+			if gkey then return gkey, v - gi * 65536 end
+		end
+	end
+	return nil
 end
 
 -- numbers for /pss mem
 function M.PSS_ManagedStats()
-    local m = buildManaged()
-    local shipped, indexed = 0, 0
-    for gkey, list in pairs(m.names) do
-        shipped = shipped + #list
-        indexed = indexed + (m.count[gkey] or 0)
-    end
-    local kept, cached = 0, 0
-    for _ in pairs(vkeep) do kept = kept + 1 end
-    for _ in pairs(vcache) do cached = cached + 1 end
-    return { shipped = shipped, indexed = indexed, built = m.built, kept = kept, cached = cached }
+	local m = buildManaged()
+	local shipped, indexed = 0, 0
+	for _, list in pairs(m.names) do shipped = shipped + #list end
+	for _, l in ipairs(m.lists) do
+		for _ in pairs(l.index) do indexed = indexed + 1 end
+	end
+	local kept, cached = 0, 0
+	for _ in pairs(vkeep) do kept = kept + 1 end
+	for _ in pairs(vcache) do cached = cached + 1 end
+	return { shipped = shipped, indexed = indexed, kept = kept, cached = cached }
 end
 
 function M.PSS_ManagedGroups() return buildManaged().groups end
@@ -676,8 +612,7 @@ local function isGone(g, ck) return type(g) == "table" and type(g.managedGone) =
 
 -- the shipped guild a character belongs to (nil if none, or they left it)
 local function staticGuildOf(ck)
-    local m = buildManaged()
-    local gkey = ck and unpackIndex(m, m.index[ck])
+    local gkey = shippedOf(ck)
     if not gkey then return nil end
     local g = PourSocialScoreDB and PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[gkey]
     if not g or isGone(g, ck) then return nil end
@@ -686,8 +621,7 @@ end
 
 local function isStaticMember(gkey, ck)
     if ck == nil then return false end
-    local m = buildManaged()
-    return unpackIndex(m, m.index[ck]) == gkey
+    return shippedOf(ck) == gkey
 end
 M.PSS_IsManagedStaticMember = isStaticMember
 
@@ -696,7 +630,7 @@ local function vrec(ck, gkey)
     local r = vkeep[ck] or vcache[ck]
     if r and r._gkey == gkey then return r end
     local m = buildManaged()
-    local gk, pos = unpackIndex(m, m.index[ck])
+    local gk, pos = shippedOf(ck)
     local name = (gk == gkey) and m.names[gkey][pos]
     if not name then return nil end
     -- flags, counts and block choices are created when first set
@@ -761,11 +695,10 @@ local function forEachMember(g, gkey, fn, includeUntouched)
     end
     if not g.managed then return end
     if includeUntouched then
-        finishBuild()
         local mm = buildManaged()
         for _, name in ipairs(mm.names[gkey] or {}) do
             local ck = canonPlayer(name)
-            if ck and unpackIndex(mm, mm.index[ck]) == gkey and not seen[ck] and not isGone(g, ck) then
+            if ck and shippedOf(ck) == gkey and not seen[ck] and not isGone(g, ck) then
                 seen[ck] = true
                 local r = vrec(ck, gkey)
                 if r then fn(r, nil, true) end
@@ -795,13 +728,13 @@ function M.PSS_GuildMemberCount(g, gkey)
         return n
     end
     local m = buildManaged()
-    n = m.built and (m.count[gkey] or 0) or #(m.names[gkey] or {})
+    n = #(m.names[gkey] or {})
     for k, mm in pairs(g.members or {}) do
         local ck = canonPlayer(type(k) == "string" and k or nil) or (type(mm) == "table" and canonPlayer(mm.name))
-        if not (ck and unpackIndex(m, m.index[ck]) == gkey) then n = n + 1 end
+        if not (ck and shippedOf(ck) == gkey) then n = n + 1 end
     end
     for ck in pairs(g.managedGone or {}) do
-        if unpackIndex(m, m.index[ck]) == gkey then n = n - 1 end
+        if shippedOf(ck) == gkey then n = n - 1 end
     end
     return math.max(0, n)
 end
@@ -809,7 +742,6 @@ end
 -- Create / tag the shipped guild rules (startup).
 local function ensureManagedRules()
     local m = buildManaged()
-    scheduleBuild()
     for gkey, groupKey in pairs(m.groupOf) do
         local g = ensureGuild(m.guildName[gkey])
         if g then
@@ -825,7 +757,6 @@ M.PSS_EnsureManagedRules = ensureManagedRules
 -- the guild record; unchanged shipped members are dropped from it.
 function M.PSS_FlushManaged()
     if not PourSocialScoreDB or not PourSocialScoreDB.guildData then return end
-    finishBuild()
     for _, t in ipairs({ vkeep, vcache }) do
         for ck, r in pairs(t) do
             local g = PourSocialScoreDB.guildData[r._gkey]
@@ -899,13 +830,10 @@ local function rebuildMemberIndex()
     memberIndexBuilt = GetTime and GetTime() or 0
 end
 
--- Returns g, gkey, member, storedKey for any spelling of a player's name.
-local function lookupGuildMember(name)
-    if type(name) ~= "string" or name == "" or isSecret(name) then return nil end
-    if not PourSocialScoreDB or not PourSocialScoreDB.guildData then return nil end
-    local ck = canonPlayer(name)
-    if not ck then return nil end
-    local now = GetTime and GetTime() or 0
+-- Returns g, gkey, member, storedKey for a canon key (PSS_CanonPlayer).
+-- The chat core already has the key, so this is the per-line path.
+local function lookupGuildMemberCanon(ck)
+    if not ck or not PourSocialScoreDB or not PourSocialScoreDB.guildData then return nil end
     -- rebuilt only when members changed (stale hits are re-checked below)
     if memberIndexDirty then rebuildMemberIndex() end
 
@@ -926,6 +854,12 @@ local function lookupGuildMember(name)
         if attempt == 1 then rebuildMemberIndex() end   -- stale entry
     end
     return nil
+end
+
+-- Same, for any spelling of a player's name.
+local function lookupGuildMember(name)
+    if type(name) ~= "string" or name == "" or isSecret(name) then return nil end
+    return lookupGuildMemberCanon(canonPlayer(name))
 end
 M.PSS_LookupGuildMember = lookupGuildMember
 
@@ -3297,7 +3231,7 @@ if M.PSS_RegisterBlockSource then
     M.PSS_RegisterBlockSource({
         id = "guild", order = 20, label = "Guild Ignore List",
         lookup = function(canon)
-            local g, gkey, m, storedKey = lookupGuildMember(canon)
+            local g, gkey, m, storedKey = lookupGuildMemberCanon(canon)
             if not g then return nil end
             return { g = g, gkey = gkey, m = m, storedKey = storedKey }
         end,
