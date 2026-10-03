@@ -1187,44 +1187,107 @@ local function BuildPlayerTab()
 
 	Tab1Frame.title, Tab1Frame.infotext, Tab1Frame.infobreakdown = UI.CreateSummary(Tab1Frame, "Player Ignore List")
 
-	-- Add Player: the current target if it is a player of your faction,
-	-- otherwise the Add Player dialog (name, note, expire days).
-	local function addPlayer(prefill)
-		prefill = prefill and prefill:gsub("^%s+", ""):gsub("%s+$", "") or ""
+	-- Top right: [ Add a Player... ] [Player Search] [Add Player]
+	-- (the EntryRow widget, PSS_Widgets.lua; the same as the guild tab)
+	local W = M.Widgets
+	local LIST_NAME = "Player Ignore List"
+
+	local function say(msg)
+		if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("PSS: " .. msg) end
+	end
+
+	-- your target, when it is another player of your faction
+	local function targetName()
 		local target = "target"
-		if prefill == "" and UnitExists(target) and UnitIsPlayer(target) and not UnitIsUnit(target, "player") and
+		if UnitExists(target) and UnitIsPlayer(target) and not UnitIsUnit(target, "player") and
 		   UnitFactionGroup(target) == UnitFactionGroup("player") then
 			local name, realm = UnitFullName(target)
-			if name then
-				name = name .. ((realm and realm ~= "") and ("-" .. realm) or "")
-				if M.PSS_AddPlayer then M.PSS_AddPlayer(name, "", 0, target) end
-				return
-			end
+			if name then return name .. ((realm and realm ~= "") and ("-" .. realm) or "") end
 		end
-		local dialog = StaticPopup_Show("PSS_ADD_PLAYER_EXT")
-		if dialog and prefill ~= "" then
-			local eb = dialog.EditBox or dialog.editBox
-			if eb and eb.SetText then eb:SetText(prefill) end
-			if dialog.extra and dialog.extra.note and dialog.extra.note.SetFocus then dialog.extra.note:SetFocus() end
+		return nil
+	end
+
+	local function addPlayer(name)
+		M.PSS_AddPlayer(name, "", 0)
+	end
+
+	-- Player Search results: tick the players to add
+	local function showResults(players, query)
+		if #players == 0 then
+			W.PromptAddAnyway(query, { what = "player", listName = LIST_NAME, add = addPlayer, say = say })
+			return
 		end
+		local items = {}
+		for _, p in ipairs(players) do
+			items[#items + 1] = {
+				cells  = { name = p.name, level = p.level or "", class = p.class or "", guild = p.guild or "" },
+				value  = p.name,
+				listed = M.PSS_IsPlayerListed(p.name),
+			}
+		end
+		W.Picker({
+			name     = "PSSPlayerSearchFrame",
+			saveKey  = "playerSearch",
+			title    = "Player Search Results",
+			subtitle = ("%d player(s) found for \"%s\"."):format(#players, query),
+			columns  = {
+				{ key = "name",  text = "Name",  width = 150 },
+				{ key = "level", text = "Level", width = 50 },
+				{ key = "class", text = "Class", width = 90 },
+				{ key = "guild", text = "Guild", width = 120 },
+			},
+			items    = items,
+			onSave   = function(names)
+				for _, name in ipairs(names) do addPlayer(name) end
+				say(("%d player(s) added to the %s."):format(#names, LIST_NAME))
+			end,
+		})
 	end
-	M.PSS_AddPlayerPrompt = addPlayer
 
-	local ButtonAdd = UI.TopButton(Tab1Frame, "Add Player", nil, nil, "PSSFrame1AddPlayerButton")
-	ButtonAdd:SetScript("OnClick", function() addPlayer(nil) end)
-	tip(ButtonAdd, "Add Player", "Adds your target (a player of your faction), otherwise asks for a name, note and expiry.")
-
-	local ButtonSearch = UI.TopButton(Tab1Frame, "Player Search", ButtonAdd, nil, "PSSFrame1SearchButton")
-	local SearchBox = UI.SearchBox(Tab1Frame, ButtonSearch, nil, "PSSFrame1SearchBox")
-	local function doSearch()
-		SearchBox:ClearFocus()
-		addPlayer(SearchBox:GetText())
-		SearchBox:SetText("")
+	local function search(text)
+		return M.PSS_PlayerSearch(text, showResults)
 	end
-	ButtonSearch:SetScript("OnClick", doSearch)
-	SearchBox:SetScript("OnEnterPressed", doSearch)
-	tip(ButtonSearch, "Player Search", "Same as Add Player, using the name typed in the box (Name, Name-Realm, or First Last-Realm). Opens the Add Player dialog so you can add a note and expiry.")
-	Tab1Frame.searchBox = SearchBox
+
+	local entry = W.EntryRow(Tab1Frame, {
+		searchText = "Player Search",
+		addText    = "Add Player",
+		hint       = "Add a Player...",
+		listName   = LIST_NAME,
+		emptyMsg   = "Type a player name in the box next to Player Search first (or target a player for Add Player).",
+		searchTip  = {
+			"Runs a /who for the name in the box and lists the players found, so you can tick which to add. If nobody is found you can add the name anyway.",
+			"Name, Name-Realm, or First Last-Realm. /who can't search by realm, so only the name is searched for.",
+		},
+		addTip     = "Adds the name typed in the box (you are asked first: Okay adds it without searching, Search runs Player Search instead). With the box empty, adds your target if it is a player of your faction.",
+		isListed   = function(name) return M.PSS_IsPlayerListed(name) end,
+		add        = addPlayer,
+		search     = search,
+		canSend    = function() return not M.Whois.BlockedMsg() end,
+		onEmptyAdd = function()
+			local name = targetName()
+			if not name then return false end
+			M.PSS_AddPlayer(name, "", 0, "target")
+			return true
+		end,
+		say        = say,
+		names      = { box = "PSSFrame1SearchBox", search = "PSSFrame1SearchButton", add = "PSSFrame1AddPlayerButton" },
+	})
+	UI.RegisterWhoisButton(entry.search)
+	Tab1Frame.searchBox = entry.box
+
+	-- older name: add a name (asks first) or, with none, your target
+	M.PSS_AddPlayerPrompt = function(name)
+		name = name and name:gsub("^%s+", ""):gsub("%s+$", "") or ""
+		if name == "" then
+			local target = targetName()
+			if target then M.PSS_AddPlayer(target, "", 0, "target") end
+			return
+		end
+		W.PromptAdd(name, {
+			listName = LIST_NAME, add = addPlayer, search = search, say = say,
+			canSend = function() return not M.Whois.BlockedMsg() end,
+		})
+	end
 
 	SortUI.playerHR = UI.CreateHeaderRow(Tab1Frame, SortUI.PLAYER_COLUMNS, 1, UI.HEADER_Y, SortUI.setPlayerSort, { id = "players" })
 	Tab1Frame.headers = SortUI.playerHR.headers

@@ -1035,6 +1035,40 @@ function M.PSS_AddPlayer(name, note, days, unit)
 	if M.PSSUpdateUI then pcall(M.PSSUpdateUI, true) end
 end
 
+-- Player Search: a /who for a player name (PSS_Whois.lua). Core only - the
+-- caller gets the players found and decides what to show:
+--   M.PSS_PlayerSearch("Bob-Realm", function(players, query) ... end) -> sent?
+--   players = { { name = "Bob-Realm", level =, class =, guild = }, ... }, A-Z
+-- /who can't filter by realm, so only the name part is searched for.
+function M.PSS_PlayerSearch(text, onDone)
+	local query = (text or ""):gsub('"', ""):gsub("^%s+", ""):gsub("%s+$", "")
+	local name = query:gsub("%-.*$", "")
+	if name == "" then return false end
+
+	local found, seen = {}, {}
+	return M.Whois.Request({
+		kind   = "playerSearch",
+		filter = 'n-"' .. name .. '"',
+		query  = query,
+		onInfo = function(info)
+			local full = info.fullName or info.name
+			if type(full) ~= "string" or full == "" or (M.PSS_IsSecret and M.PSS_IsSecret(full)) then return end
+			if seen[full] then return end
+			seen[full] = true
+			found[#found + 1] = {
+				name  = full,
+				level = info.level,
+				class = info.classStr or info.className or info.class,
+				guild = info.fullGuildName or info.guild,
+			}
+		end,
+		onFinish = function(req)
+			table.sort(found, function(x, y) return x.name:lower() < y.name:lower() end)
+			if onDone then onDone(found, req.query) end
+		end,
+	})
+end
+
 -- Remove a player from Pour Social Score (and Blizzard's ignore list).
 --   isPSS + number : that exact position on the Pour Social Score list. An
 --                    NPC or server entry at that position is removed too.

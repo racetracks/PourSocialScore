@@ -11,7 +11,7 @@
 -- guild row A-Z the same way, each guild swept to the end before the next.
 --
 -- This file only plans the searches and keeps the sweep state (session
--- only). Sending the /who and storing what it finds stays in
+-- only). Sending the /who is PSS_Whois.lua; storing what it finds is
 -- PSS_GuildIgnoreList.lua (M.PSS_ScanGuild, finishScan), which calls:
 --   M.PSS_HarvestNext(g, restart)   -> sweep, item, filter  (next search)
 --   M.PSS_HarvestSent(sw, filter)    after the /who went out
@@ -343,6 +343,9 @@ end
 function M.PSS_RefreshScanTooltip()
     if tipOwner and tipOwner:IsVisible() and GameTooltip:IsOwned(tipOwner) then M.PSS_ScanTooltip() end
 end
+
+-- the cooldown countdown in an open Scan tooltip ends with the cooldown
+M.Events.Register("WHOIS_COOLDOWN", function() M.PSS_RefreshScanTooltip() end)
 
 -- OnEnter / OnLeave for a Scan button: the tooltip, kept current once a second.
 local tipTicker
