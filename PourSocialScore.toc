@@ -27,6 +27,8 @@ PSS_WhoisHarvest.lua
 PSS_PlayerDetail.lua
 PourSocialScore.lua
 PSS_Options.lua
+PSS_OptionsUI.lua
 PSS_ImportExport.lua
+PSS_ImportExportUI.lua
 PSS_UI.lua
 PSS_BlizzardUI.lua
