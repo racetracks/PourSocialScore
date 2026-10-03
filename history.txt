@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.33 - Default Olympus list: 7,634 characters
+
+- The default (Olympus) guild list grows from 4,050 to 7,634 characters in 119 guilds: 605 new from PSS Harvest and 2,989 captured by Scan on Olympus guild rules. 7 characters moved to the guild they were last seen in, and 10 who had left their guild were dropped.
+- Guilds promoted from the Olympus group (Olympus Waifus, Olympus Alts and others) are now part of the default list. Olympus Is Lame Af stays a separate rule of your own.
+- The lookup index ships prebuilt as in 2.0.32, so lookups stay the same speed. The list costs about 0.7 MB more memory once loaded.
+- Version 2.0.33.
+
 => 2.0.32 - Faster guild lookups for chat
 
 - The Guild Ignore List check that runs on every chat line no longer rebuilds the sender's name key: the chat core already has it. That check is about 12x faster for players not on any guild list (most chat) and about 3x faster for members of the default (Olympus) list.
