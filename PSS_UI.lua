@@ -1633,6 +1633,7 @@ local function BuildUIFrames()
 	----------------
 	
 	MainFrame = CreateFrame("Frame", "PSS", UIParent, "PortraitFrameTemplate")
+	tinsert(UISpecialFrames, "PSS")   -- Escape closes it
 	MainFrame:Hide()
 	MainFrame:SetFrameStrata(M.PSS_FrameStrataName())
 	MainFrame:SetWidth(WINDOW_WIDTH)
