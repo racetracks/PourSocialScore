@@ -38,7 +38,7 @@ UI.EXCL_W      = 154          -- W I G P C column
 UI.EXCL_STEP   = 28
 UI.HIGHLIGHT   = "Interface\\QuestFrame\\UI-QuestTitleHighlight"
 UI.SORT_ARROW  = "Interface\\Buttons\\UI-SortArrow"
-UI.PORTRAIT    = "Interface\\FriendsFrame\\Battlenet-Portrait"
+UI.PORTRAIT    = "Interface\\FriendsFrame\\Battlenet-Portrait"	-- also the addon-list icon (## IconTexture in the 3 TOCs)
 
 -- W I G P C: the order, letters and wording used everywhere. "field" is the
 -- matching switch on a Player Ignore List record.
