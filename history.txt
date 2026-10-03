@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.26 - Release zip includes Bindings.xml
+
+- The release zip now contains Bindings.xml, so the "Scan All: next guild /who" key binding (Key Bindings > AddOns > Pour Social Score) works when installed from a release. It was in the addon since 2.0.19 but left out of every release package.
+- Version 2.0.26.
+
 => 2.0.25 - Player Search, and the UI / logic split begins
 
 - Player Ignore List tab: the top right now works like the guild tab. "Player Search" runs a real /who for the name in the box (n-"Name"; /who can't search by realm, so only the name part is used) and lists the players found with level, class and guild; tick who to add and Save. If nobody is found you are offered "Add Anyway". "Add Player" uses the name in the box and asks "Add <Name> to the Player Ignore List without searching?" with Okay / Search / Cancel; with the box empty it still adds your target (a player of your faction). The box shows "Add a Player...". The old Add Player popup (name, note, expire days) is gone; a listed player's note and expiry are still set from their row.

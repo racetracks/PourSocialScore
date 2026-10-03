@@ -1,6 +1,6 @@
 # Publishes a GitHub release whenever the version in PourSocialScore.toc
 # changes on main: tags vX.Y.Z and attaches PourSocialScore-X.Y.Z.zip
-# (the addon folder, without .github / tools), with that version's section
+# (the addon folder incl. Bindings.xml, without .github / tools), with that version's section
 # of history.txt as the release notes. Does nothing if the release exists.
 name: Release
 
@@ -36,7 +36,7 @@ jobs:
         run: |
           ver=${{ steps.v.outputs.version }}
           mkdir -p build/PourSocialScore
-          cp *.lua *.toc readme.txt history.txt build/PourSocialScore/
+          cp *.lua *.toc Bindings.xml readme.txt history.txt build/PourSocialScore/
           (cd build && zip -qr "../PourSocialScore-$ver.zip" PourSocialScore)
           {
             echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\` so you get \`AddOns/PourSocialScore/PourSocialScore.toc\`. Retail (Midnight) and Camelot are supported."
