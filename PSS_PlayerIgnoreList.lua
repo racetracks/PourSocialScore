@@ -1531,6 +1531,7 @@ function M.PSS_RecordPlayerBlock(name, event, message, inviteKind, cat)
 	-- one line in the shared block log (capped in total, see PSS_ChatHistory)
 	local entry = History.Add(History.PlayerKey(p.name or name), p.blockCounts,
 		History.NewEntry(ccat, event or "", message, M.PSS_ChannelLabel and M.PSS_ChannelLabel(event or "") or nil, p.name or name))
+	if M.PSS_Stats then M.PSS_Stats.Count("player", entry.cat) end
 	if inviteKind then
 		p.blockedInvites = (p.blockedInvites or 0) + 1
 		p.lastBlockedInvite = entry.time

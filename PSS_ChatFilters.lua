@@ -171,6 +171,7 @@ function M.PSS_RecordManagedBlock(groupKey, ctx, from, entry)
 	local db = PourSocialScoreDB
 	db.filterCount[i] = (tonumber(db.filterCount[i]) or 0) + 1
 	db.filterTotal = (tonumber(db.filterTotal) or 0) + 1
+	if M.PSS_Stats then M.PSS_Stats.Count("filter") end
 	local counts = M.PSS_FilterCounts(i)
 	local cat = entry and entry.cat or History.Bucket(ctx.cat)
 	counts[cat] = (tonumber(counts[cat]) or 0) + 1
@@ -852,6 +853,7 @@ function M.PSS_ChatFilters_Evaluate(ctx)
 		elseif event == "CHAT_MSG_BN_WHISPER" then
 			PourSocialScoreDB.filterPrivateTotal = (PourSocialScoreDB.filterPrivateTotal or 0) + 1
 		end
+		if M.PSS_Stats then M.PSS_Stats.Count("filter", M.PSS_Stats.FilterCat(event)) end
 		-- the sender's display name is only built for a hidden line
 		local from = M.Proper(M.addServer(ctx.author or _G.UNKNOWN))
 		AddToBlockHistory(filterNum, ctx, from, chNumber, chName)
@@ -860,6 +862,7 @@ function M.PSS_ChatFilters_Evaluate(ctx)
 	end
 	if invert then
 		PourSocialScoreDB.filterTotal = (PourSocialScoreDB.filterTotal or 0) + 1
+		if M.PSS_Stats then M.PSS_Stats.Count("filter") end
 		return true
 	end
 	return false

@@ -34,6 +34,10 @@ UI.BAR_W, UI.BAR_H = 110, 22
 UI.TOP_W       = 100
 UI.LIST_TOP    = 86           -- panel top -> first row (summary + header)
 UI.HEADER_Y    = -(86 - 24)   -- panel top -> header row
+-- Player Ignore List and Chat Filters: the block counts sit above the panel
+-- (UI.CreateBlockStats), so their headers go straight under the top buttons
+UI.COMPACT_LIST_TOP = 54
+UI.COMPACT_HEADER_Y = -(54 - 24)
 UI.EXCL_W      = 154          -- W I G P C column
 UI.EXCL_STEP   = 28
 UI.HIGHLIGHT   = "Interface\\QuestFrame\\UI-QuestTitleHighlight"
@@ -97,6 +101,72 @@ function UI.CreateSummary(panel, titleText, width)
 	b:SetWidth(math.max(width, 700))
 	b:SetJustifyH("LEFT")
 	return t, i, b
+end
+
+-- Block counts in the strip at the top of the main window, right of the
+-- portrait: one line each for this session, the last 24 hours and the total,
+-- with the per-type counts in fixed columns so the three lines line up.
+-- Parented to the tab panel (shown with it), anchored to the window.
+--   cats = { { key =, label =, color = "ffrrggbb", width = }, ... }
+--   unit = "messages and invites"
+-- :Set(row, counts) fills one line (row 1-3); counts = { total =, [key] = }.
+UI.STATS_ROWS = { "This session:", "Last 24 hours:", "Total:" }
+UI.STATS_X, UI.STATS_Y, UI.STATS_ROW_H = 62, -28, 16
+-- Player and Guild Ignore Lists (same order and colours as the summary line
+-- they replace), and the Chat Filters' own two.
+UI.STATS_BLOCK_CATS = {
+	{ key = "whisper",     label = "Whispers",      color = "ffffff00", width = 86 },
+	{ key = "partyInvite", label = "Party Invites", color = "ffff9933", width = 108 },
+	{ key = "partyRaid",   label = "Party/Raid",    color = "ff66ccff", width = 92 },
+	{ key = "world",       label = "World Chat",    color = "ff99ff99", width = 112 },
+	{ key = "guildInvite", label = "Guild Invites", color = "ffcc99ff", width = 110 },
+}
+UI.STATS_FILTER_CATS = {
+	{ key = "whisper", label = "Whispers",         color = "ffffff00", width = 86 },
+	{ key = "private", label = "Private messages", color = "ff00ccff", width = 140 },
+}
+
+function UI.CreateBlockStats(panel, window, cats, unit)
+	local s = { rows = {} }
+	for i, label in ipairs(UI.STATS_ROWS) do
+		local y = UI.STATS_Y - (i - 1) * UI.STATS_ROW_H
+		local r = { cats = {} }
+		r.label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		r.label:SetPoint("TOPLEFT", window, "TOPLEFT", UI.STATS_X, y)
+		r.label:SetWidth(105)
+		r.label:SetJustifyH("LEFT")
+		r.label:SetText(label)
+		r.total = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		r.total:SetPoint("LEFT", r.label, "RIGHT", 0, 0)
+		r.total:SetWidth(50)
+		r.total:SetJustifyH("RIGHT")
+		r.unit = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		r.unit:SetPoint("LEFT", r.total, "RIGHT", 5, 0)
+		r.unit:SetWidth(175)
+		r.unit:SetJustifyH("LEFT")
+		r.unit:SetText(unit or "")
+		local prev = r.unit
+		for j, c in ipairs(cats) do
+			local fs = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+			fs:SetPoint("LEFT", prev, "RIGHT", 0, 0)
+			fs:SetWidth(c.width or 100)
+			fs:SetJustifyH("LEFT")
+			fs:SetWordWrap(false)
+			r.cats[j] = fs
+			prev = fs
+		end
+		s.rows[i] = r
+	end
+	function s:Set(row, counts)
+		local r = self.rows[row]
+		if not r then return end
+		counts = counts or {}
+		r.total:SetText("|cffffff00" .. (tonumber(counts.total) or 0) .. "|r")
+		for j, c in ipairs(cats) do
+			r.cats[j]:SetText("|cffaaaaaa" .. c.label .. ":|r |c" .. c.color .. (tonumber(counts[c.key]) or 0) .. "|r")
+		end
+	end
+	return s
 end
 
 -- Section heading inside a panel (Options sections, detail window blocks).

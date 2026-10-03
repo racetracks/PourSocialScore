@@ -1,6 +1,16 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.36 - Block counts for this session and the last 24 hours
+
+- The block counts of the Player Ignore List, Guild Ignore List and Chat Filters tabs move out of the list panel into the strip at the top of the window, as three lines: This session, Last 24 hours and Total. Each line has the same per-type breakdown, in columns that line up. Total is the count shown before.
+- This session counts from login or /reload. Last 24 hours is saved as one small table per hour that had a block (at most 24 per tab, older hours dropped), so it costs almost no memory.
+- The tab titles ("Player Ignore List" and so on) are gone; the tabs at the bottom say where you are. The same line still shows "Block History: ..." while a block history is open, and the filter counts (Filters / Built-in / Custom / On) on the Chat Filters tab.
+- The Player Ignore List and Chat Filters lists start higher up (more rows fit).
+- Upgrade: the new counts are added to SavedVariables (PourSocialScoreDB.blockStats) on the first login. Last 24 hours starts from the block history lines of the last 24 hours. Every saved total is kept as it was. Tested by loading saves from 2.0.1, 2.0.8, 2.0.17, 2.0.18, 2.0.19, 2.0.22 and 2.0.35 (sh tools/harness/validate_all.sh).
+- Reset Block History for all players or all guilds also clears that tab's session and 24 hour counts.
+- Version 2.0.36.
+
 => 2.0.35 - Code style rules (Lua 5.1, ASCII, tabs, shared builders)
 
 - All code is now ASCII only. Translations, accented default-list names and accented realm names are written as Lua escapes, which the game reads as the same text. tools/PSS_BuildManaged.lua writes escapes too.
