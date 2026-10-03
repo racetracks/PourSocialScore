@@ -62,11 +62,19 @@ function M.popWord (str, ch)
 	return string.sub(str, 1, idx - 1), string.sub(str, idx + 1)
 end
 
+-- Strips leading and trailing whitespace; anything but a string gives "".
 function M.trim (str)
 
+	if type(str) ~= "string" then return "" end
 	local n = str:find"%S"
 	return n and str:match(".*%S", n) or ""
 
+end
+M.PSS_Trim = M.trim
+
+-- Writes one line to the default chat frame, exactly as given.
+function M.ChatMsg (text)
+	if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then DEFAULT_CHAT_FRAME:AddMessage(text) end
 end
 
 function M.dateToJulianDate (dateStr)
@@ -76,14 +84,14 @@ function M.dateToJulianDate (dateStr)
 	end
 
 	local monthList = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
-	local words     = {}
+	local words		= {}
 
 	for word in dateStr:gmatch("%w+") do
 		table.insert(words, word)
 	end
 
-	local day   = tonumber(words[1])
-	local year  = tonumber(words[3])
+	local day	= tonumber(words[1])
+	local year	= tonumber(words[3])
 	local month = 0
 
 	for key, value in pairs(monthList) do
@@ -110,7 +118,7 @@ end
 function M.daysFromToday (dateStr)
 
 	local addDate = M.dateToJulianDate(dateStr)
-	local today   = M.dateToJulianDate(date("%d %b %Y"))
+	local today		= M.dateToJulianDate(date("%d %b %Y"))
 
 	if addDate == 0 then
 		return -1
@@ -150,11 +158,11 @@ function M.Proper (name, okSpaces)
 
 	-- one pass over the bytes into a reused buffer, joined once (the old
 	-- version appended to a string per character: quadratic garbage)
-	local len    = #name
-	local buf    = properBuf
-	local n      = 0
+	local len		= #name
+	local buf		= properBuf
+	local n			= 0
 	local needUp = true
-	local gotOP  = false
+	local gotOP		= false
 	local byte, char, upper, lower = string.byte, string.char, string.upper, string.lower
 
 	for count = 1, len do
@@ -165,7 +173,7 @@ function M.Proper (name, okSpaces)
 		elseif c ~= 32 or okSpaces == true or count <= keepUntil then
 			n = n + 1
 			buf[n] = needUp and upper(char(c)) or lower(char(c))
-			gotOP  = (c == 40 or gotOP) and (c ~= 41)
+			gotOP	= (c == 40 or gotOP) and (c ~= 41)
 			needUp = (c == 32 or c == 45 or gotOP == true)
 		end
 	end
@@ -197,10 +205,10 @@ end
 
 function M.GetWord (str, wordnumber)
 
-	local len     = strlen(str)
-	local count   = 1
-	local res     = ""
-	local words   = 0
+	local len		= strlen(str)
+	local count		= 1
+	local res		= ""
+	local words		= 0
 	local nextInc = true
 	local c
 
@@ -397,8 +405,8 @@ end
 -- Any other realm: a space before each capital or digit, up to the first
 -- digit or "(".
 local function spaceRealmName(origName)
-	local len  = strlen(origName)
-	local sb   = strbyte
+	local len	= strlen(origName)
+	local sb	= strbyte
 	local char = string.char
 	local c1
 	local c
@@ -406,7 +414,7 @@ local function spaceRealmName(origName)
 	local name = ""
 
 	for count = 1, len do
-		c  = sb(origName, count)
+		c	= sb(origName, count)
 		c1 = sb(origName, count+1) or 32
 
 		if ((c1 > 47 and c1 < 58) or (c1 > 64 and c1 < 91) or (c1 == 40)) and gotP == false then
@@ -460,7 +468,7 @@ function M.removeServer (name, strict)
 		end
 	end
 
-	return result	
+	return result
 end
 
 function M.addServer (name)
@@ -523,105 +531,17 @@ function M.dayString (value)
 	end
 end
 
+--------------------------
+-- W I G P C CATEGORIES --
+--------------------------
 
-------------------------------
--- RESIZABLE WINDOW SUPPORT --
-------------------------------
-
--- Adds a drag grip to the bottom-right corner of a top-level window.
---   Left-drag the grip  : resize the window
---   Right-click the grip: reset the window to its default size
--- The size is remembered per window in PourSocialScoreDB.windowSizes[saveKey].
--- opts = { minW, minH, maxW, maxH, saveKey, onResize = function(frame, w, h) }
-function M.PSS_MakeResizable(frame, opts)
-	if not frame or frame.PSS_ResizeGrip then return frame and frame.PSS_ResizeGrip end
-	opts = opts or {}
-
-	local defW, defH = frame:GetWidth(), frame:GetHeight()
-	local screenW = (UIParent and UIParent:GetWidth()) or 1920
-	local screenH = (UIParent and UIParent:GetHeight()) or 1080
-	local minW = opts.minW or math.min(defW, 300)
-	local minH = opts.minH or math.min(defH, 200)
-	local maxW = math.max(minW, opts.maxW or screenW)
-	local maxH = math.max(minH, opts.maxH or screenH)
-
-	frame:SetResizable(true)
-	if frame.SetResizeBounds then
-		frame:SetResizeBounds(minW, minH, maxW, maxH)
-	else
-		-- older client builds
-		if frame.SetMinResize then frame:SetMinResize(minW, minH) end
-		if frame.SetMaxResize then frame:SetMaxResize(maxW, maxH) end
-	end
-
-	local function clamp(w, h)
-		return math.max(minW, math.min(maxW, w)), math.max(minH, math.min(maxH, h))
-	end
-
-	local function saved()
-		local db = PourSocialScoreDB
-		if type(db) ~= "table" or not opts.saveKey then return nil end
-		db.windowSizes = type(db.windowSizes) == "table" and db.windowSizes or {}
-		return db.windowSizes
-	end
-
-	-- Restore a previously saved size.
-	local store = saved()
-	local s = store and store[opts.saveKey]
-	if type(s) == "table" and tonumber(s.w) and tonumber(s.h) then
-		frame:SetSize(clamp(tonumber(s.w), tonumber(s.h)))
-	end
-
-	local grip = CreateFrame("Button", nil, frame)
-	grip:SetSize(16, 16)
-	grip:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", opts.gripX or -4, opts.gripY or 4)
-	grip:SetFrameLevel(frame:GetFrameLevel() + 20)
-	grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
-	grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
-	grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-	grip:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-	frame.PSS_ResizeGrip = grip
-
-	local function save()
-		local st = saved()
-		if st then st[opts.saveKey] = { w = math.floor(frame:GetWidth() + 0.5), h = math.floor(frame:GetHeight() + 0.5) } end
-	end
-
-	grip:SetScript("OnMouseDown", function(self, button)
-		if button ~= "LeftButton" then return end
-		frame.PSS_Sizing = true
-		frame:StartSizing("BOTTOMRIGHT")
-	end)
-	grip:SetScript("OnMouseUp", function(self, button)
-		if frame.PSS_Sizing then
-			frame.PSS_Sizing = nil
-			frame:StopMovingOrSizing()
-			save()
-		elseif button == "RightButton" then
-			frame:SetSize(clamp(defW, defH))
-			local st = saved()
-			if st then st[opts.saveKey] = nil end
-		end
-	end)
-	-- Safety net if the window is hidden mid-drag.
-	frame:HookScript("OnHide", function(self)
-		if self.PSS_Sizing then
-			self.PSS_Sizing = nil
-			self:StopMovingOrSizing()
-			save()
-		end
-	end)
-	grip:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine("Resize", 1, 1, 1)
-		GameTooltip:AddLine("Drag to resize this window.", 0.8, 0.8, 0.8)
-		GameTooltip:AddLine("Right-click to reset to the default size.", 0.8, 0.8, 0.8)
-		GameTooltip:Show()
-	end)
-	grip:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-	if opts.onResize then
-		frame:HookScript("OnSizeChanged", function(self, w, h) opts.onResize(self, w, h) end)
-	end
-	return grip
-end
+-- The five things a person or guild rule can be blocked from, in the order
+-- every W I G P C header shows them: block category, header letter, the
+-- player record field that stores "blocked", and the label.
+M.EXCL = {
+	{ cat = "whisper",		letter = "W", field = "whispersBlocked",		label = "Whispers" },
+	{ cat = "partyInvite", letter = "I", field = "partyInvitesBlocked", label = "Party invites" },
+	{ cat = "guildInvite", letter = "G", field = "guildInvitesBlocked", label = "Guild invites" },
+	{ cat = "partyRaid",	letter = "P", field = "partyRaidBlocked",		label = "Party/Raid chat (incl. raid warnings)" },
+	{ cat = "world",		letter = "C", field = "channelsBlocked",		label = "Chat channels (Trade, General, LFG, communities) and public chat (say, yell, emotes)" },
+}

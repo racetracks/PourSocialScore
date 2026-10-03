@@ -29,14 +29,14 @@
 local addonName, addon = ...
 local M = addon.M
 
-local CHECK_INTERVAL  = 15        -- seconds between checks
-local IDLE_INTERVAL   = 600       -- a timed cycle at most this often (10 minutes)
-local COMBAT_COOLDOWN = 300       -- no cycle until this long after leaving combat
-local GROWTH_KB       = nil       -- heap growth that starts a cycle; nil = none (see above)
-local STEP_KB         = 8         -- size of one collector step (small: fine-grained budget)
-local STEP_BUDGET_MS  = 1.0       -- max time per frame
-local MIN_FPS         = 30
-local MAX_FRAMES      = 900       -- pause a cycle after this many frames (it resumes)
+local CHECK_INTERVAL	= 15		-- seconds between checks
+local IDLE_INTERVAL		= 600		-- a timed cycle at most this often (10 minutes)
+local COMBAT_COOLDOWN = 300			-- no cycle until this long after leaving combat
+local GROWTH_KB			= nil		-- heap growth that starts a cycle; nil = none (see above)
+local STEP_KB			= 8			-- size of one collector step (small: fine-grained budget)
+local STEP_BUDGET_MS	= 1.0		-- max time per frame
+local MIN_FPS			= 30
+local MAX_FRAMES		= 900		-- pause a cycle after this many frames (it resumes)
 
 local gc = { pending = false, running = false, lastCycle = 0, leftCombat = nil, heapAfter = nil, supported = true, frames = 0,
 			cycles = 0, lastReason = nil, lastMs = 0 }
@@ -91,7 +91,7 @@ runner:SetScript("OnUpdate", function(self, elapsed)
 	-- frame budget: never more than STEP_BUDGET_MS, and a smaller share of a
 	-- slow frame (5 % of the last frame time)
 	local fps = GetFramerate and GetFramerate() or 60
-	if fps < MIN_FPS then return end        -- wait for a calmer moment
+	if fps < MIN_FPS then return end		-- wait for a calmer moment
 	-- a long cycle (big heap, or a high frame rate's small budget) pauses
 	-- and carries on at the next check; the collector keeps its place.
 	-- Only a finished cycle counts as done (before 2.0.40 hitting this cap,
@@ -143,7 +143,7 @@ ev:RegisterEvent("PLAYER_REGEN_DISABLED")
 ev:RegisterEvent("PLAYER_REGEN_ENABLED")
 ev:SetScript("OnEvent", function(self, event)
 	if event == "PLAYER_REGEN_DISABLED" then
-		if gc.running then stopCycle(false); gc.pending = true end   -- resume after combat
+		if gc.running then stopCycle(false); gc.pending = true end		-- resume after combat
 	elseif event == "PLAYER_REGEN_ENABLED" then
 		-- the regular check picks it up once COMBAT_COOLDOWN has passed
 		gc.leftCombat = GetTime()

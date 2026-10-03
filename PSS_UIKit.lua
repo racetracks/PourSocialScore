@@ -26,23 +26,23 @@ local L = addon.L
 local UI = {}
 M.UI = UI
 
-UI.HEADER_H    = 24
-UI.ROW_H       = 20
-UI.CHECK       = 20
+UI.HEADER_H		= 24
+UI.ROW_H		= 20
+UI.CHECK		= 20
 UI.ROW_BUTTON_H = 18
 UI.BAR_W, UI.BAR_H = 110, 22
-UI.TOP_W       = 100
-UI.LIST_TOP    = 86           -- panel top -> first row (summary + header)
-UI.HEADER_Y    = -(86 - 24)   -- panel top -> header row
+UI.TOP_W		= 100
+UI.LIST_TOP		= 86			-- panel top -> first row (summary + header)
+UI.HEADER_Y		= -(86 - 24)	-- panel top -> header row
 -- Player Ignore List and Chat Filters: the block counts sit above the panel
 -- (UI.CreateBlockStats), so their headers go straight under the top buttons
 UI.COMPACT_LIST_TOP = 54
 UI.COMPACT_HEADER_Y = -(54 - 24)
-UI.EXCL_W      = 154          -- W I G P C column
-UI.EXCL_STEP   = 28
-UI.HIGHLIGHT   = "Interface\\QuestFrame\\UI-QuestTitleHighlight"
-UI.SORT_ARROW  = "Interface\\Buttons\\UI-SortArrow"
-UI.PORTRAIT    = "Interface\\FriendsFrame\\Battlenet-Portrait"	-- also the addon-list icon (## IconTexture in the 3 TOCs)
+UI.EXCL_W		= 154			-- W I G P C column
+UI.EXCL_STEP	= 28
+UI.HIGHLIGHT	= "Interface\\QuestFrame\\UI-QuestTitleHighlight"
+UI.SORT_ARROW	= "Interface\\Buttons\\UI-SortArrow"
+UI.PORTRAIT		= "Interface\\FriendsFrame\\Battlenet-Portrait"	-- also the addon-list icon (## IconTexture in the 3 TOCs)
 
 -- W I G P C: the order, letters and wording used everywhere. "field" is the
 -- matching switch on a Player Ignore List record.
@@ -52,13 +52,7 @@ UI.PORTRAIT    = "Interface\\FriendsFrame\\Battlenet-Portrait"	-- also the addon
 -- m.block[cat]); every W I G P C tickbox shows the inverse: ticked = that
 -- feature is allowed through, unticked = blocked. Always go through
 -- UI.ExclChecked / UI.ExclBlocked so no frame gets this backwards.
-UI.EXCL = {
-	{ cat = "whisper",     letter = "W", field = "whispersBlocked",     label = "Whispers" },
-	{ cat = "partyInvite", letter = "I", field = "partyInvitesBlocked", label = "Party invites" },
-	{ cat = "guildInvite", letter = "G", field = "guildInvitesBlocked", label = "Guild invites" },
-	{ cat = "partyRaid",   letter = "P", field = "partyRaidBlocked",    label = "Party/Raid chat (incl. raid warnings)" },
-	{ cat = "world",       letter = "C", field = "channelsBlocked",     label = "Chat channels (Trade, General, LFG, communities) and public chat (say, yell, emotes)" },
-}
+UI.EXCL = M.EXCL			-- the five categories (PSS_Globals.lua)
 UI.EXCL_BY_CAT = {}
 for _, e in ipairs(UI.EXCL) do UI.EXCL_BY_CAT[e.cat] = e end
 
@@ -66,7 +60,7 @@ for _, e in ipairs(UI.EXCL) do UI.EXCL_BY_CAT[e.cat] = e end
 function UI.ExclChecked(blocked) return not blocked end
 -- tickbox -> core "blocked" value
 function UI.ExclBlocked(box) return not box:GetChecked() end
-UI.EXCL_NOTE = "Ticked = allowed, unticked = blocked." 
+UI.EXCL_NOTE = "Ticked = allowed, unticked = blocked."
 
 local function hideTip() GameTooltip:Hide() end
 UI.HideTip = hideTip
@@ -115,14 +109,14 @@ UI.STATS_X, UI.STATS_Y, UI.STATS_ROW_H = 62, -28, 16
 -- Player and Guild Ignore Lists (same order and colours as the summary line
 -- they replace), and the Chat Filters' own two.
 UI.STATS_BLOCK_CATS = {
-	{ key = "whisper",     label = "Whispers",      color = "ffffff00", width = 86 },
+	{ key = "whisper",		label = "Whispers",			color = "ffffff00", width = 86 },
 	{ key = "partyInvite", label = "Party Invites", color = "ffff9933", width = 108 },
-	{ key = "partyRaid",   label = "Party/Raid",    color = "ff66ccff", width = 92 },
-	{ key = "world",       label = "World Chat",    color = "ff99ff99", width = 112 },
+	{ key = "partyRaid",	label = "Party/Raid",		color = "ff66ccff", width = 92 },
+	{ key = "world",		label = "World Chat",		color = "ff99ff99", width = 112 },
 	{ key = "guildInvite", label = "Guild Invites", color = "ffcc99ff", width = 110 },
 }
 UI.STATS_FILTER_CATS = {
-	{ key = "whisper", label = "Whispers",         color = "ffffff00", width = 86 },
+	{ key = "whisper", label = "Whispers",			color = "ffffff00", width = 86 },
 	{ key = "private", label = "Private messages", color = "ff00ccff", width = 140 },
 }
 
@@ -624,7 +618,7 @@ function UI.AddResizeHandle(hr, h, c)
 	grip:SetScript("OnMouseUp", function(self, button)
 		if self:GetScript("OnUpdate") then
 			self:SetScript("OnUpdate", nil)
-			hr:SetColumnWidth(c.key, hr.w[c.key])     -- save
+			hr:SetColumnWidth(c.key, hr.w[c.key])		-- save
 		end
 	end)
 	grip:SetScript("OnHide", function(self)
@@ -784,10 +778,10 @@ end
 ------------------------------------------------------------------------
 UI.METRIC_W = 46
 UI.METRICS = {
-	{ cat = "whisper",     text = "Whispers",       name = "Whispers" },
+	{ cat = "whisper",		text = "Whispers",			name = "Whispers" },
 	{ cat = "partyInvite", text = "Party\nInvites", name = "Party Invites" },
-	{ cat = "partyRaid",   text = "Party/\nRaid",   name = "Party/Raid" },
-	{ cat = "world",       text = "World\nChat",    name = "World Chat" },
+	{ cat = "partyRaid",	text = "Party/\nRaid",		name = "Party/Raid" },
+	{ cat = "world",		text = "World\nChat",		name = "World Chat" },
 	{ cat = "guildInvite", text = "Guild\nInvites", name = "Guild Invites" },
 }
 
@@ -937,3 +931,104 @@ M.Events.Register("WHOIS_COOLDOWN", function(active)
 		if button.SetEnabled then button:SetEnabled(not active) end
 	end
 end)
+
+------------------------------------------------------------------------
+-- Resize grip (every resizable window)
+------------------------------------------------------------------------
+-- Adds a drag grip to the bottom-right corner of a top-level window.
+--   Left-drag the grip  : resize the window
+--   Right-click the grip: reset the window to its default size
+-- The size is remembered per window in PourSocialScoreDB.windowSizes[saveKey].
+-- opts = { minW, minH, maxW, maxH, saveKey, onResize = function(frame, w, h) }
+function M.PSS_MakeResizable(frame, opts)
+	if not frame or frame.PSS_ResizeGrip then return frame and frame.PSS_ResizeGrip end
+	opts = opts or {}
+
+	local defW, defH = frame:GetWidth(), frame:GetHeight()
+	local screenW = (UIParent and UIParent:GetWidth()) or 1920
+	local screenH = (UIParent and UIParent:GetHeight()) or 1080
+	local minW = opts.minW or math.min(defW, 300)
+	local minH = opts.minH or math.min(defH, 200)
+	local maxW = math.max(minW, opts.maxW or screenW)
+	local maxH = math.max(minH, opts.maxH or screenH)
+
+	frame:SetResizable(true)
+	if frame.SetResizeBounds then
+		frame:SetResizeBounds(minW, minH, maxW, maxH)
+	else
+		-- older client builds
+		if frame.SetMinResize then frame:SetMinResize(minW, minH) end
+		if frame.SetMaxResize then frame:SetMaxResize(maxW, maxH) end
+	end
+
+	local function clamp(w, h)
+		return math.max(minW, math.min(maxW, w)), math.max(minH, math.min(maxH, h))
+	end
+
+	local function saved()
+		local db = PourSocialScoreDB
+		if type(db) ~= "table" or not opts.saveKey then return nil end
+		db.windowSizes = type(db.windowSizes) == "table" and db.windowSizes or {}
+		return db.windowSizes
+	end
+
+	-- Restore a previously saved size.
+	local store = saved()
+	local s = store and store[opts.saveKey]
+	if type(s) == "table" and tonumber(s.w) and tonumber(s.h) then
+		frame:SetSize(clamp(tonumber(s.w), tonumber(s.h)))
+	end
+
+	local grip = CreateFrame("Button", nil, frame)
+	grip:SetSize(16, 16)
+	grip:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", opts.gripX or -4, opts.gripY or 4)
+	grip:SetFrameLevel(frame:GetFrameLevel() + 20)
+	grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+	grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+	grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+	grip:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	frame.PSS_ResizeGrip = grip
+
+	local function save()
+		local st = saved()
+		if st then st[opts.saveKey] = { w = math.floor(frame:GetWidth() + 0.5), h = math.floor(frame:GetHeight() + 0.5) } end
+	end
+
+	grip:SetScript("OnMouseDown", function(self, button)
+		if button ~= "LeftButton" then return end
+		frame.PSS_Sizing = true
+		frame:StartSizing("BOTTOMRIGHT")
+	end)
+	grip:SetScript("OnMouseUp", function(self, button)
+		if frame.PSS_Sizing then
+			frame.PSS_Sizing = nil
+			frame:StopMovingOrSizing()
+			save()
+		elseif button == "RightButton" then
+			frame:SetSize(clamp(defW, defH))
+			local st = saved()
+			if st then st[opts.saveKey] = nil end
+		end
+	end)
+	-- Safety net if the window is hidden mid-drag.
+	frame:HookScript("OnHide", function(self)
+		if self.PSS_Sizing then
+			self.PSS_Sizing = nil
+			self:StopMovingOrSizing()
+			save()
+		end
+	end)
+	grip:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine("Resize", 1, 1, 1)
+		GameTooltip:AddLine("Drag to resize this window.", 0.8, 0.8, 0.8)
+		GameTooltip:AddLine("Right-click to reset to the default size.", 0.8, 0.8, 0.8)
+		GameTooltip:Show()
+	end)
+	grip:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+	if opts.onResize then
+		frame:HookScript("OnSizeChanged", function(self, w, h) opts.onResize(self, w, h) end)
+	end
+	return grip
+end

@@ -357,8 +357,9 @@ community
 This tag filters messages that contain Cyrillic letters (Russian, Ukrainian,
 Belarusian, Bulgarian, Serbian, Kazakh ...). It also catches English spam
 that swaps in Cyrillic lookalike letters to get past word filters
-("sellіng" with a Cyrillic "і"). [cyrillic=3] only matches when there are at
-least 3 Cyrillic letters, which lets a single stray lookalike through.
+("selling" written with a Cyrillic "i", U+0456). [cyrillic=3] only matches
+when there are at least 3 Cyrillic letters, which lets a single stray
+lookalike through.
 The built-in rule "Filter Cyrillic (Russian etc.)" uses [cyrillic] and is
 off by default.
 

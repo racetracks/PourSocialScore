@@ -2,7 +2,7 @@
 -- BLIZZARD UI HOOKS --
 -----------------------
 
-local addonName, addon 	= ...
+local addonName, addon	= ...
 local L = addon.L -- localization entries
 local V = addon.V -- shared variables
 local M = addon.M -- shared methods
@@ -33,7 +33,7 @@ function M.PSS_LFG_Update (self)
 	-- no display-name building
 	if type(leader) == "string" and not M.PSS_IsSecret(leader) and leader ~= "" and M.PSS_IsPlayerListed(leader) then
 		self.Name:SetTextColor(RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b);
-	end	
+	end
 end
 
 function M.PSS_LFG_Tooltip (self)
@@ -69,13 +69,13 @@ function M.PSS_LFG_ApplicantMenu(owner, root, contextData)
 	if not info or type(info.leaderName) ~= "string" or M.PSS_IsSecret(info.leaderName) or info.leaderName == "" then return end
 
 	local target = M.Proper(M.addServer(info.leaderName))
-	local text   = ""
+	local text		= ""
 
 	if M.PSS_IsPlayerListed(info.leaderName) then
-		text = L["RCM_4"]				
+		text = L["RCM_4"]
 	else
 		text = L["RCM_6"]
-	end	
+	end
 
 	local leaderText = format(L["RCM_7"], target)
 
@@ -85,7 +85,7 @@ function M.PSS_LFG_ApplicantMenu(owner, root, contextData)
 		function(owner, root, contextData)
 			M.PSS_AddOrDelIgnore(M.addServer(info.leaderName))
 			M.PSSUpdateUI(true)
-		end)	
+		end)
 end
 
 ----------------------
@@ -94,7 +94,7 @@ end
 
 function M.PSS_UnitMenuPlayer (owner, root, contextData)
 	if type(contextData) ~= "table" then return end
-	if contextData.bnetIDAccount and not contextData.unit then return end   -- a Battle.net friend, not a character
+	if contextData.bnetIDAccount and not contextData.unit then return end	-- a Battle.net friend, not a character
 	local target, server
 	if contextData.unit and UnitExists(contextData.unit) then
 		target, server = UnitName(contextData.unit)
@@ -118,10 +118,10 @@ function M.PSS_UnitMenuPlayer (owner, root, contextData)
 	local text = ""
 
 	if (M.hasGlobalIgnored(M.addServer(target)) > 0) then
-		text = L["RCM_4"]				
+		text = L["RCM_4"]
 	else
 		text = L["RCM_6"]
-	end	
+	end
 
 	root:CreateDivider()
 	root:CreateButton(text,

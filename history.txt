@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.41 - Code rules uplift (no visible change)
+
+- Nothing looks or works differently: every window, tab, dialog and chat command was built and compared with 2.0.40 (frames, sizes, anchors, text, dialogs, slash command output and the values saved after editing), using your 2.0.34 and 2.0.40 saves, and was identical.
+- Window code is out of the core files (rule 6). New files: PSS_ChatHistoryUI.lua, PSS_ImportExportUI.lua, PSS_OptionsUI.lua, PSS_WhoisHarvestUI.lua, PSS_GuildUI.lua (Guild Ignore List tab and members window) and PSS_Commands.lua (/pss and /pssguild). The core now says "something changed" with events (listed in PSS_Events.lua) and the windows redraw themselves; windows change saved data only through core functions.
+- The two longest functions (the guild tab, 576 lines, and the members window, 364 lines) are built from small functions.
+- Stricter checks on every pull request: ASCII only in the shipped text files, no Lua 5.2 calls, tabs for alignment as well as indentation, and a new check that the core files hold no window code (tools/check_rules.sh).
+- Version 2.0.41.
+
 => 2.0.40 - Fix: background cleanup that never finished; less garbage per blocked line
 
 - Not a leak: in a 90 minute test with 10 chat lines a second and constant nameplates, the addon's live memory levels off at about 1.4 MB above its loaded size (the 2,000 line log plus each person's kept lines) and stays there. The growth seen in the addon list is garbage: memory already let go that still counts against the addon until a collection runs.
@@ -856,7 +864,7 @@ Updated for 9.0.1.  This is a first attempt after taking a good break from WoW, 
 
 => 8.2.5.1
 
-Added Chinese localization.  Thank you for the translation help: Translated by 堕落治疗
+Added Chinese localization.  Thank you for the translation help: Translated by Duoluo Zhiliao
 
 => 8.2.5
 

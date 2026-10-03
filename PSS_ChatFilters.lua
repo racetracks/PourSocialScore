@@ -13,13 +13,13 @@ local L = addon.L
 local V = addon.V
 local M = addon.M
 
-V.lastFilterError     = false
+V.lastFilterError		= false
 
-local filterDefDesc   = {}
+local filterDefDesc		= {}
 local filterDefFilter = {}
 local filterDefActive = {}
-local filterDefID     = {}
-local pssFloodSize    = 50
+local filterDefID		= {}
+local pssFloodSize		= 50
 
 ------------------------------------------------------------------------
 -- Built-in (default) rules
@@ -27,71 +27,71 @@ local pssFloodSize    = 50
 -- Set filter defaults. Every built-in filter starts OFF (opt in): tick the
 -- ones you want on the Chat Filters tab.
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter \"Anal\" Spammers"
+filterDefDesc[#filterDefDesc + 1]		= "Filter \"Anal\" Spammers"
 filterDefFilter[#filterDefFilter + 1] = "([word=anal] or [contains=analan]) and ([link] or [words=2])"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0001"
+filterDefID[#filterDefID + 1]		= "PSS0001"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter Thunderfury linking"
+filterDefDesc[#filterDefDesc + 1]		= "Filter Thunderfury linking"
 filterDefFilter[#filterDefFilter + 1] = "[item=19019]"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0002"
+filterDefID[#filterDefID + 1]		= "PSS0002"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter Mythic+/Raid Sellers"
+filterDefDesc[#filterDefDesc + 1]		= "Filter Mythic+/Raid Sellers"
 filterDefFilter[#filterDefFilter + 1] = "([contains=WTS] or [contains=sell] or [contains=offer] or [contains=cheap] or [word=starting]) and ([contains=m+] or [contains=boost] or [contains=carry] or [contains=raid] or [contains=mythic] or [contains=keys] or [contains=gold\\ only] or [achievement] or [journal] or [contains=afk])"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0003"
+filterDefID[#filterDefID + 1]		= "PSS0003"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter Tradeskill Sellers"
+filterDefDesc[#filterDefDesc + 1]		= "Filter Tradeskill Sellers"
 filterDefFilter[#filterDefFilter + 1] = "([contains=LFW] or [word=trade] or [contains=order] or [contains=tip] or [contains=%] or [contains=max] or [word=free] or [contains=craft] or [word=mats] or [contains=pay]) and ([trade] or [item])"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0013"
+filterDefID[#filterDefID + 1]		= "PSS0013"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter Power Leveling Sellers"
+filterDefDesc[#filterDefDesc + 1]		= "Filter Power Leveling Sellers"
 filterDefFilter[#filterDefFilter + 1] = "([contains=wts] or [contains=service] or [contains=sell] or [word=fast] or [contains=afk]) and (([contains=power] or [contains=pwr]) and ([contains=level] or [contains=lvl]))"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0014"
+filterDefID[#filterDefID + 1]		= "PSS0014"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter Guild Recruitment"
+filterDefDesc[#filterDefDesc + 1]		= "Filter Guild Recruitment"
 --filterDefFilter[#filterDefFilter + 1] = "(([contains=<] and [contains=>]) or ([contains=\\[] and [contains=\\]]) or ([contains=\\(] and [contains=\\)])) and ([contains=recruit] or [contains=progress] or [contains=raid] or [contains=guild] or [contains=seek] or [contains=mythic])"
 filterDefFilter[#filterDefFilter + 1] = "(([guild] or ([contains=<] and [contains=>]) or ([contains=\\[] and [contains=\\]]) or ([contains=\\(] and [contains=\\)])) and ([contains=recruit] or [contains=progress] or [contains=raid] or [contains=guild] or [contains=seek] or [contains=mythic])) or ([contains=guild] and [contains=recruit])"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0008"
+filterDefID[#filterDefID + 1]		= "PSS0008"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter Community Recruitment"
+filterDefDesc[#filterDefDesc + 1]		= "Filter Community Recruitment"
 filterDefFilter[#filterDefFilter + 1] = "[community]"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0009"
+filterDefID[#filterDefID + 1]		= "PSS0009"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter WTS"
+filterDefDesc[#filterDefDesc + 1]		= "Filter WTS"
 filterDefFilter[#filterDefFilter + 1] = "[contains=WTS] or [contains=WTB]"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0010"
+filterDefID[#filterDefID + 1]		= "PSS0010"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter Chinese/Korean/Japanese"
+filterDefDesc[#filterDefDesc + 1]		= "Filter Chinese/Korean/Japanese"
 filterDefFilter[#filterDefFilter + 1] = "[nonlatin]"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0011"
+filterDefID[#filterDefID + 1]		= "PSS0011"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter American Politics"
+filterDefDesc[#filterDefDesc + 1]		= "Filter American Politics"
 filterDefFilter[#filterDefFilter + 1] = "[contains=trump] or [contains=communist] or [contains=communism] or [word=president] or [contains=biden] or [word=hillary] or [word=hilary] or [contains=democrat] or [contains=republican] or [contains=liberals] or [word=maga] or [word=libs] or [contains=conservatives] or [contains=libtard] or [word=pelosi] or [word=epstein] or [word=AOC] or [word=putin] or [contains=right\\ wing] or [word=dems] or [word=socialism]"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0012"
+filterDefID[#filterDefID + 1]		= "PSS0012"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter Asmon"
+filterDefDesc[#filterDefDesc + 1]		= "Filter Asmon"
 filterDefFilter[#filterDefFilter + 1] = "[contains=asmon]"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0015"
+filterDefID[#filterDefID + 1]		= "PSS0015"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter Olympus"
+filterDefDesc[#filterDefDesc + 1]		= "Filter Olympus"
 filterDefFilter[#filterDefFilter + 1] = "[word=olympus]"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0016"
+filterDefID[#filterDefID + 1]		= "PSS0016"
 
-filterDefDesc[#filterDefDesc + 1]     = "Filter Cyrillic (Russian etc.)"
+filterDefDesc[#filterDefDesc + 1]		= "Filter Cyrillic (Russian etc.)"
 filterDefFilter[#filterDefFilter + 1] = "[cyrillic]"
 filterDefActive[#filterDefActive + 1] = false
-filterDefID[#filterDefID + 1]     = "PSS0017"
+filterDefID[#filterDefID + 1]		= "PSS0017"
 
 -- Default GUILD rules ("InfluencerGuild=<Name>"), one per group in
 -- PSS_GuildIgnore_Managed.lua. They are read-only built-ins like the text
@@ -99,10 +99,10 @@ filterDefID[#filterDefID + 1]     = "PSS0017"
 -- collapsible entry on the Guild Ignore List) on or off. The text engine
 -- below never evaluates them; the guild block source does.
 for _, grp in ipairs((addon.MANAGED and addon.MANAGED.groups) or {}) do
-	filterDefDesc[#filterDefDesc + 1]     = grp.rule
+	filterDefDesc[#filterDefDesc + 1]		= grp.rule
 	filterDefFilter[#filterDefFilter + 1] = grp.filter
 	filterDefActive[#filterDefActive + 1] = false
-	filterDefID[#filterDefID + 1]         = grp.id
+	filterDefID[#filterDefID + 1]			= grp.id
 end
 
 -- When adding new defaults, make sure to assign a unique filter ID that has never been used before
@@ -148,7 +148,7 @@ function M.PSS_ResetFilterHistory(filterNum)
 	History.Clear(function(h) return h.o == key end)
 	db.filterBlocked[filterNum] = { counts = History.EmptyCounts() }
 	db.filterBlockedLast[filterNum] = 0
-	if M.PSSUpdateBlockHistory then M.PSSUpdateBlockHistory(filterNum) end
+	M.Events.Fire("FILTER_HISTORY_CHANGED", filterNum)
 end
 
 local function AddToBlockHistory (filterNum, ctx, from, chNumber, chName)
@@ -157,8 +157,8 @@ local function AddToBlockHistory (filterNum, ctx, from, chNumber, chName)
 	local channel = M.PSS_ChannelLabel and M.PSS_ChannelLabel(ctx.event, ctx.channelString, chNumber, chName) or nil
 	local entry = History.NewEntry(ctx.cat, ctx.event, ctx.msg, channel, from)
 	History.Add(M.PSS_FilterOwnerKey(filterNum), counts, entry)
-	M.PSSUpdateBlockHistory(filterNum)
-end 
+	M.Events.Fire("FILTER_HISTORY_CHANGED", filterNum)
+end
 
 -- Guild rules ("InfluencerGuild=<Name>", and any later guild rule) only
 -- switch their guilds on or off. Their blocks are guild blocks: counted once,
@@ -220,7 +220,7 @@ function M.ResetSpamFilters()
 	for count = 1, #filterDefDesc do
 		PourSocialScoreDB.filterDesc[count]		= filterDefDesc[count]
 		PourSocialScoreDB.filterList[count]		= filterDefFilter[count]
-		PourSocialScoreDB.filterActive[count]		= filterDefActive[count]		
+		PourSocialScoreDB.filterActive[count]		= filterDefActive[count]
 		PourSocialScoreDB.filterID[count]			= filterDefID[count]
 		PourSocialScoreDB.filterCount[count]		= 0
 		PourSocialScoreDB.filterBlocked[count]		= {}
@@ -265,7 +265,7 @@ function M.PSS_IsGuildRuleText(text)
 	local r = guildRuleText[text]
 	if r == nil then
 		r = text:lower():match("^%s*influencerguild%s*=") ~= nil
-		if guildRuleCount > 300 then guildRuleText, guildRuleCount = {}, 0 end   -- edited filters leave old texts behind
+		if guildRuleCount > 300 then guildRuleText, guildRuleCount = {}, 0 end		-- edited filters leave old texts behind
 		guildRuleText[text] = r
 		guildRuleCount = guildRuleCount + 1
 	end
@@ -304,7 +304,7 @@ end
 function M.PSS_SetManagedGroupActive(groupKey, on)
 	local i = groupFilterIndex(groupKey)
 	if i then PourSocialScoreDB.filterActive[i] = on == true end
-	if M.PSSUpdateChatCount then M.PSSUpdateChatCount() end
+	M.Events.Fire("FILTERS_CHANGED")
 	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
 end
 
@@ -314,12 +314,12 @@ end
 
 local function appendFilter(t, desc, list, active, id, count, blocked, blockedLast)
 	local i = #t.filterList + 1
-	t.filterList[i]        = list
-	t.filterDesc[i]        = desc
-	t.filterActive[i]      = active == true
-	t.filterID[i]          = id or ""
-	t.filterCount[i]       = tonumber(count) or 0
-	t.filterBlocked[i]     = type(blocked) == "table" and blocked or {}
+	t.filterList[i]			= list
+	t.filterDesc[i]			= desc
+	t.filterActive[i]		= active == true
+	t.filterID[i]			= id or ""
+	t.filterCount[i]		= tonumber(count) or 0
+	t.filterBlocked[i]		= type(blocked) == "table" and blocked or {}
 	t.filterBlockedLast[i] = tonumber(blockedLast) or 0
 	return i
 end
@@ -456,7 +456,7 @@ end
 function M.PSS_CopyChatFilter(index)
 	local db = PourSocialScoreDB
 	if not db or not db.filterList or not db.filterList[index] then return nil end
-	if M.PSS_IsGuildRuleText(db.filterList[index]) then return nil end   -- guild rules can't be copied
+	if M.PSS_IsGuildRuleText(db.filterList[index]) then return nil end		-- guild rules can't be copied
 	local desc = db.filterDesc[index] or "Chat Filter"
 	return appendFilter(db, "Copy of " .. desc, db.filterList[index], false, "", 0, {}, 0)
 end
@@ -473,6 +473,21 @@ function M.PSS_SetFilterActive(index, active)
 	db.filterActive[index] = active == true
 	-- a guild rule switches its guilds (shipped and found in game) with it
 	if M.PSS_IsGuildRuleText(db.filterList[index]) and M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
+end
+
+-- An edited custom chat filter: its description and filter text.
+function M.PSS_SaveChatFilter(index, desc, filter)
+	local db = PourSocialScoreDB
+	if not (db and db.filterList and db.filterList[index]) then return end
+	db.filterDesc[index] = desc
+	db.filterList[index] = filter
+end
+
+-- The filter's blocked count starts again from 0 (its lines are kept).
+function M.PSS_ResetFilterCount(index)
+	local db = PourSocialScoreDB
+	if not (db and db.filterList and db.filterList[index]) then return end
+	db.filterCount[index] = 0
 end
 
 
@@ -572,7 +587,7 @@ local function parse(tokens)
 			pos = pos + 1
 			local e = parseExpr()
 			if tokens[pos] == ")" then pos = pos + 1 end
-			return e or { "and" }            -- "()" is false (empty AND => see eval)
+			return e or { "and" }				-- "()" is false (empty AND => see eval)
 		elseif type(t) == "table" then
 			pos = pos + 1
 			return { "tag", t[1], t[2] }
@@ -609,7 +624,7 @@ local function compileFilter(text)
 	if c ~= nil then return c end
 	local tokens = tokenize("( " .. text .. " )")
 	c = tokens and parse(tokens) or false
-	if compiledCount > 300 then compiled, compiledCount = {}, 0 end   -- edited filters leave old texts behind
+	if compiledCount > 300 then compiled, compiledCount = {}, 0 end		-- edited filters leave old texts behind
 	compiled[text] = c
 	compiledCount = compiledCount + 1
 	return c
@@ -706,11 +721,11 @@ local function analyse(chatStr)
 		end
 	end
 	F.text = chatStr
-	F.hasGuild   = find(chatStr, "|hclubfinder:", 1, true) ~= nil
-	F.hasTrade   = find(chatStr, "|htrade:", 1, true) ~= nil
+	F.hasGuild		= find(chatStr, "|hclubfinder:", 1, true) ~= nil
+	F.hasTrade		= find(chatStr, "|htrade:", 1, true) ~= nil
 	F.hasJournal = find(chatStr, "|hjournal:", 1, true) ~= nil
-	F.hasMount   = find(chatStr, "|hmount:", 1, true) ~= nil
-	F.hasOutfit  = find(chatStr, "|houtfit:", 1, true) ~= nil
+	F.hasMount		= find(chatStr, "|hmount:", 1, true) ~= nil
+	F.hasOutfit		= find(chatStr, "|houtfit:", 1, true) ~= nil
 	return F
 end
 
@@ -720,7 +735,7 @@ local function words(F)
 	if w then return w end
 	w = F.wordSet
 	clear(w)
-	local count = 0                  -- kept outside the set: a word may be "n"
+	local count = 0						-- kept outside the set: a word may be "n"
 	for word in gmatch(F.text, "%S+") do
 		if find(word, "%p") then word = gsub(gsub(word, "[%p]+$", ""), "^[%p]+", "") end
 		if word ~= "" then w[word] = true; count = count + 1 end
@@ -736,23 +751,23 @@ local function hasKey(t, k) return t[k] == true end
 local TAG = {
 	-- a word of the line is always part of its text, so the plain find
 	-- skips building the word list on most lines (same result)
-	["[word]"]     = function(F, d) return find(F.text, d, 1, true) ~= nil and words(F)[d] == true end,
+	["[word]"]		= function(F, d) return find(F.text, d, 1, true) ~= nil and words(F)[d] == true end,
 	["[contains]"] = function(F, d) return find(F.text, d, 1, true) ~= nil end,
-	["[chname]"]   = function(F, d) return (F.chName and lower(F.chName) or "none") == d end,
-	["[channel]"]  = function(F, d) return tonumber(d) == F.chNumber end,
-	["[words]"]    = function(F, d) words(F); return tonumber(d) == F.wordCount end,
-	["[item]"]     = function(F, d) if d == "" then return anyKey(F.itemID) end return hasKey(F.itemID, d) end,
-	["[spell]"]    = function(F, d) if d == "" then return anyKey(F.spellID) end return hasKey(F.spellID, d) end,
+	["[chname]"]	= function(F, d) return (F.chName and lower(F.chName) or "none") == d end,
+	["[channel]"]	= function(F, d) return tonumber(d) == F.chNumber end,
+	["[words]"]		= function(F, d) words(F); return tonumber(d) == F.wordCount end,
+	["[item]"]		= function(F, d) if d == "" then return anyKey(F.itemID) end return hasKey(F.itemID, d) end,
+	["[spell]"]		= function(F, d) if d == "" then return anyKey(F.spellID) end return hasKey(F.spellID, d) end,
 	["[achievement]"] = function(F, d) if d == "" then return anyKey(F.achieveID) end return hasKey(F.achieveID, d) end,
-	["[pet]"]      = function(F, d) if d == "" then return anyKey(F.petID) end return hasKey(F.petID, d) end,
-	["[icon]"]     = function(F, d) if d == "" then return F.icons > 0 end return F.icons >= (tonumber(d) or 0) end,
-	["[link]"]     = function(F) return anyKey(F.itemID) or anyKey(F.spellID) or anyKey(F.achieveID) or anyKey(F.petID)
+	["[pet]"]		= function(F, d) if d == "" then return anyKey(F.petID) end return hasKey(F.petID, d) end,
+	["[icon]"]		= function(F, d) if d == "" then return F.icons > 0 end return F.icons >= (tonumber(d) or 0) end,
+	["[link]"]		= function(F) return anyKey(F.itemID) or anyKey(F.spellID) or anyKey(F.achieveID) or anyKey(F.petID)
 						or F.talents > 0 or F.hasJournal or F.hasGuild or F.hasTrade or F.hasOutfit or F.hasMount end,
-	["[trade]"]    = function(F) return F.hasTrade end,
-	["[guild]"]    = function(F) return F.hasGuild end,
-	["[outfit]"]   = function(F) return F.hasOutfit end,
-	["[journal]"]  = function(F) return F.hasJournal end,
-	["[mount]"]    = function(F) return F.hasMount end,
+	["[trade]"]		= function(F) return F.hasTrade end,
+	["[guild]"]		= function(F) return F.hasGuild end,
+	["[outfit]"]	= function(F) return F.hasOutfit end,
+	["[journal]"]	= function(F) return F.hasJournal end,
+	["[mount]"]		= function(F) return F.hasMount end,
 	["[community]"] = function(F) return find(F.text, "|hclubticket:", 1, true) ~= nil end,
 	["[nonlatin]"] = function(F) return find(F.text, "[\227-\237]") ~= nil end,
 	-- Cyrillic letters (U+0400-U+04FF: Russian, Ukrainian, Belarusian,
@@ -782,7 +797,7 @@ buildNode = function(node)
 	local kind = node[1]
 	if kind == "tag" then
 		local tag, d = node[2], node[3]
-		if tag == "[contains]" then                -- most common: one call less
+		if tag == "[contains]" then					-- most common: one call less
 			return function(F) return find(F.text, d, 1, true) ~= nil end
 		end
 		local fn = TAG[tag]
@@ -793,7 +808,7 @@ buildNode = function(node)
 	end
 	local list = buildList(node)
 	local n = #list
-	if n == 0 then return never end          -- "()" and empty groups are false
+	if n == 0 then return never end				-- "()" and empty groups are false
 	if n == 1 then return list[1] end
 	if kind == "and" then
 		return function(F)
@@ -801,7 +816,7 @@ buildNode = function(node)
 			return true
 		end
 	end
-	return function(F)                       -- or
+	return function(F)							-- or
 		for i = 1, n do if list[i](F) then return true end end
 		return false
 	end
@@ -814,7 +829,7 @@ local function filterFn(text)
 	if fn ~= nil then return fn end
 	local tree = compileFilter(text)
 	fn = tree and buildNode(tree) or false
-	if runnableCount > 300 then runnable, runnableCount = {}, 0 end   -- edited filters leave old texts behind
+	if runnableCount > 300 then runnable, runnableCount = {}, 0 end		-- edited filters leave old texts behind
 	runnable[text] = fn
 	runnableCount = runnableCount + 1
 	return fn
@@ -921,7 +936,7 @@ function M.PSS_ChatFilters_Evaluate(ctx)
 		-- the sender's display name is only built for a hidden line
 		local from = M.Proper(M.addServer(ctx.author or _G.UNKNOWN))
 		AddToBlockHistory(filterNum, ctx, from, chNumber, chName)
-		if M.PSSUpdateChatCount then M.PSSUpdateChatCount() end
+		M.Events.Fire("FILTERS_CHANGED")
 		return true, filterNum
 	end
 	if invert then
