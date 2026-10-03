@@ -124,7 +124,11 @@ local function indexKeys(name)
 	return ck
 end
 
-local function q(s) return string.format("%q", s) end
+-- Quoted Lua string, ASCII only: bytes 128-255 become decimal escapes
+-- ("\195\169"), which Lua 5.1 reads back as the same bytes.
+local function q(s)
+	return (string.format("%q", s):gsub("[\128-\255]", function(c) return "\\" .. c:byte() end))
+end
 local function byLower(a, b) return a:lower() < b:lower() end
 
 ------------------------------------------------------------------------

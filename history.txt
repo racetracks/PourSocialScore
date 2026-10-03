@@ -1,6 +1,16 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.35 - Code style rules (Lua 5.1, ASCII, tabs, shared builders)
+
+- All code is now ASCII only. Translations, accented default-list names and accented realm names are written as Lua escapes, which the game reads as the same text. tools/PSS_BuildManaged.lua writes escapes too.
+- Fixed: 7 realm names with accents (for example Aggra (Portugues) and La Croisade Ecarlate) were stored in the wrong encoding and never got their display spelling in the player list and player window. They do now.
+- All code is indented with tabs. Whitespace only: the compiled code is identical.
+- Edit boxes, text areas and scroll lists in Options, the player window, the filter editor, Import/Export and the guild windows are built with shared UI kit builders. Escape now clears focus on every edit box.
+- Realm display names are looked up in a table built on first use instead of a long if/else chain.
+- New tools/check_rules.sh and a GitHub check that fail on code that is not Lua 5.1, not ASCII or indented with spaces.
+- Version 2.0.35.
+
 => 2.0.34 - Fix: default-list names with accented capitals
 
 - Fixed: since 2.0.32, 24 default-list characters whose names have a non-ASCII capital (for example an accented first letter or Cyrillic) were not matched in game. The game lowercases those letters but the offline index tool did not. The index now carries the game's spelling for them as well.

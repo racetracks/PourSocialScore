@@ -62,7 +62,7 @@ StaticPopupDialogs["PSS_REASON"] = {
 	whileDead      = 1,
 	button1        = L["BOX_3"],
 	button2        = L["BOX_5"],
-  
+
 	OnShow = function(self)
 		local idx = M.hasAnyIgnored(V.nameUI)
 		self.EditBox:SetText(idx > 0 and (PourSocialScoreDB.notes[idx] or "") or "")
@@ -100,7 +100,7 @@ StaticPopupDialogs["PSS_PRUNE"] = {
 	whileDead      = 1,
 	button1        = L["BOX_6"],
 	button2        = L["BOX_5"],
-  
+
 	OnShow = function(self)
 		self.EditBox:SetText("365")
 		self.EditBox:SetFocus()
@@ -129,7 +129,7 @@ StaticPopupDialogs["PSS_EXPIRE"] = {
 	whileDead      = 1,
 	button1        = L["BOX_3"],
 	button2        = L["BOX_5"],
-  
+
 	OnShow         = function(self)
 		local idx = M.hasAnyIgnored(V.nameUI)
 		self.EditBox:SetText(idx > 0 and tostring(PourSocialScoreDB.expList[idx] or 0) or "0")
@@ -174,7 +174,7 @@ StaticPopupDialogs["PSS_FILTERREMOVE"] = {
 		if FilterScrollSelect <= 0 then
 			return
 		end
-		
+
 		M.RemoveChatFilter(FilterScrollSelect)
 		M.FilterListDrawUpdate(FilterScrollFrame)
 	end,	
@@ -193,16 +193,16 @@ local function ButtonFilterRemove()
 		M.ShowMsg("Built-in chat filters can't be removed. Turn it off instead, or use Copy Filter to make an editable version.")
 		return
 	end
-	
+
 	StaticPopup_Show("PSS_FILTERREMOVE", L["BOX_10"])
 end
 
 local function ButtonIgnoreRemove()
-	
+
 	if IgnoreScrollSelect <= 0 then
 		return
 	end
-	
+
 	local idx     = IgnoreScrollIndex[IgnoreScrollSelect]
 	local typeStr = PourSocialScoreDB.typeList[idx]
 
@@ -271,7 +271,7 @@ SortUI.PLAYER_COLUMNS = {
 for _, c in ipairs(UI.MetricColumns()) do SortUI.PLAYER_COLUMNS[#SortUI.PLAYER_COLUMNS + 1] = c end
 SortUI.PLAYER_COLUMNS[#SortUI.PLAYER_COLUMNS + 1] =
 	{ key = "excl",   letters = "excl",  width = 154, lettersTitle = "Per-player exclusions",
-	  lettersNote = "Ticked = allowed from that player, unticked = blocked." }
+		lettersNote = "Ticked = allowed from that player, unticked = blocked." }
 local FilterSortIndex = {}   -- display position -> filter number
 
 local function buildFilterSortIndex()
@@ -314,11 +314,11 @@ function M.FilterListDrawUpdate (self)
 
 	buildFilterSortIndex()
 	FauxScrollFrame_Update(self, #PourSocialScoreDB.filterList, BUTTON_TOTAL, BUTTON_HEIGHT)
-	
+
 	if FilterScrollSelect > #PourSocialScoreDB.filterList then
 		FilterScrollSelect = #PourSocialScoreDB.filterList
 	end
-	
+
 	Tab2Frame.infotext:SetText(format(L["INFO_4"], PourSocialScoreDB.filterTotal or 0, PourSocialScoreDB.filterWhisperTotal or 0, PourSocialScoreDB.filterPrivateTotal or 0))
 	do
 		local nb, nc, non = 0, 0, 0
@@ -328,16 +328,16 @@ function M.FilterListDrawUpdate (self)
 		end
 		Tab2Frame.infobreakdown:SetText(("|cffaaaaaaFilters:|r %d    |cffaaaaaaBuilt-in:|r %d    |cffaaaaaaCustom:|r %d    |cffaaaaaaOn:|r |cff33ff99%d|r"):format(nb + nc, nb, nc, non))
 	end
-	
+
 	local offset = FauxScrollFrame_GetOffset(self)
 	local index  = 0
 	local pName = ""
 	for count = 1, BUTTON_TOTAL do
 		index = FilterSortIndex[count + offset]
-				
+
 		if index and PourSocialScoreDB.filterList[index] then
 			pName = PourSocialScoreDB.filterDesc[index]
-			
+
 			if M.PSS_IsBuiltinFilter(index) then
 				-- built-in: greyed out, read-only
 				local tag = M.PSS_IsGuildRuleFilter(index) and "(guild rule)" or "(built-in)"
@@ -347,23 +347,23 @@ function M.FilterListDrawUpdate (self)
 				FilterScrollButtons[count].name:SetText(PourSocialScoreDB.filterDesc[index])
 				FilterScrollButtons[count].filter:SetText(PourSocialScoreDB.filterList[index])
 			end
-			
+
 			if PourSocialScoreDB.filterActive[index] == true then
 				FilterScrollButtons[count].state:SetText("|cff33ff99" .. L["ON"]);			
 			else
 				FilterScrollButtons[count].state:SetText("|cffe60000" .. L["OFF"]);
 			end
-			
+
 			FilterScrollButtons[count].blocked:SetText(PourSocialScoreDB.filterCount[index])
-			
+
 			FilterScrollButtons[count]:SetID(index)
-			
+
 			if FilterScrollSelect == index then
 				FilterScrollButtons[count]:LockHighlight()
 			else
 				FilterScrollButtons[count]:UnlockHighlight()
 			end
-		
+
 			FilterScrollButtons[count]:Show()
 		else
 			FilterScrollButtons[count]:Hide()
@@ -463,7 +463,7 @@ local function CreateFilterButtons()
 		b.blocked = UI.TCell(b, hr, "blocked", "RIGHT")
 		b.filter = UI.TCell(b, hr, "filter")
 	end
-	
+
 	M.FilterListDrawUpdate(FilterScrollFrame)
 end
 
@@ -509,7 +509,7 @@ end
 
 function M.FilterScrollEditMenu()
 	if PourSocialScoreDB.filterDesc[FilterScrollSelect] ~= nil then
-	
+
 		Tab2EditDesc   = PourSocialScoreDB.filterDesc[FilterScrollSelect]
 		Tab2EditFilter = PourSocialScoreDB.filterList[FilterScrollSelect]
 		Tab2EditActive = PourSocialScoreDB.filterActive[FilterScrollSelect]
@@ -539,7 +539,7 @@ end
 function M.FilterScrollClick(self, button, down)
 
 	if down == true then return end
-	
+
 	if FilterScrollSelect == self:GetID() and button == "LeftButton" then
 		M.FilterScrollEditMenu()
 		return
@@ -547,7 +547,7 @@ function M.FilterScrollClick(self, button, down)
 		FilterScrollSelect = self:GetID()
 		M.FilterListDrawUpdate(FilterScrollFrame)
 	end
-	
+
 	if button == "RightButton" then	
 		MenuUtil.CreateContextMenu(UIParent,
 			function(ownerRegion, root)
@@ -645,13 +645,13 @@ local function IgnoreListDrawUpdate (self)
 	end
 
 	FauxScrollFrame_Update(self, #PourSocialScoreDB.ignoreList, IGNORE_ROWS, BUTTON_HEIGHT)
-	
+
 	if IgnoreScrollSelect > #PourSocialScoreDB.ignoreList then
 		IgnoreScrollSelect = #PourSocialScoreDB.ignoreList
 	end
-	
+
 	UpdateRuleSummaryTexts()
-	
+
 	local offset  = FauxScrollFrame_GetOffset(self)
 	local index   = 0
 	local id      = 0
@@ -660,22 +660,22 @@ local function IgnoreListDrawUpdate (self)
 	local pType   = ""
 	local pExpire = ""
 	local temp    = 0
-	
+
 	for count = 1, IGNORE_ROWS do
 		id = count + offset
-		
+
 		if PourSocialScoreDB.ignoreList[id] then
 			index = IgnoreScrollIndex[id] or id
 			pName = PourSocialScoreDB.ignoreList[index]
 			temp  = string.find(pName, "-", 1, true)
-			
+
 			if temp then
 				pServer = M.prettyServer(string.sub(pName, temp + 1, string.len(pName)))
 				pName   = string.sub(pName, 1, temp - 1)
 			else
 				pServer = "All"
 			end
-			
+
 			if PourSocialScoreDB.typeList[index] == "player" then
 				if PourSocialScoreDB.factionList[index] == "Alliance" then
 					pType = "|cff335effAlliance"
@@ -691,7 +691,7 @@ local function IgnoreListDrawUpdate (self)
 				pServer = M.prettyServer(pName)
 				pName = "All"				
 			end	
-			
+
 			local playerExp = (PourSocialScoreDB.expList[index] or 0)
 			local daysExp   = playerExp - M.daysFromToday(PourSocialScoreDB.dateList[index])
 
@@ -716,7 +716,7 @@ local function IgnoreListDrawUpdate (self)
 			IgnoreScrollButtons[count].listed:SetText(M.daysFromToday(PourSocialScoreDB.dateList[index]) .. "d")
 			IgnoreScrollButtons[count].expire:SetText(pExpire)
 			IgnoreScrollButtons[count].note:SetText("|cff69CCF0"..PourSocialScoreDB.notes[index])
-			
+
 			-- exclusions apply to players only (NPC / server rows have no switches)
 			local isPlayer = PourSocialScoreDB.typeList[index] == "player"
 			local prefs = isPlayer and M.PSS_GetPlayerPrefs and M.PSS_GetPlayerPrefs(PourSocialScoreDB.ignoreList[index])
@@ -730,15 +730,15 @@ local function IgnoreListDrawUpdate (self)
 				box:SetShown(prefs and true or false)
 				if prefs then box:SetChecked(UI.ExclChecked(prefs[ex.field] ~= false)) end
 			end
-			
+
 			IgnoreScrollButtons[count]:SetID(id)
-			
+
 			if IgnoreScrollSelect == id then
 				IgnoreScrollButtons[count]:LockHighlight()
 			else
 				IgnoreScrollButtons[count]:UnlockHighlight()
 			end
-		
+
 			IgnoreScrollButtons[count]:Show()
 		else
 			IgnoreScrollButtons[count]:Hide()
@@ -782,7 +782,7 @@ local function CreateIgnoreButtons()
 			if M.PSS_RefreshPlayerDetail then M.PSS_RefreshPlayerDetail() end
 		end)
 	end
-	
+
 	IgnoreListDrawUpdate(IgnoreScrollFrame)
 end
 
@@ -797,7 +797,7 @@ end
 function M.IgnoreScrollClick(self, button, down)
 
 	if down == true then return end
-	
+
 	if IgnoreScrollSelect == self:GetID() and button == "LeftButton" then
 		M.IgnoreScrollDoubleClick()
 		return
@@ -805,10 +805,10 @@ function M.IgnoreScrollClick(self, button, down)
 		IgnoreScrollSelect = self:GetID()
 		IgnoreListDrawUpdate(IgnoreScrollFrame)
 	end
-	
+
 	if button == "RightButton" then	
 		V.nameUI = PourSocialScoreDB.ignoreList[IgnoreScrollIndex[IgnoreScrollSelect]]
-		
+
 		MenuUtil.CreateContextMenu(UIParent, function(ownerRegion, root)
 			root:CreateTitle(V.nameUI)
 			root:CreateDivider()
@@ -868,7 +868,7 @@ end
 local function elementName (num)
 
 	local type = PourSocialScoreDB.typeList[num]
-	
+
 	if type == "player" or type == "npc" then
 		return M.removeServer(PourSocialScoreDB.ignoreList[num], true)
 	elseif type == "server" then
@@ -896,7 +896,7 @@ end
 local function elementType(num)
 
 	local type = PourSocialScoreDB.typeList[num]
-	
+
 	if type == "player" then
 		return PourSocialScoreDB.factionList[num]
 	else
@@ -1018,7 +1018,7 @@ local function convertLink (text)
 	if temp then
 		return "[spell=".. temp.."]"
 	end
-	
+
 	temp = string.match(text, "|Htalent:(%d+)")
 	if temp then
 		return "[talent=" .. temp .. "]"
@@ -1028,29 +1028,29 @@ local function convertLink (text)
 	if temp then
 		return "[achievement=".. temp .. "]"
 	end
-	
+
 	temp = string.match(text, "|Hbattlepet:(%d+)")
 	if temp then
 		return "[pet=" .. temp .. "]"
 	end
-	
+
 	temp = string.match(text, "|Hjournal:(%d+)")
 	if temp then
 		return "[journal]"
 	end
-	
+
 	if string.match(text, "|Htrade:") then
 		return "[trade]"
 	end
-	
+
 	if string.match(text, "|Hclubfinder:") then
 		return "[guild]"
 	end
-	
+
 	if string.match(text, "|Hclubticket:") then
 		return "[community]"
 	end
-	
+
 	return "UNKNOWN"
 end
 
@@ -1088,8 +1088,7 @@ local function createTabButton(name, parent)
 	end
 
 	-- Last resort: a plain button, so the UI still works with no tab template.
-	local frame = CreateFrame("Button", name, parent, "UIPanelButtonTemplate")
-	frame:SetSize(110, 24)
+	local frame = UI.Button(parent, nil, 110, 24, name)
 	frame.PSS_UsesPanelTab = false
 	return frame
 end
@@ -1200,7 +1199,7 @@ local function BuildPlayerTab()
 	local function targetName()
 		local target = "target"
 		if UnitExists(target) and UnitIsPlayer(target) and not UnitIsUnit(target, "player") and
-		   UnitFactionGroup(target) == UnitFactionGroup("player") then
+			UnitFactionGroup(target) == UnitFactionGroup("player") then
 			local name, realm = UnitFullName(target)
 			if name then return name .. ((realm and realm ~= "") and ("-" .. realm) or "") end
 		end
@@ -1355,7 +1354,7 @@ local function BuildPlayerTab()
 			end
 		end,
 		extra = { text = "Player Details", onClick = function(name) if name and M.PSS_ShowPlayerDetail then M.PSS_ShowPlayerDetail(name) end end,
-		          shown = function(name) return name ~= nil end },
+					shown = function(name) return name ~= nil end },
 	})
 	Tab1Frame.histPanel = hist
 	Tab1Frame.updateHistoryPanel = function(resetScroll) hist:Refresh(resetScroll) end
@@ -1463,8 +1462,8 @@ local function BuildFilterTab()
 			end
 		end,
 		extra = { text = L["BUT_11"] or "Edit Filter",
-		          onClick = function(i) if i then FilterScrollSelect = i; M.FilterScrollEditMenu() end end,
-		          shown = function(i) return i ~= nil end },
+					onClick = function(i) if i then FilterScrollSelect = i; M.FilterScrollEditMenu() end end,
+					shown = function(i) return i ~= nil end },
 	})
 	Tab2Frame.histPanel = hist
 	hist:HookScript("OnHide", function() if Tab2FrameState == 2 then Tab2FrameState = 0 end end)
@@ -1542,11 +1541,9 @@ local function BuildFilterEditor()
 	active:SetScript("OnClick", function(self) Tab2EditActive = (self:GetChecked() or false) end)
 
 	local descText = label("Description:", 110, -58, "PSSFrame2EditDescText")
-	local desc = CreateFrame("EditBox", "PSSFrame2EditDescField", Tab2FrameEdit, "InputBoxTemplate")
-	desc:SetHeight(20)
+	local desc = UI.InputBox(Tab2FrameEdit, nil, 20, "PSSFrame2EditDescField")
 	desc:SetPoint("LEFT", descText, "RIGHT", 12, 0)
 	desc:SetPoint("RIGHT", Tab2FrameEdit, "RIGHT", -20, 0)
-	desc:SetAutoFocus(false)
 	desc:SetScript("OnShow",	      function(self) self:SetText(Tab2EditDesc) end)
 	desc:SetScript("OnEnterPressed",  function(self) Tab2EditDesc = self:GetText() self:ClearFocus() end)
 	desc:SetScript("OnEscapePressed", function(self) self:SetText(Tab2EditDesc) self:ClearFocus() end)
@@ -1554,19 +1551,14 @@ local function BuildFilterEditor()
 	-- Filter text
 	local filterText = label("Filter:", 10, -92, "PSSFrame2EditFilterText")
 	helpButton(filterText, "Help", L["TIP_1"], "PSSFrame2EditFilterHelp")
-	local field = CreateFrame("ScrollFrame", "PSSFrame2EditFilterField", Tab2FrameEdit, "InputScrollFrameTemplate")
+	local field = UI.TextArea(Tab2FrameEdit, "PSSFrame2EditFilterField", 1000)
 	field:SetPoint("TOPLEFT", 16, -112)
 	field:SetPoint("RIGHT", Tab2FrameEdit, "RIGHT", -24, 0)
 	field:SetHeight(60)
-	field.EditBox:SetAutoFocus(false)
-	field.EditBox:SetMaxLetters(1000)
 	field.EditBox:SetWidth(800)
-	field.EditBox:SetFontObject("ChatFontNormal")
 	field.EditBox:SetScript("OnShow",		   function(self) self:SetText(Tab2EditFilter) end)
 	field.EditBox:SetScript("OnEnterPressed",  function(self) Tab2EditFilter = self:GetText() self:ClearFocus() end)
 	field.EditBox:SetScript("OnEscapePressed", function(self) self:SetText(Tab2EditFilter) self:ClearFocus() end)
-	field:HookScript("OnSizeChanged", function(self, w) if w and w > 40 then self.EditBox:SetWidth(w - 18) end end)
-	if type(field.CharCount) == "table" and field.CharCount.Hide then field.CharCount:Hide() end
 
 	-- Filter testing (bottom left)
 	local testText = Tab2FrameEdit:CreateFontString("PSSFrame2EditTestText", "OVERLAY", "GameFontNormal")
@@ -1581,15 +1573,11 @@ local function BuildFilterEditor()
 	result:SetJustifyH("LEFT")
 	result:SetText("")
 
-	local test = CreateFrame("ScrollFrame", "PSSFrame2EditTestField", Tab2FrameEdit, "InputScrollFrameTemplate")
+	local test = UI.TextArea(Tab2FrameEdit, "PSSFrame2EditTestField", 500, nil, 20)
 	test:SetPoint("TOPLEFT", testText, "BOTTOMLEFT", 6, -8)
 	test:SetSize(400, 60)
-	test.EditBox:SetAutoFocus(false)
-	test.EditBox:SetMaxLetters(500)
 	test.EditBox:SetWidth(380)
-	test.EditBox:SetFontObject("ChatFontNormal")
 	test.EditBox:SetScript("OnTextChanged", function(self) result:SetText("") end)
-	if type(test.CharCount) == "table" and test.CharCount.Hide then test.CharCount:Hide() end
 
 	testBtn:SetScript("OnClick", function()
 		local chatStr   = string.lower(test.EditBox:GetText())
@@ -1609,10 +1597,8 @@ local function BuildFilterEditor()
 	linkText:SetPoint("BOTTOMRIGHT", Tab2FrameEdit, "BOTTOMRIGHT", -140, 94)
 	linkText:SetText("Chat Link Converter:")
 	helpButton(linkText, "Help", "|cffffffffChat Link Converter Help\n\n|cffffff00Enter a chat link into the input box, then press the Enter key.  If the link is valid\nit will be converted into a [tag] used by the chat filter system.\n\nConverted text will automatically be selected so it can be copied and pasted\nusing the copy and paste hotkeys.\n\nLinking items directly into the filter editor box will also automatically convert\nthe link to a PSS format [tag] without using this conversion tool.", "PSSFrame2EditLinkHelp")
-	local link = CreateFrame("EditBox", "PSSFrame2EditLinkField", Tab2FrameEdit, "InputBoxTemplate")
+	local link = UI.InputBox(Tab2FrameEdit, 220, 20, "PSSFrame2EditLinkField")
 	link:SetPoint("TOPLEFT", linkText, "BOTTOMLEFT", 5, -6)
-	link:SetSize(220, 20)
-	link:SetAutoFocus(false)
 	link:SetScript("OnEnterPressed", function(self)
 		self:SetText(convertLink(self:GetText()))
 		self:HighlightText()
@@ -1631,7 +1617,7 @@ local function BuildUIFrames()
 	----------------
 	-- MAIN FRAME --
 	----------------
-	
+
 	MainFrame = CreateFrame("Frame", "PSS", UIParent, "PortraitFrameTemplate")
 	tinsert(UISpecialFrames, "PSS")   -- Escape closes it
 	MainFrame:Hide()
@@ -1640,14 +1626,14 @@ local function BuildUIFrames()
 	MainFrame:SetHeight(WINDOW_HEIGHT)
 	MainFrame:SetPoint("CENTER", UIParent)
 	UI.DecorateWindow(MainFrame, "Pour Social Score")
-		
+
 	MainFrame:SetScript("OnShow",
 		function (self)
 			if V.PSS_SyncOK == false then
 				M.SyncIgnoreList(M.PSS_Opt("chatmsg") == false)
 			end
 		end)
-	
+
 	-- One place decides which page is visible (tabs 1-5).
 	local function showTab(id)
 		Tab1Frame:Hide()
@@ -1671,7 +1657,7 @@ local function BuildUIFrames()
 	end
 
 	local tabs = { { "PSSTab1", "Player Ignore List" }, { "PSSTabGuild", "Guild Ignore List" }, { "PSSTab2", "Chat Filters" },
-	               { "PSSTabIO", "Import/Export" }, { "PSSTab3", "Options" } }
+					{ "PSSTabIO", "Import/Export" }, { "PSSTab3", "Options" } }
 	local prev
 	for id, t in ipairs(tabs) do
 		local b = createTabButton(t[1], MainFrame)
@@ -1701,7 +1687,7 @@ local function BuildUIFrames()
 	----------
 	-- SHOW --
 	----------
-	
+
 	if PanelTemplates_SetNumTabs then
 		pcall(PanelTemplates_SetNumTabs, MainFrame, 5)
 	end
@@ -1718,7 +1704,7 @@ local function BuildUIFrames()
 	-- closing the window frees what its lists used (cleaned up out of combat)
 	MainFrame:HookScript("OnHide", function() if M.PSS_RequestGC then M.PSS_RequestGC("window closed") end end)
 	RelayoutMainFrame()
-	
+
 	MainFrame:Show()
 end
 
@@ -1751,15 +1737,15 @@ end
 ------------------------------
 
 local function friendsShow()
-	
+
 	if not M.PSS_Opt("openWithFriends") then
 		return
 	end
-	
+
 	if MainFrame == nil then
 		CreateUIFrames()
 	end
-	
+
 	if MainFrame ~= nil then
 		MainFrame:ClearAllPoints()
 		MainFrame:SetPoint("TOPLEFT", FriendsFrame, "TOPRIGHT", 12, -10)		
@@ -1791,17 +1777,17 @@ function ChatEdit_InsertLink (text)
 	if text and PSSFrame2EditLinkField and PSSFrame2EditLinkField:HasFocus() then
 		PSSFrame2EditLinkField:SetText(text)
 		PSSFrame2EditLinkField:Show()
-		
+
 		return true	
 	elseif text and PSSFrame2EditFilterField and PSSFrame2EditFilterField.EditBox:HasFocus() then
 		PSSFrame2EditFilterField.EditBox:Insert(convertLink(text))
 		PSSFrame2EditFilterField.EditBox:Show()
-		
+
 		return true
 	elseif text and PSSFrame2EditTestField and PSSFrame2EditTestField.EditBox:HasFocus() then
 		PSSFrame2EditTestField.EditBox:Insert(text)
 		PSSFrame2EditTestField.EditBox:Show()
-		
+
 		return true
 	else	
 		return Blizzard_ChatEdit_InsertLink(text)
