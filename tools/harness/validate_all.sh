@@ -1,6 +1,7 @@
 #!/bin/sh
 # SavedVariables upgrade test for 2.0.1, 2.0.8, 2.0.17, 2.0.18, 2.0.19,
-# 2.0.22, 2.0.35 and 2.0.36 (run from the repo root, needs lua5.1 and git).
+# 2.0.22, 2.0.35, 2.0.36, 2.0.37 and 2.0.38 (run from the repo root, needs
+# lua5.1 and git).
 #   sh tools/harness/validate_all.sh
 # 2.0.18 and later: that version's code (from git) writes the save.
 # 2.0.17, 2.0.8, 2.0.1: their code is not in git, so the 2.0.18 save is
@@ -11,7 +12,7 @@ rm -rf "$work"; mkdir -p "$work"
 t0=1790000000
 fail=0
 
-for pair in 2.0.18:d885cd0 2.0.19:4b7066c 2.0.22:2837de0 2.0.35:9646596 2.0.36:9bfba2e; do
+for pair in 2.0.18:d885cd0 2.0.19:4b7066c 2.0.22:2837de0 2.0.35:9646596 2.0.36:9bfba2e 2.0.37:710d180 2.0.38:d331f82; do
 	v=${pair%%:*}; c=${pair#*:}
 	mkdir -p "$work/src-$v"
 	git archive "$c" | tar -x -C "$work/src-$v"
@@ -23,7 +24,7 @@ for v in 2.0.17 2.0.8 2.0.1; do
 	cp "$work/expect-2.0.18.lua" "$work/expect-$v.lua"
 done
 
-for v in 2.0.1 2.0.8 2.0.17 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36; do
+for v in 2.0.1 2.0.8 2.0.17 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38; do
 	out=$(sh "$here/validate.sh" "$v" "$work/sv-$v.lua" "$work/expect-$v.lua" 2>&1)
 	echo "$out"
 	echo "$out" | grep -q "PASS phase 3" || fail=1
@@ -34,6 +35,21 @@ for v in 2.0.1 2.0.8 2.0.17 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36; do
 	echo "$out"
 	echo "$out" | grep -q "PASS phase 5" || fail=1
 	echo "$out" | grep -q "FAIL" && fail=1
+done
+
+# guild rule blocks (2.0.39): counted once, linked to the rule, no combat
+# discovery. Saves written by each version's own code (2.0.18 and later).
+for v in 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38; do
+	echo "== $v guild rule"
+	PSS_TIME=$t0 PSS_EXPECT="$work/expect-gr-$v.lua" \
+		lua5.1 "$here/run.lua" "$work/src-$v" - "$work/sv-gr-$v.lua" "$here/make_guildrule.lua" | grep '^made' || fail=1
+	tm=$(lua5.1 -e "print(dofile('$work/expect-gr-$v.lua').time)")
+	out=$(PSS_TIME=$((tm + 3600)) PSS_EXPECT="$work/expect-gr-$v.lua" \
+		lua5.1 "$here/run.lua" . "$work/sv-gr-$v.lua" "$work/sv-gr-$v-after.lua" "$here/check_guildrule.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS guild rule" || fail=1
+	# the saved rule keeps no statistics of its own
+	lua5.1 -e "dofile('$work/sv-gr-$v-after.lua'); assert(PourSocialScoreDB.builtinStats.PSSG0001 == nil, 'rule stats saved'); assert(PourSocialScoreDB.guildRuleCountsV1 == true)" || fail=1
 done
 
 [ $fail -eq 0 ] && echo "All upgrade checks passed" || echo "Upgrade checks FAILED"

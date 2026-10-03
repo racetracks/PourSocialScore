@@ -84,14 +84,20 @@ local cleanupLegacyGuildPlayers
 -- which caused the login/mouseover nil-call errors.
 -- Each player is looked at no more than once every SEEN_TTL seconds (keyed
 -- by GUID), and nothing is done in combat: nameplates and mouseover fire
--- constantly there, and this information can wait.
+-- constantly there, and this information can wait. In combat the mouseover
+-- and nameplate events are not even listened to (see the frame below).
 local SEEN_TTL, SEEN_MAX = 120, 600
 local seenGUID, seenCount = {}, 0
+
+local function inCombat()
+	if InCombatLockdown and InCombatLockdown() then return true end
+	return UnitAffectingCombat ~= nil and UnitAffectingCombat("player") == true
+end
 
 local function scanUnit(unit)
 	if not unit or not UnitExists or not UnitExists(unit) then return end
 	if UnitIsPlayer and not UnitIsPlayer(unit) then return end
-	if InCombatLockdown and InCombatLockdown() then return end
+	if inCombat() then return end
 	local guid = UnitGUID and UnitGUID(unit)
 	if type(guid) ~= "string" or isSecret(guid) then return end
 	local now = GetTime()
@@ -239,6 +245,18 @@ local function refreshGuildActive(g)
 end
 M.PSS_RefreshGuildActive = refreshGuildActive
 
+-- Does this guild rule block right now? A guild that belongs to a group with
+-- a Chat Filters rule (the shipped influencer lists, and any guild rule group
+-- added later) is linked to that rule: with the rule off, none of its guilds
+-- block, neither the shipped members nor the ones found in game and stored
+-- in SavedVariables (they live on the same guild row, g.managed).
+local function guildRuleActive(g)
+	if type(g) ~= "table" or not g.enabled then return false end
+	if g.managed then return M.PSS_ManagedGroupActive ~= nil and M.PSS_ManagedGroupActive(g.managed) end
+	return true
+end
+M.PSS_GuildRuleActive = guildRuleActive
+
 local function ensureGuild(name)
 	ensureDB()
 	local key = normalizeGuild(name)
@@ -339,7 +357,7 @@ function M.PSS_UpdateGuildMember(guildName, playerName, unit)
 	if not m.whenBlocked or m.whenBlocked == "" then m.whenBlocked = nowString() end
 	if M.PSS_EnsureMemberBlockData then M.PSS_EnsureMemberBlockData(m) end
 	if isNew and M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
-	if isNew and g.enabled then
+	if isNew and guildRuleActive(g) then
 		local ck = canonPlayer(playerName)
 		if ck then
 			if M.PSS__purgeBatch then M.PSS__purgeBatch[ck] = true
@@ -815,7 +833,7 @@ local function rebuildMemberIndex()
 							best = (M.PSS_BestGuildRowFor and M.PSS_BestGuildRowFor(actual)) or false
 							bestCache[actual] = best
 						end
-						local s = (g.enabled and 2 or 0) + ((best == gkey) and 1 or 0)
+						local s = (guildRuleActive(g) and 2 or 0) + ((best == gkey) and 1 or 0)
 						if not idxG[ck] or s > score[ck] then
 							idxG[ck], idxK[ck] = gkey, storedKey
 							score[ck] = s
@@ -1579,6 +1597,18 @@ local function handleUnitEvents(event, unit)
 	end
 end
 
+-- Mouseover and nameplates: listened to out of combat only, so no guild
+-- discovery is attempted from them while fighting.
+local function listenUnitScans(f, on)
+	if on then
+		f:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+		f:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+	else
+		f:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
+		f:UnregisterEvent("NAME_PLATE_UNIT_ADDED")
+	end
+end
+
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:SetScript("OnEvent", function(self, event, arg1, ...)
@@ -1588,10 +1618,15 @@ frame:SetScript("OnEvent", function(self, event, arg1, ...)
 		-- from the main addon once it has finished loading (V.PSS_Loaded).
 		self:UnregisterEvent("PLAYER_LOGIN")
 		self:RegisterEvent("PLAYER_TARGET_CHANGED")
-		self:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
-		self:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 		self:RegisterEvent("GROUP_ROSTER_UPDATE")
+		self:RegisterEvent("PLAYER_REGEN_DISABLED")
+		self:RegisterEvent("PLAYER_REGEN_ENABLED")
+		listenUnitScans(self, not inCombat())
 		if V.PSS_Loaded and M.PSS_UpgradeLegacyData then M.PSS_UpgradeLegacyData() end
+	elseif event == "PLAYER_REGEN_DISABLED" then
+		listenUnitScans(self, false)
+	elseif event == "PLAYER_REGEN_ENABLED" then
+		listenUnitScans(self, true)
 	elseif event == "PLAYER_TARGET_CHANGED" or event == "UPDATE_MOUSEOVER_UNIT" or
 			event == "NAME_PLATE_UNIT_ADDED" or event == "GROUP_ROSTER_UPDATE" then
 		handleUnitEvents(event, arg1)
@@ -3235,7 +3270,7 @@ if M.PSS_RegisterBlockSource then
 		decide = function(e, cat, ctx)
 			local g, m = e.g, e.m
 			-- a managed group blocks only while its Chat Filters rule is on
-			if g.managed and not (M.PSS_ManagedGroupActive and M.PSS_ManagedGroupActive(g.managed)) then return false end
+			if g.managed and not guildRuleActive(g) then return false end
 			-- a guild on the Guild Exclusion List is never blocked by a guild rule
 			if M.PSS_IsGuildExcluded(m.guild or g.name) then return false end
 			if cat == "whisper" or cat == "partyInvite" or cat == "guildInvite" or cat == "partyRaid" or cat == "world" then
@@ -3252,13 +3287,11 @@ if M.PSS_RegisterBlockSource then
 		record = function(e, cat, ctx)
 			if cat == "duel" or cat == "trade" then return end
 			local rc = (cat == "guildChat" or cat == "other") and "world" or cat
-			local entry = recordGuildBlock(e.g, e.m, rc, ctx.event, ctx.msg,
+			-- counted once, here: a managed group's Chat Filters rule only
+			-- switches it on or off and counts nothing itself
+			recordGuildBlock(e.g, e.m, rc, ctx.event, ctx.msg,
 				(cat == "partyInvite" or cat == "guildInvite") and CAT_LABEL[cat]
 					or channelLabel(ctx.event, ctx.channelString, ctx.chNumber, ctx.chName), e.gkey)
-			-- managed group: also counted (and shown) on its Chat Filters rule
-			if e.g.managed and M.PSS_RecordManagedBlock then
-				M.PSS_RecordManagedBlock(e.g.managed, ctx, e.m.name, entry)
-			end
 		end,
 		optionContext = function(e) return { person = e.m.opts, guild = e.g.opts } end,
 		describe = function(e)
@@ -3270,8 +3303,7 @@ if M.PSS_RegisterBlockSource then
 		inviteByGuild = function(inviter, guildName)
 			if type(guildName) ~= "string" or guildName == "" then return nil end
 			local bestKey, bestG = M.PSS_BestGuildRowFor(guildName)
-			if not bestG or not bestG.enabled then return nil end
-			if bestG.managed and not (M.PSS_ManagedGroupActive and M.PSS_ManagedGroupActive(bestG.managed)) then return nil end
+			if not guildRuleActive(bestG) then return nil end
 			local ick = canonPlayer(inviter)
 			if bestG.managed and ick and isStaticMember(bestKey, ick) then
 				-- shipped member: no stored record needed
