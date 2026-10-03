@@ -4,7 +4,7 @@
 ## Category: PSS
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
-## Version: 2.0.37
+## Version: 2.0.38
 ## SavedVariables: PourSocialScoreDB
 
 PSS_Localization.lua

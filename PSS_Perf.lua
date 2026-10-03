@@ -7,28 +7,38 @@
 --
 -- Instead, when there is something to clean up, it adds small incremental
 -- collection steps - collectgarbage("step") - spread over many frames:
---   * never in combat, in a boss encounter or while the player is dead /
---     loading; a step cycle stops the moment combat starts
+--   * never in combat, in a boss encounter, while the player is dead /
+--     loading, within COMBAT_COOLDOWN seconds (5 minutes) of leaving
+--     combat, or inside a dungeon, raid, battleground or arena (asked from
+--     the game with IsInInstance, no list of places); a step cycle stops
+--     the moment any of these starts
 --   * at most STEP_BUDGET_MS per frame (less when the frame rate is low)
 --   * not at all below MIN_FPS
---   * a cycle runs when asked for (after a /who scan, an import, closing the
---     window, building the shipped guild index ...), when the Lua heap has
---     grown by GROWTH_KB since the last cycle, or every IDLE_INTERVAL seconds
---     (once a minute)
+--   * a cycle runs when asked for (after login, a /who scan, an import,
+--     closing the window ...) and at most every IDLE_INTERVAL seconds
+--     (10 minutes) otherwise
+--   * no heap-growth cycles and nothing more often (2.0.38). The game's own
+--     collector already runs in the background every frame, and the heap
+--     grows with every addon's garbage, not just ours. A cycle here walks
+--     the WHOLE shared heap, and one step cannot split a big table, so each
+--     cycle costs one long frame (measured 9 ms on a 150 MB heap, 19 ms on
+--     300 MB) plus seconds of ~1 ms frames. 2.0.37 ran one every minute,
+--     which showed as frame jitter.
 -- Options > "Background memory cleanup (out of combat)" turns it off.
 ------------------------------------------------------------------------
 local addonName, addon = ...
 local M = addon.M
 
 local CHECK_INTERVAL  = 15        -- seconds between checks
-local IDLE_INTERVAL   = 60        -- a cycle at least once a minute (when safe)
-local GROWTH_KB       = 8 * 1024  -- or when the heap grew this much
+local IDLE_INTERVAL   = 600       -- a timed cycle at most this often (10 minutes)
+local COMBAT_COOLDOWN = 300       -- no cycle until this long after leaving combat
+local GROWTH_KB       = nil       -- heap growth that starts a cycle; nil = none (see above)
 local STEP_KB         = 8         -- size of one collector step (small: fine-grained budget)
 local STEP_BUDGET_MS  = 1.0       -- max time per frame
 local MIN_FPS         = 30
 local MAX_FRAMES      = 900       -- give up a cycle after this many frames
 
-local gc = { pending = false, running = false, lastCycle = 0, heapAfter = nil, supported = true, frames = 0,
+local gc = { pending = false, running = false, lastCycle = 0, leftCombat = nil, heapAfter = nil, supported = true, frames = 0,
 			cycles = 0, lastReason = nil, lastMs = 0 }
 M.PSS_GCState = gc
 
@@ -41,6 +51,13 @@ local function inCombatOrBusy()
 	if UnitAffectingCombat and UnitAffectingCombat("player") then return true end
 	if IsEncounterInProgress and IsEncounterInProgress() then return true end
 	if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then return true end
+	if gc.leftCombat and GetTime() - gc.leftCombat < COMBAT_COOLDOWN then return true end
+	-- dungeon, raid, battleground or arena (the game says which; "scenario"
+	-- and the open world are allowed)
+	if IsInInstance then
+		local inside, kind = IsInInstance()
+		if inside and (kind == "party" or kind == "raid" or kind == "pvp" or kind == "arena") then return true end
+	end
 	return false
 end
 
@@ -105,8 +122,9 @@ end
 local function check()
 	if gc.running or not gc.supported or not enabled() or inCombatOrBusy() then return end
 	local now = GetTime()
-	local grew = gc.heapAfter and (heapKB() - gc.heapAfter) >= GROWTH_KB
-	if gc.pending or grew or (now - gc.lastCycle) >= IDLE_INTERVAL then
+	local grew = GROWTH_KB and gc.heapAfter and (heapKB() - gc.heapAfter) >= GROWTH_KB
+	local due = IDLE_INTERVAL and (now - gc.lastCycle) >= IDLE_INTERVAL
+	if gc.pending or grew or due then
 		startCycle(gc.pending and gc.lastReason or (grew and "heap grew") or "idle")
 	end
 end
@@ -119,8 +137,8 @@ ev:SetScript("OnEvent", function(self, event)
 	if event == "PLAYER_REGEN_DISABLED" then
 		if gc.running then stopCycle(false); gc.pending = true end   -- resume after combat
 	elseif event == "PLAYER_REGEN_ENABLED" then
-		-- not straight away: leaving combat is busy too
-		if gc.pending and C_Timer then C_Timer.After(5, check) end
+		-- the regular check picks it up once COMBAT_COOLDOWN has passed
+		gc.leftCombat = GetTime()
 	elseif event == "PLAYER_LOGIN" then
 		gc.lastCycle = GetTime()
 		gc.heapAfter = heapKB()
