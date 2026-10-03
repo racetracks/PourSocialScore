@@ -944,6 +944,19 @@ function M.PSS_ExclusionText(g, m)
 	return table.concat(out, " ")
 end
 
+-- A guild rule's Custom Scan Fields (the free-text /who filter).
+function M.PSS_SetGuildScanFields(g, text)
+	if type(g) == "table" then g.customScan = text end
+end
+
+-- A member's note (the members window keeps it to 25 characters); an empty
+-- note is removed. A shipped member with a changed note is kept in the save.
+function M.PSS_SetMemberNote(member, text)
+	if type(member) ~= "table" then return end
+	if (member.note or "") ~= text then keepManaged(member) end
+	member.note = (text ~= "") and text or nil
+end
+
 -- Older API (Allow* = "do not block"), kept for compatibility.
 local ALLOW_FIELD = { allowGroup = { "partyInvite" }, allowGuildInvite = { "guildInvite" }, allowWhispers = { "whisper" },
 						allowChat = { "partyRaid", "world" },

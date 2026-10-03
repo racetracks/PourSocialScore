@@ -111,7 +111,27 @@ step("detail note", function()
 	local f = _G.PSSPlayerDetailFrame
 	if f and f.noteBox then f.noteBox:SetText("edited note"); local fn = f.noteBox:GetScript("OnEnterPressed"); if fn then fn(f.noteBox) end end
 end)
-if manual then step("late guild detail", function() M.PSS_ShowGuildDetail(manual); M.PSS_SetGuildBlock(manual, "whisper", false) end) end
+if manual then
+	step("late guild detail", function() M.PSS_ShowGuildDetail(manual); M.PSS_SetGuildBlock(manual, "whisper", false) end)
+	step("member note and search", function()
+		local f = M.PSSGuildDetailFrame
+		local r = f and f.rows[1]
+		if r and r.note then
+			r.note:SetText("tour note")
+			r.note:GetScript("OnEnterPressed")(r.note)
+		end
+		f.search:SetText("a")
+		f.search:GetScript("OnTextChanged")(f.search)
+	end)
+	step("scan fields", function()
+		click("PSSTabGuild")
+		local row = M.PSSGuildTabFrame.rows[1]
+		if row then
+			row.customScan:SetText("70-80")
+			row.customScan:GetScript("OnEnterPressed")(row.customScan)
+		end
+	end)
+end
 
 local chatStart = #H.chat + 1
 step("slash pss", function() SlashCmdList.PSS("") end)
@@ -203,6 +223,13 @@ local saved = {}
 for _, k in ipairs({ "asknote", "chatmsg", "sameserver", "defexpire" }) do saved[#saved + 1] = k .. "=" .. val(db[k]) end
 for i, n in ipairs(db.ignoreList or {}) do
 	saved[#saved + 1] = ("player %d %s note=%s exp=%s"):format(i, n, val(db.notes[i]), val(db.expList[i]))
+end
+for _, k in ipairs(keys) do
+	local g = db.guildData[k]
+	if g and (g.customScan or "") ~= "" then saved[#saved + 1] = ("guild %s scanFields=%s"):format(k, val(g.customScan)) end
+	for mk, m in pairs(g and g.members or {}) do
+		if m.note then saved[#saved + 1] = ("member %s %s note=%s"):format(k, mk, val(m.note)) end
+	end
 end
 for i, f in ipairs(db.filterList or {}) do
 	saved[#saved + 1] = ("filter %d %s desc=%s on=%s count=%s"):format(i, val(f), val(db.filterDesc[i]), val(db.filterActive[i]), val(db.filterCount[i]))
