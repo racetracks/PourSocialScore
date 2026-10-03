@@ -14,13 +14,14 @@
 --   * a cycle runs when asked for (after a /who scan, an import, closing the
 --     window, building the shipped guild index ...), when the Lua heap has
 --     grown by GROWTH_KB since the last cycle, or every IDLE_INTERVAL seconds
+--     (once a minute)
 -- Options > "Background memory cleanup (out of combat)" turns it off.
 ------------------------------------------------------------------------
 local addonName, addon = ...
 local M = addon.M
 
 local CHECK_INTERVAL  = 15        -- seconds between checks
-local IDLE_INTERVAL   = 600       -- a cycle at least this often (when safe)
+local IDLE_INTERVAL   = 60        -- a cycle at least once a minute (when safe)
 local GROWTH_KB       = 8 * 1024  -- or when the heap grew this much
 local STEP_KB         = 8         -- size of one collector step (small: fine-grained budget)
 local STEP_BUDGET_MS  = 1.0       -- max time per frame
@@ -170,8 +171,10 @@ function M.PSS_MemReport(full)
 			if t and byType[t] then byType[t] = byType[t] + 1 end
 			if byOwner and o then byOwner[o] = (byOwner[o] or 0) + 1 end
 		end
+		local keptLines, keptPeople = H.KeepSize()
 		out(("  block history: %d / %d lines (~%s)  -  players %d, guild members %d, filters %d"):format(
 			n, H.Cap(), kb(bytes), byType.p, byType.g, byType.f))
+		out(("  kept per person (older than the log): %d lines for %d people"):format(keptLines, keptPeople))
 		if byOwner then
 			local top = {}
 			for o, c in pairs(byOwner) do top[#top + 1] = { o = o, c = c } end

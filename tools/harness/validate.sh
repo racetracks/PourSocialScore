@@ -14,3 +14,10 @@ PSS_TIME=$((tm + 3600)) PSS_PHASE=2 PSS_EXPECT=$expect \
 	lua5.1 "$here/run.lua" . "$sv" "$out/after-login1.lua" "$here/check_stats.lua" | grep -v '^|cff' || true
 PSS_TIME=$((tm + 24 * 3600)) PSS_PHASE=3 PSS_EXPECT=$expect \
 	lua5.1 "$here/run.lua" . "$out/after-login1.lua" "$out/after-login2.lua" "$here/check_stats.lua" | grep -v '^|cff' || true
+# per-person kept history (2.0.37): only on saves with overflow.lua applied
+if [ -n "$PSS_OVERFLOW" ]; then
+	PSS_TIME=$((tm + 25 * 3600)) PSS_PHASE=4 \
+		lua5.1 "$here/run.lua" . "$out/after-login2.lua" "$out/after-login3.lua" "$here/check_keep.lua" | grep -v '^|cff' || true
+	PSS_TIME=$((tm + 26 * 3600)) PSS_PHASE=5 \
+		lua5.1 "$here/run.lua" . "$out/after-login3.lua" "$out/after-login4.lua" "$here/check_keep.lua" | grep -v '^|cff' || true
+fi

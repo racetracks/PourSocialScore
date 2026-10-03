@@ -27,6 +27,51 @@ V.groupWarning          = {}
 -- Pour Social Score Functions --
 ----------------------------------
 
+-- Post-upgrade tidy-up of the block history (every login): lines of players
+-- no longer on the Player Ignore List, of guild members in no guild rule
+-- (whose rule is gone too) and of chat filters that no longer exist are
+-- dropped; rule tags that point at a removed rule are cleared. Block counts
+-- are not changed. Returns the number of lines removed.
+function M.PSS_TidyBlockHistory()
+	local db = PourSocialScoreDB
+	local History = M.PSS_History
+	if type(db) ~= "table" or not History then return 0 end
+	local alive = {}
+	if type(db.ignoreList) == "table" and type(db.typeList) == "table" and M.PSS_PlayerHistoryKey then
+		local listed = {}
+		for i, name in ipairs(db.ignoreList) do
+			if (db.typeList[i] or "player") == "player" then
+				local k = M.PSS_PlayerHistoryKey(name)
+				if k then listed[k] = true end
+			end
+		end
+		alive.p = function(o) return listed[o] == true end
+	end
+	if type(db.guildData) == "table" and M.PSS_LookupGuildMember then
+		local seen = {}
+		alive.g = function(o, h)
+			local v = seen[o]
+			if v == nil then
+				v = M.PSS_LookupGuildMember(o:sub(3)) ~= nil
+				seen[o] = v
+			end
+			return v or (h.gk ~= nil and db.guildData[h.gk] ~= nil)
+		end
+		alive.guild = function(gkey) return db.guildData[gkey] ~= nil end
+	end
+	if type(db.filterList) == "table" and M.PSS_FilterOwnerKey then
+		local keys, ids = {}, {}
+		for i = 1, #db.filterList do
+			keys[M.PSS_FilterOwnerKey(i)] = true
+			local id = db.filterID[i]
+			if id and id ~= "" then ids[id] = true end
+		end
+		alive.f = function(o) return keys[o] == true end
+		alive.rule = function(id) return ids[id] == true end
+	end
+	return History.Tidy(alive)
+end
+
 local function ApplicationStartup(self)
 
 	if V.PSS_Loaded == true or safeToLoad == false then
@@ -169,6 +214,9 @@ local function ApplicationStartup(self)
 	if M.PSS_UpgradeLegacyData then M.PSS_UpgradeLegacyData() end
 	-- session / last 24 hours block counts (created on first login, PSS_BlockStats.lua)
 	if M.PSS_UpgradeBlockStats then M.PSS_UpgradeBlockStats() end
+	-- then tidy the block history (lines of things that are gone)
+	local tidied = M.PSS_TidyBlockHistory()
+	if tidied > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history tidied") end
 
 	M.PSS_HookFunctions()
 

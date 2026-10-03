@@ -1680,7 +1680,15 @@ function M.PSS_UpgradeLegacyData()
 		if #sources > 0 then History.Absorb(sources) end
 		PourSocialScoreDB.historyFormat = 3
 	end
-	-- keep the log within the setting (it may have been lowered)
+	-- 2.0.37: every person keeps their newest 10 chat lines, 5 emotes,
+	-- 5 party and 5 guild invites (PourSocialScoreDB.blockKeep) when lines
+	-- leave the log. Lines are moved there, never copied or counted again.
+	if (tonumber(PourSocialScoreDB.historyFormat) or 0) < 4 then
+		History.Keep()
+		PourSocialScoreDB.historyFormat = 4
+	end
+	-- keep the log within the setting (it may have been lowered); lines that
+	-- leave it go to the per-player keep
 	History.Trim(true)
 
 	-- 2.0.4: Filter / Guild Inv / Group Inv and the members' Allow boxes

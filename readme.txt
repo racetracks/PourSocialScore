@@ -67,8 +67,8 @@ Also
 * Import/Export of your lists, filters and options as a text string
 * Light on the game: chat filters are compiled once, every list lookup is
   O(1), nothing is scanned in combat, and memory is tidied up in small
-  steps only out of combat (never a full collection, so no hitches).
-  /pssguild status shows the cleanup state.
+  steps only out of combat (never a full collection, so no hitches), at
+  least once a minute. /pssguild status shows the cleanup state.
 * Block history is ONE shared log of the last 2,000 blocked lines across
   every player, guild member and chat filter (Options > "Block history lines
   kept in total" 100-20000). Memory has a hard ceiling however many people
@@ -76,6 +76,10 @@ Also
   member, a filter, "all ...") are filtered from the log; the blocked counts
   are totals kept per person/filter and are never cut. A player's lines
   follow them when they are moved to another guild rule.
+  When a person's lines leave the log, each player and guild member still
+  keeps their newest 10 chat lines, 5 emotes, 5 party invites and 5 guild
+  invites (moved, not copied, so nothing is stored or counted twice). Their
+  history shows those together with any lines still in the log.
   /pss mem shows what the addon is using (/pss mem full: who has the most
   history lines).
 * Options apply to every character on the account; some can also be set

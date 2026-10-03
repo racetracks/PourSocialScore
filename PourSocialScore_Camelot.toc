@@ -4,7 +4,7 @@
 ## Category: PSS
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
-## Version: 2.0.36
+## Version: 2.0.37
 ## SavedVariables: PourSocialScoreDB
 ## OptionalDeps: PoorSocialScore, GlobalIgnoreList
 
