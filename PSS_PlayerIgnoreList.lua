@@ -1426,6 +1426,13 @@ function M.PSS_ListedPosition(canon)
 	return idx.pos[canon]
 end
 
+-- Every listed player: fn(canon key, name as listed, list position).
+-- No table is made per player (Ignore List Lookup, PSS_ListLookup.lua).
+function M.PSS_ForEachListedPlayer(fn)
+	ensureIndex()
+	for c, name in pairs(idx.players) do fn(c, name, idx.pos[c]) end
+end
+
 ------------------------------------------------------------------------
 -- "player" person source for the core
 ------------------------------------------------------------------------

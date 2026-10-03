@@ -1158,13 +1158,14 @@ local function setActiveTab(mainFrame, id)
 	if not ok then
 		-- Manual fallback: disable the active tab button, enable the others.
 		local tabs = {
-			[1] = _G["PSSTab1"],
-			[2] = _G["PSSTabGuild"],
-			[3] = _G["PSSTab2"],
-			[4] = _G["PSSTabIO"],
-			[5] = _G["PSSTab3"],
+			[1] = _G["PSSTabDash"],
+			[2] = _G["PSSTab1"],
+			[3] = _G["PSSTabGuild"],
+			[4] = _G["PSSTab2"],
+			[5] = _G["PSSTabIO"],
+			[6] = _G["PSSTab3"],
 		}
-		for i = 1, 5 do
+		for i = 1, 6 do
 			local tab = tabs[i]
 			if tab then
 				if i == id then tab:Disable() else tab:Enable() end
@@ -1688,8 +1689,9 @@ local function BuildUIFrames()
 			end
 		end)
 
-	-- One place decides which page is visible (tabs 1-5).
+	-- One place decides which page is visible (tabs 1-6).
 	local function showTab(id)
+		if M.PSSDashFrame then M.PSSDashFrame:Hide() end
 		Tab1Frame:Hide()
 		if M.PSSGuildTabFrame then M.PSSGuildTabFrame:Hide() end
 		Tab2Frame:Hide()
@@ -1697,12 +1699,14 @@ local function BuildUIFrames()
 		Tab3Frame:Hide()
 		if TabIOFrame then TabIOFrame:Hide() end
 		if id == 1 then
-			Tab1Frame:Show()
+			if M.PSSDashFrame then M.PSSDashFrame:Show() end
 		elseif id == 2 then
-			if M.PSSGuildTabFrame then M.PSSGuildTabFrame:Show() end
+			Tab1Frame:Show()
 		elseif id == 3 then
-			M.FilterScrollChangeState(-1)
+			if M.PSSGuildTabFrame then M.PSSGuildTabFrame:Show() end
 		elseif id == 4 then
+			M.FilterScrollChangeState(-1)
+		elseif id == 5 then
 			if TabIOFrame then TabIOFrame:Show() end
 		else
 			Tab3Frame:Show()
@@ -1710,7 +1714,7 @@ local function BuildUIFrames()
 		setActiveTab(MainFrame, id)
 	end
 
-	local tabs = { { "PSSTab1", "Player Ignore List" }, { "PSSTabGuild", "Guild Ignore List" }, { "PSSTab2", "Chat Filters" },
+	local tabs = { { "PSSTabDash", "Dashboard" }, { "PSSTab1", "Player Ignore List" }, { "PSSTabGuild", "Guild Ignore List" }, { "PSSTab2", "Chat Filters" },
 					{ "PSSTabIO", "Import/Export" }, { "PSSTab3", "Options" } }
 	local prev
 	for id, t in ipairs(tabs) do
@@ -1731,6 +1735,15 @@ local function BuildUIFrames()
 	BuildFilterTab()
 	BuildFilterEditor()
 
+	-- Dashboard (PSS_DashboardUI.lua): the first tab, and the window always
+	-- opens on it
+	local dash = M.PSS_BuildDashboardTab and M.PSS_BuildDashboardTab(MainFrame)
+	if dash then
+		dash:Hide()
+		Tab1Frame:Hide()
+		MainFrame:HookScript("OnShow", function() showTab(1) end)
+	end
+
 	------------------------------------
 	-- TAB 4/5: IMPORT/EXPORT, OPTIONS --
 	------------------------------------
@@ -1743,7 +1756,7 @@ local function BuildUIFrames()
 	----------
 
 	if PanelTemplates_SetNumTabs then
-		pcall(PanelTemplates_SetNumTabs, MainFrame, 5)
+		pcall(PanelTemplates_SetNumTabs, MainFrame, 6)
 	end
 	setActiveTab(MainFrame, 1)
 
@@ -1781,6 +1794,7 @@ local function CreateUIFrames()
 		end
 		Tab1Frame, Tab2Frame, Tab2FrameEdit, Tab3Frame, TabIOFrame = nil, nil, nil, nil, nil
 		M.PSSGuildTabFrame = nil
+		M.PSSDashFrame = nil
 		print("|cffff5555PourSocialScore:|r failed to build the UI: " .. tostring(err))
 		geterrorhandler()(err)
 	end

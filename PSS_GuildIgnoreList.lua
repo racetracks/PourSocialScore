@@ -635,6 +635,21 @@ local function isStaticMember(gkey, ck)
 end
 M.PSS_IsManagedStaticMember = isStaticMember
 
+-- Every shipped member still in their guild, without building a record:
+-- fn(canon key, guild key). A character listed by two groups is given once,
+-- for the first. (Ignore List Lookup, PSS_ListLookup.lua.)
+function M.PSS_ForEachShippedMember(fn)
+	local lists = buildManaged().lists
+	local data = PourSocialScoreDB and PourSocialScoreDB.guildData or {}
+	for _, l in ipairs(lists) do
+		for ck in pairs(l.index) do
+			local gkey = shippedOf(ck)
+			local g = gkey and data[gkey]
+			if g and not isGone(g, ck) then fn(ck, gkey) end
+		end
+	end
+end
+
 -- The record for a shipped member (one per character while in use).
 local function vrec(ck, gkey)
 	local r = vkeep[ck] or vcache[ck]
