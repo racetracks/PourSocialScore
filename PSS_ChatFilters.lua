@@ -273,8 +273,19 @@ function M.PSS_IsBuiltinFilterID(id)
 end
 
 -- "InfluencerGuild=Olympus": a guild rule, not a text filter.
+-- Worked out once per filter text: this runs for every active filter on
+-- every chat line, and lower() + match each time cost more than the filters.
+local guildRuleText, guildRuleCount = {}, 0
 function M.PSS_IsGuildRuleText(text)
-	return type(text) == "string" and text:lower():match("^%s*influencerguild%s*=") ~= nil
+	if type(text) ~= "string" then return false end
+	local r = guildRuleText[text]
+	if r == nil then
+		r = text:lower():match("^%s*influencerguild%s*=") ~= nil
+		if guildRuleCount > 300 then guildRuleText, guildRuleCount = {}, 0 end   -- edited filters leave old texts behind
+		guildRuleText[text] = r
+		guildRuleCount = guildRuleCount + 1
+	end
+	return r
 end
 
 function M.PSS_IsGuildRuleFilter(index)
@@ -706,9 +717,10 @@ local CYR = "[\208-\211][\128-\191]"
 local function anyKey(t) return next(t) ~= nil end
 local function hasKey(t, k) return t[k] == true end
 
-local evalNode
 local TAG = {
-	["[word]"]     = function(F, d) return words(F)[d] == true end,
+	-- a word of the line is always part of its text, so the plain find
+	-- skips building the word list on most lines (same result)
+	["[word]"]     = function(F, d) return find(F.text, d, 1, true) ~= nil and words(F)[d] == true end,
 	["[contains]"] = function(F, d) return find(F.text, d, 1, true) ~= nil end,
 	["[chname]"]   = function(F, d) return (F.chName and lower(F.chName) or "none") == d end,
 	["[channel]"]  = function(F, d) return tonumber(d) == F.chNumber end,
@@ -740,20 +752,56 @@ local TAG = {
 	end,
 }
 
-evalNode = function(node, F)
+-- tree -> function(F) returning true / false. Built once per filter text,
+-- so a chat line runs plain function calls instead of walking the tree
+-- (the walk was about half of the time spent on each line).
+local function never() return false end
+local buildNode
+local function buildList(node)
+	local list = {}
+	for i = 2, #node do list[#list + 1] = buildNode(node[i]) end
+	return list
+end
+buildNode = function(node)
 	local kind = node[1]
 	if kind == "tag" then
-		return TAG[node[2]](F, node[3]) == true
+		local tag, d = node[2], node[3]
+		if tag == "[contains]" then                -- most common: one call less
+			return function(F) return find(F.text, d, 1, true) ~= nil end
+		end
+		local fn = TAG[tag]
+		return function(F) return fn(F, d) == true end
 	elseif kind == "not" then
-		return not evalNode(node[2], F)
-	elseif kind == "and" then
-		if #node == 1 then return false end
-		for i = 2, #node do if not evalNode(node[i], F) then return false end end
-		return true
-	else -- or
-		for i = 2, #node do if evalNode(node[i], F) then return true end end
+		local inner = buildNode(node[2])
+		return function(F) return not inner(F) end
+	end
+	local list = buildList(node)
+	local n = #list
+	if n == 0 then return never end          -- "()" and empty groups are false
+	if n == 1 then return list[1] end
+	if kind == "and" then
+		return function(F)
+			for i = 1, n do if not list[i](F) then return false end end
+			return true
+		end
+	end
+	return function(F)                       -- or
+		for i = 1, n do if list[i](F) then return true end end
 		return false
 	end
+end
+
+local runnable, runnableCount = {}, 0
+-- filter text -> function(F), or false when the filter has an error
+local function filterFn(text)
+	local fn = runnable[text]
+	if fn ~= nil then return fn end
+	local tree = compileFilter(text)
+	fn = tree and buildNode(tree) or false
+	if runnableCount > 300 then runnable, runnableCount = {}, 0 end   -- edited filters leave old texts behind
+	runnable[text] = fn
+	runnableCount = runnableCount + 1
+	return fn
 end
 
 -- true, filterNumber when the line should be hidden.
@@ -765,10 +813,10 @@ function M.filterComplex (filterStr, chatStr, chNumber, chName)
 	V.lastFilterError = false
 	local F
 	if filterStr ~= nil then
-		local tree = compileFilter(filterStr)
-		if not tree then V.lastFilterError = true return false end
+		local fn = filterFn(filterStr)
+		if not fn then V.lastFilterError = true return false end
 		F = analyse(chatStr); F.chNumber, F.chName = chNumber, chName
-		if evalNode(tree, F) then return true, 0 end
+		if fn(F) then return true, 0 end
 		return false
 	end
 	local db = PourSocialScoreDB
@@ -777,10 +825,10 @@ function M.filterComplex (filterStr, chatStr, chNumber, chName)
 		if active[i] == true then
 			local text = list[i]
 			if not M.PSS_IsGuildRuleText(text) then
-				local tree = compileFilter(text)
-				if tree then
+				local fn = filterFn(text)
+				if fn then
 					if not F then F = analyse(chatStr); F.chNumber, F.chName = chNumber, chName end
-					if evalNode(tree, F) then return true, i end
+					if fn(F) then return true, i end
 				end
 			end
 		end

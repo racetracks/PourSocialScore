@@ -359,7 +359,8 @@ function History.Trim(force)
 	for i = cap + 1, n do log[i] = nil end
 	-- a player's newest lines move to the keep (not copied)
 	if owners then History.SettleKeep(owners, dropped, drop) end
-	if M.PSS_RequestGC then M.PSS_RequestGC("history trimmed") end
+	-- no cleanup request here: about 100 lines (~30 KB) leave at a time, and
+	-- a busy channel trims often; a cycle walks the whole game heap
 	return drop
 end
 History.TrimAll = function() return History.Trim(true) end

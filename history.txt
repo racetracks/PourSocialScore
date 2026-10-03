@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.38 - Fix: frame jitter from background memory cleanup
+
+- Fixed: frame jitter since 2.0.37. The background memory cleanup ran a full collection of the game's whole Lua memory (every addon, not just this one) at least once a minute. Each run costs one long frame wherever another addon holds a big table (measured 9 ms on a 150 MB heap and 19 ms on 300 MB) plus a few seconds of frames about 1 ms slower.
+- The cleanup now runs only after something that leaves garbage behind: logging in, a /who scan, an import, closing the window. It no longer runs on a timer, when the shared memory grows, or every time the block log is trimmed. The game's own collector keeps running in the background every frame, as it always has.
+- Chat filters are about a third faster per chat line (about 48 to 30 microseconds with 18 filters on) and leave about 20 % less garbage: each filter is turned into a function once instead of being walked as a tree for every line, the "is this a guild rule" check is worked out once per filter, and [word=...] skips building the word list when the word is not in the line at all. Results are unchanged (checked on 96,000 filter tests).
+- Lua has no regular expressions, only Lua patterns. Measured: a pattern find of plain text is the same speed as a plain find, and patterns have no "a or b", so the filters keep plain finds.
+- Version 2.0.38.
+
 => 2.0.37 - Per-player block history
 
 - Block history stays one shared log of the last 2,000 lines (Options setting unchanged). In addition, every player on the Player Ignore List and every guild member keeps their newest 10 chat lines, 5 emotes, 5 party invites and 5 guild invites when their lines leave the log. A player's Block History shows those together with any of their lines still in the log.

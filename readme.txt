@@ -67,8 +67,9 @@ Also
 * Import/Export of your lists, filters and options as a text string
 * Light on the game: chat filters are compiled once, every list lookup is
   O(1), nothing is scanned in combat, and memory is tidied up in small
-  steps only out of combat (never a full collection, so no hitches), at
-  least once a minute. /pssguild status shows the cleanup state.
+  steps only out of combat (never a full collection), and only after
+  something that leaves garbage behind (login, a /who scan, an import,
+  closing the window). /pssguild status shows the cleanup state.
 * Block history is ONE shared log of the last 2,000 blocked lines across
   every player, guild member and chat filter (Options > "Block history lines
   kept in total" 100-20000). Memory has a hard ceiling however many people

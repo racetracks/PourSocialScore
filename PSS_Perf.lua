@@ -11,18 +11,23 @@
 --     loading; a step cycle stops the moment combat starts
 --   * at most STEP_BUDGET_MS per frame (less when the frame rate is low)
 --   * not at all below MIN_FPS
---   * a cycle runs when asked for (after a /who scan, an import, closing the
---     window, building the shipped guild index ...), when the Lua heap has
---     grown by GROWTH_KB since the last cycle, or every IDLE_INTERVAL seconds
---     (once a minute)
+--   * a cycle runs only when asked for (after login, a /who scan, an
+--     import, closing the window ...)
+--   * no timed or heap-growth cycles (2.0.38). The game's own collector
+--     already runs in the background every frame, and the heap grows with
+--     every addon's garbage, not just ours. A cycle here walks the WHOLE
+--     shared heap, and one step cannot split a big table, so each cycle
+--     costs one long frame (measured 9 ms on a 150 MB heap, 19 ms on
+--     300 MB) plus seconds of ~1 ms frames. 2.0.37 ran one every minute,
+--     which showed as frame jitter.
 -- Options > "Background memory cleanup (out of combat)" turns it off.
 ------------------------------------------------------------------------
 local addonName, addon = ...
 local M = addon.M
 
 local CHECK_INTERVAL  = 15        -- seconds between checks
-local IDLE_INTERVAL   = 60        -- a cycle at least once a minute (when safe)
-local GROWTH_KB       = 8 * 1024  -- or when the heap grew this much
+local IDLE_INTERVAL   = nil       -- seconds between timed cycles; nil = none (see above)
+local GROWTH_KB       = nil       -- heap growth that starts a cycle; nil = none (see above)
 local STEP_KB         = 8         -- size of one collector step (small: fine-grained budget)
 local STEP_BUDGET_MS  = 1.0       -- max time per frame
 local MIN_FPS         = 30
@@ -105,8 +110,9 @@ end
 local function check()
 	if gc.running or not gc.supported or not enabled() or inCombatOrBusy() then return end
 	local now = GetTime()
-	local grew = gc.heapAfter and (heapKB() - gc.heapAfter) >= GROWTH_KB
-	if gc.pending or grew or (now - gc.lastCycle) >= IDLE_INTERVAL then
+	local grew = GROWTH_KB and gc.heapAfter and (heapKB() - gc.heapAfter) >= GROWTH_KB
+	local due = IDLE_INTERVAL and (now - gc.lastCycle) >= IDLE_INTERVAL
+	if gc.pending or grew or due then
 		startCycle(gc.pending and gc.lastReason or (grew and "heap grew") or "idle")
 	end
 end
