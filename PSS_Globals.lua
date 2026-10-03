@@ -62,11 +62,19 @@ function M.popWord (str, ch)
 	return string.sub(str, 1, idx - 1), string.sub(str, idx + 1)
 end
 
+-- Strips leading and trailing whitespace; anything but a string gives "".
 function M.trim (str)
 
+	if type(str) ~= "string" then return "" end
 	local n = str:find"%S"
 	return n and str:match(".*%S", n) or ""
 
+end
+M.PSS_Trim = M.trim
+
+-- Writes one line to the default chat frame, exactly as given.
+function M.ChatMsg (text)
+	if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then DEFAULT_CHAT_FRAME:AddMessage(text) end
 end
 
 function M.dateToJulianDate (dateStr)

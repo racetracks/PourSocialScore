@@ -1424,8 +1424,8 @@ local function finishScan(req, numWhos, total, how)
 		elseif not sw and tonumber(total) and tonumber(numWhos) and total > numWhos then
 			M.ShowMsg(("|cffff9900/who shows at most %d players; this search matched %d. Narrow it with Custom and the Scan Fields (e.g. 85-90 or 90 c-\"Mage\") to reach the rest.|r"):format(numWhos, total))
 		end
-	elseif moved > 0 and DEFAULT_CHAT_FRAME then
-		DEFAULT_CHAT_FRAME:AddMessage(("PSS: %d member(s) belonged to a more specific saved guild and were moved there."):format(moved))
+	elseif moved > 0 then
+		M.ChatMsg(("PSS: %d member(s) belonged to a more specific saved guild and were moved there."):format(moved))
 	end
 
 	C_Timer.After(0, function()
@@ -1476,9 +1476,7 @@ function M.PSS_GuildSearch(text, mode)
 end
 
 local function guildSearchChat(msg)
-	if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
-		DEFAULT_CHAT_FRAME:AddMessage("PSS: " .. msg)
-	end
+	M.ChatMsg("PSS: " .. msg)
 end
 
 -- How long Guild Search results are kept for Save (seconds).
@@ -2258,7 +2256,7 @@ end
 -- Search and Add Guild. This fills in what both guild rows share.
 ------------------------------------------------------------------------
 local function pssSay(msg)
-	if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("PSS: " .. msg) end
+	M.ChatMsg("PSS: " .. msg)
 end
 M.PSS_Say = pssSay
 
@@ -2515,8 +2513,8 @@ function M.PSS_BuildGuildUI(parent)
 	local EXCL_OPEN_KEY = "__exclusions"
 	frame.exclRows = {}
 	local function removeExclusion(name)
-		if M.PSS_RemoveGuildExclusion(name) and DEFAULT_CHAT_FRAME then
-			DEFAULT_CHAT_FRAME:AddMessage(("PSS: <%s> removed from the Guild Exclusion List."):format(name))
+		if M.PSS_RemoveGuildExclusion(name) then
+			M.ChatMsg(("PSS: <%s> removed from the Guild Exclusion List."):format(name))
 		end
 	end
 	local function makeExclHeader()
@@ -3136,16 +3134,16 @@ function M.PSS_ShowGuildDetail(guildNameOrKey)
 			if actual and actual ~= "" and normalizeGuild(actual) ~= base and M.PSS_AddCapturedGuild then
 				local srcG = PourSocialScoreDB.guildData[f.guildKey]
 				local added, migrated, removedRefs, perSource, leftover = M.PSS_AddCapturedGuild(actual, srcG and srcG.managed)
-				if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
+				do
 					local from = {}
 					for _, s in ipairs(perSource or {}) do
 						from[#from + 1] = ("%s (%d)"):format(s.name, s.moved)
 					end
-					DEFAULT_CHAT_FRAME:AddMessage(("PSS: Added guild %q. Added %d new member(s) (%d total matched). Removed %d old record(s)%s. Blocked history moved with them."):format(
+					M.ChatMsg(("PSS: Added guild %q. Added %d new member(s) (%d total matched). Removed %d old record(s)%s. Blocked history moved with them."):format(
 						actual, added or 0, migrated or 0, removedRefs or 0,
 						#from > 0 and (" from: " .. table.concat(from, ", ")) or ""))
 					if (leftover or 0) > 0 then
-						DEFAULT_CHAT_FRAME:AddMessage(("PSS: WARNING - %d old record(s) for %q could not be removed."):format(leftover, actual))
+						M.ChatMsg(("PSS: WARNING - %d old record(s) for %q could not be removed."):format(leftover, actual))
 					end
 				end
 				if f.refresh then f.refresh() end
@@ -3338,7 +3336,7 @@ end
 ------------------------------------------------------------------------
 -- DIAGNOSTICS: /pssguild [status | test | chat | debug [all] | check]
 ------------------------------------------------------------------------
-local function gp(msg) if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99PSS guild:|r " .. msg) end end
+local function gp(msg) M.ChatMsg("|cff33ff99PSS guild:|r " .. msg) end
 
 SLASH_PSSGUILD1 = "/pssguild"
 SlashCmdList = SlashCmdList or {}

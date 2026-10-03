@@ -40,11 +40,7 @@ local function isSecret(v)
 end
 M.PSS_IsSecret = isSecret
 
-local function trim(s)
-	if type(s) ~= "string" then return "" end
-	return (s:gsub("^%s+", ""):gsub("%s+$", ""))
-end
-M.PSS_Trim = trim
+local trim = M.trim
 
 local realmCache
 local function ownRealm()
@@ -242,13 +238,13 @@ local function debugActive(all)
 	return (debug.on and not all) or (debug.allUntil > 0 and GetTime() < debug.allUntil)
 end
 local function dprint(text, all)
-	if debugActive(all) and DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99PSS:|r " .. text) end
+	if debugActive(all) then M.ChatMsg("|cff33ff99PSS:|r " .. text) end
 end
 
 local function noteError(err)
 	stats.errors = stats.errors + 1
-	if not stats.lastError and DEFAULT_CHAT_FRAME then
-		DEFAULT_CHAT_FRAME:AddMessage("|cffff5555Pour Social Score chat block error (shown once, see /pssguild status):|r " .. tostring(err))
+	if not stats.lastError then
+		M.ChatMsg("|cffff5555Pour Social Score chat block error (shown once, see /pssguild status):|r " .. tostring(err))
 	end
 	stats.lastError = tostring(err)
 end

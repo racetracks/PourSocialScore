@@ -1222,7 +1222,7 @@ local function BuildPlayerTab()
 	local LIST_NAME = "Player Ignore List"
 
 	local function say(msg)
-		if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("PSS: " .. msg) end
+		M.ChatMsg("PSS: " .. msg)
 	end
 
 	-- your target, when it is another player of your faction

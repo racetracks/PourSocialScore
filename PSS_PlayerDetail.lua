@@ -28,7 +28,7 @@ local OVERRIDE_SHORT = {
 	declineTrade	= "Decline trades",
 }
 
-local function trim(s) return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", "")) end
+local trim = M.trim
 
 local function stateText(v)
 	if v == nil then return "|cffaaaaaaDefault|r" end
