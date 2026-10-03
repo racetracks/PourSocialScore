@@ -132,23 +132,20 @@ function M.PSS_FilterCounts(filterNum)
 	return t.counts
 end
 
--- the filter's lines, newest first (a guild rule also shows its groups' blocks)
+-- the filter's lines, newest first (a guild rule has none: its blocks are
+-- on the Guild Ignore List)
 function M.PSS_FilterHistory(filterNum)
 	local db = PourSocialScoreDB
 	if not filterNum or not db.filterList[filterNum] then return nil end
-	local key, id = M.PSS_FilterOwnerKey(filterNum), db.filterID[filterNum]
-	if M.PSS_IsGuildRuleText(db.filterList[filterNum]) and id and id ~= "" then
-		return History.Collect(function(h) return h.o == key or h.r == id end)
-	end
-	return History.For(key)
+	if M.PSS_IsGuildRuleText(db.filterList[filterNum]) then return {} end
+	return History.For(M.PSS_FilterOwnerKey(filterNum))
 end
 
 function M.PSS_ResetFilterHistory(filterNum)
 	local db = PourSocialScoreDB
 	if not filterNum or not db.filterList[filterNum] then return end
-	local key, id = M.PSS_FilterOwnerKey(filterNum), db.filterID[filterNum]
-	local isRule = M.PSS_IsGuildRuleText(db.filterList[filterNum]) and id and id ~= ""
-	History.Clear(function(h) return h.o == key or (isRule and h.r == id) end)
+	local key = M.PSS_FilterOwnerKey(filterNum)
+	History.Clear(function(h) return h.o == key end)
 	db.filterBlocked[filterNum] = { counts = History.EmptyCounts() }
 	db.filterBlockedLast[filterNum] = 0
 	if M.PSSUpdateBlockHistory then M.PSSUpdateBlockHistory(filterNum) end
@@ -163,24 +160,11 @@ local function AddToBlockHistory (filterNum, ctx, from, chNumber, chName)
 	M.PSSUpdateBlockHistory(filterNum)
 end 
 
--- A guild-rule block (managed group): counted on that rule. The line itself
--- is the guild member's log entry, tagged with the rule (no second copy).
-function M.PSS_RecordManagedBlock(groupKey, ctx, from, entry)
-	local i = M.PSS_ManagedGroupFilterIndex and M.PSS_ManagedGroupFilterIndex(groupKey)
-	if not i or type(ctx) ~= "table" then return end
-	local db = PourSocialScoreDB
-	db.filterCount[i] = (tonumber(db.filterCount[i]) or 0) + 1
-	db.filterTotal = (tonumber(db.filterTotal) or 0) + 1
-	if M.PSS_Stats then M.PSS_Stats.Count("filter") end
-	local counts = M.PSS_FilterCounts(i)
-	local cat = entry and entry.cat or History.Bucket(ctx.cat)
-	counts[cat] = (tonumber(counts[cat]) or 0) + 1
-	counts.total = (tonumber(counts.total) or 0) + 1
-	if entry then entry.r = db.filterID[i] end
-	if M.PSSUpdateBlockHistory then M.PSSUpdateBlockHistory(i) end
-	if M.PSSUpdateChatCount then M.PSSUpdateChatCount() end
-end
-
+-- Guild rules ("InfluencerGuild=<Name>", and any later guild rule) only
+-- switch their guilds on or off. Their blocks are guild blocks: counted once,
+-- on the Guild Ignore List (the shipped list and the members found in game
+-- are one list there). They never count as a chat filter block, so the Chat
+-- Filters tab shows n/a for them.
 function M.RemoveChatFilter (index)
 	if PourSocialScoreDB.filterList[index] then
 		local key = M.PSS_FilterOwnerKey(index)
@@ -425,7 +409,8 @@ function M.PSS_CollapseFilters()
 		local id = db.filterID[i] or ""
 		if M.PSS_IsBuiltinFilterID(id) then
 			rules[id] = db.filterActive[i] == true
-			stats[id] = { count = tonumber(db.filterCount[i]) or 0, blocked = db.filterBlocked[i] or {}, blockedLast = tonumber(db.filterBlockedLast[i]) or 0 }
+			-- a guild rule counts nothing itself: no statistics to save
+			if not M.PSS_IsGuildRuleText(db.filterList[i]) then stats[id] = { count = tonumber(db.filterCount[i]) or 0, blocked = db.filterBlocked[i] or {}, blockedLast = tonumber(db.filterBlockedLast[i]) or 0 } end
 		else
 			appendFilter(custom, db.filterDesc[i], db.filterList[i], db.filterActive[i], "",
 				db.filterCount[i], db.filterBlocked[i], db.filterBlockedLast[i])
@@ -436,6 +421,34 @@ function M.PSS_CollapseFilters()
 	db.builtinStats = stats
 	db.filterFormat = FILTER_FORMAT
 	filtersExpanded = false
+end
+
+-- 2.0.39: guild rule blocks were counted twice, once on the guild (Guild
+-- Ignore List) and again on the guild rule's Chat Filters row, its tab total
+-- and the filter session / 24 hour counts. They are guild blocks only now.
+-- Once: take the rule's count back out of the Chat Filters total and the
+-- 24 hour counts, zero the rule's own counts and clear the rule tag (h.r)
+-- from the block history lines. Runs after the block history upgrade and
+-- before the block stats upgrade (which would otherwise seed from h.r).
+function M.PSS_UnlinkGuildRuleCounts()
+	local db = PourSocialScoreDB
+	if type(db) ~= "table" or db.guildRuleCountsV1 then return end
+	for i = 1, #(db.filterList or {}) do
+		if M.PSS_IsGuildRuleText(db.filterList[i]) then
+			local n = tonumber(db.filterCount[i]) or 0
+			db.filterTotal = math.max(0, (tonumber(db.filterTotal) or 0) - n)
+			db.filterCount[i] = 0
+			db.filterBlocked[i] = { counts = History.EmptyCounts() }
+			db.filterBlockedLast[i] = 0
+		end
+	end
+	History.Each(function(h)
+		if type(h) == "table" and h.r ~= nil then
+			if M.PSS_Stats and type(h.o) == "string" and h.o:sub(1, 2) ~= "f:" then M.PSS_Stats.Uncount("filter", h.ts) end
+			h.r = nil
+		end
+	end)
+	db.guildRuleCountsV1 = true
 end
 
 -- Copy any rule (built-in or custom) into a new, editable custom rule.
@@ -456,7 +469,10 @@ end
 
 function M.PSS_SetFilterActive(index, active)
 	local db = PourSocialScoreDB
-	if db and db.filterActive and db.filterList[index] then db.filterActive[index] = active == true end
+	if not (db and db.filterActive and db.filterList[index]) then return end
+	db.filterActive[index] = active == true
+	-- a guild rule switches its guilds (shipped and found in game) with it
+	if M.PSS_IsGuildRuleText(db.filterList[index]) and M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
 end
 
 

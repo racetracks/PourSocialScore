@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.39 - Fix: influencer guild rules counted twice; linked to their guilds; no combat discovery
+
+- Fixed: a block by an influencer guild rule (InfluencerGuild=Olympus) was counted twice: once on the guild (Guild Ignore List) and again on the rule's Chat Filters row, the Chat Filters total and its session / 24 hour counts. These are guild blocks only now, counted once on the Guild Ignore List, where the shipped list and the members found in game are one list. The rule's Blocked cell on the Chat Filters tab reads n/a, and the rule has no block history or reset entries there. This applies to every guild rule, including ones added later.
+- Linked: switching an influencer guild rule off stops every guild block of its guilds, for the shipped members and for the members found in game and stored in SavedVariables. Switching it on again blocks them again. Switching it from the editor or by import now also refreshes the guild member lookup, members of a switched off group no longer win over your own guild rule for the same player, and adding a member to a switched off group no longer hides their earlier chat.
+- No guild discovery from mouseover or nameplates in combat: the addon stops listening to those events when combat starts and listens again when it ends.
+- Upgrade (once): each guild rule's count is taken back out of the Chat Filters total and the 24 hour counts, the rule's own counts are cleared, and the rule tag is removed from block history lines. Guild counts are not changed. Guild rules no longer save statistics of their own. Tested by loading saves from 2.0.1, 2.0.8, 2.0.17, 2.0.18, 2.0.19, 2.0.22, 2.0.35, 2.0.36, 2.0.37 and 2.0.38, plus a guild rule save from each version from 2.0.18 on (sh tools/harness/validate_all.sh).
+- Version 2.0.39.
+
 => 2.0.38 - Fix: frame jitter from background memory cleanup
 
 - Fixed: frame jitter since 2.0.37. The background memory cleanup ran a full collection of the game's whole Lua memory (every addon, not just this one) at least once a minute. Each run costs one long frame wherever another addon holds a big table (measured 9 ms on a 150 MB heap and 19 ms on 300 MB) plus a few seconds of frames about 1 ms slower.

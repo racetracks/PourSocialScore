@@ -330,7 +330,7 @@ function M.PSS_ApplyImport(data, mode, sections)
 									if M.PSS_CompactMember then M.PSS_CompactMember(m) end   -- only non-default fields are kept
 									g.members[mk] = m
 									addedM = addedM + 1
-									local ck = g.enabled and M.PSS_CanonPlayer(me.name)
+									local ck = M.PSS_GuildRuleActive(g) and M.PSS_CanonPlayer(me.name)
 									if ck and M.PSS__purgeBatch then M.PSS__purgeBatch[ck] = true end
 								end
 							end
@@ -372,7 +372,7 @@ function M.PSS_ApplyImport(data, mode, sections)
 		for i = 1, #db.filterList do
 			local id = db.filterID[i]
 			if M.PSS_IsBuiltinFilter(i) and type(data.builtins[id]) == "boolean" then
-				db.filterActive[i] = data.builtins[id]; n = n + 1
+				M.PSS_SetFilterActive(i, data.builtins[id]); n = n + 1
 			end
 		end
 		report[#report + 1] = n .. " built-in filter states set"

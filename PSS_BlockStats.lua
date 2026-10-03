@@ -99,6 +99,18 @@ function Stats.Count(src, cat)
 	addHour(src, cat, now())
 end
 
+-- Take one block back out of the saved 24 hour counts (total only), for
+-- a line that was counted by mistake. Older hours are gone already.
+function Stats.Uncount(src, ts)
+	local s = store()
+	if not s or not s[src] then return end
+	local h = hourOf(ts)
+	local b = s[src][h]
+	if type(b) ~= "table" then return end
+	b.total = (tonumber(b.total) or 0) - 1
+	if b.total <= 0 then s[src][h] = nil end
+end
+
 -- Filter category of a chat event (nil = total only).
 function Stats.FilterCat(event)
 	if event == "CHAT_MSG_WHISPER" then return "whisper" end
@@ -134,8 +146,9 @@ function Stats.Reset(src)
 end
 
 -- Source of a block log line (see PSS_ChatHistory.lua): o = "p:" player,
--- "g:" guild member, "f:" chat filter; r = also counted on a guild rule
--- (which the Chat Filters total counts too).
+-- "g:" guild member, "f:" chat filter. (2.0.38 and older also tagged guild
+-- rule blocks with r and counted them on the Chat Filters tab too; that tag
+-- is cleared before this runs, see PSS_UnlinkGuildRuleCounts.)
 local function seedFromLog(s)
 	local History = M.PSS_History
 	if not History then return 0 end
@@ -166,7 +179,6 @@ local function seedFromLog(s)
 				end
 				add("filter", h, cat)
 			end
-			if e.r and o ~= "f:" then add("filter", h, nil) end
 		end
 	end)
 	return n

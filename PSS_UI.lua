@@ -274,6 +274,18 @@ SortUI.PLAYER_COLUMNS[#SortUI.PLAYER_COLUMNS + 1] =
 		lettersNote = "Ticked = allowed from that player, unticked = blocked." }
 local FilterSortIndex = {}   -- display position -> filter number
 
+-- A guild rule counts nothing itself: its blocks are guild blocks, counted
+-- once on the Guild Ignore List. Its Blocked cell reads n/a.
+local GUILD_RULE_INFO = "Blocks: |cffffff00n/a|cffffffff - this guild rule's blocks are counted on the Guild Ignore List."
+local function filterBlockedText(i)
+	if M.PSS_IsGuildRuleFilter(i) then return "n/a" end
+	return tostring(tonumber(PourSocialScoreDB.filterCount[i]) or 0)
+end
+local function filterInfoText(i)
+	if M.PSS_IsGuildRuleFilter(i) then return GUILD_RULE_INFO end
+	return format(L["INFO_3"], (PourSocialScoreDB.filterCount[i] or 0))
+end
+
 local function buildFilterSortIndex()
 	local db = PourSocialScoreDB
 	local key, asc = SortUI.filterKey, SortUI.filterAsc
@@ -281,7 +293,7 @@ local function buildFilterSortIndex()
 	for i = 1, #db.filterList do
 		local v
 		if key == "state" then v = db.filterActive[i] == true and 1 or 0
-		elseif key == "blocked" then v = tonumber(db.filterCount[i]) or 0
+		elseif key == "blocked" then v = M.PSS_IsGuildRuleFilter(i) and -1 or (tonumber(db.filterCount[i]) or 0)
 		elseif key == "filter" then v = string.lower(db.filterList[i] or "")
 		else v = string.lower(db.filterDesc[i] or "") end
 		items[#items + 1] = { i = i, b = M.PSS_IsBuiltinFilter(i) and 0 or 1, v = v, d = string.lower(db.filterDesc[i] or "") }
@@ -374,7 +386,7 @@ function M.FilterListDrawUpdate (self)
 				FilterScrollButtons[count].state:SetText("|cffe60000" .. L["OFF"]);
 			end
 
-			FilterScrollButtons[count].blocked:SetText(PourSocialScoreDB.filterCount[index])
+			FilterScrollButtons[count].blocked:SetText(filterBlockedText(index))
 
 			FilterScrollButtons[count]:SetID(index)
 
@@ -521,9 +533,10 @@ function M.PSS_RefreshFilterEditor()
 		Tab2FrameEdit.TitleLabel:SetText(builtin and "Built-in Chat Filter (read only):" or "Chat Filter Editor:")
 	end
 	if Tab2FrameEdit.LockNote then Tab2FrameEdit.LockNote:SetShown(builtin) end
+	if Tab2FrameEdit.histBtn then Tab2FrameEdit.histBtn:SetShown(not M.PSS_IsGuildRuleFilter(FilterScrollSelect)) end
 	if PSSFrame2EditSaveButton then PSSFrame2EditSaveButton:SetText(builtin and "Save On/Off" or "Save Filter") end
 	if Tab2FrameEdit.InfoText then
-		Tab2FrameEdit.InfoText:SetText(format(L["INFO_3"], (PourSocialScoreDB.filterCount[FilterScrollSelect] or 0)))
+		Tab2FrameEdit.InfoText:SetText(filterInfoText(FilterScrollSelect))
 	end
 end
 
@@ -600,24 +613,27 @@ function M.FilterScrollClick(self, button, down)
 						end
 					)
 				end
-				root:CreateDivider()				
-				root:CreateButton(L["RCM_13"] .. " (" .. #(M.PSS_FilterHistory(FilterScrollSelect) or {}) .. ")",
-					function()
-						M.FilterScrollBlockHistory()
-					end
-				)
-				root:CreateDivider()	
-				root:CreateButton(L["RCM_14"],
-					function()
-						PourSocialScoreDB.filterCount[FilterScrollSelect] = 0
-						M.PSSUpdateChatCount()
-					end
-				)
-				root:CreateButton(L["RCM_15"],
-					function()
-						M.PSS_ResetFilterHistory(FilterScrollSelect)
-					end
-				)				
+				-- a guild rule has no count or lines of its own (Guild Ignore List)
+				if not M.PSS_IsGuildRuleFilter(sel) then
+					root:CreateDivider()
+					root:CreateButton(L["RCM_13"] .. " (" .. #(M.PSS_FilterHistory(FilterScrollSelect) or {}) .. ")",
+						function()
+							M.FilterScrollBlockHistory()
+						end
+					)
+					root:CreateDivider()
+					root:CreateButton(L["RCM_14"],
+						function()
+							PourSocialScoreDB.filterCount[FilterScrollSelect] = 0
+							M.PSSUpdateChatCount()
+						end
+					)
+					root:CreateButton(L["RCM_15"],
+						function()
+							M.PSS_ResetFilterHistory(FilterScrollSelect)
+						end
+					)
+				end
 				root:CreateDivider()			
 				root:CreateButton(L["RCM_5"],
 					function()
@@ -1458,16 +1474,14 @@ local function BuildFilterTab()
 		entries = function(i)
 			local db = PourSocialScoreDB
 			if i then return M.PSS_FilterHistory(i) or {} end
-			-- every filter's lines (and the guild rules' group lines), labelled
-			local byKey, byRule = {}, {}
+			-- every filter's lines, labelled (guild rules have none: their
+			-- blocks are on the Guild Ignore List)
+			local byKey = {}
 			for n = 1, #db.filterList do
-				local label = "Filter: " .. tostring(db.filterDesc[n] or n)
-				byKey[M.PSS_FilterOwnerKey(n)] = label
-				local id = db.filterID[n]
-				if id and id ~= "" and M.PSS_IsGuildRuleText(db.filterList[n]) then byRule[id] = label end
+				byKey[M.PSS_FilterOwnerKey(n)] = "Filter: " .. tostring(db.filterDesc[n] or n)
 			end
 			return History.Collect(function(h)
-				local l = byKey[h.o] or (h.r and byRule[h.r])
+				local l = byKey[h.o]
 				if l then History.SetSource(h, l) return true end
 				return false
 			end)
@@ -1493,7 +1507,7 @@ local function BuildFilterEditor()
 	Tab2FrameEdit = newPanel("PSSFrame2Edit", MainFrame)
 	Tab2FrameEdit:Hide()
 	Tab2FrameEdit:SetScript("OnShow", function(self)
-		self.InfoText:SetText(format(L["INFO_3"], (PourSocialScoreDB.filterCount[FilterScrollSelect] or 0)))
+		self.InfoText:SetText(filterInfoText(FilterScrollSelect))
 	end)
 
 	local title, info = UI.CreateSummary(Tab2FrameEdit, "Chat Filter Editor")
@@ -1502,6 +1516,7 @@ local function BuildFilterEditor()
 
 	local histBtn = UI.TopButton(Tab2FrameEdit, L["BUT_9"] or "Block History", nil, 110)
 	histBtn:SetScript("OnClick", function() M.FilterScrollBlockHistory() end)
+	Tab2FrameEdit.histBtn = histBtn
 
 	-- bottom bar: Cancel (right), Save, Copy
 	local cancel = UI.BarButton(Tab2FrameEdit, "Cancel", nil, nil, "PSSFrame2EditCancelButton")
@@ -1510,7 +1525,7 @@ local function BuildFilterEditor()
 	save:SetScript("OnClick", function()
 		if M.PSS_IsBuiltinFilter(FilterScrollSelect) then
 			-- built-in rules: only the on/off state can change
-			PourSocialScoreDB.filterActive[FilterScrollSelect] = Tab2EditActive
+			M.PSS_SetFilterActive(FilterScrollSelect, Tab2EditActive)
 			M.FilterScrollChangeState(0)
 			return
 		end
@@ -1518,7 +1533,7 @@ local function BuildFilterEditor()
 		Tab2EditFilter = PSSFrame2EditFilterField.EditBox:GetText()
 		PourSocialScoreDB.filterDesc[FilterScrollSelect] = Tab2EditDesc
 		PourSocialScoreDB.filterList[FilterScrollSelect] = Tab2EditFilter
-		PourSocialScoreDB.filterActive[FilterScrollSelect] = Tab2EditActive
+		M.PSS_SetFilterActive(FilterScrollSelect, Tab2EditActive)
 		M.FilterScrollChangeState(0)
 	end)
 	local copy = UI.BarButton(Tab2FrameEdit, "Copy Filter", save, nil, "PSSFrame2EditCopyButton")
