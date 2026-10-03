@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.44 - Group and whisper warnings for every list
+
+- Group warning: being in a party or raid with a player from any list now warns you, not only the Player Ignore List. Guild rule members count while their rule is on and their guild is not on the Guild Exclusion List. Still once per player per group, checked after combat if the group changes during a fight.
+- Whisper warning: when you whisper a player whose whispers a list blocks, you get a chat warning and a raid warning style notice on screen, once per player per session. Players whose whispers you allow (W ticked) give no warning.
+- New option (Ignore list options, on by default): "Warn when grouped with, or whispering, a player on any list".
+- Version 2.0.44.
+
 => 2.0.43 - Removed players leave nothing saved
 
 - Removing a player from the Player Ignore List (by hand, expiry, prune, /pss, or Blizzard's Unignore) now also removes their saved record and their block history lines.
