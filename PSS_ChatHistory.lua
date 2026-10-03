@@ -746,7 +746,7 @@ StaticPopupDialogs["PSS_HISTORY_RESET_ALL"] = {
 function History.CreatePanel(tab, opts)
 	local UI = M.UI
 	local P = CreateFrame("Frame", nil, tab)
-	P:SetPoint("TOPLEFT", 1, UI.HEADER_Y)
+	P:SetPoint("TOPLEFT", 1, opts.headerY or UI.HEADER_Y)
 	P:SetPoint("BOTTOMRIGHT", -1, 4)
 	P:Hide()
 	P.opts = opts

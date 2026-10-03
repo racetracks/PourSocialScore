@@ -167,6 +167,8 @@ local function ApplicationStartup(self)
 
 	-- Player/guild data upgrade (guild module), now that the core lists exist.
 	if M.PSS_UpgradeLegacyData then M.PSS_UpgradeLegacyData() end
+	-- session / last 24 hours block counts (created on first login, PSS_BlockStats.lua)
+	if M.PSS_UpgradeBlockStats then M.PSS_UpgradeBlockStats() end
 
 	M.PSS_HookFunctions()
 

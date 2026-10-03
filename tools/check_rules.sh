@@ -6,7 +6,7 @@
 # Usage: sh tools/check_rules.sh   (from the repo root, needs luac5.1)
 
 fail=0
-files=$(ls *.lua tools/*.lua)
+files=$(ls *.lua tools/*.lua tools/harness/*.lua)
 
 for f in $files; do
 	luac5.1 -p "$f" || fail=1

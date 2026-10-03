@@ -302,6 +302,26 @@ function SortUI.setFilterSort(key)
 	M.FilterListDrawUpdate(FilterScrollFrame)
 end
 
+-- The three block count lines above a tab (PSS_BlockStats.lua for the
+-- session and 24 hour counts; the totals are the tab's own).
+local function SetBlockStats(stats, src, total)
+	if not stats then return end
+	local S = M.PSS_Stats
+	stats:Set(1, S and S.Session(src))
+	stats:Set(2, S and S.Last24(src))
+	stats:Set(3, total)
+end
+
+local function UpdateFilterStats()
+	if not Tab2Frame then return end
+	local db = PourSocialScoreDB
+	SetBlockStats(Tab2Frame.stats, "filter", {
+		total = tonumber(db.filterTotal) or 0,
+		whisper = tonumber(db.filterWhisperTotal) or 0,
+		private = tonumber(db.filterPrivateTotal) or 0,
+	})
+end
+
 function M.FilterListDrawUpdate (self)
 
 	-- While the Block History panel is open in place of the list, keep the
@@ -319,14 +339,14 @@ function M.FilterListDrawUpdate (self)
 		FilterScrollSelect = #PourSocialScoreDB.filterList
 	end
 
-	Tab2Frame.infotext:SetText(format(L["INFO_4"], PourSocialScoreDB.filterTotal or 0, PourSocialScoreDB.filterWhisperTotal or 0, PourSocialScoreDB.filterPrivateTotal or 0))
+	UpdateFilterStats()
 	do
 		local nb, nc, non = 0, 0, 0
 		for i = 1, #PourSocialScoreDB.filterList do
 			if M.PSS_IsBuiltinFilter(i) then nb = nb + 1 else nc = nc + 1 end
 			if PourSocialScoreDB.filterActive[i] == true then non = non + 1 end
 		end
-		Tab2Frame.infobreakdown:SetText(("|cffaaaaaaFilters:|r %d    |cffaaaaaaBuilt-in:|r %d    |cffaaaaaaCustom:|r %d    |cffaaaaaaOn:|r |cff33ff99%d|r"):format(nb + nc, nb, nc, non))
+		Tab2Frame.title:SetText(("|cffaaaaaaFilters:|r %d    |cffaaaaaaBuilt-in:|r %d    |cffaaaaaaCustom:|r %d    |cffaaaaaaOn:|r |cff33ff99%d|r"):format(nb + nc, nb, nc, non))
 	end
 
 	local offset = FauxScrollFrame_GetOffset(self)
@@ -623,17 +643,9 @@ local function UpdateRuleSummaryTexts()
 				for k in pairs(sum) do sum[k] = sum[k] + (c[k] or 0) end
 			end
 		end
-		Tab1Frame.infotext:SetText(format(L["INFO_5"], sum.total))
-		if Tab1Frame.infobreakdown and M.PSS_FormatGuildCounts then
-			Tab1Frame.infobreakdown:SetText(M.PSS_FormatGuildCounts(sum))
-		end
+		SetBlockStats(Tab1Frame.stats, "player", sum)
 	end
-	if Tab2Frame then
-		local total = tonumber(PourSocialScoreDB.filterTotal) or 0
-		local whispers = tonumber(PourSocialScoreDB.filterWhisperTotal) or 0
-		local privateMessages = tonumber(PourSocialScoreDB.filterPrivateTotal) or 0
-		Tab2Frame.infotext:SetText(format(L["INFO_4"], total, whispers, privateMessages))
-	end
+	UpdateFilterStats()
 end
 
 local function IgnoreListDrawUpdate (self)
@@ -1133,12 +1145,12 @@ local function RelayoutMainFrame()
 	if tabW <= 0 or tabH <= 0 then return end
 
 	-- Player Ignore List rows
-	IGNORE_ROWS = math.max(1, math.floor((tabH - UI.LIST_TOP - 4) / BUTTON_HEIGHT))
+	IGNORE_ROWS = math.max(1, math.floor((tabH - UI.COMPACT_LIST_TOP - 4) / BUTTON_HEIGHT))
 	IgnoreScrollFrame:SetHeight(IGNORE_ROWS * BUTTON_HEIGHT)
 	CreateIgnoreButtons()
 
 	-- Chat Filter rows; the Filter column takes up any extra width
-	BUTTON_TOTAL = math.max(1, math.floor((tabH - UI.LIST_TOP - 4) / BUTTON_HEIGHT))
+	BUTTON_TOTAL = math.max(1, math.floor((tabH - UI.COMPACT_LIST_TOP - 4) / BUTTON_HEIGHT))
 	FilterScrollFrame:SetHeight(BUTTON_TOTAL * BUTTON_HEIGHT)
 	CreateFilterButtons()
 	-- the Filter column takes up any extra width; drags stay inside the panel
@@ -1184,7 +1196,9 @@ local function BuildPlayerTab()
 			createSortedIndex()
 		end)
 
-	Tab1Frame.title, Tab1Frame.infotext, Tab1Frame.infobreakdown = UI.CreateSummary(Tab1Frame, "Player Ignore List")
+	-- no title in list view (the tab says where you are); Block History uses it
+	Tab1Frame.title = UI.CreateSummary(Tab1Frame, "")
+	Tab1Frame.stats = UI.CreateBlockStats(Tab1Frame, MainFrame, UI.STATS_BLOCK_CATS, "messages and invites")
 
 	-- Top right: [ Add a Player... ] [Player Search] [Add Player]
 	-- (the EntryRow widget, PSS_Widgets.lua; the same as the guild tab)
@@ -1288,12 +1302,12 @@ local function BuildPlayerTab()
 		})
 	end
 
-	SortUI.playerHR = UI.CreateHeaderRow(Tab1Frame, SortUI.PLAYER_COLUMNS, 1, UI.HEADER_Y, SortUI.setPlayerSort, { id = "players" })
+	SortUI.playerHR = UI.CreateHeaderRow(Tab1Frame, SortUI.PLAYER_COLUMNS, 1, UI.COMPACT_HEADER_Y, SortUI.setPlayerSort, { id = "players" })
 	Tab1Frame.headers = SortUI.playerHR.headers
 
 	IgnoreScrollFrame = CreateFrame("ScrollFrame", "PSSIgnoreScrollFrame", Tab1Frame, "FauxScrollFrameTemplate")
 	IgnoreScrollFrame:SetHeight(IGNORE_ROWS * BUTTON_HEIGHT)
-	IgnoreScrollFrame:SetPoint("TOPLEFT", 1, -UI.LIST_TOP)
+	IgnoreScrollFrame:SetPoint("TOPLEFT", 1, -UI.COMPACT_LIST_TOP)
 	IgnoreScrollFrame:SetPoint("RIGHT", Tab1Frame, "RIGHT", -27, 0)
 	IgnoreScrollFrame:SetScript("OnVerticalScroll", function(self, offset)
 		FauxScrollFrame_OnVerticalScroll(self, offset, BUTTON_HEIGHT, IgnoreListDrawUpdate)
@@ -1330,7 +1344,8 @@ local function BuildPlayerTab()
 		return out
 	end
 	local hist = History.CreatePanel(Tab1Frame, {
-		baseTitle = "Player Ignore List",
+		baseTitle = "",
+		headerY = UI.COMPACT_HEADER_Y,
 		allText = "all players", allButton = "All Players",
 		setListShown = setListShown,
 		entries = function(name)
@@ -1351,6 +1366,7 @@ local function BuildPlayerTab()
 				for _, n in ipairs(listedPlayers()) do
 					if M.PSS_GetPlayerRecord(n) then M.PSS_ResetPlayerBlockHistory(n) end
 				end
+				if M.PSS_Stats then M.PSS_Stats.Reset("player") end
 			end
 		end,
 		extra = { text = "Player Details", onClick = function(name) if name and M.PSS_ShowPlayerDetail then M.PSS_ShowPlayerDetail(name) end end,
@@ -1382,13 +1398,15 @@ local function BuildFilterTab()
 			M.FilterListDrawUpdate(FilterScrollFrame) -- update filter count display
 		end)
 
-	Tab2Frame.title, Tab2Frame.infotext, Tab2Frame.infobreakdown = UI.CreateSummary(Tab2Frame, "Chat Filters", 700)
+	-- the title line shows the filter counts in list view; Block History uses it
+	Tab2Frame.title = UI.CreateSummary(Tab2Frame, "", 700)
+	Tab2Frame.stats = UI.CreateBlockStats(Tab2Frame, MainFrame, UI.STATS_FILTER_CATS, "messages")
 
-	SortUI.filterHR = UI.CreateHeaderRow(Tab2Frame, SortUI.FILTER_COLUMNS, 1, UI.HEADER_Y, SortUI.setFilterSort, { id = "filters" })
+	SortUI.filterHR = UI.CreateHeaderRow(Tab2Frame, SortUI.FILTER_COLUMNS, 1, UI.COMPACT_HEADER_Y, SortUI.setFilterSort, { id = "filters" })
 
 	FilterScrollFrame = CreateFrame("ScrollFrame", "PSSFilterScrollFrame", Tab2Frame, "FauxScrollFrameTemplate")
 	FilterScrollFrame:SetHeight(BUTTON_TOTAL * BUTTON_HEIGHT)
-	FilterScrollFrame:SetPoint("TOPLEFT", 1, -UI.LIST_TOP)
+	FilterScrollFrame:SetPoint("TOPLEFT", 1, -UI.COMPACT_LIST_TOP)
 	FilterScrollFrame:SetPoint("RIGHT", Tab2Frame, "RIGHT", -27, 0)
 	FilterScrollFrame:SetScript("OnVerticalScroll", function(self, offset)
 		FauxScrollFrame_OnVerticalScroll(self, offset, BUTTON_HEIGHT, M.FilterListDrawUpdate)
@@ -1433,7 +1451,8 @@ local function BuildFilterTab()
 		end
 	end
 	local hist = History.CreatePanel(Tab2Frame, {
-		baseTitle = "Chat Filters",
+		baseTitle = "",
+		headerY = UI.COMPACT_HEADER_Y,
 		allText = "all filters", allButton = "All Filters",
 		setListShown = setListShown,
 		entries = function(i)

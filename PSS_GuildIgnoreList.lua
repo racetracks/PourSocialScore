@@ -887,6 +887,7 @@ local function recordGuildBlock(g, m, cat, event, message, channel, gkey)
 	local entry = History.NewEntry(cat, event, message, channel, m.name)
 	entry.gk = gkey      -- the rule at the time (used if they leave every rule)
 	History.Add(History.MemberKey(m), m.blockCounts, entry)
+	if M.PSS_Stats then M.PSS_Stats.Count("guild", entry.cat) end
 	if entry.cat == "partyInvite" or entry.cat == "guildInvite" then
 		m.lastBlockedInvite = entry.time
 	end
@@ -2240,7 +2241,9 @@ function M.PSS_BuildGuildUI(parent)
 	frame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -11, 29)
 	M.PSSGuildTabFrame = frame
 
-	frame.title, frame.info, frame.breakdown = UI.CreateSummary(frame, "Guild Ignore List", 700)
+	-- no title in list view (the tab says where you are); Block History uses it
+	frame.title = UI.CreateSummary(frame, "", 700)
+	frame.stats = UI.CreateBlockStats(frame, parent, UI.STATS_BLOCK_CATS, "messages and invites")
 
 	-- top right, two rows built the same way (see createGuildEntryRow):
 	--   [ Add a Guild...     ] [Guild Search] [Add Guild]   -> Guild Ignore List
@@ -2279,12 +2282,6 @@ function M.PSS_BuildGuildUI(parent)
 		clearOnSearch = true,
 	})
 	frame.exclAddButton, frame.exclSearchButton, frame.exclBox = exclRow.add, exclRow.search, exclRow.box
-
-	-- the summary lines stop short of the second row
-	frame.info:SetPoint("RIGHT", exclRow.box, "LEFT", -10, 0)
-	frame.breakdown:SetPoint("RIGHT", exclRow.box, "LEFT", -10, 0)
-	if frame.info.SetWordWrap then frame.info:SetWordWrap(false) end
-	if frame.breakdown.SetWordWrap then frame.breakdown:SetWordWrap(false) end
 
 	-- Scan All: the next /who of the guild sweep, across every guild row.
 	-- (Both boxes are 150 wide, leaving room for it before the summary text.)
@@ -2372,7 +2369,7 @@ function M.PSS_BuildGuildUI(parent)
 		for _, b in ipairs(frame.listButtons) do b:SetShown(on) end
 	end
 	local hist = History.CreatePanel(frame, {
-		baseTitle = "Guild Ignore List",
+		baseTitle = "",
 		allText = "all guilds", allButton = "All Guilds",
 		setListShown = setListShown,
 		entries = function(key) return M.PSS_GetGuildBlockHistory(key) end,
@@ -2385,6 +2382,7 @@ function M.PSS_BuildGuildUI(parent)
 				M.PSS_ResetGuildBlockHistory(key)
 			else
 				for k in pairs(PourSocialScoreDB.guildData or {}) do M.PSS_ResetGuildBlockHistory(k) end
+				if M.PSS_Stats then M.PSS_Stats.Reset("guild") end
 			end
 		end,
 		extra = { text = "Show Members", onClick = function(key) if key then M.PSS_ShowGuildDetail(key) end end,
@@ -2625,9 +2623,10 @@ function M.PSS_BuildGuildUI(parent)
 		-- Nothing to draw while hidden; OnShow refreshes.
 		if not frame:IsVisible() then return end
 
-		local counts = M.PSS_GetGuildBlockCounts()
-		frame.info:SetText(format(L["INFO_6"], counts.total))
-		frame.breakdown:SetText(M.PSS_FormatGuildCounts(counts))
+		local S = M.PSS_Stats
+		frame.stats:Set(1, S and S.Session("guild"))
+		frame.stats:Set(2, S and S.Last24("guild"))
+		frame.stats:Set(3, M.PSS_GetGuildBlockCounts())
 		if hist:IsShown() then updateHistoryPanel() end
 
 		for _, row in ipairs(frame.rows) do row:Hide() end
