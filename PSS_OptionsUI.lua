@@ -12,6 +12,13 @@ local OPTIONS = M.PSS_OPTIONS
 local REG = M.PSS_OPTION_REG
 local SECTIONS = M.PSS_OPTION_SECTIONS
 
+-- Options whose effect must be applied immediately when changed.
+M.Events.Register("OPTION_CHANGED", function(key)
+	if key ~= "frameStrata" then return end
+	local main = _G["PSS"]
+	if main and main.SetFrameStrata then main:SetFrameStrata(M.PSS_FrameStrataName()) end
+end)
+
 ------------------------------------------------------------------------
 -- Override menus (guild row, member row, player row right-click)
 ------------------------------------------------------------------------

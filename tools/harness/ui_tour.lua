@@ -96,6 +96,7 @@ step("player history", function() M.PSS_ShowPlayerBlockHistory("Tourplayer-Realm
 step("late player", function() click("PSSTab1"); M.PSS_AddIgnore("Tourlate-Realm", true) end)
 step("late filter", function() click("PSSTab2"); M.PSS_AddCustomFilter("Late filter", "[word=lateword]", true) end)
 step("late guild", function() click("PSSTabGuild"); M.PSS_AddGuild("Tour Late Guild") end)
+step("strata option", function() M.PSS_SetOpt("frameStrata", "global", 1) end)
 step("new filter", function() click("PSSTab2"); click("PSSFrame2CreateButton") end)
 for _, c in ipairs({ "asknote on", "showmsg on", "sameserver off", "defexpire 7", "expire Tourplayer-Realm 3", "expire 1 4" }) do
 	step("slash pss " .. c, function() SlashCmdList.PSS(c) end)

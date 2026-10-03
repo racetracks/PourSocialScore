@@ -99,12 +99,6 @@ function M.PSS_FrameStrataName()
 	return STRATA[tonumber(M.PSS_Opt("frameStrata")) or 3] or "DIALOG"
 end
 
--- Options whose effect must be applied immediately when changed.
-local function applyLive()
-	local main = _G["PSS"]
-	if main and main.SetFrameStrata then main:SetFrameStrata(M.PSS_FrameStrataName()) end
-end
-
 -- target: the record whose .opts holds the override (guild rule, member,
 -- or player record) for scope "guild"/"person".
 function M.PSS_SetOpt(key, scope, value, target)
@@ -118,7 +112,8 @@ function M.PSS_SetOpt(key, scope, value, target)
 		target.opts[key] = value
 		if next(target.opts) == nil then target.opts = nil end
 	end
-	if key == "frameStrata" then applyLive() end
+	-- the windows apply what they show at once (e.g. frameStrata)
+	M.Events.Fire("OPTION_CHANGED", key)
 	-- a smaller history buffer frees the memory now, not only as lines arrive
 	if key == "historyTotal" and M.PSS_TrimAllHistory then M.PSS_TrimAllHistory() end
 end
