@@ -27,9 +27,7 @@ if grep -nP '^\t* |[ \t]+$' *.xml; then
 	fail=1
 fi
 
-if [ -f tools/check_layers.lua ]; then
-	lua5.1 tools/check_layers.lua || fail=1
-fi
+lua5.1 tools/check_layers.lua || fail=1
 
 [ $fail -eq 0 ] && echo "All rule checks passed"
 exit $fail

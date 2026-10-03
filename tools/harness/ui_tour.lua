@@ -75,6 +75,11 @@ for _, tab in ipairs({ "PSSTab1", "PSSTabGuild", "PSSTab2", "PSSTabIO", "PSSTab3
 	step("tab " .. tab, function() click(tab) end)
 end
 step("refresh players", function() M.PSSUpdateUI(true) end)
+step("expand guild groups", function()
+	M.PSS_AddGuildExclusion("Tour Excluded Guild")
+	db.guildGroupOpen = { __exclusions = true }
+	for _, g in pairs(db.guildData) do if g.managed then db.guildGroupOpen[g.managed] = true end end
+end)
 step("refresh guilds", function() click("PSSTabGuild"); if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end end)
 
 local keys = {}
