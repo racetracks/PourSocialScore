@@ -5,7 +5,7 @@
 -- first : X... - is move left
 -- second: Y... - is move down
 
-local addonName, addon 	= ...
+local addonName, addon	= ...
 local L = addon.L -- localization entries
 local V = addon.V -- shared variables
 local M = addon.M -- shared methods
@@ -37,8 +37,8 @@ local FilterScrollSelect	= 0
 -- Sort state and helpers for the list tabs, kept in one table (Lua 5.1 allows
 -- a function at most 60 upvalues, and BuildUIFrames is close to that).
 local SortUI				= {}
-local UI					= M.UI    -- shared look (PSS_UIKit.lua)
-local WINDOW_WIDTH			= 960   -- default and minimum (the guild and player tables need it)
+local UI					= M.UI		-- shared look (PSS_UIKit.lua)
+local WINDOW_WIDTH			= 960	-- default and minimum (the guild and player tables need it)
 local WINDOW_HEIGHT			= 470
 local WINDOW_OFFSET			= 113
 local BUTTON_HEIGHT			= 20
@@ -56,12 +56,12 @@ local IGNORE_ROWS			= math.floor((WINDOW_HEIGHT - WINDOW_OFFSET - IGNORE_LIST_TO
 StaticPopupDialogs["PSS_REASON"] = {
 
 	preferredIndex = STATICPOPUPS_NUMDIALOGS,
-	text           = "Edit ignore note for |cffffff00%s:",
-	maxLetters     = 128,
-	hasEditBox	   = 1,
-	whileDead      = 1,
-	button1        = L["BOX_3"],
-	button2        = L["BOX_5"],
+	text			= "Edit ignore note for |cffffff00%s:",
+	maxLetters		= 128,
+	hasEditBox		= 1,
+	whileDead		= 1,
+	button1			= L["BOX_3"],
+	button2			= L["BOX_5"],
 
 	OnShow = function(self)
 		local idx = M.hasAnyIgnored(V.nameUI)
@@ -89,17 +89,17 @@ local function setExpire (text)
 	if tonumber(text) and idx > 0 then
 		PourSocialScoreDB.expList[idx] = tonumber(text)
 		M.PSSUpdateUI()
-	end	
+	end
 end
 
 StaticPopupDialogs["PSS_PRUNE"] = {
 	preferredIndex = STATICPOPUPS_NUMDIALOGS,
-	text           = "|cffffff00%s|cffffffff\n\n"..L["BOX_11"],
-	maxLetters     = 4,
-	hasEditBox	   = 1,
-	whileDead      = 1,
-	button1        = L["BOX_6"],
-	button2        = L["BOX_5"],
+	text			= "|cffffff00%s|cffffffff\n\n"..L["BOX_11"],
+	maxLetters		= 4,
+	hasEditBox		= 1,
+	whileDead		= 1,
+	button1			= L["BOX_6"],
+	button2			= L["BOX_5"],
 
 	OnShow = function(self)
 		self.EditBox:SetText("365")
@@ -123,19 +123,19 @@ StaticPopupDialogs["PSS_PRUNE"] = {
 StaticPopupDialogs["PSS_EXPIRE"] = {
 
 	preferredIndex = STATICPOPUPS_NUMDIALOGS,
-	text           = "|cffffff00%s|cffffffff\n\n"..L["BOX_1"],
-	maxLetters     = 4,
-	hasEditBox	   = 1,
-	whileDead      = 1,
-	button1        = L["BOX_3"],
-	button2        = L["BOX_5"],
+	text			= "|cffffff00%s|cffffffff\n\n"..L["BOX_1"],
+	maxLetters		= 4,
+	hasEditBox		= 1,
+	whileDead		= 1,
+	button1			= L["BOX_3"],
+	button2			= L["BOX_5"],
 
-	OnShow         = function(self)
+	OnShow			= function(self)
 		local idx = M.hasAnyIgnored(V.nameUI)
 		self.EditBox:SetText(idx > 0 and tostring(PourSocialScoreDB.expList[idx] or 0) or "0")
 		self.EditBox:SetFocus()
 	end,
-	OnAccept       = function(self)
+	OnAccept		= function(self)
 		setExpire(self.EditBox:GetText())
 	end,
 	EditBoxOnEnterPressed = function(self)
@@ -150,14 +150,14 @@ StaticPopupDialogs["PSS_EXPIRE"] = {
 StaticPopupDialogs["PSS_FILTERRESET"] = {
 
 	preferredIndex = STATICPOPUPS_NUMDIALOGS,
-	text           = "|cffffff00%s|cffffffff\n\n"..L["BOX_2"],
-	whileDead      = 1,
-	button1        = L["BOX_4"],
-	button2        = L["BOX_5"],
-	OnAccept       = function(self)
+	text			= "|cffffff00%s|cffffffff\n\n"..L["BOX_2"],
+	whileDead		= 1,
+	button1			= L["BOX_4"],
+	button2			= L["BOX_5"],
+	OnAccept		= function(self)
 		M.ResetSpamFilters()
 		M.FilterListDrawUpdate(FilterScrollFrame)
-	end,	
+	end,
 	EditBoxOnEscapePressed = function(self)
 		self:GetParent():Hide()
 	end
@@ -166,18 +166,18 @@ StaticPopupDialogs["PSS_FILTERRESET"] = {
 StaticPopupDialogs["PSS_FILTERREMOVE"] = {
 
 	preferredIndex = STATICPOPUPS_NUMDIALOGS,
-	text           = "|cffffff00%s|cffffffff\n\n"..L["BOX_9"],
-	whileDead      = 1,
-	button1        = L["BOX_10"],
-	button2        = L["BOX_5"],
-	OnAccept       = function(self)
+	text			= "|cffffff00%s|cffffffff\n\n"..L["BOX_9"],
+	whileDead		= 1,
+	button1			= L["BOX_10"],
+	button2			= L["BOX_5"],
+	OnAccept		= function(self)
 		if FilterScrollSelect <= 0 then
 			return
 		end
 
 		M.RemoveChatFilter(FilterScrollSelect)
 		M.FilterListDrawUpdate(FilterScrollFrame)
-	end,	
+	end,
 	EditBoxOnEscapePressed = function(self)
 		self:GetParent():Hide()
 	end
@@ -203,7 +203,7 @@ local function ButtonIgnoreRemove()
 		return
 	end
 
-	local idx     = IgnoreScrollIndex[IgnoreScrollSelect]
+	local idx		= IgnoreScrollIndex[IgnoreScrollSelect]
 	local typeStr = PourSocialScoreDB.typeList[idx]
 
 	V.needSorted = true
@@ -253,26 +253,26 @@ end
 SortUI.filterKey, SortUI.filterAsc = "desc", true
 -- Chat Filters columns (the Filter column stretches with the window)
 SortUI.FILTER_COLUMNS = {
-	{ key = "desc",    text = L["COL_9"],  width = 230, tipName = "Description" },
-	{ key = "state",   text = "On",        width = 44,  tipName = "On/Off" },
-	{ key = "blocked", text = L["COL_11"], width = 70,  tipName = "Blocked count", justify = "RIGHT" },
-	{ key = "filter",  text = L["COL_10"], width = 509, tipName = "Filter text", tip = "Built-in filters always stay at the top.", fill = true, minWidth = 120 },
+	{ key = "desc",		text = L["COL_9"],	width = 230, tipName = "Description" },
+	{ key = "state",	text = "On",		width = 44,		tipName = "On/Off" },
+	{ key = "blocked", text = L["COL_11"], width = 70,	tipName = "Blocked count", justify = "RIGHT" },
+	{ key = "filter",	text = L["COL_10"], width = 509, tipName = "Filter text", tip = "Built-in filters always stay at the top.", fill = true, minWidth = 120 },
 }
 -- Player Ignore List columns (the reference design)
 SortUI.PLAYER_COLUMNS = {
-	{ key = "name",   text = L["COL_1"], width = 130 },
+	{ key = "name",		text = L["COL_1"], width = 130 },
 	{ key = "server", text = L["COL_2"], width = 120 },
-	{ key = "type",   text = L["COL_3"], width = 60 },
+	{ key = "type",		text = L["COL_3"], width = 60 },
 	{ key = "listed", text = L["COL_4"], width = 50, justify = "RIGHT" },
 	{ key = "expire", text = L["COL_5"], width = 54, justify = "RIGHT" },
-	{ key = "note",   text = L["COL_6"], width = 110 },
+	{ key = "note",		text = L["COL_6"], width = 110 },
 }
 -- block metrics (same columns as the Guild Ignore List), then W I G P C
 for _, c in ipairs(UI.MetricColumns()) do SortUI.PLAYER_COLUMNS[#SortUI.PLAYER_COLUMNS + 1] = c end
 SortUI.PLAYER_COLUMNS[#SortUI.PLAYER_COLUMNS + 1] =
-	{ key = "excl",   letters = "excl",  width = 154, lettersTitle = "Per-player exclusions",
+	{ key = "excl",		letters = "excl",	width = 154, lettersTitle = "Per-player exclusions",
 		lettersNote = "Ticked = allowed from that player, unticked = blocked." }
-local FilterSortIndex = {}   -- display position -> filter number
+local FilterSortIndex = {}		-- display position -> filter number
 
 -- A guild rule counts nothing itself: its blocks are guild blocks, counted
 -- once on the Guild Ignore List. Its Blocked cell reads n/a.
@@ -299,7 +299,7 @@ local function buildFilterSortIndex()
 		items[#items + 1] = { i = i, b = M.PSS_IsBuiltinFilter(i) and 0 or 1, v = v, d = string.lower(db.filterDesc[i] or "") }
 	end
 	table.sort(items, function(a, b)
-		if a.b ~= b.b then return a.b < b.b end          -- built-ins first, always
+		if a.b ~= b.b then return a.b < b.b end				-- built-ins first, always
 		if a.v ~= b.v then if asc then return a.v < b.v else return a.v > b.v end end
 		if a.d ~= b.d then return a.d < b.d end
 		return a.i < b.i
@@ -362,7 +362,7 @@ function M.FilterListDrawUpdate (self)
 	end
 
 	local offset = FauxScrollFrame_GetOffset(self)
-	local index  = 0
+	local index		= 0
 	local pName = ""
 	for count = 1, BUTTON_TOTAL do
 		index = FilterSortIndex[count + offset]
@@ -381,7 +381,7 @@ function M.FilterListDrawUpdate (self)
 			end
 
 			if PourSocialScoreDB.filterActive[index] == true then
-				FilterScrollButtons[count].state:SetText("|cff33ff99" .. L["ON"]);			
+				FilterScrollButtons[count].state:SetText("|cff33ff99" .. L["ON"]);
 			else
 				FilterScrollButtons[count].state:SetText("|cffe60000" .. L["OFF"]);
 			end
@@ -471,7 +471,7 @@ function SortUI.placeName(button, hr, key)
 	button.name:SetJustifyH("LEFT")
 	button.name:SetWordWrap(false)
 	if button.name.SetFontObject then button.name:SetFontObject("GameFontHighlight") end
-	UI.TPlace(button.name, button, hr, key)   -- follows the column when resized
+	UI.TPlace(button.name, button, hr, key)		-- follows the column when resized
 	if button.SetClipsChildren then button:SetClipsChildren(true) end
 end
 
@@ -543,7 +543,7 @@ end
 function M.FilterScrollEditMenu()
 	if PourSocialScoreDB.filterDesc[FilterScrollSelect] ~= nil then
 
-		Tab2EditDesc   = PourSocialScoreDB.filterDesc[FilterScrollSelect]
+		Tab2EditDesc	= PourSocialScoreDB.filterDesc[FilterScrollSelect]
 		Tab2EditFilter = PourSocialScoreDB.filterList[FilterScrollSelect]
 		Tab2EditActive = PourSocialScoreDB.filterActive[FilterScrollSelect]
 
@@ -581,7 +581,7 @@ function M.FilterScrollClick(self, button, down)
 		M.FilterListDrawUpdate(FilterScrollFrame)
 	end
 
-	if button == "RightButton" then	
+	if button == "RightButton" then
 		MenuUtil.CreateContextMenu(UIParent,
 			function(ownerRegion, root)
 				local builtin = M.PSS_IsBuiltinFilter(FilterScrollSelect)
@@ -634,7 +634,7 @@ function M.FilterScrollClick(self, button, down)
 						end
 					)
 				end
-				root:CreateDivider()			
+				root:CreateDivider()
 				root:CreateButton(L["RCM_5"],
 					function()
 					end)
@@ -680,14 +680,14 @@ local function IgnoreListDrawUpdate (self)
 
 	UpdateRuleSummaryTexts()
 
-	local offset  = FauxScrollFrame_GetOffset(self)
-	local index   = 0
-	local id      = 0
-	local pName   = ""
+	local offset	= FauxScrollFrame_GetOffset(self)
+	local index		= 0
+	local id		= 0
+	local pName		= ""
 	local pServer = ""
-	local pType   = ""
+	local pType		= ""
 	local pExpire = ""
-	local temp    = 0
+	local temp		= 0
 
 	for count = 1, IGNORE_ROWS do
 		id = count + offset
@@ -695,11 +695,11 @@ local function IgnoreListDrawUpdate (self)
 		if PourSocialScoreDB.ignoreList[id] then
 			index = IgnoreScrollIndex[id] or id
 			pName = PourSocialScoreDB.ignoreList[index]
-			temp  = string.find(pName, "-", 1, true)
+			temp	= string.find(pName, "-", 1, true)
 
 			if temp then
 				pServer = M.prettyServer(string.sub(pName, temp + 1, string.len(pName)))
-				pName   = string.sub(pName, 1, temp - 1)
+				pName	= string.sub(pName, 1, temp - 1)
 			else
 				pServer = "All"
 			end
@@ -711,17 +711,17 @@ local function IgnoreListDrawUpdate (self)
 					pType = "|cffe60000Horde"
 				else
 					pType = "Unknown"
-				end				  
+				end
 			elseif PourSocialScoreDB.typeList[index] == "npc" then
 				pType = "|cffffff99NPC"
 			else
 				pType = "|cffff66ccServer"
 				pServer = M.prettyServer(pName)
-				pName = "All"				
-			end	
+				pName = "All"
+			end
 
 			local playerExp = (PourSocialScoreDB.expList[index] or 0)
-			local daysExp   = playerExp - M.daysFromToday(PourSocialScoreDB.dateList[index])
+			local daysExp	= playerExp - M.daysFromToday(PourSocialScoreDB.dateList[index])
 
 			if playerExp == 0 then
 				pExpire = "|cff808080"..L["EXP_NVR"]
@@ -795,10 +795,10 @@ local function CreateIgnoreButtons()
 
 		SortUI.placeName(b, hr, "name")
 		b.server = UI.TCell(b, hr, "server")
-		b.type   = UI.TCell(b, hr, "type")
+		b.type		= UI.TCell(b, hr, "type")
 		b.listed = UI.TCell(b, hr, "listed", "RIGHT")
 		b.expire = UI.TCell(b, hr, "expire", "RIGHT")
-		b.note   = UI.TCell(b, hr, "note")
+		b.note		= UI.TCell(b, hr, "note")
 		b.metrics = UI.CreateMetricCells(b, hr)
 
 		-- W I G P C (ticked = allowed; the record stores *Blocked)
@@ -834,7 +834,7 @@ function M.IgnoreScrollClick(self, button, down)
 		IgnoreListDrawUpdate(IgnoreScrollFrame)
 	end
 
-	if button == "RightButton" then	
+	if button == "RightButton" then
 		V.nameUI = PourSocialScoreDB.ignoreList[IgnoreScrollIndex[IgnoreScrollSelect]]
 
 		MenuUtil.CreateContextMenu(UIParent, function(ownerRegion, root)
@@ -883,8 +883,8 @@ function M.IgnoreScrollClick(self, button, down)
 				end)
 			root:CreateDivider()
 			root:CreateButton(L["RCM_5"],
-				function()					
-				end)			
+				function()
+				end)
 		end)
 	end
 end
@@ -945,11 +945,11 @@ local function playerSortValue(i, key)
 	elseif key == "listed" then return M.daysFromToday(db.dateList[i]) or 0
 	elseif key == "expire" then
 		local e = tonumber(db.expList[i]) or 0
-		if e == 0 then return math.huge end            -- never expires: after everything
+		if e == 0 then return math.huge end				-- never expires: after everything
 		return e - (M.daysFromToday(db.dateList[i]) or 0)
 	elseif key == "note" then
 		local n = string.lower(db.notes[i] or "")
-		return n == "" and nil or n                     -- empty notes go last
+		return n == "" and nil or n						-- empty notes go last
 	end
 	-- block metrics ("metric:<cat>"; players only - NPC / server rows go last)
 	local mcat = key:match("^metric:(.+)$")
@@ -964,7 +964,7 @@ local function playerSortValue(i, key)
 	if ex then
 		if db.typeList[i] ~= "player" then return nil end
 		local p = M.PSS_GetPlayerRecord and M.PSS_GetPlayerRecord(db.ignoreList[i])
-		return UI.ExclChecked(not p or p[ex.field] ~= false) and 1 or 0   -- by tick (allowed)
+		return UI.ExclChecked(not p or p[ex.field] ~= false) and 1 or 0		-- by tick (allowed)
 	end
 	return 0
 end
@@ -995,7 +995,7 @@ local function createSortedIndex (sortType)
 	table.sort(IgnoreScrollIndex, function(a, b)
 		local A, B = sv[a], sv[b]
 		if A ~= B then
-			if A == nil then return false end        -- blanks always last
+			if A == nil then return false end			-- blanks always last
 			if B == nil then return true end
 			if asc then return A < B else return A > B end
 		end
@@ -1249,24 +1249,24 @@ local function BuildPlayerTab()
 		local items = {}
 		for _, p in ipairs(players) do
 			items[#items + 1] = {
-				cells  = { name = p.name, level = p.level or "", class = p.class or "", guild = p.guild or "" },
-				value  = p.name,
+				cells	= { name = p.name, level = p.level or "", class = p.class or "", guild = p.guild or "" },
+				value	= p.name,
 				listed = M.PSS_IsPlayerListed(p.name),
 			}
 		end
 		W.Picker({
-			name     = "PSSPlayerSearchFrame",
-			saveKey  = "playerSearch",
-			title    = "Player Search Results",
+			name		= "PSSPlayerSearchFrame",
+			saveKey		= "playerSearch",
+			title		= "Player Search Results",
 			subtitle = ("%d player(s) found for \"%s\"."):format(#players, query),
-			columns  = {
-				{ key = "name",  text = "Name",  width = 150 },
+			columns		= {
+				{ key = "name",		text = "Name",	width = 150 },
 				{ key = "level", text = "Level", width = 50 },
 				{ key = "class", text = "Class", width = 90 },
 				{ key = "guild", text = "Guild", width = 120 },
 			},
-			items    = items,
-			onSave   = function(names)
+			items		= items,
+			onSave		= function(names)
 				for _, name in ipairs(names) do addPlayer(name) end
 				say(("%d player(s) added to the %s."):format(#names, LIST_NAME))
 			end,
@@ -1279,27 +1279,27 @@ local function BuildPlayerTab()
 
 	local entry = W.EntryRow(Tab1Frame, {
 		searchText = "Player Search",
-		addText    = "Add Player",
-		hint       = "Add a Player...",
-		listName   = LIST_NAME,
-		emptyMsg   = "Type a player name in the box next to Player Search first (or target a player for Add Player).",
-		searchTip  = {
+		addText		= "Add Player",
+		hint		= "Add a Player...",
+		listName	= LIST_NAME,
+		emptyMsg	= "Type a player name in the box next to Player Search first (or target a player for Add Player).",
+		searchTip	= {
 			"Runs a /who for the name in the box and lists the players found, so you can tick which to add. If nobody is found you can add the name anyway.",
 			"Name, Name-Realm, or First Last-Realm. /who can't search by realm, so only the name is searched for.",
 		},
-		addTip     = "Adds the name typed in the box (you are asked first: Okay adds it without searching, Search runs Player Search instead). With the box empty, adds your target if it is a player of your faction.",
-		isListed   = function(name) return M.PSS_IsPlayerListed(name) end,
-		add        = addPlayer,
-		search     = search,
-		canSend    = function() return not M.Whois.BlockedMsg() end,
+		addTip		= "Adds the name typed in the box (you are asked first: Okay adds it without searching, Search runs Player Search instead). With the box empty, adds your target if it is a player of your faction.",
+		isListed	= function(name) return M.PSS_IsPlayerListed(name) end,
+		add			= addPlayer,
+		search		= search,
+		canSend		= function() return not M.Whois.BlockedMsg() end,
 		onEmptyAdd = function()
 			local name = targetName()
 			if not name then return false end
 			M.PSS_AddPlayer(name, "", 0, "target")
 			return true
 		end,
-		say        = say,
-		names      = { box = "PSSFrame1SearchBox", search = "PSSFrame1SearchButton", add = "PSSFrame1AddPlayerButton" },
+		say			= say,
+		names		= { box = "PSSFrame1SearchBox", search = "PSSFrame1SearchButton", add = "PSSFrame1AddPlayerButton" },
 	})
 	UI.RegisterWhoisButton(entry.search)
 	Tab1Frame.searchBox = entry.box
@@ -1529,7 +1529,7 @@ local function BuildFilterEditor()
 			M.FilterScrollChangeState(0)
 			return
 		end
-		Tab2EditDesc   = PSSFrame2EditDescField:GetText()
+		Tab2EditDesc	= PSSFrame2EditDescField:GetText()
 		Tab2EditFilter = PSSFrame2EditFilterField.EditBox:GetText()
 		PourSocialScoreDB.filterDesc[FilterScrollSelect] = Tab2EditDesc
 		PourSocialScoreDB.filterList[FilterScrollSelect] = Tab2EditFilter
@@ -1571,15 +1571,15 @@ local function BuildFilterEditor()
 	local active = UI.Check(Tab2FrameEdit)
 	_G["PSSFrame2Active"] = active
 	active:SetPoint("LEFT", activeText, "RIGHT", 4, 0)
-	active:SetScript("OnShow",  function(self) self:SetChecked(Tab2EditActive == true) end)
+	active:SetScript("OnShow",	function(self) self:SetChecked(Tab2EditActive == true) end)
 	active:SetScript("OnClick", function(self) Tab2EditActive = (self:GetChecked() or false) end)
 
 	local descText = label("Description:", 110, -58, "PSSFrame2EditDescText")
 	local desc = UI.InputBox(Tab2FrameEdit, nil, 20, "PSSFrame2EditDescField")
 	desc:SetPoint("LEFT", descText, "RIGHT", 12, 0)
 	desc:SetPoint("RIGHT", Tab2FrameEdit, "RIGHT", -20, 0)
-	desc:SetScript("OnShow",	      function(self) self:SetText(Tab2EditDesc) end)
-	desc:SetScript("OnEnterPressed",  function(self) Tab2EditDesc = self:GetText() self:ClearFocus() end)
+	desc:SetScript("OnShow",			function(self) self:SetText(Tab2EditDesc) end)
+	desc:SetScript("OnEnterPressed",	function(self) Tab2EditDesc = self:GetText() self:ClearFocus() end)
 	desc:SetScript("OnEscapePressed", function(self) self:SetText(Tab2EditDesc) self:ClearFocus() end)
 
 	-- Filter text
@@ -1590,8 +1590,8 @@ local function BuildFilterEditor()
 	field:SetPoint("RIGHT", Tab2FrameEdit, "RIGHT", -24, 0)
 	field:SetHeight(60)
 	field.EditBox:SetWidth(800)
-	field.EditBox:SetScript("OnShow",		   function(self) self:SetText(Tab2EditFilter) end)
-	field.EditBox:SetScript("OnEnterPressed",  function(self) Tab2EditFilter = self:GetText() self:ClearFocus() end)
+	field.EditBox:SetScript("OnShow",			function(self) self:SetText(Tab2EditFilter) end)
+	field.EditBox:SetScript("OnEnterPressed",	function(self) Tab2EditFilter = self:GetText() self:ClearFocus() end)
 	field.EditBox:SetScript("OnEscapePressed", function(self) self:SetText(Tab2EditFilter) self:ClearFocus() end)
 
 	-- Filter testing (bottom left)
@@ -1614,7 +1614,7 @@ local function BuildFilterEditor()
 	test.EditBox:SetScript("OnTextChanged", function(self) result:SetText("") end)
 
 	testBtn:SetScript("OnClick", function()
-		local chatStr   = string.lower(test.EditBox:GetText())
+		local chatStr	= string.lower(test.EditBox:GetText())
 		local filterStr = field.EditBox:GetText()
 		local res = M.filterComplex(filterStr, chatStr, 1)
 		if V.lastFilterError == true then
@@ -1653,7 +1653,7 @@ local function BuildUIFrames()
 	----------------
 
 	MainFrame = CreateFrame("Frame", "PSS", UIParent, "PortraitFrameTemplate")
-	tinsert(UISpecialFrames, "PSS")   -- Escape closes it
+	tinsert(UISpecialFrames, "PSS")		-- Escape closes it
 	MainFrame:Hide()
 	MainFrame:SetFrameStrata(M.PSS_FrameStrataName())
 	MainFrame:SetWidth(WINDOW_WIDTH)
@@ -1782,7 +1782,7 @@ local function friendsShow()
 
 	if MainFrame ~= nil then
 		MainFrame:ClearAllPoints()
-		MainFrame:SetPoint("TOPLEFT", FriendsFrame, "TOPRIGHT", 12, -10)		
+		MainFrame:SetPoint("TOPLEFT", FriendsFrame, "TOPRIGHT", 12, -10)
 		MainFrame:Show()
 	end
 end
@@ -1812,7 +1812,7 @@ function ChatEdit_InsertLink (text)
 		PSSFrame2EditLinkField:SetText(text)
 		PSSFrame2EditLinkField:Show()
 
-		return true	
+		return true
 	elseif text and PSSFrame2EditFilterField and PSSFrame2EditFilterField.EditBox:HasFocus() then
 		PSSFrame2EditFilterField.EditBox:Insert(convertLink(text))
 		PSSFrame2EditFilterField.EditBox:Show()
@@ -1823,7 +1823,7 @@ function ChatEdit_InsertLink (text)
 		PSSFrame2EditTestField.EditBox:Show()
 
 		return true
-	else	
+	else
 		return Blizzard_ChatEdit_InsertLink(text)
 	end
 end
@@ -1870,7 +1870,7 @@ end
 function M.PSSUpdateUI (forced)
 	if M.PSS_RefreshPlayerDetail then M.PSS_RefreshPlayerDetail() end
 	if Tab1Frame and Tab1Frame.updateHistoryPanel then Tab1Frame.updateHistoryPanel() end
-	if MainFrame ~= nil and Tab1Frame:IsVisible() then	
+	if MainFrame ~= nil and Tab1Frame:IsVisible() then
 		if V.needSorted or (forced and forced == true) then
 			createSortedIndex(IgnoreScrollType)
 		else

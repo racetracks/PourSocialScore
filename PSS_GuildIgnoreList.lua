@@ -12,7 +12,7 @@ local V = addon.V
 local L = addon.L -- localization entries
 
 local showGuildSearchResults
-local Whois = M.Whois   -- /who sending, cooldown and answers (PSS_Whois.lua)
+local Whois = M.Whois	-- /who sending, cooldown and answers (PSS_Whois.lua)
 
 -- Scan / Guild Search buttons are disabled while /who cools down (PSS_UIKit.lua).
 local function registerGuildScanButton(button) M.UI.RegisterWhoisButton(button) end
@@ -22,9 +22,9 @@ M.Events.Register("WHOIS_COOLDOWN", function(active)
 	if not active and M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
 end)
 
-local trim            = M.PSS_Trim
+local trim				= M.PSS_Trim
 local normalizePlayer = M.PSS_NormalizePlayer
-local displayPlayer   = M.PSS_DisplayPlayer
+local displayPlayer		= M.PSS_DisplayPlayer
 
 local function normalizeGuild(name)
 	if type(name) ~= "string" then return nil end
@@ -48,9 +48,9 @@ local function guildMatches(rowName, actualGuild)
 end
 
 local canonPlayer = M.PSS_CanonPlayer
-local canonGuild  = M.PSS_CanonGuild
-local isSecret    = M.PSS_IsSecret
-local nowString   = M.PSS_NowString
+local canonGuild	= M.PSS_CanonGuild
+local isSecret		= M.PSS_IsSecret
+local nowString		= M.PSS_NowString
 
 local function classTokenFromInfo(infoClass)
 	if not infoClass then return "" end
@@ -166,7 +166,7 @@ M.PSS_DEFAULT_SCAN_FIELDS = "1-60"
 
 local EXCL_CATS = {}
 M.PSS_EXCL_INFO = {}
-for _, e in ipairs(M.UI.EXCL) do          -- order and wording: PSS_UIKit.lua
+for _, e in ipairs(M.UI.EXCL) do			-- order and wording: PSS_UIKit.lua
 	EXCL_CATS[#EXCL_CATS + 1] = e.cat
 	M.PSS_EXCL_INFO[e.cat] = { letter = e.letter, label = e.label }
 end
@@ -284,7 +284,7 @@ local function ensureGuild(name)
 		if g.declineGroup == nil then g.declineGroup = true end
 		if g.partyRaid == nil then g.partyRaid = true end
 		M.PSS_MigrateCustomScan(g)
-		g.scan, g.scanTotal, g.scanBrackets = nil, nil, nil   -- the old Scan n/9 progress
+		g.scan, g.scanTotal, g.scanBrackets = nil, nil, nil		-- the old Scan n/9 progress
 		g.members = g.members or {}
 		g.memberCount = tonumber(g.memberCount) or 0
 	end
@@ -466,12 +466,12 @@ M.PSS_EnsureMemberBlockData = ensureMemberBlockData
 -- Before 2.0.29 each member was saved with four Allow flags, an empty block
 -- table, a zero blockCounts table and session-only /who details: about
 -- 1.2 KB each, which full guild sweeps (2.0.19) multiplied by thousands.
-local DROP_ALWAYS = { "online", "race", "className" }   -- never read for members
+local DROP_ALWAYS = { "online", "race", "className" }	-- never read for members
 local ALLOW_FLAGS = { "excludedGroup", "excludedGuildInvite", "excludedWhispers", "excludedChat" }
 local function compactMember(m)
 	if type(m) ~= "table" then return end
 	ensureMemberBlockData(m)
-	if type(m.block) ~= "table" then memberBlock(m) end   -- folds true Allow flags into m.block
+	if type(m.block) ~= "table" then memberBlock(m) end		-- folds true Allow flags into m.block
 	for _, f in ipairs(ALLOW_FLAGS) do
 		if m[f] ~= true then m[f] = nil end
 	end
@@ -557,7 +557,7 @@ M.PSS_MergeMemberBlockData = mergeBlockData
 -- needed and never written to SavedVariables.
 ------------------------------------------------------------------------
 local MANAGED = addon.MANAGED or { groups = {} }
-local managed = nil           -- guild-level data, built on first use
+local managed = nil				-- guild-level data, built on first use
 -- canon -> record for shipped members looked at this session. Weak: a record
 -- nobody uses any more is freed by the garbage collector. Records you
 -- changed are also held in vkeep until they are saved at logout.
@@ -869,7 +869,7 @@ local function lookupGuildMemberCanon(ck)
 		local g = PourSocialScoreDB.guildData[hitG]
 		local m = g and g.members and g.members[hitK]
 		if m then return g, hitG, m, hitK end
-		if attempt == 1 then rebuildMemberIndex() end   -- stale entry
+		if attempt == 1 then rebuildMemberIndex() end	-- stale entry
 	end
 	return nil
 end
@@ -903,7 +903,7 @@ local function recordGuildBlock(g, m, cat, event, message, channel, gkey)
 	keepManaged(m)
 	ensureMemberBlockData(m, true)
 	local entry = History.NewEntry(cat, event, message, channel, m.name)
-	entry.gk = gkey      -- the rule at the time (used if they leave every rule)
+	entry.gk = gkey			-- the rule at the time (used if they leave every rule)
 	History.Add(History.MemberKey(m), m.blockCounts, entry)
 	if M.PSS_Stats then M.PSS_Stats.Count("guild", entry.cat) end
 	if entry.cat == "partyInvite" or entry.cat == "guildInvite" then
@@ -965,7 +965,7 @@ function M.PSS_SetMemberFlag(member, field, value)
 	keepManaged(member)
 	local b = memberBlockW(member)
 	for _, c in ipairs(cats) do
-		if value == true then b[c] = false else b[c] = nil end   -- (x and false or nil) is always nil
+		if value == true then b[c] = false else b[c] = nil end		-- (x and false or nil) is always nil
 	end
 	return true
 end
@@ -1100,7 +1100,7 @@ local function guildLineMatcher(g, gkey)
 			if ck then stored[ck] = true end
 		end
 	end
-	local where = {}     -- ck -> in this rule (true) / not (false), per view
+	local where = {}		-- ck -> in this rule (true) / not (false), per view
 	return function(h)
 		local o = h.o
 		if type(o) ~= "string" or o:sub(1, 2) ~= "g:" then return false end
@@ -1131,7 +1131,7 @@ function M.PSS_GetGuildBlockHistory(guildNameOrKey)
 			return false
 		end)
 	end
-	local label = {}     -- ck -> "Guild rule: X" / false
+	local label = {}		-- ck -> "Guild rule: X" / false
 	return History.Collect(function(h)
 		local o = h.o
 		if type(o) ~= "string" or o:sub(1, 2) ~= "g:" then return false end
@@ -1204,7 +1204,7 @@ local function addWhoResultToGuildMember(info, guildRowName, actualGuild)
 	if type(fullName) ~= "string" or isSecret(fullName) or fullName == "" then return nil end
 
 	actualGuild = actualGuild or info.fullGuildName or info.guild or ""
-	if M.PSS_IsGuildExcluded(actualGuild) then return nil end   -- Guild Exclusion List
+	if M.PSS_IsGuildExcluded(actualGuild) then return nil end	-- Guild Exclusion List
 	-- WHO's lazy guild search means a scan for "Olympus" also returns members of
 	-- "Olympus Tycoons". If a more specific saved guild rule matches this
 	-- member's ACTUAL guild, the member belongs to that rule, not to the broad
@@ -1287,7 +1287,7 @@ function M.PSS_ScanGuild(guildName, mode, restart)
 		-- e.g. g-"Olympus" 80 c-"Mage"
 		bracket = trim(g.customScan or "")
 		filter = 'g-"' .. g.name:gsub('"', "") .. '"' .. (bracket ~= "" and (" " .. bracket) or "")
-		filter = M.PSS_CapWhoFilter(filter)   -- Options: scan level cap
+		filter = M.PSS_CapWhoFilter(filter)		-- Options: scan level cap
 		bracket = filter:match('^g%-".-"%s*(.*)$') or ""
 	else
 		sw, item, filter = M.PSS_HarvestNext(g, restart)
@@ -1321,7 +1321,7 @@ function M.PSS_ScanGuild(guildName, mode, restart)
 	-- (Whois.Request starts the cooldown and the 5 s "nobody answered"
 	-- timer itself, both after the /who has gone out.)
 	if not Whois.Request(req) then return false end
-	if sw then M.PSS_HarvestSent(sw, filter) end   -- only advance when the /who really went out
+	if sw then M.PSS_HarvestSent(sw, filter) end	-- only advance when the /who really went out
 	C_Timer.After(0, function()
 		if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
 	end)
@@ -1469,7 +1469,7 @@ function M.PSS_GuildSearch(text, mode)
 	else
 		filter = 'g-"' .. (text:gsub('"', "")) .. '"'
 	end
-	filter = M.PSS_CapWhoFilter(filter)   -- Options: scan level cap
+	filter = M.PSS_CapWhoFilter(filter)		-- Options: scan level cap
 
 	-- /who must go out straight from the click (hardware event)
 	return Whois.Request({ kind = "guildSearch", filter = filter, query = text, mode = mode, found = {} })
@@ -1538,10 +1538,10 @@ showGuildSearchResults = function(list, query, mode)
 		if exclude then
 			-- nobody online in a guild by that name: offer to add it anyway
 			M.Widgets.PromptAddAnyway(trim((query or ""):gsub('"', "")), {
-				say      = guildSearchChat,
-				what     = "guild",
+				say			= guildSearchChat,
+				what		= "guild",
 				listName = "Guild Exclusion List",
-				add      = M.PSS_AddGuildExclusion,
+				add			= M.PSS_AddGuildExclusion,
 			})
 		else
 			guildSearchChat(("Guild Search found no guilds for \"%s\"."):format(query or ""))
@@ -1561,16 +1561,16 @@ showGuildSearchResults = function(list, query, mode)
 	end
 
 	M.PSSGuildSearchFrame = M.Widgets.Picker({
-		name     = "PSSGuildSearchFrame",
-		saveKey  = "guildSearch",
-		title    = exclude and "Guild Exclusion Search" or "Guild Search Results",
+		name		= "PSSGuildSearchFrame",
+		saveKey		= "guildSearch",
+		title		= exclude and "Guild Exclusion Search" or "Guild Search Results",
 		subtitle = ("%d guild(s) found for \"%s\"."):format(#list, query or "")
 			.. (exclude and " Tick the guilds to exclude." or ""),
-		columns  = { { key = "guild", text = "Guild", width = 330, minWidth = 120 } },
-		items    = items,
-		onSave   = exclude and saveGuildExclusions or saveGuildSearch,
+		columns		= { { key = "guild", text = "Guild", width = 330, minWidth = 120 } },
+		items		= items,
+		onSave		= exclude and saveGuildExclusions or saveGuildSearch,
 		-- closing the results (Save, Cancel, Escape, X) forgets the cached players
-		onHide   = function() if not exclude then C_Timer.After(0, function() M.PSS_GuildSearchCache = nil end) end end,
+		onHide		= function() if not exclude then C_Timer.After(0, function() M.PSS_GuildSearchCache = nil end) end end,
 	})
 end
 
@@ -1671,7 +1671,7 @@ function M.PSS_UpgradeLegacyData()
 		end
 		for key, p in pairs(PourSocialScoreDB.playerData or {}) do
 			if type(p) == "table" then
-				if M.PSS_GetPlayerBlockCounts then M.PSS_GetPlayerBlockCounts(p) end   -- counts from older saves
+				if M.PSS_GetPlayerBlockCounts then M.PSS_GetPlayerBlockCounts(p) end	-- counts from older saves
 				upgrade(p, p.name or key)
 			end
 		end
@@ -1927,7 +1927,7 @@ function M.PSS_BestGuildRowFor(actualGuild)
 	ensureDB()
 	local ac = canonGuild(actualGuild)
 	if not ac then return nil end
-	if M.PSS_IsGuildExcluded(actualGuild) then return nil end   -- excluded guilds belong to no rule
+	if M.PSS_IsGuildExcluded(actualGuild) then return nil end	-- excluded guilds belong to no rule
 	local bestKey, bestG, bestLen
 	for key, g in pairs(PourSocialScoreDB.guildData or {}) do
 		if type(g) == "table" then
@@ -1961,7 +1961,7 @@ function M.PSS_ReconcileGuildMembers()
 	end
 	if #moves == 0 then return 0 end
 
-	local dstIndex = {}   -- dstKey -> canon -> storedKey
+	local dstIndex = {}		-- dstKey -> canon -> storedKey
 	local function indexFor(dstKey)
 		local idx = dstIndex[dstKey]
 		if not idx then
@@ -2186,7 +2186,7 @@ function M.PSS_RemoveGuild(guildNameOrKey)
 	local key = normalizeGuild(guildNameOrKey)
 	local g = key and PourSocialScoreDB.guildData[key]
 	if not g then return 0, 0, false end
-	if isStaticGuild(key) then return 0, 0, false end   -- shipped guilds can't be removed
+	if isStaticGuild(key) then return 0, 0, false end	-- shipped guilds can't be removed
 
 	local memberKeys = {}
 	local memberCount = 0
@@ -2266,9 +2266,9 @@ local function canSendWho() return not Whois.BlockedMsg() end
 
 local function createGuildEntryRow(frame, opts)
 	opts.searchText = "Guild Search"
-	opts.addText    = "Add Guild"
-	opts.canSend    = canSendWho
-	opts.say        = pssSay
+	opts.addText	= "Add Guild"
+	opts.canSend	= canSendWho
+	opts.say		= pssSay
 	local row = M.Widgets.EntryRow(frame, opts)
 	registerGuildScanButton(row.search)
 	return row
@@ -2292,33 +2292,33 @@ function M.PSS_BuildGuildUI(parent)
 	--   [ Add a Guild...     ] [Guild Search] [Add Guild]   -> Guild Ignore List
 	--   [ Exclude a Guild... ] [Guild Search] [Add Guild]   -> Guild Exclusion List
 	local ignoreRow = createGuildEntryRow(frame, {
-		hint      = "Add a Guild...",
-		listName  = "Guild Ignore List",
-		emptyMsg  = "Type part of a guild name in the box next to Guild Search first.",
+		hint		= "Add a Guild...",
+		listName	= "Guild Ignore List",
+		emptyMsg	= "Type part of a guild name in the box next to Guild Search first.",
 		searchTip = {
 			"Runs a /who and lists every guild found (not the players).",
 			"Type part of a guild name, or a full /who filter containing quotes, e.g. g-\"Name\" 10-80",
 		},
-		isListed  = function(name)
+		isListed	= function(name)
 			return PourSocialScoreDB.guildData[normalizeGuild(name)] ~= nil
 		end,
-		add       = function(name) M.PSS_AddGuild(name) end,
-		search    = function(text) return M.PSS_GuildSearch(text) end,
+		add			= function(name) M.PSS_AddGuild(name) end,
+		search		= function(text) return M.PSS_GuildSearch(text) end,
 	})
 	frame.addButton, frame.searchButton, frame.searchBox = ignoreRow.add, ignoreRow.search, ignoreRow.box
 
 	local exclRow = createGuildEntryRow(frame, {
-		below     = ignoreRow,
-		hint      = "Exclude a Guild...",
-		listName  = "Guild Exclusion List",
-		emptyMsg  = "Type a guild name in the box beneath Guild Search first.",
+		below		= ignoreRow,
+		hint		= "Exclude a Guild...",
+		listName	= "Guild Exclusion List",
+		emptyMsg	= "Type a guild name in the box beneath Guild Search first.",
 		searchTip = {
 			"Runs a /who for the guild name in the box and lets you pick which guilds found go on the Guild Exclusion List. If none is found you can add the name anyway.",
 			"Excluded guilds are never blocked by a guild rule, even one whose name they contain (a rule for \"Olympus\" no longer catches an excluded <Olympus Friends>).",
 		},
-		isListed  = function(name) return M.PSS_IsGuildExcluded(name) end,
-		add       = function(name) M.PSS_AddGuildExclusion(name) end,
-		search    = function(text)
+		isListed	= function(name) return M.PSS_IsGuildExcluded(name) end,
+		add			= function(name) M.PSS_AddGuildExclusion(name) end,
+		search		= function(text)
 			-- always a guild name here, never a raw /who filter
 			return M.PSS_GuildSearch((text:gsub('"', "")), "exclude")
 		end,
@@ -2331,7 +2331,7 @@ function M.PSS_BuildGuildUI(parent)
 	local scanAll = UI.TopButton(frame, "Scan All", ignoreRow.box, 80, "PSSGuildScanAllButton")
 	scanAll:ClearAllPoints()
 	scanAll:SetPoint("RIGHT", ignoreRow.box, "LEFT", -10, 0)
-	scanAll:SetScript("OnClick", function() M.PSS_ScanAll() end)   -- /who first, UI after
+	scanAll:SetScript("OnClick", function() M.PSS_ScanAll() end)	-- /who first, UI after
 	scanAll:SetScript("OnEnter", function(self) M.PSS_ScanTipEnter(self, nil) end)
 	scanAll:SetScript("OnLeave", function() M.PSS_ScanTipLeave() end)
 	registerGuildScanButton(scanAll)
@@ -2340,16 +2340,16 @@ function M.PSS_BuildGuildUI(parent)
 	-- Columns (every column sorts): the block metrics, then the per-guild
 	-- W I G P C exclusions (tickboxes).
 	local COLS = {
-		{ key = "guild",   text = "Guild",   width = 150 },
+		{ key = "guild",	text = "Guild",		width = 150 },
 		{ key = "members", text = "Members", width = 70, justify = "RIGHT" },
 	}
 	for _, c in ipairs(UI.MetricColumns()) do COLS[#COLS + 1] = c end
 	for _, c in ipairs({
-		{ key = "excl",    letters = "excl", width = UI.EXCL_W, lettersTitle = "Per-guild exclusions",
+		{ key = "excl",		letters = "excl", width = UI.EXCL_W, lettersTitle = "Per-guild exclusions",
 			lettersNote = "Ticked = allowed from every member of the guild, unticked = blocked. A member's own W I G P C (members window) wins." },
-		{ key = "scan",    text = "Scan",    width = 86, tip = "Sweeps the guild with /who, one search per click: the whole guild first, then any answer capped at 50 is split by level bracket, class and single level. Scan n/m = searches sent / planned so far. Hover a Scan button for the full status. Sorts by searches sent this session." },
-		{ key = "fields",  text = "Scan Fields", width = 120, tip = "Extra /who filters sent with the guild name by Custom Scan, e.g. 80  or  70-80 c-\"Mage\"." },
-		{ key = "custom",  text = "Custom",  width = 72, tip = "Custom Scan: /who for the guild plus its Scan Fields. Sorts by whether Scan Fields are set." },
+		{ key = "scan",		text = "Scan",		width = 86, tip = "Sweeps the guild with /who, one search per click: the whole guild first, then any answer capped at 50 is split by level bracket, class and single level. Scan n/m = searches sent / planned so far. Hover a Scan button for the full status. Sorts by searches sent this session." },
+		{ key = "fields",	text = "Scan Fields", width = 120, tip = "Extra /who filters sent with the guild name by Custom Scan, e.g. 80  or  70-80 c-\"Mage\"." },
+		{ key = "custom",	text = "Custom",	width = 72, tip = "Custom Scan: /who for the guild plus its Scan Fields. Sorts by whether Scan Fields are set." },
 	}) do COLS[#COLS + 1] = c end
 
 	-- Sorting: a new column sorts ascending, the same column again flips it.
@@ -2694,7 +2694,7 @@ function M.PSS_BuildGuildUI(parent)
 
 		local sortKey, asc = frame.sortKey or "guild", frame.sortAsc ~= false
 		local group, cat = sortKey:match("^(%a+):(%a+)$")
-		local function flag(v) return UI.ExclChecked(v == true) and 1 or 0 end   -- by tick (allowed)
+		local function flag(v) return UI.ExclChecked(v == true) and 1 or 0 end		-- by tick (allowed)
 		local function sortValue(item)
 			local g, bc = item.g, item.bc
 			if group == "metric" then return bc[cat] or 0
@@ -2821,13 +2821,13 @@ function M.PSS_BuildGuildUI(parent)
 				row.customScan:SetScript("OnEditFocusLost", readCustom)
 				row.scan:SetScript("OnClick", function()
 					if M.PSS_ScanBlockedMsg() then return end
-					M.PSS_ScanGuild(g.name, "sweep", IsShiftKeyDown())   -- /who first, UI after
+					M.PSS_ScanGuild(g.name, "sweep", IsShiftKeyDown())		-- /who first, UI after
 				end)
 				row.scan:SetScript("OnEnter", function(self) M.PSS_ScanTipEnter(self, g) end)
 				row.customScanButton:SetScript("OnClick", function()
 					if M.PSS_ScanBlockedMsg() then return end
 					readCustom()
-					M.PSS_ScanGuild(g.name, "custom")  -- /who first, UI after
+					M.PSS_ScanGuild(g.name, "custom")	-- /who first, UI after
 					C_Timer.After(0, function() row.customScan:ClearFocus() end)
 				end)
 			end
@@ -2854,15 +2854,15 @@ end
 
 -- Guild members window columns (W I G P C = the Player Ignore List header)
 local MEMBER_COLS = {
-	{ key = "name",     text = "Name",    width = 150 },
-	{ key = "guild",    text = "Guild",   width = 120 },
-	{ key = "added",    text = "Added",   width = 124 },
-	{ key = "note",     text = "Note",    width = 130 },
+	{ key = "name",		text = "Name",		width = 150 },
+	{ key = "guild",	text = "Guild",		width = 120 },
+	{ key = "added",	text = "Added",		width = 124 },
+	{ key = "note",		text = "Note",		width = 130 },
 }
 -- block metrics (same columns as the Player and Guild Ignore Lists), then W I G P C
 for _, c in ipairs(M.UI.MetricColumns()) do MEMBER_COLS[#MEMBER_COLS + 1] = c end
 for _, c in ipairs({
-	{ key = "excl",     letters = "excl", width = 154, lettersTitle = "Per-player exclusions",
+	{ key = "excl",		letters = "excl", width = 154, lettersTitle = "Per-player exclusions",
 		lettersNote = "Ticked = allowed from that player, unticked = blocked. Dimmed boxes follow the guild's setting; click one to set it for that player, right-click to go back to the guild's setting." },
 	{ key = "addGuild", text = "Guild Rule", width = 90, tip = "Add Guild appears when the player's actual guild is not this rule: it creates a rule for that guild and moves its members there." },
 }) do MEMBER_COLS[#MEMBER_COLS + 1] = c end
@@ -3017,7 +3017,7 @@ function M.PSS_ShowGuildDetail(guildNameOrKey)
 		local cat = key:match("^excl:(.+)$")
 		if cat then
 			local gg = PourSocialScoreDB.guildData[f.guildKey]
-			return UI.ExclChecked(gg and memberBlocks(gg, m, cat)) and 1 or 0   -- by tick (allowed)
+			return UI.ExclChecked(gg and memberBlocks(gg, m, cat)) and 1 or 0	-- by tick (allowed)
 		elseif key == "name" then return string.lower(m.name or "")
 		elseif key == "guild" then return string.lower(m.guild or "")
 		elseif key == "note" then return string.lower(m.note or "")
@@ -3188,7 +3188,7 @@ function M.PSS_ShowGuildDetail(guildNameOrKey)
 			if a.sv ~= b.sv then
 				if asc then return a.sv < b.sv else return a.sv > b.sv end
 			end
-			return a.nv < b.nv   -- stable tie-break by name
+			return a.nv < b.nv		-- stable tie-break by name
 		end)
 		f.hr:SetSort(key, asc)
 
@@ -3228,7 +3228,7 @@ function M.PSS_ShowGuildDetail(guildNameOrKey)
 
 	f.refresh = refresh
 	if f.search:GetText() ~= "" then
-		f.search:SetText("")   -- OnTextChanged refreshes
+		f.search:SetText("")	-- OnTextChanged refreshes
 	end
 	refresh()
 end
@@ -3296,7 +3296,7 @@ if M.PSS_RegisterBlockSource then
 				if not any then return false end
 				return gopt(cat == "duel" and "declineDuel" or "declineTrade", e) ~= false
 			end
-			return false      -- guild/officer chat, achievements, notices
+			return false		-- guild/officer chat, achievements, notices
 		end,
 		record = function(e, cat, ctx)
 			if cat == "duel" or cat == "trade" then return end

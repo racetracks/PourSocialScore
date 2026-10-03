@@ -82,7 +82,7 @@ function M.PSS_CanonPlayer(name)
 	if name == "" then return nil end
 	local base, realm = name:match("^([^%-]+)%-(.+)$")
 	if not base then base, realm = name, ownRealm() end
-	base = trim(base):gsub("%s+", " ")       -- "First  Last" == "First Last"
+	base = trim(base):gsub("%s+", " ")			-- "First  Last" == "First Last"
 	realm = (realm or ""):gsub("[%s%-']", "")
 	return (base .. "-" .. realm):lower()
 end
@@ -393,7 +393,7 @@ local function evaluate(ctx)
 	local author = ctx.author
 	if type(author) ~= "string" or author == "" then return false end
 	stats.checked = stats.checked + 1
-	local lc = stats.lastChecked          -- one table, reused
+	local lc = stats.lastChecked			-- one table, reused
 	lc.name, lc.event, lc.at = author, ctx.event, GetTime()
 
 	local canon = senderCanon(author, ctx.guid)
@@ -500,7 +500,7 @@ local function CoreFilter(_, event, msg, author, language, channelString, target
 
 	local key
 	if type(lineID) == "number" and not isSecret(lineID) and lineID ~= 0 then
-		key = lineID                 -- unique per chat line
+		key = lineID					-- unique per chat line
 	else
 		local m = isSecret(msg) and "" or tostring(msg or "")
 		key = event .. "\1" .. tostring(author) .. "\1" .. m .. "\1" .. math.floor(GetTime() * 2)
@@ -514,7 +514,7 @@ local function CoreFilter(_, event, msg, author, language, channelString, target
 	local ok, hit = pcall(evaluate, ctx)
 	if not ok then
 		noteError(hit)
-		return false        -- not cached: the next window tries again
+		return false		-- not cached: the next window tries again
 	end
 	hit = hit == true
 	cachePut(key, hit)
@@ -588,7 +588,7 @@ end
 ------------------------------------------------------------------------
 -- Invites, duels, trades
 ------------------------------------------------------------------------
-local pendingInvite = nil   -- canon of an unidentified party inviter
+local pendingInvite = nil	-- canon of an unidentified party inviter
 local lastGuildDecline, lastGuildEvent = 0, 0
 
 local function declineMsg(fmtKey, name, octx)
@@ -726,7 +726,7 @@ ev:RegisterEvent("GUILD_INVITE_REQUEST")
 ev:RegisterEvent("DUEL_REQUESTED")
 ev:RegisterEvent("TRADE_SHOW")
 ev:RegisterEvent("GROUP_ROSTER_UPDATE")
-pcall(ev.RegisterEvent, ev, "TRADE_REQUEST")   -- not on every client
+pcall(ev.RegisterEvent, ev, "TRADE_REQUEST")	-- not on every client
 ev:SetScript("OnEvent", function(_, event, arg1, ...)
 	local ok, err = true, nil
 	if event == "PARTY_INVITE_REQUEST" then

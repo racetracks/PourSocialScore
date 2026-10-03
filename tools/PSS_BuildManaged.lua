@@ -2,7 +2,7 @@
 -- Builds PourSocialScore's PSS_GuildIgnore_Managed.lua (the managed / default
 -- guild lists) from OlympusMute SavedVariables (Olympus.lua, variable OlympusDB).
 --
--- Usage (any Lua 5.1+ interpreter, e.g. lua5.1, luajit, texlua):
+-- Usage (Lua 5.1, e.g. lua5.1 or luajit):
 --   lua PSS_BuildManaged.lua <path to Olympus.lua> > PSS_GuildIgnore_Managed.lua
 --   lua PSS_BuildManaged.lua --reindex <PSS_GuildIgnore_Managed.lua> > new.lua
 --
@@ -24,11 +24,11 @@
 -- position), so the game does not have to build it at login.
 
 local GROUP = {
-	key  = "olympus",
+	key		= "olympus",
 	name = "Olympus",
 	rule = "Influencer Guilds - Asmongold",
 	filter = "InfluencerGuild=Olympus",
-	id   = "PSSG0001",
+	id		= "PSSG0001",
 }
 
 ------------------------------------------------------------------------
@@ -215,7 +215,7 @@ end
 
 local function loadInto(path, env, ...)
 	local chunk = assert(loadfile(path))
-	if setfenv then setfenv(chunk, env) end
+	setfenv(chunk, env)
 	chunk(...)
 end
 
@@ -232,11 +232,11 @@ if arg and arg[1] == "--reindex" then
 	local members = {}
 	for k, v in pairs(grp.guilds or {}) do
 		if type(k) == "string" then
-			members[k] = v                     -- old format: [guild] = { names }
+			members[k] = v						-- old format: [guild] = { names }
 		else
 			local list = {}
 			for _, n in ipairs(v) do list[#list + 1] = n end
-			members[v.name] = list             -- current format
+			members[v.name] = list				-- current format
 		end
 	end
 	-- keep the merge notes from the old header
@@ -254,9 +254,7 @@ end
 local path = arg and arg[1]
 assert(path, "usage: lua PSS_BuildManaged.lua <Olympus.lua>")
 local env = {}
-if setfenv then loadInto(path, env) else
-	local chunk = assert(load(io.open(path):read("*a"), "Olympus", "t", env)); chunk()
-end
+loadInto(path, env)
 local DB = assert(env.OlympusDB, "no OlympusDB in " .. path)
 
 local mine = {}

@@ -19,7 +19,7 @@ local M = addon.M
 local Events = {}
 M.Events = Events
 
-local listeners = {}   -- [event] = { [id] = fn }
+local listeners = {}	-- [event] = { [id] = fn }
 local nextId = 0
 
 function Events.Register(event, fn)

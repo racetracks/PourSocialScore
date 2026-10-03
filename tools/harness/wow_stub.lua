@@ -3,7 +3,7 @@
 -- scripts, events, text, shown state and size.
 local stub = {}
 
-local clock = 1790000000          -- server time (seconds), settable
+local clock = 1790000000			-- server time (seconds), settable
 local uptime = 1000
 function stub.SetTime(t) clock = t end
 function stub.Advance(s) clock = clock + s; uptime = uptime + s end

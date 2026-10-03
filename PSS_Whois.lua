@@ -37,7 +37,7 @@ Whois.EXPIRE = 30
 -- The same filter twice within this many seconds is refused.
 local REPEAT_WINDOW = 3
 
-local pending = nil           -- the request waiting for its answer
+local pending = nil				-- the request waiting for its answer
 local listeners = {}
 local cooldownUntil = 0
 local cooldownTimer = nil
@@ -299,8 +299,8 @@ end)
 ------------------------------------------------------------------------
 -- older names, still used across the addon
 ------------------------------------------------------------------------
-M.PSS_ScanCooldownActive    = Whois.CooldownActive
+M.PSS_ScanCooldownActive	= Whois.CooldownActive
 M.PSS_ScanCooldownRemaining = Whois.CooldownRemaining
-M.PSS_StartScanCooldown     = Whois.StartCooldown
-M.PSS_ScanBlockedMsg        = Whois.BlockedMsg
+M.PSS_StartScanCooldown		= Whois.StartCooldown
+M.PSS_ScanBlockedMsg		= Whois.BlockedMsg
 function M.PSS_WhoPending() return pending ~= nil end

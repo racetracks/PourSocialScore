@@ -26,23 +26,23 @@ local L = addon.L
 local UI = {}
 M.UI = UI
 
-UI.HEADER_H    = 24
-UI.ROW_H       = 20
-UI.CHECK       = 20
+UI.HEADER_H		= 24
+UI.ROW_H		= 20
+UI.CHECK		= 20
 UI.ROW_BUTTON_H = 18
 UI.BAR_W, UI.BAR_H = 110, 22
-UI.TOP_W       = 100
-UI.LIST_TOP    = 86           -- panel top -> first row (summary + header)
-UI.HEADER_Y    = -(86 - 24)   -- panel top -> header row
+UI.TOP_W		= 100
+UI.LIST_TOP		= 86			-- panel top -> first row (summary + header)
+UI.HEADER_Y		= -(86 - 24)	-- panel top -> header row
 -- Player Ignore List and Chat Filters: the block counts sit above the panel
 -- (UI.CreateBlockStats), so their headers go straight under the top buttons
 UI.COMPACT_LIST_TOP = 54
 UI.COMPACT_HEADER_Y = -(54 - 24)
-UI.EXCL_W      = 154          -- W I G P C column
-UI.EXCL_STEP   = 28
-UI.HIGHLIGHT   = "Interface\\QuestFrame\\UI-QuestTitleHighlight"
-UI.SORT_ARROW  = "Interface\\Buttons\\UI-SortArrow"
-UI.PORTRAIT    = "Interface\\FriendsFrame\\Battlenet-Portrait"	-- also the addon-list icon (## IconTexture in the 3 TOCs)
+UI.EXCL_W		= 154			-- W I G P C column
+UI.EXCL_STEP	= 28
+UI.HIGHLIGHT	= "Interface\\QuestFrame\\UI-QuestTitleHighlight"
+UI.SORT_ARROW	= "Interface\\Buttons\\UI-SortArrow"
+UI.PORTRAIT		= "Interface\\FriendsFrame\\Battlenet-Portrait"	-- also the addon-list icon (## IconTexture in the 3 TOCs)
 
 -- W I G P C: the order, letters and wording used everywhere. "field" is the
 -- matching switch on a Player Ignore List record.
@@ -53,11 +53,11 @@ UI.PORTRAIT    = "Interface\\FriendsFrame\\Battlenet-Portrait"	-- also the addon
 -- feature is allowed through, unticked = blocked. Always go through
 -- UI.ExclChecked / UI.ExclBlocked so no frame gets this backwards.
 UI.EXCL = {
-	{ cat = "whisper",     letter = "W", field = "whispersBlocked",     label = "Whispers" },
+	{ cat = "whisper",		letter = "W", field = "whispersBlocked",		label = "Whispers" },
 	{ cat = "partyInvite", letter = "I", field = "partyInvitesBlocked", label = "Party invites" },
 	{ cat = "guildInvite", letter = "G", field = "guildInvitesBlocked", label = "Guild invites" },
-	{ cat = "partyRaid",   letter = "P", field = "partyRaidBlocked",    label = "Party/Raid chat (incl. raid warnings)" },
-	{ cat = "world",       letter = "C", field = "channelsBlocked",     label = "Chat channels (Trade, General, LFG, communities) and public chat (say, yell, emotes)" },
+	{ cat = "partyRaid",	letter = "P", field = "partyRaidBlocked",		label = "Party/Raid chat (incl. raid warnings)" },
+	{ cat = "world",		letter = "C", field = "channelsBlocked",		label = "Chat channels (Trade, General, LFG, communities) and public chat (say, yell, emotes)" },
 }
 UI.EXCL_BY_CAT = {}
 for _, e in ipairs(UI.EXCL) do UI.EXCL_BY_CAT[e.cat] = e end
@@ -66,7 +66,7 @@ for _, e in ipairs(UI.EXCL) do UI.EXCL_BY_CAT[e.cat] = e end
 function UI.ExclChecked(blocked) return not blocked end
 -- tickbox -> core "blocked" value
 function UI.ExclBlocked(box) return not box:GetChecked() end
-UI.EXCL_NOTE = "Ticked = allowed, unticked = blocked." 
+UI.EXCL_NOTE = "Ticked = allowed, unticked = blocked."
 
 local function hideTip() GameTooltip:Hide() end
 UI.HideTip = hideTip
@@ -115,14 +115,14 @@ UI.STATS_X, UI.STATS_Y, UI.STATS_ROW_H = 62, -28, 16
 -- Player and Guild Ignore Lists (same order and colours as the summary line
 -- they replace), and the Chat Filters' own two.
 UI.STATS_BLOCK_CATS = {
-	{ key = "whisper",     label = "Whispers",      color = "ffffff00", width = 86 },
+	{ key = "whisper",		label = "Whispers",			color = "ffffff00", width = 86 },
 	{ key = "partyInvite", label = "Party Invites", color = "ffff9933", width = 108 },
-	{ key = "partyRaid",   label = "Party/Raid",    color = "ff66ccff", width = 92 },
-	{ key = "world",       label = "World Chat",    color = "ff99ff99", width = 112 },
+	{ key = "partyRaid",	label = "Party/Raid",		color = "ff66ccff", width = 92 },
+	{ key = "world",		label = "World Chat",		color = "ff99ff99", width = 112 },
 	{ key = "guildInvite", label = "Guild Invites", color = "ffcc99ff", width = 110 },
 }
 UI.STATS_FILTER_CATS = {
-	{ key = "whisper", label = "Whispers",         color = "ffffff00", width = 86 },
+	{ key = "whisper", label = "Whispers",			color = "ffffff00", width = 86 },
 	{ key = "private", label = "Private messages", color = "ff00ccff", width = 140 },
 }
 
@@ -624,7 +624,7 @@ function UI.AddResizeHandle(hr, h, c)
 	grip:SetScript("OnMouseUp", function(self, button)
 		if self:GetScript("OnUpdate") then
 			self:SetScript("OnUpdate", nil)
-			hr:SetColumnWidth(c.key, hr.w[c.key])     -- save
+			hr:SetColumnWidth(c.key, hr.w[c.key])		-- save
 		end
 	end)
 	grip:SetScript("OnHide", function(self)
@@ -784,10 +784,10 @@ end
 ------------------------------------------------------------------------
 UI.METRIC_W = 46
 UI.METRICS = {
-	{ cat = "whisper",     text = "Whispers",       name = "Whispers" },
+	{ cat = "whisper",		text = "Whispers",			name = "Whispers" },
 	{ cat = "partyInvite", text = "Party\nInvites", name = "Party Invites" },
-	{ cat = "partyRaid",   text = "Party/\nRaid",   name = "Party/Raid" },
-	{ cat = "world",       text = "World\nChat",    name = "World Chat" },
+	{ cat = "partyRaid",	text = "Party/\nRaid",		name = "Party/Raid" },
+	{ cat = "world",		text = "World\nChat",		name = "World Chat" },
 	{ cat = "guildInvite", text = "Guild\nInvites", name = "Guild Invites" },
 }
 

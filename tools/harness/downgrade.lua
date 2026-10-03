@@ -47,7 +47,7 @@ else
 			m.blockHistory = {}
 			-- saved in full before 2.0.29
 			m.online, m.race, m.className = false, "Orc", "Warrior"
-			m._blockV2 = true      -- counters already folded in (2.0.6+)
+			m._blockV2 = true		-- counters already folded in (2.0.6+)
 		end
 	end
 	for id, st in pairs(db.builtinStats) do

@@ -76,14 +76,14 @@ function M.dateToJulianDate (dateStr)
 	end
 
 	local monthList = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
-	local words     = {}
+	local words		= {}
 
 	for word in dateStr:gmatch("%w+") do
 		table.insert(words, word)
 	end
 
-	local day   = tonumber(words[1])
-	local year  = tonumber(words[3])
+	local day	= tonumber(words[1])
+	local year	= tonumber(words[3])
 	local month = 0
 
 	for key, value in pairs(monthList) do
@@ -110,7 +110,7 @@ end
 function M.daysFromToday (dateStr)
 
 	local addDate = M.dateToJulianDate(dateStr)
-	local today   = M.dateToJulianDate(date("%d %b %Y"))
+	local today		= M.dateToJulianDate(date("%d %b %Y"))
 
 	if addDate == 0 then
 		return -1
@@ -150,11 +150,11 @@ function M.Proper (name, okSpaces)
 
 	-- one pass over the bytes into a reused buffer, joined once (the old
 	-- version appended to a string per character: quadratic garbage)
-	local len    = #name
-	local buf    = properBuf
-	local n      = 0
+	local len		= #name
+	local buf		= properBuf
+	local n			= 0
 	local needUp = true
-	local gotOP  = false
+	local gotOP		= false
 	local byte, char, upper, lower = string.byte, string.char, string.upper, string.lower
 
 	for count = 1, len do
@@ -165,7 +165,7 @@ function M.Proper (name, okSpaces)
 		elseif c ~= 32 or okSpaces == true or count <= keepUntil then
 			n = n + 1
 			buf[n] = needUp and upper(char(c)) or lower(char(c))
-			gotOP  = (c == 40 or gotOP) and (c ~= 41)
+			gotOP	= (c == 40 or gotOP) and (c ~= 41)
 			needUp = (c == 32 or c == 45 or gotOP == true)
 		end
 	end
@@ -197,10 +197,10 @@ end
 
 function M.GetWord (str, wordnumber)
 
-	local len     = strlen(str)
-	local count   = 1
-	local res     = ""
-	local words   = 0
+	local len		= strlen(str)
+	local count		= 1
+	local res		= ""
+	local words		= 0
 	local nextInc = true
 	local c
 
@@ -397,8 +397,8 @@ end
 -- Any other realm: a space before each capital or digit, up to the first
 -- digit or "(".
 local function spaceRealmName(origName)
-	local len  = strlen(origName)
-	local sb   = strbyte
+	local len	= strlen(origName)
+	local sb	= strbyte
 	local char = string.char
 	local c1
 	local c
@@ -406,7 +406,7 @@ local function spaceRealmName(origName)
 	local name = ""
 
 	for count = 1, len do
-		c  = sb(origName, count)
+		c	= sb(origName, count)
 		c1 = sb(origName, count+1) or 32
 
 		if ((c1 > 47 and c1 < 58) or (c1 > 64 and c1 < 91) or (c1 == 40)) and gotP == false then
@@ -460,7 +460,7 @@ function M.removeServer (name, strict)
 		end
 	end
 
-	return result	
+	return result
 end
 
 function M.addServer (name)

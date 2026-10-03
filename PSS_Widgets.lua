@@ -52,10 +52,10 @@ local PROMPT_BUTTON_W, PROMPT_BUTTON_H, PROMPT_BUTTON_GAP = 128, 21, 8
 local PROMPT_WIDTH = 420
 
 local DIALOG_BACKDROP = BACKDROP_DIALOG_32_32 or {
-	bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background",
+	bgFile		= "Interface\\DialogFrame\\UI-DialogBox-Background",
 	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-	tile     = true, tileSize = 32, edgeSize = 32,
-	insets   = { left = 11, right = 12, top = 12, bottom = 11 },
+	tile		= true, tileSize = 32, edgeSize = 32,
+	insets		= { left = 11, right = 12, top = 12, bottom = 11 },
 }
 
 local function promptSound(kit)
@@ -68,13 +68,13 @@ local function buildPrompt()
 	local f = CreateFrame("Frame", "PSSPromptDialog", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 	f:Hide()
 	f:SetWidth(PROMPT_WIDTH)
-	f:SetPoint("TOP", UIParent, "TOP", 0, -135)   -- where StaticPopup1 sits
+	f:SetPoint("TOP", UIParent, "TOP", 0, -135)		-- where StaticPopup1 sits
 	f:SetFrameStrata("DIALOG")
 	f:SetToplevel(true)
 	f:EnableMouse(true)
 	f:SetClampedToScreen(true)
 	if f.SetBackdrop then f:SetBackdrop(DIALOG_BACKDROP) end
-	tinsert(UISpecialFrames, "PSSPromptDialog")   -- Escape closes it
+	tinsert(UISpecialFrames, "PSSPromptDialog")		-- Escape closes it
 
 	local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
 	close:SetPoint("TOPRIGHT", -3, -3)
@@ -292,11 +292,11 @@ function W.EntryRow(panel, opts)
 		end
 		W.PromptAdd(text, {
 			listName = opts.listName,
-			add      = opts.add,
-			search   = opts.search,
-			canSend  = opts.canSend,
-			say      = opts.say,
-			onDone   = function() row.box:SetText("") end,
+			add			= opts.add,
+			search		= opts.search,
+			canSend		= opts.canSend,
+			say			= opts.say,
+			onDone		= function() row.box:SetText("") end,
 		})
 	end
 

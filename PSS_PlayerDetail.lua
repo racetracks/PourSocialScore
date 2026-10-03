@@ -23,9 +23,9 @@ local DETAIL_W, DETAIL_H = 780, 580
 -- Short labels for the per-player override buttons (full label in tooltip).
 local OVERRIDE_SHORT = {
 	ignoreResponse = "Ignore response",
-	showDeclines   = "Show declines",
-	declineDuel    = "Decline duels",
-	declineTrade   = "Decline trades",
+	showDeclines	= "Show declines",
+	declineDuel		= "Decline duels",
+	declineTrade	= "Decline trades",
 }
 
 local function trim(s) return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", "")) end
@@ -44,7 +44,7 @@ local function splitName(entry, typ)
 	return entry, "All"
 end
 
-local frame   -- the window (built on first use)
+local frame		-- the window (built on first use)
 
 local function entryIndex()
 	if not frame or not frame.entryName then return 0 end
@@ -82,15 +82,15 @@ local function buildFrame()
 		f.fields[key] = { label = l, value = v, row = row }
 		return v
 	end
-	field("name",      "Name:", 1)
-	field("server",    "Server:", 2)
-	field("type",      "Type / Faction:", 3)
-	field("class",     "Class:", 4)
-	field("added",     "Added:", 5)
-	field("expires",   "Expires after:", 6)
+	field("name",		"Name:", 1)
+	field("server",		"Server:", 2)
+	field("type",		"Type / Faction:", 3)
+	field("class",		"Class:", 4)
+	field("added",		"Added:", 5)
+	field("expires",	"Expires after:", 6)
 	field("guildThen", "Guild when added:", 7)
-	field("guildNow",  "Current guild:", 8)
-	field("lastInv",   "Last blocked invite:", 9)
+	field("guildNow",	"Current guild:", 8)
+	field("lastInv",	"Last blocked invite:", 9)
 
 	-- Expiry: days after the date added (0 = never), typed in place.
 	local exp = UI.NumberBox(inset, 44, UI.ROW_BUTTON_H, 4)
@@ -262,7 +262,7 @@ function M.PSS_RefreshPlayerDetail(resetScroll)
 	local f = frame
 	if not f or not f:IsShown() then return end
 	local idx = entryIndex()
-	if idx <= 0 then f:Hide() return end   -- removed from the list elsewhere
+	if idx <= 0 then f:Hide() return end	-- removed from the list elsewhere
 
 	local db = PourSocialScoreDB
 	local entry = db.ignoreList[idx]

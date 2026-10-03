@@ -856,7 +856,7 @@ Updated for 9.0.1.  This is a first attempt after taking a good break from WoW, 
 
 => 8.2.5.1
 
-Added Chinese localization.  Thank you for the translation help: Translated by 堕落治疗
+Added Chinese localization.  Thank you for the translation help: Translated by Duoluo Zhiliao
 
 => 8.2.5
 

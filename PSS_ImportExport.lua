@@ -321,13 +321,13 @@ function M.PSS_ApplyImport(data, mode, sections)
 								if mk and not g.members[mk] then
 									local m = copyFields(me, MEMBER_FIELDS)
 									m.opts = copyOpts(me.opts)
-									m.block = copyBlock(me.block)   -- nil = converted from the old Allow fields
+									m.block = copyBlock(me.block)	-- nil = converted from the old Allow fields
 									m.guild = g.name
 									m.whenBlocked = m.whenBlocked or M.PSS_NowString()
 									for _, f in ipairs({ "excludedGroup", "excludedGuildInvite", "excludedWhispers", "excludedChat" }) do
 										if m[f] ~= true then m[f] = nil end
 									end
-									if M.PSS_CompactMember then M.PSS_CompactMember(m) end   -- only non-default fields are kept
+									if M.PSS_CompactMember then M.PSS_CompactMember(m) end		-- only non-default fields are kept
 									g.members[mk] = m
 									addedM = addedM + 1
 									local ck = M.PSS_GuildRuleActive(g) and M.PSS_CanonPlayer(me.name)
@@ -427,7 +427,7 @@ function M.PSS_BuildImportExportTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WIND
 	local INCLUDE_W = 250
 	local hr = UI.CreateHeaderRow(f, {
 		{ key = "include", text = "Include", width = INCLUDE_W, sort = false, minWidth = 200 },
-		{ key = "text",    text = "Export / import text", width = 600, sort = false, fill = true, minWidth = 200 },
+		{ key = "text",		text = "Export / import text", width = 600, sort = false, fill = true, minWidth = 200 },
 	}, 1, UI.HEADER_Y, nil, { id = "importExport" })
 	f:HookScript("OnSizeChanged", function(self, w) if w and w > 0 then hr:SetAvailableWidth(w - 2) end end)
 

@@ -1,7 +1,7 @@
 ----------------------------------
 -- Pour Social Score Variables --
 ----------------------------------
-local addonName, addon 	= ...
+local addonName, addon	= ...
 local L = addon.L -- localization entries
 local V = addon.V -- shared variables
 local M = addon.M -- shared methods
@@ -20,8 +20,8 @@ local gotLoaded			= false
 local gotUpdate			= false
 local gotEntering		= false
 local safeToLoad		= false
-local gotGroup          = IsInGroup()
-V.groupWarning          = {}
+local gotGroup			= IsInGroup()
+V.groupWarning			= {}
 
 ----------------------------------
 -- Pour Social Score Functions --
@@ -82,7 +82,7 @@ local function ApplicationStartup(self)
 
 	V.faction = UnitFactionGroup("player")
 
-	if PourSocialScoreDB == nil then	
+	if PourSocialScoreDB == nil then
 		M.PSS_ResetIgnoreDB()
 	end
 
@@ -132,7 +132,7 @@ local function ApplicationStartup(self)
 	if PourSocialScoreDB.expList == nil then
 		PourSocialScoreDB.expList = {}
 
-		for  count = 1, #PourSocialScoreDB.ignoreList do
+		for		count = 1, #PourSocialScoreDB.ignoreList do
 			PourSocialScoreDB.expList[count] = 0
 		end
 	end
@@ -187,7 +187,7 @@ local function ApplicationStartup(self)
 
 		for count = 1, #PourSocialScoreDB.filterDesc do
 			PourSocialScoreDB.filterBlocked[count] = {}
-		end		
+		end
 	end
 
 	if PourSocialScoreDB.filterBlockedLast == nil then
@@ -282,8 +282,8 @@ local function CheckGroupForIgnored()
 	if not IsInGroup() or not PourSocialScoreDB then return end
 	if InCombatLockdown and InCombatLockdown() then rosterCheckDeferred = true return end
 	gotGroup = true
-	local prefix  = IsInRaid() and "raid" or "party"
-	local doWarn  = false
+	local prefix	= IsInRaid() and "raid" or "party"
+	local doWarn	= false
 	for count = 1, GetNumGroupMembers() do
 		local name = GetUnitName(prefix..count, true)
 		-- O(1) list lookup on the raw name; the display name is only built
@@ -335,7 +335,7 @@ local function EventHandler (self, event, sender, ...)
 		-- Raids fire this many times in a row: check once, 1 s after the
 		-- last one, and never while in combat (checked when combat ends).
 		if not IsInGroup() then
-			gotGroup       = false
+			gotGroup		= false
 			V.groupWarning = {}
 		elseif V.PSS_Loaded and PourSocialScoreDB and not rosterCheckQueued then
 			rosterCheckQueued = true
@@ -351,7 +351,7 @@ local function EventHandler (self, event, sender, ...)
 
 	if gotLoaded == true and gotEntering == true then
 		safeToLoad = true
-	end	
+	end
 
 	if safeToLoad == true then
 		ApplicationStartup(self)

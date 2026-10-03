@@ -64,7 +64,7 @@ if phase == 4 then
 	expectList("Grunt emotes", g.emote, "old emote ", 8, 4)
 	expectList("Grunt party invites", g.party, "old party ", 8, 4)
 	expectList("Grunt guild invites", g.guild, "old guild ", 8, 4)
-	local kept = view(History.Keep()["g:grunt-realm"] or {})   -- oldest first
+	local kept = view(History.Keep()["g:grunt-realm"] or {})	-- oldest first
 	local rev = {}
 	for i = #kept.text, 1, -1 do rev[#rev + 1] = kept.text[i] end
 	expectList("Grunt kept chat lines", rev, "old text ", 8, 3)

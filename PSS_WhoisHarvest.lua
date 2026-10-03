@@ -24,8 +24,8 @@ local M = addon.M
 local WHO_CAP = 50
 M.PSS_WHO_CAP = WHO_CAP
 
-local sweeps = {}       -- [guildKey] = { name, queue = { items }, sent, capped, gaveUp, seen, added, moved, done }
-local sweepRound = 0    -- Scan All rounds completed this session
+local sweeps = {}		-- [guildKey] = { name, queue = { items }, sent, capped, gaveUp, seen, added, moved, done }
+local sweepRound = 0	-- Scan All rounds completed this session
 local stats = { sent = 0, capped = 0, gaveUp = 0, seen = 0, matched = 0, added = 0, moved = 0 }
 
 local function guildKey(name) return M.PSS_NormalizeGuild(name) end

@@ -18,7 +18,7 @@ local t0 = 1790000000
 local g = assert(db.guildData["bad guild"], "no Bad Guild")
 local grunt = assert(g.members["grunt-realm"], "no Grunt")
 local logShape = type(db.blockLog) == "table"
-local oldShape = db.historyFormat == nil and not logShape    -- 2.0.1
+local oldShape = db.historyFormat == nil and not logShape		-- 2.0.1
 
 local KINDS = {
 	{ cat = "whisper", event = "CHAT_MSG_WHISPER", kind = "Whisper", text = "old text" },

@@ -126,7 +126,7 @@ function History.Normalize(h)
 		elseif type(h.event) == "string" and h.event ~= "" and M.PSS_ChannelLabel then h.channel = M.PSS_ChannelLabel(h.event)
 		else h.channel = UNKNOWN end
 	end
-	if type(h.member) ~= "string" or h.member == "" then h.member = nil end   -- caller may know the owner
+	if type(h.member) ~= "string" or h.member == "" then h.member = nil end		-- caller may know the owner
 	h.message = tostring(h.message or "")
 	return h
 end
@@ -189,7 +189,7 @@ function History.Cap()
 	if v > History.MAX_TOTAL then return History.MAX_TOTAL end
 	return v
 end
-History.Max = History.Cap      -- (older name)
+History.Max = History.Cap		-- (older name)
 
 -- time / kind are worked out when read
 History.EntryMT = { __index = function(h, k)
@@ -471,7 +471,7 @@ function History.EstimateBytes()
 	local bytes, lines = 0, 0
 	History.Each(function(h)
 		lines = lines + 1
-		bytes = bytes + 120   -- table + 6-8 fields
+		bytes = bytes + 120		-- table + 6-8 fields
 		for j = 1, #EST_KEYS do
 			local v = rawget(h, EST_KEYS[j])
 			if type(v) == "string" then bytes = bytes + 24 + #v end
@@ -728,9 +728,9 @@ end
 ------------------------------------------------------------------------
 local listCount = 0
 local SORT = {
-	time    = function(h) return tonumber(h.ts) or 0 end,
-	member  = function(h) return string.lower(h.member or "") end,
-	kind    = function(h) return string.lower(h.kind or "") end,
+	time	= function(h) return tonumber(h.ts) or 0 end,
+	member	= function(h) return string.lower(h.member or "") end,
+	kind	= function(h) return string.lower(h.kind or "") end,
 	channel = function(h) return string.lower(h.channel or "") end,
 	message = function(h) return string.lower(h.message or "") end,
 }
@@ -764,15 +764,15 @@ function History.CreateList(parent, numRows, rowH, width, opts)
 	end
 	local function onSort(key)
 		if HL.sortKey == key then HL.sortAsc = not HL.sortAsc
-		else HL.sortKey, HL.sortAsc = key, (key ~= "time") end   -- time starts newest first
+		else HL.sortKey, HL.sortAsc = key, (key ~= "time") end		-- time starts newest first
 		applySort()
 		update()
 	end
 
 	HL.header = UI.CreateHeaderRow(parent, {
-		{ key = "time",    text = "Time",    width = cols.time },
-		{ key = "member",  text = "Player",  width = cols.member },
-		{ key = "kind",    text = "Type",    width = cols.kind },
+		{ key = "time",		text = "Time",		width = cols.time },
+		{ key = "member",	text = "Player",	width = cols.member },
+		{ key = "kind",		text = "Type",		width = cols.kind },
 		{ key = "channel", text = "Channel", width = cols.channel },
 		{ key = "message", text = "Message", width = cols.message, fill = true, minWidth = 80 },
 	}, 0, 0, onSort, { id = "history" })
@@ -970,7 +970,7 @@ function History.CreatePanel(tab, opts)
 		if not self:IsShown() then return end
 		local key = self.key
 		local name = key ~= nil and opts.label(key) or nil
-		if key ~= nil and not name then key = nil; self.key = nil end   -- removed meanwhile
+		if key ~= nil and not name then key = nil; self.key = nil end	-- removed meanwhile
 		local entries = opts.entries(key)
 		if tab.title then
 			tab.title:SetText("Block History: |cffffff00" .. (name or opts.allText or "all") .. "|r (" .. #entries .. ")")
