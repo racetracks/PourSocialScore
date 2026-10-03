@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.34 - Fix: default-list names with accented capitals
+
+- Fixed: since 2.0.32, 24 default-list characters whose names have a non-ASCII capital (for example an accented first letter or Cyrillic) were not matched in game. The game lowercases those letters but the offline index tool did not. The index now carries the game's spelling for them as well.
+- Version 2.0.34.
+
 => 2.0.33 - Default Olympus list: 7,634 characters
 
 - The default (Olympus) guild list grows from 4,050 to 7,634 characters in 119 guilds: 605 new from PSS Harvest and 2,989 captured by Scan on Olympus guild rules. 7 characters moved to the guild they were last seen in, and 10 who had left their guild were dropped.
