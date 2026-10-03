@@ -36,7 +36,7 @@ local GROWTH_KB       = nil       -- heap growth that starts a cycle; nil = none
 local STEP_KB         = 8         -- size of one collector step (small: fine-grained budget)
 local STEP_BUDGET_MS  = 1.0       -- max time per frame
 local MIN_FPS         = 30
-local MAX_FRAMES      = 900       -- give up a cycle after this many frames
+local MAX_FRAMES      = 900       -- pause a cycle after this many frames (it resumes)
 
 local gc = { pending = false, running = false, lastCycle = 0, leftCombat = nil, heapAfter = nil, supported = true, frames = 0,
 			cycles = 0, lastReason = nil, lastMs = 0 }
@@ -46,19 +46,24 @@ local function enabled()
 	return not (M.PSS_Opt and M.PSS_Opt("gcEnabled") == false)
 end
 
-local function inCombatOrBusy()
-	if InCombatLockdown and InCombatLockdown() then return true end
-	if UnitAffectingCombat and UnitAffectingCombat("player") then return true end
-	if IsEncounterInProgress and IsEncounterInProgress() then return true end
-	if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then return true end
-	if gc.leftCombat and GetTime() - gc.leftCombat < COMBAT_COOLDOWN then return true end
+-- Why a cleanup can't run now (nil = it can). Shown by /pss mem.
+local function busyReason()
+	if InCombatLockdown and InCombatLockdown() then return "in combat" end
+	if UnitAffectingCombat and UnitAffectingCombat("player") then return "in combat" end
+	if IsEncounterInProgress and IsEncounterInProgress() then return "boss encounter" end
+	if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then return "dead" end
+	if gc.leftCombat and GetTime() - gc.leftCombat < COMBAT_COOLDOWN then return "less than 5 minutes after combat" end
 	-- dungeon, raid, battleground or arena (the game says which; "scenario"
 	-- and the open world are allowed)
 	if IsInInstance then
 		local inside, kind = IsInInstance()
-		if inside and (kind == "party" or kind == "raid" or kind == "pvp" or kind == "arena") then return true end
+		if inside and (kind == "party" or kind == "raid" or kind == "pvp" or kind == "arena") then return "in a dungeon, raid or battleground" end
 	end
-	return false
+	return nil
+end
+
+local function inCombatOrBusy()
+	return busyReason() ~= nil
 end
 
 local function heapKB()
@@ -83,13 +88,16 @@ end
 runner:SetScript("OnUpdate", function(self, elapsed)
 	if not gc.running then self:Hide() return end
 	if inCombatOrBusy() or not enabled() then stopCycle(false) return end
-	gc.frames = gc.frames + 1
-	if gc.frames > MAX_FRAMES then stopCycle(true) return end
-
 	-- frame budget: never more than STEP_BUDGET_MS, and a smaller share of a
 	-- slow frame (5 % of the last frame time)
 	local fps = GetFramerate and GetFramerate() or 60
 	if fps < MIN_FPS then return end        -- wait for a calmer moment
+	-- a long cycle (big heap, or a high frame rate's small budget) pauses
+	-- and carries on at the next check; the collector keeps its place.
+	-- Only a finished cycle counts as done (before 2.0.40 hitting this cap,
+	-- or waiting out a low frame rate, counted as a finished cleanup).
+	gc.frames = gc.frames + 1
+	if gc.frames > MAX_FRAMES then stopCycle(false); gc.pending = true return end
 	local budget = math.min(STEP_BUDGET_MS, (elapsed or 0.016) * 1000 * 0.05)
 	local clock = debugprofilestop
 	local start = clock and clock() or 0
@@ -234,5 +242,12 @@ function M.PSS_MemReport(full)
 	out(("  memory cleanup: %s, %d cycle(s) this session%s"):format(
 		(M.PSS_Opt and M.PSS_Opt("gcEnabled") == false and "off") or (gcs.supported and (gcs.running and "running now" or "idle") or "not supported"),
 		gcs.cycles or 0, gcs.lastReason and (", last: " .. gcs.lastReason) or ""))
+	-- memory the game has not collected yet still counts as addon memory, so
+	-- these say when the last cleanup finished and what a due one waits for
+	local ago = (gcs.cycles or 0) > 0 and math.floor((GetTime() - (gcs.lastCycle or 0)) / 60) or nil
+	local due = gcs.pending or (IDLE_INTERVAL and GetTime() - (gcs.lastCycle or 0) >= IDLE_INTERVAL)
+	local waiting = due and not gcs.running and busyReason()
+	out(("  last finished: %s%s"):format(ago and (ago .. " min ago") or "not yet this session",
+		waiting and ("   |   next one waits: " .. waiting) or ""))
 	if not full then out("  |cffaaaaaa/pss mem full|r also lists who has the most history lines.") end
 end

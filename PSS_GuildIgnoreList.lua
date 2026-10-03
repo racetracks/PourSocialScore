@@ -3259,13 +3259,27 @@ local function gopt(key, e)
 	return PourSocialScoreDB[key]
 end
 
+-- The lookup result of a listed member, kept for their next chat line
+-- instead of a new table per line (checked against the current lookup, so
+-- it is never stale). At most LOOKUP_KEEP people; then it starts over.
+local LOOKUP_KEEP = 300
+local lookupKept, lookupKeptCount = {}, 0
+
 if M.PSS_RegisterBlockSource then
 	M.PSS_RegisterBlockSource({
 		id = "guild", order = 20, label = "Guild Ignore List",
 		lookup = function(canon)
 			local g, gkey, m, storedKey = lookupGuildMemberCanon(canon)
 			if not g then return nil end
-			return { g = g, gkey = gkey, m = m, storedKey = storedKey }
+			local e = lookupKept[canon]
+			if e and e.g == g and e.gkey == gkey and e.m == m and e.storedKey == storedKey then return e end
+			e = { g = g, gkey = gkey, m = m, storedKey = storedKey }
+			if lookupKept[canon] == nil then
+				if lookupKeptCount >= LOOKUP_KEEP then lookupKept, lookupKeptCount = {}, 0 end
+				lookupKeptCount = lookupKeptCount + 1
+			end
+			lookupKept[canon] = e
+			return e
 		end,
 		decide = function(e, cat, ctx)
 			local g, m = e.g, e.m

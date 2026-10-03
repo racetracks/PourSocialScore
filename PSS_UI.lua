@@ -1834,9 +1834,11 @@ end
 
 -- Redraws triggered by blocked chat are batched: a busy Trade channel can
 -- block several lines a second, and each used to redraw the window.
+-- Nothing is scheduled while the window is closed (it redraws when shown),
+-- and the redraw functions are made once, not per blocked line.
 local pendingRefresh = {}
 local function throttled(key, fn)
-	if pendingRefresh[key] then return end
+	if pendingRefresh[key] or not (MainFrame and MainFrame:IsVisible()) then return end
 	pendingRefresh[key] = true
 	local function run()
 		pendingRefresh[key] = nil
@@ -1845,20 +1847,24 @@ local function throttled(key, fn)
 	if C_Timer and C_Timer.After then C_Timer.After(0.25, run) else run() end
 end
 
+local function refreshFilterHistory()
+	local hp = Tab2Frame and Tab2Frame.histPanel
+	if hp and hp:IsVisible() then hp:Refresh() end
+end
+
+local function refreshChatCount()
+	UpdateRuleSummaryTexts()
+	if Tab2Frame and Tab2Frame:IsVisible() then
+		M.FilterListDrawUpdate(FilterScrollFrame)
+	end
+end
+
 function M.PSSUpdateBlockHistory (filterNumber)
-	throttled("history", function()
-		local hp = Tab2Frame and Tab2Frame.histPanel
-		if hp and hp:IsVisible() then hp:Refresh() end
-	end)
+	throttled("history", refreshFilterHistory)
 end
 
 function M.PSSUpdateChatCount (filterNumber)
-	throttled("chatCount", function()
-		UpdateRuleSummaryTexts()
-		if Tab2Frame and Tab2Frame:IsVisible() then
-			M.FilterListDrawUpdate(FilterScrollFrame)
-		end
-	end)
+	throttled("chatCount", refreshChatCount)
 end
 
 function M.PSSUpdateUI (forced)

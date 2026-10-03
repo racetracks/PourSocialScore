@@ -286,36 +286,59 @@ local function isSelf(canon, guid)
 end
 
 -- All entries for a person, one per source that knows them.
-local function lookupPeople(canon, ctx)
-	local found
+-- scratch (chat lines only): reuse its tables instead of making new ones
+-- for every line from a listed person. The result is only valid until the
+-- next chat line, like the shared ctx below.
+local function lookupPeople(canon, ctx, scratch)
+	local found, n = nil, 0
 	for _, src in ipairs(sources) do
 		local ok, entry = pcall(src.lookup, canon, ctx)
 		if ok and entry then
-			found = found or {}
-			found[#found + 1] = { src = src, entry = entry }
+			n = n + 1
+			if scratch then
+				found = scratch.found
+				local w = scratch.pool[n]
+				if not w then w = {}; scratch.pool[n] = w end
+				w.src, w.entry = src, entry
+				found[n] = w
+			else
+				found = found or {}
+				found[n] = { src = src, entry = entry }
+			end
 		elseif not ok then
 			noteError(entry)
 		end
+	end
+	if scratch then
+		local f = scratch.found
+		for i = n + 1, #f do f[i] = nil end
 	end
 	return found
 end
 
 -- Which sources block this person for this category.
-local function personHits(canon, cat, ctx)
-	local found = lookupPeople(canon, ctx)
+local function personHits(canon, cat, ctx, scratch)
+	local found = lookupPeople(canon, ctx, scratch)
 	if not found then return nil, nil end
-	local hits
+	local hits, n = nil, 0
 	for _, f in ipairs(found) do
 		local ok, blocked = pcall(f.src.decide, f.entry, cat, ctx)
 		if ok and blocked then
-			hits = hits or {}
-			hits[#hits + 1] = f
+			n = n + 1
+			hits = hits or (scratch and scratch.hits) or {}
+			hits[n] = f
 		elseif not ok then
 			noteError(blocked)
 		end
 	end
+	if scratch then
+		local h = scratch.hits
+		for i = n + 1, #h do h[i] = nil end
+	end
 	return hits, found
 end
+-- chat lines: one set of tables, reused (see lookupPeople)
+local chatScratch = { found = {}, hits = {}, pool = {} }
 M.PSS_PersonHits = function(name, cat, ctx)
 	return personHits(canonPlayer(name), cat, ctx or {})
 end
@@ -379,7 +402,7 @@ local function evaluate(ctx)
 
 	if not ctx.isSelf and canon then
 		-- 2. people (player list + guild members, merged)
-		local hits, found = personHits(canon, cat, ctx)
+		local hits, found = personHits(canon, cat, ctx, chatScratch)
 		if found then stats.personHits = stats.personHits + 1 end
 		if hits then
 			ctx.hits = hits
