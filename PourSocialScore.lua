@@ -32,15 +32,15 @@ local function ApplicationStartup(self)
 	if V.PSS_Loaded == true or safeToLoad == false then
 		return
 	end
-			
+
 	M.ShowMsg(L["LOAD_1"])
 
 	V.faction = UnitFactionGroup("player")
-		
+
 	if PourSocialScoreDB == nil then	
 		M.PSS_ResetIgnoreDB()
 	end
-	
+
 	-- Ensure all core list fields exist before any UI or upgrade code uses #field.
 	PourSocialScoreDB.ignoreList = PourSocialScoreDB.ignoreList or {}
 	PourSocialScoreDB.factionList = PourSocialScoreDB.factionList or {}
@@ -53,9 +53,9 @@ local function ApplicationStartup(self)
 	PourSocialScoreDB.playerData = PourSocialScoreDB.playerData or {}
 	PourSocialScoreDB.guildData = PourSocialScoreDB.guildData or {}
 	if PourSocialScoreDB.imported == nil then PourSocialScoreDB.imported = false end
-	
+
 	-- set missing defaults or upgrade if needed
-	
+
 	if PourSocialScoreDB.showIgnoreDebug == nil then
 		PourSocialScoreDB.showIgnoreDebug = false
 	end
@@ -69,65 +69,65 @@ local function ApplicationStartup(self)
 	PourSocialScoreDB.autoIgnore, PourSocialScoreDB.autoUpdate = nil, nil
 	PourSocialScoreDB.autoCount, PourSocialScoreDB.autoTime = nil, nil
 	PourSocialScoreDB.attachFriends = nil
-	
+
 	if PourSocialScoreDB.filterList == nil or PourSocialScoreDB.filterDesc == nil or PourSocialScoreDB.filterCount == nil then
 		M.ResetSpamFilters()
 	end
-	
+
 	if PourSocialScoreDB.delList == nil then
 		PourSocialScoreDB.delList = {}
 	end
-		
+
 	-- Every option in the Options tab (defaults live in PSS_Options.lua)
 	M.PSS_ApplyOptionDefaults()
 	if not tonumber(PourSocialScoreDB.defexpire) then
 		PourSocialScoreDB.defexpire = 0
 	end
-	
+
 	if PourSocialScoreDB.expList == nil then
 		PourSocialScoreDB.expList = {}
-			
+
 		for  count = 1, #PourSocialScoreDB.ignoreList do
 			PourSocialScoreDB.expList[count] = 0
 		end
 	end
-	
+
 	if PourSocialScoreDB.syncList then
 		PourSocialScoreDB.syncList = nil
 	end
-	
+
 	if PourSocialScoreDB.syncInfo == nil then
 		PourSocialScoreDB.syncInfo = {}
-		
+
 		for count = 1, #PourSocialScoreDB.ignoreList do
 			PourSocialScoreDB.syncInfo[count] = {}
 		end
 	end
-	
+
 	if PourSocialScoreDB.typeList == nil then
 		PourSocialScoreDB.typeList = {}
-		
+
 		for count = 1, #PourSocialScoreDB.ignoreList do
 			PourSocialScoreDB.typeList[count] = "player"
 		end
 	end
-	
+
 	if PourSocialScoreDB.revision == nil then
 		PourSocialScoreDB.revision = 1
-		
+
 		for count = 1, #PourSocialScoreDB.ignoreList do
 			PourSocialScoreDB.ignoreList[count] = M.Proper(PourSocialScoreDB.ignoreList[count])
 		end
 	end
-	
+
 	if PourSocialScoreDB.filterActive == nil then
 		PourSocialScoreDB.filterActive = {}
-		
+
 		for count = 1, #PourSocialScoreDB.filterDesc do
 			PourSocialScoreDB.filterActive[count] = true
 		end
 	end
-	
+
 	if PourSocialScoreDB.filterID == nil then
 		M.PSS_AssignLegacyFilterIDs()
 	end
@@ -136,15 +136,15 @@ local function ApplicationStartup(self)
 	if PourSocialScoreDB.filterHistory ~= nil then
 		PourSocialScoreDB.filterHistory = nil
 	end
-	
+
 	if PourSocialScoreDB.filterBlocked == nil then
 		PourSocialScoreDB.filterBlocked = {}
-		
+
 		for count = 1, #PourSocialScoreDB.filterDesc do
 			PourSocialScoreDB.filterBlocked[count] = {}
 		end		
 	end
-	
+
 	if PourSocialScoreDB.filterBlockedLast == nil then
 		PourSocialScoreDB.filterBlockedLast = {}
 
@@ -160,20 +160,20 @@ local function ApplicationStartup(self)
 	M.PSS_ExpandFilters()
 
 	V.PSS_LoadedTime = GetTime()
-		
+
 	--M.SyncIgnoreList(PourSocialScoreDB.chatmsg == false)
-		
+
 	V.PSS_Loaded = true
 
 	-- Player/guild data upgrade (guild module), now that the core lists exist.
 	if M.PSS_UpgradeLegacyData then M.PSS_UpgradeLegacyData() end
-	
+
 	M.PSS_HookFunctions()
-	
+
 	self:UnregisterEvent("IGNORELIST_UPDATE")
 	self:UnregisterEvent("PLAYER_ENTERING_WORLD")
 	self:UnregisterEvent("ADDON_LOADED")
-	
+
 	-- (The old "auto-update default chat filters" pass is gone: built-in rules
 	-- are rebuilt from code on every load by M.PSS_ExpandFilters.)
 end
@@ -253,7 +253,7 @@ end
 local function EventHandler (self, event, sender, ...)
 
 	--print ("DEBUG event=".. (event or "nil") .. " sender=" .. (sender or "nil"))
-	
+
 	--if (event == "CHANNEL_INVITE_REQUEST") then
 	--	print ("DEBUG RECEIVED CHANNEL INVITE REQUEST")
 	--end
@@ -270,7 +270,7 @@ local function EventHandler (self, event, sender, ...)
 		M.PSS_ImportLegacyDB()
 		gotLoaded = true
 	end
-	
+
 	if event == "IGNORELIST_UPDATE" then
 		gotUpdate = true
 	end
@@ -294,7 +294,7 @@ local function EventHandler (self, event, sender, ...)
 		rosterCheckDeferred = false
 		CheckGroupForIgnored()
 	end
-	
+
 	-- Party/guild invites, duels and trades: handled by PSS_ChatBlock.lua
 
 	if gotLoaded == true and gotEntering == true then

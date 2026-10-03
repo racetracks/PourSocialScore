@@ -15,14 +15,14 @@ local M = addon.M
 function M.PSSDUMP (o)
 	if type(o) == 'table' then
 		local s = '{ '
-		
+
 		for key, value in pairs(o) do
 			if type(key) ~= 'number' then
 				key = '"'..key..'"'
 			end
 			s = s .. '['..key..'] = ' .. M.PSSDUMP(value) .. ','
 		end
-		
+
 		return s .. '} '
 	else
 		return tostring(o)
@@ -35,7 +35,7 @@ function M.PSSDUMP2 (tbl, indent)
 	end
 
 	local formatting
-	
+
 	for key, value in pairs(tbl) do
 		formatting = string.rep("  ", indent) .. key .. ": "
 		if type(value) == "table" then
@@ -54,11 +54,11 @@ end
 function M.popWord (str, ch)
 
 	local idx = string.find(str, ch, 1, true)
-	
+
 	if idx == nil then
 		return "", str
 	end
-	
+
 	return string.sub(str, 1, idx - 1), string.sub(str, idx + 1)
 end
 
@@ -66,11 +66,11 @@ function M.trim (str)
 
 	local n = str:find"%S"
 	return n and str:match(".*%S", n) or ""
- 
+
 end
 
 function M.dateToJulianDate (dateStr)
-	
+
 	if dateStr == nil then
 		return 0
 	end
@@ -81,16 +81,16 @@ function M.dateToJulianDate (dateStr)
 	for word in dateStr:gmatch("%w+") do
 		table.insert(words, word)
 	end
-	
+
 	local day   = tonumber(words[1])
 	local year  = tonumber(words[3])
 	local month = 0
 
 	for key, value in pairs(monthList) do
-	
+
 		if value == words[2] then
 			month = tonumber(key)
-			
+
 			break
 		end
 	end
@@ -98,7 +98,7 @@ function M.dateToJulianDate (dateStr)
 	if (not month) or (not day) or (not year) or (month < 1) or (month > 12) or (day < 1) or (day > 31) or (year < 2014) then
 		return 0
 	end
-	
+
 	-- Whole day number (days since 1970). Midday avoids daylight-saving edges.
 	-- 2.0.8 used a Julian-day formula with decimal division, so day counts
 	-- could be one off around the end of a month.
@@ -111,11 +111,11 @@ function M.daysFromToday (dateStr)
 
 	local addDate = M.dateToJulianDate(dateStr)
 	local today   = M.dateToJulianDate(date("%d %b %Y"))
-	
+
 	if addDate == 0 then
 		return -1
 	else
-	
+
 		return math.abs(today - addDate)
 	end
 end
@@ -147,7 +147,7 @@ function M.Proper (name, okSpaces)
 			end
 		end
 	end
-	
+
 	-- one pass over the bytes into a reused buffer, joined once (the old
 	-- version appended to a string per character: quadratic garbage)
 	local len    = #name
@@ -203,27 +203,27 @@ function M.GetWord (str, wordnumber)
 	local words   = 0
 	local nextInc = true
 	local c
-	
+
 	while count <= len do
 		if nextInc then
 			words = words + 1
-			
+
 			if words > wordnumber then
 				break
 			end
 		end
-		
+
 		c = strbyte(str, count)
-		
+
 		nextInc = (c == 32) and nextInc == false
-		
+
 		if words == wordnumber and c ~= 32 then
 			res = res .. string.char(c)
 		end
-		
+
 		count = count + 1
 	end
-	
+
 	return res
 end
 
@@ -391,16 +391,16 @@ function M.prettyServer (origName)
 		local c1
 		local c
 		local gotP = false
-		
+
 		name = ""
-	
+
 		for count = 1, len do
 			c  = sb(origName, count)
 			c1 = sb(origName, count+1) or 32
-		
+
 			if ((c1 > 47 and c1 < 58) or (c1 > 64 and c1 < 91) or (c1 == 40)) and gotP == false then
 				name = name .. char(c) .. " "
-			
+
 				if (c1 == 40) or (c1 > 47 and c1 < 58) then gotP = true end
 			else
 				name = name .. char(c)
@@ -414,36 +414,36 @@ end
 function M.getServer (name, def)
 
 	local index = string.find(name, "-", 1, true)
-	
+
 	if index ~= nil then
 		return string.sub(name, index + 1, string.len(name))
 	end
-	
+
 	if def then return def else return V.serverName end
 end
 
 function M.removeServer (name, strict)
-	
+
 	if name == nil then
 		return nil
 	end
 
 	local result = name
-	
+
 	local index = string.find(name, "-", 1, true)
-	
+
 	if strict == nil then
 		strict = false
 	end
-	
+
 	if index ~= nil then
 		local server = M.Proper(string.sub(name, index + 1, string.len(name)));
-		
+
 		if strict == true or server == M.Proper(V.serverName) then
 			result = string.sub(name, 1, index - 1)
 		end
 	end
-	
+
 	return result	
 end
 
@@ -454,7 +454,7 @@ function M.addServer (name)
 	if string.find(name, "-", 1, true) == nil then
 		return name .. "-" .. V.serverName
 	end
-	
+
 	return name
 end
 

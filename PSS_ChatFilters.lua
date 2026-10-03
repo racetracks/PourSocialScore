@@ -162,7 +162,7 @@ local function AddToBlockHistory (filterNum, ctx, from, chNumber, chName)
 	History.Add(M.PSS_FilterOwnerKey(filterNum), counts, entry)
 	M.PSSUpdateBlockHistory(filterNum)
 end 
-	
+
 -- A guild-rule block (managed group): counted on that rule. The line itself
 -- is the guild member's log entry, tagged with the rule (no second copy).
 function M.PSS_RecordManagedBlock(groupKey, ctx, from, entry)
@@ -201,7 +201,7 @@ local function hasFilterID (id)
 			return count
 		end
 	end
-	
+
 	return 0
 end
 
@@ -214,7 +214,7 @@ local function isDefFilterID (id)
 			return count
 		end
 	end
-	
+
 	return 0
 end
 
@@ -226,12 +226,12 @@ function M.ResetSpamFilters()
 	PourSocialScoreDB.filterID				= {}
 	PourSocialScoreDB.filterBlocked		= {}
 	PourSocialScoreDB.filterBlockedLast	= {}
-	
+
 	PourSocialScoreDB.invertSpam = false
 	PourSocialScoreDB.spamFilter = true
 	PourSocialScoreDB.builtinRules = {}
 	PourSocialScoreDB.builtinStats = {}
-	
+
 	for count = 1, #filterDefDesc do
 		PourSocialScoreDB.filterDesc[count]		= filterDefDesc[count]
 		PourSocialScoreDB.filterList[count]		= filterDefFilter[count]
@@ -718,7 +718,7 @@ local TAG = {
 	["[pet]"]      = function(F, d) if d == "" then return anyKey(F.petID) end return hasKey(F.petID, d) end,
 	["[icon]"]     = function(F, d) if d == "" then return F.icons > 0 end return F.icons >= (tonumber(d) or 0) end,
 	["[link]"]     = function(F) return anyKey(F.itemID) or anyKey(F.spellID) or anyKey(F.achieveID) or anyKey(F.petID)
-	                     or F.talents > 0 or F.hasJournal or F.hasGuild or F.hasTrade or F.hasOutfit or F.hasMount end,
+						or F.talents > 0 or F.hasJournal or F.hasGuild or F.hasTrade or F.hasOutfit or F.hasMount end,
 	["[trade]"]    = function(F) return F.hasTrade end,
 	["[guild]"]    = function(F) return F.hasGuild end,
 	["[outfit]"]   = function(F) return F.hasOutfit end,

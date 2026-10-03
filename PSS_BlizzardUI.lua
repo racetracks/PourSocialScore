@@ -25,10 +25,10 @@ end
 
 function M.PSS_LFG_Update (self)
 	if not C_LFGList.HasSearchResultInfo(self.resultID) then return end
-	
+
 	local info = C_LFGList.GetSearchResultInfo(self.resultID);
 	local leader = info and info.leaderName
-	
+
 	-- runs for every visible Group Finder row on every refresh: O(1) lookup,
 	-- no display-name building
 	if type(leader) == "string" and not M.PSS_IsSecret(leader) and leader ~= "" and M.PSS_IsPlayerListed(leader) then
@@ -40,22 +40,22 @@ function M.PSS_LFG_Tooltip (self)
 	if not C_LFGList.HasSearchResultInfo(self.resultID) then return end
 
 	local info = C_LFGList.GetSearchResultInfo(self.resultID);
-	
+
 	if info ~= nil and type(info.leaderName) == "string" and not M.PSS_IsSecret(info.leaderName) then
 		local idx = M.PSS_ListedPosition(M.PSS_CanonPlayer(info.leaderName)) or 0
-		
+
 		if (idx > 0) then
 			GameTooltip:AddLine(" ")
 			GameTooltip:AddLine("|c00ff0000" .. L["RCM_8"])
-		
+
 			local notes = (PourSocialScoreDB.notes[idx] or "")
-				
+
 			if (notes ~= "") then
 				GameTooltip:AddLine(" ")
 				GameTooltip:AddLine("|cffffffff" .. L["RCM_9"])
 				GameTooltip:AddLine("|cff69CCF0"..notes)
 			end
-		
+
 			GameTooltip:Show()
 		end
 	end
@@ -63,22 +63,22 @@ end
 
 function M.PSS_LFG_ApplicantMenu(owner, root, contextData)
 	if not owner or not owner.resultID then return end
-	
+
 	local info = C_LFGList.GetSearchResultInfo(owner.resultID);
-	
+
 	if not info or type(info.leaderName) ~= "string" or M.PSS_IsSecret(info.leaderName) or info.leaderName == "" then return end
-	
+
 	local target = M.Proper(M.addServer(info.leaderName))
 	local text   = ""
-	
+
 	if M.PSS_IsPlayerListed(info.leaderName) then
 		text = L["RCM_4"]				
 	else
 		text = L["RCM_6"]
 	end	
-	
+
 	local leaderText = format(L["RCM_7"], target)
-	
+
 	root:CreateDivider()
 	root:CreateTitle(leaderText)
 	root:CreateButton(text,
@@ -116,7 +116,7 @@ function M.PSS_UnitMenuPlayer (owner, root, contextData)
 	target = M.Proper(target, true)
 
 	local text = ""
-	
+
 	if (M.hasGlobalIgnored(M.addServer(target)) > 0) then
 		text = L["RCM_4"]				
 	else
@@ -191,8 +191,8 @@ function M.PSS_HookFunctions()
 		-- GUILD ones are the guild / community rosters. (Battle.net friend
 		-- menus are left alone: they carry a Battle.net name, not a character.)
 		for _, tag in ipairs({ "MENU_UNIT_ENEMY_PLAYER", "MENU_UNIT_PLAYER", "MENU_UNIT_PARTY", "MENU_UNIT_RAID_PLAYER",
-		                       "MENU_UNIT_FRIEND", "MENU_UNIT_FRIEND_OFFLINE", "MENU_UNIT_CHAT_ROSTER", "MENU_UNIT_GUILD",
-		                       "MENU_UNIT_COMMUNITIES_GUILD_MEMBER", "MENU_UNIT_COMMUNITIES_MEMBER", "MENU_UNIT_COMMUNITIES_WOW_MEMBER" }) do
+								"MENU_UNIT_FRIEND", "MENU_UNIT_FRIEND_OFFLINE", "MENU_UNIT_CHAT_ROSTER", "MENU_UNIT_GUILD",
+								"MENU_UNIT_COMMUNITIES_GUILD_MEMBER", "MENU_UNIT_COMMUNITIES_MEMBER", "MENU_UNIT_COMMUNITIES_WOW_MEMBER" }) do
 			pcall(Menu.ModifyMenu, tag, M.PSS_UnitMenuPlayer)
 		end
 	end
