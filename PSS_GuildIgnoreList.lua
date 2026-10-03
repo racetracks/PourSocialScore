@@ -730,6 +730,11 @@ M.PSS_ForEachGuildMember = forEachMember
 
 -- Number of members, without building any records: stored members, plus
 -- the shipped list minus those who left (simple arithmetic).
+-- A managed guild's count is kept until a member changes anywhere (the
+-- member index is marked dirty) or its stored / gone member counts change,
+-- so a redraw does not re-key every stored member of every managed guild.
+local memberCountGen = 0
+local memberCountCache = setmetatable({}, { __mode = "k" })		-- g -> { gen, key, stored, gone, n }
 function M.PSS_GuildMemberCount(g, gkey)
 	if type(g) ~= "table" then return 0 end
 	local n = 0
@@ -737,6 +742,11 @@ function M.PSS_GuildMemberCount(g, gkey)
 		for _ in pairs(g.members or {}) do n = n + 1 end
 		return n
 	end
+	local stored, gone = 0, 0
+	for _ in pairs(g.members or {}) do stored = stored + 1 end
+	for _ in pairs(g.managedGone or {}) do gone = gone + 1 end
+	local c = memberCountCache[g]
+	if c and c.gen == memberCountGen and c.key == gkey and c.stored == stored and c.gone == gone then return c.n end
 	local m = buildManaged()
 	n = #(m.names[gkey] or {})
 	for k, mm in pairs(g.members or {}) do
@@ -746,7 +756,11 @@ function M.PSS_GuildMemberCount(g, gkey)
 	for ck in pairs(g.managedGone or {}) do
 		if shippedOf(ck) == gkey then n = n - 1 end
 	end
-	return math.max(0, n)
+	n = math.max(0, n)
+	c = c or {}
+	c.gen, c.key, c.stored, c.gone, c.n = memberCountGen, gkey, stored, gone, n
+	memberCountCache[g] = c
+	return n
 end
 
 -- Create / tag the shipped guild rules (startup).
@@ -804,7 +818,10 @@ end
 -- table per member: no per-member allocation on each rebuild.
 local memberIndexG, memberIndexK, memberIndexDirty, memberIndexBuilt = {}, {}, true, 0
 
-local function markMemberIndexDirty() memberIndexDirty = true end
+local function markMemberIndexDirty()
+	memberIndexDirty = true
+	memberCountGen = memberCountGen + 1
+end
 M.PSS_MarkGuildIndexDirty = markMemberIndexDirty
 
 local function rebuildMemberIndex()

@@ -109,7 +109,12 @@ function W:GetID() return self._id or 0 end
 function W:SetID(i) self._id = i end
 function W:HasFocus() return false end
 function W:GetCursorPosition() return 0 end
-function W:GetVerticalScroll() return 0 end
+function W:GetVerticalScroll() return self._vscroll or 0 end
+function W:SetVerticalScroll(v)
+	self._vscroll = v
+	local fn = self._scripts.OnVerticalScroll
+	if fn then fn(self, v) end
+end
 function W:GetVerticalScrollRange() return 0 end
 function W:GetMinMaxValues() return 0, 100 end
 function W:GetValue() return self._value or 0 end
