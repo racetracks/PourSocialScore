@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.23 - Guild Exclusion List
+
+- New Guild Exclusion List on the Guild Ignore List tab: guilds that no guild rule ever blocks, captures or scans in, even a rule whose name they contain (a rule for "Olympus" no longer catches an excluded <Olympus Friends>) or a default list such as Olympus. Names match exactly, ignoring case.
+- It shows as an expandable row like the Olympus list ("[+] Guild Exclusion List (n guilds)"), between the default lists and your own guild rules. Click to expand; each excluded guild has a Remove button and a right-click Remove.
+- To add guilds: type a name in the new box directly beneath the Guild Search box and press the Search button next to it (or Enter). It runs a /who like Guild Search (same 6 s cooldown and level cap); the guilds found open in the same picker, ticked, and Save puts them on the exclusion list. If no guild is found you are offered "Add Anyway".
+- Version 2.0.23.
+
 => 2.0.22 - Whois Scan Options: scan level cap
 
 - New Options section "Whois Scan Options" with "Enable scan level cap" and a level field next to it. The field is required: the box can't be ticked without a cap, and the cap can't be cleared while it is ticked.

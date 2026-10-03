@@ -1262,6 +1262,7 @@ local function addWhoResultToGuildMember(info, guildRowName, actualGuild)
     if type(fullName) ~= "string" or isSecret(fullName) or fullName == "" then return nil end
 
     actualGuild = actualGuild or info.fullGuildName or info.guild or ""
+    if M.PSS_IsGuildExcluded(actualGuild) then return nil end   -- Guild Exclusion List
     -- WHO's lazy guild search means a scan for "Olympus" also returns members of
     -- "Olympus Tycoons". If a more specific saved guild rule matches this
     -- member's ACTUAL guild, the member belongs to that rule, not to the broad
@@ -1546,7 +1547,7 @@ finishScan = function(numWhos, total, how)
         -- temporary cache of who was seen in each guild (used by Save)
         M.PSS_GuildSearchCache = { at = GetTime(), byGuild = searchState.players or {} }
         C_Timer.After(0, function()
-            if showGuildSearchResults then showGuildSearchResults(list, searchState.query) end
+            if showGuildSearchResults then showGuildSearchResults(list, searchState.query, searchState.mode) end
         end)
     end
 
@@ -1625,19 +1626,21 @@ end
 -- Sends a normal /who and collects the distinct guild names in the results.
 -- Plain text is wrapped as g-"text". Anything containing a double quote is
 -- treated as a complete /who filter and sent untouched.
-function M.PSS_GuildSearch(text)
+-- mode "exclude" (the Guild Exclusion List search): the text is always a
+-- guild name, and the results picker adds to the exclusion list instead.
+function M.PSS_GuildSearch(text, mode)
     text = trim(text or "")
     if text == "" then return false end
 
     local filter
-    if text:find('"', 1, true) then
+    if mode ~= "exclude" and text:find('"', 1, true) then
         filter = text
     else
         filter = 'g-"' .. (text:gsub('"', "")) .. '"'
     end
     filter = M.PSS_CapWhoFilter(filter)   -- Options: scan level cap
 
-    pendingGuildSearch = { query = text, startedAt = GetTime(), found = {} }
+    pendingGuildSearch = { query = text, mode = mode, startedAt = GetTime(), found = {} }
 
     -- /who must go out straight from the click (hardware event); UI work is
     -- deferred one frame, exactly like the guild scan buttons.
@@ -1700,6 +1703,18 @@ local function buildGuildSearchFrame()
     f.save = save
 
     save:SetScript("OnClick", function()
+        if f.mode == "exclude" then
+            local added = 0
+            for _, c in ipairs(f.checks) do
+                if c:IsShown() and c:IsEnabled() and c:GetChecked() and c.guildName then
+                    if M.PSS_AddGuildExclusion(c.guildName) then added = added + 1 end
+                end
+            end
+            f:Hide()
+            guildSearchChat(("%d guild(s) added to the Guild Exclusion List."):format(added))
+            if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+            return
+        end
         local added, members, moved = 0, 0, 0
         local cache = M.PSS_GuildSearchCache
         -- the cache is only trusted for a while: players move guilds
@@ -1742,15 +1757,24 @@ local function buildGuildSearchFrame()
     return f
 end
 
-showGuildSearchResults = function(list, query)
+showGuildSearchResults = function(list, query, mode)
     ensureDB()
+    local exclude = mode == "exclude"
     if not list or #list == 0 then
+        if exclude then
+            -- nobody online in a guild by that name: offer to add it anyway
+            StaticPopup_Show("PSS_EXCLUDE_GUILD_ANYWAY", query or "", nil, query)
+            return
+        end
         guildSearchChat(("Guild Search found no guilds for \"%s\"."):format(query or ""))
         return
     end
 
     local f = buildGuildSearchFrame()
-    f.subtitle:SetText(("%d guild(s) found for \"%s\"."):format(#list, query or ""))
+    f.mode = exclude and "exclude" or nil
+    if f.title then f.title:SetText(exclude and "Guild Exclusion Search" or "Guild Search Results") end
+    f.subtitle:SetText(("%d guild(s) found for \"%s\"."):format(#list, query or "")
+        .. (exclude and " Tick the guilds to exclude." or ""))
 
     local UI = M.UI
     for _, r in ipairs(f.rows) do r:Hide() end
@@ -1774,7 +1798,12 @@ showGuildSearchResults = function(list, query)
         r:SetPoint("TOPLEFT", f.content, "TOPLEFT", 0, -(i - 1) * rowHeight)
         c.guildName = name
 
-        local exists = PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[normalizeGuild(name)]
+        local exists
+        if exclude then
+            exists = M.PSS_IsGuildExcluded(name)
+        else
+            exists = PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[normalizeGuild(name)]
+        end
         if exists then
             c:SetChecked(false)
             c:Disable()
@@ -2082,6 +2111,52 @@ function M.PSS_MoveOtherCopies(playerName, keepKey, target)
     return moved
 end
 
+-- GUILD EXCLUSION LIST
+-- Exact guild names (case-insensitive) that no guild rule ever applies to:
+-- a broad rule like "Olympus" would otherwise catch <Olympus Friends> too.
+-- Their members are not blocked, not captured by scans, searches or invites,
+-- and belong to no rule. Saved as PourSocialScoreDB.guildExclusions[canon] = display name.
+local function exclusions()
+    if type(PourSocialScoreDB) ~= "table" then return {} end
+    if type(PourSocialScoreDB.guildExclusions) ~= "table" then PourSocialScoreDB.guildExclusions = {} end
+    return PourSocialScoreDB.guildExclusions
+end
+
+function M.PSS_IsGuildExcluded(actualGuild)
+    local ck = canonGuild(actualGuild)
+    return ck ~= nil and exclusions()[ck] ~= nil
+end
+
+-- Sorted list of excluded guild names.
+function M.PSS_GuildExclusions()
+    local list = {}
+    for _, name in pairs(exclusions()) do list[#list + 1] = tostring(name) end
+    table.sort(list, function(a, b) return a:lower() < b:lower() end)
+    return list
+end
+
+-- Returns true when added, false when already listed, nil for an empty name.
+function M.PSS_AddGuildExclusion(name)
+    local ck = canonGuild(name)
+    if not ck then return nil end
+    local ex = exclusions()
+    if ex[ck] then return false end
+    ex[ck] = trim(name):gsub("%s+", " ")
+    markMemberIndexDirty()
+    if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+    return true
+end
+
+function M.PSS_RemoveGuildExclusion(name)
+    local ck = canonGuild(name)
+    local ex = exclusions()
+    if not ck or not ex[ck] then return false end
+    ex[ck] = nil
+    markMemberIndexDirty()
+    if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
+    return true
+end
+
 -- The saved guild rule that a given ACTUAL guild name belongs to: the rule with
 -- the longest name contained in it (so "Olympus Tycoons" beats "Olympus" for a
 -- member of <Olympus Tycoons>, and an exact match always wins).
@@ -2089,6 +2164,7 @@ function M.PSS_BestGuildRowFor(actualGuild)
     ensureDB()
     local ac = canonGuild(actualGuild)
     if not ac then return nil end
+    if M.PSS_IsGuildExcluded(actualGuild) then return nil end   -- excluded guilds belong to no rule
     local bestKey, bestG, bestLen
     for key, g in pairs(PourSocialScoreDB.guildData or {}) do
         if type(g) == "table" then
@@ -2457,6 +2533,57 @@ function M.PSS_BuildGuildUI(parent)
     search:SetScript("OnLeave", function() GameTooltip:Hide() end)
     registerGuildScanButton(search)
 
+    -- Guild Exclusion List: a box directly beneath the Guild Search box and a
+    -- Search button next to it (beneath Guild Search). Found guilds open the
+    -- results picker in exclusion mode; none found offers to add the name anyway.
+    local exclSearch = UI.Button(frame, "Search", UI.TOP_W, UI.BAR_H)
+    exclSearch:SetPoint("TOPLEFT", search, "BOTTOMLEFT", 0, -4)
+    frame.exclSearchButton = exclSearch
+    local exclBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+    exclBox:SetSize(150, 20)
+    exclBox:SetPoint("RIGHT", exclSearch, "LEFT", -10, 0)
+    exclBox:SetAutoFocus(false)
+    exclBox:SetMaxLetters(128)
+    exclBox:SetTextInsets(4, 4, 0, 0)
+    exclBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    frame.exclBox = exclBox
+    local exclHint = exclBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    exclHint:SetPoint("LEFT", exclBox, "LEFT", 6, 0)
+    exclHint:SetText("Exclude a guild...")
+    local function updateExclHint() exclHint:SetShown(exclBox:GetText() == "" and not exclBox:HasFocus()) end
+    exclBox:SetScript("OnTextChanged", updateExclHint)
+    exclBox:SetScript("OnEditFocusGained", updateExclHint)
+    exclBox:SetScript("OnEditFocusLost", updateExclHint)
+
+    local function doExclusionSearch()
+        if M.PSS_ScanBlockedMsg() then return end
+        local text = trim(exclBox:GetText()):gsub('"', "")
+        if text == "" then
+            if DEFAULT_CHAT_FRAME then
+                DEFAULT_CHAT_FRAME:AddMessage("PSS: Type a guild name in the box beneath Guild Search first.")
+            end
+            return
+        end
+        if M.PSS_GuildSearch(text, "exclude") then exclBox:SetText("") end
+    end
+    exclSearch:SetScript("OnClick", doExclusionSearch)
+    exclBox:SetScript("OnEnterPressed", function(self) self:ClearFocus(); doExclusionSearch() end)
+    exclSearch:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine("Guild Exclusion Search", 1, 1, 1)
+        GameTooltip:AddLine("Runs a /who for the guild name in the box and lets you pick which guilds found go on the Guild Exclusion List.", nil, nil, nil, true)
+        GameTooltip:AddLine("If no guild is found you can add the name anyway.", 0.7, 0.7, 0.7, true)
+        GameTooltip:AddLine("Excluded guilds are never blocked by a guild rule, even one whose name they contain (a rule for \"Olympus\" no longer catches an excluded <Olympus Friends>).", 0.7, 0.7, 0.7, true)
+        GameTooltip:Show()
+    end)
+    exclSearch:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    registerGuildScanButton(exclSearch)
+    -- the summary lines stop short of the new row
+    frame.info:SetPoint("RIGHT", exclBox, "LEFT", -10, 0)
+    frame.breakdown:SetPoint("RIGHT", exclBox, "LEFT", -10, 0)
+    if frame.info.SetWordWrap then frame.info:SetWordWrap(false) end
+    if frame.breakdown.SetWordWrap then frame.breakdown:SetWordWrap(false) end
+
     -- Scan All: the next /who of the guild sweep, across every guild row.
     searchBox:SetWidth(150)   -- room for Scan All without reaching the summary text
     local scanAll = UI.TopButton(frame, "Scan All", searchBox, 80, "PSSGuildScanAllButton")
@@ -2495,6 +2622,7 @@ function M.PSS_BuildGuildUI(parent)
         if frame.content then frame.content:SetWidth(math.max(frame.scroll:GetWidth() or 0, h.total)) end
         for _, r in ipairs(frame.rows or {}) do r:SetWidth(h.total) end
         for _, r in ipairs(frame.groupRows or {}) do r:SetWidth(h.total) end
+        for _, r in ipairs(frame.exclRows or {}) do r:SetWidth(h.total) end
     end })
     frame.header = hr
     frame.headerButtons = hr.sortables
@@ -2643,6 +2771,75 @@ function M.PSS_BuildGuildUI(parent)
         return row
     end
 
+    ---------------------------------------------------------------- exclusion list
+    -- One collapsible "Guild Exclusion List" row (styled like a managed group)
+    -- with its guilds listed under it when expanded.
+    local EXCL_OPEN_KEY = "__exclusions"
+    frame.exclRows = {}
+    local function removeExclusion(name)
+        if M.PSS_RemoveGuildExclusion(name) and DEFAULT_CHAT_FRAME then
+            DEFAULT_CHAT_FRAME:AddMessage(("PSS: <%s> removed from the Guild Exclusion List."):format(name))
+        end
+    end
+    local function makeExclHeader()
+        local row = UI.CreateRow(content, hr.total)
+        local bg = row:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints(row)
+        bg:SetColorTexture(0.3, 0.8, 1, 0.08)
+        row.label = UI.TCell(row, hr, "guild", "LEFT", "GameFontNormal")
+        row.state = UI.TCell(row, hr, "excl", "CENTER")
+        row:SetScript("OnClick", function(self, button)
+            if button == "RightButton" then
+                MenuUtil.CreateContextMenu(UIParent, function(owner, root)
+                    root:CreateTitle("Guild Exclusion List")
+                    root:CreateButton(groupOpen(EXCL_OPEN_KEY) and "Collapse" or "Expand", function()
+                        setGroupOpen(EXCL_OPEN_KEY, not groupOpen(EXCL_OPEN_KEY))
+                        if frame.refresh then frame.refresh() end
+                    end)
+                end)
+                return
+            end
+            setGroupOpen(EXCL_OPEN_KEY, not groupOpen(EXCL_OPEN_KEY))
+            if frame.refresh then frame.refresh() end
+        end)
+        row:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+            GameTooltip:AddLine("Guild Exclusion List", 0.3, 0.8, 1)
+            GameTooltip:AddLine("Guilds that no guild rule ever blocks, captures or scans in, even a rule whose name they contain or a default list such as Olympus.", 1, 1, 1, true)
+            GameTooltip:AddLine("Add guilds with the box and Search button beneath Guild Search.", 0.7, 0.7, 0.7, true)
+            GameTooltip:AddLine("Click to expand / collapse. Right-click a guild under it to remove it.", 0.7, 0.7, 0.7, true)
+            GameTooltip:Show()
+        end)
+        row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        frame.exclHeader = row
+        return row
+    end
+    local function makeExclRow(i)
+        local row = UI.CreateRow(content, hr.total)
+        row.name = UI.TCell(row, hr, "guild")
+        row.state = UI.TCell(row, hr, "excl", "CENTER")
+        row.remove = UI.TRowButton(row, hr, "scan", "Remove")
+        row.remove:SetScript("OnClick", function() if row.exclName then removeExclusion(row.exclName) end end)
+        row:SetScript("OnClick", function(self, button)
+            if button ~= "RightButton" or not self.exclName then return end
+            local name = self.exclName
+            MenuUtil.CreateContextMenu(UIParent, function(owner, root)
+                root:CreateTitle(name)
+                root:CreateButton("Remove from Exclusion List", function() removeExclusion(name) end)
+            end)
+        end)
+        row:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+            GameTooltip:AddLine(self.exclName or "", 1, 1, 1)
+            GameTooltip:AddLine("Excluded: never blocked by a guild rule.", 0.3, 0.8, 1, true)
+            GameTooltip:AddLine("Right-click or Remove to take it off the list.", 0.7, 0.7, 0.7, true)
+            GameTooltip:Show()
+        end)
+        row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        frame.exclRows[i] = row
+        return row
+    end
+
     ---------------------------------------------------------------- rows
     local function rowMenu(row)
         local guildKey = row.guildKey
@@ -2738,6 +2935,8 @@ function M.PSS_BuildGuildUI(parent)
 
         for _, row in ipairs(frame.rows) do row:Hide() end
         for _, row in ipairs(frame.groupRows) do row:Hide() end
+        for _, row in ipairs(frame.exclRows) do row:Hide() end
+        if frame.exclHeader then frame.exclHeader:Hide() end
 
         -- top-level guilds, and each managed group's guilds
         local list, groups = {}, {}
@@ -2810,15 +3009,38 @@ function M.PSS_BuildGuildUI(parent)
                 for _, it in ipairs(items) do it.inGroup = true; it.groupOn = on; display[#display + 1] = it end
             end
         end
+        -- then the Guild Exclusion List (always shown, so it can be found)
+        local excluded = M.PSS_GuildExclusions()
+        local exclOpen = groupOpen(EXCL_OPEN_KEY)
+        display[#display + 1] = { exclHeader = true, count = #excluded, open = exclOpen }
+        if exclOpen then
+            for _, name in ipairs(excluded) do display[#display + 1] = { exclItem = true, name = name } end
+        end
         for _, it in ipairs(list) do display[#display + 1] = it end
 
         local rowHeight = UI.ROW_H
         content:SetWidth(math.max(scroll:GetWidth() or 0, hr.total))
         content:SetHeight(math.max(1, #display * rowHeight))
 
-        local gi, hi = 0, 0
+        local gi, hi, ei = 0, 0, 0
         for i, item in ipairs(display) do
-            if item.header then
+            if item.exclHeader then
+                local row = frame.exclHeader or makeExclHeader()
+                row:ClearAllPoints()
+                row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -(i - 1) * rowHeight)
+                row.label:SetText((item.open and "[-] " or "[+] ") .. "Guild Exclusion List" .. ("  |cffaaaaaa(%d guilds)|r"):format(item.count))
+                row.state:SetText("|cff4dccffNever blocked|r")
+                row:Show()
+            elseif item.exclItem then
+                ei = ei + 1
+                local row = frame.exclRows[ei] or makeExclRow(ei)
+                row.exclName = item.name
+                row:ClearAllPoints()
+                row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -(i - 1) * rowHeight)
+                row.name:SetText("      " .. item.name)
+                row.state:SetText("|cff4dccffExcluded|r")
+                row:Show()
+            elseif item.header then
                 hi = hi + 1
                 local row = frame.groupRows[hi] or makeGroupRow(hi)
                 row.groupKey, row.groupName = item.groupKey, item.name
@@ -3331,6 +3553,25 @@ StaticPopupDialogs["PSS_ADD_GUILD"] = {
     end,
 }
 
+-- Guild Exclusion List search found nothing: add the typed name anyway?
+StaticPopupDialogs["PSS_EXCLUDE_GUILD_ANYWAY"] = {
+    text = "No guild named \"%s\" was found online.\n\nAdd it to the Guild Exclusion List anyway?",
+    button1 = "Add Anyway",
+    button2 = CANCEL,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+    OnAccept = function(self, data)
+        local name = trim(data or "")
+        local res = M.PSS_AddGuildExclusion(name)
+        if DEFAULT_CHAT_FRAME then
+            DEFAULT_CHAT_FRAME:AddMessage(res and ("PSS: <%s> added to the Guild Exclusion List."):format(name)
+                or ("PSS: <%s> is already on the Guild Exclusion List."):format(name))
+        end
+    end,
+}
+
 -- Add secondary fields to the player popup after Blizzard creates it.
 local function patchPlayerPopup()
     local dialog = StaticPopupDialogs["PSS_ADD_PLAYER_EXT"]
@@ -3385,6 +3626,8 @@ if M.PSS_RegisterBlockSource then
             local g, m = e.g, e.m
             -- a managed group blocks only while its Chat Filters rule is on
             if g.managed and not (M.PSS_ManagedGroupActive and M.PSS_ManagedGroupActive(g.managed)) then return false end
+            -- a guild on the Guild Exclusion List is never blocked by a guild rule
+            if M.PSS_IsGuildExcluded(m.guild or g.name) then return false end
             if cat == "whisper" or cat == "partyInvite" or cat == "guildInvite" or cat == "partyRaid" or cat == "world" then
                 return memberBlocks(g, m, cat)
             elseif cat == "duel" or cat == "trade" then
