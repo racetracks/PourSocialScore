@@ -2,7 +2,7 @@
 ## Title: PourSocialScore
 ## Notes: Sometimes you dont wanna know when a man gotta slur a little
 ## Author: Boaties
-## Version: 2.0.25
+## Version: 2.0.26
 ## SavedVariables: PourSocialScoreDB
 
 PSS_Localization.lua
