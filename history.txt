@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.32 - Faster guild lookups for chat
+
+- The Guild Ignore List check that runs on every chat line no longer rebuilds the sender's name key: the chat core already has it. That check is about 12x faster for players not on any guild list (most chat) and about 3x faster for members of the default (Olympus) list.
+- The default guild list now ships with its lookup index already built, so nothing is indexed in the background after login. Every default-list member is matched from the first chat line, including right after logging in during combat (before, they could get through until the index finished). Memory is unchanged once loaded.
+- tools/PSS_BuildManaged.lua writes the index, and its new --reindex option rewrites an existing (hand-merged) PSS_GuildIgnore_Managed.lua in the new format.
+- Version 2.0.32.
+
 => 2.0.31 - Escape closes the main window
 
 - Pressing Escape now closes the main PourSocialScore window, the same as the Block History, Guild Members, Player and picker windows and the prompt dialog already did.
