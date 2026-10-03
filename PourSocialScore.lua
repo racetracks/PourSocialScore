@@ -216,6 +216,8 @@ local function ApplicationStartup(self)
 	if M.PSS_UnlinkGuildRuleCounts then M.PSS_UnlinkGuildRuleCounts() end
 	-- session / last 24 hours block counts (created on first login, PSS_BlockStats.lua)
 	if M.PSS_UpgradeBlockStats then M.PSS_UpgradeBlockStats() end
+	-- records of players no longer listed, and fields records no longer keep
+	if M.PSS_TidyPlayerData then M.PSS_TidyPlayerData() end
 	-- then tidy the block history (lines of things that are gone)
 	local tidied = M.PSS_TidyBlockHistory()
 	if tidied > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history tidied") end
