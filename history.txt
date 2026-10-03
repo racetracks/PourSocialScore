@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.28 - Addon list title and note
+
+- The Mainline and Camelot TOCs now use the title "PourSocialScore" and the original note, the same as PourSocialScore.toc.
+- Version 2.0.28.
+
 => 2.0.27 - PSS folder and icon in the addon list
 
 - The addon now sits under its own collapsible "PSS" header in the AddOns list (character select and in game), and shows the people icon from the /pss window. Addons split out of PSS later appear as their own entries under the same header by adding "## Category: PSS" to their TOC.
