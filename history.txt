@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 2.0.40 - Fix: background cleanup that never finished; less garbage per blocked line
+
+- Not a leak: in a 90 minute test with 10 chat lines a second and constant nameplates, the addon's live memory levels off at about 1.4 MB above its loaded size (the 2,000 line log plus each person's kept lines) and stays there. The growth seen in the addon list is garbage: memory already let go that still counts against the addon until a collection runs.
+- Fixed: a background cleanup could count as finished without collecting anything. At under 30 frames per second it waited, and after 900 frames it was marked done. A cycle that needed more than 900 frames (a big shared heap, or the small per-frame budget at a high frame rate) was marked done too. Garbage then built up until the next cleanup, 10 minutes later, which could end the same way. Now only a cycle that really finishes counts. A paused one carries on at the next check (every 15 seconds), still never in combat, within 5 minutes of combat or in instances.
+- Less garbage per blocked line: about 1,125 to 615 bytes for a line from a guild ignore list member and 695 to 574 for a line hidden by a chat filter. The tables used to look up a listed person are reused for every chat line, a member's lookup is reused for their next line, and window redraws are no longer scheduled while the window is closed. Block decisions, history lines and counts are unchanged (12,000 lines compared with 2.0.39).
+- /pss mem shows when the last cleanup finished and, when one is due, what it is waiting for (combat, the 5 minutes after combat, or an instance).
+- Version 2.0.40.
+
 => 2.0.39 - Fix: influencer guild rules counted twice; linked to their guilds; no combat discovery
 
 - Fixed: a block by an influencer guild rule (InfluencerGuild=Olympus) was counted twice: once on the guild (Guild Ignore List) and again on the rule's Chat Filters row, the Chat Filters total and its session / 24 hour counts. These are guild blocks only now, counted once on the Guild Ignore List, where the shipped list and the members found in game are one list. The rule's Blocked cell on the Chat Filters tab reads n/a, and the rule has no block history or reset entries there. This applies to every guild rule, including ones added later.
