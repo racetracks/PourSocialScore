@@ -263,7 +263,16 @@ function M.PSS_SlashPSS (msg)
 
 	elseif args[1] == "gui" or args[1] == "ui" then
 
-		M.PSS_GUI()
+		M.PSS_OpenUI(args[2] == "force")
+
+	elseif args[1] == "eui" then
+
+		if args[2] == "enable" or args[2] == "disable" then
+			M.PSS_SetEUI(args[2] == "enable")
+		else
+			M.ShowMsg(format(L["EUI_1"], OnOff(M.PSS_Opt("euiIntegration")),
+				M.PSS_HasEUI() and L["EUI_2"] or L["EUI_3"]))
+		end
 
 	elseif args[1] == "sync" then
 
@@ -296,6 +305,8 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  " .. L["HELP_8"])
 		M.ShowMsg ("  " .. L["HELP_15"])
 		M.ShowMsg ("  " .. L["HELP_16"])
+		M.ShowMsg ("  " .. L["HELP_19"])
+		M.ShowMsg ("  " .. L["HELP_20"])
 		M.ShowMsg ("  " .. L["HELP_17"])
 		M.ShowMsg ("  " .. L["HELP_18"])
 		M.ShowMsg ("  " .. L["HELP_9"])

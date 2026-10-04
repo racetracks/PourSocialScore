@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.1.0-dev1 - EllesmereUI integration switch (3.1 test build)
+
+- New option "Enable EllesmereUI integration" (Options tab, User Interface section; off by default). It is the switch for the coming EllesmereUI front end, a seventh folder, PourSocialScore_EllesmereUI, added in the next test builds. In this build it changes nothing yet: /pss gui still opens the PSS window.
+- Changing it asks for a reload. With EllesmereUI loaded the prompt is EllesmereUI's own, whose Reload Now button also works on Camelot; without EllesmereUI it is the PSS prompt on Retail, and a chat line asking for /reload on Camelot.
+- New: /pss eui shows the setting, /pss eui enable and /pss eui disable switch it (same reload prompt). /pss gui force will always open the PSS window.
+- Version 3.1.0-dev1.
+
 => 3.0.0 - Six folders, loaded only when needed
 
 - Back up your WTF folder before the first login: a 3.0 save can't be read by 2.0. Delete the old PourSocialScore folder and install every folder from the zip (six of them, side by side in Interface/AddOns).

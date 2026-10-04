@@ -484,6 +484,11 @@ filter that mixes them without brackets may now behave differently.)
 
 /pss                      Show the command list
 /pss gui                  Open the interface (also /pss ui)
+/pss gui force            Open the PSS windows even with EllesmereUI
+                          integration on
+/pss eui [enable|disable] Show or switch EllesmereUI integration (Options
+                          tab: "Enable EllesmereUI integration"). It takes
+                          effect after a reload; you are asked to reload
 /pss list [days|server]   List entries; optionally only those listed for
                           [days] or more, or from one server
 /pss add name [days] [note]
