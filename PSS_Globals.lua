@@ -12,56 +12,6 @@ local M = addon.M
 -- SHARED FUNCTIONS --
 ----------------------
 
-function M.PSSDUMP (o)
-	if type(o) == 'table' then
-		local s = '{ '
-
-		for key, value in pairs(o) do
-			if type(key) ~= 'number' then
-				key = '"'..key..'"'
-			end
-			s = s .. '['..key..'] = ' .. M.PSSDUMP(value) .. ','
-		end
-
-		return s .. '} '
-	else
-		return tostring(o)
-	end
-end
-
-function M.PSSDUMP2 (tbl, indent)
-	if not indent then
-		indent = 0
-	end
-
-	local formatting
-
-	for key, value in pairs(tbl) do
-		formatting = string.rep("  ", indent) .. key .. ": "
-		if type(value) == "table" then
-			print(formatting)
-			M.PSSDUMP2(value, indent + 1)
-		elseif type(value) == 'boolean' then
-			print(formatting .. tostring(value))
-		elseif type(value) == 'function' then
-			print(formatting .. "function")
-		else
-			print(formatting .. value)
-		end
-	end
-end
-
-function M.popWord (str, ch)
-
-	local idx = string.find(str, ch, 1, true)
-
-	if idx == nil then
-		return "", str
-	end
-
-	return string.sub(str, 1, idx - 1), string.sub(str, idx + 1)
-end
-
 -- Strips leading and trailing whitespace; anything but a string gives "".
 function M.trim (str)
 
@@ -201,38 +151,6 @@ function M.PSS_SplitNameArg(str)
 	local name = table.concat(words, " ", 1, last)
 	local rest = (#words > last) and table.concat(words, " ", last + 1) or ""
 	return name, rest
-end
-
-function M.GetWord (str, wordnumber)
-
-	local len		= strlen(str)
-	local count		= 1
-	local res		= ""
-	local words		= 0
-	local nextInc = true
-	local c
-
-	while count <= len do
-		if nextInc then
-			words = words + 1
-
-			if words > wordnumber then
-				break
-			end
-		end
-
-		c = strbyte(str, count)
-
-		nextInc = (c == 32) and nextInc == false
-
-		if words == wordnumber and c ~= 32 then
-			res = res .. string.char(c)
-		end
-
-		count = count + 1
-	end
-
-	return res
 end
 
 -- Realm names as the game sends them (no spaces) -> display spelling.

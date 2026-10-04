@@ -1,6 +1,16 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev2 - Dead code removed (3.0 test build)
+
+- Removed ten functions nothing called (debug dumps, old word parsers and old guild API wrappers). No change in game.
+- Version 3.0.0-dev2.
+
+=> 3.0.0-dev1 - Test tools for the 3.0 split (3.0 test build)
+
+- The test harness can load several PSS addons the way the game does. No change in game.
+- Version 3.0.0-dev1.
+
 => 2.0.44 - Group and whisper warnings for every list
 
 - Group warning: being in a party or raid with a player from any list now warns you, not only the Player Ignore List. Guild rule members count while their rule is on and their guild is not on the Guild Exclusion List. Still once per player per group, checked after combat if the group changes during a fight.

@@ -993,43 +993,6 @@ function M.PSS_KeepBlockedOnBuiltIn(name, note)
 	return true
 end
 
--- Older API (Allow* = "do not block"), kept for compatibility.
-local ALLOW_FIELD = { allowGroup = { "partyInvite" }, allowGuildInvite = { "guildInvite" }, allowWhispers = { "whisper" },
-						allowChat = { "partyRaid", "world" },
-						excludedGroup = { "partyInvite" }, excludedGuildInvite = { "guildInvite" }, excludedWhispers = { "whisper" },
-						excludedChat = { "partyRaid", "world" } }
-function M.PSS_SetMemberFlag(member, field, value)
-	local cats = ALLOW_FIELD[field]
-	if type(member) ~= "table" or not cats then return false end
-	keepManaged(member)
-	local b = memberBlockW(member)
-	for _, c in ipairs(cats) do
-		if value == true then b[c] = false else b[c] = nil end		-- (x and false or nil) is always nil
-	end
-	return true
-end
-
-function M.PSS_SetGuildMemberSetting(guildName, playerName, field, value, sourceGuildKey)
-	ensureDB()
-	local ck = canonPlayer(playerName)
-	if not ck then return false end
-	local function findIn(g)
-		if not g or type(g.members) ~= "table" then return nil end
-		for k, m in pairs(g.members) do
-			if type(m) == "table" and (canonPlayer(type(k) == "string" and k or nil) == ck or canonPlayer(m.name) == ck) then
-				return m
-			end
-		end
-	end
-	local m = findIn(sourceGuildKey and PourSocialScoreDB.guildData[sourceGuildKey])
-		or findIn(PourSocialScoreDB.guildData[normalizeGuild(guildName) or ""])
-	if not m then
-		local _, _, mm = lookupGuildMember(playerName)
-		m = mm
-	end
-	return M.PSS_SetMemberFlag(m, field, value)
-end
-
 function M.PSS_RemoveGuildMember(guildName, playerName, sourceGuildKey, storedKey)
 	ensureDB()
 	local g = (sourceGuildKey and PourSocialScoreDB.guildData[sourceGuildKey])
@@ -1125,12 +1088,6 @@ function M.PSS_GetMemberBlockCounts(m)
 	for _, c in ipairs(History.ALL_CATS) do out[c] = bc[c] or 0; total = total + out[c] end
 	out.total = total
 	return out
-end
-
--- Compatibility wrapper: total, whispers, partyInvites, partyRaid, world, guildInvites
-function M.PSS_GetGuildBlockTotals(guildName)
-	local c = M.PSS_GetGuildBlockCounts(guildName)
-	return c.total, c.whisper, c.partyInvite, c.partyRaid, c.world, c.guildInvite
 end
 
 -- Does a log line belong to guild rule gkey? A line is owned by a
@@ -1736,18 +1693,6 @@ function M.PSS_UpgradeLegacyData()
 	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
 end
 
-local OLD_GUILD_FIELD = { declineGuild = "guildInvite", declineGroup = "partyInvite", partyRaid = "partyRaid" }
-function M.PSS_SetGuildSetting(guildName, field, value)
-	if M.PSS_EXCL_INFO[field] or OLD_GUILD_FIELD[field] then
-		return M.PSS_SetGuildBlock(guildName, M.PSS_EXCL_INFO[field] and field or OLD_GUILD_FIELD[field], value)
-	end
-	local g = ensureGuild(guildName)
-	if not g then return end
-	g[field] = value == true
-	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
-	M.Events.Fire("GUILDS_CHANGED")
-end
-
 function M.PSS_AddGuild(guildName)
 	local g = ensureGuild(guildName)
 	if not g then return end
@@ -2128,26 +2073,6 @@ function M.PSS_AddCapturedGuild(actualGuild, fromGroup)
 	table.sort(perSource, function(a, b) return (a.moved or 0) > (b.moved or 0) end)
 	M.Events.Fire("GUILDS_CHANGED")
 	return added, added + alreadyThere, removedRefs, perSource, leftover
-end
-
-function M.PSS_GetGuildRemovalInfo(guildNameOrKey)
-	ensureDB()
-	local key = normalizeGuild(guildNameOrKey)
-	local g = key and PourSocialScoreDB.guildData[key]
-	if not g then return nil, 0, 0 end
-	local members = g.members or {}
-	local memberCount = 0
-	local globalCount = 0
-	for memberKey in pairs(members) do
-		memberCount = memberCount + 1
-		for i, ignoredName in ipairs(PourSocialScoreDB.ignoreList or {}) do
-			if normalizePlayer(ignoredName) == memberKey and PourSocialScoreDB.typeList[i] == "player" then
-				globalCount = globalCount + 1
-				break
-			end
-		end
-	end
-	return g, memberCount, globalCount
 end
 
 function M.PSS_RemoveGuild(guildNameOrKey)

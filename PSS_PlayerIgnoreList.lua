@@ -1233,12 +1233,6 @@ function M.PSS_TidyPlayerData()
 	return #gone
 end
 
-function M.PSS_GetPlayerPrefsByIndex(index)
-	local name = PourSocialScoreDB.ignoreList[index]
-	if not name then return nil end
-	return ensurePlayer(name)
-end
-
 -- The note of list entry index.
 function M.PSS_SetNote(index, note)
 	if not PourSocialScoreDB.ignoreList[index] then return end
