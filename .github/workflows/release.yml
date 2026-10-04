@@ -1,0 +1,66 @@
+# Publishes a GitHub release whenever the version in
+# PourSocialScore_EllesmereUI/PourSocialScore_EllesmereUI.toc changes on main:
+# tags vX.Y.Z and attaches PourSocialScore_EllesmereUI-X.Y.Z.zip (the addon folder
+# only; no .github). Same logic as the PourSocialScore repo's release.yml.
+# Does nothing if the release exists.
+# Versions with a suffix (3.1.0-dev2) are published as, or turned into, pre-releases.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: v
+        run: |
+          ver=$(sed -n 's/^## Version: *//p' PourSocialScore_EllesmereUI/PourSocialScore_EllesmereUI.toc | tr -d '\r')
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          if gh release view "v$ver" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build zip and notes
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          ver=${{ steps.v.outputs.version }}
+          mkdir -p build
+          cp -r PourSocialScore_EllesmereUI build/
+          (cd build && zip -qr "../PourSocialScore_EllesmereUI-$ver.zip" .)
+          {
+            echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\` so you get \`AddOns/PourSocialScore_EllesmereUI/PourSocialScore_EllesmereUI.toc\`. Needs PourSocialScore $ver and EllesmereUI."
+            echo
+            echo "Matching core release: https://github.com/racetracks/PourSocialScore/releases/tag/v$ver"
+          } > notes.md
+
+      - name: Publish release
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          ver=${{ steps.v.outputs.version }}
+          pre=""
+          case "$ver" in *-*) pre="--prerelease" ;; esac
+          gh release create "v$ver" "PourSocialScore_EllesmereUI-$ver.zip" $pre \
+            --target "$GITHUB_SHA" --title "Pour Social Score EllesmereUI $ver" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Mark suffixed releases as pre-releases
+        run: |
+          gh release list --limit 100 --json tagName,isPrerelease \
+            --jq '.[] | select(.isPrerelease | not) | .tagName | select(contains("-"))' |
+          while read -r tag; do gh release edit "$tag" --prerelease; done
+        env:
+          GH_TOKEN: ${{ github.token }}
