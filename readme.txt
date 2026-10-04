@@ -464,6 +464,10 @@ filter that mixes them without brackets may now behave differently.)
 /pss mem [full]           Memory: addon total, block history lines / cap and
                           size, list sizes, shipped guild index, cleanup
                           state; "full" adds the top 10 history owners
+/pss check                Count and check all saved data: list entries by
+                          type, notes, guilds and members, chat filters,
+                          history lines, the sum of every block count,
+                          options, the upgrade record, and any problems
 /pss showmsg on|off       Print what happens during synchronisation
 /pss sameserver on|off    Only sync same-server characters to Blizzard's
                           ignore list
