@@ -2,6 +2,7 @@
 # changes on main: tags vX.Y.Z and attaches PourSocialScore-X.Y.Z.zip
 # (the addon folder incl. Bindings.xml, without .github / tools), with that version's section
 # of history.txt as the release notes. Does nothing if the release exists.
+# Versions with a suffix (3.0.0-dev1) are published as pre-releases.
 name: Release
 
 on:
@@ -55,7 +56,15 @@ jobs:
         if: steps.v.outputs.exists == 'false'
         run: |
           ver=${{ steps.v.outputs.version }}
-          gh release create "v$ver" "PourSocialScore-$ver.zip" \
+          pre=""
+          case "$ver" in *-*) pre="--prerelease" ;; esac
+          gh release create "v$ver" "PourSocialScore-$ver.zip" $pre \
             --target "$GITHUB_SHA" --title "Pour Social Score $ver" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Mark an existing suffixed release as pre-release
+        if: steps.v.outputs.exists == 'true' && contains(steps.v.outputs.version, '-')
+        run: gh release edit "v${{ steps.v.outputs.version }}" --prerelease
         env:
           GH_TOKEN: ${{ github.token }}
