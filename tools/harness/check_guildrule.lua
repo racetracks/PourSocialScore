@@ -48,7 +48,7 @@ eq("Chat Filters row shows n/a", na, true)
 -- (3.0: the rule is on, so the member lists were loaded at login)
 eq("shipped lists loaded at login", C_AddOns.IsAddOnLoaded("PourSocialScore_Communities"), true)
 local data = PourSocialScore_NS.MANAGED_DATA and PourSocialScore_NS.MANAGED_DATA.olympus
-local shipped = data and data.guilds[1][1]
+local shipped = data and M.PSS_ShippedNames(M.PSS_NormalizeGuild(data.guilds[1].name))[1]
 local gBefore, fBefore = S.Session("guild").total, S.Session("filter").total
 eq("rule on: found member blocked", whisper("Olyfound-Realm"), true)
 eq("rule on: shipped member blocked", whisper(shipped), true)

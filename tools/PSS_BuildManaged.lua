@@ -2,7 +2,7 @@
 -- Builds PourSocialScore's managed / default guild lists from OlympusMute
 -- SavedVariables (Olympus.lua, variable OlympusDB). Two files (3.0):
 --   PourSocialScore_Communities/PSS_GuildIgnore_Managed.lua  the member lists
---     and their lookup index (the on-demand Communities addon)
+--     and their packed lookup buckets (the on-demand Communities addon)
 --   PourSocialScore/PSS_Communities.lua  the manifest the core keeps: each
 --     group's rule, and each guild's name and member count
 --
@@ -27,7 +27,11 @@
 -- census (field t).
 --
 -- The file also carries the lookup index (canon key -> guild number and
--- position), so the game does not have to build it at login.
+-- position), so the game does not have to build it at login. Packed
+-- (3.0.0-dev17): each guild's members are one string (the realm as a
+-- number), and the index is a few hundred bucket strings (by realm, then
+-- the first two bytes of the name) that the game searches with a plain
+-- find, instead of one table entry and two strings per member.
 
 local GROUP = {
 	key		= "olympus",
@@ -133,7 +137,7 @@ end
 -- Quoted Lua string, ASCII only: bytes 128-255 become decimal escapes
 -- ("\195\169"), which Lua 5.1 reads back as the same bytes.
 local function q(s)
-	return (string.format("%q", s):gsub("[\128-\255]", function(c) return "\\" .. c:byte() end))
+	return (string.format("%q", s):gsub("\\\n", "\\n"):gsub("[\128-\255]", function(c) return "\\" .. c:byte() end))
 end
 local function byLower(a, b) return a:lower() < b:lower() end
 
@@ -205,24 +209,61 @@ local function write(group, members, notes, dataOut, manifestOut)
 	out[#out + 1] = "addon.MANAGED_DATA = addon.MANAGED_DATA or {}"
 	out[#out + 1] = ("addon.MANAGED_DATA[%s] = {"):format(q(group.key))
 	out[#out + 1] = head
-	out[#out + 1] = "\t-- guilds[n] = { name = guild, members... } (same order as the manifest)"
+	-- realms: display spelling, numbered in order of first use
+	local realms, realmNo = {}, {}
+	local function realmOf(n)
+		local r = n:match("^[^%-]+%-(.+)$")
+		if not realmNo[r] then realms[#realms + 1] = r realmNo[r] = #realms end
+		return realmNo[r]
+	end
+	out[#out + 1] = "\t-- realms[n] = realm as displayed; a member \"Name-n\" is Name-realms[n]"
+	local rl = {}
+	for _, list in ipairs(lists) do for _, n in ipairs(list) do realmOf(n) end end
+	for _, r in ipairs(realms) do rl[#rl + 1] = q(r) end
+	out[#out + 1] = ("\trealms = { %s },"):format(table.concat(rl, ", "))
+	out[#out + 1] = "\t-- guilds[n] = { name = guild, members = \"Name-realm number\\n...\" } (same order as the manifest)"
 	out[#out + 1] = "\tguilds = {"
 	for gi, g in ipairs(gl) do
-		local parts = { "name = " .. q(g) }
-		for _, n in ipairs(lists[gi]) do parts[#parts + 1] = q(n) end
-		out[#out + 1] = ("\t\t{ %s },"):format(table.concat(parts, ", "))
+		local packed = {}
+		for pos, n in ipairs(lists[gi]) do packed[pos] = n:match("^([^%-]+)%-") .. "-" .. realmOf(n) end
+		out[#out + 1] = ("\t\t{ name = %s, members = %s },"):format(q(g), q(table.concat(packed, "\n")))
 	end
 	out[#out + 1] = "\t},"
-	out[#out + 1] = "\t-- index[canon key] = guild number * 65536 + position in that guild"
-	out[#out + 1] = "\tindex = {"
+	-- buckets: every index key, by realm key and then the first two bytes of
+	-- the name, in one string per bucket ("\n<name>=<guild number * 65536 +
+	-- position>" per key)
+	local buckets, rkeys = {}, {}
+	local function put(k, v)
+		local base, realm = k:match("^([^%-]+)%-(.+)$")
+		if not buckets[realm] then buckets[realm] = { keys = {} } rkeys[#rkeys + 1] = realm end
+		local rb, b = buckets[realm], base:sub(1, 2)
+		if not rb[b] then rb[b] = {} rb.keys[#rb.keys + 1] = b end
+		local t = rb[b]
+		t[#t + 1] = "\n" .. base .. "=" .. v
+	end
 	for gi, list in ipairs(lists) do
-		local parts = {}
 		for pos, n in ipairs(list) do
 			local ck, gk = indexKeys(n)
-			parts[#parts + 1] = ("[%s] = %d"):format(q(ck), gi * 65536 + pos)
-			if gk then parts[#parts + 1] = ("[%s] = %d"):format(q(gk), gi * 65536 + pos) end
+			put(ck, gi * 65536 + pos)
+			if gk then put(gk, gi * 65536 + pos) end
 		end
-		if #parts > 0 then out[#out + 1] = ("\t\t%s,"):format(table.concat(parts, ", ")) end
+	end
+	table.sort(rkeys)
+	out[#out + 1] = "\t-- buckets[realm key][first two bytes of the name key] ="
+	out[#out + 1] = "\t--   \"\\n<name key>=<guild number * 65536 + position>...\" (key = PSS_CanonPlayer)"
+	out[#out + 1] = "\tbuckets = {"
+	for _, realm in ipairs(rkeys) do
+		local rb = buckets[realm]
+		table.sort(rb.keys)
+		local parts = {}
+		for _, b in ipairs(rb.keys) do parts[#parts + 1] = ("[%s] = %s"):format(q(b), q(table.concat(rb[b]))) end
+		if #parts == 1 then
+			out[#out + 1] = ("\t\t[%s] = { %s },"):format(q(realm), parts[1])
+		else
+			out[#out + 1] = ("\t\t[%s] = {"):format(q(realm))
+			for _, p in ipairs(parts) do out[#out + 1] = "\t\t\t" .. p .. "," end
+			out[#out + 1] = "\t\t},"
+		end
 	end
 	out[#out + 1] = "\t},"
 	out[#out + 1] = "}"
@@ -276,8 +317,15 @@ if arg and arg[1] == "--reindex" then
 			members[k] = v						-- old format: [guild] = { names }
 		else
 			local list = {}
-			for _, n in ipairs(v) do list[#list + 1] = n end
-			members[v.name] = list				-- current format
+			if type(v.members) == "string" then	-- packed format (3.0.0-dev17)
+				for n in v.members:gmatch("[^\n]+") do
+					local base, r = n:match("^(.+)%-(%d+)$")
+					list[#list + 1] = base .. "-" .. assert(grp.realms[tonumber(r)], "realm " .. r)
+				end
+			else
+				for _, n in ipairs(v) do list[#list + 1] = n end	-- 3.0.0-dev11 to dev16
+			end
+			members[v.name] = list
 		end
 	end
 	-- keep the merge notes from the old header

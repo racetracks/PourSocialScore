@@ -17,7 +17,7 @@ check(loaded(), "seeing a member of a shipped guild did not load the lists")
 check(stored() == 1, "someone new seen in a shipped guild was not stored")
 local shipped
 for _, entry in ipairs(PourSocialScore_NS.MANAGED_DATA.olympus.guilds) do
-	if entry.name == "OLYMPUS" then shipped = entry[1] end
+	if entry.name == "OLYMPUS" then shipped = M.PSS_ShippedNames(M.PSS_NormalizeGuild(entry.name))[1] end
 end
 M.PSS_UpdatePlayerUnit(shipped, nil, "OLYMPUS")
 check(stored() == 1, "a shipped member seen in the world was stored")

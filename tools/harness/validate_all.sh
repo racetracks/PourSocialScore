@@ -90,6 +90,13 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_communities_seen.lua" 2>&1 | gre
 echo "$out"
 echo "$out" | grep -q "PASS communities seen" || fail=1
 
+# packed lists (3.0 Step 5.1): the same members as the unpacked dev16 list
+echo "== packed lists"
+git show ba5483a:PourSocialScore_Communities/PSS_GuildIgnore_Managed.lua > "$work/managed-dev16.lua"
+out=$(PSS_OLD_MANAGED="$work/managed-dev16.lua" lua5.1 "$here/run.lua" . - - "$here/check_packed.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -E "PASS|FAIL"
+echo "$out" | grep -q "PASS packed" || fail=1
+
 # saved data split (3.0): the Options tables, key routing, undo and reset,
 # on a fresh save and an upgraded 2.0.44 save
 echo "== saved data"

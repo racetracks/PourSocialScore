@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev17 - Smaller community lists (3.0 test build)
+
+- The shipped "Managed Communities - Asmongold" lists are packed: each guild's members are one string and the lookup is a few hundred small search strings, grouped by realm. With the rule on they take about 460 KB of memory instead of about 1.4 MB, and the file is 350 KB instead of 600 KB. With the rule off nothing is loaded, as before.
+- The same 7,634 members in the same 119 guilds are matched; your notes, exclusions and "left this guild" marks are untouched. A lookup costs about a microsecond, far below the chat filter itself.
+- tools/PSS_BuildManaged.lua writes the packed format and still reads the older ones (--reindex).
+- Version 3.0.0-dev17.
+
 => 3.0.0-dev16 - Only changed settings are saved (3.0 test build)
 
 - Settings left at their default are no longer written to PourSocialScore_Options.lua; only the ones you changed are. Every setting reads and works as before, and a setting you put back to its default is removed from the file.
