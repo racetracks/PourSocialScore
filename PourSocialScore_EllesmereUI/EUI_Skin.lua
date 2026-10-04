@@ -47,8 +47,15 @@ function ns.CloseButton(btn)
     if ns.S then ns.S.CloseButton(btn) end
 end
 
+-- S.Tab draws its own label over ours; our label is faded only by colour,
+-- which the button resets on state changes, so it showed through as a ghost.
 function ns.Tab(tab)
-    if ns.S then ns.S.Tab(tab) return end
+    if ns.S then
+        ns.S.Tab(tab)
+        local fs = tab:GetFontString()
+        if fs then fs:SetAlpha(0) end
+        return
+    end
     PlainFill(tab, 0.9)
     PlainBorder(tab)
 end
@@ -58,7 +65,9 @@ function ns.SetTabSelected(tab, selected)
     if ns.S and ns.S.SetTabSelection then
         ns.S.SetTabSelection(tab, selected)
     else
+        -- Alpha, not text colour: colour alpha leaves the shadow at full
+        -- strength, which read as a second, offset label.
         local fs = tab:GetFontString()
-        if fs then fs:SetTextColor(1, 1, 1, selected and 1 or 0.5) end
+        if fs then fs:SetAlpha(selected and 1 or 0.5) end
     end
 end
