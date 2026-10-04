@@ -1,4 +1,4 @@
-## Interface: 11509, 16001, 20506, 30405, 38002, 40402, 50504, 120100
+## Interface: 120007, 16001
 ## Category: PSS
 ## Group: PourSocialScore
 ## Title:|cff69ccf0PourSocialScore|r Core

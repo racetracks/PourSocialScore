@@ -3,7 +3,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 
 => 3.0.0-dev7 - TOC laid out like DBM (3.0 test build)
 
-- dev6 did not show up on Camelot. The TOC now follows Deadly Boss Mods' single TOC exactly: the same list of client versions (## Interface: 11509, 16001, 20506, 30405, 38002, 40402, 50504, 120100), ## Category / ## Group, the title written as DBM writes it, ## LoadOnDemand: 0 and ## DefaultState: enabled.
+- dev6 did not show up on Camelot. The TOC now follows Deadly Boss Mods' single TOC exactly: our client versions (## Interface: 120007, 16001), ## Category / ## Group, the title written as DBM writes it, ## LoadOnDemand: 0 and ## DefaultState: enabled.
 - Version 3.0.0-dev7.
 
 => 3.0.0-dev6 - One TOC and the AddOns list heading (3.0 test build)
