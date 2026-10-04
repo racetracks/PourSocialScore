@@ -31,9 +31,8 @@ function ns.Font(fs, size)
     end
 end
 
--- No title strip: our tabs sit where it would end and got shaded twice.
 function ns.Shell(frame)
-    if ns.S then ns.S.Shell(frame, { noTopBar = true }) return end
+    if ns.S then ns.S.Shell(frame) return end
     PlainFill(frame, 0.92)
     PlainBorder(frame)
 end
@@ -48,8 +47,15 @@ function ns.CloseButton(btn)
     if ns.S then ns.S.CloseButton(btn) end
 end
 
+-- S.Tab draws its own label over ours; our label is faded only by colour,
+-- which the button resets on state changes, so it showed through as a ghost.
 function ns.Tab(tab)
-    if ns.S then ns.S.Tab(tab) return end
+    if ns.S then
+        ns.S.Tab(tab)
+        local fs = tab:GetFontString()
+        if fs then fs:SetAlpha(0) end
+        return
+    end
     PlainFill(tab, 0.9)
     PlainBorder(tab)
 end
