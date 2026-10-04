@@ -1,8 +1,10 @@
 ------------------------------------------------------------------------
 -- POUR SOCIAL SCORE - OPTIONS
 --
--- Every option has one account-wide value (the Options tab, stored at the
--- top level of PourSocialScoreDB). Options that make sense per target (e.g.
+-- Every option has one account-wide value (the Options tab, saved in
+-- PSS_OptionsDB through PourSocialScoreDB, PSS_SavedData.lua). Only a value
+-- that differs from the default is saved (3.0): no saved value is the
+-- default, so read options with M.PSS_Opt, never PourSocialScoreDB.<key>. Options that make sense per target (e.g.
 -- "Send ignore response to ignored players") can additionally be overridden
 -- per GUILD rule and per PERSON (guild member or ignored player) from their
 -- right-click menus / the player detail window.
@@ -106,6 +108,9 @@ function M.PSS_SetOpt(key, scope, value, target)
 	local db = PourSocialScoreDB
 	if not db then return end
 	if scope == "global" then
+		-- the default is not saved
+		local def = REG[key]
+		if def and value == def.default then value = nil end
 		db[key] = value
 	elseif (scope == "guild" or scope == "person") and type(target) == "table" then
 		if M.PSS_KeepManaged then M.PSS_KeepManaged(target) end		-- shipped member: save it
@@ -119,20 +124,14 @@ function M.PSS_SetOpt(key, scope, value, target)
 	if key == "historyTotal" and M.PSS_TrimAllHistory then M.PSS_TrimAllHistory() end
 end
 
--- New options get their global default once (old ones keep saved values).
+-- Saved values equal to their default are dropped (3.0: only changes are
+-- saved; M.PSS_Opt returns the default for a missing value). Every login.
+-- (The 2.0.12 switch-off of ignoreResponse and blizzardSync is upgrade
+-- step 5 now, PSS_Upgrade.lua.)
 function M.PSS_ApplyOptionDefaults()
 	local db = PourSocialScoreDB
 	if not db then return end
-	-- 2.0.12: these two are off by default. Saved values were almost always
-	-- just the old default (on), so they are switched off once; turn them
-	-- back on in the Options tab if you want them.
-	if not db.optionsV2012 then
-		db.ignoreResponse = false
-		db.blizzardSync = false
-		db.charOptions = nil		-- per-character overrides are gone (see top)
-		db.optionsV2012 = true
-	end
 	for _, o in ipairs(OPTIONS) do
-		if db[o.key] == nil then db[o.key] = o.default end
+		if db[o.key] ~= nil and db[o.key] == o.default then db[o.key] = nil end
 	end
 end

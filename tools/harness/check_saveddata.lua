@@ -1,4 +1,4 @@
--- Saved data split (3.0 Steps 4.2 to 4.4), as a run.lua script on a fresh or
+-- Saved data split (3.0 Steps 4.2 to 4.5), as a run.lua script on a fresh or
 -- a 2.0 save (both load PourSocialScore_Logging at that login): options,
 -- players, guilds, rules and counts live in the PourSocialScore_Options
 -- tables, the history in PourSocialScore_Logging, PourSocialScoreDB keeps
@@ -28,7 +28,19 @@ check(held > 10, "Options tables hold only " .. held .. " keys")
 for _, k in ipairs({ "ignoreList", "typeList", "notes", "playerData" }) do check(type(PSS_PlayersDB[k]) == "table", "PSS_PlayersDB." .. k) end
 check(type(PSS_GuildsDB.guildData) == "table", "PSS_GuildsDB.guildData")
 check(type(PSS_RulesDB.filterList) == "table", "PSS_RulesDB.filterList")
-check(PSS_OptionsDB.chatmsg ~= nil, "PSS_OptionsDB.chatmsg")
+-- minimal settings (Step 4.5): no option is saved at its default, the
+-- dead keys are gone, and a missing option reads its default
+for _, o in ipairs(M.PSS_OPTIONS) do
+	check(PSS_OptionsDB[o.key] == nil or PSS_OptionsDB[o.key] ~= o.default, o.key .. " saved at its default")
+end
+for _, k in ipairs({ "optionsV2012", "charOptions" }) do check(PSS_OptionsDB[k] == nil, k .. " not removed") end
+check(rawget(PourSocialScoreDB, "historySize") == nil, "historySize not removed")
+local was = PSS_OptionsDB.chatmsg
+M.PSS_SetOpt("chatmsg", "global", false)
+check(PSS_OptionsDB.chatmsg == false and M.PSS_Opt("chatmsg") == false, "a changed option not saved")
+M.PSS_SetOpt("chatmsg", "global", true)
+check(PSS_OptionsDB.chatmsg == nil and M.PSS_Opt("chatmsg") == true, "an option set to its default still saved")
+PSS_OptionsDB.chatmsg = was
 for _, k in ipairs({ "blockLog", "blockKeep" }) do
 	check(type(PSS_LoggingDB[k]) == "table", "PSS_LoggingDB." .. k)
 end
@@ -84,7 +96,11 @@ M.PSS_ResetIgnoreDB()
 check(PSS_GuildsDB.zzStale == nil, "reset left old Options data")
 check(rawget(PourSocialScoreDB, "ignoreList") == nil and type(PSS_PlayersDB.ignoreList) == "table", "reset: list not routed")
 check(#PourSocialScoreDB.ignoreList == 0, "reset: list not empty")
-check(PourSocialScoreDB.chatmsg == true and PSS_OptionsDB.chatmsg == true, "reset: options not routed")
+check(PSS_OptionsDB.chatmsg == nil and M.PSS_Opt("chatmsg") == true, "reset: options not at their default")
+check(M.PSS_Opt("showWarning") == true, "reset: showWarning not at its default")
+PourSocialScoreDB.sameserver = false
+check(rawget(PourSocialScoreDB, "sameserver") == nil and PSS_OptionsDB.sameserver == false, "reset: options not routed")
+PourSocialScoreDB.sameserver = nil
 check(rawget(PourSocialScoreDB, "filterCount") == nil and type(PSS_CountsDB.filterCount) == "table", "reset: counts not routed")
 check(PSS_LoggingDB.blockLog == nil or #PSS_LoggingDB.blockLog == 0, "reset: history not emptied")
 

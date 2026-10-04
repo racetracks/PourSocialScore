@@ -864,10 +864,40 @@ function UI.DecorateWindow(f, titleText)
 	f:SetMovable(true)
 	f:EnableMouse(true)
 	f:SetClampedToScreen(true)
+	UI.RestorePlace(f)
 	f:SetScript("OnMouseDown", function(self) self:StartMoving(); self.isMoving = true end)
 	f:SetScript("OnMouseUp", function(self)
-		if self.isMoving then self:StopMovingOrSizing(); self.isMoving = false end
+		if self.isMoving then self:StopMovingOrSizing(); self.isMoving = false; UI.SavePlace(self) end
 	end)
+end
+
+-- Where a dragged window was left, per window name, in
+-- PourSocialScoreDB.windowPoints (PSS_OptionsDB): { point, relativePoint,
+-- x, y } against UIParent. Not the game's layout cache: this addon loads on
+-- demand, after the game has placed the windows it knows.
+local function places()
+	local db = PourSocialScoreDB
+	if type(db) ~= "table" then return nil end
+	db.windowPoints = type(db.windowPoints) == "table" and db.windowPoints or {}
+	return db.windowPoints
+end
+
+function UI.SavePlace(f)
+	local name, store = f:GetName(), places()
+	if not name or not store or not f.GetPoint then return end
+	local point, _, relPoint, x, y = f:GetPoint(1)
+	if not point then return end
+	store[name] = { point, relPoint, math.floor(x + 0.5), math.floor(y + 0.5) }
+	if f.SetUserPlaced then f:SetUserPlaced(false) end
+end
+
+function UI.RestorePlace(f)
+	local name = f:GetName()
+	local db = PourSocialScoreDB
+	local p = name and type(db) == "table" and type(db.windowPoints) == "table" and db.windowPoints[name]
+	if type(p) ~= "table" or type(p[1]) ~= "string" then return end
+	f:ClearAllPoints()
+	f:SetPoint(p[1], UIParent, p[2] or p[1], tonumber(p[3]) or 0, tonumber(p[4]) or 0)
 end
 
 -- A popup window that looks like the main window.

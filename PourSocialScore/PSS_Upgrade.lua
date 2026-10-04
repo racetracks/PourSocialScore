@@ -156,6 +156,21 @@ local STEPS = {
 	{
 		fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Options") end,
 	},
+	-- 5: minimal settings. Options equal to their default are not saved
+	-- (M.PSS_ApplyOptionDefaults drops them at every login); this drops the
+	-- keys nothing reads any more. A 2.0 save from before 2.0.12 (no
+	-- optionsV2012) gets the 2.0.12 switch-off of ignoreResponse and
+	-- blizzardSync first, as 2.0 did at login.
+	{
+		fields = function()
+			if type(db.upgrade) ~= "table" and not db.optionsV2012 then
+				db.ignoreResponse, db.blizzardSync = nil, nil
+			end
+			db.optionsV2012 = nil
+			db.charOptions = nil		-- per-character overrides, gone since 2.0.12
+			db.historySize = nil		-- not read by any code (historyTotal is the setting)
+		end,
+	},
 }
 
 M.PSS_UPGRADE_STEPS = #STEPS
@@ -375,13 +390,11 @@ function M.PSS_Validate()
 		n["stats24h." .. src] = t
 	end
 
-	-- options: how many are saved, and how many differ from their default
-	n.optionsSet, n.optionsChanged = 0, 0
+	-- options: how many differ from their default (only those are saved
+	-- since 3.0)
+	n.optionsChanged = 0
 	for _, o in ipairs(M.PSS_OPTIONS or {}) do
-		if sv[o.key] ~= nil then
-			n.optionsSet = n.optionsSet + 1
-			if sv[o.key] ~= o.default then n.optionsChanged = n.optionsChanged + 1 end
-		end
+		if sv[o.key] ~= nil and sv[o.key] ~= o.default then n.optionsChanged = n.optionsChanged + 1 end
 	end
 	return report
 end
@@ -405,7 +418,7 @@ function M.PSS_PrintValidation()
 	out(("  Block counts: players %s, guild members %s, chat filters %s (tab total %s, whispers %s, Battle.net %s)"):format(
 		v("playerCountsTotal"), v("memberCountsTotal"), v("filterRowCounts"), v("filterTotal"), v("filterWhisperTotal"), v("filterPrivateTotal")))
 	out(("  Last 24 hours: players %s, guilds %s, filters %s"):format(v("stats24h.player"), v("stats24h.guild"), v("stats24h.filter")))
-	out(("  Options: %s saved, %s changed from default"):format(v("optionsSet"), v("optionsChanged")))
+	out(("  Options: %s changed from default"):format(v("optionsChanged")))
 	out("  Upgrade: " .. M.PSS_UpgradeText())
 	if #r.problems == 0 then
 		out("  |cff33ff33No problems found.|r")

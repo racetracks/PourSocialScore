@@ -299,15 +299,8 @@ M.PSS_ResetBlizzardIgnore = ResetBlizzardIgnore
 
 local function ResetIgnoreDB()
 
+	-- (options are not listed: no saved value is the default, PSS_Options.lua)
 	PourSocialScoreDB = {
-		chatmsg				= true,
-		sameserver			= true,
-		samefaction			= true,
-		openWithFriends		= true,
-		trackChanges		= true,
-		spamFilter			= true,
-		invertSpam			= false,
-		defexpire			= 0,
 		ignoreList			= {},
 		factionList			= {},
 		dateList			= {},
@@ -325,18 +318,7 @@ local function ResetIgnoreDB()
 		filterBlockedLast	= {},
 		filterWhisperTotal	= 0,
 		filterPrivateTotal	= 0,
-		skipGuild			= true,
-		skipParty			= false,
-		skipPrivate			= true,
-		skipYourself		= false,
 		showIgnoreDebug		= false,
-		showWarning			= false,
-		useUnitHacks		= true,
-		useLFGHacks			= true,
-		ignoreResponse		= false,
-		frameStrata			= 3,
-		floodFilter			= 0, -- 0=None, 1=Name+Server+Message, 2=Message
-		showDeclines		= true,
 		playerData		= {},
 		guildData		= {},
 		imported			= false
