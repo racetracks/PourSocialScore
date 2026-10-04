@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev8 - Loader for the 3.0 addons (3.0 test build)
+
+- Groundwork only, nothing moves yet and nothing should look different. The core can now load the 3.0 on-demand addons when they are first needed, and says once in chat if one is missing, disabled or from a different version.
+- Version 3.0.0-dev8.
+
 => 3.0.0-dev7 - Back to the client TOCs (3.0 test build)
 
 - dev6's single TOC did not load on Camelot, so the three TOCs from dev5 (PourSocialScore, _Mainline, _Camelot) are back, unchanged apart from the version. The coloured "PourSocialScore Core" title and the AddOns list group are not in this build.
