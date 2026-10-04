@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev18 - Community marks clean themselves up (3.0 test build)
+
+- A shipped member you saw in another guild (or removed) gets a "left this guild" mark in PourSocialScore_Options. When the community lists load, marks the current shipped list no longer needs (it has already dropped or moved that character) are removed, so the saved marks stay small as the lists are updated. Marks that still matter, and your notes and exclusions, are kept; member counts do not change.
+- Guilds with no marks no longer save an empty mark table (119 of them on a save with the community rules).
+- /pss check shows how many shipped members are marked as left.
+- Version 3.0.0-dev18.
+
 => 3.0.0-dev17 - Smaller community lists (3.0 test build)
 
 - The shipped "Managed Communities - Asmongold" lists are packed: each guild's members are one string and the lookup is a few hundred small search strings, grouped by realm. With the rule on they take about 460 KB of memory instead of about 1.4 MB, and the file is 350 KB instead of 600 KB. With the rule off nothing is loaded, as before.
