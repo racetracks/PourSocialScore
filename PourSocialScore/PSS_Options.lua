@@ -57,6 +57,10 @@ local OPTIONS = {
 	{ key = "gcEnabled",		kind = "bool",		default = true,		section = 4, label = "Background memory cleanup (out of combat, never causes a hitch)" },
 	{ key = "frameStrata",		kind = "choice", default = 3,		section = 4, label = L["OPT_25"],
 		choices = { { 0, "LOW" }, { 1, "MEDIUM" }, { 2, "HIGH" }, { 3, "DIALOG" } } },
+	-- EllesmereUI integration (PSS_EUI.lua); read at login, so a change asks for a reload
+	{ key = "euiIntegration",	kind = "bool",		default = false, section = 4, label = "Enable EllesmereUI integration",
+		reload = "EllesmereUI integration is now %s. Reload the UI to apply it.",
+		tip = "Shows Pour Social Score in EllesmereUI's style instead of its own windows. Needs EllesmereUI. /pss gui force still opens the PSS windows." },
 	-- Whois scans (Scan, Scan All, Custom, Guild Search): see PSS_WhoisHarvest.lua.
 	-- The cap is drawn in the tickbox's row (field) and must be set to tick it.
 	{ key = "whoLevelCapOn",	kind = "bool",		default = false, section = 5, label = "Enable scan level cap", field = "whoLevelCap",
@@ -107,9 +111,10 @@ end
 function M.PSS_SetOpt(key, scope, value, target)
 	local db = PourSocialScoreDB
 	if not db then return end
+	local def = REG[key]
+	local before = M.PSS_Opt(key)
 	if scope == "global" then
 		-- the default is not saved
-		local def = REG[key]
 		if def and value == def.default then value = nil end
 		db[key] = value
 	elseif (scope == "guild" or scope == "person") and type(target) == "table" then
@@ -122,6 +127,10 @@ function M.PSS_SetOpt(key, scope, value, target)
 	M.Events.Fire("OPTION_CHANGED", key)
 	-- a smaller history buffer frees the memory now, not only as lines arrive
 	if key == "historyTotal" and M.PSS_TrimAllHistory then M.PSS_TrimAllHistory() end
+	-- options read only at login (def.reload: the prompt text)
+	if def and def.reload and scope == "global" and M.PSS_Opt(key) ~= before and M.PSS_AskReload then
+		M.PSS_AskReload(def.reload:format(M.PSS_Opt(key) and "on" or "off"))
+	end
 end
 
 -- Saved values equal to their default are dropped (3.0: only changes are

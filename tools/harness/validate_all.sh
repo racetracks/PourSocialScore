@@ -80,6 +80,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_gui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS gui" || fail=1
 
+# EllesmereUI integration switch (3.1): option, reload prompt, commands
+echo "== EllesmereUI switch"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_eui.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS eui" || fail=1
+
 # shipped guild lists on demand (3.0): PourSocialScore_Communities loads
 # only when the rule is on or members are needed
 echo "== Communities on demand"
