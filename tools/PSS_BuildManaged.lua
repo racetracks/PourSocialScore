@@ -25,8 +25,8 @@
 
 local GROUP = {
 	key		= "olympus",
-	name = "Olympus",
-	rule = "Influencer Guilds - Asmongold",
+	name = "Managed Communities - Asmongold",
+	rule = "Managed Communities - Asmongold",
 	filter = "InfluencerGuild=Olympus",
 	id		= "PSSG0001",
 }

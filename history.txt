@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev3 - Default guild list renamed (3.0 test build)
+
+- The shipped guild list and its Chat Filters rule are now called "Managed Communities - Asmongold" (was "Olympus" on the Guild Ignore List and "Influencer Guilds - Asmongold" on the Chat Filters tab). Its on/off state, members and counts are kept.
+- Version 3.0.0-dev3.
+
 => 3.0.0-dev2 - Dead code removed (3.0 test build)
 
 - Removed ten functions nothing called (debug dumps, old word parsers and old guild API wrappers). No change in game.

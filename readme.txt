@@ -43,9 +43,9 @@ Guild Ignore List
 * Per-guild exclusions W I G P C, and the same W I G P C on every member so
   you can opt each player in or out individually; members also get a note
 * Default guild lists (read only): groups of guilds shipped with the addon
-  (PSS_GuildIgnore_Managed.lua), e.g. "Olympus". Each group has a guild rule
-  on the Chat Filters tab (e.g. "Influencer Guilds - Asmongold",
-  InfluencerGuild=Olympus) that switches the whole group on or off - off by
+  (PSS_GuildIgnore_Managed.lua), e.g. "Managed Communities - Asmongold". Each
+  group has a guild rule of the same name on the Chat Filters tab
+  (InfluencerGuild=Olympus) that switches the whole group on or off - off by
   default, like every built-in filter - and a collapsible entry on the Guild
   Ignore List with its guilds and their members. Shipped guilds can't be
   removed; their W I G P C exclusions, Scan Fields and scans work like any

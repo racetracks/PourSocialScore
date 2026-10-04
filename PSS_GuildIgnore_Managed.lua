@@ -9,7 +9,7 @@
 local addonName, addon = ...
 addon.MANAGED = addon.MANAGED or { groups = {} }
 addon.MANAGED.groups[#addon.MANAGED.groups + 1] = {
-	key = "olympus", name = "Olympus", rule = "Influencer Guilds - Asmongold", filter = "InfluencerGuild=Olympus", id = "PSSG0001",
+	key = "olympus", name = "Managed Communities - Asmongold", rule = "Managed Communities - Asmongold", filter = "InfluencerGuild=Olympus", id = "PSSG0001",
 	-- guilds[n] = { name = guild, members... }
 	guilds = {
 		{ name = "AMERICAN OLYMPUS", "Skibert Toilet-ClassicBetaPvP", "St Callixtus-ClassicBetaPvP", "Tenlerodis Cor-ClassicBetaPvP", "Unkn\195\180wn Asmongler-ClassicBetaPvP", "Wreckin Barbie-ClassicBetaPvP" },
