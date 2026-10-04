@@ -106,6 +106,7 @@ L["HELP_14"]	= "|cffff99ffNOTE: |cffffffffUse /ignore, and UI as usual to add/re
 L["HELP_15"]	= "|cffffff00server servername|cffffffff: Add or remove an entire server ignore"
 L["HELP_16"]	= "|cffffff00gui|cffffffff: Open PSS user interface"
 L["HELP_17"]	= "|cffffff00mem [full]|cffffffff: Show how much memory Pour Social Score is using"
+L["HELP_18"]	= "|cffffff00check|cffffffff: Count and check all saved data (lists, rules, history, counts)"
 L["CHAT_1"]	= "WARNING: There are %d ignored player(s) in this group: |cffffff00%s"
 L["MSG_1"]	= "[Pour Social Score] You are being ignored."
 L["MSG_2"]	= "Automatically declined invite from %s"

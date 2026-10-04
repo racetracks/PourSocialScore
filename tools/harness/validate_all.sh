@@ -92,6 +92,15 @@ else
 	echo "FAIL upgrade record"; fail=1
 fi
 
+# /pss check (3.0): no problems on a fresh save and on every upgraded 2.0.44
+# test save; planted faults are reported
+echo "== saved data check"
+for sv in - "$work/sv-2.0.44.lua" "$work/sv-2.0.44-overflow.lua" "$work/sv-gr-2.0.44.lua"; do
+	out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_validate.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | grep -q "PASS validate" || { echo "$out"; echo "FAIL validate on $sv"; fail=1; }
+done
+[ $fail -eq 0 ] && echo "PASS saved data check"
+
 # multi-addon harness (3.0): child addons, LoadOnDemand, several saved tables
 echo "== multi-addon harness"
 sh "$here/check_multi.sh" || fail=1
@@ -103,6 +112,7 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		lua5.1 "$here/run.lua" . "$sv" "$work/real-1.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
 		lua5.1 "$here/run.lua" . "$work/real-1.lua" "$work/real-2.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
 		lua5.1 "$here/check_real.lua" "$sv" "$work/real-2.lua" || fail=1
+		lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_validate.lua" | grep -v '^|cff' || fail=1
 	done
 fi
 

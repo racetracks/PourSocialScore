@@ -255,6 +255,10 @@ function SlashCmdList.PSS (msg)
 
 		if M.PSS_MemReport then M.PSS_MemReport(args[2] == "full") end
 
+	elseif args[1] == "check" then
+
+		M.PSS_PrintValidation()
+
 	elseif args[1] == "gui" or args[1] == "ui" then
 
 		M.PSS_GUI()
@@ -291,6 +295,7 @@ function SlashCmdList.PSS (msg)
 		M.ShowMsg ("  " .. L["HELP_15"])
 		M.ShowMsg ("  " .. L["HELP_16"])
 		M.ShowMsg ("  " .. L["HELP_17"])
+		M.ShowMsg ("  " .. L["HELP_18"])
 		M.ShowMsg ("  " .. L["HELP_9"])
 		M.ShowMsg ("")
 		M.ShowMsg ("  " .. format(L["HELP_10"], OnOff(M.PSS_Opt("chatmsg"))))

@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev5 - /pss check (3.0 test build)
+
+- New /pss check: counts and checks all saved data without changing it. It shows Player Ignore List entries by type, notes and records; guilds, members shown and stored, member notes and excluded guilds; chat filters (custom, switched on); block history and kept lines; the sum of every block count; the last 24 hours; options; the upgrade record; and any problems found (lists out of step, a chat filter ID used twice, malformed records).
+- The 3.0 upgrade steps will use the same counts to prove nothing was lost when data moves.
+- Version 3.0.0-dev5.
+
 => 3.0.0-dev4 - Upgrade record (3.0 test build)
 
 - Saved data upgrades are now numbered steps (PSS_Upgrade.lua). Step 1 is everything earlier versions did at login, unchanged, and it still runs at every login for now.
