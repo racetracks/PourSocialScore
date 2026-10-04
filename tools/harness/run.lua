@@ -2,6 +2,19 @@
 -- file, log in, run a script, log out and write the SavedVariables back.
 --   lua5.1 tools/harness/run.lua <addonDir> <svIn|-> <svOut|-> [script.lua]
 -- The script runs after login with globals H (the stub) and M (addon.M).
+--
+-- Several addons (3.0 split): the core TOC is <addonDir>/PourSocialScore.toc
+-- or <addonDir>/PourSocialScore/PourSocialScore.toc. Every other addon is a
+-- folder PourSocialScore_<Name> with a TOC of the same name, found either
+-- next to the core folder or inside <addonDir>. As in the game:
+--   * addons without "## LoadOnDemand: 1" load at login, dependencies first
+--   * LoadOnDemand addons load when C_AddOns.LoadAddOn(name) is called
+--   * each addon gets its own private table ("..." in its files) and an
+--     ADDON_LOADED event after its files ran
+--   * every global named in a loaded addon's "## SavedVariables:" line is
+--     written to <svOut> at logout
+-- <svIn> may name several files separated by commas (one per SavedVariables
+-- file in the game); they are all loaded before any addon.
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
 local addonDir, svIn, svOut, script = arg[1], arg[2], arg[3], arg[4]
 
@@ -10,21 +23,135 @@ H.SetTime(tonumber(os.getenv("PSS_TIME") or "") or 1790000000)
 _G.H = H
 
 
-if svIn and svIn ~= "-" then dofile(svIn) end
+if svIn and svIn ~= "-" then
+	for path in svIn:gmatch("[^,]+") do dofile(path) end
+end
 
-local toc = addonDir .. "/PourSocialScore.toc"
-local addon = {}
-for line in io.lines(toc) do
-	line = line:gsub("\r", "")
-	if line:match("%.lua$") and not line:match("^#") then
-		local f = assert(loadfile(addonDir .. "/" .. line))
-		f("PourSocialScore", addon)
+------------------------------------------------------------------------
+-- Find the addons
+------------------------------------------------------------------------
+local CORE = "PourSocialScore"
+
+local function exists(path)
+	local fh = io.open(path, "rb")
+	if fh then fh:close() return true end
+	return false
+end
+
+-- name -> { name, dir, toc, lod, deps = {}, sv = {}, meta = {}, files = {} }
+local addons, order = {}, {}
+
+local function readToc(name, dir, toc)
+	local a = { name = name, dir = dir, toc = toc, lod = false, deps = {}, sv = {}, meta = {}, files = {} }
+	for line in io.lines(toc) do
+		line = line:gsub("\r", "")
+		local key, value = line:match("^##%s*([%w%-_]+)%s*:%s*(.-)%s*$")
+		if key then
+			a.meta[key] = value
+			if key == "LoadOnDemand" then
+				a.lod = value == "1"
+			elseif key == "Dependencies" or key == "RequiredDeps" or key:match("^Dep") then
+				for d in value:gmatch("[^,%s]+") do a.deps[#a.deps + 1] = d end
+			elseif key == "SavedVariables" then
+				for v in value:gmatch("[^,%s]+") do a.sv[#a.sv + 1] = v end
+			end
+		elseif not line:match("^#") and line:match("%S") then
+			-- "file.lua [AllowLoadGameType standard]": the file name only
+			local file = line:match("^%s*(.-)%s*%[") or line:match("^%s*(.-)%s*$")
+			if file:match("%.lua$") then a.files[#a.files + 1] = (file:gsub("\\", "/")) end
+		end
+	end
+	addons[name] = a
+	order[#order + 1] = name
+	return a
+end
+
+local coreDir
+if exists(addonDir .. "/" .. CORE .. ".toc") then
+	coreDir = addonDir
+elseif exists(addonDir .. "/" .. CORE .. "/" .. CORE .. ".toc") then
+	coreDir = addonDir .. "/" .. CORE
+else
+	error("no " .. CORE .. ".toc in " .. addonDir)
+end
+readToc(CORE, coreDir, coreDir .. "/" .. CORE .. ".toc")
+
+-- child addons: PourSocialScore_<Name>/PourSocialScore_<Name>.toc
+local seen = {}
+local bases = { addonDir }
+if coreDir ~= addonDir then bases[2] = coreDir .. "/.." end
+for _, base in ipairs(bases) do
+	local ls = io.popen('ls -d "' .. base .. '"/' .. CORE .. '_*/ 2>/dev/null')
+	if ls then
+		for dir in ls:lines() do
+			dir = dir:gsub("/$", "")
+			local name = dir:match("([^/]+)$")
+			if name and not seen[name] and exists(dir .. "/" .. name .. ".toc") then
+				seen[name] = true
+				readToc(name, dir, dir .. "/" .. name .. ".toc")
+			end
+		end
+		ls:close()
 	end
 end
-local M = addon.M
+
+------------------------------------------------------------------------
+-- Load them like the game does
+------------------------------------------------------------------------
+local loaded, loading = {}, {}
+local privates = {}
+local coreAddon
+
+local function load(name)
+	local a = addons[name]
+	if not a then return false, "MISSING" end
+	if loaded[name] then return true end
+	if loading[name] then error("dependency loop at " .. name) end
+	loading[name] = true
+	for _, d in ipairs(a.deps) do
+		local ok = load(d)
+		if not ok then loading[name] = nil return false, "DEP_MISSING" end
+	end
+	local private = {}
+	privates[name] = private
+	if name == CORE then coreAddon = private end
+	for _, file in ipairs(a.files) do
+		local f = assert(loadfile(a.dir .. "/" .. file))
+		f(name, private)
+	end
+	loading[name] = nil
+	loaded[name] = true
+	H.Fire("ADDON_LOADED", name)
+	return true
+end
+
+local function isLoaded(name) return loaded[name] == true end
+C_AddOns.IsAddOnLoaded = isLoaded
+C_AddOns.LoadAddOn = function(name)
+	local ok, why = load(name)
+	if ok then return true end
+	return false, why
+end
+C_AddOns.EnableAddOn = function() end
+C_AddOns.GetAddOnMetadata = function(name, field)
+	local a = addons[name]
+	if a and a.meta[field] then return a.meta[field] end
+	return "test"
+end
+IsAddOnLoaded = isLoaded
+LoadAddOn = C_AddOns.LoadAddOn
+
+-- login: every addon that is not LoadOnDemand, dependencies first
+for _, name in ipairs(order) do
+	if not addons[name].lod then
+		local ok, why = load(name)
+		if not ok then print("ERROR " .. name .. " not loaded: " .. tostring(why)) end
+	end
+end
+
+local M = coreAddon and coreAddon.M
 _G.M = M
 
-H.Fire("ADDON_LOADED", "PourSocialScore")
 H.Fire("PLAYER_LOGIN")
 H.Fire("PLAYER_ENTERING_WORLD", true, false)
 H.Fire("IGNORELIST_UPDATE")
@@ -34,7 +161,16 @@ if script then dofile(script) end
 
 H.Fire("PLAYER_LOGOUT")
 if svOut and svOut ~= "-" then
+	-- every SavedVariables global of every addon that was loaded
 	local fh = assert(io.open(svOut, "w"))
-	fh:write("PourSocialScoreDB = ", H.serialize(PourSocialScoreDB), "\n")
+	for _, name in ipairs(order) do
+		if loaded[name] then
+			for _, var in ipairs(addons[name].sv) do
+				if _G[var] ~= nil then
+					fh:write(var, " = ", H.serialize(_G[var]), "\n")
+				end
+			end
+		end
+	end
 	fh:close()
 end
