@@ -48,7 +48,7 @@ for gkey, n in pairs(before) do
 	after = after + c
 end
 check(after == total, "total count changed")
-local shipped = PourSocialScore_NS.MANAGED_DATA.olympus.guilds[1][1]
+local shipped = M.PSS_ShippedNames(M.PSS_NormalizeGuild(PourSocialScore_NS.MANAGED_DATA.olympus.guilds[1].name))[1]
 check(whisper(shipped), "shipped member not blocked with the rule on")
 
 if not fail then print("PASS communities") end

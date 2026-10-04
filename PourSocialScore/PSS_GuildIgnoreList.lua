@@ -572,7 +572,10 @@ local vkeep = {}
 -- (canon key -> guild number * 65536 + position) ships prebuilt in
 -- the data file (tools/PSS_BuildManaged.lua), so nothing is
 -- built per member at login and every shipped member matches from the
--- first chat line.
+-- first chat line. It is packed (3.0.0-dev17): buckets[realm key][first
+-- two bytes of the name key] is one string "\n<name key>=<number>..."
+-- searched with a plain find, and each guild's members are one string
+-- ("Name-<realm number>\n..."), split only while a list is looked at.
 local function buildManaged()
 	if managed then return managed end
 	local data = addon.MANAGED_DATA
@@ -589,21 +592,50 @@ local function buildManaged()
 				managed.guildName[gkey] = entry.name
 				managed.count[gkey] = tonumber(entry.n) or 0
 				local list = gdata and gdata.guilds and gdata.guilds[gi]
-				if list and list.name == entry.name then managed.names[gkey] = list end
+				if list and list.name == entry.name then managed.names[gkey] = { packed = list.members, realms = gdata.realms } end
 			end
 		end
-		if gdata then managed.lists[#managed.lists + 1] = { index = gdata.index or {}, gkeys = gkeys } end
+		if gdata then managed.lists[#managed.lists + 1] = { buckets = gdata.buckets or {}, gkeys = gkeys } end
 	end
 	return managed
 end
 
 -- canon key -> shipped guild key, position in its list (nil if not shipped).
 -- A character listed by two groups belongs to the first.
+local find, byte, sub = string.find, string.byte, string.sub
+
+-- the number after "\n<base>=" in a bucket string, or nil
+local function bucketValue(bucket, base)
+	local init, len = 1, #base
+	while true do
+		local s, e = find(bucket, base, init, true)
+		if not s then return nil end
+		if byte(bucket, s - 1) == 10 and byte(bucket, e + 1) == 61 then
+			local v, i = 0, e + 2
+			local c = byte(bucket, i)
+			while c and c >= 48 and c <= 57 do
+				v = v * 10 + c - 48
+				i = i + 1
+				c = byte(bucket, i)
+			end
+			return v
+		end
+		init = s + len
+	end
+end
+
 local function shippedOf(ck)
 	if not ck then return nil end
 	local lists = (managed or buildManaged()).lists
+	if #lists == 0 then return nil end
+	local dash = find(ck, "-", 1, true)
+	if not dash or dash < 2 then return nil end
+	local realm, base = sub(ck, dash + 1), sub(ck, 1, dash - 1)
+	local first = sub(base, 1, 2)
 	for i = 1, #lists do
-		local v = lists[i].index[ck]
+		local rb = lists[i].buckets[realm]
+		local bucket = rb and rb[first]
+		local v = bucket and bucketValue(bucket, base)
 		if v then
 			local gi = math.floor(v / 65536)
 			local gkey = lists[i].gkeys[gi]
@@ -613,13 +645,36 @@ local function shippedOf(ck)
 	return nil
 end
 
+-- A shipped guild's members as a list of names (split from its packed
+-- string while someone holds it; weak, so the garbage collector frees it).
+local splitCache = setmetatable({}, { __mode = "v" })
+local function shippedNames(gkey)
+	local entry = (managed or buildManaged()).names[gkey]
+	if not entry then return nil end
+	local list = splitCache[gkey]
+	if list then return list end
+	list = {}
+	local realms = entry.realms or {}
+	for n in (entry.packed or ""):gmatch("[^\n]+") do
+		local b, r = n:match("^(.+)%-(%d+)$")
+		list[#list + 1] = b and realms[tonumber(r)] and (b .. "-" .. realms[tonumber(r)]) or n
+	end
+	splitCache[gkey] = list
+	return list
+end
+M.PSS_ShippedNames = shippedNames
+
 -- numbers for /pss mem
 function M.PSS_ManagedStats()
 	local m = buildManaged()
 	local shipped, indexed = 0, 0
 	for _, n in pairs(m.count) do shipped = shipped + n end
 	for _, l in ipairs(m.lists) do
-		for _ in pairs(l.index) do indexed = indexed + 1 end
+		for _, rb in pairs(l.buckets) do
+			for _, bucket in pairs(rb) do
+				for _ in bucket:gmatch("\n") do indexed = indexed + 1 end
+			end
+		end
 	end
 	local kept, cached = 0, 0
 	for _ in pairs(vkeep) do kept = kept + 1 end
@@ -657,7 +712,8 @@ local function vrec(ck, gkey)
 	if r and r._gkey == gkey then return r end
 	local m = buildManaged()
 	local gk, pos = shippedOf(ck)
-	local name = (gk == gkey) and m.names[gkey][pos]
+	local names = gk == gkey and shippedNames(gkey)
+	local name = names and names[pos]
 	if not name then return nil end
 	-- flags, counts and block choices are created when first set
 	r = {
@@ -723,7 +779,7 @@ local function forEachMember(g, gkey, fn, includeUntouched)
 	if includeUntouched then
 		ensureManagedData()
 		local mm = buildManaged()
-		for _, name in ipairs(mm.names[gkey] or {}) do
+		for _, name in ipairs(shippedNames(gkey) or {}) do
 			local ck = canonPlayer(name)
 			if ck and shippedOf(ck) == gkey and not seen[ck] and not isGone(g, ck) then
 				seen[ck] = true
@@ -799,7 +855,7 @@ function M.PSS_GuildMemberCount(g, gkey)
 		memberCountCache[g] = c
 		return n
 	end
-	n = #(m.names[gkey] or {})
+	n = m.names[gkey] and (m.count[gkey] or 0) or 0
 	for k, mm in pairs(g.members or {}) do
 		local ck = canonPlayer(type(k) == "string" and k or nil) or (type(mm) == "table" and canonPlayer(mm.name))
 		if not (ck and shippedOf(ck) == gkey) then n = n + 1 end
