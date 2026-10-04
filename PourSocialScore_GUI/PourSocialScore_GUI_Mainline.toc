@@ -1,7 +1,8 @@
 ## Interface: 120007
-## Title: PourSocialScore GUI
+## Title: |cff69ccf0PourSocialScore|r GUI
 ## Notes: PourSocialScore windows, loaded when first opened
 ## Category: PSS
+## Group: PourSocialScore
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
 ## Version: 3.0.0-dev9
