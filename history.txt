@@ -1,6 +1,19 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0 - Six folders, loaded only when needed
+
+- Back up your WTF folder before the first login: a 3.0 save can't be read by 2.0. Delete the old PourSocialScore folder and install every folder from the zip (six of them, side by side in Interface/AddOns).
+- Pour Social Score is now six addons, grouped as one entry in the AddOns list. Always loaded: PourSocialScore (chat filtering, warnings, declines, guild capture) and PourSocialScore_Options (your settings and lists, data only). Loaded only when needed: PourSocialScore_GUI (the window), PourSocialScore_Libraries (commands, scans, import/export), PourSocialScore_Logging (the block history) and PourSocialScore_Communities (the shipped guild lists). Until you open the window or the history, only the first two are in memory.
+- Your saved data moves at the first login, checked before and after (the counts /pss check reports must match, or the move is undone and tried again next login). One chat line per folder says what moved. Settings and lists go to PourSocialScore_Options.lua, the block history to PourSocialScore_Logging.lua; PourSocialScore.lua keeps only the upgrade record and lines waiting for the history.
+- Blocks are counted at once. New history lines wait in PourSocialScore.lua and join the history when it is opened, when /pss check runs, or after 200 lines (out of combat and outside instances). They are kept over a logout or /reload.
+- Only settings you changed are saved. Windows remember their size and where you left them.
+- The default guild list is now "Managed Communities - Asmongold". Its lists are packed (about 460 KB when the rule is on instead of 1.4 MB, nothing when it is off), and "left this guild" marks the shipped list no longer needs are removed when the lists load.
+- New: /pss check counts and checks all saved data. /pss mem shows each folder.
+- Saved data upgrades now run as numbered steps with an upgrade record (step 5 in this release), so later versions can upgrade straight from any 3.0 save.
+- The test builds 3.0.0-dev1 to dev18 below list each change in detail.
+- Version 3.0.0.
+
 => 3.0.0-dev18 - Community marks clean themselves up (3.0 test build)
 
 - A shipped member you saw in another guild (or removed) gets a "left this guild" mark in PourSocialScore_Options. When the community lists load, marks the current shipped list no longer needs (it has already dropped or moved that character) are removed, so the saved marks stay small as the lists are updated. Marks that still matter, and your notes and exclusions, are kept; member counts do not change.

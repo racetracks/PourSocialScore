@@ -1,5 +1,5 @@
 POUR SOCIAL SCORE AND CHAT SPAM FILTER
-Version 2.0.34 - by Boaties
+Version 3.0.0 - by Boaties
 
 Pour Social Score is a quality-of-life addon with an unlimited, account-wide
 ignore list, a guild ignore list, and a chat/spam filter engine. It removes
@@ -9,6 +9,42 @@ libraries).
 
 Type /pss gui (or open your Friends window) to open the interface, and /pss
 for the chat command list.
+
+
+== INSTALLING AND UPDATING
+
+Pour Social Score is six folders. Extract the zip into
+World of Warcraft/_retail_/Interface/AddOns/ (or your Camelot client's
+AddOns folder) so the six folders sit side by side:
+
+  PourSocialScore              always loaded: chat filtering, warnings,
+                               declines, guild member capture
+  PourSocialScore_Options      always loaded, data only: your settings, the
+                               Player and Guild Ignore Lists, chat rules
+                               and every block count
+  PourSocialScore_GUI          the window, loaded when you open it
+  PourSocialScore_Libraries    commands, scans and import/export, loaded
+                               when you use them
+  PourSocialScore_Logging      the block history, loaded when you view it,
+                               run /pss check, or 200 new lines are waiting
+  PourSocialScore_Communities  the shipped guild lists, loaded when their
+                               rule is on or you work with their members
+
+The AddOns list shows them under one Pour Social Score heading. Keep all
+six enabled; PourSocialScore and PourSocialScore_Options are required.
+
+When updating, replace every folder (delete the old ones first so no stale
+file is left behind).
+
+Upgrading from 2.0: back up your WTF folder first, because a 3.0 save can't
+be read by 2.0. At the first login your saved data moves to the new files
+in WTF/Account/<account>/SavedVariables/, and is checked before and after
+(if any count differs the move is undone and tried again next login):
+  PourSocialScore_Options.lua  settings (only those you changed), lists,
+                               chat rules, block counts, window sizes
+  PourSocialScore_Logging.lua  the block history and kept lines
+  PourSocialScore.lua          the upgrade record, and new block lines
+                               waiting to join the history
 
 
 == FEATURES
@@ -52,7 +88,9 @@ Guild Ignore List
   removed; their W I G P C exclusions, Scan Fields and scans work like any
   guild. Only your changes are saved: members your scans find that aren't
   in the shipped list (kept in the group), shipped members you edit or that
-  have block history, and shipped members that left the guild.
+  have block history, and shipped members that left the guild (a mark the
+  shipped list no longer needs is removed when the lists load). The lists
+  take about 0.5 MB when loaded, nothing when off.
 * Guild Search: /who for part of a guild name and add any guilds it finds;
   everyone the search saw in a guild you add becomes a member of its rule
 * Block counters per guild and per type, with full block history
@@ -81,7 +119,9 @@ Also
 * Block history is ONE shared log of the last 2,000 blocked lines across
   every player, guild member and chat filter (Options > "Block history lines
   kept in total" 100-20000). Memory has a hard ceiling however many people
-  you block: about 0.7 MB at 2,000 lines. The views (a player, a guild, a
+  you block: about 0.7 MB at 2,000 lines, and none until the history is
+  loaded (PourSocialScore_Logging). Blocks are counted at once; new lines
+  wait and join the log when it loads. The views (a player, a guild, a
   member, a filter, "all ...") are filtered from the log; the blocked counts
   are totals kept per person/filter and are never cut. A player's lines
   follow them when they are moved to another guild rule.
@@ -92,7 +132,7 @@ Also
   /pss mem shows what the addon is using (/pss mem full: who has the most
   history lines).
 * Options apply to every character on the account; some can also be set
-  per guild or per player
+  per guild or per player. Only options you changed are saved.
 
 
 == EXCLUSIONS: W I G P C
