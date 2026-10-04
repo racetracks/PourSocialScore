@@ -146,7 +146,7 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
 				g:ClearAllPoints(); g:SetPoint("CENTER", row, "LEFT", x + w / 2 - 34, 0)
 				e:ClearAllPoints(); e:SetPoint("LEFT", g, "RIGHT", 10, 0)
 			end)
-			local function saved() return PourSocialScoreDB and fieldValue(f, PourSocialScoreDB[f.key]) end
+			local function saved() return fieldValue(f, M.PSS_Opt(f.key)) end
 			local function warn(msg)
 				M.ShowMsg("|cffff5555" .. msg .. "|r")
 				e:SetFocus()
@@ -172,7 +172,7 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
 				local n = fieldValue(f, self:GetText())
 				if n then
 					M.PSS_SetOpt(f.key, "global", n)
-				elseif PourSocialScoreDB and PourSocialScoreDB[o.key] then
+				elseif M.PSS_Opt(o.key) then
 					-- ticked: the cap is mandatory, keep the saved one
 					M.ShowMsg(("|cffff5555%s is required while %s is ticked.|r"):format(f.label, o.label))
 				else
@@ -188,7 +188,7 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
 			e:SetScript("OnLeave", function() GameTooltip:Hide() end)
 			row.global, row.field = g, e
 			row.refresh = function()
-				local on = PourSocialScoreDB and PourSocialScoreDB[o.key] == true and saved() ~= nil
+				local on = M.PSS_Opt(o.key) == true and saved() ~= nil
 				g:SetChecked(on)
 				if not e:HasFocus() then
 					local n = saved()
@@ -202,7 +202,7 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
 			g:SetScript("OnClick", function(self) M.PSS_SetOpt(o.key, "global", self:GetChecked() == true); refreshAll() end)
 			row.global = g
 			row.refresh = function()
-				g:SetChecked(PourSocialScoreDB and PourSocialScoreDB[o.key] == true)
+				g:SetChecked(M.PSS_Opt(o.key) == true)
 			end
 		elseif o.kind == "number" then
 			local g = UI.NumberBox(row, 50, 18)
@@ -219,7 +219,7 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
 			g:SetScript("OnEscapePressed", function(self) self:ClearFocus(); refreshAll() end)
 			row.global = g
 			row.refresh = function()
-				if not g:HasFocus() then g:SetText(tostring(PourSocialScoreDB and PourSocialScoreDB[o.key] or o.default)) end
+				if not g:HasFocus() then g:SetText(tostring(M.PSS_Opt(o.key))) end
 			end
 		else -- choice
 			local function labelFor(v)
@@ -235,7 +235,7 @@ function M.PSS_BuildOptionsTab(MainFrame, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_OF
 			end)
 			row.global = g
 			row.refresh = function()
-				if g.SetDefaultText then g:SetDefaultText(labelFor(PourSocialScoreDB and PourSocialScoreDB[o.key] or o.default)) end
+				if g.SetDefaultText then g:SetDefaultText(labelFor(M.PSS_Opt(o.key))) end
 			end
 		end
 		rows[#rows + 1] = row

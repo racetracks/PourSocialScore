@@ -1,6 +1,15 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev16 - Only changed settings are saved (3.0 test build)
+
+- Settings left at their default are no longer written to PourSocialScore_Options.lua; only the ones you changed are. Every setting reads and works as before, and a setting you put back to its default is removed from the file.
+- Each window now remembers where you dragged it, saved in PourSocialScore_Options next to its size and column widths, so the place is kept even though the windows load only when opened.
+- Old keys nothing reads any more are removed at the first login (optionsV2012, charOptions, historySize).
+- A new or cleared save now starts with "Show warning if ignore list synchronization fails during login" on, its default in the Options tab (a new save used to store it off).
+- /pss check counts the options changed from their default.
+- Version 3.0.0-dev16.
+
 => 3.0.0-dev15 - Block history loads only when needed (3.0 test build)
 
 - PourSocialScore_Logging no longer loads at login. It loads the first time the block history is needed: opening a history view, a removal that clears someone's lines, /pss check, changing the history size, or when 200 new lines are waiting (then only out of combat and outside instances). On a large history that keeps about 1.2 MB out of memory until then.

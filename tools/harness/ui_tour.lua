@@ -220,7 +220,7 @@ end
 table.sort(dlg)
 
 local saved = {}
-for _, k in ipairs({ "asknote", "chatmsg", "sameserver", "defexpire" }) do saved[#saved + 1] = k .. "=" .. val(db[k]) end
+for _, k in ipairs({ "asknote", "chatmsg", "sameserver", "defexpire" }) do saved[#saved + 1] = k .. "=" .. val(M.PSS_Opt(k)) end
 for i, n in ipairs(db.ignoreList or {}) do
 	saved[#saved + 1] = ("player %d %s note=%s exp=%s"):format(i, n, val(db.notes[i]), val(db.expList[i]))
 end

@@ -212,8 +212,8 @@ function M.ResetSpamFilters()
 	PourSocialScoreDB.filterBlocked		= {}
 	PourSocialScoreDB.filterBlockedLast	= {}
 
-	PourSocialScoreDB.invertSpam = false
-	PourSocialScoreDB.spamFilter = true
+	PourSocialScoreDB.invertSpam = nil		-- (their defaults)
+	PourSocialScoreDB.spamFilter = nil
 	PourSocialScoreDB.builtinRules = {}
 	PourSocialScoreDB.builtinStats = {}
 

@@ -108,11 +108,11 @@ local function ApplicationStartup(self)
 	PourSocialScoreDB.guildData = PourSocialScoreDB.guildData or {}
 	if PourSocialScoreDB.imported == nil then PourSocialScoreDB.imported = false end
 
-	-- Every option in the Options tab (defaults live in PSS_Options.lua)
-	M.PSS_ApplyOptionDefaults()
-	if not tonumber(PourSocialScoreDB.defexpire) then
-		PourSocialScoreDB.defexpire = 0
+	-- Options keep only what differs from the default (PSS_Options.lua)
+	if PourSocialScoreDB.defexpire ~= nil and not tonumber(PourSocialScoreDB.defexpire) then
+		PourSocialScoreDB.defexpire = nil
 	end
+	M.PSS_ApplyOptionDefaults()
 
 	-- saved data upgrades that run before the built-in filters are rebuilt
 	-- (PSS_Upgrade.lua)

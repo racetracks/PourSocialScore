@@ -5,7 +5,9 @@
 --   PourSocialScore          PourSocialScoreDB: the upgrade record,
 --                            bookkeeping and the outbox (block lines waiting
 --                            for PourSocialScore_Logging, PSS_ChatHistory.lua)
---   PourSocialScore_Options  PSS_OptionsDB    options and window state
+--   PourSocialScore_Options  PSS_OptionsDB    options that differ from their
+--                                             default, window sizes, places
+--                                             and column widths
 --   (always loaded,          PSS_PlayersDB    the Player Ignore List
 --    data only)              PSS_GuildsDB     the Guild Ignore List
 --                            PSS_RulesDB      chat rules and built-in on/off
@@ -54,7 +56,7 @@ local ON_DEMAND = { PourSocialScore_Logging = "Logging" }
 -- group -> the PourSocialScoreDB keys it holds. The options in
 -- M.PSS_OPTIONS (PSS_Options.lua) are added to "options".
 local LAYOUT = {
-	options	= { "showIgnoreDebug", "windowSizes", "columnWidths", "charOptions", "optionsV2012" },
+	options	= { "showIgnoreDebug", "windowSizes", "windowPoints", "columnWidths", "charOptions", "optionsV2012" },
 	players	= { "ignoreList", "typeList", "factionList", "dateList", "notes", "expList", "delList",
 				"syncInfo", "playerData" },
 	guilds	= { "guildData", "guildExclusions", "guildGroupOpen", "scanFieldsDefaultV1", "guildPlayerCleanupV3" },
@@ -224,8 +226,8 @@ function M.PSS_PrepareSavedData(opts)
 	if not opts.quiet then
 		local n = before
 		if movedTo.PourSocialScore_Options then
-			M.ShowMsg(("Saved data moved to PourSocialScore_Options: %d Player Ignore List entries (%d notes), %d guild rules (%d members), %d custom chat rules, %d options."):format(
-				n.list or 0, n.listNotes or 0, n.guildRules or 0, n.membersStored or 0, n.filters or 0, n.optionsSet or 0))
+			M.ShowMsg(("Saved data moved to PourSocialScore_Options: %d Player Ignore List entries (%d notes), %d guild rules (%d members), %d custom chat rules, %d options changed from default."):format(
+				n.list or 0, n.listNotes or 0, n.guildRules or 0, n.membersStored or 0, n.filters or 0, n.optionsChanged or 0))
 		end
 		if movedTo.PourSocialScore_Logging then
 			M.ShowMsg(("Saved data moved to PourSocialScore_Logging: %d block history lines, %d kept lines for %d people."):format(

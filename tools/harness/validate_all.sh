@@ -98,7 +98,7 @@ for sv in - "$work/sv-2.0.44.lua"; do
 	echo "$out" | grep -q "PASS saved data" && echo "PASS saved data ($sv)" || { echo "$out"; echo "FAIL saved data on $sv"; fail=1; }
 done
 
-# split (3.0 Steps 4.2 and 4.3): a 2.0 save keeps every count after its data
+# split (3.0 Steps 4.2 to 4.5): a 2.0 save keeps every count after its data
 # moves to PourSocialScore_Options and PourSocialScore_Logging (dev12 build vs
 # this one), each move prints one line (2.0.1 to 2.0.17 saves have no shared
 # block log to move), and the next login moves nothing
@@ -108,7 +108,9 @@ git archive c5c8296 | tar -x -C "$work/src-prev"
 splitsaves="$work/sv-2.0.1.lua $work/sv-2.0.40.lua $work/sv-2.0.44.lua $work/sv-gr-2.0.44.lua"
 [ -n "$PSS_REAL_SAVES" ] && splitsaves="$splitsaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua')"
 for sv in $splitsaves; do
-	lua5.1 "$here/run.lua" "$work/src-prev" "$sv" - "$here/dump_counts.lua" 2>&1 | grep '^N ' > "$work/split-a.txt"
+	# (optionsSet: dev12 saved every option; since 3.0.0-dev16 only changed
+	# ones are saved, and optionsChanged is the count compared)
+	lua5.1 "$here/run.lua" "$work/src-prev" "$sv" - "$here/dump_counts.lua" 2>&1 | grep '^N ' | grep -v '^N optionsSet=' > "$work/split-a.txt"
 	lua5.1 "$here/run.lua" . "$sv" "$work/split-1.lua" "$here/dump_counts.lua" > "$work/split-b.txt" 2>&1
 	lua5.1 "$here/run.lua" . "$work/split-1.lua" - "$here/dump_counts.lua" > "$work/split-c.txt" 2>&1
 	if [ -s "$work/split-a.txt" ] && grep '^N ' "$work/split-b.txt" | diff "$work/split-a.txt" - > /dev/null &&
