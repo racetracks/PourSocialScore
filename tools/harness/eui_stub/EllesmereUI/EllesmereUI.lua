@@ -3,7 +3,7 @@
 -- EllesmereUI's code.
 local E = {}
 EllesmereUI = E
-E.log = { plugins = {}, popups = {}, opened = {}, skinned = {}, escape = {} }
+E.log = { plugins = {}, popups = {}, opened = {}, skinned = {}, escape = {}, copies = {}, refreshed = 0 }
 
 local plugins = {}
 function E.RegisterPlugin(id, spec)
@@ -23,6 +23,13 @@ function E.IsSearchPrebuild() return E.prebuild end
 function E.GetPlugin(id) return plugins[id] end
 
 function E:ShowConfirmPopup(opts) E.log.popups[#E.log.popups + 1] = opts end
+function E:ShowCopyPopup(title, subtitle, str) E.log.copies[#E.log.copies + 1] = str end
+-- the import popup hands over E.importText as if it was pasted
+function E:ShowImportPopup(onImport) onImport(E.importText) end
+-- panel state: E.active is the module key on show
+function E.GetPluginModuleKey(id, key) return "plugin:" .. id .. ":" .. key end
+function E:GetActiveModule() return E.active end
+function E:RefreshPage() E.log.refreshed = E.log.refreshed + 1 end
 function E.ShowWidgetTooltip() end
 function E.HideWidgetTooltip() end
 function E.RegisterEscapeClose(frame) E.log.escape[#E.log.escape + 1] = frame end

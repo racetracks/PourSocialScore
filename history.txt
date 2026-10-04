@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.1.0-dev3 - EllesmereUI options and Import/Export (3.1 test build)
+
+- The Pour Social Score window in EllesmereUI's style now has its Options tab: every Pour Social Score option, grouped like the PSS Options tab, with EllesmereUI's tickboxes, boxes and dropdowns.
+- The "Pour Social Score" section of EllesmereUI's panel now has an Options page for each group (Ignore List, Blocking, Chat Filters, Interface, Whois Scans). EllesmereUI's search finds them by name. A change on either side shows on the other at once.
+- Import/Export works in the window and in the panel: tick what to include, Export shows the string in EllesmereUI's copy box, Import takes it from EllesmereUI's paste box. Replace asks first.
+- Version 3.1.0-dev3.
+
 => 3.1.0-dev2 - EllesmereUI window and panel section (3.1 test build)
 
 - New seventh folder, PourSocialScore_EllesmereUI (from its own repository, in the test zip). It loads only when it is needed, and only with "Enable EllesmereUI integration" on and EllesmereUI installed.
