@@ -9,7 +9,7 @@
 -- The payload is a small typed serialisation (never executed as code), so
 -- an import string can only ever contain data.
 ------------------------------------------------------------------------
-local addonName, addon = ...
+local addon = PourSocialScore_NS
 local L = addon.L
 local V = addon.V
 local M = addon.M

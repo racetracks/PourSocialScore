@@ -85,7 +85,15 @@ local function checkFile(path)
 end
 
 -- the core files live in the PourSocialScore folder (3.0 layout)
-for _, path in ipairs(CORE) do checkFile("PourSocialScore/" .. path) end
+-- core logic files live in the core or in the on-demand back end
+local function where(path)
+	for _, dir in ipairs({ "PourSocialScore/", "PourSocialScore_Libraries/" }) do
+		local fh = io.open(dir .. path, "rb")
+		if fh then fh:close() return dir .. path end
+	end
+	return "PourSocialScore/" .. path
+end
+for _, path in ipairs(CORE) do checkFile(where(path)) end
 if problems > 0 then
 	print("Core files must not hold UI code (rule 6). Move it to a UI file and fire an event from the core.")
 	os.exit(1)

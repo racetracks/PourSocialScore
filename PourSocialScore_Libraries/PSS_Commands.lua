@@ -5,8 +5,10 @@
 -- options) and /pssguild (guild list diagnostics). Both only read and
 -- print; the work is done by the core functions they call
 -- (PSS_PlayerIgnoreList.lua, PSS_GuildIgnoreList.lua, PSS_ChatBlock.lua).
+-- In PourSocialScore_Libraries: the core registers /pss and /pssguild and
+-- loads this addon on the first command (PourSocialScore.lua).
 ------------------------------------------------------------------------
-local addonName, addon = ...
+local addon = PourSocialScore_NS
 local L = addon.L
 local V = addon.V
 local M = addon.M
@@ -109,7 +111,7 @@ end
 local function PSSTest()
 end
 
-function SlashCmdList.PSS (msg)
+function M.PSS_SlashPSS (msg)
 
 	-- Keywords are matched in lower case; everything after the command word
 	-- (names, notes) keeps the case it was typed in (2.0.8 lowercased notes).
@@ -312,9 +314,7 @@ end
 ------------------------------------------------------------------------
 local function gp(msg) M.ChatMsg("|cff33ff99PSS guild:|r " .. msg) end
 
-SLASH_PSSGUILD1 = "/pssguild"
-SlashCmdList = SlashCmdList or {}
-SlashCmdList["PSSGUILD"] = function(msg)
+function M.PSS_SlashGuild (msg)
 	msg = trim(msg or "")
 	local cmd, rest = msg:match("^(%S*)%s*(.-)$")
 	cmd = (cmd or ""):lower()

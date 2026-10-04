@@ -74,7 +74,7 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_alerts.lua" 2>&1 | grep -v '^|cf
 echo "$out"
 echo "$out" | grep -q "PASS alerts" || fail=1
 
-# windows on demand (3.0): PourSocialScore_GUI loads only when needed
+# windows and back end on demand (3.0): PourSocialScore_GUI and _Libraries load only when needed
 echo "== GUI on demand"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_gui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"

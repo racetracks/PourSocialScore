@@ -1,0 +1,13 @@
+## Interface: 120007
+## Title: |cff69ccf0PourSocialScore|r Libraries
+## Notes: PourSocialScore commands and import/export, loaded when first used
+## Category: PSS
+## Group: PourSocialScore
+## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
+## Author: Boaties
+## Version: 3.0.0-dev10
+## LoadOnDemand: 1
+## Dependencies: PourSocialScore
+
+PSS_ImportExport.lua
+PSS_Commands.lua
