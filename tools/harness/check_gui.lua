@@ -1,12 +1,15 @@
--- PourSocialScore_GUI on demand (3.0 Step 3.1), as a run.lua script on a
--- fresh save: the windows are not loaded at login; chat, the note popup,
--- the group warning and window refreshes work without them; the Friends
--- window (when the option is on) and /pss gui load them.
+-- On-demand addons (3.0 Steps 3.1 and 3.2), as a run.lua script on a fresh
+-- save: PourSocialScore_GUI and PourSocialScore_Libraries are not loaded at
+-- login; chat, the note popup, the group warning and window refreshes work
+-- without them; a chat command loads Libraries only; the Friends window
+-- (when the option is on) and /pss gui load the windows and Libraries.
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL gui: " .. msg) fail = true end end
 local loaded = function() return C_AddOns.IsAddOnLoaded("PourSocialScore_GUI") end
+local libs = function() return C_AddOns.IsAddOnLoaded("PourSocialScore_Libraries") end
 
 check(not loaded(), "GUI loaded at login")
+check(not libs(), "Libraries loaded at login")
 
 -- what fires during play, with the GUI asleep
 local shown = {}
@@ -25,6 +28,20 @@ local ok, err = pcall(function()
 end)
 check(ok, "changes with the GUI asleep: " .. tostring(err))
 check(not loaded(), "GUI loaded by a list change")
+check(not libs(), "Libraries loaded by a list change")
+
+-- chat commands load Libraries, not the windows
+local said, realPrint, realChat = {}, print, M.ChatMsg
+print = function(x) said[#said + 1] = tostring(x) end
+M.ChatMsg = print
+SlashCmdList["PSS"]("mem")
+SlashCmdList["PSSGUILD"]("")
+print, M.ChatMsg = realPrint, realChat
+local text = table.concat(said, "\n")
+check(libs(), "/pss did not load Libraries")
+check(not loaded(), "/pss mem loaded the GUI")
+check(text:find("PourSocialScore_Libraries: loaded", 1, true) ~= nil, "/pss mem did not run")
+check(text:find("PSS guild:", 1, true) ~= nil, "/pssguild did not run")
 
 -- Friends window with the option off: stays asleep
 local opt = PourSocialScoreDB.openWithFriends

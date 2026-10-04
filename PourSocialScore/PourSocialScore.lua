@@ -274,7 +274,14 @@ PSSFRAME:RegisterEvent("GROUP_ROSTER_UPDATE")
 PSSFRAME:RegisterEvent("PLAYER_LOGOUT")
 PSSFRAME:RegisterEvent("PLAYER_REGEN_ENABLED")
 
+-- The command parser is in PourSocialScore_Libraries, loaded on the first
+-- command (PSS_Commands.lua there replaces these stubs).
 SLASH_PSS1		= "/pss"
+SLASH_PSSGUILD1	= "/pssguild"
+M.PSS_Stub("PSS_SlashPSS", "Libraries")
+M.PSS_Stub("PSS_SlashGuild", "Libraries")
+SlashCmdList["PSS"] = function(msg) M.PSS_SlashPSS(msg) end
+SlashCmdList["PSSGUILD"] = function(msg) M.PSS_SlashGuild(msg) end
 
 PSSFRAME:SetScript("OnEvent", EventHandler)
 

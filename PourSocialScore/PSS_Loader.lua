@@ -29,12 +29,16 @@ local function version(name)
 	return get and get(name, "Version") or "?"
 end
 
+-- parts that need another part first (the windows call the back end)
+local NEEDS = { GUI = "Libraries" }
+
 local warned = {}
 
 function M.PSS_Need(key)
 	local name = M.PSS_PARTS[key]
 	if not name then return false end
 	if api("IsAddOnLoaded")(name) then return true end
+	if NEEDS[key] and not M.PSS_Need(NEEDS[key]) then return false end
 	local enable = api("EnableAddOn")
 	if enable then enable(name, UnitName("player")) end
 	local ok, reason = api("LoadAddOn")(name)

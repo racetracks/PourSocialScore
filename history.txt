@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev10 - Commands and import/export load on demand (3.0 test build)
+
+- New PourSocialScore_Libraries folder with the /pss and /pssguild commands and Import/Export. It loads the first time you type a command or open the windows. Install all three folders from the zip.
+- Version 3.0.0-dev10.
+
 => 3.0.0-dev9 - Windows load on demand (3.0 test build)
 
 - The windows moved to a new PourSocialScore_GUI folder that loads the first time you open them (/pss gui, the Friends window, or a menu entry), so they take no memory until then. Install both folders from the zip.
