@@ -4,7 +4,7 @@
 ## Category: PSS
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
-## Version: 3.0.0-dev3
+## Version: 3.0.0-dev4
 ## SavedVariables: PourSocialScoreDB
 
 PSS_Localization.lua
@@ -27,6 +27,7 @@ PSS_GuildUI.lua
 PSS_WhoisHarvest.lua
 PSS_WhoisHarvestUI.lua
 PSS_PlayerDetail.lua
+PSS_Upgrade.lua
 PourSocialScore.lua
 PSS_Commands.lua
 PSS_Options.lua

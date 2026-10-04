@@ -74,6 +74,24 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_alerts.lua" 2>&1 | grep -v '^|cf
 echo "$out"
 echo "$out" | grep -q "PASS alerts" || fail=1
 
+# upgrade record (3.0): a 2.0 save gets step 1 once with one chat line, the
+# next login prints nothing; a fresh save is stamped without a message
+echo "== upgrade record"
+echo 'print("steps=" .. M.PSS_UPGRADE_STEPS)' > "$work/steps.lua"
+steps=$(lua5.1 "$here/run.lua" . - - "$work/steps.lua" 2>&1 | sed -n 's/^steps=//p')
+o1=$(lua5.1 "$here/run.lua" . "$work/sv-gr-2.0.44.lua" "$work/up-1.lua" 2>&1)
+o2=$(lua5.1 "$here/run.lua" . "$work/up-1.lua" "$work/up-2.lua" 2>&1)
+o3=$(lua5.1 "$here/run.lua" . - "$work/up-3.lua" 2>&1)
+if echo "$o1" | grep -q "Saved data upgraded to .* (step $steps)" && ! echo "$o2$o3" | grep -q "Saved data upgraded" &&
+	lua5.1 -e "for _, f in ipairs({ '$work/up-1.lua', '$work/up-2.lua', '$work/up-3.lua' }) do
+		PourSocialScoreDB = nil; dofile(f); local u = PourSocialScoreDB.upgrade
+		assert(type(u) == 'table' and u.step == $steps and type(u.version) == 'string' and type(u.at) == 'number', f)
+	end"; then
+	echo "PASS upgrade record (step $steps)"
+else
+	echo "FAIL upgrade record"; fail=1
+fi
+
 # multi-addon harness (3.0): child addons, LoadOnDemand, several saved tables
 echo "== multi-addon harness"
 sh "$here/check_multi.sh" || fail=1

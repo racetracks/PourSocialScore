@@ -82,7 +82,8 @@ local function ApplicationStartup(self)
 
 	V.faction = UnitFactionGroup("player")
 
-	if PourSocialScoreDB == nil then
+	local fresh = PourSocialScoreDB == nil
+	if fresh then
 		M.PSS_ResetIgnoreDB()
 	end
 
@@ -99,107 +100,15 @@ local function ApplicationStartup(self)
 	PourSocialScoreDB.guildData = PourSocialScoreDB.guildData or {}
 	if PourSocialScoreDB.imported == nil then PourSocialScoreDB.imported = false end
 
-	-- set missing defaults or upgrade if needed
-
-	if PourSocialScoreDB.showIgnoreDebug == nil then
-		PourSocialScoreDB.showIgnoreDebug = false
-	end
-
-	if PourSocialScoreDB.filterTotal == nil then
-		PourSocialScoreDB.filterTotal = 0
-	end
-
-	-- (autoIgnore / autoUpdate / autoCount / autoTime / attachFriends were
-	-- never used; they are dropped from saved settings.)
-	PourSocialScoreDB.autoIgnore, PourSocialScoreDB.autoUpdate = nil, nil
-	PourSocialScoreDB.autoCount, PourSocialScoreDB.autoTime = nil, nil
-	PourSocialScoreDB.attachFriends = nil
-
-	if PourSocialScoreDB.filterList == nil or PourSocialScoreDB.filterDesc == nil or PourSocialScoreDB.filterCount == nil then
-		M.ResetSpamFilters()
-	end
-
-	if PourSocialScoreDB.delList == nil then
-		PourSocialScoreDB.delList = {}
-	end
-
 	-- Every option in the Options tab (defaults live in PSS_Options.lua)
 	M.PSS_ApplyOptionDefaults()
 	if not tonumber(PourSocialScoreDB.defexpire) then
 		PourSocialScoreDB.defexpire = 0
 	end
 
-	if PourSocialScoreDB.expList == nil then
-		PourSocialScoreDB.expList = {}
-
-		for		count = 1, #PourSocialScoreDB.ignoreList do
-			PourSocialScoreDB.expList[count] = 0
-		end
-	end
-
-	if PourSocialScoreDB.syncList then
-		PourSocialScoreDB.syncList = nil
-	end
-
-	if PourSocialScoreDB.syncInfo == nil then
-		PourSocialScoreDB.syncInfo = {}
-
-		for count = 1, #PourSocialScoreDB.ignoreList do
-			PourSocialScoreDB.syncInfo[count] = {}
-		end
-	end
-
-	if PourSocialScoreDB.typeList == nil then
-		PourSocialScoreDB.typeList = {}
-
-		for count = 1, #PourSocialScoreDB.ignoreList do
-			PourSocialScoreDB.typeList[count] = "player"
-		end
-	end
-
-	if PourSocialScoreDB.revision == nil then
-		PourSocialScoreDB.revision = 1
-
-		for count = 1, #PourSocialScoreDB.ignoreList do
-			PourSocialScoreDB.ignoreList[count] = M.Proper(PourSocialScoreDB.ignoreList[count])
-		end
-	end
-
-	if PourSocialScoreDB.filterActive == nil then
-		PourSocialScoreDB.filterActive = {}
-
-		for count = 1, #PourSocialScoreDB.filterDesc do
-			PourSocialScoreDB.filterActive[count] = true
-		end
-	end
-
-	if PourSocialScoreDB.filterID == nil then
-		M.PSS_AssignLegacyFilterIDs()
-	end
-
-	-- Erase some old alpha data that could be out there
-	if PourSocialScoreDB.filterHistory ~= nil then
-		PourSocialScoreDB.filterHistory = nil
-	end
-
-	if PourSocialScoreDB.filterBlocked == nil then
-		PourSocialScoreDB.filterBlocked = {}
-
-		for count = 1, #PourSocialScoreDB.filterDesc do
-			PourSocialScoreDB.filterBlocked[count] = {}
-		end
-	end
-
-	if PourSocialScoreDB.filterBlockedLast == nil then
-		PourSocialScoreDB.filterBlockedLast = {}
-
-		for count = 1, #PourSocialScoreDB.filterDesc do
-			PourSocialScoreDB.filterBlockedLast[count] = 0
-		end
-	end
-
-	PourSocialScoreDB.filterWhisperTotal = tonumber(PourSocialScoreDB.filterWhisperTotal) or 0
-	PourSocialScoreDB.filterPrivateTotal = tonumber(PourSocialScoreDB.filterPrivateTotal) or 0
+	-- saved data upgrades that run before the built-in filters are rebuilt
+	-- (PSS_Upgrade.lua)
+	M.PSS_RunUpgradeFields()
 
 	-- Built-in rules come from code; SavedVariables only hold their on/off state.
 	M.PSS_ExpandFilters()
@@ -210,17 +119,8 @@ local function ApplicationStartup(self)
 
 	V.PSS_Loaded = true
 
-	-- Player/guild data upgrade (guild module), now that the core lists exist.
-	if M.PSS_UpgradeLegacyData then M.PSS_UpgradeLegacyData() end
-	-- guild rule blocks are guild blocks only (2.0.39): undo the second count
-	if M.PSS_UnlinkGuildRuleCounts then M.PSS_UnlinkGuildRuleCounts() end
-	-- session / last 24 hours block counts (created on first login, PSS_BlockStats.lua)
-	if M.PSS_UpgradeBlockStats then M.PSS_UpgradeBlockStats() end
-	-- records of players no longer listed, and fields records no longer keep
-	if M.PSS_TidyPlayerData then M.PSS_TidyPlayerData() end
-	-- then tidy the block history (lines of things that are gone)
-	local tidied = M.PSS_TidyBlockHistory()
-	if tidied > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history tidied") end
+	-- the rest of the upgrade steps, then the upgrade record
+	M.PSS_RunUpgradeData(fresh)
 
 	M.PSS_HookFunctions()
 

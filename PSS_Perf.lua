@@ -170,6 +170,7 @@ function M.PSS_MemReport(full)
 	local H = M.PSS_History
 
 	out("|cffff99ffPour Social Score memory|r")
+	if M.PSS_UpgradeText then out("  saved data upgrade: " .. M.PSS_UpgradeText()) end
 
 	-- the game's figure for this addon (walks every addon: not in combat)
 	local addonKB
