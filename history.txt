@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev12 - Options folder for the saved data (3.0 test build)
+
+- New PourSocialScore_Options folder, always loaded, data only. It will hold your settings, Player Ignore List, Guild Ignore List and chat rules once the next build moves them. For now it saves four empty tables (WTF/.../SavedVariables/PourSocialScore_Options.lua) and nothing changes. Install all five folders from the zip.
+- The core now needs PourSocialScore_Options: without it, WoW does not load PourSocialScore and says which folder is missing.
+- Version 3.0.0-dev12.
+
 => 3.0.0-dev11 - Shipped guild lists load on demand (3.0 test build)
 
 - The shipped guild lists (Managed Communities - Asmongold: 119 guilds, 7,634 names) moved to a new PourSocialScore_Communities folder. The core keeps only a small list of the guilds and their member counts, so with the rule off the lists take no memory and the guilds still show with their counts. Install all four folders from the zip.

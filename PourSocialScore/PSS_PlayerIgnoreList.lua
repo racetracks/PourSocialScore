@@ -346,6 +346,7 @@ local function ResetIgnoreDB()
 	if M.PSS_MarkIgnoreIndexDirty then M.PSS_MarkIgnoreIndexDirty() end
 
 	M.ResetSpamFilters()
+	if M.PSS_PrepareSavedData then M.PSS_PrepareSavedData() end
 end
 
 local function isValidList()
