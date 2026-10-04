@@ -1,15 +1,11 @@
 ## Interface: 120007, 16001
-## Category: PSS
-## Group: PourSocialScore
-## Title:|cff69ccf0PourSocialScore|r Core
+## Title: PourSocialScore
 ## Notes: Sometimes you dont wanna know when a man gotta slur a little
-## OptionalDependencies: PoorSocialScore, GlobalIgnoreList
-## SavedVariables: PourSocialScoreDB
+## Category: PSS
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
-## LoadOnDemand: 0
-## DefaultState: enabled
 ## Author: Boaties
 ## Version: 3.0.0-dev7
+## SavedVariables: PourSocialScoreDB
 
 PSS_Localization.lua
 PSS_Globals.lua
