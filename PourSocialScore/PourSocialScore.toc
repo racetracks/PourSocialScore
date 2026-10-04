@@ -5,7 +5,7 @@
 ## Group: PourSocialScore
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
-## Version: 3.1.0-dev1
+## Version: 3.1.0-dev2
 ## SavedVariables: PourSocialScoreDB
 ## Dependencies: PourSocialScore_Options
 

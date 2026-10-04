@@ -18,10 +18,18 @@ V.nameUI = ""		-- the player the note and expiry popups are for
 M.PSSUpdateUI = function() end
 M.PSS_Stub("PSS_GUI", "GUI")
 
+-- With EllesmereUI integration the window at Friends is the EllesmereUI one
+-- (PourSocialScore_EllesmereUI), else the PSS window.
 FriendsFrame:HookScript("OnShow", function()
-	if M.PSS_Opt("openWithFriends") and M.PSS_Need("GUI") then M.PSS_FriendsShow() end
+	if not M.PSS_Opt("openWithFriends") then return end
+	if M.PSS_UseEUI() and M.PSS_Need("EllesmereUI") and M.EUI_FriendsShow then
+		M.EUI_FriendsShow(FriendsFrame)
+	elseif M.PSS_Need("GUI") then
+		M.PSS_FriendsShow()
+	end
 end)
 FriendsFrame:HookScript("OnHide", function()
+	if M.EUI_FriendsHide then M.EUI_FriendsHide() end
 	if M.PSS_FriendsHide then M.PSS_FriendsHide() end
 end)
 

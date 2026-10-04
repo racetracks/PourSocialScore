@@ -86,6 +86,23 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_eui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS eui" || fail=1
 
+# EllesmereUI front end (3.1 E.2): needs PourSocialScore_EllesmereUI from its
+# own repository (PSS_EUI_ADDON, default ../poursocialscore-ellesmereui/...)
+eui=${PSS_EUI_ADDON:-$here/../../../poursocialscore-ellesmereui/PourSocialScore_EllesmereUI}
+if [ -f "$eui/PourSocialScore_EllesmereUI.toc" ]; then
+	echo "== EllesmereUI window"
+	x="$here/eui_stub/EllesmereUI,$eui"
+	out=$(PSS_PHASE=1 PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . - "$work/sv-eui.lua" "$here/check_eui_window.lua" 2>&1 | grep -v '^|cff')
+	out="$out
+$(PSS_PHASE=2 PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" - "$here/check_eui_window.lua" 2>&1 | grep -v '^|cff')"
+	out="$out
+$(PSS_PHASE=3 PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" - "$here/check_eui_window.lua" 2>&1 | grep -v '^|cff')"
+	echo "$out"
+	for p in 1 2 3; do echo "$out" | grep -q "PASS eui window $p" || fail=1; done
+else
+	echo "== EllesmereUI window: skipped (no PourSocialScore_EllesmereUI at $eui)"
+fi
+
 # shipped guild lists on demand (3.0): PourSocialScore_Communities loads
 # only when the rule is on or members are needed
 echo "== Communities on demand"

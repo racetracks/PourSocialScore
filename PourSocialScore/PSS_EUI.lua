@@ -3,14 +3,18 @@
 --
 -- The euiIntegration option (PSS_Options.lua) picks the front end: off,
 -- the PSS windows (PourSocialScore_GUI); on, the EllesmereUI style
--- (PourSocialScore_EllesmereUI, step E.2 on). It is read at login, so a
--- change asks for a reload. With EllesmereUI loaded the prompt is its own
--- (its Reload Now button works on the Forever client, where addon code may
--- not call ReloadUI).
+-- (PourSocialScore_EllesmereUI: a PSS window at Friends in EllesmereUI's
+-- style, and a "Pour Social Score" section in the EllesmereUI panel). It is
+-- read at login, so a change asks for a reload. With EllesmereUI loaded the
+-- prompt is its own (its Reload Now button works on the Forever client,
+-- where addon code may not call ReloadUI).
 --   M.PSS_HasEUI()        EllesmereUI is loaded
 --   M.PSS_UseEUI()        the option is on and EllesmereUI is loaded
---   M.PSS_OpenUI(force)   /pss gui: the EllesmereUI front end when in use,
+--   M.PSS_OpenUI(force)   /pss gui: the EllesmereUI window when in use,
 --                         else (or with force) the PSS windows
+--   M.PSS_RegisterEUI()   at login: the panel section (EllesmereUI plugin
+--                         API); its pages load PourSocialScore_EllesmereUI
+--   M.PSS_OpenEUIPanel()  /pss eui: the panel on that section
 --   M.PSS_SetEUI(on)      /pss eui enable | disable
 --   M.PSS_AskReload(text) the reload prompt
 ------------------------------------------------------------------------
@@ -32,6 +36,36 @@ function M.PSS_OpenUI(force)
 		return M.EUI_Toggle()
 	end
 	M.PSS_GUI()
+end
+
+-- The plugin id is the folder that draws the pages (EllesmereUI's rule).
+local PLUGIN = "PourSocialScore_EllesmereUI"
+
+local function pageBuilder(module)
+	return function(page, parent, y)
+		-- the search pre-build pass indexes a page only once its addon is loaded
+		if not M.EUI_BuildPage and EllesmereUI.IsSearchPrebuild and EllesmereUI.IsSearchPrebuild() then return 0 end
+		if M.PSS_Need("EllesmereUI") and M.EUI_BuildPage then return M.EUI_BuildPage(module, page, parent, y) end
+		return 0
+	end
+end
+
+function M.PSS_RegisterEUI()
+	if not (M.PSS_UseEUI() and EllesmereUI.RegisterPlugin) then return end
+	if EllesmereUI.IsPluginRegistered and EllesmereUI.IsPluginRegistered(PLUGIN) then return end
+	EllesmereUI.RegisterPlugin(PLUGIN, {
+		label	= "Pour Social Score",
+		modules	= {
+			{ key = "Options", title = "Options", description = "Settings for every character on this account.",
+				pages = { "General" }, buildPage = pageBuilder("Options") },
+		},
+	})
+end
+
+function M.PSS_OpenEUIPanel()
+	if not EllesmereUI.OpenPlugin then M.ShowMsg(L["EUI_7"]) return end
+	if InCombatLockdown() then M.ShowMsg(L["EUI_6"]) return end
+	EllesmereUI.OpenPlugin(PLUGIN)
 end
 
 function M.PSS_SetEUI(on)
