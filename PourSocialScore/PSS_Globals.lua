@@ -4,6 +4,7 @@ local L = addon.L
 -- use this array to share variables between addon files
 addon.V = {}
 local V = addon.V
+V.needSorted = true		-- the Player Ignore List needs sorting before it is drawn
 -- use this to share methods between addon files
 addon.M = {}
 local M = addon.M

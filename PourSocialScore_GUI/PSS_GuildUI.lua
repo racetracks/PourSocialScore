@@ -7,7 +7,7 @@
 -- counts stay in PSS_GuildIgnoreList.lua; this file reads them through M
 -- and redraws when the core fires an event.
 ------------------------------------------------------------------------
-local addonName, addon = ...
+local addon = PourSocialScore_NS
 local M = addon.M
 local L = addon.L
 

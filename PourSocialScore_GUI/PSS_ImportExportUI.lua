@@ -5,7 +5,7 @@
 -- Replace confirmation. Building, describing and applying an import string
 -- stay in PSS_ImportExport.lua.
 ------------------------------------------------------------------------
-local addonName, addon = ...
+local addon = PourSocialScore_NS
 local M = addon.M
 
 ------------------------------------------------------------------------

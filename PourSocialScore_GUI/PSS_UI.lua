@@ -5,13 +5,11 @@
 -- first : X... - is move left
 -- second: Y... - is move down
 
-local addonName, addon	= ...
+local addon	= PourSocialScore_NS
 local L = addon.L -- localization entries
 local V = addon.V -- shared variables
 local M = addon.M -- shared methods
 
-V.needSorted					= true
-V.nameUI							= ""
 
 local MainFrame				= nil
 local Tab1Frame				= nil
@@ -53,65 +51,7 @@ local IGNORE_ROWS			= math.floor((WINDOW_HEIGHT - WINDOW_OFFSET - IGNORE_LIST_TO
 -- DIALOGS AND BUTTONS --
 -------------------------
 
-StaticPopupDialogs["PSS_REASON"] = {
-
-	preferredIndex = STATICPOPUPS_NUMDIALOGS,
-	text			= "Edit ignore note for |cffffff00%s:",
-	maxLetters		= 128,
-	hasEditBox		= 1,
-	whileDead		= 1,
-	button1			= L["BOX_3"],
-	button2			= L["BOX_5"],
-
-	OnShow = function(self)
-		local idx = M.hasAnyIgnored(V.nameUI)
-		self.EditBox:SetText(idx > 0 and (PourSocialScoreDB.notes[idx] or "") or "")
-		self.EditBox:SetFocus()
-	end,
-	OnAccept = function(self)
-		local idx = M.hasAnyIgnored(V.nameUI)
-		if idx > 0 then M.PSS_SetNote(idx, self.EditBox:GetText()) end
-		M.PSSUpdateUI()
-	end,
-	EditBoxOnEnterPressed = function(self)
-		local idx = M.hasAnyIgnored(V.nameUI)
-		if idx > 0 then M.PSS_SetNote(idx, self:GetParent().EditBox:GetText()) end
-		self:GetParent():Hide()
-		M.PSSUpdateUI()
-	end,
-	EditBoxOnEscapePressed = function(self)
-		self:GetParent():Hide()
-	end
-}
-
-StaticPopupDialogs["PSS_PARTYWARN"] = {
-
-	preferredIndex	= STATICPOPUPS_NUMDIALOGS,
-	text			= L["BOX_8"],
-	button1			= L["BOX_6"],
-	timeout			= 15,
-	whileDead		= true,
-	hideOnEscape	= true,
-}
-
--- a player was just listed and Options asks for a note
-M.Events.Register("ASK_NOTE", function(name)
-	V.nameUI = name
-	StaticPopup_Show("PSS_REASON", V.nameUI)
-end)
-
--- you whispered a player whose whispers are blocked: raid warning style notice
-M.Events.Register("WHISPER_WARNING", function(name, label)
-	if RaidNotice_AddMessage and RaidWarningFrame then
-		RaidNotice_AddMessage(RaidWarningFrame, format(L["WARN_WHISPER"], name, label), ChatTypeInfo and ChatTypeInfo["RAID_WARNING"] or { r = 1, g = 0.28, b = 0 })
-	end
-	if PlaySound and SOUNDKIT and SOUNDKIT.RAID_WARNING then PlaySound(SOUNDKIT.RAID_WARNING) end
-end)
-
--- listed players are in your group (names: the players warned about)
-M.Events.Register("GROUP_WARNING", function(names)
-	StaticPopup_Show("PSS_PARTYWARN", #names, "\n" .. table.concat(names, "\n"))
-end)
+-- PSS_REASON, PSS_PARTYWARN and the alerts stay in the core (PSS_BlizzardUI.lua)
 
 local function setExpire (text)
 	local idx = M.hasAnyIgnored(V.nameUI)
@@ -1817,8 +1757,9 @@ local function friendsHide()
 	end
 end
 
-FriendsFrame:HookScript("OnShow", friendsShow)
-FriendsFrame:HookScript("OnHide", friendsHide)
+-- the core hooks the Friends window and loads this addon (PSS_BlizzardUI.lua)
+M.PSS_FriendsShow = friendsShow
+M.PSS_FriendsHide = friendsHide
 
 --------------------------
 -- HOOK INTO CHAT LINKS --

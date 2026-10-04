@@ -18,7 +18,7 @@
 --   * buttons      : 110 x 22 on the bottom bar, 100 x 22 top right, 18 px
 --                    small-font buttons inside rows
 ------------------------------------------------------------------------
-local addonName, addon = ...
+local addon = PourSocialScore_NS
 local M = addon.M
 local V = addon.V
 local L = addon.L

@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev9 - Windows load on demand (3.0 test build)
+
+- The windows moved to a new PourSocialScore_GUI folder that loads the first time you open them (/pss gui, the Friends window, or a menu entry), so they take no memory until then. Install both folders from the zip.
+- Chat filtering, the right-click menus, the note popup, the group warning and the whisper alert stay in the core and work without the windows loaded.
+- /pss mem shows whether PourSocialScore_GUI is loaded and its memory.
+- Version 3.0.0-dev9.
+
 => 3.0.0-dev8 - Loader for the 3.0 addons (3.0 test build)
 
 - Groundwork only, nothing moves yet and nothing should look different. The core can now load the 3.0 on-demand addons when they are first needed, and says once in chat if one is missing, disabled or from a different version.

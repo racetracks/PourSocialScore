@@ -5,7 +5,7 @@
 -- per person override entries in the right-click menus. Option values,
 -- defaults and M.PSS_Opt / M.PSS_SetOpt stay in PSS_Options.lua.
 ------------------------------------------------------------------------
-local addonName, addon = ...
+local addon = PourSocialScore_NS
 local M = addon.M
 
 local OPTIONS = M.PSS_OPTIONS

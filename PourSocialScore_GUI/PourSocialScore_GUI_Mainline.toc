@@ -1,0 +1,19 @@
+## Interface: 120007
+## Title: PourSocialScore GUI
+## Notes: PourSocialScore windows, loaded when first opened
+## Category: PSS
+## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
+## Author: Boaties
+## Version: 3.0.0-dev9
+## LoadOnDemand: 1
+## Dependencies: PourSocialScore
+
+PSS_UIKit.lua
+PSS_Widgets.lua
+PSS_ChatHistoryUI.lua
+PSS_GuildUI.lua
+PSS_WhoisHarvestUI.lua
+PSS_PlayerDetail.lua
+PSS_OptionsUI.lua
+PSS_ImportExportUI.lua
+PSS_UI.lua
