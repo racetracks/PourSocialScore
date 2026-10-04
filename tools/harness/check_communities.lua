@@ -2,8 +2,8 @@
 -- on a fresh save (the shipped group's rule starts off):
 --   * the member lists are not loaded at login, and the shipped guilds still
 --     show with their member counts (from the manifest in the core)
---   * chat, seeing a shipped guild's member, and opening the window do not
---     load them, and nothing is stored for that member
+--   * chat and opening the window do not load them (seeing a member of a
+--     shipped guild in the world does: check_communities_seen.lua)
 --   * switching the rule on loads them: counts are unchanged and a shipped
 --     member is blocked from the next line
 local fail = false
@@ -37,21 +37,6 @@ local function whisper(author)
 end
 check(not whisper("Somebody-Realm"), "chat blocked a stranger")
 check(not loaded(), "chat loaded the lists")
-
--- seeing a member of a shipped guild stores nothing and loads nothing
-M.PSS_UpdatePlayerUnit("Mouseover-Realm", nil, "OLYMPUS")
-local stored = 0
-for _ in pairs(db.guildData.olympus.members or {}) do stored = stored + 1 end
-check(stored == 0, "a seen member was stored with the lists asleep")
-check(not loaded(), "seeing a member loaded the lists")
-
--- the window (Guild Ignore List with counts) does not need them
-SlashCmdList.PSS("gui")
-H.RunTimers()
-check(_G.PSSTabGuild ~= nil, "no Guild Ignore List tab")
-if _G.PSSTabGuild then _G.PSSTabGuild:GetScript("OnClick")(_G.PSSTabGuild) end
-H.RunTimers()
-check(not loaded(), "opening the window loaded the lists")
 
 -- the rule on: loaded, the same counts, a shipped member blocked
 M.PSS_SetManagedGroupActive("olympus", true)

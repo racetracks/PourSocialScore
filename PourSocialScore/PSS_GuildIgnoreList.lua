@@ -319,12 +319,11 @@ function M.PSS_UpdatePlayerUnit(name, unit, guild)
 		local existing = guildKey and PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[guildKey]
 		if existing then
 			-- a shipped member of a managed guild: already known, store nothing.
-			-- With the shipped lists not loaded (rule off) a managed guild is
-			-- left alone: seeing someone never loads them.
+			-- Telling them apart needs the shipped lists, so seeing a member of
+			-- a managed guild loads them (out of combat, like every unit scan).
 			local ck = existing.managed and canonPlayer(name)
-			if existing.managed and not (M.PSS_ManagedDataLoaded and M.PSS_ManagedDataLoaded()) then
-				-- nothing
-			elseif not (ck and M.PSS_IsManagedStaticMember and M.PSS_IsManagedStaticMember(guildKey, ck)) then
+			if existing.managed and M.PSS_LoadManagedData then M.PSS_LoadManagedData() end
+			if not (ck and M.PSS_IsManagedStaticMember and M.PSS_IsManagedStaticMember(guildKey, ck)) then
 				M.PSS_UpdateGuildMember(guild, name, unit)
 			end
 		end
@@ -556,8 +555,9 @@ M.PSS_MergeMemberBlockData = mergeBlockData
 -- guild names and member counts). The member lists and their index are in
 -- the on-demand PourSocialScore_Communities addon (addon.MANAGED_DATA),
 -- loaded when a group's rule is on (login or ticked) or when you work with
--- guild members (members window, scans, /who capture, removing). Chat and
--- unit scans never load it: with the rule off, shipped guilds block nothing.
+-- guild members (members window, scans, /who capture, removing, seeing a
+-- member of a shipped guild in the world). Chat never loads it: with the
+-- rule off, shipped guilds block nothing.
 ------------------------------------------------------------------------
 local MANAGED = addon.MANAGED or { groups = {} }
 local managed = nil				-- guild-level data, built on first use

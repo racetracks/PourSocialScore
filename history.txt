@@ -4,8 +4,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 => 3.0.0-dev11 - Shipped guild lists load on demand (3.0 test build)
 
 - The shipped guild lists (Managed Communities - Asmongold: 119 guilds, 7,634 names) moved to a new PourSocialScore_Communities folder. The core keeps only a small list of the guilds and their member counts, so with the rule off the lists take no memory and the guilds still show with their counts. Install all four folders from the zip.
-- They load when the rule is on (at login, or when you tick it), and when you work with guild members: the members window, a scan or /who of a guild, or removing a member.
-- With the rule off, seeing a member of a shipped guild in the world no longer stores them.
+- They load when the rule is on (at login, or when you tick it), and when you work with guild members: the members window, a scan or /who of a guild, removing a member, or seeing a member of a shipped guild in the world (so new members are still saved, as before).
 - tools/PSS_BuildManaged.lua writes both files (the members for Communities, the manifest for the core).
 - Version 3.0.0-dev11.
 
