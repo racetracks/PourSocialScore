@@ -1,13 +1,15 @@
-## Interface: 120007, 16001
-## Title: |cff69ccf0PourSocialScore|r Core
-## Notes: Sometimes you dont wanna know when a man gotta slur a little
+## Interface: 11509, 16001, 20506, 30405, 38002, 40402, 50504, 120100
 ## Category: PSS
 ## Group: PourSocialScore
-## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
-## Author: Boaties
-## Version: 3.0.0-dev6
+## Title:|cff69ccf0PourSocialScore|r Core
+## Notes: Sometimes you dont wanna know when a man gotta slur a little
+## OptionalDependencies: PoorSocialScore, GlobalIgnoreList
 ## SavedVariables: PourSocialScoreDB
-## OptionalDeps: PoorSocialScore, GlobalIgnoreList
+## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
+## LoadOnDemand: 0
+## DefaultState: enabled
+## Author: Boaties
+## Version: 3.0.0-dev7
 
 PSS_Localization.lua
 PSS_Globals.lua
