@@ -809,14 +809,45 @@ M.PSS_ForEachGuildMember = forEachMember
 local memberCountGen = 0
 local memberCountCache = setmetatable({}, { __mode = "k" })		-- g -> { gen, key, stored, gone, n }
 
+-- "Left this guild" marks the shipped list no longer needs (3.0): a mark
+-- only matters while the shipped list still has that character in that
+-- guild. Once a new list has dropped or moved them, the mark is removed, so
+-- the saved marks keep themselves small. Runs once per session, when the
+-- lists are loaded (it needs them); a rule that stays off keeps its few
+-- marks until then. Empty mark tables are not saved.
+local marksPruned = false
+local function pruneMarks()
+	if marksPruned or not (managed and managed.dataLoaded) then return 0 end
+	local gd = PourSocialScoreDB and PourSocialScoreDB.guildData
+	if type(gd) ~= "table" then return 0 end
+	marksPruned = true
+	local n = 0
+	for gkey, g in pairs(gd) do
+		if type(g) == "table" and type(g.managedGone) == "table" then
+			for ck in pairs(g.managedGone) do
+				if shippedOf(ck) ~= gkey then
+					g.managedGone[ck] = nil
+					n = n + 1
+				end
+			end
+			if next(g.managedGone) == nil then g.managedGone = nil end
+		end
+	end
+	if n > 0 then memberCountGen = memberCountGen + 1 end
+	return n
+end
+M.PSS_PruneManagedMarks = function() marksPruned = false return pruneMarks() end
+
 -- Load the shipped member lists (PourSocialScore_Communities) if they are
 -- not loaded yet. Returns true when they are available.
 ensureManagedData = function()
-	if managed and managed.dataLoaded then return true end
+	if managed and managed.dataLoaded then pruneMarks() return true end
 	if not addon.MANAGED_DATA and not (M.PSS_Need and M.PSS_Need("Communities")) then return false end
 	managed = nil
 	memberCountGen = memberCountGen + 1
-	return buildManaged().dataLoaded
+	local ok = buildManaged().dataLoaded
+	if ok then pruneMarks() end
+	return ok
 end
 M.PSS_LoadManagedData = ensureManagedData
 function M.PSS_ManagedDataLoaded() return buildManaged().dataLoaded end
@@ -878,7 +909,8 @@ local function ensureManagedRules()
 		if g then
 			g.managed = groupKey
 			g.ruleOrigin = g.ruleOrigin or "managed"
-			g.managedGone = type(g.managedGone) == "table" and g.managedGone or {}
+			-- marks are created when needed (tombstone); empty ones are not saved
+			if type(g.managedGone) ~= "table" or next(g.managedGone) == nil then g.managedGone = nil end
 		end
 	end
 end
@@ -2066,7 +2098,7 @@ function M.PSS_AddCapturedGuild(actualGuild, fromGroup)
 	if not target then return 0, 0, 0, {}, 0 end
 	target.ruleOrigin = "manual"
 	-- promoted from a managed group's guild: it joins that group's list
-	if fromGroup and not target.managed then target.managed = fromGroup; target.managedGone = target.managedGone or {} end
+	if fromGroup and not target.managed then target.managed = fromGroup end
 	target.name = actualGuild
 	target.members = target.members or {}
 

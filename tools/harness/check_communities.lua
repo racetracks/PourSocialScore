@@ -38,9 +38,24 @@ end
 check(not whisper("Somebody-Realm"), "chat blocked a stranger")
 check(not loaded(), "chat loaded the lists")
 
+-- empty "left this guild" marks are not saved (3.0 Step 5.2)
+local empty = 0
+for _, g in pairs(db.guildData) do if type(g) == "table" and g.managedGone ~= nil then empty = empty + 1 end end
+check(empty == 0, empty .. " guilds have an empty mark table")
+-- a mark for someone the shipped list does not have in that guild
+db.guildData["olympus"].managedGone = { ["nobody here-classicbetapvp"] = true }
+
 -- the rule on: loaded, the same counts, a shipped member blocked
 M.PSS_SetManagedGroupActive("olympus", true)
 check(loaded() and M.PSS_ManagedDataLoaded(), "switching the rule on did not load the lists")
+check(db.guildData["olympus"].managedGone == nil, "an unneeded mark was kept")
+-- a mark for a shipped member stays
+local first = M.PSS_ShippedNames("olympus")[1]
+M.PSS_ManagedTombstone("olympus", M.PSS_CanonPlayer(first))
+M.PSS_PruneManagedMarks()
+check(db.guildData["olympus"].managedGone and db.guildData["olympus"].managedGone[M.PSS_CanonPlayer(first)] == true, "a needed mark was removed")
+check(M.PSS_GuildMemberCount(db.guildData["olympus"], "olympus") == 228, "a marked member still counted")
+db.guildData["olympus"].managedGone = nil
 local after = 0
 for gkey, n in pairs(before) do
 	local c = M.PSS_GuildMemberCount(db.guildData[gkey], gkey)

@@ -302,12 +302,14 @@ function M.PSS_Validate()
 
 	-- Guild Ignore List: rules, members, member notes, exclusions
 	n.guildRules, n.guildRulesShipped, n.membersStored, n.membersShown, n.memberNotes = 0, 0, 0, 0, 0
+	n.leftMarks = 0		-- shipped members marked "left this guild"
 	for gkey, g in pairs(tbl("guildData")) do
 		if type(g) ~= "table" then
 			problem("guild rule %s is not a table", tostring(gkey))
 		else
 			n.guildRules = n.guildRules + 1
 			if g.managed then n.guildRulesShipped = n.guildRulesShipped + 1 end
+			n.leftMarks = n.leftMarks + size(g.managedGone)
 			if g.members ~= nil and type(g.members) ~= "table" then problem("guild rule %s: members is not a table", tostring(gkey)) end
 			for key, m in pairs(type(g.members) == "table" and g.members or {}) do
 				n.membersStored = n.membersStored + 1
@@ -410,8 +412,8 @@ function M.PSS_PrintValidation()
 	out(("  Player Ignore List: %s entries (%s players, %s NPCs, %s servers%s), %s notes, %s player records, %s on the deleted list"):format(
 		v("list"), v("listPlayer"), v("listNpc"), v("listServer"),
 		(n.listOther or 0) > 0 and (", " .. v("listOther") .. " other") or "", v("listNotes"), v("playerRecords"), v("deleted")))
-	out(("  Guild Ignore List: %s guilds (%s from shipped lists), %s members shown, %s stored, %s member notes, %s excluded guilds"):format(
-		v("guildRules"), v("guildRulesShipped"), v("membersShown"), v("membersStored"), v("memberNotes"), v("guildExclusions")))
+	out(("  Guild Ignore List: %s guilds (%s from shipped lists), %s members shown, %s stored, %s member notes, %s excluded guilds, %s shipped members marked as left"):format(
+		v("guildRules"), v("guildRulesShipped"), v("membersShown"), v("membersStored"), v("memberNotes"), v("guildExclusions"), v("leftMarks")))
 	out(("  Chat Filters: %s rules (%s custom), %s built-in on, %s custom on"):format(
 		v("filters"), v("filtersCustom"), v("filtersBuiltinOn"), v("filtersCustomOn")))
 	out(("  Block history: %s log lines, %s kept lines for %s people"):format(v("logLines"), v("keptLines"), v("keptPeople")))
