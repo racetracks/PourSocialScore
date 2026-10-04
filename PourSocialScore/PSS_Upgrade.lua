@@ -140,7 +140,12 @@ local STEPS = {
 	-- (M.PSS_PrepareSavedData, PSS_SavedData.lua); this records it, and
 	-- returns false (step not recorded) when it did not happen.
 	{
-		fields = function() return M.PSS_SavedDataSplit() end,
+		fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Options") end,
+	},
+	-- 3: the block history, kept lines, hourly stats, totals and chat rule
+	-- counts live in PourSocialScore_Logging (moved the same way)
+	{
+		fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Logging") end,
 	},
 }
 

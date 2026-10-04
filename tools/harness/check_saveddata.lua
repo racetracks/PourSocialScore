@@ -1,14 +1,17 @@
--- Saved data split (3.0 Step 4.2), as a run.lua script on any save: after
--- login options, players, guilds and rules live in the PourSocialScore_Options
--- tables, PourSocialScoreDB keeps only its own keys (upgrade record,
--- bookkeeping, history and counts), code still reads everything through
--- PourSocialScoreDB, a failed move is undone, and a reset empties both.
+-- Saved data split (3.0 Steps 4.2 and 4.3), as a run.lua script on any save:
+-- after login options, players, guilds and rules live in the
+-- PourSocialScore_Options tables, the history and counts in
+-- PourSocialScore_Logging, PourSocialScoreDB keeps only the upgrade record
+-- and bookkeeping, code still reads everything through PourSocialScoreDB, a
+-- failed move is undone, and a reset empties every table.
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL saved data: " .. msg) fail = true end end
 
 check(C_AddOns.IsAddOnLoaded("PourSocialScore_Options"), "PourSocialScore_Options not loaded")
+check(C_AddOns.IsAddOnLoaded("PourSocialScore_Logging"), "PourSocialScore_Logging not loaded")
 for _, name in pairs(M.PSS_SV_GROUPS) do check(type(_G[name]) == "table", name .. " missing") end
-check(M.PSS_SavedDataSplit(), "split not done")
+check(M.PSS_SavedDataSplit("PourSocialScore_Options"), "Options split not done")
+check(M.PSS_SavedDataSplit("PourSocialScore_Logging"), "Logging split not done")
 check(PourSocialScoreDB.upgrade and PourSocialScoreDB.upgrade.step == M.PSS_UPGRADE_STEPS, "upgrade step not recorded")
 
 -- every routed key left PourSocialScoreDB and is read from its table
@@ -25,9 +28,22 @@ for _, k in ipairs({ "ignoreList", "typeList", "notes", "playerData" }) do check
 check(type(PSS_GuildsDB.guildData) == "table", "PSS_GuildsDB.guildData")
 check(type(PSS_RulesDB.filterList) == "table", "PSS_RulesDB.filterList")
 check(PSS_OptionsDB.chatmsg ~= nil, "PSS_OptionsDB.chatmsg")
-for _, k in ipairs({ "blockLog", "blockStats", "filterCount", "filterBlocked", "upgrade" }) do
-	check(rawget(PourSocialScoreDB, k) ~= nil, k .. " left PourSocialScoreDB")
+for _, k in ipairs({ "blockLog", "blockKeep", "blockStats", "filterCount", "filterBlocked", "builtinStats" }) do
+	check(type(PSS_LoggingDB[k]) == "table", "PSS_LoggingDB." .. k)
 end
+check(type(PSS_LoggingDB.filterTotal) == "number", "PSS_LoggingDB.filterTotal")
+check(type(rawget(PourSocialScoreDB, "upgrade")) == "table", "upgrade left PourSocialScoreDB")
+-- the block counts of a player or member stay on the record
+for _, g in pairs(PSS_GuildsDB.guildData) do
+	for _, m in pairs(type(g) == "table" and g.members or {}) do
+		check(type(m) ~= "table" or m.blockCounts == nil or type(m.blockCounts) == "table", "member counts")
+	end
+end
+-- a new block is logged and counted in PSS_LoggingDB
+local lines = #PSS_LoggingDB.blockLog
+M.PSS_History.Add("p:zztest", nil, M.PSS_History.NewEntry("whisper", "CHAT_MSG_WHISPER", "hi"))
+check(#PSS_LoggingDB.blockLog == lines + 1 or #PSS_LoggingDB.blockLog == M.PSS_History.Cap(), "new line not in PSS_LoggingDB")
+M.PSS_History.Clear(function(h) return h.o == "p:zztest" end)
 
 -- a new key of a routed name goes to its table; another key stays
 PourSocialScoreDB.guildExclusions = PourSocialScoreDB.guildExclusions or {}
@@ -65,5 +81,6 @@ check(PSS_GuildsDB.zzStale == nil, "reset left old Options data")
 check(rawget(PourSocialScoreDB, "ignoreList") == nil and type(PSS_PlayersDB.ignoreList) == "table", "reset: list not routed")
 check(#PourSocialScoreDB.ignoreList == 0, "reset: list not empty")
 check(PourSocialScoreDB.chatmsg == true and PSS_OptionsDB.chatmsg == true, "reset: options not routed")
+check(rawget(PourSocialScoreDB, "filterCount") == nil and type(PSS_LoggingDB.filterCount) == "table", "reset: counts not routed")
 
 if not fail then print("PASS saved data") end

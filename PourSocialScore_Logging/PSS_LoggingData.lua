@@ -1,0 +1,4 @@
+-- PourSocialScore_Logging holds saved data only: PSS_LoggingDB (the block
+-- history, the lines kept per person, the hourly stats, the totals and the
+-- chat rule counts). It has no code; the core reads and writes the table
+-- (PourSocialScore/PSS_SavedData.lua). Always loaded, before the core.
