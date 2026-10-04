@@ -486,9 +486,12 @@ filter that mixes them without brackets may now behave differently.)
 /pss gui                  Open the interface (also /pss ui)
 /pss gui force            Open the PSS windows even with EllesmereUI
                           integration on
-/pss eui [enable|disable] Show or switch EllesmereUI integration (Options
-                          tab: "Enable EllesmereUI integration"). It takes
-                          effect after a reload; you are asked to reload
+/pss eui [enable|disable] Open the Pour Social Score section of the
+                          EllesmereUI panel, or switch EllesmereUI
+                          integration (Options tab: "Enable EllesmereUI
+                          integration"). It takes effect after a reload;
+                          you are asked to reload. Needs the
+                          PourSocialScore_EllesmereUI folder
 /pss list [days|server]   List entries; optionally only those listed for
                           [days] or more, or from one server
 /pss add name [days] [note]

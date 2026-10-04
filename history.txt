@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.1.0-dev2 - EllesmereUI window and panel section (3.1 test build)
+
+- New seventh folder, PourSocialScore_EllesmereUI (from its own repository, in the test zip). It loads only when it is needed, and only with "Enable EllesmereUI integration" on and EllesmereUI installed.
+- With the integration on, opening your Friends list or typing /pss gui shows a Pour Social Score window in EllesmereUI's style, painted by EllesmereUI's skinning API so it follows your theme and accent colour. It sits next to Friends like the PSS window, can be dragged (the place is kept for /pss gui) and closes with Escape. Its five tabs are empty in this build; they fill in over the next test builds.
+- EllesmereUI's panel gets a "Pour Social Score" section at the bottom of its sidebar. /pss eui opens it (not in combat, like the rest of that panel). Its first page has a button for the window and the integration switch.
+- The PSS window (PourSocialScore_GUI) no longer loads with the integration on, unless you type /pss gui force.
+- Version 3.1.0-dev2.
+
 => 3.1.0-dev1 - EllesmereUI integration switch (3.1 test build)
 
 - New option "Enable EllesmereUI integration" (Options tab, User Interface section; off by default). It is the switch for the coming EllesmereUI front end, a seventh folder, PourSocialScore_EllesmereUI, added in the next test builds. In this build it changes nothing yet: /pss gui still opens the PSS window.

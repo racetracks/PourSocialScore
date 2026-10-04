@@ -14,6 +14,7 @@
 --   * every global named in a loaded addon's "## SavedVariables:" line is
 --     written to <svOut> at logout; a LoadOnDemand addon's saved variables
 --     appear when it loads, and are written back unchanged if it never did
+-- PSS_EXTRA_ADDONS (comma separated folders) adds addons of any name.
 -- <svIn> may name several files separated by commas (one per SavedVariables
 -- file in the game); they are all loaded before any addon.
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
@@ -93,6 +94,16 @@ for _, base in ipairs(bases) do
 			end
 		end
 		ls:close()
+	end
+end
+
+-- other addons (PSS_EXTRA_ADDONS="dir,dir"): e.g. the EllesmereUI stand-in
+-- and PourSocialScore_EllesmereUI from its own repository
+for dir in (os.getenv("PSS_EXTRA_ADDONS") or ""):gmatch("[^,]+") do
+	dir = dir:gsub("/$", "")
+	local name = dir:match("([^/]+)$")
+	if name and not addons[name] and exists(dir .. "/" .. name .. ".toc") then
+		readToc(name, dir, dir .. "/" .. name .. ".toc")
 	end
 end
 

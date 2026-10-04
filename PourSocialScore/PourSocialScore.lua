@@ -139,6 +139,8 @@ local function ApplicationStartup(self)
 	if isLoaded and isLoaded("PourSocialScore_Logging") and M.PSS_LoadLogging then M.PSS_LoadLogging() end
 
 	M.PSS_HookFunctions()
+	-- our section in the EllesmereUI panel, when that front end is in use
+	M.PSS_RegisterEUI()
 
 	self:UnregisterEvent("IGNORELIST_UPDATE")
 	self:UnregisterEvent("PLAYER_ENTERING_WORLD")

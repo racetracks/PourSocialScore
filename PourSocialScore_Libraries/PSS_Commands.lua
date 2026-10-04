@@ -269,6 +269,8 @@ function M.PSS_SlashPSS (msg)
 
 		if args[2] == "enable" or args[2] == "disable" then
 			M.PSS_SetEUI(args[2] == "enable")
+		elseif M.PSS_UseEUI() then
+			M.PSS_OpenEUIPanel()
 		else
 			M.ShowMsg(format(L["EUI_1"], OnOff(M.PSS_Opt("euiIntegration")),
 				M.PSS_HasEUI() and L["EUI_2"] or L["EUI_3"]))
