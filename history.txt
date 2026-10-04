@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev7 - Back to the client TOCs (3.0 test build)
+
+- dev6's single TOC did not load on Camelot, so the three TOCs from dev5 (PourSocialScore, _Mainline, _Camelot) are back, unchanged apart from the version. The coloured "PourSocialScore Core" title and the AddOns list group are not in this build.
+- The addon files stay in the PourSocialScore folder in the repository; the zip is the same as before.
+- Version 3.0.0-dev7.
+
 => 3.0.0-dev6 - One TOC and the AddOns list heading (3.0 test build)
 
 - One PourSocialScore.toc for every client (## Interface: 120007, 16001); the separate Mainline and Camelot TOCs are gone. Delete your old PourSocialScore folder before installing so the old TOCs don't stay behind.
