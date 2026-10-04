@@ -205,7 +205,9 @@ function M.PSS_MemReport(full)
 	end
 
 	-- the shared block log
-	if H then
+	if H and not H.Loaded() then
+		out(("  block history: PourSocialScore_Logging not loaded (it loads when you open the history), %d new lines waiting"):format(H.Waiting()))
+	elseif H then
 		local bytes, n = H.EstimateBytes()
 		local log = H.Log()
 		local byType = { p = 0, g = 0, f = 0 }

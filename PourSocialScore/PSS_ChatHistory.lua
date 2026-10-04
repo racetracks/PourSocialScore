@@ -197,11 +197,65 @@ History.EntryMT = { __index = function(h, k)
 	elseif k == "kind" then return CAT_LABEL[rawget(h, "cat") or "unknown"] or UNKNOWN end
 end }
 
+------------------------------------------------------------------------
+-- ON DEMAND (3.0): the log and the keep are saved by
+-- PourSocialScore_Logging, which is not loaded at login. History.Log and
+-- History.Keep load it first. A block only adds a line: until Logging is
+-- loaded the line waits in PourSocialScoreDB.outbox (the counts are always
+-- loaded, so they are counted at once). When Logging loads, the waiting
+-- lines join the log, the log is trimmed to the setting and the history is
+-- tidied. With many lines waiting, Logging loads by itself at a quiet moment
+-- (out of combat, outside instances).
+------------------------------------------------------------------------
+local OUTBOX_LOAD = 200		-- waiting lines that make Logging load
+local ready = false
+
+function History.Loaded() return ready end
+M.PSS_LoggingReady = History.Loaded
+
+function History.Waiting()
+	local ob = type(PourSocialScoreDB) == "table" and rawget(PourSocialScoreDB, "outbox")
+	return type(ob) == "table" and #ob or 0
+end
+
+function M.PSS_LoadLogging()
+	if ready then return true end
+	if not (M.PSS_Need and M.PSS_Need("Logging")) then return false end
+	ready = true
+	-- route its keys, move any PourSocialScoreDB still holds (a 2.0 save)
+	if M.PSS_PrepareSavedData then M.PSS_PrepareSavedData() end
+	local db = PourSocialScoreDB
+	local ob = type(db) == "table" and rawget(db, "outbox")
+	if type(ob) == "table" then
+		local log = History.Log()
+		for i = 1, #ob do
+			local e = ob[i]
+			if type(e) == "table" then log[#log + 1] = setmetatable(e, History.EntryMT) end
+		end
+		rawset(db, "outbox", nil)
+	end
+	History.Trim(true)
+	if M.PSS_TidyBlockHistory then M.PSS_TidyBlockHistory() end
+	return true
+end
+
+local loadQueued = false
+local function loadWhenQuiet()
+	if ready then loadQueued = false return end
+	if (InCombatLockdown and InCombatLockdown()) or (IsInInstance and IsInInstance()) then
+		C_Timer.After(30, loadWhenQuiet)
+		return
+	end
+	loadQueued = false
+	M.PSS_LoadLogging()
+end
+
 local attached = setmetatable({}, { __mode = "k" })
 local keepsOwner
 function History.Log()
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return {} end
+	if not ready and not M.PSS_LoadLogging() then return {} end
 	local log = db.blockLog
 	if type(log) ~= "table" then log = {}; db.blockLog = log end
 	if not attached[log] then
@@ -253,6 +307,7 @@ History.KeepsOwner = keepsOwner
 function History.Keep()
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return {} end
+	if not ready and not M.PSS_LoadLogging() then return {} end
 	local keep = db.blockKeep
 	if type(keep) ~= "table" then keep = {}; db.blockKeep = keep end
 	if not attached[keep] then
@@ -370,12 +425,27 @@ M.PSS_TrimAllHistory = History.TrimAll
 function History.Add(owner, counts, entry, ruleTag)
 	entry.o = owner
 	if ruleTag then entry.r = ruleTag end
-	local log = History.Log()
-	log[#log + 1] = entry
 	if counts then
 		counts[entry.cat] = (tonumber(counts[entry.cat]) or 0) + 1
 		counts.total = (tonumber(counts.total) or 0) + 1
 	end
+	if not ready then
+		-- Logging is not loaded: the line waits (never loads it per line)
+		local db = PourSocialScoreDB
+		if type(db) ~= "table" then return entry end
+		local ob = rawget(db, "outbox")
+		if type(ob) ~= "table" then ob = {}; rawset(db, "outbox", ob) end
+		ob[#ob + 1] = entry
+		-- never more waiting than the log holds (the oldest would be trimmed)
+		if #ob > History.Cap() then table.remove(ob, 1) end
+		if #ob >= OUTBOX_LOAD and not loadQueued then
+			loadQueued = true
+			C_Timer.After(1, loadWhenQuiet)
+		end
+		return entry
+	end
+	local log = History.Log()
+	log[#log + 1] = entry
 	History.Trim(false)
 	return entry
 end

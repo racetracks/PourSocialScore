@@ -130,9 +130,12 @@ local STEPS = {
 			if M.PSS_UpgradeBlockStats then M.PSS_UpgradeBlockStats() end
 			-- records of players no longer listed, and fields records no longer keep
 			if M.PSS_TidyPlayerData then M.PSS_TidyPlayerData() end
-			-- then tidy the block history (lines of things that are gone)
-			local tidied = M.PSS_TidyBlockHistory()
-			if tidied > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history tidied") end
+			-- then tidy the block history (lines of things that are gone); not
+			-- loaded yet: done when PourSocialScore_Logging loads
+			if M.PSS_LoggingReady and M.PSS_LoggingReady() then
+				local tidied = M.PSS_TidyBlockHistory()
+				if tidied > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history tidied") end
+			end
 		end,
 	},
 	-- 2: options, players, guilds and rules live in PourSocialScore_Options.
@@ -146,6 +149,12 @@ local STEPS = {
 	-- counts live in PourSocialScore_Logging (moved the same way)
 	{
 		fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Logging") end,
+	},
+	-- 4: PourSocialScore_Logging loads on demand: the counts and format
+	-- markers live in PSS_CountsDB (PourSocialScore_Options) and only the
+	-- lines in PSS_LoggingDB. M.PSS_PrepareSavedData moves them at login.
+	{
+		fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Options") end,
 	},
 }
 
@@ -379,6 +388,7 @@ end
 
 -- /pss check
 function M.PSS_PrintValidation()
+	if M.PSS_LoadLogging then M.PSS_LoadLogging() end
 	local r = M.PSS_Validate()
 	local n = r.n
 	local out = M.ShowMsg

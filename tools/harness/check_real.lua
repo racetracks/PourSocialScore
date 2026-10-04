@@ -19,13 +19,14 @@ if M then
 end
 
 local function load(path)
-	PourSocialScoreDB, PSS_OptionsDB, PSS_PlayersDB, PSS_GuildsDB, PSS_RulesDB, PSS_LoggingDB = nil, nil, nil, nil, nil, nil
+	PourSocialScoreDB, PSS_OptionsDB, PSS_PlayersDB, PSS_GuildsDB, PSS_RulesDB, PSS_CountsDB, PSS_LoggingDB = nil, nil, nil, nil, nil, nil, nil
 	dofile(path)
 	local db = PourSocialScoreDB
 	-- a 3.0 save keeps options, players, guilds and rules in the
-	-- PourSocialScore_Options tables and history and counts in PSS_LoggingDB
+	-- PourSocialScore_Options tables (counts in PSS_CountsDB) and the history
+	-- in PSS_LoggingDB
 	-- (written to the same file by run.lua)
-	for _, t in ipairs({ PSS_OptionsDB or {}, PSS_PlayersDB or {}, PSS_GuildsDB or {}, PSS_RulesDB or {}, PSS_LoggingDB or {} }) do
+	for _, t in ipairs({ PSS_OptionsDB or {}, PSS_PlayersDB or {}, PSS_GuildsDB or {}, PSS_RulesDB or {}, PSS_CountsDB or {}, PSS_LoggingDB or {} }) do
 		for k, v in pairs(t) do if db[k] == nil then db[k] = v end end
 	end
 	local s = { rules = {}, players = {}, filters = {}, total = 0 }

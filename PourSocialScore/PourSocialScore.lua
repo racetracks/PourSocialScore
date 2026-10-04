@@ -72,11 +72,15 @@ function M.PSS_TidyBlockHistory()
 	return History.Tidy(alive)
 end
 
+local starting = false
 local function ApplicationStartup(self)
 
-	if V.PSS_Loaded == true or safeToLoad == false then
+	-- (loading an on-demand addon during startup fires ADDON_LOADED, which
+	-- comes back here: run once)
+	if V.PSS_Loaded == true or safeToLoad == false or starting then
 		return
 	end
+	starting = true
 
 	M.ShowMsg(L["LOAD_1"])
 
@@ -87,8 +91,9 @@ local function ApplicationStartup(self)
 		M.PSS_ResetIgnoreDB()
 	end
 	-- the PourSocialScore_Options tables, routing of moved keys, and the move
-	-- of a 2.0 save (upgrade step 2)
-	M.PSS_PrepareSavedData({ quiet = fresh })
+	-- of a 2.0 save (upgrade steps 2 to 4). Without PourSocialScore_Options
+	-- nothing can be read: stop here (the message says which folder).
+	if not M.PSS_PrepareSavedData({ quiet = fresh, startup = true }) then starting = false return end
 
 	-- Ensure all core list fields exist before any UI or upgrade code uses #field.
 	PourSocialScoreDB.ignoreList = PourSocialScoreDB.ignoreList or {}
@@ -124,9 +129,14 @@ local function ApplicationStartup(self)
 	--M.SyncIgnoreList(PourSocialScoreDB.chatmsg == false)
 
 	V.PSS_Loaded = true
+	starting = false
 
 	-- the rest of the upgrade steps, then the upgrade record
 	M.PSS_RunUpgradeData(fresh)
+	-- PourSocialScore_Logging was loaded for the upgrade: add the waiting
+	-- lines, trim and tidy the history now
+	local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+	if isLoaded and isLoaded("PourSocialScore_Logging") and M.PSS_LoadLogging then M.PSS_LoadLogging() end
 
 	M.PSS_HookFunctions()
 

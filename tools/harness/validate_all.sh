@@ -65,7 +65,7 @@ for v in 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40 2.0.41 2
 	echo "$out"
 	echo "$out" | grep -q "PASS guild rule" || fail=1
 	# the saved rule keeps no statistics of its own
-	lua5.1 -e "dofile('$work/sv-gr-$v-after.lua'); assert(PSS_LoggingDB.builtinStats.PSSG0001 == nil, 'rule stats saved'); assert(PSS_LoggingDB.guildRuleCountsV1 == true)" || fail=1
+	lua5.1 -e "dofile('$work/sv-gr-$v-after.lua'); assert(PSS_CountsDB.builtinStats.PSSG0001 == nil, 'rule stats saved'); assert(PSS_CountsDB.guildRuleCountsV1 == true)" || fail=1
 done
 
 # group and whisper alerts (2.0.44), on a fresh save
@@ -100,7 +100,8 @@ done
 
 # split (3.0 Steps 4.2 and 4.3): a 2.0 save keeps every count after its data
 # moves to PourSocialScore_Options and PourSocialScore_Logging (dev12 build vs
-# this one), each move prints one line, and the next login moves nothing
+# this one), each move prints one line (2.0.1 to 2.0.17 saves have no shared
+# block log to move), and the next login moves nothing
 echo "== split"
 rm -rf "$work/src-prev"; mkdir -p "$work/src-prev"
 git archive c5c8296 | tar -x -C "$work/src-prev"
@@ -113,12 +114,27 @@ for sv in $splitsaves; do
 	if [ -s "$work/split-a.txt" ] && grep '^N ' "$work/split-b.txt" | diff "$work/split-a.txt" - > /dev/null &&
 		grep '^N ' "$work/split-c.txt" | diff "$work/split-a.txt" - > /dev/null &&
 		[ "$(grep -c 'Saved data moved to PourSocialScore_Options' "$work/split-b.txt")" = 1 ] &&
-		[ "$(grep -c 'Saved data moved to PourSocialScore_Logging' "$work/split-b.txt")" = 1 ] && ! grep -q 'Saved data moved' "$work/split-c.txt"; then
+		[ "$(grep -c 'Saved data moved to PourSocialScore_Logging' "$work/split-b.txt")" -le 1 ] && ! grep -q 'Saved data moved' "$work/split-c.txt"; then
 		echo "PASS split ($sv)"
 	else
 		grep '^N ' "$work/split-b.txt" | diff "$work/split-a.txt" -
 		echo "FAIL split on $sv"; fail=1
 	fi
+done
+
+# PourSocialScore_Logging on demand (3.0 Step 4.4): not loaded at a normal
+# login, lines wait in the outbox over a logout, opening the history or 200
+# waiting lines load it
+echo "== on demand"
+for sv in - "$work/sv-2.0.44.lua"; do
+	lua5.1 "$here/run.lua" . "$sv" "$work/od-0.lua" > /dev/null 2>&1
+	src=$work/od-0.lua
+	for ph in 1 2 3; do
+		[ $ph = 3 ] && src=$work/od-1.lua
+		out=$(PSS_PHASE=$ph lua5.1 "$here/run.lua" . "$src" "$work/od-$ph.lua" "$here/check_ondemand.lua" 2>&1 | grep -v '^|cff')
+		echo "$out" | grep -q "PASS on demand $ph" && echo "PASS on demand $ph ($sv)" || { echo "$out"; echo "FAIL on demand $ph on $sv"; fail=1; }
+		src=$work/od-$ph.lua
+	done
 done
 
 # upgrade record (3.0): a 2.0 save gets step 1 once with one chat line, the
