@@ -10,7 +10,7 @@
 here=$(cd "$(dirname "$0")" && pwd)
 work=${TMPDIR:-/tmp}/pss-multi
 rm -rf "$work"; mkdir -p "$work/root"
-git ls-files | tar -c -T - | tar -x -C "$work/root"
+git ls-files -co --exclude-standard | tar -c -T - | tar -x -C "$work/root"
 mkdir -p "$work/root/PourSocialScore_TestData" "$work/root/PourSocialScore_TestLoD"
 printf '## Interface: 120007, 16001\n## Title: Test data\n## SavedVariables: PSS_TestDataDB\n\ndata.lua\n' \
 	> "$work/root/PourSocialScore_TestData/PourSocialScore_TestData.toc"
