@@ -65,7 +65,9 @@ function ns.SetTabSelected(tab, selected)
     if ns.S and ns.S.SetTabSelection then
         ns.S.SetTabSelection(tab, selected)
     else
+        -- Alpha, not text colour: colour alpha leaves the shadow at full
+        -- strength, which read as a second, offset label.
         local fs = tab:GetFontString()
-        if fs then fs:SetTextColor(1, 1, 1, selected and 1 or 0.5) end
+        if fs then fs:SetAlpha(selected and 1 or 0.5) end
     end
 end
