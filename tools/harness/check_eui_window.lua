@@ -1,4 +1,4 @@
--- EllesmereUI front end (3.1 Step E.2), with the EllesmereUI stand-in and
+-- EllesmereUI front end (3.1 Steps E.2, E.3), with the EllesmereUI stand-in and
 -- PourSocialScore_EllesmereUI loaded through PSS_EXTRA_ADDONS.
 --   PSS_PHASE=1 : switch the option on (saved; logout)
 --   PSS_PHASE=3 : the window with EllesmereUI's skinning off for us
@@ -41,20 +41,65 @@ check(spec and spec.label == "Pour Social Score", "label")
 check(not loaded(NAME), "loaded at login")
 check(not loaded("PourSocialScore_GUI"), "GUI loaded at login")
 
+local opts, io = spec.modules[1], spec.modules[2]
+check(opts and #opts.pages == #M.PSS_OPTION_SECTIONS, "one Options page per section")
+check(io and io.key == "ImportExport", "no Import/Export module")
+
 -- search pre-build pass before the addon is loaded: nothing loads
 E.prebuild = true
-check(spec.modules[1].buildPage("General", {}, -10) == 0, "pre-build drew a page")
+check(opts.buildPage(opts.pages[1], {}, -10) == 0, "pre-build drew a page")
 check(not loaded(NAME), "pre-build loaded the addon")
 E.prebuild = false
 
--- a real page build
-local h = spec.modules[1].buildPage("General", {}, -10)
+-- every page builds; DualRow slots are filled left to right, never nil, and
+-- only the last row of a section may end in a blank; every option has a row
+local function BLANK(c) return c.type == "label" and c.text == "" end
+local function buildPage(mod, page)
+	E.rows = {}
+	local h = mod.buildPage(page, {}, -10)
+	check(h and h > 10, page .. ": page height " .. tostring(h))
+	for i, r in ipairs(E.rows) do
+		if r[1] == "dual" then
+			check(r[2] ~= nil and r[3] ~= nil, page .. ": a DualRow with a nil slot")
+			check(not BLANK(r[2]), page .. ": a blank left slot")
+			local last = not E.rows[i + 1] or E.rows[i + 1][1] ~= "dual"
+			check(last or not BLANK(r[3]), page .. ": a blank slot before the last row")
+		end
+	end
+	return E.rows
+end
+local seen = {}
+for _, page in ipairs(opts.pages) do
+	for _, r in ipairs(buildPage(opts, page)) do
+		if r[1] == "dual" then seen[r[2].text or ""] = r[2]; seen[r[3].text or ""] = r[3] end
+	end
+end
 check(loaded(NAME), "page build did not load the addon")
-check(h and h > 10, "page height " .. tostring(h))
-for _, r in ipairs(E.rows) do
-	if r[1] == "dual" then check(r[2] ~= nil and r[3] ~= nil, "a DualRow with an empty slot") end
+for _, o in ipairs(M.PSS_OPTIONS) do
+	local text = (o.label or o.key):gsub("[:%s]+$", "")
+	check(seen[text], "no panel row for option " .. o.key)
+end
+local ioRow = {}
+for _, r in ipairs(buildPage(io, io.pages[1])) do
+	if r[1] == "dual" then ioRow[r[2].text] = r[2]; ioRow[r[3].text] = r[3] end
 end
 check(type(PSS_EllesmereUIDB) == "table", "no saved table")
+
+-- a change in the panel saves through the core and redraws the other surface
+local row = seen[(M.PSS_OPTION_REG.skipParty.label:gsub("[:%s]+$", ""))]
+E.active = E.GetPluginModuleKey(NAME, "Options")
+local before = E.log.refreshed
+row.setValue(true)
+check(M.PSS_Opt("skipParty") == true, "panel toggle not saved")
+check(E.log.refreshed > before, "panel not refreshed after a change")
+row.setValue(false)
+check(PourSocialScoreDB.skipParty == nil, "default value saved")
+local cap = seen["Enable scan level cap"]
+cap.setValue(true)
+check(M.PSS_Opt("whoLevelCapOn") ~= true, "level cap ticked with no cap")
+seen["Scan level cap"].setValue("70")
+cap.setValue(true)
+check(M.PSS_Opt("whoLevelCapOn") == true and M.PSS_Opt("whoLevelCap") == 70, "level cap not set")
 
 -- the window
 SlashCmdList.PSS("gui")
@@ -65,8 +110,33 @@ check(#E.log.escape == 1, "Escape not registered")
 local shells = 0
 for _, k in ipairs(E.log.skinned) do if k == "Shell" then shells = shells + 1 end end
 check(shells == 1, "window not painted with S.Shell (" .. shells .. ")")
+-- the Options and Import/Export tabs build on first open
+for _, i in ipairs({ 4, 5 }) do
+	win.tabs[i]:GetScript("OnClick")(win.tabs[i])
+	check(win.pages[i]:IsShown() and win.pages[i].refresh, "tab " .. i .. " not built")
+end
+M.PSS_SetOpt("skipParty", "global", true)
+M.PSS_SetOpt("skipParty", "global", false)
+
+-- Import/Export through EllesmereUI's popups
 SlashCmdList.PSS("gui")
 check(not win:IsShown(), "/pss gui did not toggle it off")
+M.PSS_SetOpt("skipParty", "global", true)
+ioRow["Options (all characters)"].setValue(true)
+ioRow["Export the ticked sections"].onClick()
+local str = E.log.copies[1]
+check(type(str) == "string" and M.PSS_DecodeExport(str), "no export string")
+M.PSS_SetOpt("skipParty", "global", false)
+E.importText = str
+ioRow["Import a string"].onClick()
+check(M.PSS_Opt("skipParty") == true, "merge import did not apply the options")
+E.importText = "nonsense"
+ioRow["Import a string"].onClick()
+local n = #E.log.popups
+ioRow["Import mode"].setValue("replace")
+E.importText = str
+ioRow["Import a string"].onClick()
+check(#E.log.popups == n + 1 and E.log.popups[n + 1].confirmText == "Replace", "replace not confirmed")
 
 FriendsFrame:Show()
 check(win:IsShown() and win.byFriends, "Friends did not show the window")

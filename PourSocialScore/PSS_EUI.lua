@@ -53,11 +53,16 @@ end
 function M.PSS_RegisterEUI()
 	if not (M.PSS_UseEUI() and EllesmereUI.RegisterPlugin) then return end
 	if EllesmereUI.IsPluginRegistered and EllesmereUI.IsPluginRegistered(PLUGIN) then return end
+	-- one Options page per section of M.PSS_OPTION_SECTIONS, in that order
+	M.PSS_EUI_PAGES = { "Ignore List", "Blocking", "Chat Filters", "Interface", "Whois Scans" }
 	EllesmereUI.RegisterPlugin(PLUGIN, {
 		label	= "Pour Social Score",
 		modules	= {
 			{ key = "Options", title = "Options", description = "Settings for every character on this account.",
-				pages = { "General" }, buildPage = pageBuilder("Options") },
+				pages = M.PSS_EUI_PAGES, buildPage = pageBuilder("Options"),
+				onPageCacheRestore = function() if M.EUI_Refresh then M.EUI_Refresh() end end },
+			{ key = "ImportExport", title = "Import/Export", description = "Share your lists and settings as a text string.",
+				pages = { "Import/Export" }, buildPage = pageBuilder("ImportExport") },
 		},
 	})
 end
