@@ -31,8 +31,9 @@ function ns.Font(fs, size)
     end
 end
 
+-- No title strip: our tabs sit where it would end and got shaded twice.
 function ns.Shell(frame)
-    if ns.S then ns.S.Shell(frame) return end
+    if ns.S then ns.S.Shell(frame, { noTopBar = true }) return end
     PlainFill(frame, 0.92)
     PlainBorder(frame)
 end
