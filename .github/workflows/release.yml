@@ -1,6 +1,7 @@
-# Publishes a GitHub release whenever the version in PourSocialScore.toc
+# Publishes a GitHub release whenever the version in PourSocialScore/PourSocialScore.toc
 # changes on main: tags vX.Y.Z and attaches PourSocialScore-X.Y.Z.zip
-# (the addon folder incl. Bindings.xml, without .github / tools), with that version's section
+# (every addon folder, PourSocialScore and PourSocialScore_*, with readme.txt and
+# history.txt in the core folder; no .github / tools), with that version's section
 # of history.txt as the release notes. Does nothing if the release exists.
 # Versions with a suffix (3.0.0-dev1) are published as, or turned into, pre-releases.
 name: Release
@@ -22,7 +23,7 @@ jobs:
       - name: Read version
         id: v
         run: |
-          ver=$(sed -n 's/^## Version: *//p' PourSocialScore.toc | tr -d '\r')
+          ver=$(sed -n 's/^## Version: *//p' PourSocialScore/PourSocialScore.toc | tr -d '\r')
           echo "version=$ver" >> "$GITHUB_OUTPUT"
           if gh release view "v$ver" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
@@ -36,11 +37,14 @@ jobs:
         if: steps.v.outputs.exists == 'false'
         run: |
           ver=${{ steps.v.outputs.version }}
-          mkdir -p build/PourSocialScore
-          cp *.lua *.toc Bindings.xml readme.txt history.txt build/PourSocialScore/
-          (cd build && zip -qr "../PourSocialScore-$ver.zip" PourSocialScore)
+          mkdir -p build
+          for d in PourSocialScore PourSocialScore_*/; do
+            if [ -d "$d" ]; then cp -r "${d%/}" build/; fi
+          done
+          cp readme.txt history.txt build/PourSocialScore/
+          (cd build && zip -qr "../PourSocialScore-$ver.zip" .)
           {
-            echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\` so you get \`AddOns/PourSocialScore/PourSocialScore.toc\`. Retail (Midnight) and Camelot are supported."
+            echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\` so you get \`AddOns/PourSocialScore/PourSocialScore.toc\` (and any \`AddOns/PourSocialScore_*\` folders next to it). Retail (Midnight) and Camelot are supported."
             echo
             echo "### Changes"
             awk -v v="$ver" '
