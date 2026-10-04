@@ -318,8 +318,11 @@ function M.PSS_UpdatePlayerUnit(name, unit, guild)
 		local guildKey = normalizeGuild(guild)
 		local existing = guildKey and PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[guildKey]
 		if existing then
-			-- a shipped member of a managed guild: already known, store nothing
+			-- a shipped member of a managed guild: already known, store nothing.
+			-- Telling them apart needs the shipped lists, so seeing a member of
+			-- a managed guild loads them (out of combat, like every unit scan).
 			local ck = existing.managed and canonPlayer(name)
+			if existing.managed and M.PSS_LoadManagedData then M.PSS_LoadManagedData() end
 			if not (ck and M.PSS_IsManagedStaticMember and M.PSS_IsManagedStaticMember(guildKey, ck)) then
 				M.PSS_UpdateGuildMember(guild, name, unit)
 			end
@@ -533,7 +536,7 @@ M.PSS_MergeMemberBlockData = mergeBlockData
 ------------------------------------------------------------------------
 -- MANAGED (DEFAULT) GUILDS
 --
--- PSS_GuildIgnore_Managed.lua ships read-only groups of guilds ("Olympus")
+-- The shipped lists are read-only groups of guilds ("Olympus")
 -- with their members. Each group has a built-in rule on the Chat Filters tab
 -- (InfluencerGuild=<Name>) that switches the whole group on or off, and a
 -- collapsible entry on the Guild Ignore List.
@@ -547,9 +550,18 @@ M.PSS_MergeMemberBlockData = mergeBlockData
 --     (seen in another guild by /who) or that you removed
 -- Every other shipped member is "virtual": built from the shipped list when
 -- needed and never written to SavedVariables.
+--
+-- 3.0: PSS_Communities.lua in the core is only the manifest (groups,
+-- guild names and member counts). The member lists and their index are in
+-- the on-demand PourSocialScore_Communities addon (addon.MANAGED_DATA),
+-- loaded when a group's rule is on (login or ticked) or when you work with
+-- guild members (members window, scans, /who capture, removing, seeing a
+-- member of a shipped guild in the world). Chat never loads it: with the
+-- rule off, shipped guilds block nothing.
 ------------------------------------------------------------------------
 local MANAGED = addon.MANAGED or { groups = {} }
 local managed = nil				-- guild-level data, built on first use
+local ensureManagedData			-- loads PourSocialScore_Communities (below)
 -- canon -> record for shipped members looked at this session. Weak: a record
 -- nobody uses any more is freed by the garbage collector. Records you
 -- changed are also held in vkeep until they are saved at logout.
@@ -558,25 +570,29 @@ local vkeep = {}
 
 -- Guild-level data (cheap: one entry per guild). The per-member index
 -- (canon key -> guild number * 65536 + position) ships prebuilt in
--- PSS_GuildIgnore_Managed.lua (tools/PSS_BuildManaged.lua), so nothing is
+-- the data file (tools/PSS_BuildManaged.lua), so nothing is
 -- built per member at login and every shipped member matches from the
 -- first chat line.
 local function buildManaged()
 	if managed then return managed end
-	managed = { lists = {}, names = {}, groupOf = {}, guildName = {}, groups = {} }
+	local data = addon.MANAGED_DATA
+	managed = { lists = {}, names = {}, groupOf = {}, guildName = {}, groups = {}, count = {}, dataLoaded = data ~= nil }
 	for _, grp in ipairs(MANAGED.groups or {}) do
 		managed.groups[grp.key] = grp
+		local gdata = data and data[grp.key]
 		local gkeys = {}
-		for gi, list in ipairs(grp.guilds or {}) do
-			local gkey = normalizeGuild(list.name)
+		for gi, entry in ipairs(grp.guilds or {}) do
+			local gkey = normalizeGuild(entry.name)
 			gkeys[gi] = gkey or false
 			if gkey then
 				managed.groupOf[gkey] = grp.key
-				managed.guildName[gkey] = list.name
-				managed.names[gkey] = list
+				managed.guildName[gkey] = entry.name
+				managed.count[gkey] = tonumber(entry.n) or 0
+				local list = gdata and gdata.guilds and gdata.guilds[gi]
+				if list and list.name == entry.name then managed.names[gkey] = list end
 			end
 		end
-		managed.lists[#managed.lists + 1] = { index = grp.index or {}, gkeys = gkeys }
+		if gdata then managed.lists[#managed.lists + 1] = { index = gdata.index or {}, gkeys = gkeys } end
 	end
 	return managed
 end
@@ -601,14 +617,14 @@ end
 function M.PSS_ManagedStats()
 	local m = buildManaged()
 	local shipped, indexed = 0, 0
-	for _, list in pairs(m.names) do shipped = shipped + #list end
+	for _, n in pairs(m.count) do shipped = shipped + n end
 	for _, l in ipairs(m.lists) do
 		for _ in pairs(l.index) do indexed = indexed + 1 end
 	end
 	local kept, cached = 0, 0
 	for _ in pairs(vkeep) do kept = kept + 1 end
 	for _ in pairs(vcache) do cached = cached + 1 end
-	return { shipped = shipped, indexed = indexed, kept = kept, cached = cached }
+	return { shipped = shipped, indexed = indexed, kept = kept, cached = cached, loaded = m.dataLoaded }
 end
 
 function M.PSS_ManagedGroups() return buildManaged().groups end
@@ -705,6 +721,7 @@ local function forEachMember(g, gkey, fn, includeUntouched)
 	end
 	if not g.managed then return end
 	if includeUntouched then
+		ensureManagedData()
 		local mm = buildManaged()
 		for _, name in ipairs(mm.names[gkey] or {}) do
 			local ck = canonPlayer(name)
@@ -735,6 +752,26 @@ M.PSS_ForEachGuildMember = forEachMember
 -- so a redraw does not re-key every stored member of every managed guild.
 local memberCountGen = 0
 local memberCountCache = setmetatable({}, { __mode = "k" })		-- g -> { gen, key, stored, gone, n }
+
+-- Load the shipped member lists (PourSocialScore_Communities) if they are
+-- not loaded yet. Returns true when they are available.
+ensureManagedData = function()
+	if managed and managed.dataLoaded then return true end
+	if not addon.MANAGED_DATA and not (M.PSS_Need and M.PSS_Need("Communities")) then return false end
+	managed = nil
+	memberCountGen = memberCountGen + 1
+	return buildManaged().dataLoaded
+end
+M.PSS_LoadManagedData = ensureManagedData
+function M.PSS_ManagedDataLoaded() return buildManaged().dataLoaded end
+
+-- Login and ticking a rule: load the lists when any group's rule is on.
+function M.PSS_LoadActiveManagedData()
+	for key in pairs(buildManaged().groups) do
+		if M.PSS_ManagedGroupActive and M.PSS_ManagedGroupActive(key) then return ensureManagedData() end
+	end
+	return false
+end
 function M.PSS_GuildMemberCount(g, gkey)
 	if type(g) ~= "table" then return 0 end
 	local n = 0
@@ -748,6 +785,20 @@ function M.PSS_GuildMemberCount(g, gkey)
 	local c = memberCountCache[g]
 	if c and c.gen == memberCountGen and c.key == gkey and c.stored == stored and c.gone == gone then return c.n end
 	local m = buildManaged()
+	if not m.dataLoaded then
+		-- lists not loaded: shipped count from the manifest, minus those who
+		-- left, plus stored members that are not shipped ones (a changed
+		-- shipped member is saved with _managed)
+		n = (m.count[gkey] or 0) - gone
+		for _, mm in pairs(g.members or {}) do
+			if not (type(mm) == "table" and mm._managed) then n = n + 1 end
+		end
+		n = math.max(0, n)
+		c = c or {}
+		c.gen, c.key, c.stored, c.gone, c.n = memberCountGen, gkey, stored, gone, n
+		memberCountCache[g] = c
+		return n
+	end
 	n = #(m.names[gkey] or {})
 	for k, mm in pairs(g.members or {}) do
 		local ck = canonPlayer(type(k) == "string" and k or nil) or (type(mm) == "table" and canonPlayer(mm.name))
@@ -1002,6 +1053,7 @@ function M.PSS_RemoveGuildMember(guildName, playerName, sourceGuildKey, storedKe
 	local removed = false
 	local rck = canonPlayer(playerName)
 	if g.managed and rck then
+		ensureManagedData()
 		local gk = sourceGuildKey or normalizeGuild(guildName)
 		if gk and isStaticMember(gk, rck) and not isGone(g, rck) then
 			tombstone(gk, rck)
@@ -1095,6 +1147,7 @@ end
 -- (so it follows them when moved), or - if they are in no rule any more -
 -- under the rule they were in when it was blocked.
 local function guildLineMatcher(g, gkey)
+	if g.managed then ensureManagedData() end
 	local stored = {}
 	for k, m in pairs(g.members or {}) do
 		if type(m) == "table" then
@@ -1183,6 +1236,7 @@ local function addWhoResultToGuildMember(info, guildRowName, actualGuild)
 
 	actualGuild = actualGuild or info.fullGuildName or info.guild or ""
 	if M.PSS_IsGuildExcluded(actualGuild) then return nil end	-- Guild Exclusion List
+	ensureManagedData()		-- who is shipped, and who left a shipped guild
 	-- WHO's lazy guild search means a scan for "Olympus" also returns members of
 	-- "Olympus Tycoons". If a more specific saved guild rule matches this
 	-- member's ACTUAL guild, the member belongs to that rule, not to the broad
@@ -1753,6 +1807,7 @@ end
 function M.PSS_MoveOtherCopies(playerName, keepKey, target)
 	local ck = canonPlayer(playerName)
 	if not ck or type(target) ~= "table" then return 0 end
+	ensureManagedData()
 	local moved = 0
 	for gkey, g in pairs(PourSocialScoreDB.guildData or {}) do
 		if gkey ~= keepKey and type(g) == "table" and type(g.members) == "table" then

@@ -80,6 +80,16 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_gui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS gui" || fail=1
 
+# shipped guild lists on demand (3.0): PourSocialScore_Communities loads
+# only when the rule is on or members are needed
+echo "== Communities on demand"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_communities.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS communities" || fail=1
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_communities_seen.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS communities seen" || fail=1
+
 # upgrade record (3.0): a 2.0 save gets step 1 once with one chat line, the
 # next login prints nothing; a fresh save is stamped without a message
 echo "== upgrade record"
