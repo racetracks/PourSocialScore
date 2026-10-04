@@ -9,8 +9,8 @@
 # Usage: sh tools/check_rules.sh   (from the repo root, needs luac5.1/lua5.1)
 
 fail=0
-# the core files at the root, plus every split-out addon folder (3.0)
-files=$(ls *.lua PourSocialScore*/*.lua tools/*.lua tools/harness/*.lua 2>/dev/null)
+# every addon folder (3.0 layout: PourSocialScore/, PourSocialScore_*/)
+files=$(ls PourSocialScore*/*.lua tools/*.lua tools/harness/*.lua 2>/dev/null)
 
 for f in $files; do
 	luac5.1 -p "$f" || fail=1
@@ -18,12 +18,12 @@ done
 
 lua5.1 tools/check_style.lua $files || fail=1
 
-if LC_ALL=C grep -nP '[^\x00-\x7F]' $(ls *.toc *.xml PourSocialScore*/*.toc PourSocialScore*/*.xml 2>/dev/null) readme.txt history.txt; then
+if LC_ALL=C grep -nP '[^\x00-\x7F]' $(ls PourSocialScore*/*.toc PourSocialScore*/*.xml 2>/dev/null) readme.txt history.txt; then
 	echo "ASCII only: non-ASCII bytes found above"
 	fail=1
 fi
 
-if grep -nP '^\t* |[ \t]+$' $(ls *.xml PourSocialScore*/*.xml 2>/dev/null); then
+if grep -nP '^\t* |[ \t]+$' $(ls PourSocialScore*/*.xml 2>/dev/null); then
 	echo "Tabs, not spaces: space indentation or trailing whitespace found above"
 	fail=1
 fi

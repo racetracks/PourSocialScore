@@ -84,7 +84,8 @@ local function checkFile(path)
 	end
 end
 
-for _, path in ipairs(CORE) do checkFile(path) end
+-- the core files live in the PourSocialScore folder (3.0 layout)
+for _, path in ipairs(CORE) do checkFile("PourSocialScore/" .. path) end
 if problems > 0 then
 	print("Core files must not hold UI code (rule 6). Move it to a UI file and fire an event from the core.")
 	os.exit(1)
