@@ -1,10 +1,11 @@
 ## Interface: 16001
-## Title: PourSocialScore
+## Title: |cff69ccf0PourSocialScore|r Core
 ## Notes: Sometimes you dont wanna know when a man gotta slur a little
 ## Category: PSS
+## Group: PourSocialScore
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
-## Version: 3.0.0-dev8
+## Version: 3.0.0-dev9
 ## SavedVariables: PourSocialScoreDB
 ## OptionalDeps: PoorSocialScore, GlobalIgnoreList
 
@@ -16,25 +17,16 @@ PSS_Events.lua
 PSS_Whois.lua
 PSS_GuildIgnore_Managed.lua
 PSS_MainlineCompat.lua
-PSS_UIKit.lua
-PSS_Widgets.lua
 PSS_ChatHistory.lua
-PSS_ChatHistoryUI.lua
 PSS_BlockStats.lua
 PSS_ChatBlock.lua
 PSS_ChatFilters.lua
 PSS_PlayerIgnoreList.lua
 PSS_GuildIgnoreList.lua
-PSS_GuildUI.lua
 PSS_WhoisHarvest.lua
-PSS_WhoisHarvestUI.lua
-PSS_PlayerDetail.lua
 PSS_Upgrade.lua
 PourSocialScore.lua
 PSS_Commands.lua
 PSS_Options.lua
-PSS_OptionsUI.lua
 PSS_ImportExport.lua
-PSS_ImportExportUI.lua
-PSS_UI.lua
 PSS_BlizzardUI.lua

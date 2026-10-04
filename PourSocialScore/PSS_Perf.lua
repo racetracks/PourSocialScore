@@ -186,6 +186,19 @@ function M.PSS_MemReport(full)
 		addonKB and ("%.2f MB"):format(addonKB / 1024) or (inCombat and "(not measured in combat)" or "n/a"),
 		heapKB() / 1024))
 
+	-- the on-demand addons: loaded or not, and their own figure
+	local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+	for _, key in ipairs({ "GUI", "Libraries", "Logging", "Communities" }) do
+		local name = M.PSS_PARTS and M.PSS_PARTS[key]
+		if name and isLoaded and isLoaded(name) then
+			local ok, v = false, nil
+			if not inCombat and getMem then ok, v = pcall(getMem, name) end
+			out(("  %s: loaded%s"):format(name, ok and v and (", %.2f MB"):format(v / 1024) or ""))
+		elseif key == "GUI" then
+			out(("  %s: not loaded"):format(name))
+		end
+	end
+
 	-- the shared block log
 	if H then
 		local bytes, n = H.EstimateBytes()

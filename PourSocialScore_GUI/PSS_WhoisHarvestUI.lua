@@ -6,7 +6,7 @@
 -- PSS_WhoisHarvest.lua and are read here through M.PSS_GuildSweep,
 -- M.PSS_HarvestFilter and M.PSS_HarvestStats.
 ------------------------------------------------------------------------
-local addonName, addon = ...
+local addon = PourSocialScore_NS
 local M = addon.M
 
 local function guildKey(name) return M.PSS_NormalizeGuild(name) end

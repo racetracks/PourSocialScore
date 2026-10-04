@@ -12,7 +12,7 @@
 --   * remove from the list
 -- NPC and server entries show the details, note, expiry and remove only.
 ------------------------------------------------------------------------
-local addonName, addon = ...
+local addon = PourSocialScore_NS
 local M = addon.M
 local V = addon.V
 local L = addon.L

@@ -16,7 +16,7 @@
 -- Messages: every widget that reports something calls opts.say(text).
 -- Without opts.say the text goes to the default chat frame.
 ------------------------------------------------------------------------
-local addonName, addon = ...
+local addon = PourSocialScore_NS
 local M = addon.M
 local UI = M.UI
 

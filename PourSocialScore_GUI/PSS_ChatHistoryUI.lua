@@ -6,7 +6,7 @@
 -- right-click menu on a history line. The data and its migration stay in
 -- PSS_ChatHistory.lua; this file only draws it.
 ------------------------------------------------------------------------
-local addonName, addon = ...
+local addon = PourSocialScore_NS
 local M = addon.M
 local L = addon.L
 
