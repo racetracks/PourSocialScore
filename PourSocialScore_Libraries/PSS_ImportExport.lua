@@ -395,6 +395,8 @@ function M.PSS_ApplyImport(data, mode, sections)
 		if next(ownBatch) and M.PSS_PurgeChatFrom then M.PSS_PurgeChatFrom(ownBatch) end
 	end
 	if M.PSS_MarkIgnoreIndexDirty then M.PSS_MarkIgnoreIndexDirty() end
+	-- an imported guild rule may be on: load the shipped member lists
+	if M.PSS_LoadActiveManagedData then M.PSS_LoadActiveManagedData() end
 	if M.PSS_RequestGC then M.PSS_RequestGC("import") end
 	V.needSorted = true
 	M.Events.Fire("PLAYERS_CHANGED", true)

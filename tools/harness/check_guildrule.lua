@@ -45,8 +45,10 @@ FauxScrollFrame_GetOffset = realOffset
 eq("Chat Filters row shows n/a", na, true)
 
 -- a shipped member and the found member: counted on the guild only
-local grp = M.PSS_ManagedGroups().olympus
-local shipped = grp.guilds[1][1]
+-- (3.0: the rule is on, so the member lists were loaded at login)
+eq("shipped lists loaded at login", C_AddOns.IsAddOnLoaded("PourSocialScore_Communities"), true)
+local data = PourSocialScore_NS.MANAGED_DATA and PourSocialScore_NS.MANAGED_DATA.olympus
+local shipped = data and data.guilds[1][1]
 local gBefore, fBefore = S.Session("guild").total, S.Session("filter").total
 eq("rule on: found member blocked", whisper("Olyfound-Realm"), true)
 eq("rule on: shipped member blocked", whisper(shipped), true)

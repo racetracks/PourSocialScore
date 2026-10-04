@@ -94,7 +94,7 @@ filterDefActive[#filterDefActive + 1] = false
 filterDefID[#filterDefID + 1]		= "PSS0017"
 
 -- Default GUILD rules ("InfluencerGuild=<Name>"), one per group in
--- PSS_GuildIgnore_Managed.lua. They are read-only built-ins like the text
+-- PSS_Communities.lua. They are read-only built-ins like the text
 -- filters above, start off, and switch the whole group of guilds (shown as a
 -- collapsible entry on the Guild Ignore List) on or off. The text engine
 -- below never evaluates them; the guild block source does.
@@ -304,6 +304,8 @@ end
 function M.PSS_SetManagedGroupActive(groupKey, on)
 	local i = groupFilterIndex(groupKey)
 	if i then PourSocialScoreDB.filterActive[i] = on == true end
+	-- switched on: load the shipped member lists (PourSocialScore_Communities)
+	if on and M.PSS_LoadActiveManagedData then M.PSS_LoadActiveManagedData() end
 	M.Events.Fire("FILTERS_CHANGED")
 	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
 end
@@ -472,7 +474,10 @@ function M.PSS_SetFilterActive(index, active)
 	if not (db and db.filterActive and db.filterList[index]) then return end
 	db.filterActive[index] = active == true
 	-- a guild rule switches its guilds (shipped and found in game) with it
-	if M.PSS_IsGuildRuleText(db.filterList[index]) and M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
+	if M.PSS_IsGuildRuleText(db.filterList[index]) then
+		if active and M.PSS_LoadActiveManagedData then M.PSS_LoadActiveManagedData() end
+		if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
+	end
 end
 
 -- An edited custom chat filter: its description and filter text.

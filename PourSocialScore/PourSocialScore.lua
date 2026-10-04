@@ -112,6 +112,9 @@ local function ApplicationStartup(self)
 
 	-- Built-in rules come from code; SavedVariables only hold their on/off state.
 	M.PSS_ExpandFilters()
+	-- a shipped guild group's rule is on: load its member lists before chat
+	-- starts (PourSocialScore_Communities)
+	if M.PSS_LoadActiveManagedData then M.PSS_LoadActiveManagedData() end
 
 	V.PSS_LoadedTime = GetTime()
 
