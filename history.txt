@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev14 - Block history moves to the Logging folder (3.0 test build)
+
+- New PourSocialScore_Logging folder, data only. At the first login the block history, the lines kept per person, the hourly stats, the totals and the chat filter counts move from PourSocialScore.lua to PourSocialScore_Logging.lua. One chat line says how much moved, and the counts are checked before and after the same way as the Options move. Install all six folders from the zip.
+- The block counts of each player and guild member stay on their record in PourSocialScore_Options.
+- PourSocialScore.lua now keeps only the upgrade record and a few bookkeeping flags.
+- PourSocialScore_Logging still loads at login in this build. It loads only when needed in the next one.
+- Version 3.0.0-dev14.
+
 => 3.0.0-dev13 - Your saved data moves to the Options folder (3.0 test build)
 
 - Back up your WTF folder before the first login with this build: a 3.0 save can't be read by 2.0.

@@ -65,7 +65,7 @@ for v in 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40 2.0.41 2
 	echo "$out"
 	echo "$out" | grep -q "PASS guild rule" || fail=1
 	# the saved rule keeps no statistics of its own
-	lua5.1 -e "dofile('$work/sv-gr-$v-after.lua'); assert(PourSocialScoreDB.builtinStats.PSSG0001 == nil, 'rule stats saved'); assert(PourSocialScoreDB.guildRuleCountsV1 == true)" || fail=1
+	lua5.1 -e "dofile('$work/sv-gr-$v-after.lua'); assert(PSS_LoggingDB.builtinStats.PSSG0001 == nil, 'rule stats saved'); assert(PSS_LoggingDB.guildRuleCountsV1 == true)" || fail=1
 done
 
 # group and whisper alerts (2.0.44), on a fresh save
@@ -98,9 +98,9 @@ for sv in - "$work/sv-2.0.44.lua"; do
 	echo "$out" | grep -q "PASS saved data" && echo "PASS saved data ($sv)" || { echo "$out"; echo "FAIL saved data on $sv"; fail=1; }
 done
 
-# split (3.0 Step 4.2): a 2.0.44 save keeps every count after its data moves
-# to PourSocialScore_Options (previous build vs this one), the move prints
-# one line, and the next login moves nothing
+# split (3.0 Steps 4.2 and 4.3): a 2.0 save keeps every count after its data
+# moves to PourSocialScore_Options and PourSocialScore_Logging (dev12 build vs
+# this one), each move prints one line, and the next login moves nothing
 echo "== split"
 rm -rf "$work/src-prev"; mkdir -p "$work/src-prev"
 git archive c5c8296 | tar -x -C "$work/src-prev"
@@ -112,7 +112,8 @@ for sv in $splitsaves; do
 	lua5.1 "$here/run.lua" . "$work/split-1.lua" - "$here/dump_counts.lua" > "$work/split-c.txt" 2>&1
 	if [ -s "$work/split-a.txt" ] && grep '^N ' "$work/split-b.txt" | diff "$work/split-a.txt" - > /dev/null &&
 		grep '^N ' "$work/split-c.txt" | diff "$work/split-a.txt" - > /dev/null &&
-		[ "$(grep -c 'Saved data moved' "$work/split-b.txt")" = 1 ] && ! grep -q 'Saved data moved' "$work/split-c.txt"; then
+		[ "$(grep -c 'Saved data moved to PourSocialScore_Options' "$work/split-b.txt")" = 1 ] &&
+		[ "$(grep -c 'Saved data moved to PourSocialScore_Logging' "$work/split-b.txt")" = 1 ] && ! grep -q 'Saved data moved' "$work/split-c.txt"; then
 		echo "PASS split ($sv)"
 	else
 		grep '^N ' "$work/split-b.txt" | diff "$work/split-a.txt" -
