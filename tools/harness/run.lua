@@ -12,7 +12,8 @@
 --   * each addon gets its own private table ("..." in its files) and an
 --     ADDON_LOADED event after its files ran
 --   * every global named in a loaded addon's "## SavedVariables:" line is
---     written to <svOut> at logout
+--     written to <svOut> at logout; a LoadOnDemand addon's saved variables
+--     appear when it loads, and are written back unchanged if it never did
 -- <svIn> may name several files separated by commas (one per SavedVariables
 -- file in the game); they are all loaded before any addon.
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
@@ -102,6 +103,16 @@ local loaded, loading = {}, {}
 local privates = {}
 local coreAddon
 
+-- A LoadOnDemand addon's saved variables only exist once it loads (they are
+-- read after its files run, before ADDON_LOADED); while it is not loaded,
+-- the game leaves its file alone, so its old values are written back.
+local stash = {}
+for _, name in ipairs(order) do
+	if addons[name].lod then
+		for _, var in ipairs(addons[name].sv) do stash[var] = _G[var]; _G[var] = nil end
+	end
+end
+
 local function load(name)
 	local a = addons[name]
 	if not a then return false, "MISSING" end
@@ -118,6 +129,9 @@ local function load(name)
 	for _, file in ipairs(a.files) do
 		local f = assert(loadfile(a.dir .. "/" .. file))
 		f(name, private)
+	end
+	for _, var in ipairs(a.sv) do
+		if stash[var] ~= nil then _G[var] = stash[var]; stash[var] = nil end
 	end
 	loading[name] = nil
 	loaded[name] = true
@@ -164,12 +178,9 @@ if svOut and svOut ~= "-" then
 	-- every SavedVariables global of every addon that was loaded
 	local fh = assert(io.open(svOut, "w"))
 	for _, name in ipairs(order) do
-		if loaded[name] then
-			for _, var in ipairs(addons[name].sv) do
-				if _G[var] ~= nil then
-					fh:write(var, " = ", H.serialize(_G[var]), "\n")
-				end
-			end
+		for _, var in ipairs(addons[name].sv) do
+			local v = loaded[name] and _G[var] or stash[var]
+			if v ~= nil then fh:write(var, " = ", H.serialize(v), "\n") end
 		end
 	end
 	fh:close()

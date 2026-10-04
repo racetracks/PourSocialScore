@@ -1703,8 +1703,9 @@ function M.PSS_UpgradeLegacyData()
 		PourSocialScoreDB.historyFormat = 4
 	end
 	-- keep the log within the setting (it may have been lowered); lines that
-	-- leave it go to the per-player keep
-	History.Trim(true)
+	-- leave it go to the per-player keep. (Not loaded yet: done when
+	-- PourSocialScore_Logging loads.)
+	if History.Loaded() then History.Trim(true) end
 
 	-- 2.0.4: Filter / Guild Inv / Group Inv and the members' Allow boxes
 	-- became W I G P C. Convert every rule and member once.

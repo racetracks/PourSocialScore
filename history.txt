@@ -1,6 +1,15 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev15 - Block history loads only when needed (3.0 test build)
+
+- PourSocialScore_Logging no longer loads at login. It loads the first time the block history is needed: opening a history view, a removal that clears someone's lines, /pss check, changing the history size, or when 200 new lines are waiting (then only out of combat and outside instances). On a large history that keeps about 1.2 MB out of memory until then.
+- Blocks are still counted at once. Every count (hourly stats, totals, chat filter counts) now lives in PourSocialScore_Options (PSS_CountsDB), so counting never needs Logging. Only the new lines wait, in PourSocialScore.lua, and join the history when Logging loads. They are kept over a logout or /reload.
+- At the first login with this build Logging loads once to move the counts out of it. The same happens when upgrading straight from 2.0.
+- /pss mem says when Logging is not loaded and how many lines are waiting, without loading it.
+- Fixed: loading a part during login no longer starts Pour Social Score a second time.
+- Version 3.0.0-dev15.
+
 => 3.0.0-dev14 - Block history moves to the Logging folder (3.0 test build)
 
 - New PourSocialScore_Logging folder, data only. At the first login the block history, the lines kept per person, the hourly stats, the totals and the chat filter counts move from PourSocialScore.lua to PourSocialScore_Logging.lua. One chat line says how much moved, and the counts are checked before and after the same way as the Options move. Install all six folders from the zip.

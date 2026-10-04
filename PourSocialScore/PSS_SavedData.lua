@@ -2,16 +2,20 @@
 -- POUR SOCIAL SCORE - SAVED DATA (3.0)
 --
 -- The saved data is split over three addons:
---   PourSocialScore          PourSocialScoreDB: the upgrade record and
---                            bookkeeping
+--   PourSocialScore          PourSocialScoreDB: the upgrade record,
+--                            bookkeeping and the outbox (block lines waiting
+--                            for PourSocialScore_Logging, PSS_ChatHistory.lua)
 --   PourSocialScore_Options  PSS_OptionsDB    options and window state
 --   (always loaded,          PSS_PlayersDB    the Player Ignore List
 --    data only)              PSS_GuildsDB     the Guild Ignore List
 --                            PSS_RulesDB      chat rules and built-in on/off
---   PourSocialScore_Logging  PSS_LoggingDB    block history, kept lines,
---   (data only)                               hourly stats, totals and chat
---                                             rule counts
+--                            PSS_CountsDB     hourly stats, totals, chat rule
+--                                             counts and format markers
+--   PourSocialScore_Logging  PSS_LoggingDB    block history and kept lines
+--   (on demand, data only)
 -- The block counts of each player and guild member stay on their record.
+-- Every count is always loaded, so a block is counted without loading
+-- PourSocialScore_Logging; only the lines wait in the outbox.
 -- Code keeps reading and writing PourSocialScoreDB.<key>. A key listed in
 -- LAYOUT lives in one of the Options tables: PourSocialScoreDB gets a
 -- metatable that sends reads and writes of keys it does not hold to that
@@ -32,6 +36,7 @@ local GROUPS = {
 	players	= "PSS_PlayersDB",
 	guilds	= "PSS_GuildsDB",
 	rules	= "PSS_RulesDB",
+	counts	= "PSS_CountsDB",
 	logging	= "PSS_LoggingDB",
 }
 M.PSS_SV_GROUPS = GROUPS
@@ -40,8 +45,11 @@ local OWNER = {
 	players	= "PourSocialScore_Options",
 	guilds	= "PourSocialScore_Options",
 	rules	= "PourSocialScore_Options",
+	counts	= "PourSocialScore_Options",
 	logging	= "PourSocialScore_Logging",
 }
+-- addons that load on demand: not loaded at startup is normal
+local ON_DEMAND = { PourSocialScore_Logging = "Logging" }
 
 -- group -> the PourSocialScoreDB keys it holds. The options in
 -- M.PSS_OPTIONS (PSS_Options.lua) are added to "options".
@@ -52,9 +60,10 @@ local LAYOUT = {
 	guilds	= { "guildData", "guildExclusions", "guildGroupOpen", "scanFieldsDefaultV1", "guildPlayerCleanupV3" },
 	rules	= { "filterList", "filterDesc", "filterActive", "filterID", "builtinRules", "filterFormat",
 				"optInFiltersV1" },
-	logging	= { "blockLog", "blockKeep", "blockStats", "historyFormat", "hiddenTotal", "filterTotal",
-				"filterWhisperTotal", "filterPrivateTotal", "filterCount", "filterBlocked", "filterBlockedLast",
-				"builtinStats", "guildRuleCountsV1" },
+	counts	= { "blockStats", "historyFormat", "hiddenTotal", "filterTotal", "filterWhisperTotal",
+				"filterPrivateTotal", "filterCount", "filterBlocked", "filterBlockedLast", "builtinStats",
+				"guildRuleCountsV1" },
+	logging	= { "blockLog", "blockKeep" },
 }
 
 -- PourSocialScoreDB key -> group
@@ -70,7 +79,8 @@ end
 
 -- addon -> loaded (its tables are saved). A key is routed only while the
 -- addon that saves its table is loaded; otherwise it stays in
--- PourSocialScoreDB.
+-- PourSocialScoreDB. (The block history is only read through
+-- M.PSS_History.Log / Keep, which load PourSocialScore_Logging first.)
 local active = {}
 
 local function groupTable(key)
@@ -111,16 +121,32 @@ local warned = {}
 local split = {}		-- addon -> its data is split
 
 -- The Options tables exist, PourSocialScoreDB routes its moved keys, and
--- any routed key PourSocialScoreDB still holds is moved. Run at startup and
--- whenever PourSocialScoreDB is replaced (a reset). opts.wipe empties the
--- Options tables first (a reset); opts.quiet prints nothing (a new save).
--- Returns true when the data is split.
+-- any routed key PourSocialScoreDB still holds is moved. Run at startup,
+-- whenever PourSocialScoreDB is replaced (a reset) and when
+-- PourSocialScore_Logging loads. opts.wipe empties the tables first (a
+-- reset); opts.quiet prints nothing (a new save); opts.startup: the login
+-- pass. Returns false when PourSocialScore_Options is missing (nothing can
+-- be read; startup stops).
 function M.PSS_PrepareSavedData(opts)
 	opts = opts or {}
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return false end
 	buildRoute()
 	if getmetatable(db) ~= router then setmetatable(db, router) end
+
+	-- Load PourSocialScore_Logging at this login when its data has to move:
+	-- a 2.0 save (the history is still in PourSocialScoreDB) or a
+	-- 3.0.0-dev14 save (the counts are in PSS_LoggingDB, upgrade step 3), so
+	-- the whole upgrade happens at once. A reset also empties it.
+	local rec = rawget(db, "upgrade")
+	local need = opts.wipe or (opts.startup and type(rec) == "table" and rec.step == 3)
+	if opts.startup then
+		for _, k in ipairs(LAYOUT.logging) do if rawget(db, k) ~= nil then need = true end end
+	end
+	if need and M.PSS_LoadLogging then
+		-- (PSS_LoadLogging comes back here once it is loaded)
+		if not loaded("PourSocialScore_Logging") and M.PSS_Need then M.PSS_Need("Logging") end
+	end
 
 	-- check: the data addons are loaded, so their tables will be saved
 	local ok = true
@@ -131,11 +157,33 @@ function M.PSS_PrepareSavedData(opts)
 		if active[owner] then
 			if type(_G[name]) ~= "table" then _G[name] = {} end
 			if opts.wipe then for k in pairs(_G[name]) do _G[name][k] = nil end end
+		elseif ON_DEMAND[owner] then
+			-- not loaded yet: split while PourSocialScoreDB holds none of its keys
+			local none = true
+			for _, k in ipairs(LAYOUT[g]) do if rawget(db, k) ~= nil then none = false end end
+			split[owner] = none
 		else
 			ok = false
 			if not warned[owner] then
 				warned[owner] = true
-				M.ShowMsg("|cffff3333" .. owner .. " is not loaded:|r its data stays in PourSocialScore for now. Install every folder from the zip.")
+				M.ShowMsg("|cffff3333" .. owner .. " is not loaded:|r Pour Social Score can't read your settings and lists. Install every folder from the zip.")
+			end
+		end
+	end
+	if not ok then return false end
+
+	-- a key saved in a table it no longer belongs to moves to its own
+	-- (3.0.0-dev15: the counts, from PSS_LoggingDB to PSS_CountsDB)
+	for g, name in pairs(GROUPS) do
+		local t = active[OWNER[g]] and _G[name]
+		if t then
+			for k, v in pairs(t) do
+				local want = ROUTE[k]
+				if want and want ~= g and active[OWNER[want]] then
+					local to = _G[GROUPS[want]]
+					if to[k] == nil then to[k] = v end
+					t[k] = nil
+				end
 			end
 		end
 	end
@@ -147,7 +195,7 @@ function M.PSS_PrepareSavedData(opts)
 			movedTo[OWNER[g]] = true
 		end
 	end
-	if #keys == 0 then return ok end
+	if #keys == 0 then return true end
 
 	-- count, move (a key PourSocialScoreDB holds wins: it is what code reads
 	-- today), validate
@@ -170,7 +218,7 @@ function M.PSS_PrepareSavedData(opts)
 		end
 		for owner in pairs(movedTo) do split[owner] = false end
 		M.ShowMsg("|cffff3333Saved data not moved|r (counts differ: " .. diff .. "). Nothing was changed; it tries again at the next login.")
-		return false
+		return true
 	end
 
 	if not opts.quiet then
@@ -180,11 +228,11 @@ function M.PSS_PrepareSavedData(opts)
 				n.list or 0, n.listNotes or 0, n.guildRules or 0, n.membersStored or 0, n.filters or 0, n.optionsSet or 0))
 		end
 		if movedTo.PourSocialScore_Logging then
-			M.ShowMsg(("Saved data moved to PourSocialScore_Logging: %d block history lines, %d kept lines for %d people, %d chat filter blocks."):format(
-				n.logLines or 0, n.keptLines or 0, n.keptPeople or 0, n.filterRowCounts or 0))
+			M.ShowMsg(("Saved data moved to PourSocialScore_Logging: %d block history lines, %d kept lines for %d people."):format(
+				n.logLines or 0, n.keptLines or 0, n.keptPeople or 0))
 		end
 	end
-	return ok
+	return true
 end
 
 -- the data saved by that addon is split (upgrade step 2: Options, step 3:

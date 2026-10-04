@@ -1,9 +1,10 @@
--- Saved data split (3.0 Steps 4.2 and 4.3), as a run.lua script on any save:
--- after login options, players, guilds and rules live in the
--- PourSocialScore_Options tables, the history and counts in
--- PourSocialScore_Logging, PourSocialScoreDB keeps only the upgrade record
--- and bookkeeping, code still reads everything through PourSocialScoreDB, a
--- failed move is undone, and a reset empties every table.
+-- Saved data split (3.0 Steps 4.2 to 4.4), as a run.lua script on a fresh or
+-- a 2.0 save (both load PourSocialScore_Logging at that login): options,
+-- players, guilds, rules and counts live in the PourSocialScore_Options
+-- tables, the history in PourSocialScore_Logging, PourSocialScoreDB keeps
+-- only the upgrade record and bookkeeping, code still reads everything
+-- through PourSocialScoreDB, a failed move is undone, and a reset empties
+-- every table. (check_ondemand.lua covers a login without Logging.)
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL saved data: " .. msg) fail = true end end
 
@@ -28,10 +29,13 @@ for _, k in ipairs({ "ignoreList", "typeList", "notes", "playerData" }) do check
 check(type(PSS_GuildsDB.guildData) == "table", "PSS_GuildsDB.guildData")
 check(type(PSS_RulesDB.filterList) == "table", "PSS_RulesDB.filterList")
 check(PSS_OptionsDB.chatmsg ~= nil, "PSS_OptionsDB.chatmsg")
-for _, k in ipairs({ "blockLog", "blockKeep", "blockStats", "filterCount", "filterBlocked", "builtinStats" }) do
+for _, k in ipairs({ "blockLog", "blockKeep" }) do
 	check(type(PSS_LoggingDB[k]) == "table", "PSS_LoggingDB." .. k)
 end
-check(type(PSS_LoggingDB.filterTotal) == "number", "PSS_LoggingDB.filterTotal")
+for _, k in ipairs({ "blockStats", "filterCount", "filterBlocked", "builtinStats" }) do
+	check(type(PSS_CountsDB[k]) == "table", "PSS_CountsDB." .. k)
+end
+check(type(PSS_CountsDB.filterTotal) == "number", "PSS_CountsDB.filterTotal")
 check(type(rawget(PourSocialScoreDB, "upgrade")) == "table", "upgrade left PourSocialScoreDB")
 -- the block counts of a player or member stay on the record
 for _, g in pairs(PSS_GuildsDB.guildData) do
@@ -64,11 +68,11 @@ M.PSS_Validate = function()
 	if calls == 2 then r.n.list = -1 end
 	return r
 end
-check(M.PSS_PrepareSavedData({ quiet = true }) == false, "a bad move reported success")
+M.PSS_PrepareSavedData({ quiet = true })
 M.PSS_Validate = validate
 check(rawget(PourSocialScoreDB, "ignoreList") == list, "undo: list not put back")
 check(PSS_PlayersDB.ignoreList[1] == "Someone", "undo: Options value not put back")
-check(M.PSS_SavedDataSplit() == false, "undo: split still reported")
+check(M.PSS_SavedDataSplit("PourSocialScore_Options") == false, "undo: split still reported")
 -- and the next try moves it
 check(M.PSS_PrepareSavedData({ quiet = true }) == true, "retry failed")
 check(rawget(PourSocialScoreDB, "ignoreList") == nil and PSS_PlayersDB.ignoreList == list, "retry: list not moved")
@@ -81,6 +85,7 @@ check(PSS_GuildsDB.zzStale == nil, "reset left old Options data")
 check(rawget(PourSocialScoreDB, "ignoreList") == nil and type(PSS_PlayersDB.ignoreList) == "table", "reset: list not routed")
 check(#PourSocialScoreDB.ignoreList == 0, "reset: list not empty")
 check(PourSocialScoreDB.chatmsg == true and PSS_OptionsDB.chatmsg == true, "reset: options not routed")
-check(rawget(PourSocialScoreDB, "filterCount") == nil and type(PSS_LoggingDB.filterCount) == "table", "reset: counts not routed")
+check(rawget(PourSocialScoreDB, "filterCount") == nil and type(PSS_CountsDB.filterCount) == "table", "reset: counts not routed")
+check(PSS_LoggingDB.blockLog == nil or #PSS_LoggingDB.blockLog == 0, "reset: history not emptied")
 
 if not fail then print("PASS saved data") end
