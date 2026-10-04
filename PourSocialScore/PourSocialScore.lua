@@ -86,8 +86,9 @@ local function ApplicationStartup(self)
 	if fresh then
 		M.PSS_ResetIgnoreDB()
 	end
-	-- the PourSocialScore_Options tables, and routing of moved keys
-	M.PSS_PrepareSavedData()
+	-- the PourSocialScore_Options tables, routing of moved keys, and the move
+	-- of a 2.0 save (upgrade step 2)
+	M.PSS_PrepareSavedData({ quiet = fresh })
 
 	-- Ensure all core list fields exist before any UI or upgrade code uses #field.
 	PourSocialScoreDB.ignoreList = PourSocialScoreDB.ignoreList or {}

@@ -346,7 +346,8 @@ local function ResetIgnoreDB()
 	if M.PSS_MarkIgnoreIndexDirty then M.PSS_MarkIgnoreIndexDirty() end
 
 	M.ResetSpamFilters()
-	if M.PSS_PrepareSavedData then M.PSS_PrepareSavedData() end
+	-- a reset empties the PourSocialScore_Options tables too
+	if M.PSS_PrepareSavedData then M.PSS_PrepareSavedData({ wipe = true, quiet = true }) end
 end
 
 local function isValidList()
