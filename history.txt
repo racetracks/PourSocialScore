@@ -1,6 +1,16 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.0.0-dev13 - Your saved data moves to the Options folder (3.0 test build)
+
+- Back up your WTF folder before the first login with this build: a 3.0 save can't be read by 2.0.
+- At the first login your settings, Player Ignore List, Guild Ignore List and chat rules move from PourSocialScore.lua to PourSocialScore_Options.lua (both in WTF/.../SavedVariables). One chat line says how much moved. Nothing is copied, and every list, note, tick and rule stays as it was.
+- The move is checked: the numbers /pss check reports are counted before and after, and if any differ the move is undone, a chat line says which, and it tries again at the next login.
+- PourSocialScore.lua keeps the upgrade record, the block history and every block count. Those move to their own folder in a later build.
+- /pss clear confirm (clear everything) also empties the Options tables.
+- /pss mem shows the memory of PourSocialScore_Options, which now holds the lists.
+- Version 3.0.0-dev13.
+
 => 3.0.0-dev12 - Options folder for the saved data (3.0 test build)
 
 - New PourSocialScore_Options folder, always loaded, data only. It will hold your settings, Player Ignore List, Guild Ignore List and chat rules once the next build moves them. For now it saves four empty tables (WTF/.../SavedVariables/PourSocialScore_Options.lua) and nothing changes. Install all five folders from the zip.

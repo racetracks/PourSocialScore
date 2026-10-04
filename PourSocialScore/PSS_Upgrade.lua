@@ -20,6 +20,7 @@ local M = addon.M -- shared methods
 -- are rebuilt from code (M.PSS_ExpandFilters), "data" runs after it.
 
 local db	-- PourSocialScoreDB while a pass runs
+local blocked	-- first step whose part returned false this login (not recorded)
 
 local STEPS = {
 	-- 1: everything 2.0 did at login, moved here unchanged.
@@ -134,6 +135,13 @@ local STEPS = {
 			if tidied > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history tidied") end
 		end,
 	},
+	-- 2: options, players, guilds and rules live in PourSocialScore_Options.
+	-- The move itself runs before any other startup code reads the data
+	-- (M.PSS_PrepareSavedData, PSS_SavedData.lua); this records it, and
+	-- returns false (step not recorded) when it did not happen.
+	{
+		fields = function() return M.PSS_SavedDataSplit() end,
+	},
 }
 
 M.PSS_UPGRADE_STEPS = #STEPS
@@ -156,7 +164,8 @@ local function runPart(part)
 	local done = stepsDone()
 	for i = 1, #STEPS do
 		local step = STEPS[i]
-		if step[part] and (i > done or step.always) then step[part]() end
+		if blocked and i >= blocked then break end
+		if step[part] and (i > done or step.always) and step[part]() == false then blocked = i end
 	end
 	db = nil
 end
@@ -170,16 +179,18 @@ function M.PSS_RunUpgradeData(fresh)
 	local sv = PourSocialScoreDB
 	if type(sv) ~= "table" then return end
 	local done = stepsDone()
+	local reached = blocked and blocked - 1 or #STEPS
+	blocked = nil
 	local rec = type(sv.upgrade) == "table" and sv.upgrade or {}
 	sv.upgrade = rec
 	local version = addonVersion()
-	if done < #STEPS or rec.version ~= version then
-		rec.step = math.max(done, #STEPS)
+	if done < reached or rec.version ~= version then
+		rec.step = math.max(done, reached)
 		rec.version = version
 		rec.at = (GetServerTime and GetServerTime()) or time()
 	end
-	if done < #STEPS and not fresh then
-		M.ShowMsg(("Saved data upgraded to %s (step %d)."):format(version, #STEPS))
+	if done < reached and not fresh then
+		M.ShowMsg(("Saved data upgraded to %s (step %d)."):format(version, reached))
 	end
 end
 

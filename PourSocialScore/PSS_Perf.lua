@@ -198,6 +198,11 @@ function M.PSS_MemReport(full)
 			out(("  %s: not loaded"):format(name))
 		end
 	end
+	-- the saved settings and lists (always loaded)
+	if not inCombat and getMem then
+		local ok, v = pcall(getMem, "PourSocialScore_Options")
+		if ok and v then out(("  PourSocialScore_Options (settings and lists): %.2f MB"):format(v / 1024)) end
+	end
 
 	-- the shared block log
 	if H then

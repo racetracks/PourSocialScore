@@ -90,12 +90,34 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_communities_seen.lua" 2>&1 | gre
 echo "$out"
 echo "$out" | grep -q "PASS communities seen" || fail=1
 
-# saved data split groundwork (3.0): the Options tables and key routing,
+# saved data split (3.0): the Options tables, key routing, undo and reset,
 # on a fresh save and an upgraded 2.0.44 save
 echo "== saved data"
 for sv in - "$work/sv-2.0.44.lua"; do
 	out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_saveddata.lua" 2>&1 | grep -v '^|cff')
 	echo "$out" | grep -q "PASS saved data" && echo "PASS saved data ($sv)" || { echo "$out"; echo "FAIL saved data on $sv"; fail=1; }
+done
+
+# split (3.0 Step 4.2): a 2.0.44 save keeps every count after its data moves
+# to PourSocialScore_Options (previous build vs this one), the move prints
+# one line, and the next login moves nothing
+echo "== split"
+rm -rf "$work/src-prev"; mkdir -p "$work/src-prev"
+git archive c5c8296 | tar -x -C "$work/src-prev"
+splitsaves="$work/sv-2.0.1.lua $work/sv-2.0.40.lua $work/sv-2.0.44.lua $work/sv-gr-2.0.44.lua"
+[ -n "$PSS_REAL_SAVES" ] && splitsaves="$splitsaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua')"
+for sv in $splitsaves; do
+	lua5.1 "$here/run.lua" "$work/src-prev" "$sv" - "$here/dump_counts.lua" 2>&1 | grep '^N ' > "$work/split-a.txt"
+	lua5.1 "$here/run.lua" . "$sv" "$work/split-1.lua" "$here/dump_counts.lua" > "$work/split-b.txt" 2>&1
+	lua5.1 "$here/run.lua" . "$work/split-1.lua" - "$here/dump_counts.lua" > "$work/split-c.txt" 2>&1
+	if [ -s "$work/split-a.txt" ] && grep '^N ' "$work/split-b.txt" | diff "$work/split-a.txt" - > /dev/null &&
+		grep '^N ' "$work/split-c.txt" | diff "$work/split-a.txt" - > /dev/null &&
+		[ "$(grep -c 'Saved data moved' "$work/split-b.txt")" = 1 ] && ! grep -q 'Saved data moved' "$work/split-c.txt"; then
+		echo "PASS split ($sv)"
+	else
+		grep '^N ' "$work/split-b.txt" | diff "$work/split-a.txt" -
+		echo "FAIL split on $sv"; fail=1
+	fi
 done
 
 # upgrade record (3.0): a 2.0 save gets step 1 once with one chat line, the
