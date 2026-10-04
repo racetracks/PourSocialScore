@@ -13,8 +13,8 @@ local TABS = {
     { "Player Ignore List", "The Player Ignore List comes in the next test build (E.4)." },
     { "Guild Ignore List",  "The Guild Ignore List comes in test build E.5." },
     { "Chat Filters",       "Chat Filters and the block history come in test build E.6." },
-    { "Import/Export",      "Import and export come in the next test build (E.3)." },
-    { "Options",            "The options come in the next test build (E.3). Until then use the Pour Social Score section of the EllesmereUI panel (/pss eui)." },
+    { "Import/Export",      nil, "BuildImportExportTab" },
+    { "Options",            nil, "BuildOptionsTab" },
 }
 
 local win
@@ -34,12 +34,25 @@ local function RestorePlace()
     end
 end
 
+-- A tab with a builder (TABS[i][3], in EUI_Options.lua) is built on first
+-- open; its builder returns the function that redraws it from saved data.
 local function SelectTab(id)
+    local page = win.pages[id]
+    local build = TABS[id][3]
+    if build and not page.refresh then page.refresh = ns[build](page) end
     for i, tab in ipairs(win.tabs) do
         ns.SetTabSelected(tab, i == id)
         win.pages[i]:SetShown(i == id)
     end
+    if page.refresh then page.refresh() end
     ns.DB().tab = id
+end
+
+-- M.EUI_Refresh: redraw the tab on show (the others redraw when selected)
+function ns.RefreshTabs()
+    if not (win and win:IsShown()) then return end
+    local page = win.pages[ns.DB().tab or 1]
+    if page and page.refresh then page.refresh() end
 end
 
 local function Build()
@@ -96,12 +109,14 @@ local function Build()
         page:SetPoint("BOTTOMRIGHT", win, "BOTTOMRIGHT", -10, 10)
         page:Hide()
         ns.Panel(page)
-        local note = page:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        note:SetPoint("CENTER")
-        note:SetWidth(WIN_W - 120)
-        note:SetText(t[2])
-        ns.Font(note, 12)
-        note:SetTextColor(1, 1, 1, 0.7)
+        if t[2] then
+            local note = page:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            note:SetPoint("CENTER")
+            note:SetWidth(WIN_W - 120)
+            note:SetText(t[2])
+            ns.Font(note, 12)
+            note:SetTextColor(1, 1, 1, 0.7)
+        end
         win.pages[i] = page
     end
     SelectTab(ns.DB().tab or 1)

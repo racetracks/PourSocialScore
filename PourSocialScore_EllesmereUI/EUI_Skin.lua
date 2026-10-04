@@ -71,3 +71,37 @@ function ns.SetTabSelected(tab, selected)
         if fs then fs:SetAlpha(selected and 1 or 0.5) end
     end
 end
+
+-- Controls of the Options and Import/Export tabs. Without skinning they keep
+-- their Blizzard template art.
+function ns.Checkbox(cb)
+    if ns.S then ns.S.Checkbox(cb) end
+end
+
+function ns.EditBox(eb)
+    if ns.S then ns.S.EditBox(eb) end
+end
+
+function ns.Dropdown(dd)
+    if ns.S then ns.S.Dropdown(dd) end
+end
+
+function ns.Button(btn)
+    if ns.S then
+        ns.S.Button(btn)
+        ns.S.WhiteButtonLabel(btn)
+    end
+end
+
+function ns.ScrollBar(sb)
+    if ns.S and sb then ns.S.ScrollBar(sb) end
+end
+
+-- Plain-text tooltips through EllesmereUI's own (house rule).
+function ns.Tip(owner, text)
+    if EUI.ShowWidgetTooltip then EUI.ShowWidgetTooltip(owner, text) end
+end
+
+function ns.HideTip()
+    if EUI.HideWidgetTooltip then EUI.HideWidgetTooltip() end
+end
