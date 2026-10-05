@@ -78,6 +78,16 @@ end })
 -- which tabs show as selected (S.SetTabSelection)
 E.log.tabSel = {}
 function S.SetTabSelection(tab, selected) E.log.tabSel[tab] = selected end
+-- the accent (EllesmereUI's theme colour) and its change callbacks
+E.accent = { 0.2, 0.4, 0.6 }
+function S.GetAccentColor() return E.accent[1], E.accent[2], E.accent[3] end
+E.looks = {}
+function S.OnLooksChanged(fn) E.looks[#E.looks + 1] = fn end
+function E.ChangeLooks(r, g, b)
+	E.accent = { r, g, b }
+	for _, fn in ipairs(E.looks) do fn() end
+end
+E.S = S
 function E.RegisterSkin(name, fn)
 	if E.skinsOn then fn(S) end
 	return true

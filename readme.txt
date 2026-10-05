@@ -260,9 +260,11 @@ With the integration on:
   theme and accent colour (a plain dark panel when that skinning is off).
   It sits next to Friends, can be dragged (the place is kept) and closes
   with Escape. /pss gui force still opens the PSS windows.
-* It has the same five tabs. Player Ignore List, Guild Ignore List and Chat
-  Filters show the list on the left and the selected entry's details on the
-  right (click an entry to select it). Only the rows on screen are drawn, so
+* It has the same five tabs. The selected tab shows a light wash and a
+  line underneath in your EllesmereUI accent colour. The Options tab has a
+  search box at the right of the tab row. Player Ignore List, Guild Ignore
+  List and Chat Filters show the list on the left and the selected entry's
+  details on the right (click an entry to select it). Only the rows on screen are drawn, so
   long lists scroll smoothly. Every list has a search box and sorts on a
   click of a column heading.
 * Block history in a details pane loads only when you click Show Block

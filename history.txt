@@ -7,6 +7,8 @@ POUR SOCIAL SCORE - VERSION HISTORY
 - The window has the same five tabs: Player Ignore List, Guild Ignore List and Chat Filters (each a list with a details pane, search and sorting), Import/Export and Options. Back / forward arrows, mouse buttons 4 and 5, and Escape step between views.
 - EllesmereUI's panel gets a "Pour Social Score" section with the Options pages and Import/Export (/pss eui).
 - Block history in the EllesmereUI window loads only when you ask for it (Show Block History), with type tick boxes and a searchable Block History view.
+- The selected tab in the EllesmereUI window now shows as in EllesmereUI's Friends window: a light wash and a line underneath in your EllesmereUI accent colour (class colour when that is your theme), on every EllesmereUI version.
+- The Options tab has a search box at the right of the tab row: it keeps the options whose name, tooltip or section match, and hides empty sections.
 - With the integration on, the note prompt and the party warning now use EllesmereUI's popups. The party warning still closes itself after 15 seconds, and uses the PSS popup in combat or while another EllesmereUI popup is open.
 - Both windows now read and change the lists through the same functions. The ones only the windows need are in PourSocialScore_Libraries, so they take no memory until a window opens.
 - Without EllesmereUI, or with the integration off, Pour Social Score works as in 3.0.

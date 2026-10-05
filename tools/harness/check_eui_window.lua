@@ -36,6 +36,7 @@ if os.getenv("PSS_PHASE") == "3" then
 		check(win.pages[i]:IsShown() and win.pages[i].refresh, "plain tab " .. i .. " not built")
 		for j = 1, #win.tabs do
 			check(win.tabs[j].pssUnderline:IsShown() == (i == j), ("plain underline on tab %d after clicking tab %d"):format(j, i))
+			check(win.tabs[j].pssWash:IsShown() == (i == j), ("plain wash on tab %d after clicking tab %d"):format(j, i))
 		end
 	end
 	if not fail then print("PASS eui window 3") end
@@ -127,6 +128,57 @@ for _, i in ipairs({ 1, 2, 3, 4, 5 }) do
 		check(E.log.tabSel[win.tabs[j]] == (i == j), ("tab %d selected %s after clicking tab %d"):format(j, tostring(E.log.tabSel[win.tabs[j]]), i))
 	end
 end
+-- the selected tab, as EllesmereUI's Friends tabs: a white wash and an
+-- accent underline (ours, so they show on any EllesmereUI version)
+local function marks(sel)
+	for j = 1, #win.tabs do
+		local t = win.tabs[j]
+		check(t.pssWash:IsShown() == (j == sel) and t.pssUnderline:IsShown() == (j == sel), ("wash / underline on tab %d with tab %d selected"):format(j, sel))
+	end
+end
+marks(5)
+local ul = win.tabs[5].pssUnderline
+check(ul._color and ul._color[1] == 0.2 and ul._color[3] == 0.6, "underline not in the accent colour")
+E.ChangeLooks(0.9, 0.5, 0.1)
+check(ul._color and ul._color[1] == 0.9, "underline did not follow an accent change")
+-- an EllesmereUI without S.SetTabSelection (skin API 1): the button's
+-- isSelected carries it for S.Tab's label, our marks still show
+E.S.apiVersion = 1
+win.tabs[2]:GetScript("OnClick")(win.tabs[2])
+marks(2)
+check(win.tabs[2].isSelected == true and win.tabs[5].isSelected == false, "isSelected not set for an older EllesmereUI")
+E.S.apiVersion = 3
+
+-- the Options search: in the tab row with the Options tab only; it keeps
+-- the matching options and hides empty sections
+win.tabs[5]:GetScript("OnClick")(win.tabs[5])
+local opage = win.pages[5]
+local search = opage.search
+check(search and search:IsVisible(), "no Options search box")
+local function shownRows()
+	local n, heads = 0, 0
+	for _, g in ipairs(opage.groups) do
+		if g.heading:IsShown() then heads = heads + 1 end
+		for _, it in ipairs(g.items) do if it.row:IsShown() then n = n + 1 end end
+	end
+	return n, heads
+end
+local all, allHeads = shownRows()
+check(all > 10 and allHeads > 1, "not every option shown before a search")
+search:SetText("level cap")
+search:GetScript("OnTextChanged")(search)
+local n, heads = shownRows()
+check(n >= 1 and n < all and heads == 1, ("search 'level cap' shows %d options in %d sections"):format(n, heads))
+check(search.clear:IsShown() and not search.hint:IsShown(), "clear button / hint while searching")
+search:SetText("zzzz-nothing")
+search:GetScript("OnTextChanged")(search)
+check(select(1, shownRows()) == 0, "search for nothing shows options")
+search.clear:GetScript("OnClick")(search.clear)
+search:GetScript("OnTextChanged")(search)
+check(select(1, shownRows()) == all and search.hint:IsShown(), "clearing the search did not bring every option back")
+win.tabs[1]:GetScript("OnClick")(win.tabs[1])
+check(not search:IsVisible(), "Options search shows on another tab")
+
 M.PSS_SetOpt("skipParty", "global", true)
 M.PSS_SetOpt("skipParty", "global", false)
 

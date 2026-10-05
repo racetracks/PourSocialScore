@@ -90,6 +90,7 @@ function W:GetScale() return 1 end
 function W:GetEffectiveScale() return 1 end
 function W:GetNumPoints() return 0 end
 function W:SetText(t) self._text = t == nil and "" or tostring(t) end
+function W:SetColorTexture(r, g, b, a) self._color = { r, g, b, a } end
 function W:GetText() return self._text end
 function W:SetFormattedText(fmt, ...) self._text = string.format(fmt, ...) end
 function W:GetStringWidth() return #(self._text or "") * 6 end
