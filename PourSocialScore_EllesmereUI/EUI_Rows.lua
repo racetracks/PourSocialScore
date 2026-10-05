@@ -25,7 +25,9 @@ local function Accent()
     return 1, 0.82, 0
 end
 
--- cell positions from the column widths (the fill column stretches)
+-- cell positions from the column widths (the fill column stretches); the
+-- cells are font strings (rows) or buttons (the header, whose labels are
+-- justified where they are made: a button has no SetJustifyH)
 local function PlaceCells(frame, cols, cells, inset)
     local x = inset
     local fill
@@ -58,7 +60,7 @@ local function PlaceCells(frame, cols, cells, inset)
             fs:SetWidth(c.width - 6)
             rx = rx + c.width
         end
-        fs:SetJustifyH(c.justify or "LEFT")
+        if fs:GetObjectType() == "FontString" then fs:SetJustifyH(c.justify or "LEFT") end
     end
 end
 
@@ -81,6 +83,7 @@ function ns.NewRows(parent, spec)
         b:SetHeight(HEADER_H)
         local fs = ns.NewText(b, 11)
         fs:SetAllPoints()
+        fs:SetJustifyH(c.justify or "LEFT")
         b.label = fs
         b.key, b.text = c.key, c.text
         if spec.sort and c.sort ~= false then

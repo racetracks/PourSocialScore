@@ -40,7 +40,12 @@ end
 local function SelectTab(id)
     local page = win.pages[id]
     local build = TABS[id][3]
-    if build and not page.refresh then page.refresh = ns[build](page) end
+    if build and not page.refresh then
+        -- a tab that fails to build still reports its error and becomes the
+        -- selected tab; it is built again on the next click
+        local ok, refresh = xpcall(function() return ns[build](page) end, geterrorhandler())
+        if ok then page.refresh = refresh end
+    end
     for i, tab in ipairs(win.tabs) do
         ns.SetTabSelected(tab, i == id)
         win.pages[i]:SetShown(i == id)
