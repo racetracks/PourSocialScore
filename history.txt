@@ -1,6 +1,17 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.1.0-dev6 - EllesmereUI Chat Filters (3.1 test build)
+
+- The Pour Social Score window in EllesmereUI's style now has its Chat Filters tab: every filter (built-ins first) with Description, On, Blocked and Filter columns. Click a heading to sort, and search by description or filter text.
+- Click a filter to edit it beside the list: On (applies at once), Description and Filter, then Save Filter. Copy makes an editable custom copy that starts Off, Remove asks first, and Reset Count starts its Blocked count again. Test runs a line of chat against the filter text and shows BLOCKED, PASSED or FILTER ERROR. Shift-click a link while editing the filter to add its [tag], or use the Link box to convert one.
+- Built-in filters are read only (On only). A guild rule shows no count or history, because its blocks are counted on the Guild Ignore List.
+- New Filter and Reset Defaults (asks first) sit at the top right.
+- The filter's block history sits under the editor and loads only when you click Show Block History. Double-click a line for the Block History view, with All Filters for every filter's lines.
+- Both windows now list, test and convert filters through the same functions in PourSocialScore_Libraries (0 KB until a window opens).
+- Every change to a filter now redraws whichever window is open. Removing a filter that never blocked anything no longer loads the block history.
+- Version 3.1.0-dev6.
+
 => 3.1.0-dev5 - EllesmereUI Guild Ignore List (3.1 test build)
 
 - The Pour Social Score window in EllesmereUI's style now has its Guild Ignore List tab: the default guild lists (each a row you click to expand or collapse), the Guild Exclusion List, then your guilds, with Members, Blocked and Scan columns. Click a column heading to sort, click again to reverse. Only the rows that fit on screen are drawn, so the big default lists scroll smoothly. A search box filters guilds by name.

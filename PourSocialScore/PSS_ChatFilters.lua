@@ -165,10 +165,25 @@ end
 -- on the Guild Ignore List (the shipped list and the members found in game
 -- are one list there). They never count as a chat filter block, so the Chat
 -- Filters tab shows n/a for them.
+-- Could filter index own block history lines? Lines are only ever added
+-- with a count (an old save's per-filter list counts too).
+local function filterMayHaveLines(index)
+	local db = PourSocialScoreDB
+	if (tonumber(db.filterCount[index]) or 0) > 0 then return true end
+	local t = db.filterBlocked[index]
+	if type(t) ~= "table" then return false end
+	if type(t.counts) == "table" and (tonumber(t.counts.total) or 0) > 0 then return true end
+	return #t > 0
+end
+
 function M.RemoveChatFilter (index)
 	if PourSocialScoreDB.filterList[index] then
-		local key = M.PSS_FilterOwnerKey(index)
-		History.Clear(function(h) return h.o == key end)
+		-- with nothing counted there is nothing to clear, and the block
+		-- history (Logging) is not loaded for it
+		if History.Loaded() or filterMayHaveLines(index) then
+			local key = M.PSS_FilterOwnerKey(index)
+			History.Clear(function(h) return h.o == key end)
+		end
 		table.remove(PourSocialScoreDB.filterList, index)
 		table.remove(PourSocialScoreDB.filterDesc, index)
 		table.remove(PourSocialScoreDB.filterCount, index)
@@ -176,6 +191,7 @@ function M.RemoveChatFilter (index)
 		table.remove(PourSocialScoreDB.filterID, index)
 		table.remove(PourSocialScoreDB.filterBlocked, index)
 		table.remove(PourSocialScoreDB.filterBlockedLast, index)
+		M.Events.Fire("FILTERS_CHANGED")
 	end
 end
 
@@ -226,6 +242,7 @@ function M.ResetSpamFilters()
 		PourSocialScoreDB.filterBlocked[count]		= {}
 		PourSocialScoreDB.filterBlockedLast[count]	= 0
 	end
+	M.Events.Fire("FILTERS_CHANGED")
 end
 
 ------------------------------------------------------------------------
@@ -460,13 +477,17 @@ function M.PSS_CopyChatFilter(index)
 	if not db or not db.filterList or not db.filterList[index] then return nil end
 	if M.PSS_IsGuildRuleText(db.filterList[index]) then return nil end		-- guild rules can't be copied
 	local desc = db.filterDesc[index] or "Chat Filter"
-	return appendFilter(db, "Copy of " .. desc, db.filterList[index], false, "", 0, {}, 0)
+	local i = appendFilter(db, "Copy of " .. desc, db.filterList[index], false, "", 0, {}, 0)
+	M.Events.Fire("FILTERS_CHANGED")
+	return i
 end
 
 function M.PSS_AddCustomFilter(desc, filter, active)
 	local db = PourSocialScoreDB
 	if not db or type(filter) ~= "string" or filter == "" then return nil end
-	return appendFilter(db, desc or "Chat Filter", filter, active == true, "", 0, {}, 0)
+	local i = appendFilter(db, desc or "Chat Filter", filter, active == true, "", 0, {}, 0)
+	M.Events.Fire("FILTERS_CHANGED")
+	return i
 end
 
 function M.PSS_SetFilterActive(index, active)
@@ -478,6 +499,7 @@ function M.PSS_SetFilterActive(index, active)
 		if active and M.PSS_LoadActiveManagedData then M.PSS_LoadActiveManagedData() end
 		if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
 	end
+	M.Events.Fire("FILTERS_CHANGED")
 end
 
 -- An edited custom chat filter: its description and filter text.
@@ -486,6 +508,7 @@ function M.PSS_SaveChatFilter(index, desc, filter)
 	if not (db and db.filterList and db.filterList[index]) then return end
 	db.filterDesc[index] = desc
 	db.filterList[index] = filter
+	M.Events.Fire("FILTERS_CHANGED")
 end
 
 -- The filter's blocked count starts again from 0 (its lines are kept).
@@ -493,6 +516,7 @@ function M.PSS_ResetFilterCount(index)
 	local db = PourSocialScoreDB
 	if not (db and db.filterList and db.filterList[index]) then return end
 	db.filterCount[index] = 0
+	M.Events.Fire("FILTERS_CHANGED")
 end
 
 
