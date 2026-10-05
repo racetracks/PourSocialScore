@@ -80,6 +80,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_gui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS gui" || fail=1
 
+# the PSS window's Managed Communities row (3.3.0-dev003)
+echo "== Managed Communities row"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_managed_row.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS managed row" || fail=1
+
 # EllesmereUI: the switch, and with PourSocialScore_EllesmereUI (this
 # repository's folder) the window, panel and tabs (check_eui_all.sh)
 sh "$here/check_eui_all.sh" || fail=1
@@ -236,6 +242,9 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_match.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "^PASS match" || fail=1
+		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_managed_row.lua" 2>&1 | grep -v '^|cff')
+		echo "$out"
+		echo "$out" | grep -q "PASS managed row" || fail=1
 	done
 fi
 
