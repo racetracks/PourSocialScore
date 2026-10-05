@@ -1,7 +1,8 @@
 #!/bin/sh
 # The EllesmereUI checks of the harness on their own (run from the repo root,
 # needs lua5.1): the integration switch, then the window, panel pages,
-# options, import/export, Players, Guilds and Chat Filters tabs with PourSocialScore_EllesmereUI
+# options, import/export, Players, Guilds and Chat Filters tabs and the
+# core popups with PourSocialScore_EllesmereUI
 # from its own repository (PSS_EUI_ADDON, default
 # ../poursocialscore-ellesmereui/PourSocialScore_EllesmereUI).
 #   sh tools/harness/check_eui_all.sh
@@ -45,6 +46,11 @@ $(PSS_PHASE=3 PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" 
 	out=$(PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" - "$here/check_eui_filters.lua" 2>&1 | grep -v '^|cff')
 	echo "$out"
 	echo "$out" | grep -q "PASS eui filters" || fail=1
+	# the core popups under EllesmereUI (3.1 E.7)
+	echo "== EllesmereUI popups"
+	out=$(PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" - "$here/check_eui_popups.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS eui popups" || fail=1
 else
 	echo "== EllesmereUI window: skipped (no PourSocialScore_EllesmereUI at $eui)"
 	[ -n "$PSS_EUI_REQUIRED" ] && fail=1

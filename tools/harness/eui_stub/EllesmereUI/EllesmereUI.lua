@@ -22,7 +22,21 @@ E.prebuild = false
 function E.IsSearchPrebuild() return E.prebuild end
 function E.GetPlugin(id) return plugins[id] end
 
-function E:ShowConfirmPopup(opts) E.log.popups[#E.log.popups + 1] = opts end
+-- the confirm popup also shows its screen-wide dimmer (EUIConfirmDimmer, as
+-- EllesmereUI names it) with the message on EUIConfirmPopup._msg
+function E:ShowConfirmPopup(opts)
+	E.log.popups[#E.log.popups + 1] = opts
+	if not EUIConfirmDimmer then
+		local d = CreateFrame("Frame", "EUIConfirmDimmer", UIParent)
+		local p = CreateFrame("Frame", "EUIConfirmPopup", d)
+		p._msg = p:CreateFontString()
+		EUIConfirmDimmer, EUIConfirmPopup = d, p
+	end
+	EUIConfirmPopup._msg:SetText(opts.message)
+	EUIConfirmDimmer:Show()
+end
+E.log.inputs = {}
+function E:ShowInputPopup(opts) E.log.inputs[#E.log.inputs + 1] = opts end
 function E:ShowCopyPopup(title, subtitle, str) E.log.copies[#E.log.copies + 1] = str end
 -- the import popup hands over E.importText as if it was pasted
 function E:ShowImportPopup(onImport) onImport(E.importText) end

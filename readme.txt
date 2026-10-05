@@ -1,5 +1,5 @@
 POUR SOCIAL SCORE AND CHAT SPAM FILTER
-Version 3.0.0 - by Boaties
+Version 3.1.0 - by Boaties
 
 Pour Social Score is a quality-of-life addon with an unlimited, account-wide
 ignore list, a guild ignore list, and a chat/spam filter engine. It removes
@@ -32,6 +32,11 @@ AddOns folder) so the six folders sit side by side:
 
 The AddOns list shows them under one Pour Social Score heading. Keep all
 six enabled; PourSocialScore and PourSocialScore_Options are required.
+
+EllesmereUI users can add a seventh folder, PourSocialScore_EllesmereUI
+(its own download, always the same version as the other six). It is only
+loaded with EllesmereUI installed and "Enable EllesmereUI integration" on;
+see ELLESMEREUI below.
 
 When updating, replace every folder (delete the old ones first so no stale
 file is left behind).
@@ -240,6 +245,47 @@ Block History (the same on every list)
 Removing
   Removing a player, guild, guild member or NPC/server entry happens
   straight away - there is no confirmation. Prune asks only how many days.
+
+
+== ELLESMEREUI
+
+With EllesmereUI installed and the PourSocialScore_EllesmereUI folder next to
+the others, tick "Enable EllesmereUI integration" (Options tab, User
+Interface section, or /pss eui enable) and reload when asked. Untick it (or
+/pss eui disable) to go back to the PSS windows.
+
+With the integration on:
+* Opening Friends or typing /pss gui shows a Pour Social Score window in
+  EllesmereUI's style, painted by EllesmereUI's skinning so it follows your
+  theme and accent colour (a plain dark panel when that skinning is off).
+  It sits next to Friends, can be dragged (the place is kept) and closes
+  with Escape. /pss gui force still opens the PSS windows.
+* It has the same five tabs. Player Ignore List, Guild Ignore List and Chat
+  Filters show the list on the left and the selected entry's details on the
+  right (click an entry to select it). Only the rows on screen are drawn, so
+  long lists scroll smoothly. Every list has a search box and sorts on a
+  click of a column heading.
+* Block history in a details pane loads only when you click Show Block
+  History. Tick boxes show or hide each type (whisper, invite, party, raid,
+  BG, world, guild). Double-click a line for the Block History view, with a
+  search box, sortable columns, working chat links and a copy box on a
+  double-click.
+* The back and forward arrows under the tabs (and mouse buttons 4 and 5)
+  step through the views you opened. Escape goes up one level and closes
+  the window only from the top.
+* EllesmereUI's panel has a "Pour Social Score" section at the bottom of its
+  sidebar (/pss eui opens it, not in combat): an Options page per group and
+  Import/Export. A change there shows in the window at once and the other
+  way round.
+* The note prompt (Options > "Ask for a note") and the party warning use
+  EllesmereUI's popups. The party warning still closes itself after 15
+  seconds; in combat, or while another EllesmereUI popup is open, it uses
+  the PSS popup instead, because EllesmereUI's covers the screen.
+* Confirmations (Remove, Reset Defaults, Replace on import, reloads) use
+  EllesmereUI's popups.
+
+The EllesmereUI folder takes no memory until its window or panel section is
+opened, and the PSS window folder (PourSocialScore_GUI) is not loaded at all.
 
 
 == NOTES AND KNOWN LIMITATIONS

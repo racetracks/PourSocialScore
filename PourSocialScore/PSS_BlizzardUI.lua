@@ -78,9 +78,32 @@ StaticPopupDialogs["PSS_PARTYWARN"] = {
 	hideOnEscape	= true,
 }
 
+-- With EllesmereUI integration on, the note and party warning use
+-- EllesmereUI's popups (same text and buttons); otherwise the two above.
+local function SaveNote(name, text)
+	local idx = M.hasAnyIgnored(name)
+	if idx > 0 then M.PSS_SetNote(idx, text) end
+	M.PSS_PlayersChanged()
+end
+
 -- a player was just listed and Options asks for a note
 M.Events.Register("ASK_NOTE", function(name)
 	V.nameUI = name
+	if M.PSS_UseEUI() and EllesmereUI.ShowInputPopup then
+		local idx = M.hasAnyIgnored(name)
+		EllesmereUI:ShowInputPopup({
+			title		= "Pour Social Score",
+			message		= format(StaticPopupDialogs["PSS_REASON"].text, name) .. "|r",
+			placeholder	= "Ignore note",
+			initialText	= idx > 0 and (PourSocialScoreDB.notes[idx] or "") or "",
+			maxLetters	= 128,
+			allowEmpty	= true,
+			confirmText	= L["BOX_3"],
+			cancelText	= L["BOX_5"],
+			onConfirm	= function(text) SaveNote(name, text) end,
+		})
+		return
+	end
 	StaticPopup_Show("PSS_REASON", V.nameUI)
 end)
 
@@ -92,9 +115,38 @@ M.Events.Register("WHISPER_WARNING", function(name, label)
 	if PlaySound and SOUNDKIT and SOUNDKIT.RAID_WARNING then PlaySound(SOUNDKIT.RAID_WARNING) end
 end)
 
--- listed players are in your group (names: the players warned about)
+-- listed players are in your group (names: the players warned about).
+-- EllesmereUI's popup covers the screen, so it is only used out of combat
+-- and when no other EllesmereUI confirm is open, and it closes itself after
+-- 15 seconds like the PSS one.
+local WARN_TIMEOUT = StaticPopupDialogs["PSS_PARTYWARN"].timeout
+local warnShown = 0
 M.Events.Register("GROUP_WARNING", function(names)
-	StaticPopup_Show("PSS_PARTYWARN", #names, "\n" .. table.concat(names, "\n"))
+	local list = "\n" .. table.concat(names, "\n")
+	local dimmer = _G.EUIConfirmDimmer
+	if M.PSS_UseEUI() and not InCombatLockdown() and not (dimmer and dimmer:IsShown()) then
+		warnShown = warnShown + 1
+		local mine = warnShown
+		local msg = format(L["BOX_8"], #names, list)
+		local function done() warnShown = warnShown + 1 end
+		EllesmereUI:ShowConfirmPopup({
+			title		= "Pour Social Score",
+			message		= msg,
+			confirmText	= L["BOX_6"],
+			hideCancel	= true,
+			onConfirm	= done,
+			onCancel	= done,
+		})
+		-- close it only if it is still this warning on screen
+		C_Timer.After(WARN_TIMEOUT, function()
+			local d, p = _G.EUIConfirmDimmer, _G.EUIConfirmPopup
+			if warnShown == mine and d and d:IsShown() and p and p._msg and p._msg:GetText() == msg then
+				d:Hide()
+			end
+		end)
+		return
+	end
+	StaticPopup_Show("PSS_PARTYWARN", #names, list)
 end)
 
 --------------------
