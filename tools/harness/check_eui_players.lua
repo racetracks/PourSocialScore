@@ -182,6 +182,27 @@ M.PSS_RecordPlayerBlock(sel, "CHAT_MSG_WHISPER", "buy gold", nil, "whisper")
 H.RunTimers()
 check(pane.counts:GetText():match("^Blocked 1"), "counts " .. tostring(pane.counts:GetText()))
 check(not loaded("PourSocialScore_Logging"), "a block shown in the pane loaded Logging")
+-- the Summary: this session / last 24 hours / all time from the core's
+-- counts (no Logging); a tick box takes its period out of the pie (every tab)
+do
+	local sm = pane.summary
+	pane.pages:Select("summary")
+	local v = sm.values
+	check(v.session == 1 and v.day == 1 and v.all == 1, ("summary %s/%s/%s"):format(tostring(v.session), tostring(v.day), tostring(v.all)))
+	check(#sm.slices == 3 and sm.pie.total == 3 and sm.boxes.day.count:GetText() == "1", "pie slices")
+	local segs = 0
+	for s = 1, #sm.pie.segSlice do if sm.pie.segSlice[s] ~= 0 then segs = segs + 1 end end
+	check(segs == #sm.pie.segSlice, "pie not full: " .. segs)
+	sm.boxes.day:SetChecked(false)
+	sm.boxes.day:GetScript("OnClick")(sm.boxes.day)
+	check(#sm.slices == 2 and sm.map[1] == "session" and sm.map[2] == "all", "unticked period still in the pie")
+	sm.boxes.day:SetChecked(true)
+	sm.boxes.day:GetScript("OnClick")(sm.boxes.day)
+	check(#sm.slices == 3, "ticked period not back")
+	check(not sm.empty:IsShown() and sm.viewButton:IsEnabled(), "summary empty or no View Events")
+	check(not loaded("PourSocialScore_Logging"), "the Summary loaded Logging")
+	pane.pages:Select("history")
+end
 check(hv.gate:IsShown() and hv.gate:GetText() == "Show Block History (1)", "no Show Block History button")
 check(hv.list.count == 0, "history read without Logging")
 hv.gate:GetScript("OnClick")(hv.gate)
@@ -218,6 +239,35 @@ view.allButton:GetScript("OnClick")(view.allButton)
 check(view.spec.id == false and view.list.count >= 1, "All Players: " .. view.list.count)
 check(EllesmereUI.PressEscape() and not view:IsOpen() and page:IsShown(), "Escape did not close the player view")
 H.Advance(1)
+-- a pie slice: that period's events; All Time: every event; View Events
+do
+	local sm = pane.summary
+	pane.pages:Select("summary")
+	local start = M.PSS_History.SessionStart()
+	sm.pie.frame:GetScript("OnClick")(sm.pie.frame)		-- not on a slice (the cursor is away)
+	check(not view:IsOpen(), "a click off the ring opened the view")
+	sm:Open("session")
+	check(view:IsOpen() and view.spec.window and view.spec.window.since == start and view.list.count == 1, "session slice")
+	check((view.heading:GetText() or ""):find(", this session", 1, true) and view.allLines:IsShown(), "slice heading " .. tostring(view.heading:GetText()))
+	EllesmereUI.PressEscape()
+	sm:Open("day")
+	check(view:IsOpen() and view.spec.window.since == GetServerTime() - 86400, "day slice")
+	view.allLines:GetScript("OnClick")(view.allLines)
+	check(view.spec.window == nil and not view.allLines:IsShown() and view.list.count == 1, "All Time")
+	EllesmereUI.PressEscape()
+	sm.viewButton:GetScript("OnClick")(sm.viewButton)
+	check(view:IsOpen() and view.spec.window == nil and view.spec.id == sel, "View Events")
+	EllesmereUI.PressEscape()
+	-- an event from before the session is not in the session slice
+	local old = M.PSS_History.NewEntry("whisper", "CHAT_MSG_WHISPER", "old line", "Whisper", sel)
+	old.ts = start - 60
+	M.PSS_History.Add(M.PSS_History.PlayerKey(sel), nil, old)
+	sm:Open("session")
+	check(view.list.count == 1 and #view.all == 2, "session slice shows an older event: " .. view.list.count)
+	EllesmereUI.PressEscape()
+	pane.pages:Select("history")
+	H.Advance(1)
+end
 
 -- NPC entry: the player-only parts hide
 idx = M.PSS_SortPlayers(list.sortKey, list.sortAsc, nil)
