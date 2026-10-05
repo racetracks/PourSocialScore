@@ -382,6 +382,13 @@ do
 	H.Advance(1)
 	selectEntry("Player0003-Realm3")
 	check(pane.body:IsShown() and not tot.frame:IsShown(), "pane not back after selecting again")
+	-- a click under the rows deselects too, and so does a click on the tab
+	page.list.scroll:GetScript("OnMouseUp")(page.list.scroll, "LeftButton")
+	check(not pane.body:IsShown() and tot.frame:IsShown(), "a click under the players did not deselect")
+	selectEntry("Player0003-Realm3")
+	_G.PSS_EllesmereUIWindow.tabs[1]:GetScript("OnClick")(_G.PSS_EllesmereUIWindow.tabs[1])
+	check(not pane.body:IsShown() and tot.frame:IsShown(), "the tab shown did not deselect")
+	selectEntry("Player0003-Realm3")
 end
 local nPopups = #E.log.popups
 pane.removeButton:GetScript("OnClick")(pane.removeButton)

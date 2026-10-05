@@ -534,7 +534,10 @@ function ns.BuildPlayersTab(pg)
             local entry = pos and M.PSS_PlayerEntry(pos)
             if entry then SelectEntry(entry ~= P.sel and entry or nil) end
         end,
+        emptyClick = function() if P.sel then SelectEntry(nil) end end,
     })
+    -- a tab click (EUI_Window.lua): nothing selected
+    pg.navReset = function() if P.sel then SelectEntry(nil) end end
     pg.list, pg.pane = list, pane
     P.dirty = true
     return Refresh

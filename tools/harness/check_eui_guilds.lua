@@ -361,9 +361,11 @@ win.back:GetScript("OnClick")(win.back)
 check(view:IsOpen() and view.spec.id == bigKey, "Back did not reopen the Block History view")
 win.tabs[1]:GetScript("OnClick")(win.tabs[1])
 check(not view.frame:IsShown() and not page:IsShown(), "view shown on another tab")
+-- a tab click (the tab shown too) opens the tab as it opens: the view
+-- closed, nothing selected
 win.tabs[2]:GetScript("OnClick")(win.tabs[2])
-check(view.frame:IsShown() and not page:IsShown(), "view not back with its tab")
-check(E.PressEscape() and not view:IsOpen() and page:IsShown(), "Escape did not close the view")
+check(not view:IsOpen() and page:IsShown() and st.sel == nil and pane.totals.frame:IsShown()
+	and win.where:GetText() == "Guild Ignore List", "tab click did not reset the tab: " .. tostring(win.where:GetText()))
 
 ------------------------------------------------------------------ members view
 selectGuild(bigKey)
@@ -411,6 +413,42 @@ E.log.popups[#E.log.popups].onConfirm()
 check(mlist.count == MEMBERS - 1 and st.msel == nil, "member not removed: " .. mlist.count)
 mview.back:GetScript("OnClick")(mview.back)
 check(list.scroll:IsVisible() and not mview:IsShown(), "back to the guilds")
+
+------------------------------------------------------------------ deselect, tab reset, the line by the arrows
+-- a click under the rows deselects: the list's totals again
+if st.sel ~= bigKey then selectGuild(bigKey) end
+check(st.sel == bigKey, "guild not selected")
+list.scroll:GetScript("OnMouseUp")(list.scroll, "LeftButton")
+check(st.sel == nil and pane.totals.frame:IsShown(), "a click under the guilds did not deselect")
+-- the members: the selected member again, or a click under them, shows
+-- the guild's own pane again
+selectGuild(bigKey)
+gb.membersButton:GetScript("OnClick")(gb.membersButton)
+clickAt(mlist, 3)
+check(st.msel and pane.member:IsShown(), "member not selected")
+clickAt(mlist, 3)
+check(st.msel == nil and pane.guild:IsShown() and not pane.member:IsShown(), "the selected member again did not deselect")
+clickAt(mlist, 3)
+mlist.scroll:GetScript("OnMouseUp")(mlist.scroll, "LeftButton")
+check(st.msel == nil and pane.guild:IsShown(), "a click under the members did not deselect")
+-- the line by the arrows: each part but the last goes back to it
+gb.summary:Open("all")
+check(view:IsOpen() and win.where:GetText() == "Guild Ignore List  >  Members of <Big Guild>  >  Block History: Big Guild",
+	"where line " .. tostring(win.where:GetText()))
+check(win.crumbs[1]:IsShown() and win.crumbs[2]:IsShown() and not (win.crumbs[3] and win.crumbs[3]:IsShown()), "parts of the line not buttons")
+win.crumbs[2]:GetScript("OnClick")(win.crumbs[2])
+check(not view:IsOpen() and mview:IsShown() and st.mguild == bigKey, "Members of did not go back to the members")
+check(not win.crumbs[2]:IsShown(), "the part shown is a button")
+win.crumbs[1]:GetScript("OnClick")(win.crumbs[1])
+check(not mview:IsShown() and list.scroll:IsVisible() and st.sel == nil and pane.totals.frame:IsShown()
+	and win.where:GetText() == "Guild Ignore List", "Guild Ignore List did not go back to the tab")
+-- the tab shown, clicked from a view in it: the tab as it opens
+selectGuild(bigKey)
+gb.membersButton:GetScript("OnClick")(gb.membersButton)
+clickAt(mlist, 3)
+win.tabs[2]:GetScript("OnClick")(win.tabs[2])
+check(not mview:IsShown() and list.scroll:IsVisible() and st.sel == nil and st.msel == nil, "the tab shown did not reset")
+H.Advance(1)
 
 ------------------------------------------------------------------ back / forward, Escape
 -- Escape goes up a level, back / forward step through the views

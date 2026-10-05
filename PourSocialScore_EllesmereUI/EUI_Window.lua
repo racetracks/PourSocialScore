@@ -83,6 +83,10 @@ end
 --  navApply(view) (show it again), navUp() (one level up; true if it went)
 --  and navTitle(view) (for the line by the arrows). A Block History view
 --  (EUI_HistoryView.lua, page.hview) is a step of its own over the page.
+--  navReset() puts the page back to how it opens (nothing selected); a tab
+--  click, even on the tab shown, does that and closes every view over it.
+--  Each part of the line by the arrows but the last is a button back to it:
+--  the tab (as a tab click) or the page's view (closes the history over it).
 -------------------------------------------------------------------------------
 local function ShownState()
     local tab = ns.DB().tab or 1
@@ -96,15 +100,58 @@ local function HistKey(spec)
         .. "\001" .. tostring(spec.period)) or nil
 end
 
+local SEP = "  >  "
+local ResetTab, ToView
+
+-- a button over each part of the line but the last (the view shown)
+local function PlaceCrumbs(parts)
+    local shown, text = 0, ""
+    for i, part in ipairs(parts) do
+        local c = win.crumbs[i]
+        if i < #parts then
+            if not c then
+                c = CreateFrame("Button", nil, win)
+                c:SetHeight(NAV_H)
+                local r, g, b = 1, 0.82, 0
+                if ns.S then r, g, b = ns.S.GetAccentColor() end
+                local hl = c:CreateTexture(nil, "HIGHLIGHT")
+                hl:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 0, 2)
+                hl:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", 0, 2)
+                hl:SetHeight(1)
+                hl:SetColorTexture(r, g, b, 0.9)
+                c:SetScript("OnClick", function(self) self.go() end)
+                c:SetScript("OnEnter", function(self) ns.Tip(self, self.tipText) end)
+                c:SetScript("OnLeave", ns.HideTip)
+                win.crumbs[i] = c
+            end
+            win.measure:SetText(text)
+            local left = text == "" and 0 or win.measure:GetStringWidth()
+            win.measure:SetText(part.text)
+            c:ClearAllPoints()
+            c:SetPoint("LEFT", win.where, "LEFT", left, 0)
+            c:SetWidth(math.max(8, win.measure:GetStringWidth()))
+            c.go = part.go
+            c.tipText = "Back to " .. part.text .. "."
+            c:Show()
+        elseif c then
+            c:Hide()
+        end
+        text = text .. (i > 1 and SEP or "") .. part.text
+        shown = i
+    end
+    for i = shown + 1, #win.crumbs do win.crumbs[i]:Hide() end
+    win.where:SetText(text)
+end
+
 local function UpdateNav()
     win.back:SetEnabled(navPos > 1)
     win.forward:SetEnabled(navPos < #nav)
     local tab, view, hist = ShownState()
     local page = win.pages[tab]
-    local where = TABS[tab][1]
-    if view ~= nil and page.navTitle then where = where .. "  >  " .. page.navTitle(view) end
-    if hist then where = where .. "  >  Block History: " .. tostring(page.hview.name or "?") end
-    win.where:SetText(where)
+    local parts = { { text = TABS[tab][1], go = function() ResetTab(tab) end } }
+    if view ~= nil and page.navTitle then parts[#parts + 1] = { text = page.navTitle(view), go = ToView } end
+    if hist then parts[#parts + 1] = { text = "Block History: " .. tostring(page.hview.name or "?") } end
+    PlaceCrumbs(parts)
 end
 
 -- After the user changed the view: a new step (dropping any forward steps).
@@ -142,6 +189,27 @@ local function Go(pos)
     end
     UpdateNav()
     if not ok then geterrorhandler()(err) end
+end
+
+-- A tab as it opens: every view over it closed, nothing selected.
+function ResetTab(id)
+    local page = win.pages[id]
+    if page.hview then page.hview:Close() end
+    if page.navClose then page.navClose() end
+    if page.navUp then
+        for _ = 1, 10 do if not page.navUp() then break end end
+    end
+    if page.navReset then page.navReset() end
+    SelectTab(id)
+    ns.NavRecord()
+end
+ns.ResetTab = function(id) ResetTab(id or ns.DB().tab or 1) end
+
+-- the page's view (the line's middle part): the history over it closes
+function ToView()
+    local page = win.pages[ns.DB().tab or 1]
+    if page.hview and page.hview:IsOpen() then page.hview:Close() end
+    ns.NavRecord()
 end
 
 -- Back closes an overlay first (Guild Search results), then steps back.
@@ -245,10 +313,8 @@ local function Build()
         else
             tab:SetPoint("TOPLEFT", win, "TOPLEFT", 10, -32)
         end
-        tab:SetScript("OnClick", function()
-            SelectTab(i)
-            ns.NavRecord()
-        end)
+        -- (the tab shown too: back to how it opens)
+        tab:SetScript("OnClick", function() ResetTab(i) end)
         ns.Tab(tab)
         win.tabs[i] = tab
         prev = tab
@@ -282,6 +348,9 @@ local function Build()
     win.where = ns.NewText(win, 11)
     win.where:SetPoint("LEFT", win.forward, "RIGHT", 10, 0)
     win.where:SetTextColor(1, 1, 1, 0.7)
+    win.measure = ns.NewText(win, 11)      -- widths of the parts (never shown)
+    win.measure:Hide()
+    win.crumbs = {}
 
     SelectTab(ns.DB().tab or 1)
     ns.NavRecord()

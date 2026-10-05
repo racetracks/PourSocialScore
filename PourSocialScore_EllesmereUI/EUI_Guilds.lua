@@ -1279,6 +1279,7 @@ function ns.BuildGuildsTab(pg)
         draw = DrawRow,
         enter = RowTip,
         click = ClickRow,
+        emptyClick = function() if G.selKind then Select(nil, nil) end end,
     })
 
     -- the members of one guild, in place of the guild list
@@ -1309,8 +1310,10 @@ function ns.BuildGuildsTab(pg)
         enter = MemberTip,
         click = function(row, i)
             local m = G.members[i]
-            if m then SelectMember(m) end
+            -- the selected member again: back to the guild's own
+            if m then SelectMember(m ~= G.msel and m or nil) end
         end,
+        emptyClick = function() if G.msel then SelectMember(nil) end end,
     })
 
     BuildPicker(pg)
@@ -1344,6 +1347,11 @@ function ns.BuildGuildsTab(pg)
             return true
         end
         return false
+    end
+    -- a tab click (EUI_Window.lua): the guild list, nothing selected
+    pg.navReset = function()
+        if G.view == "members" then CloseMembers() end
+        if G.selKind then Select(nil, nil) end
     end
 
     pg.list, pg.members, pg.pane, pg.picker, pg.membersView = list, mlist, pane, picker, mview

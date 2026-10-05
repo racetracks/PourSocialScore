@@ -49,6 +49,9 @@ versions 1.1.0-dev1 to dev010, before).
   player's or guild's world and guild chat shows as its lines again, not
   "Counted, not stored" (1.1.0-dev010, with PourSocialScore 3.2.0-dev007).
   From 3.2.0-dev008 it is part of this repository and versioned with it.
+  A click under a list's rows deselects like a click on the selected row;
+  a tab click (the tab shown too) resets that tab; each part of the line
+  by the arrows but the last goes back to it (3.2.0-dev009).
   Back / forward arrows (and mouse buttons 4 / 5) step through
   the views; Escape goes up a level through EllesmereUI's Escape handling
   (`RegisterEscapeClose` with `onEscape`).
