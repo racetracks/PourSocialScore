@@ -525,10 +525,19 @@ function ns.GroupHistorySpec(k)
     return {
         kind = "group", id = k, confirm = true, allText = "All Guilds", all = AllGuilds,
         label = GroupLabel, pick = GuildChoices, pickSpec = ns.GuildHistorySpec,
+        -- each guild's lines and, as in a guild's own view, its blocks
+        -- counted but not stored (world and guild chat) or expired
         read = function(gk)
             local out = {}
+            local keep = History.KEEP_TOTAL ~= nil
             for _, key in ipairs(GroupGuilds(gk)) do
-                for _, h in ipairs(M.PSS_GetGuildBlockHistory(key) or {}) do out[#out + 1] = h end
+                local lines = M.PSS_GetGuildBlockHistory(key) or {}
+                local counts = M.PSS_GetGuildBlockCounts(key)
+                if counts and ns.HistoryAddExpired then
+                    ns.HistoryAddExpired(lines, counts,
+                        History.RecentSlots and History.GuildKey and History.RecentSlots(History.GuildKey(key)), keep)
+                end
+                for _, h in ipairs(lines) do out[#out + 1] = h end
             end
             return out
         end,
