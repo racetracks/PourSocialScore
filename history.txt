@@ -1,6 +1,17 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.1.0-dev4 - EllesmereUI Player Ignore List (3.1 test build)
+
+- The Pour Social Score window in EllesmereUI's style now has its Player Ignore List tab: every player, NPC and server on the list, with Name, Server, Type, Listed, Expires and Blocked columns. Click a column heading to sort by it, click again to reverse. Only the rows that fit on screen are drawn, so a list of thousands scrolls as smoothly as a short one.
+- A search box filters the list by name, server or note as you type. Hover a row to read its note.
+- Click an entry to see its details beside the list: type, class, date added, guild, last blocked invite, expiry and note (both editable), the W I G P C switches (ticked = allowed), the per-player overrides (Default > On > Off) and the block counts, with that player's block history underneath. The block history only loads once something was blocked from them.
+- Remove asks first (EllesmereUI's popup), because it deletes the player's note, settings and history. Reset Block History and Add Guild work as in the PSS player window.
+- Add Player: type Name or Name-Realm in the box at the top right and press Enter; the new entry is selected.
+- Sorting by Notes in the PSS window now puts empty notes last, as it was meant to.
+- Both windows now read and change the list through the same core functions, and every change redraws whichever window is open.
+- Version 3.1.0-dev4.
+
 => 3.1.0-dev3 - EllesmereUI options and Import/Export (3.1 test build)
 
 - The Pour Social Score window in EllesmereUI's style now has its Options tab: every Pour Social Score option, grouped like the PSS Options tab, with EllesmereUI's tickboxes, boxes and dropdowns.

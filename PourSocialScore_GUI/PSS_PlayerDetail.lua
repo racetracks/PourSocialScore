@@ -58,6 +58,7 @@ local function buildFrame()
 	local f = UI.CreateWindow("PSSPlayerDetailFrame", "Player", DETAIL_W, DETAIL_H,
 		{ strata = "FULLSCREEN", minW = 720, minH = 520, saveKey = "playerDetail" })
 	frame = f
+	f.row = {}		-- the entry shown (M.PSS_PlayerRow)
 	local inset = f.inset
 
 	f.heading, f.info = UI.CreateSummary(inset, "", 400)
@@ -104,7 +105,7 @@ local function buildFrame()
 		local days = tonumber(exp:GetText())
 		if idx > 0 and days then
 			M.PSS_SetExpiry(idx, days)
-			if M.PSSUpdateUI then M.PSSUpdateUI() end
+			M.PSS_PlayersChanged()
 		end
 		exp:ClearFocus()
 		if M.PSS_RefreshPlayerDetail then M.PSS_RefreshPlayerDetail() end
@@ -154,7 +155,7 @@ local function buildFrame()
 	f.excl = UI.CreateExclusionBoxes(exRow, f.exclHR, "excl", function(box, cat)
 		if f.entryName and M.PSS_SetPlayerSetting then
 			M.PSS_SetPlayerSetting(f.entryName, UI.EXCL_BY_CAT[cat].field, UI.ExclBlocked(box))
-			if M.PSSUpdateUI then M.PSSUpdateUI() end
+			M.PSS_PlayersChanged()
 		end
 	end)
 
@@ -202,7 +203,7 @@ local function buildFrame()
 		local idx = entryIndex()
 		if idx > 0 then
 			M.PSS_SetNote(idx, trim(note:GetText()))
-			if M.PSSUpdateUI then M.PSSUpdateUI() end
+			M.PSS_PlayersChanged()
 		end
 	end
 	note:SetScript("OnEnterPressed", function(self) commitNote(); self:ClearFocus() end)
@@ -223,17 +224,7 @@ local function buildFrame()
 		-- removes straight away (no confirmation)
 		local idx = entryIndex()
 		if idx <= 0 then f:Hide() return end
-		local typ = PourSocialScoreDB.typeList[idx]
-		V.needSorted = true
-		if typ == "player" then
-			M.PSS_DelIgnore(idx, true)
-		elseif typ == "npc" then
-			M.AddOrDelNPC(idx)
-			M.PSSUpdateUI()
-		elseif typ == "server" then
-			M.AddOrDelServer(idx)
-			M.PSSUpdateUI()
-		end
+		M.PSS_RemovePlayerAt(idx)
 		f:Hide()
 	end)
 	f.removeButton = remove
@@ -264,9 +255,9 @@ function M.PSS_RefreshPlayerDetail(resetScroll)
 	local idx = entryIndex()
 	if idx <= 0 then f:Hide() return end	-- removed from the list elsewhere
 
-	local db = PourSocialScoreDB
-	local entry = db.ignoreList[idx]
-	local typ = db.typeList[idx] or "player"
+	local row = M.PSS_PlayerRow(idx, f.row)
+	local entry = row.entry
+	local typ = row.kind
 	local isPlayer = (typ == "player")
 	local p = isPlayer and M.PSS_GetPlayerPrefs and M.PSS_GetPlayerPrefs(entry) or nil
 	f.record = p
@@ -284,7 +275,7 @@ function M.PSS_RefreshPlayerDetail(resetScroll)
 	-- details
 	f.fields.name.value:SetText(color .. shortName .. "|r")
 	f.fields.server.value:SetText(server)
-	local fac = db.factionList[idx]
+	local fac = row.faction
 	local typeText
 	if typ == "npc" then typeText = "|cffffff99NPC|r"
 	elseif typ == "server" then typeText = "|cffff66ccWhole server|r"
@@ -294,11 +285,11 @@ function M.PSS_RefreshPlayerDetail(resetScroll)
 	f.fields.type.value:SetText(typeText)
 	f.fields.class.value:SetText(p and (p.className or (p.class ~= "" and p.class) or nil) or "|cff808080Unknown|r")
 
-	local added = db.dateList[idx]
+	local added = row.added
 	local ago = added and M.daysFromToday(added) or 0
 	f.fields.added.value:SetText(added and (("%s  |cffaaaaaa(%d %s ago)|r"):format(added, ago, M.dayString(ago))) or "|cff808080Unknown|r")
 
-	local expDays = tonumber(db.expList[idx]) or 0
+	local expDays = tonumber(row.expire) or 0
 	if not f.expireBox:HasFocus() then f.expireBox:SetText(tostring(expDays)) end
 	local left = expDays - ago
 	if expDays == 0 then f.fields.expires.value:SetText("days  |cff808080(never expires)|r")
@@ -311,7 +302,7 @@ function M.PSS_RefreshPlayerDetail(resetScroll)
 		local now = p.currentGuild or ""
 		f.fields.guildNow.value:SetText(now ~= "" and ("<" .. now .. ">") or "|cff808080None seen|r")
 		f.fields.lastInv.value:SetText((p.lastBlockedInvite or "") ~= "" and p.lastBlockedInvite or "|cff808080Never|r")
-		local listed = now ~= "" and db.guildData and M.PSS_NormalizeGuild and db.guildData[M.PSS_NormalizeGuild(now)]
+		local listed = now ~= "" and M.PSS_IsGuildListed(now)
 		f.addGuild.guildName = now
 		f.addGuild:SetShown(now ~= "")
 		f.addGuild:SetEnabled(now ~= "" and not listed)
@@ -338,7 +329,7 @@ function M.PSS_RefreshPlayerDetail(resetScroll)
 	end
 
 	-- note
-	if not f.noteBox:HasFocus() then f.noteBox:SetText(db.notes[idx] or "") end
+	if not f.noteBox:HasFocus() then f.noteBox:SetText(row.note or "") end
 
 	-- counts + history
 	local list = {}
