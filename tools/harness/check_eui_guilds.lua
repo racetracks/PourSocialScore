@@ -234,6 +234,11 @@ do
 	check(hv.frame:IsVisible() and not gb.removeButton:IsVisible(), "guild history page")
 end
 check(gb.counts:GetText():match("^Blocked 1"), "guild counts " .. tostring(gb.counts:GetText()))
+-- the guild's Summary: the core's counts for the guild rule (not Logging)
+gb.pages:Select("summary")
+check(gb.summary.values.session == 1 and gb.summary.values.day == 1 and gb.summary.values.all == 1,
+	("guild summary %s/%s/%s"):format(tostring(gb.summary.values.session), tostring(gb.summary.values.day), tostring(gb.summary.values.all)))
+gb.pages:Select("history")
 check(not loaded("PourSocialScore_Logging"), "selecting a guild with blocks loaded Logging")
 check(hv.gate:IsShown() and hv.list.count == 0, "guild history read without Logging")
 hv.gate:GetScript("OnClick")(hv.gate)
@@ -336,6 +341,9 @@ mw:GetScript("OnClick")(mw, "RightButton")
 check(M.PSS_MemberBlock(m).whisper == nil, "member W not back to the guild's")
 
 local nPopups = #E.log.popups
+pane.member.pages:Select("summary")
+check(pane.member.summary.values.all == pane.member.summary.allTime and pane.member.summary.owner == M.PSS_History.MemberKey(m), "member summary")
+pane.member.pages:Select("rule")
 local removeMember = pane.member.removeButton
 check(pane.member.pages and removeMember:GetParent() == pane.member.pages.rule
 	and pane.member.hist.frame:GetParent() == pane.member.pages.history, "member detail pages")

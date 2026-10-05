@@ -190,6 +190,9 @@ check(trade("Seller-Realm1", "goldsale cheap"), "Trade line not blocked by the n
 H.Advance(1)
 H.RunTimers()
 check(tonumber(db.filterCount[nf]) == 1, "filter count " .. tostring(db.filterCount[nf]))
+pane.pages:Select("summary")
+check(pane.summary.values.session == 1 and pane.summary.values.day == 1 and pane.summary.values.all == 1, "filter summary")
+pane.pages:Select("history")
 check((pane.info:GetText() or ""):match("Blocked |cffffff001|r"), "pane count " .. tostring(pane.info:GetText()))
 local hv = pane.hist
 check(not loaded("PourSocialScore_Logging"), "a blocked line shown in the pane loaded Logging")
