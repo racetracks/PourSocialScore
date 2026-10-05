@@ -516,6 +516,7 @@ function M.PSS_ResetFilterCount(index)
 	local db = PourSocialScoreDB
 	if not (db and db.filterList and db.filterList[index]) then return end
 	db.filterCount[index] = 0
+	History.ForgetRecent(M.PSS_FilterOwnerKey(index))
 	M.Events.Fire("FILTERS_CHANGED")
 end
 

@@ -429,6 +429,7 @@ function History.Add(owner, counts, entry, ruleTag)
 		counts[entry.cat] = (tonumber(counts[entry.cat]) or 0) + 1
 		counts.total = (tonumber(counts.total) or 0) + 1
 	end
+	History.CountRecent(owner, entry.ts)
 	if not ready then
 		-- Logging is not loaded: the line waits (never loads it per line)
 		local db = PourSocialScoreDB
@@ -448,6 +449,123 @@ function History.Add(owner, counts, entry, ruleTag)
 	log[#log + 1] = entry
 	History.Trim(false)
 	return entry
+end
+
+------------------------------------------------------------------------
+-- RECENT COUNTS (3.2): blocks per owner in this session and in the last
+-- 24 hours, for the Summary pie, without PourSocialScore_Logging (the
+-- lines themselves stay in the log). Kept in PourSocialScoreDB next to the
+-- outbox, so a /reload keeps them:
+--   recent  = { last = newest slot,
+--               day  = { [owner] = blocks in the last 24 hours },
+--               [1..144] = { [owner] = blocks in that slot } }
+--             a slot is 10 minutes of server time; slot s is kept at
+--             s % 144 + 1. When the time moves on, the slots that left the
+--             day are taken off `day` and emptied, once per 10 minutes. A
+--             slot table exists only while something was blocked in it, and
+--             an owner is in it once however often it blocked.
+--             A lookup is one index (day[owner]).
+--   session = { [owner] = count }, emptied at each login (not a /reload)
+-- A guild rule is counted on its members and on History.GuildKey(gkey).
+------------------------------------------------------------------------
+local SLOT = 600
+local DAY_SLOTS = 144
+History.SLOT, History.DAY_SLOTS = SLOT, DAY_SLOTS
+
+function History.GuildKey(gkey) return gkey and ("G:" .. tostring(gkey)) or nil end
+
+-- Take one slot off the day and empty it.
+local function drop(r, day, i)
+	local t = r[i]
+	if not t then return end
+	for owner, c in pairs(t) do
+		local n = (day[owner] or 0) - c
+		day[owner] = n > 0 and n or nil
+	end
+	r[i] = nil
+end
+
+-- The recent table, brought up to slot cur (create: made when missing).
+local function recent(cur, create)
+	local db = PourSocialScoreDB
+	if type(db) ~= "table" then return nil end
+	local r = rawget(db, "recent")
+	if type(r) ~= "table" or type(r.day) ~= "table" then
+		if not create then return nil end
+		r = { last = cur, day = {} }
+		rawset(db, "recent", r)
+		return r
+	end
+	local last = tonumber(r.last) or cur
+	if cur > last then
+		local day = r.day
+		if cur - last >= DAY_SLOTS then
+			for i = 1, DAY_SLOTS do r[i] = nil end
+			r.day = {}
+		else
+			for s = last + 1, cur do drop(r, day, s % DAY_SLOTS + 1) end
+		end
+		r.last = cur
+	end
+	return r
+end
+
+-- One block for owner at server time ts (now when unknown).
+function History.CountRecent(owner, ts)
+	if owner == nil then return end
+	local db = PourSocialScoreDB
+	if type(db) ~= "table" then return end
+	local se = rawget(db, "session")
+	if type(se) ~= "table" then se = {}; rawset(db, "session", se) end
+	se[owner] = (se[owner] or 0) + 1
+	local cur = math.floor(History.Now() / SLOT)
+	local slot = math.floor((tonumber(ts) or 0) / SLOT)
+	if slot <= 0 or slot > cur then slot = cur end
+	if slot <= cur - DAY_SLOTS then return end
+	local r = recent(cur, true)
+	local i = slot % DAY_SLOTS + 1
+	local t = r[i]
+	if not t then t = {}; r[i] = t end
+	t[owner] = (t[owner] or 0) + 1
+	r.day[owner] = (r.day[owner] or 0) + 1
+end
+
+-- This session's and the last 24 hours' blocks of owner.
+function History.RecentCounts(owner)
+	if owner == nil then return 0, 0 end
+	local db = PourSocialScoreDB
+	local se = type(db) == "table" and rawget(db, "session")
+	local r = recent(math.floor(History.Now() / SLOT), false)
+	return type(se) == "table" and se[owner] or 0, r and r.day[owner] or 0
+end
+
+-- Forget owner's recent counts (its block history or count was reset).
+function History.ForgetRecent(owner)
+	if owner == nil then return end
+	local db = PourSocialScoreDB
+	if type(db) ~= "table" then return end
+	local se = rawget(db, "session")
+	if type(se) == "table" then se[owner] = nil end
+	local r = rawget(db, "recent")
+	if type(r) ~= "table" or type(r.day) ~= "table" or not r.day[owner] then return end
+	r.day[owner] = nil
+	for i = 1, DAY_SLOTS do
+		local t = r[i]
+		if t and t[owner] then
+			t[owner] = nil
+			if next(t) == nil then r[i] = nil end
+		end
+	end
+end
+
+-- At login (not a /reload) a new session starts; the day is brought up to
+-- now and dropped when empty.
+function History.StartSession(initialLogin)
+	local db = PourSocialScoreDB
+	if type(db) ~= "table" then return end
+	if initialLogin then rawset(db, "session", nil) end
+	local r = recent(math.floor(History.Now() / SLOT), false)
+	if r and next(r.day) == nil then rawset(db, "recent", nil) end
 end
 
 -- Newest-first list of the lines where pred(entry) is true (a new array:

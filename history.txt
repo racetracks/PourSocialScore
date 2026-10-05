@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev1 - Recent block counts
+
+- Every block is now also counted for this session and for the last 24 hours, per player, guild member, guild and chat filter, without loading the block history. The counts are kept in 10-minute steps (at most 144 per day) next to the waiting history lines, so a /reload keeps them; a new login starts a new session. Resetting a block history or a filter's count resets them too. The EllesmereUI Summary page will show them.
+
 => 3.1.0 - EllesmereUI front end
 
 - New optional seventh folder, PourSocialScore_EllesmereUI (its own download, same version). With EllesmereUI installed and "Enable EllesmereUI integration" on (Options tab, or /pss eui enable, then reload), Friends and /pss gui open a Pour Social Score window in EllesmereUI's style instead of the PSS window. /pss gui force still opens the PSS window. See ELLESMEREUI in the readme.

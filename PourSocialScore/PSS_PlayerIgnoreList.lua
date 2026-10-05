@@ -1353,6 +1353,7 @@ function M.PSS_ResetPlayerBlockHistory(name)
 	if p then
 		local key = History.PlayerKey(p.name or name)
 		History.Clear(function(h) return h.o == key end)
+		History.ForgetRecent(key)
 		p.blockHistory = nil
 		p.blockedWhispers, p.blockedWhisperMessages, p.blockedPrivateMessages = nil, nil, nil
 		p.blockedChatMessages, p.blockedInvites = nil, nil

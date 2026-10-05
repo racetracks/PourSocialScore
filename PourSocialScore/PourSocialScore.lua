@@ -250,6 +250,8 @@ local function EventHandler (self, event, sender, ...)
 
 	if event == "PLAYER_ENTERING_WORLD" then
 		gotEntering = true
+		-- sender = isInitialLogin: a login starts a new session (a /reload does not)
+		if M.PSS_History then M.PSS_History.StartSession(sender) end
 	end
 
 	if event == "GROUP_ROSTER_UPDATE" then

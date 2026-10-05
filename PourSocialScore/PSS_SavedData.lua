@@ -3,8 +3,10 @@
 --
 -- The saved data is split over three addons:
 --   PourSocialScore          PourSocialScoreDB: the upgrade record,
---                            bookkeeping and the outbox (block lines waiting
+--                            bookkeeping, the outbox (block lines waiting
 --                            for PourSocialScore_Logging, PSS_ChatHistory.lua)
+--                            and the recent counts (this session, last 24
+--                            hours; 3.2)
 --   PourSocialScore_Options  PSS_OptionsDB    options that differ from their
 --                                             default, window sizes, places
 --                                             and column widths
