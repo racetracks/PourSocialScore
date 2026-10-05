@@ -139,6 +139,13 @@ for sv in $splitsaves; do
 	fi
 done
 
+# the saved log (3.2.0-dev007): one group per owner, every line comes back
+echo "== saved log"
+PSS_NOTE="$work/savedlog.txt" PSS_PHASE=1 lua5.1 "$here/run.lua" . - "$work/savedlog.lua" "$here/check_savedlog.lua" 2>&1 | grep -E "PASS|FAIL|saved log:" > "$work/savedlog-1.txt"
+PSS_NOTE="$work/savedlog.txt" PSS_PHASE=2 lua5.1 "$here/run.lua" . "$work/savedlog.lua" - "$here/check_savedlog.lua" 2>&1 | grep -E "PASS|FAIL|was:|now:" >> "$work/savedlog-1.txt"
+cat "$work/savedlog-1.txt"
+grep -q "PASS saved log 1" "$work/savedlog-1.txt" && grep -q "PASS saved log 2" "$work/savedlog-1.txt" || fail=1
+
 # PourSocialScore_Logging on demand (3.0 Step 4.4): not loaded at a normal
 # login, lines wait in the outbox over a logout, opening the history or 200
 # waiting lines load it

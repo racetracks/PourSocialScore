@@ -1,9 +1,9 @@
--- Per-person block history kept past the 2,000 line log (2.0.37; since 3.2
--- a person's lines go straight to the keep, never the log), run after
+-- Per-person block history kept past the 2,000 line log (2.0.37; every line
+-- goes in the log first again since 3.2.0-dev007), run after
 -- validate.sh phases 2 and 3 on a save that had overflow.lua applied.
 --   PSS_PHASE=4 : the overflow lines were trimmed at the upgrade; Grunt keeps
---                 his newest old lines (no emotes: world chat is not kept
---                 since 3.2). Then Spammer-Realm gets 12 whispers, 7 emotes,
+--                 his newest old lines past his log lines (no emotes: world
+--                 chat is not kept once it leaves the log). Then Spammer-Realm gets 12 whispers, 7 emotes,
 --                 7 party and 7 guild invites, and 2,200 chat filter lines
 --                 push every person out of the log.
 --                 Counts must go up by the blocks only, never by kept lines.
@@ -39,13 +39,17 @@ local function inLog()
 	for _, h in ipairs(History.Log()) do s[h] = true end
 	return s
 end
--- every kept line is a packed string (3.2), and no person is in the log
+-- every kept line is a packed string (3.2), and none is also in the log
 local function checkNoCopies()
-	for o, list in pairs(History.Keep()) do
-		for _, s in ipairs(list) do if type(s) ~= "string" then fail("kept line not packed (" .. o .. ")") break end end
-	end
+	local logged = {}
 	for _, h in ipairs(History.Log()) do
-		if History.KeepsOwner(h.o) then fail("a person's line in the log") break end
+		if History.KeepsOwner(h.o) and History.PackLine(h) then logged[h.o .. History.PackLine(h)] = true end
+	end
+	for o, list in pairs(History.Keep()) do
+		for _, s in ipairs(list) do
+			if type(s) ~= "string" then fail("kept line not packed (" .. o .. ")") break end
+			if logged[o .. s] then fail("a line both in the log and kept (" .. o .. ")") break end
+		end
 	end
 end
 local function expectList(what, got, prefix, from, to)
@@ -71,12 +75,12 @@ if phase == 4 then
 	eq("Grunt emotes", #g.emote, 0)
 	expectList("Grunt party invites", g.party, "old party ", 8, 4)
 	expectList("Grunt guild invites", g.guild, "old guild ", 8, 4)
-	-- since 3.2 a person's lines are all kept, none in the log
+	-- his 4 log lines stay in the log (3.2.0-dev007), the 6 older are kept
 	local kept = view(History.KeptLines("g:grunt-realm"))
-	eq("Grunt kept chat lines", #kept.text, 10)
-	for _, h in ipairs(History.Log()) do
-		if History.KeepsOwner(h.o) then fail("a person's line is in the log after the upgrade") break end
-	end
+	eq("Grunt kept chat lines", #kept.text, 6)
+	local logged = 0
+	for _, h in ipairs(History.Log()) do if h.o == "g:grunt-realm" then logged = logged + 1 end end
+	eq("Grunt lines in the log", logged, 4)
 	eq("Filler kept lines at most 20", #(History.Keep()["g:filler-realm"] or {}) <= 20, true)
 	eq("log within the cap", #History.Log() <= History.Cap(), true)
 	checkNoCopies()

@@ -238,6 +238,8 @@ local function EventHandler (self, event, sender, ...)
 		if M.PSS_FlushManaged then pcall(M.PSS_FlushManaged) end
 		-- this session's counts are not kept past it
 		if M.PSS_History and M.PSS_History.EndSession then M.PSS_History.EndSession() end
+		-- the log saved one group per person (3.2.0-dev007)
+		if M.PSS_History and M.PSS_History.PackForSave then pcall(M.PSS_History.PackForSave) end
 		return
 	end
 

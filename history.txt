@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev007 - Every blocked line in the log again, saved smaller
+
+- The 2,000 line block log holds every blocked line again, as before 3.2.0-dev3: listed players, guild members (default lists too), chat filters, world and guild chat. When a person's lines are trimmed off the log, their newest 10 whispers and party / raid lines, 5 party invites and 5 guild invites are still kept for them, at most 2,000 such lines in all. Lines kept by 3.2.0-dev3 to dev006 go back in the log once.
+- The block log is saved one group per person, filter or guild member: the name, guild and rule once, then a short line for each block (type, seconds since the one before, event, channel, message; a repeated message is stored once). On a real 2.0.44 save the 2,000 lines take 203 KB instead of 633 KB. While playing nothing changes: the log is grouped at logout or /reload, and only if it was loaded that session. The code for it is in PourSocialScore_Logging, so it takes memory only when the block history is loaded (the always-loaded core grows by 0.4 KB).
+
 => 3.2.0-dev006 - One session for both windows
 
 - "This session" now means the same in the PSS window and the EllesmereUI window: since your login or your last /reload. The per-entry session counts used to survive a /reload, so the EllesmereUI pies could show more than the PSS window's header. A loading screen still keeps the session.
