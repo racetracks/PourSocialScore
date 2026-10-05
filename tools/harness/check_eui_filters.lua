@@ -123,6 +123,13 @@ selectFilter(bi)
 check(pane.body:IsShown() and st.sel == bi, "built-in not selected")
 check(not pane.descBox:IsEnabled() and not pane.filterBox:IsEnabled() and not pane.saveButton:IsEnabled() and not pane.removeButton:IsEnabled(), "built-in editable")
 check(pane.copyButton:IsEnabled() and pane.lock:IsShown(), "built-in copy / lock note")
+-- a long filter scrolls inside its panel: the box is the scroll child, and
+-- picking another filter starts at the top
+check(pane.filterScroll and pane.filterScroll:GetScrollChild() == pane.filterBox, "filter box not in a scroll frame")
+pane.filterScroll:SetVerticalScroll(40)
+selectFilter(bi == 1 and 2 or 1)
+check(pane.filterScroll:GetVerticalScroll() == 0, "filter scroll not reset on a new filter")
+selectFilter(bi)
 local was = db.filterActive[bi] == true
 pane.onBox:SetChecked(not was)
 pane.onBox:GetScript("OnClick")(pane.onBox)
