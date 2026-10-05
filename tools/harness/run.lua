@@ -178,7 +178,12 @@ local M = coreAddon and coreAddon.M
 _G.M = M
 
 H.Fire("PLAYER_LOGIN")
-H.Fire("PLAYER_ENTERING_WORLD", true, false)
+-- PSS_RELOAD=1: a /reload instead of a login
+if os.getenv("PSS_RELOAD") == "1" then
+	H.Fire("PLAYER_ENTERING_WORLD", false, true)
+else
+	H.Fire("PLAYER_ENTERING_WORLD", true, false)
+end
 H.Fire("IGNORELIST_UPDATE")
 H.RunTimers()
 

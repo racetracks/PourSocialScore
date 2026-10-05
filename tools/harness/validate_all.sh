@@ -152,6 +152,21 @@ for sv in - "$work/sv-2.0.44.lua"; do
 	done
 done
 
+# recent counts (3.2): session and last-24-hour counts per owner without
+# Logging; a /reload keeps the session, a login starts a new one
+echo "== recent counts"
+lua5.1 "$here/run.lua" . - "$work/rc-0.lua" > /dev/null 2>&1
+rcT=$(lua5.1 -e "print(1790000000 + 24 * 3600 + 10 * 60 + 150 * 600)")
+src=$work/rc-0.lua
+for ph in 1 2 3; do
+	env=""
+	[ $ph = 2 ] && env="PSS_RELOAD=1"
+	[ $ph != 1 ] && env="$env PSS_TIME=$rcT"
+	out=$(env $env PSS_PHASE=$ph lua5.1 "$here/run.lua" . "$src" "$work/rc-$ph.lua" "$here/check_recent.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | grep -q "PASS recent $ph" && echo "PASS recent $ph" || { echo "$out"; echo "FAIL recent $ph"; fail=1; }
+	src=$work/rc-$ph.lua
+done
+
 # upgrade record (3.0): a 2.0 save gets step 1 once with one chat line, the
 # next login prints nothing; a fresh save is stamped without a message
 echo "== upgrade record"

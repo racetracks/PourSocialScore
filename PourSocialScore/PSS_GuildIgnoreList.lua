@@ -1051,6 +1051,7 @@ local function recordGuildBlock(g, m, cat, event, message, channel, gkey)
 	local entry = History.NewEntry(cat, event, message, channel, m.name)
 	entry.gk = gkey			-- the rule at the time (used if they leave every rule)
 	History.Add(History.MemberKey(m), m.blockCounts, entry)
+	History.CountRecent(History.GuildKey(gkey), entry.ts)	-- the guild's own recent counts
 	if M.PSS_Stats then M.PSS_Stats.Count("guild", entry.cat) end
 	if entry.cat == "partyInvite" or entry.cat == "guildInvite" then
 		m.lastBlockedInvite = entry.time
@@ -1298,7 +1299,11 @@ function M.PSS_ResetGuildBlockHistory(guildNameOrKey)
 	local g, gkey = findGuildRecord(guildNameOrKey)
 	if not g then return end
 	History.Clear(guildLineMatcher(g, gkey))
-	forEachMember(g, gkey, clearMemberBlockData)
+	forEachMember(g, gkey, function(m)
+		History.ForgetRecent(History.MemberKey(m))
+		clearMemberBlockData(m)
+	end)
+	History.ForgetRecent(History.GuildKey(gkey))
 	g.blockHistory = nil
 	requestGuildUIRefresh()
 end
@@ -1311,7 +1316,10 @@ end
 function M.PSS_ResetMemberBlockHistory(member)
 	if type(member) ~= "table" then return end
 	local key = History.MemberKey(member)
-	if key then History.Clear(function(h) return h.o == key end) end
+	if key then
+		History.Clear(function(h) return h.o == key end)
+		History.ForgetRecent(key)
+	end
 	clearMemberBlockData(member)
 	requestGuildUIRefresh()
 end
