@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev004 - Totals for a whole list
+
+- New: the blocks of a whole list added up (Player Ignore List, Guild Ignore List or Chat Filters), with this session and the last 24 hours, for the EllesmereUI window to show when nothing on the list is selected. It reads the counters only (the block history stays unloaded) and is in PourSocialScore_Libraries, so it takes no memory until a window opens.
+
 => 3.2.0-dev3 - Kept lines, world chat, your own guild
 
 - Blocked lines of listed players and guild members (default lists too) no longer go in the 2,000 line block log: each person keeps their newest 10 whispers and party / raid / instance / battleground lines, 5 party invites and 5 guild invites, at most 2,000 such lines in all (the oldest go first). The block log now holds chat filter lines only.

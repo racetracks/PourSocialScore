@@ -121,6 +121,13 @@ local bi
 for i = 1, #db.filterList do if M.PSS_IsBuiltinFilter(i) and not M.PSS_IsGuildRuleFilter(i) then bi = i break end end
 selectFilter(bi)
 check(pane.body:IsShown() and st.sel == bi, "built-in not selected")
+-- a click on the selected filter deselects it: every filter's totals
+-- (guild rules left out: their blocks are on the Guild Ignore List)
+selectFilter(bi)
+check(not pane.body:IsShown() and st.sel == nil and pane.totals.frame:IsShown(), "filter deselect: totals not shown")
+check(pane.totals.counts.total == M.PSS_ListTotals("filters", {}).total, "filter totals")
+selectFilter(bi)
+check(pane.body:IsShown() and st.sel == bi and not pane.totals.frame:IsShown(), "built-in not selected again")
 check(not pane.descBox:IsEnabled() and not pane.filterBox:IsEnabled() and not pane.saveButton:IsEnabled() and not pane.removeButton:IsEnabled(), "built-in editable")
 check(pane.copyButton:IsEnabled() and pane.lock:IsShown(), "built-in copy / lock note")
 -- a long filter scrolls inside its panel: the box is the scroll child, and

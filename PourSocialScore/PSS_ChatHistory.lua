@@ -765,6 +765,28 @@ function History.RecentCounts(owner)
 	return type(se) == "table" and se[owner] or 0, r and r.day[owner] or 0
 end
 
+-- This session's and the last 24 hours' blocks of every owner whose key
+-- starts with prefix ("p:" players, "G:" guilds, "f:" chat filters), added
+-- up. Walks the owners once; for showing, not per block.
+function History.RecentTotals(prefix)
+	if type(prefix) ~= "string" then return 0, 0 end
+	local db = PourSocialScoreDB
+	local se = type(db) == "table" and rawget(db, "session")
+	local r = recent(math.floor(History.Now() / SLOT), false)
+	local s, d = 0, 0
+	if type(se) == "table" then
+		for owner, n in pairs(se) do
+			if type(owner) == "string" and string.find(owner, prefix, 1, true) == 1 then s = s + n end
+		end
+	end
+	if r then
+		for owner, n in pairs(r.day) do
+			if type(owner) == "string" and string.find(owner, prefix, 1, true) == 1 then d = d + n end
+		end
+	end
+	return s, d
+end
+
 -- The last day's blocks of owner by 10 minutes and type, newest first:
 -- out[n] = { ts = start of the 10 minutes, cat = type, n = blocks } (a new
 -- array, for showing). Nothing when owner has no block in the day.

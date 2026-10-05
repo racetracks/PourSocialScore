@@ -148,6 +148,15 @@ selectGuild(key)
 local gb = pane.guild
 check(gb:IsShown() and not pane.none:IsShown(), "guild pane not shown")
 check(gb.heading:GetText() == "Tour Guild 010", "pane heading " .. tostring(gb.heading:GetText()))
+-- a click on the selected guild deselects it: every guild's totals
+selectGuild(key)
+check(not gb:IsShown() and pane.totals.frame:IsShown(), "guild deselect: totals not shown")
+do
+	local want = M.PSS_ListTotals("guilds", {})
+	check(pane.totals.summary.values.all == want.total and pane.totals.counts.total == want.total, "guild totals")
+end
+selectGuild(key)
+check(gb:IsShown() and not pane.totals.frame:IsShown(), "guild not selected again")
 local _, g = M.PSS_FindGuildRule(key)
 
 -- W unticked = blocked from the guild
@@ -431,23 +440,26 @@ if hi then
 	local logging = loaded("PourSocialScore_Logging")
 	st.dirty = true
 	page.refresh()
-	local pies = pane.group.pies
+	local gp = pane.group
 	local hdr = st.rows[indexOf(function(it) return it.header and it.groupKey == gk end)]
-	check(pies and pies:IsShown(), "group pies not shown")
-	if pies then
-		local v = pies.periodValues
-		check(v.session == s and v.day == d and s >= 2 and d >= 2,
-			("group period pie %s/%s, want %d/%d"):format(tostring(v.session), tostring(v.day), s, d))
-		check(v.all == (hdr.bc.total or 0), "group all-time slice is not the list's total")
-		local want = 0
-		for _, cat in ipairs(History.ALL_CATS) do if (hdr.bc[cat] or 0) > 0 then want = want + 1 end end
-		check(pies.typeCount == want, ("group type pie %s types, want %d"):format(tostring(pies.typeCount), want))
-		for i = 1, pies.typeCount do
-			local sl = pies.typeSlices[i]
-			check(sl.value == hdr.bc[sl.cat], "group type slice " .. tostring(sl.cat))
-		end
-		check(pies.typeEmpty:IsShown() == (want == 0), "group type pie empty text")
+	check(gp.charts:IsShown() and gp.summary.pie ~= nil, "group pies not shown")
+	local v = gp.summary.values
+	check(v.session == s and v.day == d and s >= 2 and d >= 2,
+		("group period pie %s/%s, want %d/%d"):format(tostring(v.session), tostring(v.day), s, d))
+	check(v.all == (hdr.bc.total or 0), "group all-time count is not the list's total")
+	-- the same tick boxes as a guild's Summary; All time starts unticked
+	check(gp.summary.boxes.all and not gp.summary.boxes.all:GetChecked() and gp.summary.boxes.session:GetChecked(),
+		"group tick boxes (All time should start off)")
+	check(not gp.summary.viewButton:IsShown(), "View Events on a default guild list")
+	local want = 0
+	for _, cat in ipairs(History.ALL_CATS) do if (hdr.bc[cat] or 0) > 0 then want = want + 1 end end
+	local tp = gp.typePie
+	check(tp.count == want, ("group type pie %s types, want %d"):format(tostring(tp.count), want))
+	for i = 1, tp.count do
+		local sl = tp.slices[i]
+		check(sl.value == hdr.bc[sl.cat], "group type slice " .. tostring(sl.cat))
 	end
+	check(tp.empty:IsShown() == (want == 0), "group type pie empty text")
 	check(loaded("PourSocialScore_Logging") == logging, "group pies loaded the block history")
 	local ii = indexOf(function(it) return it.inGroup end)
 	if ii then
@@ -521,7 +533,7 @@ check(M.PSS_IsGuildListed("Tour Added Guild"), "removed before the confirmation"
 E.log.popups[#E.log.popups].onConfirm()
 H.RunTimers()
 check(not M.PSS_IsGuildListed("Tour Added Guild"), "guild not removed")
-check(pane.none:IsShown(), "pane still shows a removed guild")
+check(pane.totals.frame:IsShown(), "pane still shows a removed guild")
 
 -- the PSS window keeps working on the same functions
 check(not loaded("PourSocialScore_GUI"), "PourSocialScore_GUI loaded by the tab")
