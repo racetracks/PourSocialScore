@@ -1,7 +1,8 @@
 -------------------------------------------------------------------------------
 --  EUI_Players.lua -- the Player Ignore List tab of the window: the list
---  (search, sortable columns), a detail pane for the selected entry (note,
---  expiry, W I G P C, overrides, counts) and its block history under it.
+--  (search, sortable columns) and a detail pane for the selected entry with
+--  three pages (EUI_Detail.lua): Summary (counts), Event History
+--  and View/Edit Rule (note, expiry, W I G P C, overrides, actions).
 --  Everything is read and changed through the core (PSS_PlayerQuery.lua and
 --  the player setters); the core says when the list changed
 --  (PLAYERS_CHANGED, PLAYER_BLOCKED) and the tab redraws if it shows.
@@ -12,7 +13,7 @@ local EUI = EllesmereUI
 local L = PourSocialScore_NS.L
 local History = M.PSS_History
 
-local DETAIL_W = 360
+local DETAIL_W = 380
 local TOP_H = 32
 local LINE_H = 16
 
@@ -212,17 +213,27 @@ local function BuildPane(parent)
     pane.heading = ns.NewHeading(body, "")
     pane.heading:SetPoint("TOPLEFT", body, "TOPLEFT", 10, -8)
     pane.heading:SetPoint("RIGHT", body, "RIGHT", -10, 0)
-    local y = -28
-    pane.typeLine = Line(body, y); y = y - LINE_H
-    pane.addedLine = Line(body, y); y = y - LINE_H
-    pane.guildLine = Line(body, y); y = y - LINE_H
-    pane.inviteLine = Line(body, y); y = y - LINE_H - 6
+    local dp = ns.NewDetailPages(body, -28, "players")
+    pane.pages = dp
+
+    -- Summary: the counts
+    pane.counts = Line(dp.summary, -6)
+    ns.Font(pane.counts, 11)
+    pane.player[#pane.player + 1] = pane.counts
+
+    -- View/Edit Rule
+    local rule = dp.rule
+    local y = -2
+    pane.typeLine = Line(rule, y); y = y - LINE_H
+    pane.addedLine = Line(rule, y); y = y - LINE_H
+    pane.guildLine = Line(rule, y); y = y - LINE_H
+    pane.inviteLine = Line(rule, y); y = y - LINE_H - 6
     pane.player[#pane.player + 1] = pane.guildLine
     pane.player[#pane.player + 1] = pane.inviteLine
 
     -- expiry: days after the date added, 0 = never
-    local expRow = CreateFrame("Frame", nil, body)
-    expRow:SetPoint("TOPLEFT", body, "TOPLEFT", 10, y)
+    local expRow = CreateFrame("Frame", nil, rule)
+    expRow:SetPoint("TOPLEFT", rule, "TOPLEFT", 10, y)
     expRow:SetSize(DETAIL_W - 20, 22)
     Label(expRow, "Expires after", expRow)
     local exp = ns.NewNumberBox(expRow, 44)
@@ -242,8 +253,8 @@ local function BuildPane(parent)
     pane.expireBox = exp
     y = y - 26
 
-    local noteRow = CreateFrame("Frame", nil, body)
-    noteRow:SetPoint("TOPLEFT", body, "TOPLEFT", 10, y)
+    local noteRow = CreateFrame("Frame", nil, rule)
+    noteRow:SetPoint("TOPLEFT", rule, "TOPLEFT", 10, y)
     noteRow:SetSize(DETAIL_W - 20, 22)
     Label(noteRow, "Note", noteRow)
     local note = CreateFrame("EditBox", nil, noteRow, "InputBoxTemplate")
@@ -266,8 +277,8 @@ local function BuildPane(parent)
     y = y - 28
 
     -- W I G P C (ticked = allowed; the record stores "blocked")
-    local exRow = CreateFrame("Frame", nil, body)
-    exRow:SetPoint("TOPLEFT", body, "TOPLEFT", 10, y)
+    local exRow = CreateFrame("Frame", nil, rule)
+    exRow:SetPoint("TOPLEFT", rule, "TOPLEFT", 10, y)
     exRow:SetSize(DETAIL_W - 20, 24)
     Label(exRow, "Allowed", exRow)
     pane.excl = {}
@@ -297,7 +308,7 @@ local function BuildPane(parent)
     for _, o in ipairs(M.PSS_OPTIONS) do
         if o.target and o.kind == "bool" then
             n = n + 1
-            local b = ns.NewButton(body, "", (DETAIL_W - 26) / 2, function(self)
+            local b = ns.NewButton(rule, "", (DETAIL_W - 26) / 2, function(self)
                 local p = pane.record
                 if not p then return end
                 local cur = p.opts and p.opts[self.opt.key]
@@ -308,45 +319,39 @@ local function BuildPane(parent)
             end)
             b.opt = o
             local col, r = (n - 1) % 2, math.floor((n - 1) / 2)
-            b:SetPoint("TOPLEFT", body, "TOPLEFT", 10 + col * ((DETAIL_W - 26) / 2 + 6), y - r * 24)
+            b:SetPoint("TOPLEFT", rule, "TOPLEFT", 10 + col * ((DETAIL_W - 26) / 2 + 6), y - r * 24)
             ns.TipOn(b, b, o.label .. "\n\nClick to change: Default (the Options tab) > On > Off.")
             pane.overrides[#pane.overrides + 1] = b
             pane.player[#pane.player + 1] = b
         end
     end
-    y = y - math.ceil(n / 2) * 24 - 4
 
-    pane.counts = Line(body, y)
-    ns.Font(pane.counts, 11)
-    pane.player[#pane.player + 1] = pane.counts
-    y = y - LINE_H - 2
-
-    -- bottom: Remove, Reset History, Add Guild
-    local remove = ns.NewButton(body, "Remove", 100, ConfirmRemove)
+    -- the rule's actions: Remove, Add Guild
+    local remove = ns.NewButton(rule, "Remove", 100, ConfirmRemove)
     pane.removeButton = remove
-    remove:SetPoint("BOTTOMLEFT", body, "BOTTOMLEFT", 10, 8)
-    local reset = ns.NewButton(body, L["HISTORY_RESET"] or "Reset Block History", 130, function()
-        if P.sel then M.PSS_ResetPlayerBlockHistory(P.sel) end
-    end)
-    reset:SetPoint("LEFT", remove, "RIGHT", 6, 0)
-    pane.player[#pane.player + 1] = reset
-    local addGuild = ns.NewButton(body, "Add Guild", 100, function(self)
+    remove:SetPoint("BOTTOMLEFT", rule, "BOTTOMLEFT", 10, 4)
+    local addGuild = ns.NewButton(rule, "Add Guild", 100, function(self)
         if self.guild then
             M.PSS_AddGuild(self.guild)
             M.ShowMsg(("Added <%s> to the Guild Ignore List."):format(self.guild))
             ns.ShowPlayerDetail()
         end
     end)
-    addGuild:SetPoint("LEFT", reset, "RIGHT", 6, 0)
+    addGuild:SetPoint("LEFT", remove, "RIGHT", 6, 0)
     ns.TipOn(addGuild, addGuild, "Adds this player's current guild to the Guild Ignore List.")
     pane.addGuild = addGuild
 
-    -- the block history of this player
-    pane.hist = ns.NewHistory(body, y, {
+    -- Event History: the block history, the whole page, Reset under it
+    pane.hist = ns.NewHistory(dp.history, -2, {
         empty = "Nothing blocked from this player yet.",
         open = function(entry) ns.OpenHistoryView(page, ns.PlayerHistorySpec(entry)) end,
     })
     pane.player[#pane.player + 1] = pane.hist.frame
+    local reset = ns.NewButton(dp.history, L["HISTORY_RESET"] or "Reset Block History", 130, function()
+        if P.sel then M.PSS_ResetPlayerBlockHistory(P.sel) end
+    end)
+    reset:SetPoint("BOTTOMLEFT", dp.history, "BOTTOMLEFT", 10, 4)
+    pane.player[#pane.player + 1] = reset
 end
 
 -- Redraw the pane for the selected entry (none: a hint).
@@ -365,6 +370,8 @@ function ns.ShowPlayerDetail(newEntry)
     pane.record = p
     local isPlayer = p ~= nil
     for _, f in ipairs(pane.player) do f:SetShown(isPlayer) end
+    -- NPCs and servers have no counts or history: View/Edit Rule only
+    pane.pages:Limit(not isPlayer and { rule = true } or nil)
 
     local cr, cg, cb = ClassColor(p)
     local title = (r.kind == "npc" and "NPC: ") or (r.kind == "server" and "Server: ") or ""
