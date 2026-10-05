@@ -321,30 +321,76 @@ local function OptionRow(content, o, y, rows)
         refresh = function() if d.SetDefaultText then d:SetDefaultText(ChoiceText(o, M.PSS_Opt(o.key))) end end
     end
     rows[#rows + 1] = refresh
+    return row
 end
 
+-- The Options tab: every option under its section heading, and a search
+-- box in the tab row (shown with this tab) that keeps the options whose
+-- name, tooltip or section holds the text.
 function ns.BuildOptionsTab(page)
     local content = Scroll(page)
-    local rows = {}
-    local y = -4
+    local rows, groups = {}, {}
     for section = 1, #SECTIONS do
         local list = SectionOptions(section)
         if #list > 0 then
-            local h = Heading(content, SectionTitle(section))
-            h:SetPoint("TOPLEFT", content, "TOPLEFT", 6, y - 4)
-            y = y - 28
+            local g = { title = SectionTitle(section), items = {} }
+            g.heading = Heading(content, g.title)
             for _, o in ipairs(list) do
-                OptionRow(content, o, y, rows)
-                y = y - ROW_H
+                g.items[#g.items + 1] = { row = OptionRow(content, o, 0, rows), find = (Label(o) .. "\n" .. (o.tip or "")):lower() }
             end
-            y = y - 8
+            groups[#groups + 1] = g
         end
     end
     local note = Text(content, 11)
-    note:SetPoint("TOPLEFT", content, "TOPLEFT", 6, y - 4)
     note:SetTextColor(1, 1, 1, 0.6)
     note:SetText("* can also be set per guild or per player. The same settings are in the EllesmereUI panel (/pss eui).")
-    content:SetHeight(-y + 30)
+    local none = Text(content, 12)
+    none:SetTextColor(1, 1, 1, 0.6)
+    none:SetText("No options match.")
+
+    local function Layout(q)
+        q = (q or ""):lower()
+        local y, shown = -4, 0
+        for _, g in ipairs(groups) do
+            local all = q == "" or g.title:lower():find(q, 1, true) ~= nil
+            local n = 0
+            for _, it in ipairs(g.items) do
+                local on = all or it.find:find(q, 1, true) ~= nil
+                it.row:SetShown(on)
+                if on then
+                    if n == 0 then
+                        g.heading:ClearAllPoints()
+                        g.heading:SetPoint("TOPLEFT", content, "TOPLEFT", 6, y - 4)
+                        y = y - 28
+                    end
+                    it.row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
+                    y = y - ROW_H
+                    n = n + 1
+                end
+            end
+            g.heading:SetShown(n > 0)
+            if n > 0 then y = y - 8 end
+            shown = shown + n
+        end
+        none:SetShown(shown == 0)
+        none:ClearAllPoints()
+        none:SetPoint("TOPLEFT", content, "TOPLEFT", 6, y - 4)
+        if shown == 0 then y = y - 24 end
+        note:ClearAllPoints()
+        note:SetPoint("TOPLEFT", content, "TOPLEFT", 6, y - 4)
+        content:SetHeight(-y + 30)
+        local scroll = content:GetParent()
+        if scroll and scroll.SetVerticalScroll then scroll:SetVerticalScroll(0) end
+    end
+    Layout("")
+
+    -- the search box sits at the right end of the tab row, over the window
+    -- (the page's parent), and shows and hides with this page
+    local win = page:GetParent()
+    local search = ns.NewSearchBox(page, 200, "Search options", Layout)
+    search:SetPoint("TOPRIGHT", win, "TOPRIGHT", -12, -34)
+    page.search = search
+    page.groups = groups
     return function() for i = 1, #rows do rows[i]() end end
 end
 
