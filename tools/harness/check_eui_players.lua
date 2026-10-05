@@ -196,6 +196,17 @@ check(T({ cat = "world", channel = "2. Trade" }) == "world" and T({ cat = "guild
 check(T({ cat = "partyRaid", channel = "Party Leader" }) == "party", "party type")
 check(T({ cat = "partyRaid", channel = "Raid Warning" }) == "raid", "raid type")
 check(T({ cat = "partyRaid", channel = "Battleground" }) == "BG" and T({ cat = "partyRaid", channel = "Instance" }) == "BG", "BG type")
+-- a double-click on a line opens the Block History view in place of the tab
+H.Advance(1)
+local hr = hv.list.rows[1]
+hr:GetScript("OnClick")(hr, "LeftButton")
+hr:GetScript("OnClick")(hr, "LeftButton")
+local view = page.hview
+check(view and view:IsOpen() and not page:IsShown() and view.list.count == 1, "player Block History view not opened")
+view.allButton:GetScript("OnClick")(view.allButton)
+check(view.spec.id == false and view.list.count >= 1, "All Players: " .. view.list.count)
+check(EllesmereUI.PressEscape() and not view:IsOpen() and page:IsShown(), "Escape did not close the player view")
+H.Advance(1)
 
 -- NPC entry: the player-only parts hide
 idx = M.PSS_SortPlayers(list.sortKey, list.sortAsc, nil)

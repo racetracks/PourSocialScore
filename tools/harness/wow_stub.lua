@@ -135,6 +135,8 @@ function W:SetJustifyV() justify(self, "SetJustifyV") end
 function W:GetChildren() return end
 function W:GetRegions() return end
 function W:GetNumChildren() return 0 end
+function W:SetHyperlinksEnabled(on) self._links = on and true or false end
+function W:GetHyperlinksEnabled() return self._links or false end
 -- a check sets f._mouseOver to put the mouse over a frame
 function W:IsMouseOver() return self._mouseOver or false end
 function W:IsDragging() return false end

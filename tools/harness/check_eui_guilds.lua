@@ -8,7 +8,8 @@
 --         Scan All and the key binding with the /who cooldown, the members
 --         view (note, W I G P C, confirmed removal), managed groups, the
 --         Guild Exclusion List, Guild Search with Save, confirmed Remove
---         Guild, block history on demand (type filters, names), back /
+--         Guild, block history on demand (type filters, names), the
+--         Block History view (search, sort, links, copy, All), back /
 --         forward, mouse buttons 4 / 5, Escape up a level;
 --         PourSocialScore_GUI never loads
 local fail = false
@@ -234,6 +235,65 @@ local hc = hv.list.rows[1].cells
 check(hc.name and hc.name:GetText() == "Member0100", "guild history name " .. tostring(hc.name and hc.name:GetText()))
 check((hc.kind:GetText() or ""):match("|c%x+whisper|r"), "guild history type " .. tostring(hc.kind:GetText()))
 check((hc.time:GetText() or ""):match("^%d%d%d%d/%d%d/%d%d %d%d:%d%d:%d%d$"), "guild history time " .. tostring(hc.time:GetText()))
+
+-- the Block History view: a double-click on a line opens it in place of
+-- the tab, with the type boxes and a search over player, channel, message
+check(whisper("Member0101-Realm1", "wts |cffa335ee|Hitem:19019::::::::60:::::|h[Thunderfury]|h|r"), "second whisper not blocked")
+H.Advance(1)
+H.RunTimers()
+check(hv.list.count == 2, "pane history after a second block: " .. hv.list.count)
+local r1 = hv.list.rows[1]
+r1:GetScript("OnClick")(r1, "LeftButton")
+check(not page.hview, "one click opened the Block History view")
+r1:GetScript("OnClick")(r1, "LeftButton")
+local view = page.hview
+check(view and view:IsOpen() and view.frame:IsShown() and not page:IsShown(), "double-click did not open the Block History view")
+check(view.list.count == 2 and (view.heading:GetText() or ""):match("Big Guild"), "view of the guild: " .. view.list.count)
+check((win.where:GetText() or ""):match("Block History: Big Guild"), "where line " .. tostring(win.where:GetText()))
+check(view.list.rows[1]._links == true, "links in the view not clickable")
+check(view.list.rows[1].cells.member:GetText() ~= "" and view.list.rows[1].cells.channel:GetText() == "Whisper", "player / channel cells")
+local function find(text)
+	view.search:SetText(text)
+	view.search:GetScript("OnTextChanged")(view.search, true)
+	return view.list.count
+end
+check(find("thunderfury") == 1, "message search")
+check(find("member0100") == 1, "player search")
+check(find("whisper") == 2, "channel search")
+check(find("") == 2, "search not cleared")
+-- a type box in the view filters the pane too, and back
+local vw = view.boxes.whisper
+vw:SetChecked(false)
+vw:GetScript("OnClick")(vw)
+check(view.list.count == 0 and not hv.boxes.whisper:GetChecked() and hv.list.count == 0, "type box not shared")
+vw:SetChecked(true)
+vw:GetScript("OnClick")(vw)
+check(view.list.count == 2 and hv.list.count == 2, "type box not back")
+-- sort by Player (A-Z)
+local ph
+for _, h in ipairs(view.list.heads) do if h.key == "member" then ph = h end end
+ph:GetScript("OnClick")(ph)
+check(view.sortKey == "member" and view.sortAsc and view.shown[1].member < view.shown[2].member, "sort by player")
+-- a double-click on a line: the message in the copy box
+H.Advance(1)
+local vr = view.list.rows[1]
+local copies = #E.log.copies
+vr:GetScript("OnClick")(vr, "LeftButton")
+vr:GetScript("OnClick")(vr, "LeftButton")
+check(#E.log.copies == copies + 1, "double-click did not copy the message")
+-- All Guilds, Back to the guild, Escape back to the tab
+view.allButton:GetScript("OnClick")(view.allButton)
+check(view.spec.id == false and (view.heading:GetText() or ""):match("All Guilds") and view.list.count >= 2, "All Guilds")
+win.back:GetScript("OnClick")(win.back)
+check(view:IsOpen() and view.spec.id == bigKey, "Back did not return to the guild's history")
+check(E.PressEscape() and win:IsShown() and not view:IsOpen() and page:IsShown(), "Escape did not close the Block History view")
+win.back:GetScript("OnClick")(win.back)
+check(view:IsOpen() and view.spec.id == bigKey, "Back did not reopen the Block History view")
+win.tabs[1]:GetScript("OnClick")(win.tabs[1])
+check(not view.frame:IsShown() and not page:IsShown(), "view shown on another tab")
+win.tabs[2]:GetScript("OnClick")(win.tabs[2])
+check(view.frame:IsShown() and not page:IsShown(), "view not back with its tab")
+check(E.PressEscape() and not view:IsOpen() and page:IsShown(), "Escape did not close the view")
 
 ------------------------------------------------------------------ members view
 selectGuild(bigKey)
