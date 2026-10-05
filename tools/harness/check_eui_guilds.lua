@@ -533,6 +533,16 @@ if hi then
 	for _, h in ipairs(gv and gv.all or {}) do shownBlocks = shownBlocks + (h.expired or 1) end
 	check(gv and gv:IsOpen() and gv.spec.kind == "group" and gv.spec.id == gk and shownBlocks >= wantBlocks and wantBlocks >= 2,
 		("View Events on a default guild list: %d blocks shown, %d counted"):format(shownBlocks, wantBlocks))
+	-- one counted row per type and 10 minutes for the whole list
+	local seen, dup = {}, false
+	for _, h in ipairs(gv.all) do
+		if h.expired then
+			local k = h.cat .. "/" .. tostring(h.ts) .. "/" .. h.channel
+			if seen[k] then dup = true end
+			seen[k] = true
+		end
+	end
+	check(not dup, "counted rows of a default guild list not merged")
 	-- its Reset asks first (it clears every guild in the list)
 	local asked = #E.log.popups
 	gv.resetButton:GetScript("OnClick")(gv.resetButton)
@@ -541,6 +551,10 @@ if hi then
 	check(E.PressEscape() and not gv:IsOpen() and page:IsShown(), "Escape did not close the list's view")
 	gp.summary:Open(gp.summary.map[1])
 	check(gv:IsOpen() and gv.spec.kind == "group" and gv.period == "session", "a slice of a default guild list")
+	-- this session's blocks show even when their 10 minutes began before it
+	local sessionBlocks = 0
+	for i = 1, gv.list.count do sessionBlocks = sessionBlocks + (gv.shown[i].expired or 1) end
+	check(sessionBlocks >= s, ("this session's slice shows %d of %d blocks"):format(sessionBlocks, s))
 	check(E.PressEscape() and not gv:IsOpen(), "Escape did not close the slice's view")
 	-- the Managed Communities row: every list added up, a click opens or
 	-- closes it (only a closed row is saved)
