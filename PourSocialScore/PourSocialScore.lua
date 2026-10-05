@@ -236,6 +236,8 @@ local function EventHandler (self, event, sender, ...)
 		M.PSS_CollapseFilters()
 		-- managed guild lists: write only the delta
 		if M.PSS_FlushManaged then pcall(M.PSS_FlushManaged) end
+		-- this session's counts are not kept past it
+		if M.PSS_History and M.PSS_History.EndSession then M.PSS_History.EndSession() end
 		return
 	end
 
@@ -250,8 +252,9 @@ local function EventHandler (self, event, sender, ...)
 
 	if event == "PLAYER_ENTERING_WORLD" then
 		gotEntering = true
-		-- sender = isInitialLogin: a login starts a new session (a /reload does not)
-		if M.PSS_History then M.PSS_History.StartSession(sender) end
+		-- sender = isInitialLogin, then isReloadingUi: a login or /reload starts
+		-- a new session (a loading screen does not)
+		if M.PSS_History then M.PSS_History.StartSession(sender, (...)) end
 	end
 
 	if event == "GROUP_ROSTER_UPDATE" then

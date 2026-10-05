@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev006 - One session for both windows
+
+- "This session" now means the same in the PSS window and the EllesmereUI window: since your login or your last /reload. The per-entry session counts used to survive a /reload, so the EllesmereUI pies could show more than the PSS window's header. A loading screen still keeps the session.
+- The session counts are no longer saved at logout (the next load starts a new session anyway), so the saved file gets a little smaller.
+
 => 3.2.0-dev005 - Managed Communities row
 
 - The guild list query can put every default guild list (Managed Communities - Asmongold ...) under one Managed Communities row that opens and closes, for the EllesmereUI window. The PSS window's list is unchanged. The row is open unless you close it; only a closed row is saved.

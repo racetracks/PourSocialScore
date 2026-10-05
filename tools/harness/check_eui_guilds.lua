@@ -567,6 +567,26 @@ if hi then
 	local inside = 0
 	for i = 1, st.n do if st.rows[i].header or st.rows[i].inGroup then inside = inside + 1 end end
 	check(inside == 0, "closed Managed Communities row still lists groups")
+	-- a block in a list's guild (not on screen) updates the row and pane
+	do
+		local real, before = M.PSS_GetGuildBlockCounts, mh.bc.total or 0
+		M.PSS_GetGuildBlockCounts = function(key)
+			local c = real(key)
+			if key ~= g1 then return c end
+			local t = {}
+			for k, v in pairs(c) do t[k] = v end
+			t.total, t.world = (t.total or 0) + 1, (t.world or 0) + 1
+			return t
+		end
+		M.Events.Fire("GUILD_BLOCKS_CHANGED")
+		H.Advance(1)
+		H.RunTimers()
+		M.PSS_GetGuildBlockCounts = real
+		check(st.rows[1].bc.total == before + 1 and gp.summary.values.all == before + 1,
+			("Managed Communities after a block: %s / %s, want %d"):format(tostring(st.rows[1].bc.total), tostring(gp.summary.values.all), before + 1))
+		st.dirty = true
+		page.refresh()
+	end
 	gp.open:GetScript("OnClick")(gp.open)
 	check(PourSocialScoreDB.guildGroupOpen[M.PSS_GUILD_MANAGED_SHUT] == nil and st.rows[1].open, "Expand on Managed Communities")
 	local ii = indexOf(function(it) return it.inGroup end)

@@ -680,8 +680,8 @@ end
 --             type only while it has blocks, and an owner is in it once
 --             however often it blocked.
 --             A lookup is one index (day[owner]).
---   session = { [owner] = count }, emptied at each login (not a /reload);
---   sessionStart = the server time of that login
+--   session = { [owner] = count }, emptied at each login and /reload and
+--   not saved past logout (3.2.0-dev006); sessionStart = when it began
 -- A guild rule is counted on its members and on History.GuildKey(gkey).
 ------------------------------------------------------------------------
 local SLOT = 600
@@ -856,17 +856,27 @@ function History.ForgetRecent(owner)
 	end
 end
 
--- At login (not a /reload) a new session starts; the day is brought up to
--- now and dropped when empty.
-function History.StartSession(initialLogin)
+-- At login or /reload a new session starts, as the PSS window's own
+-- session counts (PSS_BlockStats.lua) do (3.2.0-dev006); a loading screen
+-- keeps it. The day is brought up to now and dropped when empty.
+function History.StartSession(initialLogin, reloading)
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return end
-	if initialLogin or not tonumber(rawget(db, "sessionStart")) then
+	if initialLogin or reloading or not tonumber(rawget(db, "sessionStart")) then
 		rawset(db, "session", nil)
 		rawset(db, "sessionStart", History.Now())
 	end
 	local r = recent(math.floor(History.Now() / SLOT), false)
 	if r and next(r.day) == nil then rawset(db, "recent", nil) end
+end
+
+-- Logout or /reload: the session ends, so its counts are not saved (the
+-- next load starts a new one).
+function History.EndSession()
+	local db = PourSocialScoreDB
+	if type(db) ~= "table" then return end
+	rawset(db, "session", nil)
+	rawset(db, "sessionStart", nil)
 end
 
 -- Newest-first list of the lines where pred(entry) is true (a new array:

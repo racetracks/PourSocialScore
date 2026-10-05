@@ -155,7 +155,8 @@ for sv in - "$work/sv-2.0.44.lua"; do
 done
 
 # recent counts (3.2): session and last-24-hour counts per owner without
-# Logging; a /reload keeps the session, a login starts a new one
+# Logging; a login or /reload starts a new session (3.2.0-dev006), which
+# is not saved at logout
 echo "== recent counts"
 lua5.1 "$here/run.lua" . - "$work/rc-0.lua" > /dev/null 2>&1
 rcT=$(lua5.1 -e "print(1790000000 + 24 * 3600 + 10 * 60 + 150 * 600)")
@@ -166,6 +167,7 @@ for ph in 1 2 3; do
 	[ $ph != 1 ] && env="$env PSS_TIME=$rcT"
 	out=$(env $env PSS_PHASE=$ph lua5.1 "$here/run.lua" . "$src" "$work/rc-$ph.lua" "$here/check_recent.lua" 2>&1 | grep -v '^|cff')
 	echo "$out" | grep -q "PASS recent $ph" && echo "PASS recent $ph" || { echo "$out"; echo "FAIL recent $ph"; fail=1; }
+	if grep -q '\["session' "$work/rc-$ph.lua"; then echo "FAIL recent $ph: the session was saved"; fail=1; fi
 	src=$work/rc-$ph.lua
 done
 
