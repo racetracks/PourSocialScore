@@ -26,9 +26,13 @@ end
 -- PSS_PHASE=3 : skinning off for us in EllesmereUI: the plain look
 if os.getenv("PSS_PHASE") == "3" then
 	E.skinsOn = false
+	-- a tab saved by number (before 3.2.0-dev010, five tabs): 4 was Import/Export
+	PSS_EllesmereUIDB = { tab = 4 }
 	SlashCmdList.PSS("gui")
 	local win = _G.PSS_EllesmereUIWindow
 	check(win and win:IsShown(), "no window without skinning")
+	check(win.pages[5]:IsShown() and win.tabs[4]:GetText() == "Events" and PSS_EllesmereUIDB.tab == "BuildImportExportTab",
+		"an old saved tab number not moved past Events: " .. tostring(PSS_EllesmereUIDB.tab))
 	check(#E.log.skinned == 0, "skinned with skinning off")
 	-- the plain look: the list tabs build, the selected tab is underlined
 	for _, i in ipairs({ 1, 2 }) do
@@ -121,7 +125,7 @@ for _, k in ipairs(E.log.skinned) do if k == "Shell" then shells = shells + 1 en
 check(shells == 1, "window not painted with S.Shell (" .. shells .. ")")
 -- every tab builds on first open, and only
 -- the clicked tab shows as selected (S.Tab's accent underline)
-for _, i in ipairs({ 1, 2, 3, 4, 5 }) do
+for _, i in ipairs({ 1, 2, 3, 4, 5, 6 }) do
 	win.tabs[i]:GetScript("OnClick")(win.tabs[i])
 	check(win.pages[i]:IsShown() and win.pages[i].refresh, "tab " .. i .. " not built")
 	for j = 1, #win.tabs do
@@ -136,8 +140,8 @@ local function marks(sel)
 		check(t.pssWash:IsShown() == (j == sel) and t.pssUnderline:IsShown() == (j == sel), ("wash / underline on tab %d with tab %d selected"):format(j, sel))
 	end
 end
-marks(5)
-local ul = win.tabs[5].pssUnderline
+marks(6)
+local ul = win.tabs[6].pssUnderline
 check(ul._color and ul._color[1] == 0.2 and ul._color[3] == 0.6, "underline not in the accent colour")
 E.ChangeLooks(0.9, 0.5, 0.1)
 check(ul._color and ul._color[1] == 0.9, "underline did not follow an accent change")
@@ -146,13 +150,13 @@ check(ul._color and ul._color[1] == 0.9, "underline did not follow an accent cha
 E.S.apiVersion = 1
 win.tabs[2]:GetScript("OnClick")(win.tabs[2])
 marks(2)
-check(win.tabs[2].isSelected == true and win.tabs[5].isSelected == false, "isSelected not set for an older EllesmereUI")
+check(win.tabs[2].isSelected == true and win.tabs[6].isSelected == false, "isSelected not set for an older EllesmereUI")
 E.S.apiVersion = 3
 
 -- the Options search: in the tab row with the Options tab only; it keeps
 -- the matching options and hides empty sections
-win.tabs[5]:GetScript("OnClick")(win.tabs[5])
-local opage = win.pages[5]
+win.tabs[6]:GetScript("OnClick")(win.tabs[6])
+local opage = win.pages[6]
 local search = opage.search
 check(search and search:IsVisible(), "no Options search box")
 local function shownRows()

@@ -12,9 +12,8 @@ versions 1.1.0-dev1 to dev010, before).
   Guild Ignore List and Chat Filters tabs share one pooled row list (`EUI_Rows.lua`): only the
   rows that fit are made, so long lists cost the same as short ones. Their
   block history (`EUI_History.lua`) loads PourSocialScore_Logging only when
-  asked for; a double-click opens the Block History view
-  (`EUI_HistoryView.lua`: type boxes, a This session / Last 24 hours / All
-  time picker, search, and on guilds a Guilds drop-down). The detail pane of each tab has three pages,
+  asked for; a double-click opens its lines on the Events tab
+  (`EUI_HistoryView.lua`, see 3.2.0-dev010 below). The detail pane of each tab has three pages,
   picked by the buttons along its bottom (`EUI_Detail.lua`): Summary, Event
   History and View/Edit Rule. Summary is a small pie (`EUI_Pie.lua`) of this
   session / the last 24 hours / all time, with a tick box per period (all
@@ -52,6 +51,15 @@ versions 1.1.0-dev1 to dev010, before).
   A click under a list's rows deselects like a click on the selected row;
   a tab click (the tab shown too) resets that tab; each part of the line
   by the arrows but the last goes back to it (3.2.0-dev009).
+  The Block History view is now an Events tab after Chat Filters
+  (`EUI_HistoryView.lua`): every list's lines with a Source column, and
+  Time (This session / Last 24 hours / All time / Custom range), Types and
+  Source drop-downs. Every pie slice, View Events (top right of each pie
+  page: the widest period ticked) and a double-click on a pane's Event
+  History open it with the entry, period and ticked types set; Escape goes
+  back to the tab. The type pie's ticks filter the period pie too (the
+  core's `History.RecentByCat`), and a type's label ticks it like its box
+  (3.2.0-dev010). The window saves its tab by builder name.
   Back / forward arrows (and mouse buttons 4 / 5) step through
   the views; Escape goes up a level through EllesmereUI's Escape handling
   (`RegisterEscapeClose` with `onEscape`).

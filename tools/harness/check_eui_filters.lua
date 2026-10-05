@@ -215,16 +215,19 @@ hv.gate:GetScript("OnClick")(hv.gate)
 check(loaded("PourSocialScore_Logging") and hv.list.count == 1, "Show Block History: " .. hv.list.count)
 check(hv.list.rows[1].cells.name and hv.list.rows[1].cells.name:GetText() == "Seller", "history name " .. tostring(hv.list.rows[1].cells.name and hv.list.rows[1].cells.name:GetText()))
 
--- a double-click on a line: the Block History view, then All Filters
+-- a double-click on a line: its events on the Events tab, then the
+-- Chat Filters as a whole (the Source drop-down)
 local hr = hv.list.rows[1]
 hr:GetScript("OnClick")(hr, "LeftButton")
 hr:GetScript("OnClick")(hr, "LeftButton")
-local view = page.hview
-check(view and view:IsOpen() and not page:IsShown() and view.list.count == 1, "filter Block History view not opened")
-check((win.where:GetText() or ""):match("Block History: Gold sellers"), "where line " .. tostring(win.where:GetText()))
-view.allButton:GetScript("OnClick")(view.allButton)
-check(view.spec.id == false and view.list.count >= 1 and view.shown[1].message == "goldsale cheap", "All Filters")
-check(E.PressEscape() and not view:IsOpen() and page:IsShown(), "Escape did not close the view")
+local view = win.pages[4].view
+check(view and view:IsOpen() and not page:IsShown() and view.list.count == 1, "filter events not opened")
+check(win.where:GetText() == "Events  >  Gold sellers", "where line " .. tostring(win.where:GetText()))
+for _, it in ipairs(view.sourceDrop:MenuButtons()) do if it.text == "Chat Filters" then it.fn() end end
+check(view.q.scope == nil and view.q.sources.filters and not view.q.sources.players and view.list.count >= 1
+	and view.shown[1].message == "goldsale cheap", "All Filters")
+check(view.list.rows[1].cells.source:GetText() ~= "", "no source on a filter line")
+check(E.PressEscape() and not view:IsOpen() and page:IsShown(), "Escape did not go back to the filter tab")
 H.Advance(1)
 
 -- the detail pages: three buttons, one page at a time, the pick is kept
@@ -278,15 +281,16 @@ pane.totals:Show()
 local tsm = pane.totals.summary
 check(tsm.viewButton:IsShown(), "filter totals: no View Events")
 tsm.viewButton:GetScript("OnClick")(tsm.viewButton)
-local tv = page.hview
-check(tv and tv:IsOpen() and tv.spec.kind == "filter" and tv.spec.id == false and tv.period == nil,
+local tv = win.pages[4].view
+check(tv and tv:IsOpen() and tv.q.scope == nil and tv.q.sources.filters and not tv.q.sources.guilds
+	and tv.q.period == (tsm.boxes.all:GetChecked() and nil or "day"),
 	"filter totals: View Events did not open the whole list")
 E.PressEscape()
 tsm:Open("session")
-check(tv:IsOpen() and tv.period == "session" and tv.spec.id == false, "filter totals: the session slice")
+check(tv:IsOpen() and tv.q.period == "session" and tv.q.scope == nil, "filter totals: the session slice")
 E.PressEscape()
 tsm:Open("all")
-check(tv:IsOpen() and tv.period == nil, "filter totals: All time after a slice")
+check(tv:IsOpen() and tv.q.period == nil, "filter totals: All time after a slice")
 E.PressEscape()
 H.Advance(1)
 

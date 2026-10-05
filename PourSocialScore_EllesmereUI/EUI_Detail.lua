@@ -97,11 +97,15 @@ end
 -------------------------------------------------------------------------------
 --  Summary: a pie of this session / last 24 hours / all time (EUI_Pie.lua),
 --  a tick box per period (all time starts off; off takes its slice out),
---  View Events.
---  A click on a slice opens the Block History view of that period. The
---  session and day counts come from the core (History.RecentCounts, 3.2),
---  all time from the entry's counts: nothing here loads
---  PourSocialScore_Logging; View Events and a slice do, as asked.
+--  and View Events at the top right of the page. The counts are of the
+--  types ticked on the type pies (ns.typeOff, shared by every pie): the
+--  core counts the session and the last 24 hours by type
+--  (History.RecentByCat, 3.2.0-dev010), all time comes from the entry's
+--  counts by type; with every type ticked they are the core's totals, as
+--  the PSS window shows. A slice opens the Events tab (EUI_HistoryView.lua)
+--  on its period, View Events on the widest period ticked, both with the
+--  types ticked. A click on a tick box's label or colour ticks it too.
+--  Nothing here loads PourSocialScore_Logging; the Events tab does.
 -------------------------------------------------------------------------------
 local M = ns.M
 local History = M.PSS_History
@@ -118,6 +122,10 @@ ns.SUMMARY_PERIODS = PERIODS
 -- loaded). All time starts unticked: it holds the other two and dwarfs them.
 local periodOn = { session = true, day = true, all = false }
 
+-- the types unticked on the type pies (shared, kept while loaded)
+local typeOff = {}
+ns.typeOff = typeOff
+
 function ns.PeriodText(key)
     for _, per in ipairs(PERIODS) do if per.key == key then return per.text end end
     return ""
@@ -130,9 +138,71 @@ function ns.SummarySince(key)
     return nil
 end
 
-local function Recent(owner)
-    if not (owner and History.RecentCounts) then return 0, 0 end
-    return History.RecentCounts(owner)
+-- the widest period ticked (View Events): nil is all time
+local function WidestOn()
+    if periodOn.all then return nil end
+    if periodOn.day then return "day" end
+    if periodOn.session then return "session" end
+    return nil
+end
+
+-- the types ticked, for the Events tab: nil when every one is
+local function TypesOn()
+    if next(typeOff) == nil then return nil end
+    local on = {}
+    for _, cat in ipairs(History.ALL_CATS or {}) do if not typeOff[cat] then on[cat] = true end end
+    return on
+end
+
+-- Open the Events tab for spec (nil: everything) with period and types.
+local function OpenEvents(tabPage, spec, period, cats)
+    if not ns.OpenEvents then return end
+    ns.OpenEvents(tabPage, spec, { period = period, cats = cats or TypesOn() })
+end
+
+-- counts by type added up over the ticked types
+local function SumOn(t)
+    local n = 0
+    if type(t) ~= "table" then return 0 end
+    for _, cat in ipairs(History.ALL_CATS or {}) do
+        if not typeOff[cat] then n = n + (tonumber(t[cat]) or 0) end
+    end
+    return n
+end
+
+local summaries, typePies = {}, {}
+
+-- every pie again (a period or type tick changed)
+local function RedrawAll()
+    for _, sm in ipairs(summaries) do sm:Refresh() end
+    for _, tp in ipairs(typePies) do if tp.counts then tp:Set(tp.counts, tp.title, tp.specFn, tp.id) end end
+end
+
+-- a tick box with its colour, label and count; a click on the colour or
+-- the label ticks it too. onClick(box) after either.
+local function NewKey(parent, countX, onClick)
+    local c = ns.NewCheck(parent)
+    c:SetSize(18, 18)
+    local sq = parent:CreateTexture(nil, "ARTWORK")
+    sq:SetSize(10, 10)
+    sq:SetPoint("LEFT", c, "RIGHT", 2, 0)
+    local t = ns.NewText(parent, 12)
+    t:SetPoint("LEFT", sq, "RIGHT", 6, 0)
+    t:SetJustifyH("LEFT")
+    local n = ns.NewText(parent, 12)
+    n:SetPoint("LEFT", c, "RIGHT", countX, 0)
+    n:SetJustifyH("LEFT")
+    local hit = CreateFrame("Button", nil, parent)
+    hit:SetPoint("TOPLEFT", c, "TOPRIGHT", 0, 0)
+    hit:SetPoint("BOTTOMLEFT", c, "BOTTOMRIGHT", 0, 0)
+    hit:SetWidth(countX + 50)
+    hit:SetScript("OnClick", function()
+        c:SetChecked(not c:GetChecked())
+        onClick(c)
+    end)
+    c:SetScript("OnClick", function() onClick(c) end)
+    c.square, c.label, c.count, c.hit = sq, t, n, hit
+    return c
 end
 
 -- "Stored: 8 kept for this player, 1 waiting, 3 not stored or expired":
@@ -163,7 +233,6 @@ end
 
 local SM = {}
 SM.__index = SM
-local summaries = {}
 
 local Build
 
@@ -198,47 +267,82 @@ end
 -- A slice's tooltip: its count, and how much of it the smaller slice holds.
 function ns.PeriodTip(title, sl, click)
     local t = ("%s\n%s: %d blocked"):format(title or "", sl.text, sl.value or 0)
+    if next(typeOff) ~= nil then t = t .. "\n|cffaaaaaa(the types ticked below only)|r" end
     if sl.innerText and (sl.inner or 0) > 0 then
         t = t .. ("\n|cffaaaaaa%d of them also in %s (lit with it)|r"):format(sl.inner, string.lower(sl.innerText))
     end
-    if click then t = t .. "\n\n|cffaaaaaaClick: these events in the Block History view.|r" end
+    if click then t = t .. "\n\n|cffaaaaaaClick: these events in the Events tab.|r" end
     return t
+end
+
+-- this session / last 24 hours by type into self.byCat; false: the core
+-- has no counts by type (older than 3.2.0-dev010)
+function SM:ReadByCat()
+    if not History.RecentByCat then return false end
+    local by = self.byCat
+    if self.recentByCat then
+        self.recentByCat(by)
+    elseif self.prefix then
+        History.RecentByCat(nil, by, self.prefix)
+    elseif self.owner then
+        History.RecentByCat(self.owner, by)
+    else
+        return false
+    end
+    return true
 end
 
 function SM:Refresh()
     if not self.page:IsVisible() then return end
     if not self.pie then Build(self) end
     local s, d
-    if self.recent then s, d = self.recent.session or 0, self.recent.day or 0 else s, d = Recent(self.owner) end
+    local all = self.allTime or 0
+    if next(typeOff) ~= nil and self:ReadByCat() then
+        -- some types unticked: the ticked ones only
+        s, d = SumOn(self.byCat.session), SumOn(self.byCat.day)
+        if self.counts then all = SumOn(self.counts) end
+    elseif self.recent then
+        s, d = self.recent.session or 0, self.recent.day or 0
+    elseif self.owner and History.RecentCounts then
+        s, d = History.RecentCounts(self.owner)
+    else
+        s, d = 0, 0
+    end
     local v = self.values
-    v.session, v.day, v.all = s, d, self.allTime or 0
+    v.session, v.day, v.all = s or 0, d or 0, all
     for _, per in ipairs(PERIODS) do self.boxes[per.key].count:SetText(tostring(v[per.key])) end
     ns.PeriodSlices(v, self.slices, self.map, self.pool)
     self.pie:Set(self.slices)
-    self.where:SetText(self.noWhere and "" or ns.WhereText(self.owner, v.all, self.whoText))
+    self.where:SetText(self.noWhere and "" or ns.WhereText(self.owner, self.allTime or 0, self.whoText))
     self.empty:SetShown(v.all == 0 and v.session == 0 and v.day == 0)
-    self.viewButton:SetEnabled(self.specFn ~= nil)
-    self.viewButton:SetShown(self.specFn ~= nil)
+    self.viewButton:SetEnabled(true)
+    self.viewButton:SetShown(true)
 end
 
 -- owner: the core's owner key (History.PlayerKey ...); allTime: the
--- entry's all-time count; title: its name; specFn(id): its Block History
--- spec (made only when opened); opts.noWhere: no "Stored:" line (a guild:
--- its lines are its members'), opts.who: "this player" for the keep,
--- opts.recent: { session =, day = } counted elsewhere (a default guild
--- list, a whole list) instead of the owner's
+-- entry's all-time count; title: its name; specFn(id): its Events spec
+-- (made only when opened; nil: every event); opts.noWhere: no "Stored:"
+-- line (a guild: its lines are its members'), opts.who: "this player" for
+-- the keep, opts.counts: all time by type, opts.recent: { session =, day = }
+-- counted elsewhere (a default guild list, a whole list) instead of the
+-- owner's, with opts.prefix (owners whose key starts with it) or
+-- opts.recentByCat(into) for the same by type
 function SM:Set(owner, allTime, title, specFn, id, opts)
     self.owner, self.allTime, self.title, self.specFn, self.id = owner, allTime, title, specFn, id
     self.noWhere, self.whoText = opts and opts.noWhere, opts and opts.who
     self.recent = opts and opts.recent
+    self.counts = opts and opts.counts
+    self.prefix = opts and opts.prefix
+    self.recentByCat = opts and opts.recentByCat
     self:Refresh()
 end
 
+-- key: a period (a slice), "all" or nil (View Events: the widest ticked)
 function SM:Open(key)
-    local spec = self.specFn and self.specFn(self.id)
-    if not spec then return end
-    if key ~= "all" then spec.period = key end
-    ns.OpenHistoryView(self.tabPage, spec)
+    local spec = self.specFn and self.specFn(self.id) or nil
+    local period
+    if key == nil then period = WidestOn() elseif key ~= "all" then period = key end
+    OpenEvents(self.tabPage, spec, period)
 end
 
 -- the pie, the tick boxes and View Events: made the first time the page shows
@@ -247,7 +351,7 @@ function Build(sm)
     local SIZE = sm.size or 116
     sm.pie = ns.NewPie(page, SIZE, function(i) sm:Open(sm.map[i]) end)
     sm.pie.frame:SetPoint("TOPLEFT", page, "TOPLEFT", 18, top)
-    sm.pie.tip = function(i) return ns.PeriodTip(sm.title, sm.slices[i], sm.specFn ~= nil) end
+    sm.pie.tip = function(i) return ns.PeriodTip(sm.title, sm.slices[i], true) end
     sm.empty = ns.NewText(page, 11)
     sm.empty:SetPoint("CENTER", sm.pie.frame, "CENTER", 0, 0)
     sm.empty:SetTextColor(1, 1, 1, 0.5)
@@ -256,27 +360,21 @@ function Build(sm)
     -- a tick box per period: its colour, name and count
     local x, y = SIZE + 40, top - (sm.size and 2 or 8)
     for _, per in ipairs(PERIODS) do
-        local c = ns.NewCheck(page)
-        c:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
-        c:SetChecked(periodOn[per.key])
-        local sq = page:CreateTexture(nil, "ARTWORK")
-        sq:SetSize(10, 10)
-        sq:SetColorTexture(per.r, per.g, per.b, 0.9)
-        sq:SetPoint("LEFT", c, "RIGHT", 2, 0)
-        local t = ns.NewText(page, 12)
-        t:SetPoint("LEFT", sq, "RIGHT", 6, 0)
-        t:SetText(per.text)
-        c.count = ns.NewText(page, 12)
-        c.count:SetPoint("LEFT", c, "RIGHT", sm.size and 104 or 128, 0)
-        c.count:SetTextColor(per.r, per.g, per.b)
-        c:SetScript("OnClick", function(self)
+        local c = NewKey(page, sm.size and 104 or 128, function(self)
             periodOn[per.key] = self:GetChecked() and true or false
             for _, other in ipairs(summaries) do
-                other.boxes[per.key]:SetChecked(periodOn[per.key])
-                other:Refresh()
+                if other.boxes[per.key] then other.boxes[per.key]:SetChecked(periodOn[per.key]) end
             end
+            RedrawAll()
         end)
-        ns.TipOn(c, c, "Shows " .. string.lower(per.text) .. " in the pie.")
+        c:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
+        c:SetChecked(periodOn[per.key])
+        c.square:SetColorTexture(per.r, per.g, per.b, 0.9)
+        c.label:SetText(per.text)
+        c.count:SetTextColor(per.r, per.g, per.b)
+        local tip = "Shows " .. string.lower(per.text) .. " in the pie, and in the Events tab View Events opens."
+        ns.TipOn(c, c, tip)
+        ns.TipOn(c.hit, c.hit, tip)
         sm.boxes[per.key] = c
         y = y - 26
     end
@@ -296,47 +394,36 @@ function Build(sm)
     sm.where:SetWordWrap(true)
     sm.where:SetTextColor(1, 1, 1, 0.7)
 
-    local view
-    if sm.size then
-        -- a small pie (a list's pane): beside the All time count, so it
-        -- stays clear of what is drawn under the pie
-        view = ns.NewButton(page, "View Events", 80, function() sm:Open("all") end)
-        view:SetPoint("RIGHT", page, "RIGHT", -10, 0)
-        view:SetPoint("TOP", sm.boxes.all, "TOP", 0, 0)
-    else
-        view = ns.NewButton(page, "View Events", 110, function() sm:Open("all") end)
-        view:SetPoint("TOPLEFT", page, "TOPLEFT", x + 4, y - 8)
-    end
-    ns.TipOn(view, view, "Every logged event of this entry in the Block History view (loads the block history).")
+    -- View Events at the top right of the page
+    local view = ns.NewButton(page, "View Events", 96, function() sm:Open(nil) end)
+    view:SetPoint("TOPRIGHT", page, "TOPRIGHT", -8, -6)
+    ns.TipOn(view, view, "These events in the Events tab: the widest period and the types ticked (loads the block history).")
     sm.viewButton = view
 
     summaries[#summaries + 1] = sm
 end
 
--- page: the Summary page; tabPage: the tab (for the Block History view);
--- top: where the pie starts; size: the pie (116 when nil)
+-- page: the Summary page; tabPage: the tab; top: where the pie starts;
+-- size: the pie (116 when nil)
 function ns.NewSummary(page, tabPage, top, size)
     local sm = setmetatable({ page = page, tabPage = tabPage, top = top, size = size, slices = {}, map = {},
-        pool = {}, values = {}, boxes = {} }, SM)
+        pool = {}, values = {}, boxes = {}, byCat = { session = {}, day = {} } }, SM)
     page:HookScript("OnShow", function() sm:Refresh() end)
     return sm
 end
 
 -------------------------------------------------------------------------------
 --  A pie of all-time blocks by type, with a tick box per type blocked (a
---  default guild list, a whole list): unticked, its slice leaves the pie
---  (its count stays in the legend). The ticks are shared by every type pie
---  while the window is loaded. Only all time: the session and 24 hour
---  counts are not added up by type. No click-through.
+--  default guild list, a whole list), one line each: the colour, the type
+--  and its count. Unticked, a type leaves this pie and the counts of every
+--  period pie (the ticks are shared while the window is loaded); its
+--  count stays in the legend. A slice opens the Events tab on that type.
 --    local tp = ns.NewTypePie(parent, top, size)
---    tp:Set(counts, title)    -- counts: total and one count per type
+--    tp:Set(counts, title, specFn, id)  -- counts: total and one per type
 --  Made the first time Set is called.
 -------------------------------------------------------------------------------
 local TYPE_SLOTS = 7
-
--- types unticked (shared by every type pie)
-local typeOff = {}
-local typePies = {}
+local KEY_H = 18
 
 local function HexColor(hex)
     hex = tostring(hex or "ffffffff")
@@ -349,34 +436,32 @@ TP.__index = TP
 
 function TP:Build()
     local f, size, top = self.frame, self.size, self.top
-    self.pie = ns.NewPie(f, size)
+    self.pie = ns.NewPie(f, size, function(i)
+        local sl = self.slices[i]
+        if not (sl and sl.cat) then return end
+        local spec = self.specFn and self.specFn(self.id) or nil
+        OpenEvents(self.tabPage, spec, WidestOn(), { [sl.cat] = true })
+    end)
     self.pie.frame:SetPoint("TOPLEFT", f, "TOPLEFT", 18, top)
     self.pie.tip = function(i)
         local sl = self.slices[i]
-        return ("%s\n%s: %d blocked (all time)"):format(self.title or "", sl.text, sl.value or 0)
+        return ("%s\n%s: %d blocked (all time)\n\n|cffaaaaaaClick: these events in the Events tab.|r"):format(
+            self.title or "", sl.text, sl.value or 0)
     end
     self.keys = {}
     for i = 1, TYPE_SLOTS do
-        local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
-        local c = ns.NewCheck(f)
-        c:SetSize(18, 18)
-        c:SetPoint("TOPLEFT", f, "TOPLEFT", size + 20 + col * 132, top - 2 - row * 20)
-        local sq = f:CreateTexture(nil, "ARTWORK")
-        sq:SetSize(10, 10)
-        sq:SetPoint("LEFT", c, "RIGHT", 2, 0)
-        local t = ns.NewText(f, 11)
-        t:SetPoint("LEFT", sq, "RIGHT", 5, 0)
-        t:SetWidth(98)
-        t:SetJustifyH("LEFT")
-        local k = { check = c, sq = sq, text = t }
-        c:SetScript("OnClick", function(btn)
+        local k = {}
+        local c = NewKey(f, 104, function(btn)
             if not k.cat then return end
             typeOff[k.cat] = not btn:GetChecked() or nil
-            for _, other in ipairs(typePies) do
-                if other.counts then other:Set(other.counts, other.title) end
-            end
+            RedrawAll()
         end)
-        ns.TipOn(c, c, "Shows this type in the pie.")
+        c:SetPoint("TOPLEFT", f, "TOPLEFT", size + 40, top - 2 - (i - 1) * KEY_H)
+        c.count:SetTextColor(1, 1, 1)
+        local tip = "Shows this type in the pies (every period pie counts the ticked types only)."
+        ns.TipOn(c, c, tip)
+        ns.TipOn(c.hit, c.hit, tip)
+        k.check, k.sq, k.text, k.count = c, c.square, c.label, c.count
         self.keys[i] = k
         self.slices[i] = {}
     end
@@ -387,9 +472,9 @@ function TP:Build()
     self.empty:SetText("Nothing yet")
 end
 
-function TP:Set(counts, title)
+function TP:Set(counts, title, specFn, id)
     if not self.pie then self:Build() end
-    self.title, self.counts = title, counts
+    self.title, self.counts, self.specFn, self.id = title, counts, specFn, id
     local slices, n = self.slices, 0
     for _, cat in ipairs(History.ALL_CATS or {}) do
         local v = tonumber(counts and counts[cat]) or 0
@@ -403,28 +488,26 @@ function TP:Set(counts, title)
             k.cat = cat
             k.check:SetChecked(not typeOff[cat])
             k.sq:SetColorTexture(sl.r, sl.g, sl.b, typeOff[cat] and 0.3 or 0.9)
-            k.text:SetText(sl.text .. "  |cffffffff" .. v .. "|r")
-            k.check:Show()
-            k.sq:Show()
-            k.text:Show()
+            k.text:SetText(sl.text)
+            k.count:SetText(tostring(v))
+            for _, r in ipairs({ k.check, k.sq, k.text, k.count, k.check.hit }) do r:Show() end
         end
     end
     for i = n + 1, TYPE_SLOTS do
-        slices[i].value, slices[i].draw = 0, nil
+        slices[i].value, slices[i].draw, slices[i].cat = 0, nil, nil
         local k = self.keys[i]
         k.cat = nil
-        k.check:Hide()
-        k.sq:Hide()
-        k.text:Hide()
+        for _, r in ipairs({ k.check, k.sq, k.text, k.count, k.check.hit }) do r:Hide() end
     end
     self.count = n
     self.pie:Set(slices)
     self.empty:SetShown(n == 0)
 end
 
--- parent: the frame it draws on; top: where the pie starts; size: the pie
-function ns.NewTypePie(parent, top, size)
-    return setmetatable({ frame = parent, top = top, size = size or 84, slices = {} }, TP)
+-- parent: the frame it draws on; top: where the pie starts; size: the
+-- pie; tabPage: the tab (for the Events tab)
+function ns.NewTypePie(parent, top, size, tabPage)
+    return setmetatable({ frame = parent, top = top, size = size or 84, slices = {}, tabPage = tabPage }, TP)
 end
 
 -------------------------------------------------------------------------------
@@ -432,14 +515,17 @@ end
 --  selected: its blocks this session / last 24 hours / all time (the
 --  Summary pie) and by type. The counts come from the core
 --  (M.PSS_ListTotals, PourSocialScore 3.2.0-dev004); nothing loads
---  PourSocialScore_Logging until a slice or View Events opens the whole
---  list's events (allSpec(): its Block History spec). An older core: the
---  hint only.
+--  PourSocialScore_Logging until a slice or View Events opens the list's
+--  events in the Events tab (allSpec(): its spec, the list as the source).
+--  An older core: the hint only.
 --    local tot = ns.NewTotals(pane, tabPage, kind, title, hint, allSpec)
 --    tot:Show(guildRows)      -- kind "players", "guilds" or "filters"
 -------------------------------------------------------------------------------
 local TT = {}
 TT.__index = TT
+
+-- the owners of a list's recent counts (as M.PSS_ListTotals adds them up)
+local LIST_PREFIX = { players = "p:", guilds = "G:", filters = "f:" }
 
 function TT:Show(guildRows)
     self.frame:Show()
@@ -449,8 +535,9 @@ function TT:Show(guildRows)
     local c = M.PSS_ListTotals(self.kind, self.counts, guildRows)
     self.recent.session, self.recent.day = c.session, c.day
     self.info:SetText(("Blocked |cffffff00%d|r in all.  |cffaaaaaaSelect an entry to see its own.|r"):format(c.total or 0))
-    self.summary:Set(nil, c.total or 0, self.title, self.specFn, nil, { noWhere = true, recent = self.recent })
-    self.typePie:Set(c, self.title)
+    self.summary:Set(nil, c.total or 0, self.title, self.specFn, nil,
+        { noWhere = true, recent = self.recent, counts = c, prefix = LIST_PREFIX[self.kind] })
+    self.typePie:Set(c, self.title, self.specFn, nil)
 end
 
 function TT:Hide() self.frame:Hide() end
@@ -480,6 +567,6 @@ function ns.NewTotals(pane, tabPage, kind, title, hint, allSpec)
     tt.charts = CreateFrame("Frame", nil, f)
     tt.charts:SetAllPoints()
     tt.summary = ns.NewSummary(tt.charts, tabPage, -52, 84)
-    tt.typePie = ns.NewTypePie(tt.charts, -52 - 84 - 10, 84)
+    tt.typePie = ns.NewTypePie(tt.charts, -52 - 84 - 10, 84, tabPage)
     return tt
 end
