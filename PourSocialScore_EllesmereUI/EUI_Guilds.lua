@@ -321,6 +321,7 @@ function OpenMembers(key)
     MResort()
     mlist:Top()
     ShowDetail(true)
+    ns.NavRecord()
 end
 
 local function CloseMembers()
@@ -330,6 +331,7 @@ local function CloseMembers()
     G.find = ""
     Resort()
     ShowDetail(true)
+    ns.NavRecord()
 end
 
 -------------------------------------------------------------------------------
@@ -409,56 +411,6 @@ local function PaintOverrides(buttons, t)
         local state = cur == nil and "|cffaaaaaaDefault|r" or (cur and "|cff00ff00On|r" or "|cffff5555Off|r")
         b:SetText((OVERRIDE_SHORT[b.opt.key] or b.opt.key) .. ": " .. state)
     end
-end
-
--- A block history list from y down to the buttons; body.history holds
--- the entries shown.
-local function HistoryList(body, y, empty)
-    body.history = {}
-    local hf = CreateFrame("Frame", nil, body)
-    hf:SetPoint("TOPLEFT", body, "TOPLEFT", 6, y)
-    hf:SetPoint("BOTTOMRIGHT", body, "BOTTOMRIGHT", -4, 36)
-    local hl = ns.NewRows(hf, {
-        rowH = 16, fontSize = 11, height = 80,
-        cols = {
-            { key = "time", text = "Time", width = 116 },
-            { key = "kind", text = "Type", width = 76 },
-            { key = "message", text = "Message" },
-        },
-        draw = function(row, i)
-            local h = body.history[i]
-            local cells = row.cells
-            if not h then
-                for _, fs in pairs(cells) do fs:SetText("") end
-                return
-            end
-            local cat = h.cat or "unknown"
-            cells.time:SetText(h.time or History.UNKNOWN)
-            cells.kind:SetText("|c" .. (History.CAT_COLOR[cat] or "ffffffff") .. (h.kind or History.UNKNOWN) .. "|r")
-            local msg = h.message or ""
-            cells.message:SetText(msg ~= "" and msg or "|cff888888(no message text)|r")
-        end,
-        enter = function(row, i)
-            local h = body.history[i]
-            if h then ns.Tip(row, (h.time or "") .. "  " .. (h.channel or "") .. "\n\n" .. (h.message or "")) end
-        end,
-    })
-    hl:SetEmptyText(empty)
-    body.histList = hl
-    return hl
-end
-
--- Read the history again only when what is shown or its count changed;
--- with nothing blocked the block history (PourSocialScore_Logging) is not
--- loaded for it.
-local function SetHistory(body, id, total, read, fresh)
-    local key = tostring(id) .. "\001" .. total
-    if key == body.histKey then return end
-    fresh = fresh or body.histId ~= id
-    body.histKey, body.histId = key, id
-    body.history = total > 0 and read() or {}
-    body.histList:SetCount(#body.history)
-    if fresh then body.histList:Top() end
 end
 
 local function ConfirmRemoveGuild()
@@ -555,7 +507,7 @@ local function BuildGuildBody(parent)
     b.counts = Line(b, y)
     ns.Font(b.counts, 11)
     y = y - LINE_H - 2
-    HistoryList(b, y, "Nothing blocked from this guild yet.")
+    b.hist = ns.NewHistory(b, y, { names = true, empty = "Nothing blocked from this guild yet." })
 
     local members = ns.NewButton(b, "Members", 90, function() OpenMembers(pane.guildKey) end)
     members:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 10, 8)
@@ -681,7 +633,7 @@ local function BuildMemberBody(parent)
     b.counts = Line(b, y)
     ns.Font(b.counts, 11)
     y = y - LINE_H - 2
-    HistoryList(b, y, "Nothing blocked from this player yet.")
+    b.hist = ns.NewHistory(b, y, { empty = "Nothing blocked from this player yet." })
 
     local remove = ns.NewButton(b, "Remove Member", 110, ConfirmRemoveMember)
     remove:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 10, 8)
@@ -750,7 +702,7 @@ local function ShowGuild(key, fresh)
     b.counts:SetText(CountsText(c))
     b.removeButton:SetEnabled(not M.PSS_IsStaticManagedGuild(key))
     b.membersButton:SetShown(G.view ~= "members")
-    SetHistory(b, key, c.total or 0, function() return M.PSS_GetGuildBlockHistory(key) end, fresh)
+    b.hist:Set(key, c.total or 0, M.PSS_GetGuildBlockHistory, fresh)
     return true
 end
 
@@ -818,7 +770,7 @@ local function ShowMember(fresh)
     M.PSS_EnsureMemberBlockData(m)
     local c = M.PSS_GetMemberBlockCounts(m)
     b.counts:SetText(CountsText(c))
-    SetHistory(b, m, c.total or 0, function() return M.PSS_GetMemberBlockHistory(m) end, fresh)
+    b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory, fresh)
     return true
 end
 
@@ -1133,6 +1085,37 @@ function ns.BuildGuildsTab(pg)
     })
 
     BuildPicker(pg)
+
+    -- back / forward and Escape (EUI_Window.lua): the members of a guild
+    -- are a view of their own, the Guild Search results an overlay
+    pg.navState = function() return G.view == "members" and G.mguild or nil end
+    pg.navTitle = function(key)
+        local _, g = M.PSS_FindGuildRule(key)
+        return ("Members of <%s>"):format(g and g.name or tostring(key))
+    end
+    pg.navApply = function(key)
+        if key then
+            if G.mguild ~= key or G.view ~= "members" then
+                local found = M.PSS_FindGuildRule(key)
+                if found then OpenMembers(key) end
+            end
+        elseif G.view == "members" then
+            CloseMembers()
+        end
+    end
+    pg.navClose = function()
+        if not picker:IsShown() then return false end
+        ClosePicker()
+        return true
+    end
+    pg.navUp = function()
+        if pg.navClose() then return true end
+        if G.view == "members" then
+            CloseMembers()
+            return true
+        end
+        return false
+    end
 
     pg.list, pg.members, pg.pane, pg.picker, pg.membersView = list, mlist, pane, picker, mview
     pg.state = G

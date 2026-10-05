@@ -14,6 +14,7 @@ EUI_Main.lua
 EUI_Skin.lua
 EUI_Options.lua
 EUI_Rows.lua
+EUI_History.lua
 EUI_Players.lua
 EUI_Guilds.lua
 EUI_Window.lua

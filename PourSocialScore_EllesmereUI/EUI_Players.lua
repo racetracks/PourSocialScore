@@ -154,26 +154,6 @@ local function ConfirmRemove()
     })
 end
 
-local function HistoryRow(row, i)
-    local h = pane.history[i]
-    local cells = row.cells
-    if not h then
-        for _, fs in pairs(cells) do fs:SetText("") end
-        return
-    end
-    local cat = h.cat or "unknown"
-    cells.time:SetText(h.time or History.UNKNOWN)
-    cells.kind:SetText("|c" .. (History.CAT_COLOR[cat] or "ffffffff") .. (h.kind or History.UNKNOWN) .. "|r")
-    local msg = h.message or ""
-    cells.message:SetText(msg ~= "" and msg or "|cff888888(no message text)|r")
-end
-
-local function HistoryTip(row, i)
-    local h = pane.history[i]
-    if not h then return end
-    ns.Tip(row, (h.time or "") .. "  " .. (h.channel or "") .. "\n\n" .. (h.message or ""))
-end
-
 local function BuildPane(parent)
     pane = CreateFrame("Frame", nil, parent)
     pane:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -8, -TOP_H - 4)
@@ -181,7 +161,6 @@ local function BuildPane(parent)
     pane:SetWidth(DETAIL_W)
     ns.Panel(pane)
     pane.row = {}
-    pane.history = {}
     pane.player = {}            -- shown for players only
 
     pane.none = ns.NewText(pane, 12)
@@ -326,21 +305,8 @@ local function BuildPane(parent)
     pane.addGuild = addGuild
 
     -- the block history of this player
-    local hf = CreateFrame("Frame", nil, body)
-    hf:SetPoint("TOPLEFT", body, "TOPLEFT", 6, y)
-    hf:SetPoint("BOTTOMRIGHT", body, "BOTTOMRIGHT", -4, 36)
-    pane.player[#pane.player + 1] = hf
-    pane.histList = ns.NewRows(hf, {
-        rowH = 16, fontSize = 11, height = 80,
-        cols = {
-            { key = "time", text = "Time", width = 116 },
-            { key = "kind", text = "Type", width = 76 },
-            { key = "message", text = "Message" },
-        },
-        draw = HistoryRow,
-        enter = HistoryTip,
-    })
-    pane.histList:SetEmptyText("Nothing blocked from this player yet.")
+    pane.hist = ns.NewHistory(body, y, { empty = "Nothing blocked from this player yet." })
+    pane.player[#pane.player + 1] = pane.hist.frame
 end
 
 -- Redraw the pane for the selected entry (none: a hint).
@@ -351,7 +317,8 @@ function ns.ShowPlayerDetail(newEntry)
     pane.body:SetShown(r and true or false)
     pane.none:SetShown(not r)
     if not r then
-        P.sel, pane.record, pane.histKey = nil, nil, nil
+        P.sel, pane.record = nil, nil
+        pane.hist:Clear()
         return
     end
     local p = r.record or nil
@@ -379,7 +346,7 @@ function ns.ShowPlayerDetail(newEntry)
 
     pane.addGuild:Hide()
     if not p then
-        pane.histKey = nil
+        pane.hist:Clear()
         return
     end
     local now = p.currentGuild or ""
@@ -407,17 +374,9 @@ function ns.ShowPlayerDetail(newEntry)
         Count(c.whisper or 0, "whisper"), Count((c.partyInvite or 0) + (c.guildInvite or 0), "partyInvite"),
         Count(c.partyRaid or 0, "partyRaid"), Count(c.world or 0, "world")))
 
-    -- the history is read again only when the entry or its count changed;
-    -- with nothing blocked the block history (PourSocialScore_Logging) is
-    -- not loaded for it
-    local key = r.entry .. "\001" .. (c.total or 0)
-    if key ~= pane.histKey then
-        local fresh = newEntry or not pane.histKey or pane.histEntry ~= r.entry
-        pane.histKey, pane.histEntry = key, r.entry
-        pane.history = (c.total or 0) > 0 and M.PSS_GetPlayerBlockHistory(r.entry) or {}
-        pane.histList:SetCount(#pane.history)
-        if fresh then pane.histList:Top() end
-    end
+    -- read again only when the entry or its count changed; the block
+    -- history (PourSocialScore_Logging) loads only when asked for
+    pane.hist:Set(r.entry, c.total or 0, M.PSS_GetPlayerBlockHistory, newEntry)
 end
 
 -------------------------------------------------------------------------------
