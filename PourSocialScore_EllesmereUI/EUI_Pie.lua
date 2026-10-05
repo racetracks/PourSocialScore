@@ -1,8 +1,12 @@
 -------------------------------------------------------------------------------
 --  EUI_Pie.lua -- a small pie chart (a ring) for any window page.
 --    local pie = ns.NewPie(parent, size, onClick)
---    pie:Set({ { value =, r =, g =, b =, text = }, ... })   -- the slices
---  Each slice gets its share of the ring (value / sum of the values). The
+--    pie:Set({ { value =, r =, g =, b =, text =, draw =, within = }, ... })
+--  Each slice gets its share of the ring (draw, else value, over the sum).
+--  draw lets a slice that contains another (the last 24 hours contain this
+--  session) take only the part the other does not: the overlap is drawn
+--  once, in the smaller slice. within = { [index] = true }: the slices it
+--  contains, lit with it on hover. The
 --  ring is SEGS short thick lines; each takes the colour of the slice its
 --  middle falls in. Hover dims the other slices and shows the slice's
 --  count; a click calls onClick(index of the slice). Nothing to draw
@@ -20,14 +24,14 @@ Pie.__index = Pie
 function Pie:Set(slices)
     self.slices = slices
     local total = 0
-    for i = 1, #slices do total = total + (slices[i].value or 0) end
+    for i = 1, #slices do total = total + (slices[i].draw or slices[i].value or 0) end
     self.total = total
     local seg, acc, at = self.segSlice, 0, 1
     for s = 1, SEGS do seg[s] = 0 end
     if total > 0 then
         -- where each slice ends, 0..1 from the top, clockwise
         for i = 1, #slices do
-            local v = slices[i].value or 0
+            local v = slices[i].draw or slices[i].value or 0
             if v > 0 then
                 acc = acc + v / total
                 while at <= SEGS and (at - 0.5) / SEGS <= acc + 1e-9 do
@@ -41,17 +45,24 @@ function Pie:Set(slices)
     self:Paint()
 end
 
--- colour every segment; the hovered slice full, the others dimmed
+-- colour every segment; the hovered slice (and the slices it contains)
+-- full, the others dimmed
 function Pie:Paint()
     local hot, slices = self.hot, self.slices
+    local within = hot and slices[hot] and slices[hot].within
     for s = 1, SEGS do
         local i = self.segSlice[s]
         local line = self.segs[s]
         if i == 0 then
             line:SetColorTexture(1, 1, 1, 0.08)
+            line:SetDrawLayer("ARTWORK", 0)
         else
             local sl = slices[i]
-            line:SetColorTexture(sl.r, sl.g, sl.b, (hot == nil or hot == i) and 0.9 or 0.3)
+            local lit = hot == nil or hot == i or (within and within[i])
+            line:SetColorTexture(sl.r, sl.g, sl.b, lit and 0.9 or 0.3)
+            -- segments overlap a little (no seams): a lit one goes over a
+            -- dimmed neighbour, never under it
+            line:SetDrawLayer("ARTWORK", lit and 2 or 1)
         end
     end
     if hot then

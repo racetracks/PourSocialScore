@@ -206,6 +206,10 @@ local function BuildPane(parent)
     pane.none:SetPoint("CENTER")
     pane.none:SetTextColor(1, 1, 1, 0.5)
     pane.none:SetText("Select an entry to see its details.")
+    pane.none:Hide()
+    -- nothing selected: the whole list's totals (a click on the selected
+    -- entry deselects it)
+    pane.totals = ns.NewTotals(pane, page, "players", "Player Ignore List", "Select an entry to see its details.")
 
     local body = CreateFrame("Frame", nil, pane)
     body:SetAllPoints()
@@ -362,7 +366,7 @@ function ns.ShowPlayerDetail(newEntry)
     local pos = Pos()
     local r = pos > 0 and M.PSS_PlayerRow(pos, pane.row)
     pane.body:SetShown(r and true or false)
-    pane.none:SetShown(not r)
+    if r then pane.totals:Hide() else pane.totals:Show() end
     if not r then
         P.sel, pane.record = nil, nil
         pane.hist:Clear()
@@ -528,7 +532,7 @@ function ns.BuildPlayersTab(pg)
         click = function(row, i)
             local pos = P.index[i]
             local entry = pos and M.PSS_PlayerEntry(pos)
-            if entry then SelectEntry(entry) end
+            if entry then SelectEntry(entry ~= P.sel and entry or nil) end
         end,
     })
     pg.list, pg.pane = list, pane

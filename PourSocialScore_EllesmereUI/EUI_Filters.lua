@@ -178,6 +178,10 @@ local function BuildPane(parent)
     pane.none:SetPoint("CENTER")
     pane.none:SetTextColor(1, 1, 1, 0.5)
     pane.none:SetText("Select a filter to edit it.")
+    pane.none:Hide()
+    -- nothing selected: every filter's totals (a click on the selected
+    -- filter deselects it)
+    pane.totals = ns.NewTotals(pane, page, "filters", "Chat Filters", "Select a filter to edit it.")
 
     local b = CreateFrame("Frame", nil, pane)
     b:SetAllPoints()
@@ -366,7 +370,7 @@ function ns.ShowFilterDetail(fresh)
     if not pane then return end
     local r = F.sel and M.PSS_FilterRow(F.sel, F.prow)
     pane.body:SetShown(r and true or false)
-    pane.none:SetShown(not r)
+    if r then pane.totals:Hide() else pane.totals:Show() end
     if not r then
         F.sel = nil
         pane.hist:Clear()
@@ -504,7 +508,7 @@ function ns.BuildFiltersTab(pg)
         enter = RowTip,
         click = function(row, i)
             local n = F.index[i]
-            if n then Select(n) end
+            if n then Select(n ~= F.sel and n or nil) end
         end,
     })
     pg.list, pg.pane, pg.state = list, pane, F
