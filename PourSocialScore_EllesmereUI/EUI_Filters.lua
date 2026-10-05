@@ -229,9 +229,28 @@ local function BuildPane(parent)
     ff:SetPoint("RIGHT", b, "RIGHT", -10, 0)
     ff:SetHeight(58)
     ns.Panel(ff)
-    local fbox = CreateFrame("EditBox", nil, ff)
-    fbox:SetPoint("TOPLEFT", ff, "TOPLEFT", 4, -4)
-    fbox:SetPoint("BOTTOMRIGHT", ff, "BOTTOMRIGHT", -4, 4)
+    -- a long filter scrolls inside the panel instead of spilling over the
+    -- buttons below; the box grows with its text and the view follows the cursor
+    local fscroll = CreateFrame("ScrollFrame", nil, ff, "ScrollFrameTemplate")
+    fscroll:SetPoint("TOPLEFT", ff, "TOPLEFT", 4, -4)
+    fscroll:SetPoint("BOTTOMRIGHT", ff, "BOTTOMRIGHT", -22, 4)
+    ns.ScrollBar(fscroll.ScrollBar)
+    local fbox = CreateFrame("EditBox", nil, fscroll)
+    fbox:SetPoint("TOPLEFT", fscroll, "TOPLEFT", 0, 0)
+    fbox:SetWidth(300)
+    fscroll:SetScrollChild(fbox)
+    fscroll:SetScript("OnSizeChanged", function(_, w) if w and w > 0 then fbox:SetWidth(w) end end)
+    fbox:SetScript("OnCursorChanged", function(_, _, y, _, h)
+        if fscroll.UpdateScrollChildRect then fscroll:UpdateScrollChildRect() end
+        local top, view = fscroll:GetVerticalScroll(), fscroll:GetHeight()
+        y = -(y or 0)
+        h = h or 0
+        if y < top then
+            fscroll:SetVerticalScroll(y)
+        elseif view > 0 and y + h > top + view then
+            fscroll:SetVerticalScroll(math.min(y + h - view, fscroll:GetVerticalScrollRange()))
+        end
+    end)
     fbox:SetMultiLine(true)
     fbox:SetAutoFocus(false)
     fbox:SetMaxLetters(1000)
@@ -240,7 +259,7 @@ local function BuildPane(parent)
     fbox:SetScript("OnEscapePressed", function(self) self:ClearFocus(); ns.ShowFilterDetail() end)
     ff:EnableMouse(true)
     ff:SetScript("OnMouseDown", function() if fbox:IsEnabled() then fbox:SetFocus() end end)
-    pane.filterBox = fbox
+    pane.filterBox, pane.filterScroll = fbox, fscroll
     y = y - 62
 
     -- [Save Filter] [Copy] [Remove] [Reset Count]
@@ -355,7 +374,10 @@ function ns.ShowFilterDetail(fresh)
     end
     pane.onBox:SetChecked(r.active)
     if fresh or not pane.descBox:HasFocus() then pane.descBox:SetText(r.desc) end
-    if fresh or not pane.filterBox:HasFocus() then pane.filterBox:SetText(r.filter) end
+    if fresh or not pane.filterBox:HasFocus() then
+        pane.filterBox:SetText(r.filter)
+        if fresh then pane.filterScroll:SetVerticalScroll(0) end
+    end
     if fresh then
         pane.testBox:SetText("")
         pane.result:SetText("")
