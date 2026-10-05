@@ -55,13 +55,13 @@ StaticPopupDialogs["PSS_REASON"] = {
 	OnAccept = function(self)
 		local idx = M.hasAnyIgnored(V.nameUI)
 		if idx > 0 then M.PSS_SetNote(idx, self.EditBox:GetText()) end
-		M.PSSUpdateUI()
+		M.PSS_PlayersChanged()
 	end,
 	EditBoxOnEnterPressed = function(self)
 		local idx = M.hasAnyIgnored(V.nameUI)
 		if idx > 0 then M.PSS_SetNote(idx, self:GetParent().EditBox:GetText()) end
 		self:GetParent():Hide()
-		M.PSSUpdateUI()
+		M.PSS_PlayersChanged()
 	end,
 	EditBoxOnEscapePressed = function(self)
 		self:GetParent():Hide()
@@ -174,7 +174,7 @@ function M.PSS_LFG_ApplicantMenu(owner, root, contextData)
 	root:CreateButton(text,
 		function(owner, root, contextData)
 			M.PSS_AddOrDelIgnore(M.addServer(info.leaderName))
-			M.PSSUpdateUI(true)
+			M.PSS_PlayersChanged(true)
 		end)
 end
 
@@ -217,7 +217,7 @@ function M.PSS_UnitMenuPlayer (owner, root, contextData)
 	root:CreateButton(text,
 		function(owner, root, contextData)
 			M.PSS_AddOrDelIgnore(M.addServer(target))
-			M.PSSUpdateUI(true)
+			M.PSS_PlayersChanged(true)
 		end)
 end
 

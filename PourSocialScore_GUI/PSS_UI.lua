@@ -34,7 +34,7 @@ local FilterScrollButtons	= {}
 local FilterScrollSelect	= 0
 -- Sort state and helpers for the list tabs, kept in one table (Lua 5.1 allows
 -- a function at most 60 upvalues, and BuildUIFrames is close to that).
-local SortUI				= {}
+local SortUI				= { row = {} }		-- row: the entry being drawn (M.PSS_PlayerRow)
 local UI					= M.UI		-- shared look (PSS_UIKit.lua)
 local WINDOW_WIDTH			= 960	-- default and minimum (the guild and player tables need it)
 local WINDOW_HEIGHT			= 470
@@ -172,20 +172,7 @@ local function ButtonIgnoreRemove()
 		return
 	end
 
-	local idx		= IgnoreScrollIndex[IgnoreScrollSelect]
-	local typeStr = PourSocialScoreDB.typeList[idx]
-
-	V.needSorted = true
-
-	if typeStr == "player" then
-		M.PSS_DelIgnore(idx, true)
-	elseif typeStr == "npc" then
-		M.AddOrDelNPC(idx)
-		M.PSSUpdateUI()
-	elseif typeStr == "server" then
-		M.AddOrDelServer(idx)
-		M.PSSUpdateUI()
-	end
+	M.PSS_RemovePlayerAt(IgnoreScrollIndex[IgnoreScrollSelect])
 end
 
 --------------------------
@@ -621,13 +608,7 @@ local function UpdateRuleSummaryTexts()
 	-- whole list for every blocked line)
 	if not (MainFrame and MainFrame:IsVisible()) then return end
 	if Tab1Frame and M.PSS_GetPlayerBlockTotals then
-		local sum = { total = 0, whisper = 0, partyInvite = 0, guildInvite = 0, partyRaid = 0, world = 0 }
-		for i, name in ipairs(PourSocialScoreDB.ignoreList or {}) do
-			if PourSocialScoreDB.typeList[i] == "player" and M.PSS_GetPlayerRecord(name) then
-				local c = M.PSS_GetPlayerBlockCounts(name)
-				for k in pairs(sum) do sum[k] = sum[k] + (c[k] or 0) end
-			end
-		end
+		local sum = M.PSS_ListedBlockTotals({ total = 0, whisper = 0, partyInvite = 0, guildInvite = 0, partyRaid = 0, world = 0 })
 		SetBlockStats(Tab1Frame.stats, "player", sum)
 	end
 	UpdateFilterStats()
@@ -641,82 +622,62 @@ local function IgnoreListDrawUpdate (self)
 		return
 	end
 
-	FauxScrollFrame_Update(self, #PourSocialScoreDB.ignoreList, IGNORE_ROWS, BUTTON_HEIGHT)
+	local total = M.PSS_PlayerCount()
+	FauxScrollFrame_Update(self, total, IGNORE_ROWS, BUTTON_HEIGHT)
 
-	if IgnoreScrollSelect > #PourSocialScoreDB.ignoreList then
-		IgnoreScrollSelect = #PourSocialScoreDB.ignoreList
+	if IgnoreScrollSelect > total then
+		IgnoreScrollSelect = total
 	end
 
 	UpdateRuleSummaryTexts()
 
 	local offset	= FauxScrollFrame_GetOffset(self)
-	local index		= 0
+	local row		= SortUI.row
 	local id		= 0
-	local pName		= ""
-	local pServer = ""
 	local pType		= ""
 	local pExpire = ""
-	local temp		= 0
 
 	for count = 1, IGNORE_ROWS do
 		id = count + offset
 
-		if PourSocialScoreDB.ignoreList[id] then
-			index = IgnoreScrollIndex[id] or id
-			pName = PourSocialScoreDB.ignoreList[index]
-			temp	= string.find(pName, "-", 1, true)
-
-			if temp then
-				pServer = M.prettyServer(string.sub(pName, temp + 1, string.len(pName)))
-				pName	= string.sub(pName, 1, temp - 1)
-			else
-				pServer = "All"
-			end
-
-			if PourSocialScoreDB.typeList[index] == "player" then
-				if PourSocialScoreDB.factionList[index] == "Alliance" then
+		if M.PSS_PlayerRow(IgnoreScrollIndex[id] or id, row) then
+			if row.kind == "player" then
+				if row.faction == "Alliance" then
 					pType = "|cff335effAlliance"
-				elseif PourSocialScoreDB.factionList[index] == "Horde" then
+				elseif row.faction == "Horde" then
 					pType = "|cffe60000Horde"
 				else
 					pType = "Unknown"
 				end
-			elseif PourSocialScoreDB.typeList[index] == "npc" then
+			elseif row.kind == "npc" then
 				pType = "|cffffff99NPC"
 			else
 				pType = "|cffff66ccServer"
-				pServer = M.prettyServer(pName)
-				pName = "All"
 			end
 
-			local playerExp = (PourSocialScoreDB.expList[index] or 0)
-			local daysExp	= playerExp - M.daysFromToday(PourSocialScoreDB.dateList[index])
-
-			if playerExp == 0 then
+			if row.expire == 0 then
 				pExpire = "|cff808080"..L["EXP_NVR"]
-			elseif daysExp <= 0 then
+			elseif row.left <= 0 then
 				pExpire = "|cffff6666"..L["EXP_TDY"]
 			else
-				pExpire = daysExp.."d"
+				pExpire = row.left.."d"
 			end
 
-			IgnoreScrollButtons[count].name:SetText(pName)
-			local rowPrefs = PourSocialScoreDB.typeList[index] == "player" and M.PSS_GetPlayerPrefs and M.PSS_GetPlayerPrefs(PourSocialScoreDB.ignoreList[index])
-			if rowPrefs and rowPrefs.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[rowPrefs.class] then
-				local c = RAID_CLASS_COLORS[rowPrefs.class]
+			IgnoreScrollButtons[count].name:SetText(row.name)
+			local prefs = row.record
+			if prefs and prefs.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[prefs.class] then
+				local c = RAID_CLASS_COLORS[prefs.class]
 				IgnoreScrollButtons[count].name:SetTextColor(c.r, c.g, c.b)
 			else
 				IgnoreScrollButtons[count].name:SetTextColor(1, 1, 1)
 			end
-			IgnoreScrollButtons[count].server:SetText(pServer)
+			IgnoreScrollButtons[count].server:SetText(row.server)
 			IgnoreScrollButtons[count].type:SetText(pType)
-			IgnoreScrollButtons[count].listed:SetText(M.daysFromToday(PourSocialScoreDB.dateList[index]) .. "d")
+			IgnoreScrollButtons[count].listed:SetText(row.listed .. "d")
 			IgnoreScrollButtons[count].expire:SetText(pExpire)
-			IgnoreScrollButtons[count].note:SetText("|cff69CCF0"..PourSocialScoreDB.notes[index])
+			IgnoreScrollButtons[count].note:SetText("|cff69CCF0"..row.note)
 
 			-- exclusions apply to players only (NPC / server rows have no switches)
-			local isPlayer = PourSocialScoreDB.typeList[index] == "player"
-			local prefs = isPlayer and M.PSS_GetPlayerPrefs and M.PSS_GetPlayerPrefs(PourSocialScoreDB.ignoreList[index])
 			if prefs then
 				UI.SetMetricCells(IgnoreScrollButtons[count].metrics, M.PSS_GetPlayerBlockCounts(prefs))
 			else
@@ -774,7 +735,7 @@ local function CreateIgnoreButtons()
 		b.excl = UI.CreateExclusionBoxes(b, hr, "excl", function(box, cat)
 			local rowIndex = b:GetID()
 			local idx = IgnoreScrollIndex[rowIndex] or rowIndex
-			local name = PourSocialScoreDB.ignoreList[idx]
+			local name = M.PSS_PlayerEntry(idx)
 			if name and M.PSS_SetPlayerSetting then M.PSS_SetPlayerSetting(name, UI.EXCL_BY_CAT[cat].field, UI.ExclBlocked(box)) end
 			if M.PSS_RefreshPlayerDetail then M.PSS_RefreshPlayerDetail() end
 		end)
@@ -785,7 +746,7 @@ end
 
 function M.IgnoreScrollDoubleClick()
 	local idx = IgnoreScrollIndex[IgnoreScrollSelect]
-	local name = idx and PourSocialScoreDB.ignoreList[idx]
+	local name = idx and M.PSS_PlayerEntry(idx)
 	if name and M.PSS_ShowPlayerDetail then
 		M.PSS_ShowPlayerDetail(name)
 	end
@@ -804,7 +765,7 @@ function M.IgnoreScrollClick(self, button, down)
 	end
 
 	if button == "RightButton" then
-		V.nameUI = PourSocialScoreDB.ignoreList[IgnoreScrollIndex[IgnoreScrollSelect]]
+		V.nameUI = M.PSS_PlayerEntry(IgnoreScrollIndex[IgnoreScrollSelect])
 
 		MenuUtil.CreateContextMenu(UIParent, function(ownerRegion, root)
 			root:CreateTitle(V.nameUI)
@@ -840,7 +801,7 @@ function M.IgnoreScrollClick(self, button, down)
 				end)
 			do
 				local ri = IgnoreScrollIndex[IgnoreScrollSelect]
-				local p = (PourSocialScoreDB.typeList[ri] == "player") and M.PSS_GetPlayerPrefs and M.PSS_GetPlayerPrefs(V.nameUI)
+				local p = (select(2, M.PSS_PlayerEntry(ri)) == "player") and M.PSS_GetPlayerPrefs and M.PSS_GetPlayerPrefs(V.nameUI)
 				if p and M.PSS_AddOverrideMenu then
 					M.PSS_AddOverrideMenu(root, p, "person", function() IgnoreListDrawUpdate(IgnoreScrollFrame) end)
 				end
@@ -862,81 +823,10 @@ end
 -- COLUMN SORTING FUNCTIONS --
 ------------------------------
 
-local function elementName (num)
-
-	local type = PourSocialScoreDB.typeList[num]
-
-	if type == "player" or type == "npc" then
-		return M.removeServer(PourSocialScoreDB.ignoreList[num], true)
-	elseif type == "server" then
-		return "All"
-	else
-		return ""
-	end
-end
-
-local function elementServer (num)
-
-	local type = PourSocialScoreDB.typeList[num]
-
-	if type == "player" then
-		return M.getServer(PourSocialScoreDB.ignoreList[num])
-	elseif type == "server" then
-		return PourSocialScoreDB.ignoreList[num]
-	elseif type == "npc" then
-		return "All"
-	else
-		return ""
-	end
-end
-
-local function elementType(num)
-
-	local type = PourSocialScoreDB.typeList[num]
-
-	if type == "player" then
-		return PourSocialScoreDB.factionList[num]
-	else
-		return type
-	end
-end
-
--- Player Ignore List sorting: one key + direction. Every column is sortable
--- (Name, Server, Type, Listed, Expire, Notes and each W I G P C box). The
--- list opens sorted by name A-Z; ties always fall back to name A-Z.
+-- Player Ignore List sorting: one key + direction (M.PSS_SortPlayers). Every
+-- column is sortable (Name, Server, Type, Listed, Expire, Notes, the block
+-- counts and each W I G P C box). The list opens sorted by name A-Z.
 SortUI.ignoreKey, SortUI.ignoreAsc = "name", true
-
-local function playerSortValue(i, key)
-	local db = PourSocialScoreDB
-	if key == "name" then return string.lower(elementName(i) or "")
-	elseif key == "server" then return string.lower(elementServer(i) or "")
-	elseif key == "type" then return string.lower(elementType(i) or "")
-	elseif key == "listed" then return M.daysFromToday(db.dateList[i]) or 0
-	elseif key == "expire" then
-		local e = tonumber(db.expList[i]) or 0
-		if e == 0 then return math.huge end				-- never expires: after everything
-		return e - (M.daysFromToday(db.dateList[i]) or 0)
-	elseif key == "note" then
-		local n = string.lower(db.notes[i] or "")
-		return n == "" and nil or n						-- empty notes go last
-	end
-	-- block metrics ("metric:<cat>"; players only - NPC / server rows go last)
-	local mcat = key:match("^metric:(.+)$")
-	if mcat then
-		if db.typeList[i] ~= "player" then return nil end
-		local p = M.PSS_GetPlayerRecord and M.PSS_GetPlayerRecord(db.ignoreList[i])
-		return p and (tonumber(M.PSS_GetPlayerBlockCounts(p)[mcat]) or 0) or 0
-	end
-	-- W I G P C ("excl:<cat>"; players only - NPC / server rows go last)
-	local cat = key:match("^excl:(.+)$")
-	local ex = cat and UI.EXCL_BY_CAT[cat]
-	if ex then
-		if db.typeList[i] ~= "player" then return nil end
-		local p = M.PSS_GetPlayerRecord and M.PSS_GetPlayerRecord(db.ignoreList[i])
-		return UI.ExclChecked(not p or p[ex.field] ~= false) and 1 or 0		-- by tick (allowed)
-	end
-	return 0
-end
 
 local function updatePlayerSortArrows()
 	if SortUI.playerHR then SortUI.playerHR:SetSort(SortUI.ignoreKey, SortUI.ignoreAsc) end
@@ -944,34 +834,12 @@ end
 
 -- (sortType is ignored; kept so existing callers still work)
 local function createSortedIndex (sortType)
-	local db = PourSocialScoreDB
 	-- keep the selected entry selected after re-sorting
 	local selectedEntry = IgnoreScrollSelect > 0 and IgnoreScrollIndex[IgnoreScrollSelect] or nil
 
 	V.needSorted		= false
-	IgnoreScrollIndex	= {}
 	IgnoreScrollType	= 1
-
-	local key, asc = SortUI.ignoreKey, SortUI.ignoreAsc
-	local sv, nv, srv = {}, {}, {}
-	for i = 1, #db.ignoreList do
-		IgnoreScrollIndex[i] = i
-		sv[i] = playerSortValue(i, key)
-		nv[i] = string.lower(elementName(i) or "")
-		srv[i] = string.lower(elementServer(i) or "")
-	end
-
-	table.sort(IgnoreScrollIndex, function(a, b)
-		local A, B = sv[a], sv[b]
-		if A ~= B then
-			if A == nil then return false end			-- blanks always last
-			if B == nil then return true end
-			if asc then return A < B else return A > B end
-		end
-		if nv[a] ~= nv[b] then return nv[a] < nv[b] end
-		if srv[a] ~= srv[b] then return srv[a] < srv[b] end
-		return a < b
-	end)
+	IgnoreScrollIndex	= M.PSS_SortPlayers(SortUI.ignoreKey, SortUI.ignoreAsc)
 
 	if selectedEntry then
 		for pos, i in ipairs(IgnoreScrollIndex) do
@@ -1323,8 +1191,9 @@ local function BuildPlayerTab()
 	end
 	local function listedPlayers()
 		local out = {}
-		for i, n in ipairs(PourSocialScoreDB.ignoreList or {}) do
-			if PourSocialScoreDB.typeList[i] == "player" then out[#out + 1] = n end
+		for i = 1, M.PSS_PlayerCount() do
+			local n, kind = M.PSS_PlayerEntry(i)
+			if kind == "player" then out[#out + 1] = n end
 		end
 		return out
 	end
@@ -1364,7 +1233,9 @@ local function BuildPlayerTab()
 
 	Button3:SetScript("OnClick", function()
 		local idx = IgnoreScrollSelect > 0 and IgnoreScrollIndex[IgnoreScrollSelect]
-		local name = idx and PourSocialScoreDB.typeList[idx] == "player" and PourSocialScoreDB.ignoreList[idx] or nil
+		local entry, kind
+		if idx then entry, kind = M.PSS_PlayerEntry(idx) end
+		local name = kind == "player" and entry or nil
 		hist:Open(name)
 	end)
 

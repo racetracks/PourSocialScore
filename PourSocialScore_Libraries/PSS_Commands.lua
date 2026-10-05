@@ -201,8 +201,7 @@ function M.PSS_SlashPSS (msg)
 			elseif str == "player" then
 				M.PSS_DelIgnore(index, true)
 			end
-			V.needSorted = true
-			M.PSSUpdateUI(true)
+			M.PSS_PlayersChanged(true)
 		else
 			argStr = M.Proper(argStr, true)
 
@@ -211,7 +210,7 @@ function M.PSS_SlashPSS (msg)
 			if npcIndex > 0 then
 				M.ShowMsg (format(L["CMD_12"], argStr))
 				RemoveFromList(npcIndex)
-				M.PSSUpdateUI(true)
+				M.PSS_PlayersChanged(true)
 			else
 				M.PSS_DelIgnore ((M.PSS_SplitNameArg(argStr)), true)
 			end
@@ -220,12 +219,12 @@ function M.PSS_SlashPSS (msg)
 	elseif (args[1] == "server" or args[1] == "addserver") and args[2] ~= nil and args[2] ~= "" then
 
 		M.AddOrDelServer(argStr)
-		M.PSSUpdateUI(true)
+		M.PSS_PlayersChanged(true)
 
 	elseif (args[1] == "npc" or args[1] == "addnpc") then
 
 		M.AddOrDelNPC(argStr)
-		M.PSSUpdateUI(true)
+		M.PSS_PlayersChanged(true)
 
 	elseif args[1] == "expire" and #args >= 3 and tonumber(args[#args]) then
 		-- "/pss expire First Last-Realm 30" or "/pss expire \"First Last\" 30"

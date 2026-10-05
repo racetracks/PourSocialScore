@@ -99,6 +99,11 @@ $(PSS_PHASE=2 PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" 
 $(PSS_PHASE=3 PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" - "$here/check_eui_window.lua" 2>&1 | grep -v '^|cff')"
 	echo "$out"
 	for p in 1 2 3; do echo "$out" | grep -q "PASS eui window $p" || fail=1; done
+	# the Players tab (3.1 E.4) and the core player queries
+	echo "== EllesmereUI Players tab"
+	out=$(PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" - "$here/check_eui_players.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS eui players" || fail=1
 else
 	echo "== EllesmereUI window: skipped (no PourSocialScore_EllesmereUI at $eui)"
 fi
