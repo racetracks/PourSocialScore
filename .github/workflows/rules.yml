@@ -1,0 +1,44 @@
+# The same pull request checks as the PourSocialScore repo, on every pull
+# request and every push to main:
+#   Rules    tools/check_rules.sh (Lua 5.1, ASCII, EllesmereUI's style, TOCs)
+#   Harness  the PourSocialScore harness's EllesmereUI checks (window, panel,
+#            options, import/export, Players tab) against the core branch of
+#            the same name, or the core's main when there is none
+name: Rules
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.1
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Check rules
+        run: sh tools/check_rules.sh
+
+  harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: poursocialscore-ellesmereui
+      - name: Install Lua 5.1
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Get PourSocialScore (same branch, else main)
+        run: |
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          if git ls-remote --exit-code --heads https://github.com/racetracks/PourSocialScore "$branch" > /dev/null; then
+            ref="$branch"
+          else
+            ref=main
+          fi
+          echo "Core branch: $ref"
+          git clone -q --depth 1 -b "$ref" https://github.com/racetracks/PourSocialScore poursocialscore
+      - name: EllesmereUI checks
+        working-directory: poursocialscore
+        run: PSS_EUI_REQUIRED=1 sh tools/harness/check_eui_all.sh
