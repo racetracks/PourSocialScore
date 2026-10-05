@@ -157,7 +157,7 @@ end
 -- Open the Events tab for spec (nil: everything) with period and types.
 local function OpenEvents(tabPage, spec, period, cats)
     if not ns.OpenEvents then return end
-    ns.OpenEvents(tabPage, spec, { period = period, cats = cats or TypesOn() })
+    ns.OpenEvents(tabPage, spec, { period = period, cats = cats })
 end
 
 -- counts by type added up over the ticked types
@@ -265,9 +265,9 @@ function ns.PeriodSlices(v, slices, map, pool)
 end
 
 -- A slice's tooltip: its count, and how much of it the smaller slice holds.
-function ns.PeriodTip(title, sl, click)
+function ns.PeriodTip(title, sl, click, typed)
     local t = ("%s\n%s: %d blocked"):format(title or "", sl.text, sl.value or 0)
-    if next(typeOff) ~= nil then t = t .. "\n|cffaaaaaa(the types ticked below only)|r" end
+    if typed and next(typeOff) ~= nil then t = t .. "\n|cffaaaaaa(the types ticked below only)|r" end
     if sl.innerText and (sl.inner or 0) > 0 then
         t = t .. ("\n|cffaaaaaa%d of them also in %s (lit with it)|r"):format(sl.inner, string.lower(sl.innerText))
     end
@@ -297,7 +297,7 @@ function SM:Refresh()
     if not self.pie then Build(self) end
     local s, d
     local all = self.allTime or 0
-    if next(typeOff) ~= nil and self:ReadByCat() then
+    if self.typed and next(typeOff) ~= nil and self:ReadByCat() then
         -- some types unticked: the ticked ones only
         s, d = SumOn(self.byCat.session), SumOn(self.byCat.day)
         if self.counts then all = SumOn(self.counts) end
@@ -323,7 +323,8 @@ end
 -- entry's all-time count; title: its name; specFn(id): its Events spec
 -- (made only when opened; nil: every event); opts.noWhere: no "Stored:"
 -- line (a guild: its lines are its members'), opts.who: "this player" for
--- the keep, opts.counts: all time by type, opts.recent: { session =, day = }
+-- the keep, opts.counts: all time by type (a page with a type pie: the
+-- type ticks then filter this pie and View Events), opts.recent: { session =, day = }
 -- counted elsewhere (a default guild list, a whole list) instead of the
 -- owner's, with opts.prefix (owners whose key starts with it) or
 -- opts.recentByCat(into) for the same by type
@@ -332,6 +333,7 @@ function SM:Set(owner, allTime, title, specFn, id, opts)
     self.noWhere, self.whoText = opts and opts.noWhere, opts and opts.who
     self.recent = opts and opts.recent
     self.counts = opts and opts.counts
+    self.typed = self.counts ~= nil
     self.prefix = opts and opts.prefix
     self.recentByCat = opts and opts.recentByCat
     self:Refresh()
@@ -342,7 +344,7 @@ function SM:Open(key)
     local spec = self.specFn and self.specFn(self.id) or nil
     local period
     if key == nil then period = WidestOn() elseif key ~= "all" then period = key end
-    OpenEvents(self.tabPage, spec, period)
+    OpenEvents(self.tabPage, spec, period, self.typed and TypesOn() or nil)
 end
 
 -- the pie, the tick boxes and View Events: made the first time the page shows
@@ -351,7 +353,7 @@ function Build(sm)
     local SIZE = sm.size or 116
     sm.pie = ns.NewPie(page, SIZE, function(i) sm:Open(sm.map[i]) end)
     sm.pie.frame:SetPoint("TOPLEFT", page, "TOPLEFT", 18, top)
-    sm.pie.tip = function(i) return ns.PeriodTip(sm.title, sm.slices[i], true) end
+    sm.pie.tip = function(i) return ns.PeriodTip(sm.title, sm.slices[i], true, sm.typed) end
     sm.empty = ns.NewText(page, 11)
     sm.empty:SetPoint("CENTER", sm.pie.frame, "CENTER", 0, 0)
     sm.empty:SetTextColor(1, 1, 1, 0.5)

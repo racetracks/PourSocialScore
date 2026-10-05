@@ -82,12 +82,12 @@ function History.RecentByCat(owner, into, prefix)
 		if prefix then return type(o) == "string" and string.find(o, prefix, 1, true) == 1 end
 		return o == owner
 	end
-	if prefix then
-		for o, c in pairs(sessionCat) do
-			if want(o) then for cat, n in pairs(c) do se[cat] = (se[cat] or 0) + n end end
+	for cat, owners in pairs(sessionCat) do
+		if prefix then
+			for o, n in pairs(owners) do if want(o) then se[cat] = (se[cat] or 0) + n end end
+		elseif owner ~= nil and owners[owner] then
+			se[cat] = owners[owner]
 		end
-	elseif owner ~= nil and sessionCat[owner] then
-		for cat, n in pairs(sessionCat[owner]) do se[cat] = n end
 	end
 	if r and (prefix or r.day[owner]) then
 		local slots = History.DAY_SLOTS

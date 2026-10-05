@@ -335,7 +335,6 @@ local function BuildPane(parent)
     pane.counts = Line(dp.summary, -6)
     ns.Font(pane.counts, 11)
     pane.summary = ns.NewSummary(dp.summary, page, -30)
-    pane.summaryOpts = {}
 
     -- Event History: the filter's block history, the whole page
     pane.hist = ns.NewHistory(dp.history, -2, {
@@ -413,9 +412,7 @@ function ns.ShowFilterDetail(fresh)
     -- read again only when the filter or its count changed; the block
     -- history (PourSocialScore_Logging) loads only when asked for
     pane.hist:Set(r.index, r.lines, M.PSS_FilterHistory, fresh)
-    pane.summaryOpts.counts = c
-    pane.summary:Set(M.PSS_FilterOwnerKey(r.index), r.blocked or 0, r.desc, ns.FilterHistorySpec, r.index,
-        pane.summaryOpts)
+    pane.summary:Set(M.PSS_FilterOwnerKey(r.index), r.blocked or 0, r.desc, ns.FilterHistorySpec, r.index)
 end
 
 -------------------------------------------------------------------------------

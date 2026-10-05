@@ -433,6 +433,8 @@ do
 		check(ev and ev:IsOpen() and ev.q.cats and not ev.q.cats[cat] and ev.typeDrop.shownText ~= "All types",
 			"View Events not of the ticked types")
 		EllesmereUI.PressEscape()
+		-- a player's own pie has no type pie beside it: the ticks leave it alone
+		check(tot.summary.typed and not pane.summary.typed, "a player's pie filtered by the list's type ticks")
 		k1.check.hit:GetScript("OnClick")(k1.check.hit)
 		check(k1.check:GetChecked() and tot.summary.values.session == s0 and tot.summary.values.day == d0,
 			"a second label click did not tick it again")

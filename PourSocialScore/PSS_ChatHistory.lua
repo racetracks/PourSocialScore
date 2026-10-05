@@ -730,7 +730,9 @@ local function recent(cur, create)
 	return r
 end
 
--- this session's blocks by owner and type (never saved, like the session)
+-- this session's blocks by type and owner: sessionCat[cat][owner] (never
+-- saved, like the session; by type first, so an owner blocked once costs
+-- one key, not a table)
 local sessionCat = {}
 
 -- One block of type cat for owner at server time ts (now when unknown).
@@ -744,10 +746,10 @@ function History.CountRecent(owner, ts, cat)
 	-- the session counts its own blocks (a line from before it is not)
 	if ts <= 0 or ts >= History.SessionStart() then
 		se[owner] = (se[owner] or 0) + 1
-		local c = sessionCat[owner]
-		if not c then c = {}; sessionCat[owner] = c end
 		local k = cat or UNKNOWN_CAT
-		c[k] = (c[k] or 0) + 1
+		local c = sessionCat[k]
+		if not c then c = {}; sessionCat[k] = c end
+		c[owner] = (c[owner] or 0) + 1
 	end
 	local cur = math.floor(History.Now() / SLOT)
 	local slot = math.floor(ts / SLOT)
@@ -796,7 +798,7 @@ function History.RecentTotals(prefix)
 end
 
 -- For History.RecentByCat (PourSocialScore_Libraries, PSS_TotalsQuery.lua):
--- this session's blocks by owner and type, and the recent table brought up
+-- this session's blocks by type and owner, and the recent table brought up
 -- to now (nil: none). Read only.
 function History.RecentByCatData()
 	return sessionCat, recent(math.floor(History.Now() / SLOT), false)
@@ -854,7 +856,7 @@ function History.ForgetRecent(owner)
 	if type(db) ~= "table" then return end
 	local se = rawget(db, "session")
 	if type(se) == "table" then se[owner] = nil end
-	sessionCat[owner] = nil
+	for _, c in pairs(sessionCat) do c[owner] = nil end
 	local r = rawget(db, "recent")
 	if type(r) ~= "table" or type(r.day) ~= "table" or not r.day[owner] then return end
 	r.day[owner] = nil

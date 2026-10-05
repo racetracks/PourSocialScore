@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev012 - Review fixes
+
+- EllesmereUI window: the type tick boxes under a list's type pie (a whole list, a default guild list) filter that page's period pie and View Events only. A player's, guild's, member's or filter's own pie, which has no type pie beside it, always shows every type again, so its numbers match the PSS window.
+- This session's counts by type take less memory: about 40 KB for 1,000 spammers blocked once each, instead of about 140 KB.
+- Removed leftover code for the old Block History view's guild drop-down.
+
 => 3.2.0-dev011 - Profession links no longer open on hover
 
 - Hovering a profession link in a blocked message (Block History in the PSS window, the Events tab and Event History in the EllesmereUI window) opened that profession's window. Hovering now only shows tooltips for links that have one (items, spells, achievements, quests and the like); a click still opens a profession link as in chat.

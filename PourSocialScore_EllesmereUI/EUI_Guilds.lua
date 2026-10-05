@@ -462,18 +462,6 @@ local allGuilds = {
 local function AllGuilds() return allGuilds end
 ns.RegisterEventSource("guilds", "Guild Ignore List", AllGuilds)
 
--- the guild rules A-Z, for the view's Guilds drop-down (read when it opens)
-local function GuildChoices()
-    local out = {}
-    for k, g in pairs(PourSocialScoreDB.guildData or {}) do
-        if type(g) == "table" then out[#out + 1] = { key = k, name = tostring(g.name or k) } end
-    end
-    table.sort(out, function(a, b) return string.lower(a.name) < string.lower(b.name) end)
-    return out
-end
-allGuilds.pick = GuildChoices
-allGuilds.pickSpec = function(key) return ns.GuildHistorySpec(key) end
-
 local function GuildLabel(key)
     local _, g = M.PSS_FindGuildRule(key)
     return g and tostring(g.name or key) or nil
@@ -482,7 +470,7 @@ end
 function ns.GuildHistorySpec(key)
     return {
         kind = "guild", id = key, allText = "All Guilds", all = AllGuilds,
-        label = GuildLabel, pick = GuildChoices, pickSpec = ns.GuildHistorySpec,
+        label = GuildLabel,
         read = M.PSS_GetGuildBlockHistory,
         reset = M.PSS_ResetGuildBlockHistory,
         owner = History.GuildKey, counts = M.PSS_GetGuildBlockCounts,
@@ -491,7 +479,7 @@ end
 
 function ns.MemberHistorySpec(m, gkey)
     return {
-        kind = "member", id = m, allText = "Whole Guild", pick = GuildChoices, pickSpec = ns.GuildHistorySpec,
+        kind = "member", id = m, allText = "Whole Guild",
         all = function() return GuildLabel(gkey) and ns.GuildHistorySpec(gkey) or allGuilds end,
         label = function(rec)
             local _, g = M.PSS_FindGuildRule(gkey)
@@ -525,7 +513,7 @@ end
 function ns.GroupHistorySpec(k)
     return {
         kind = "group", id = k, confirm = true, allText = "All Guilds", all = AllGuilds,
-        label = GroupLabel, pick = GuildChoices, pickSpec = ns.GuildHistorySpec,
+        label = GroupLabel,
         -- each guild's lines and, as in a guild's own view, its blocks
         -- counted but not stored (world and guild chat) or expired
         read = function(gk)
@@ -897,7 +885,6 @@ local function ShowGuild(key, fresh)
     b.removeButton:SetEnabled(not M.PSS_IsStaticManagedGuild(key))
     b.membersButton:SetShown(G.view ~= "members")
     b.hist:Set(key, c.total or 0, M.PSS_GetGuildBlockHistory, fresh)
-    NO_WHERE.counts = c
     b.summary:Set(History.GuildKey and History.GuildKey(key), c.total or 0, tostring(g.name), ns.GuildHistorySpec, key, NO_WHERE)
     return true
 end
@@ -1012,7 +999,6 @@ local function ShowMember(fresh)
     local c = M.PSS_GetMemberBlockCounts(m)
     b.counts:SetText(CountsText(c))
     b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory, fresh)
-    MEMBER_WHO.counts = c
     b.summary:Set(History.MemberKey(m), c.total or 0, tostring(m.name), MemberSpec, m, MEMBER_WHO)
     return true
 end
