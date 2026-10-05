@@ -11,6 +11,8 @@
 --        draw  = function(row, i) end,           -- row.cells[key]:SetText(...)
 --        click = function(row, i, button) end,   -- optional
 --        enter = function(row, i) end,           -- optional (tooltip)
+--        emptyClick = function() end,            -- optional: a click under
+--                                                -- the rows (deselects)
 --    })
 --    list:SetCount(n)  list:Redraw()  list:Top()  list:SetSort(key, asc)
 --  A column without a width takes the space left over (one per list).
@@ -116,6 +118,14 @@ function ns.NewRows(parent, spec)
         end
     end)
     scroll:HookScript("OnSizeChanged", function() list:Layout() end)
+    if spec.emptyClick then
+        -- the rows are buttons over the scroll frame: what reaches it is a
+        -- click on no row
+        scroll:EnableMouse(true)
+        scroll:SetScript("OnMouseUp", function(_, button)
+            if button == "LeftButton" then spec.emptyClick() end
+        end)
+    end
     list.empty = ns.NewText(parent, 12)
     list.empty:SetPoint("TOP", scroll, "TOP", 0, -20)
     list.empty:SetTextColor(1, 1, 1, 0.5)

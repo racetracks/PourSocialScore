@@ -510,7 +510,10 @@ function ns.BuildFiltersTab(pg)
             local n = F.index[i]
             if n then Select(n ~= F.sel and n or nil) end
         end,
+        emptyClick = function() if F.sel then Select(nil) end end,
     })
+    -- a tab click (EUI_Window.lua): nothing selected
+    pg.navReset = function() if F.sel then Select(nil) end end
     pg.list, pg.pane, pg.state = list, pane, F
     F.dirty = true
     return Refresh

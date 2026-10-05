@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev009 - EllesmereUI window: getting back
+
+- Click an empty spot under a list (players, guilds, guild members, chat filters), or the selected line again, to deselect it and see the whole list's events again (for a guild member: the guild's own).
+- A click on a tab, even the one shown, opens it as it opens: any Block History view or members list over it closes and nothing is selected.
+- The line next to the back / forward arrows is clickable: the tab name goes back to the tab as it opens, "Members of <guild>" closes the Block History view over the members.
+
 => 3.2.0-dev008 - EllesmereUI folder in the main download
 
 - PourSocialScore_EllesmereUI is now part of Pour Social Score: it comes in the same zip as the other six folders and has the same version number (it was a separate download, last version 1.1.0-dev010). Nothing changes in game; without EllesmereUI the folder never loads and takes no memory.
