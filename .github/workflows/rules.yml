@@ -1,0 +1,57 @@
+# The same pull request checks as the PourSocialScore repo, on every pull
+# request and every push to main:
+#   Rules    tools/check_rules.sh (Lua 5.1, ASCII, EllesmereUI's style, TOCs)
+#   Harness  the PourSocialScore harness's EllesmereUI checks (window, panel,
+#            options, import/export, Players tab) against the core branch of
+#            the same name, or the core's main when there is none (needs the
+#            secret PSS_CORE_TOKEN, see below)
+name: Rules
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.1
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Check rules
+        run: sh tools/check_rules.sh
+
+  harness:
+    runs-on: ubuntu-latest
+    # PourSocialScore is private: the job needs a read-only token for it in
+    # the secret PSS_CORE_TOKEN. Without one it says so and passes.
+    env:
+      CORE_TOKEN: ${{ secrets.PSS_CORE_TOKEN }}
+    steps:
+      - name: No PSS_CORE_TOKEN secret
+        if: env.CORE_TOKEN == ''
+        run: echo "::warning::Harness skipped - add a read-only token for racetracks/PourSocialScore as the secret PSS_CORE_TOKEN"
+      - uses: actions/checkout@v4
+        if: env.CORE_TOKEN != ''
+        with:
+          path: poursocialscore-ellesmereui
+      - name: Install Lua 5.1
+        if: env.CORE_TOKEN != ''
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Get PourSocialScore (same branch, else main)
+        if: env.CORE_TOKEN != ''
+        run: |
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          url="https://x-access-token:${CORE_TOKEN}@github.com/racetracks/PourSocialScore"
+          if git ls-remote --exit-code --heads "$url" "$branch" > /dev/null; then
+            ref="$branch"
+          else
+            ref=main
+          fi
+          echo "Core branch: $ref"
+          git clone -q --depth 1 -b "$ref" "$url" poursocialscore
+      - name: EllesmereUI checks
+        if: env.CORE_TOKEN != ''
+        working-directory: poursocialscore
+        run: PSS_EUI_REQUIRED=1 sh tools/harness/check_eui_all.sh
