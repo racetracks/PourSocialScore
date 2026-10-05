@@ -518,9 +518,11 @@ function History.CountRecent(owner, ts)
 	if type(db) ~= "table" then return end
 	local se = rawget(db, "session")
 	if type(se) ~= "table" then se = {}; rawset(db, "session", se) end
-	se[owner] = (se[owner] or 0) + 1
+	ts = tonumber(ts) or 0
+	-- the session counts its own blocks (a line from before it is not)
+	if ts <= 0 or ts >= History.SessionStart() then se[owner] = (se[owner] or 0) + 1 end
 	local cur = math.floor(History.Now() / SLOT)
-	local slot = math.floor((tonumber(ts) or 0) / SLOT)
+	local slot = math.floor(ts / SLOT)
 	if slot <= 0 or slot > cur then slot = cur end
 	if slot <= cur - DAY_SLOTS then return end
 	local r = recent(cur, true)

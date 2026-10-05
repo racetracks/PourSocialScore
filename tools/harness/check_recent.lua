@@ -34,16 +34,21 @@ if phase == 1 then
 	for _ = 1, 3 do check(whisper(P), "whisper not blocked") end
 	local s, d = rc(pkey())
 	check(s == 3 and d == 3, ("player session/day %d/%d"):format(s, d))
+	-- a line from before the session counts on the day, not the session
+	History.CountRecent(pkey(), start - 60)
+	s, d = rc(pkey())
+	check(s == 3 and d == 4, ("older line %d/%d"):format(s, d))
+	History.CountRecent(pkey(), nil)	-- (back to 4 / 4 for the rest)
 	check(not loaded("PourSocialScore_Logging"), "recent counts loaded Logging")
 
 	-- 23 h 50 later one more; 20 minutes after that the first three are older than a day
 	H.Advance(23 * 3600 + 50 * 60)
 	check(whisper(P), "late whisper not blocked")
 	s, d = rc(pkey())
-	check(s == 4 and d == 4, ("before the day ends %d/%d"):format(s, d))
+	check(s == 5 and d == 6, ("before the day ends %d/%d"):format(s, d))
 	H.Advance(20 * 60)
 	s, d = rc(pkey())
-	check(s == 4 and d == 1, ("after the day %d/%d"):format(s, d))
+	check(s == 5 and d == 1, ("after the day %d/%d"):format(s, d))
 
 	-- at most a day of slots: one block every 10 minutes for 25 hours
 	-- (150 lines: under the 200 that make Logging load by itself)
@@ -63,7 +68,7 @@ if phase == 1 then
 		end
 	end
 	check(slots <= History.DAY_SLOTS and sum == d and d >= 143 and d <= 144, ("slots %d sum %d day %d"):format(slots, sum, d))
-	check(s == 4 + 150, "session " .. s)
+	check(s == 5 + 150, "session " .. s)
 
 	-- a guild member: counted on the member and on the guild
 	M.PSS_AddGuild("Recent Guild")
@@ -114,7 +119,7 @@ if phase == 1 then
 elseif phase == 2 or phase == 3 then
 	local s, d = rc(pkey())
 	if phase == 2 then
-		check(s == 154 and d >= 142, ("reload lost counts %d/%d"):format(s, d))
+		check(s == 155 and d >= 142, ("reload lost counts %d/%d"):format(s, d))
 		check(History.SessionStart() == 1790000000, "a /reload moved the session start: " .. History.SessionStart())
 	else
 		check(s == 0 and d >= 142, ("new login: session %d day %d"):format(s, d))
