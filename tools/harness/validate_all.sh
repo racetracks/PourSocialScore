@@ -80,8 +80,8 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_gui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS gui" || fail=1
 
-# EllesmereUI: the switch, and with PourSocialScore_EllesmereUI cloned next
-# to this repository the window, panel and Players tab (check_eui_all.sh)
+# EllesmereUI: the switch, and with PourSocialScore_EllesmereUI (this
+# repository's folder) the window, panel and tabs (check_eui_all.sh)
 sh "$here/check_eui_all.sh" || fail=1
 
 # shipped guild lists on demand (3.0): PourSocialScore_Communities loads

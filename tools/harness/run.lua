@@ -98,7 +98,7 @@ for _, base in ipairs(bases) do
 end
 
 -- other addons (PSS_EXTRA_ADDONS="dir,dir"): e.g. the EllesmereUI stand-in
--- and PourSocialScore_EllesmereUI from its own repository
+-- (a PourSocialScore_EllesmereUI elsewhere: PSS_EUI_ADDON)
 for dir in (os.getenv("PSS_EXTRA_ADDONS") or ""):gmatch("[^,]+") do
 	dir = dir:gsub("/$", "")
 	local name = dir:match("([^/]+)$")

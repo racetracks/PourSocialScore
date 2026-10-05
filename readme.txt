@@ -33,10 +33,10 @@ AddOns folder) so the six folders sit side by side:
 The AddOns list shows them under one Pour Social Score heading. Keep all
 six enabled; PourSocialScore and PourSocialScore_Options are required.
 
-EllesmereUI users can add a seventh folder, PourSocialScore_EllesmereUI
-(its own download, always the same version as the other six). It is only
-loaded with EllesmereUI installed and "Enable EllesmereUI integration" on;
-see ELLESMEREUI below.
+A seventh folder, PourSocialScore_EllesmereUI, comes in the same zip (from
+3.2.0-dev008). It is only loaded with EllesmereUI installed and "Enable
+EllesmereUI integration" on, so without EllesmereUI it takes no memory; see
+ELLESMEREUI below.
 
 When updating, replace every folder (delete the old ones first so no stale
 file is left behind).
