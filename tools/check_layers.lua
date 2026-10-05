@@ -20,7 +20,7 @@ local CORE = {
 	"PSS_Localization.lua", "PSS_Globals.lua", "PSS_Perf.lua", "PSS_Events.lua", "PSS_Whois.lua",
 	"PSS_Communities.lua", "PSS_MainlineCompat.lua", "PSS_ChatHistory.lua", "PSS_BlockStats.lua",
 	"PSS_ChatBlock.lua", "PSS_ChatFilters.lua", "PSS_PlayerIgnoreList.lua", "PSS_GuildIgnoreList.lua",
-	"PSS_WhoisHarvest.lua", "PourSocialScore.lua", "PSS_Options.lua", "PSS_ImportExport.lua", "PSS_PlayerQuery.lua",
+	"PSS_WhoisHarvest.lua", "PourSocialScore.lua", "PSS_Options.lua", "PSS_ImportExport.lua", "PSS_PlayerQuery.lua", "PSS_GuildQuery.lua",
 }
 
 -- { Lua pattern, what it is }

@@ -1,6 +1,16 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.1.0-dev5 - EllesmereUI Guild Ignore List (3.1 test build)
+
+- The Pour Social Score window in EllesmereUI's style now has its Guild Ignore List tab: the default guild lists (each a row you click to expand or collapse), the Guild Exclusion List, then your guilds, with Members, Blocked and Scan columns. Click a column heading to sort, click again to reverse. Only the rows that fit on screen are drawn, so the big default lists scroll smoothly. A search box filters guilds by name.
+- Click a guild to see its details beside the list: members, W I G P C for the whole guild (ticked = allowed), Scan, Scan Fields and Custom Scan, the per-guild overrides (Default > On > Off), the block counts and that guild's block history. Remove Guild asks first; guilds on a default list can't be removed.
+- Members (or double-click a guild) shows the guild's members in place of the list, searchable and sortable. Click a member for their note, their own W I G P C (dimmed boxes follow the guild, right-click to follow it again), overrides, counts and history, with Remove Member (asks first), Add Guild and Reset Block History. All Guilds goes back.
+- Click a default list's row for its rule, with Turn Rule On / Off.
+- Scan All, Guild Search and Add Guild at the top right, and a second row to add to the Guild Exclusion List (Guild Search or Exclude). Guild Search results open in the window: click the guilds to add, then Save. Every scan button greys out while /who cools down, and the Scan All key binding still works.
+- Both windows now list guilds and members through the same functions. They live in PourSocialScore_Libraries, which loads with either window, so they take no memory until a window opens.
+- Version 3.1.0-dev5.
+
 => 3.1.0-dev4 - EllesmereUI Player Ignore List (3.1 test build)
 
 - The Pour Social Score window in EllesmereUI's style now has its Player Ignore List tab: every player, NPC and server on the list, with Name, Server, Type, Listed, Expires and Blocked columns. Click a column heading to sort by it, click again to reverse. Only the rows that fit on screen are drawn, so a list of thousands scrolls as smoothly as a short one.

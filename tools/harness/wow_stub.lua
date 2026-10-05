@@ -120,7 +120,8 @@ function W:GetMinMaxValues() return 0, 100 end
 function W:GetValue() return self._value or 0 end
 function W:SetValue(v) self._value = v end
 function W:GetMaxLetters() return 255 end
-function W:GetAlpha() return 1 end
+function W:SetAlpha(a) self._alpha = a end
+function W:GetAlpha() return self._alpha or 1 end
 function W:GetTextColor() return 1, 1, 1, 1 end
 function W:GetFont() return "Fonts\\FRIZQT__.TTF", 12, "" end
 function W:GetJustifyH() return "LEFT" end
