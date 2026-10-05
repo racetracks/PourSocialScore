@@ -29,7 +29,7 @@ end
 
 local db = PourSocialScoreDB
 local sizes = {}
--- one player never removed (the log reaches its cap, the keep fills) and a
+-- one player never removed (the keep fills) and a
 -- guild rule that gets 20 new members a day
 M.PSS_AddIgnore("Forever-Realm", true)
 M.PSS_AddGuild("Growth Guild")
@@ -59,6 +59,7 @@ for day = 1, DAYS do
 		session = keys(rawget(db, "session")),
 		outbox = #(rawget(db, "outbox") or {}),
 		log = History.Loaded() and #History.Log() or 0,
+		keep = History.Loaded() and History.KeepSize() or 0,
 	}
 end
 local first, last = sizes[3], sizes[DAYS]
@@ -67,13 +68,31 @@ for _, k in ipairs({ "recent", "owners", "session", "outbox", "log" }) do
 	check(last[k] <= first[k] * 1.1 + 5, k .. " grows: " .. first[k] .. " -> " .. last[k])
 end
 check(last.log <= History.Cap(), "log over the cap")
--- the keep: at most History.KEEP lines a person (25), so it grows with the
--- number of blocked people still listed, not with time
+-- the keep (3.2): every person's lines, at most History.KEEP a person (20)
+-- and History.KEEP_TOTAL (2000, 5 % over before a trim) in all
 local lines, people = History.KeepSize()
 local per = 0
 for _, n in pairs(History.KEEP) do per = per + n end
 print(("growth: keep     %d lines for %d people (at most %d each)"):format(lines, people, per))
 check(lines <= people * per, "keep over its per-person limit")
+local most = 0
+for day = 1, DAYS do most = math.max(most, sizes[day].keep) end
+check(most <= History.KEEP_TOTAL * 1.05, "keep over its total: " .. most)
+-- past the total the oldest lines go, whoever they belong to: 2500 more
+-- people with one whisper each, one minute apart
+for k = 1, 2500 do
+	local h = History.NewEntry("whisper", "CHAT_MSG_WHISPER", "one " .. k)
+	H.Advance(60)
+	h.ts = GetServerTime()
+	History.Add(("p:capped%04d"):format(k), nil, h)
+end
+lines = History.KeepSize()
+print(("growth: keep     %d lines after 2500 more people"):format(lines))
+check(lines >= History.KEEP_TOTAL and lines <= History.KEEP_TOTAL * 1.05, "keep total " .. lines)
+local keep = History.Keep()
+check(keep["p:capped2500"] ~= nil, "newest line dropped")
+check(keep["p:capped0001"] == nil, "oldest line kept")
+check(keep[History.PlayerKey("Forever-Realm")] == nil, "older person's lines kept past the total")
+check(last.log == 0, "a person's line in the log: " .. last.log)
 check(last.owners <= 80, "recent owners " .. last.owners)
-check(last.log >= History.Cap() * 0.9, "log never reached its cap: " .. last.log)
 if not fail then print("PASS growth") end

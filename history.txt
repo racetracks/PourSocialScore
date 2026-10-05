@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev3 - Kept lines, world chat, your own guild
+
+- Blocked lines of listed players and guild members (default lists too) no longer go in the 2,000 line block log: each person keeps their newest 10 whispers and party / raid / instance / battleground lines, 5 party invites and 5 guild invites, at most 2,000 such lines in all (the oldest go first). The block log now holds chat filter lines only.
+- Their world chat (channels, say, yell, emotes) and guild chat are still blocked and counted, but no longer stored.
+- Kept lines are stored as one short text each instead of a table: 2,000 kept lines take about 165 KB instead of 805 KB.
+- Upgrading cleans the saved history when it next loads: people's lines leave the log, lines no longer kept are dropped, the rest are packed and capped. On a 2.0.44 save with 2,000 log lines and 378 kept lines, the saved history went from 23,000 to 9,800 lines and the addon from 3.7 MB to 3.0 MB with the history loaded.
+- A guild rule (default lists too) never blocks the guild you are in. A Player Ignore List entry for one of your guildmates still blocks them.
+
 => 3.2.0-dev2 - Recent counts by type, cleanup
 
 - The last 24 hours of block counts now also record the type of each block (whisper, invite, party, chat ...) per 10 minutes, so the time and type of a block are known even after its line has left the block history.

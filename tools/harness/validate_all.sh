@@ -123,11 +123,13 @@ for sv in $splitsaves; do
 	# ones are saved, and optionsChanged is the count compared. leftMarks:
 	# counted since 3.0.0-dev18, which drops marks the shipped list no longer
 	# needs; membersShown is the count compared)
-	lua5.1 "$here/run.lua" "$work/src-prev" "$sv" - "$here/dump_counts.lua" 2>&1 | grep '^N ' | grep -v '^N optionsSet=' > "$work/split-a.txt"
+	# (log and keep sizes change at 3.2: people's lines leave the log, their
+	# world chat is no longer kept)
+	lua5.1 "$here/run.lua" "$work/src-prev" "$sv" - "$here/dump_counts.lua" 2>&1 | grep '^N ' | grep -v "^N optionsSet=\|^N kept\|^N logLines" > "$work/split-a.txt"
 	lua5.1 "$here/run.lua" . "$sv" "$work/split-1.lua" "$here/dump_counts.lua" > "$work/split-b.txt" 2>&1
 	lua5.1 "$here/run.lua" . "$work/split-1.lua" - "$here/dump_counts.lua" > "$work/split-c.txt" 2>&1
-	if [ -s "$work/split-a.txt" ] && grep '^N ' "$work/split-b.txt" | grep -v '^N leftMarks=' | diff "$work/split-a.txt" - > /dev/null &&
-		grep '^N ' "$work/split-c.txt" | grep -v '^N leftMarks=' | diff "$work/split-a.txt" - > /dev/null &&
+	if [ -s "$work/split-a.txt" ] && grep '^N ' "$work/split-b.txt" | grep -v '^N leftMarks=\|^N kept\|^N logLines' | diff "$work/split-a.txt" - > /dev/null &&
+		grep '^N ' "$work/split-c.txt" | grep -v '^N leftMarks=\|^N kept\|^N logLines' | diff "$work/split-a.txt" - > /dev/null &&
 		[ "$(grep -c 'Saved data moved to PourSocialScore_Options' "$work/split-b.txt")" = 1 ] &&
 		[ "$(grep -c 'Saved data moved to PourSocialScore_Logging' "$work/split-b.txt")" -le 1 ] && ! grep -q 'Saved data moved' "$work/split-c.txt"; then
 		echo "PASS split ($sv)"
@@ -171,6 +173,12 @@ done
 echo "== growth"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_growth.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -q "PASS growth" && echo "$out" | grep "^growth:" && echo "PASS growth" || { echo "$out"; echo "FAIL growth"; fail=1; }
+
+# your own guild (3.2): a guild rule never blocks it, a player entry does
+echo "== own guild"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_ownguild.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS own guild" || fail=1
 
 # upgrade record (3.0): a 2.0 save gets step 1 once with one chat line, the
 # next login prints nothing; a fresh save is stamped without a message

@@ -209,6 +209,7 @@ end }
 ------------------------------------------------------------------------
 local OUTBOX_LOAD = 200		-- waiting lines that make Logging load
 local ready = false
+local keepsOwner		-- (PER-PLAYER KEEP below)
 
 function History.Loaded() return ready end
 M.PSS_LoggingReady = History.Loaded
@@ -226,14 +227,24 @@ function M.PSS_LoadLogging()
 	if M.PSS_PrepareSavedData then M.PSS_PrepareSavedData() end
 	local db = PourSocialScoreDB
 	local ob = type(db) == "table" and rawget(db, "outbox")
+	-- older saves: people's lines out of the log first (3.2; they are
+	-- older than the waiting lines). A save from before 2.0.39 waits one
+	-- login: its upgrades still read these lines (the 24 hour stats are
+	-- filled from them, guild rule lines are taken off the filter counts).
+	if type(db) == "table" and type(db.blockStats) == "table" and db.guildRuleCountsV1 then History.MovePeople() end
 	if type(ob) == "table" then
 		local log = History.Log()
 		for i = 1, #ob do
 			local e = ob[i]
-			if type(e) == "table" then log[#log + 1] = setmetatable(e, History.EntryMT) end
+			if type(e) == "table" then
+				setmetatable(e, History.EntryMT)
+				if not keepsOwner(e.o) then log[#log + 1] = e
+				else History.KeepAdd(e) end
+			end
 		end
 		rawset(db, "outbox", nil)
 	end
+	History.CapKeep(true)
 	History.Trim(true)
 	if M.PSS_TidyBlockHistory then M.PSS_TidyBlockHistory() end
 	return true
@@ -251,7 +262,6 @@ local function loadWhenQuiet()
 end
 
 local attached = setmetatable({}, { __mode = "k" })
-local keepsOwner
 function History.Log()
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return {} end
@@ -267,32 +277,60 @@ function History.Log()
 end
 
 ------------------------------------------------------------------------
--- PER-PLAYER KEEP
+-- PER-PLAYER KEEP (3.2)
 --
--- When lines leave the shared log (Trim), a player's or guild member's line
--- is MOVED (never copied) to PourSocialScoreDB.blockKeep if it is still one
--- of that person's newest
---   10 chat lines, 5 emotes, 5 party invites, 5 guild invites
--- counting the lines they still have in the log. So everyone who was ever
--- blocked keeps at least that much history, however busy the log is.
--- A line is in exactly ONE place (log or keep); the block counters live on
--- the owners and are never worked out from lines, so nothing is counted
--- twice. Chat filter lines (o = "f:...") are not kept: a filter's senders
--- are strangers and there can be thousands of them.
---   blockKeep = { ["p:<key>" | "g:<key>"] = { entry, ... } (oldest first) }
--- Keep lines are always older than every log line of the same owner.
+-- A listed player's or guild member's lines (owner "p:" / "g:", managed
+-- default lists included) never go in the shared log: the log is for chat
+-- filter lines only. A person's line goes straight to
+-- PourSocialScoreDB.blockKeep, which holds each person's newest
+--   10 whispers and party / raid / instance / battleground lines,
+--   5 party invites, 5 guild invites
+-- and nothing else: their world chat (channels, say, yell, emotes), guild
+-- chat and the rest are counted but never stored. The whole keep holds at
+-- most KEEP_TOTAL (2000) lines: past that the oldest go first, whoever they
+-- belong to. A line is in exactly ONE place (log or keep); the block
+-- counters live on the owners and are never worked out from lines.
+--
+-- Packed (3.2): one string a line, the person's name and guild once a list:
+--   blockKeep = { ["p:<key>" | "g:<key>"] = {
+--       m = name, gk = guild rule key, r = Chat Filters rule tag,
+--       [1..n] = "<type><ts>\t<event>\t<channel>\t<message>" (oldest first) } }
+--   type: w whisper, p party/raid, i party invite, g guild invite
+--   event: one letter for the usual events (KEPT_EVENTS), else the name
+--   channel: empty when it is the event's usual label
+-- About a third of the memory of a table a line (bench in check_growth's
+-- notes: 2000 lines 285 KB against 960 KB). Lines are unpacked into entry
+-- tables only to be shown (History.For / Collect / KeptLines).
+-- Saves of older builds are cleaned when Logging loads: people's lines
+-- leave the log for the keep (History.MovePeople), kept tables are packed,
+-- lines of a kind no longer kept are dropped, then the cap.
 ------------------------------------------------------------------------
-History.KEEP = { text = 10, emote = 5, party = 5, guild = 5 }
+History.KEEP = { text = 10, party = 5, guild = 5 }
+History.KEEP_TOTAL = 2000
 local KEEP = History.KEEP
-local EMOTE_EVENT = { CHAT_MSG_EMOTE = true, CHAT_MSG_TEXT_EMOTE = true }
+local KEEP_KIND = { whisper = "text", partyRaid = "text", partyInvite = "party", guildInvite = "guild" }
+local CAT_CODE = { whisper = "w", partyRaid = "p", partyInvite = "i", guildInvite = "g" }
+local CODE_CAT = { w = "whisper", p = "partyRaid", i = "partyInvite", g = "guildInvite" }
+-- kind of a packed line by its first byte
+local BYTE_KIND = {}
+for cat, code in pairs(CAT_CODE) do BYTE_KIND[code:byte()] = KEEP_KIND[cat] end
+-- append only: the letters are saved
+local KEPT_EVENTS = {
+	"CHAT_MSG_WHISPER", "CHAT_MSG_BN_WHISPER", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
+	"CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_RAID_WARNING",
+	"CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER",
+	"CHAT_MSG_BATTLEGROUND", "CHAT_MSG_BATTLEGROUND_LEADER", "PARTY_INVITE", "GUILD_INVITE",
+}
+local EVENT_LETTER, LETTER_EVENT = {}, {}
+for i, e in ipairs(KEPT_EVENTS) do
+	local c = string.char(64 + i)
+	EVENT_LETTER[e], LETTER_EVENT[c] = c, e
+end
+local keepTotal			-- lines in the keep (nil: count them again)
 
--- text | emote | party | guild
+-- text | party | guild, nil: never kept (world chat, guild chat, ...)
 function History.KeepKind(h)
-	local cat = h.cat
-	if cat == "partyInvite" then return "party" end
-	if cat == "guildInvite" then return "guild" end
-	if EMOTE_EVENT[h.event] or h.channel == "Emote" then return "emote" end
-	return "text"
+	return KEEP_KIND[h.cat]
 end
 local keepKind = History.KeepKind
 
@@ -303,6 +341,52 @@ function keepsOwner(o)
 	return b == 58 and (a == 112 or a == 103)
 end
 History.KeepsOwner = keepsOwner
+
+-- the label shown when a line stores none
+local function usualChannel(cat, event)
+	if cat == "partyInvite" then return "Party Invite" end
+	if cat == "guildInvite" then return "Guild Invite" end
+	if type(event) == "string" and event ~= "" and M.PSS_ChannelLabel then return M.PSS_ChannelLabel(event) end
+	return UNKNOWN
+end
+
+-- entry -> packed line (nil: a kind never kept); the name / guild / rule
+-- go on the list
+local function pack(h, list)
+	local code = CAT_CODE[h.cat]
+	if not code then return nil end
+	local ev = h.event
+	ev = type(ev) == "string" and (EVENT_LETTER[ev] or ev:gsub("\t", " ")) or ""
+	local ch = h.channel
+	if type(ch) ~= "string" or ch == usualChannel(h.cat, h.event) then ch = "" else ch = ch:gsub("\t", " ") end
+	if list then
+		if type(h.member) == "string" then list.m = h.member end
+		if h.gk ~= nil then list.gk = h.gk end
+		if h.r ~= nil then list.r = h.r end
+	end
+	return code .. math.floor(tonumber(h.ts) or 0) .. "\t" .. ev .. "\t" .. ch .. "\t" .. tostring(h.message or "")
+end
+History.PackLine = pack
+
+-- packed line -> a new entry table (for showing)
+local function unpackLine(o, list, s)
+	local code, ts, ev, ch, msg = s:match("^(.)(%d*)\t([^\t]*)\t([^\t]*)\t(.*)$")
+	if not code then return nil end
+	local cat = CODE_CAT[code] or "unknown"
+	ev = LETTER_EVENT[ev] or ev
+	return setmetatable({
+		ts = tonumber(ts) or 0, cat = cat, event = ev,
+		channel = ch ~= "" and ch or usualChannel(cat, ev), message = msg,
+		member = list.m, o = o, gk = list.gk, r = list.r,
+	}, History.EntryMT)
+end
+History.UnpackLine = unpackLine
+
+-- the time of a packed line
+local function lineTs(s)
+	local t = s:find("\t", 2, true)
+	return t and tonumber(s:sub(2, t - 1)) or 0
+end
 
 function History.Keep()
 	local db = PourSocialScoreDB
@@ -315,31 +399,126 @@ function History.Keep()
 			if type(list) ~= "table" or not keepsOwner(o) then
 				keep[o] = nil
 			else
+				-- older builds kept entry tables: packed here; lines of a
+				-- kind no longer kept are let go
 				local j = 0
 				for i = 1, #list do
 					local h = list[i]
 					list[i] = nil
-					if type(h) == "table" then j = j + 1; list[j] = setmetatable(h, History.EntryMT) end
+					if type(h) == "table" then h = pack(h, list)
+					elseif type(h) ~= "string" or not BYTE_KIND[h:byte(1) or 0] then h = nil end
+					if h then j = j + 1; list[j] = h end
 				end
 				if j == 0 then keep[o] = nil end
 			end
 		end
 		attached[keep] = true
+		History.CapKeep(true)
 	end
 	return keep
 end
 
+-- A person's kept lines as entries, oldest first (for showing).
+function History.KeptLines(o)
+	local list = o and History.Keep()[o]
+	local out = {}
+	if list then
+		for i = 1, #list do out[#out + 1] = unpackLine(o, list, list[i]) end
+	end
+	return out
+end
+
+-- At most KEEP_TOTAL kept lines: the oldest go first. Done in batches (when
+-- the keep is 5 % over, or always with force) like the log.
+function History.CapKeep(force)
+	local keep = PourSocialScoreDB.blockKeep
+	if type(keep) ~= "table" then keepTotal = 0 return 0 end
+	local cap, n = History.KEEP_TOTAL, 0
+	for _, list in pairs(keep) do n = n + #list end
+	keepTotal = n
+	if n <= cap or (not force and n <= cap + math.floor(cap / 20)) then return 0 end
+	-- lines older than the cut go (and enough of those at the cut)
+	local ts, k = {}, 0
+	for _, list in pairs(keep) do
+		for i = 1, #list do k = k + 1; ts[k] = lineTs(list[i]) end
+	end
+	table.sort(ts)
+	local drop = n - cap
+	local cut = ts[drop]			-- the newest time that goes
+	local atCut = 0				-- how many lines at exactly `cut` go
+	for i = drop, 1, -1 do if ts[i] == cut then atCut = atCut + 1 else break end end
+	for o, list in pairs(keep) do
+		local j, m = 0, #list
+		for i = 1, m do
+			local s = list[i]
+			local t = lineTs(s)
+			local go = t < cut
+			if t == cut and atCut > 0 then go = true; atCut = atCut - 1 end
+			if not go then j = j + 1; list[j] = s end
+		end
+		for i = m, j + 1, -1 do list[i] = nil end
+		if j == 0 then keep[o] = nil end
+	end
+	keepTotal = cap
+	return drop
+end
+
+-- Store a person's line in their keep: their newest lines of each kind
+-- (KEEP), the oldest of that kind goes. Nothing for a kind never kept.
+function History.KeepAdd(h)
+	local k = KEEP_KIND[h.cat]
+	if not k then return false end
+	local keep = History.Keep()
+	local o = h.o
+	local list = keep[o]
+	if not list then list = {}; keep[o] = list end
+	list[#list + 1] = pack(h, list)
+	local have, first = 0, nil
+	for i = #list, 1, -1 do
+		if BYTE_KIND[list[i]:byte(1)] == k then have = have + 1; first = i end
+	end
+	if not keepTotal then History.CapKeep() end
+	if have > KEEP[k] then
+		table.remove(list, first)
+	else
+		keepTotal = keepTotal + 1
+		if keepTotal > History.KEEP_TOTAL + math.floor(History.KEEP_TOTAL / 20) then History.CapKeep(true) end
+	end
+	return true
+end
+
+-- Older saves: people's lines leave the log for their keep (newest of each
+-- kind kept, the rest let go). Returns how many lines left the log.
+function History.MovePeople()
+	local log = History.Log()
+	local moved, owners, n, j = {}, nil, 0, 0
+	for i = 1, #log do
+		local h = log[i]
+		if keepsOwner(h.o) then
+			n = n + 1; moved[n] = h
+			owners = owners or {}; owners[h.o] = true
+		else
+			j = j + 1; log[j] = h
+		end
+	end
+	for i = #log, j + 1, -1 do log[i] = nil end
+	if owners then History.SettleKeep(owners, moved, n) end
+	return n
+end
+
 -- Work out the keep of `owners` (set of owner keys) again: their kept lines
--- plus `dropped` (lines just taken off the front of the log, oldest first),
--- newest first, as long as the person has room for that kind once their
--- log lines are counted. Everything else is let go.
+-- plus `dropped` (entries taken off the log), newest first, as long as the
+-- person has room for that kind once their log lines are counted.
+-- Everything else is let go.
 function History.SettleKeep(owners, dropped, n)
 	local keep, log = History.Keep(), History.Log()
 	local used, cand = {}, {}
 	for o in pairs(owners) do
 		used[o] = {}
-		local c, old = {}, keep[o]
-		if old then for i = 1, #old do c[i] = old[i] end end
+		local list = keep[o]
+		if not list then list = {}; keep[o] = list end
+		local c = {}
+		for i = 1, #list do c[i] = list[i] end
 		cand[o] = c
 	end
 	for i = 1, #log do
@@ -347,30 +526,42 @@ function History.SettleKeep(owners, dropped, n)
 		local u = used[h.o]
 		if u then
 			local k = keepKind(h)
-			u[k] = (u[k] or 0) + 1
+			if k then u[k] = (u[k] or 0) + 1 end
 		end
 	end
 	for i = 1, (n or 0) do
 		local h = dropped[i]
 		local c = cand[h.o]
-		if c then c[#c + 1] = h end
+		if c then
+			local s = pack(h, keep[h.o])
+			if s then c[#c + 1] = s end
+		end
 	end
 	for o, c in pairs(cand) do
+		-- oldest first (kept and moved lines can interleave); stable
+		local pos = {}
+		for i = 1, #c do pos[c[i]] = pos[c[i]] or i end
+		table.sort(c, function(a, b)
+			local x, y = lineTs(a), lineTs(b)
+			if x ~= y then return x < y end
+			return pos[a] < pos[b]
+		end)
 		local u, out = used[o], {}
 		for i = #c, 1, -1 do
-			local h = c[i]
-			local k = keepKind(h)
-			local have = u[k] or 0
-			if have < KEEP[k] then u[k] = have + 1; out[#out + 1] = h end
+			local s = c[i]
+			local k = BYTE_KIND[s:byte(1)]
+			local have = k and u[k] or 0
+			if k and have < KEEP[k] then u[k] = have + 1; out[#out + 1] = s end
 		end
-		local m = #out
+		local list, m = keep[o], #out
+		for i = #list, 1, -1 do list[i] = nil end
 		if m == 0 then
 			keep[o] = nil
 		else
-			for i = 1, math.floor(m / 2) do out[i], out[m - i + 1] = out[m - i + 1], out[i] end
-			keep[o] = out
+			for i = 1, m do list[i] = out[m - i + 1] end
 		end
 	end
+	keepTotal = nil
 end
 
 -- Settle every kept person (after a tidy-up or a cleared history).
@@ -387,12 +578,20 @@ function History.KeepSize()
 	return lines, people
 end
 
--- fn(entry) for every line, log first (oldest first), then the keep.
+-- fn(entry) for every line, log first (oldest first), then the keep (kept
+-- lines unpacked; a change of r / gk is written back to the person's list).
 function History.Each(fn)
 	local log = History.Log()
 	for i = 1, #log do fn(log[i]) end
-	for _, list in pairs(History.Keep()) do
-		for i = 1, #list do fn(list[i]) end
+	for o, list in pairs(History.Keep()) do
+		for i = 1, #list do
+			local h = unpackLine(o, list, list[i])
+			if h then
+				fn(h)
+				if h.r ~= list.r then list.r = h.r end
+				if h.gk ~= list.gk then list.gk = h.gk end
+			end
+		end
 	end
 end
 
@@ -413,7 +612,7 @@ function History.Trim(force)
 	for i = 1, cap do log[i] = log[i + drop] end
 	for i = cap + 1, n do log[i] = nil end
 	-- a player's newest lines move to the keep (not copied)
-	if owners then History.SettleKeep(owners, dropped, drop) end
+	if owners then History.SettleKeep(owners, dropped, drop); History.CapKeep() end
 	-- no cleanup request here: about 100 lines (~30 KB) leave at a time, and
 	-- a busy channel trims often; a cycle walks the whole game heap
 	return drop
@@ -430,6 +629,8 @@ function History.Add(owner, counts, entry, ruleTag)
 		counts.total = (tonumber(counts.total) or 0) + 1
 	end
 	History.CountRecent(owner, entry.ts, entry.cat)
+	-- a person's world chat, guild chat ...: counted, never stored
+	if keepsOwner(owner) and not KEEP_KIND[entry.cat] then return entry end
 	if not ready then
 		-- Logging is not loaded: the line waits (never loads it per line)
 		local db = PourSocialScoreDB
@@ -437,6 +638,17 @@ function History.Add(owner, counts, entry, ruleTag)
 		local ob = rawget(db, "outbox")
 		if type(ob) ~= "table" then ob = {}; rawset(db, "outbox", ob) end
 		ob[#ob + 1] = entry
+		-- a person's waiting lines follow the keep's limits already, so one
+		-- busy person never fills the outbox (or loads Logging)
+		local k = keepsOwner(owner) and KEEP_KIND[entry.cat]
+		if k then
+			local have, first = 0, nil
+			for i = #ob, 1, -1 do
+				local e = ob[i]
+				if e.o == owner and KEEP_KIND[e.cat] == k then have = have + 1; first = i end
+			end
+			if have > KEEP[k] then table.remove(ob, first) end
+		end
 		-- never more waiting than the log holds (the oldest would be trimmed)
 		if #ob > History.Cap() then table.remove(ob, 1) end
 		if #ob >= OUTBOX_LOAD and not loadQueued then
@@ -445,6 +657,7 @@ function History.Add(owner, counts, entry, ruleTag)
 		end
 		return entry
 	end
+	if keepsOwner(owner) then History.KeepAdd(entry) return entry end
 	local log = History.Log()
 	log[#log + 1] = entry
 	History.Trim(false)
@@ -648,17 +861,20 @@ function History.Collect(pred)
 		if h and pred(h) then out[#out + 1] = h end
 	end
 	local older, owners = nil, 0
-	for _, list in pairs(History.Keep()) do
+	for o, list in pairs(History.Keep()) do
 		local hit = false
 		for i = #list, 1, -1 do
-			local h = list[i]
-			if pred(h) then older = older or {}; older[#older + 1] = h; hit = true end
+			local h = unpackLine(o, list, list[i])
+			if h and pred(h) then older = older or {}; older[#older + 1] = h; hit = true end
 		end
 		if hit then owners = owners + 1 end
 	end
 	if older then
-		if owners > 1 then table.sort(older, byTimeDesc) end
+		local mixed = #out > 0
+		if owners > 1 and not mixed then table.sort(older, byTimeDesc) end
 		for i = 1, #older do out[#out + 1] = older[i] end
+		-- log and kept lines interleave in time since 3.2
+		if mixed then table.sort(out, byTimeDesc) end
 	end
 	return out
 end
@@ -669,7 +885,12 @@ function History.For(owner)
 		if h.o == owner then out[#out + 1] = h end
 	end
 	local kept = owner and History.Keep()[owner]
-	if kept then for i = #kept, 1, -1 do out[#out + 1] = kept[i] end end
+	if kept then
+		for i = #kept, 1, -1 do
+			local h = unpackLine(owner, kept, kept[i])
+			if h then out[#out + 1] = h end
+		end
+	end
 	return out
 end
 function History.CountFor(owner)
@@ -693,13 +914,15 @@ function History.Clear(pred)
 	for o, list in pairs(keep) do
 		local k, m = 0, #list
 		for i = 1, m do
-			local h = list[i]
-			if not pred(h) then k = k + 1; list[k] = h end
+			local s = list[i]
+			local h = unpackLine(o, list, s)
+			if h and not pred(h) then k = k + 1; list[k] = s end
 		end
 		for i = k + 1, m do list[i] = nil end
 		if k == 0 then keep[o] = nil end
 		removed = removed + m - k
 	end
+	keepTotal = nil
 	if removed > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history cleared") end
 	return removed
 end
@@ -723,15 +946,22 @@ end
 local EST_KEYS = { "message", "channel", "member", "event", "o", "r" }
 function History.EstimateBytes()
 	local bytes, lines = 0, 0
-	History.Each(function(h)
+	local log = History.Log()
+	for i = 1, #log do
+		local h = log[i]
 		lines = lines + 1
 		bytes = bytes + 120		-- table + 6-8 fields
 		for j = 1, #EST_KEYS do
 			local v = rawget(h, EST_KEYS[j])
 			if type(v) == "string" then bytes = bytes + 24 + #v end
 		end
-	end)
-	return bytes, #History.Log(), lines
+	end
+	-- kept lines: one string each (and a slot), the list once a person
+	for _, list in pairs(History.Keep()) do
+		bytes = bytes + 80
+		for i = 1, #list do lines = lines + 1; bytes = bytes + 16 + 24 + #list[i] end
+	end
+	return bytes, #log, lines
 end
 
 ------------------------------------------------------------------------
