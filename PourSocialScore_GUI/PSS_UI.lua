@@ -1112,14 +1112,6 @@ local function BuildPlayerTab()
 			IgnoreListDrawUpdate(IgnoreScrollFrame)
 		end
 	end
-	local function listedPlayers()
-		local out = {}
-		for i = 1, M.PSS_PlayerCount() do
-			local n, kind = M.PSS_PlayerEntry(i)
-			if kind == "player" then out[#out + 1] = n end
-		end
-		return out
-	end
 	local hist = History.CreatePanel(Tab1Frame, {
 		baseTitle = "",
 		headerY = UI.COMPACT_HEADER_Y,
@@ -1127,23 +1119,15 @@ local function BuildPlayerTab()
 		setListShown = setListShown,
 		entries = function(name)
 			if name then return M.PSS_GetPlayerBlockHistory(name) end
-			-- every listed player's lines, from the shared log
-			local keys = {}
-			for _, n in ipairs(listedPlayers()) do
-				local k = M.PSS_PlayerHistoryKey(n)
-				if k then keys[k] = true end
-			end
-			return History.Collect(function(h) return keys[h.o] == true end)
+			-- every listed player's lines (PSS_EventsQuery.lua)
+			return M.PSS_ListedPlayerEvents()
 		end,
 		label = function(name) return (M.hasGlobalIgnored(name) > 0) and name or nil end,
 		reset = function(name)
 			if name then
 				M.PSS_ResetPlayerBlockHistory(name)
 			else
-				for _, n in ipairs(listedPlayers()) do
-					if M.PSS_GetPlayerRecord(n) then M.PSS_ResetPlayerBlockHistory(n) end
-				end
-				if M.PSS_Stats then M.PSS_Stats.Reset("player") end
+				M.PSS_ResetListedPlayerEvents()
 			end
 		end,
 		extra = { text = "Player Details", onClick = function(name) if name and M.PSS_ShowPlayerDetail then M.PSS_ShowPlayerDetail(name) end end,

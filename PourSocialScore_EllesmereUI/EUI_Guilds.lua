@@ -454,10 +454,7 @@ local allGuilds = {
     kind = "guild", id = false, allText = "All Guilds", source = "guilds",
     label = function() return "All Guilds" end,
     read = M.PSS_GetGuildBlockHistory,
-    reset = function()
-        for k in pairs(PourSocialScoreDB.guildData or {}) do M.PSS_ResetGuildBlockHistory(k) end
-        if M.PSS_Stats then M.PSS_Stats.Reset("guild") end
-    end,
+    reset = M.PSS_ResetAllGuildEvents,
 }
 local function AllGuilds() return allGuilds end
 ns.RegisterEventSource("guilds", "Guild Ignore List", AllGuilds)
@@ -502,52 +499,13 @@ local function GroupLabel(k)
     return grp and tostring(grp.name or k) or nil
 end
 
-local function GroupGuilds(k)
-    local out = {}
-    for key, g in pairs(PourSocialScoreDB.guildData or {}) do
-        if type(g) == "table" and g.managed and (k == MANAGED or g.managed == k) then out[#out + 1] = key end
-    end
-    return out
-end
-
 function ns.GroupHistorySpec(k)
     return {
         kind = "group", id = k, confirm = true, allText = "All Guilds", all = AllGuilds,
         label = GroupLabel,
-        -- each guild's lines and, as in a guild's own view, its blocks
-        -- counted but not stored (world and guild chat) or expired
-        read = function(gk)
-            local out, merged = {}, {}
-            local keep = History.KEEP_TOTAL ~= nil and not History.LOG_ALL
-            for _, key in ipairs(GroupGuilds(gk)) do
-                local lines = M.PSS_GetGuildBlockHistory(key) or {}
-                local counts = M.PSS_GetGuildBlockCounts(key)
-                if counts and ns.HistoryAddExpired then
-                    ns.HistoryAddExpired(lines, counts,
-                        History.RecentSlots and History.GuildKey and History.RecentSlots(History.GuildKey(key)), keep)
-                end
-                -- the counted rows of every guild merged per type and 10 minutes
-                for _, h in ipairs(lines) do
-                    if h.expired then
-                        local k = h.cat .. "\001" .. tostring(h.ts) .. "\001" .. h.channel
-                        local same = merged[k]
-                        if same then
-                            same.expired = same.expired + h.expired
-                            same.message = same.text .. ("  |cff888888x%d|r"):format(same.expired)
-                        else
-                            merged[k] = h
-                            out[#out + 1] = h
-                        end
-                    else
-                        out[#out + 1] = h
-                    end
-                end
-            end
-            return out
-        end,
-        reset = function(gk)
-            for _, key in ipairs(GroupGuilds(gk)) do M.PSS_ResetGuildBlockHistory(key) end
-        end,
+        -- each guild's lines, counted rows merged (PSS_EventsQuery.lua)
+        read = M.PSS_GroupEvents,
+        reset = M.PSS_ResetGroupEvents,
     }
 end
 
@@ -692,15 +650,7 @@ local function BuildGroupBody(parent)
     b.recent = {}
     -- the list's guilds' session and 24 hour counts by type, added up
     local one = {}
-    b.recentByCat = function(into)
-        for _, t in ipairs({ into.session, into.day }) do for k in pairs(t) do t[k] = 0 end end
-        local items = b.groupItems or {}
-        for i = 1, #items do
-            History.RecentByCat(History.GuildKey(items[i].key), one)
-            for cat, n in pairs(one.session) do into.session[cat] = (into.session[cat] or 0) + n end
-            for cat, n in pairs(one.day) do into.day[cat] = (into.day[cat] or 0) + n end
-        end
-    end
+    b.recentByCat = function(into) M.PSS_GroupRecentByCat(b.groupItems, into, one) end
     local toggle = ns.NewButton(b, "", 130, function()
         local k = pane.groupKey
         if k and k ~= MANAGED then M.PSS_SetManagedGroupActive(k, not M.PSS_ManagedGroupActive(k)) end
@@ -890,16 +840,8 @@ local function ShowGuild(key, fresh)
 end
 
 -- A default guild list's session and 24 hour counts: its guilds' own
--- (History.GuildKey) added up. into: reused.
-local function GroupRecent(items, into)
-    into.session, into.day = 0, 0
-    if not (History.RecentCounts and History.GuildKey) then return into end
-    for i = 1, #items do
-        local s, d = History.RecentCounts(History.GuildKey(items[i].key))
-        into.session, into.day = into.session + (s or 0), into.day + (d or 0)
-    end
-    return into
-end
+-- added up (PSS_EventsQuery.lua). into: reused.
+local GroupRecent = M.PSS_GroupRecent
 
 -- every guild of every default guild list (MANAGED), reused
 local managedItems = {}

@@ -68,62 +68,11 @@ local function TimeText(h)
 end
 
 -- "2026-10-05 13:20" -> server seconds (nil: not a date)
-local function ParseTime(text)
-    local y, mo, d, hh, mm = tostring(text or ""):match("^%s*(%d%d%d%d)%-(%d%d?)%-(%d%d?)%s+(%d%d?):(%d%d)%s*$")
-    if not y then
-        y, mo, d = tostring(text or ""):match("^%s*(%d%d%d%d)%-(%d%d?)%-(%d%d?)%s*$")
-        hh, mm = 0, 0
-    end
-    if not y then return nil end
-    return time({ year = tonumber(y), month = tonumber(mo), day = tonumber(d),
-        hour = tonumber(hh), min = tonumber(mm), sec = 0 })
-end
+local ParseTime = M.PSS_ParseEventTime
 
--- Blocks counted for one entry but no longer in its lines: a line per
--- type and 10 minutes for the last day (History.RecentSlots), then a line
--- per type of time unknown. Added to lines (the array read for the view).
--- person: a player / guild / member, whose world and guild chat the core
--- counts but never stores (3.2-dev3 to dev006): those say so instead of
--- "expired". From core 3.2.0-dev007 (History.LOG_ALL) they are stored.
-local EXPIRED = "|cff888888Data expired from logs|r"
-local NOT_STORED = "|cff888888Counted, not stored (only whispers, party / raid and invites are kept)|r"
-local function AddExpired(lines, counts, slots, person)
-    local SLOT = History.SLOT or 600
-    local found, foundAt = {}, {}
-    for i = 1, #lines do
-        local h = lines[i]
-        local cat = h.cat or "unknown"
-        found[cat] = (found[cat] or 0) + 1
-        local s = math.floor((tonumber(h.ts) or 0) / SLOT)
-        local k = cat .. "\001" .. s
-        foundAt[k] = (foundAt[k] or 0) + 1
-    end
-    local n = #lines
-    local recentGone = {}
-    local function add(ts, cat, count)
-        n = n + 1
-        local never = person and History.KeepKind and not History.KeepKind({ cat = cat })
-        local text = never and NOT_STORED or EXPIRED
-        lines[n] = setmetatable({ ts = ts, cat = cat, member = "", channel = never and "Not stored" or "Expired",
-            message = count > 1 and (text .. ("  |cff888888x%d|r"):format(count)) or text, expired = count,
-            text = text, slotEnd = ts > 0 and ts + SLOT or nil },
-            History.EntryMT)
-    end
-    for _, x in ipairs(slots or {}) do
-        local k = x.cat .. "\001" .. math.floor(x.ts / SLOT)
-        local have = foundAt[k] or 0
-        local gone = x.n - have
-        foundAt[k] = have > x.n and have - x.n or 0
-        if gone > 0 then
-            add(x.ts, x.cat, gone)
-            recentGone[x.cat] = (recentGone[x.cat] or 0) + gone
-        end
-    end
-    for _, cat in ipairs(History.ALL_CATS or {}) do
-        local rest = (tonumber(counts[cat]) or 0) - (found[cat] or 0) - (recentGone[cat] or 0)
-        if rest > 0 then add(0, cat, rest) end
-    end
-end
+-- Blocks counted for one entry but no longer in its lines, added to its
+-- lines (PSS_EventsQuery.lua)
+local AddExpired = M.PSS_AddExpiredEvents
 ns.HistoryAddExpired = AddExpired
 
 local View = {}
@@ -162,24 +111,9 @@ local function QueryKey(q)
     return table.concat(parts, " ")
 end
 
--- the first and last second shown (nil: open ended)
-local function Range(q)
-    if q.period == "custom" then return q.from, q.to end
-    if q.period then return ns.SummarySince(q.period), nil end
-    return nil, nil
-end
-
-local function Matches(q, h, find, since, upto)
-    if q.cats and not q.cats[h.cat or "unknown"] then return false end
-    -- a counted row stands for its 10 minutes: in the period if they end in it
-    local t = tonumber(h.slotEnd or h.ts) or 0
-    if since and t < since then return false end
-    if upto and (tonumber(h.ts) or 0) > upto then return false end
-    if find == "" then return true end
-    return string.find(string.lower(h.member or ""), find, 1, true)
-        or string.find(string.lower(h.channel or ""), find, 1, true)
-        or string.find(string.lower(h.message or ""), find, 1, true)
-end
+-- the first and last second shown (nil: open ended), and whether a line
+-- is in the query (PSS_EventsQuery.lua)
+local Range, Matches = M.PSS_EventRange, M.PSS_EventMatches
 
 -- the name of what is shown
 local function Title(q, name)

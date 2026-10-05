@@ -334,8 +334,7 @@ local function buildGuildHistoryPanel(frame)
 			if key then
 				M.PSS_ResetGuildBlockHistory(key)
 			else
-				for k in pairs(PourSocialScoreDB.guildData or {}) do M.PSS_ResetGuildBlockHistory(k) end
-				if M.PSS_Stats then M.PSS_Stats.Reset("guild") end
+				M.PSS_ResetAllGuildEvents()
 			end
 		end,
 		extra = { text = "Show Members", onClick = function(key) if key then M.PSS_ShowGuildDetail(key) end end,

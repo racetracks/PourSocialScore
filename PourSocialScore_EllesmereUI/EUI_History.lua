@@ -11,29 +11,11 @@ local History = M.PSS_History
 
 local TIME_FMT = "%Y/%m/%d %H:%M:%S"
 
--- the filter order, and the one word shown for each line
-local TYPES = { "whisper", "invite", "party", "raid", "BG", "world", "guild" }
-ns.HISTORY_TYPES = TYPES
-local CAT_TYPE = {
-    whisper     = "whisper",
-    partyInvite = "invite",
-    guildInvite = "invite",
-    world       = "world",
-    guildChat   = "guild",
-}
-local CHANNEL_TYPE = {
-    ["Raid"] = "raid", ["Raid Leader"] = "raid", ["Raid Warning"] = "raid",
-    ["Battleground"] = "BG", ["Battleground Leader"] = "BG",
-    ["Instance"] = "BG", ["Instance Leader"] = "BG",
-}
-
--- party / raid lines split by their channel; other: an unknown category
-function ns.HistoryType(h)
-    local t = CAT_TYPE[h.cat]
-    if t then return t end
-    if h.cat == "partyRaid" then return CHANNEL_TYPE[h.channel] or "party" end
-    return "other"
-end
+-- the filter order, and the one word shown for each line; party / raid
+-- lines split by their channel, other: an unknown category
+-- (PourSocialScore_Libraries/PSS_EventsQuery.lua)
+ns.HISTORY_TYPES = M.PSS_EVENT_TYPES
+ns.HistoryType = M.PSS_EventType
 
 local EMPTY = {}
 

@@ -163,22 +163,8 @@ local function AllPlayers()
     allPlayers = {
         kind = "player", id = false, allText = "All Players", source = "players",
         label = function() return "All Players" end,
-        read = function()
-            local keys = {}
-            for i = 1, M.PSS_PlayerCount() do
-                local e, kind = M.PSS_PlayerEntry(i)
-                local k = kind == "player" and M.PSS_PlayerHistoryKey(e)
-                if k then keys[k] = true end
-            end
-            return History.Collect(function(h) return keys[h.o] == true end)
-        end,
-        reset = function()
-            for i = 1, M.PSS_PlayerCount() do
-                local e, kind = M.PSS_PlayerEntry(i)
-                if kind == "player" and M.PSS_GetPlayerRecord(e) then M.PSS_ResetPlayerBlockHistory(e) end
-            end
-            if M.PSS_Stats then M.PSS_Stats.Reset("player") end
-        end,
+        read = M.PSS_ListedPlayerEvents,
+        reset = M.PSS_ResetListedPlayerEvents,
     }
     return allPlayers
 end

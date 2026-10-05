@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.3.0-dev001 - Shared Events logic moved to PourSocialScore_Libraries
+
+- Nothing you see changes. The Events logic both windows need (what type a blocked line is, the "Data expired from logs" and "Counted, not stored" rows, the This session / Last 24 hours / custom time ranges and search, the "Stored: ..." line, a default guild list's lines and counts, and the list-wide Reset Block History of every listed player or guild) now lives once in PourSocialScore_Libraries (PSS_EventsQuery.lua) instead of in the EllesmereUI folder, so the PSS window can use it too. The PSS window's All Players / All Guilds view and reset use it already (issue #77).
+- Harness: eui_compare.sh checks the EllesmereUI window looks the same as another version, step by step, like ui_compare.sh does for the PSS window.
+
 => 3.2.0 - Events tab, recent counts, smaller saves
 
 - The EllesmereUI folder (PourSocialScore_EllesmereUI) is now part of the main download and has the same version number.
