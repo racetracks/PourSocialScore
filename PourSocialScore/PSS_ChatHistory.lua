@@ -429,7 +429,7 @@ function History.Add(owner, counts, entry, ruleTag)
 		counts[entry.cat] = (tonumber(counts[entry.cat]) or 0) + 1
 		counts.total = (tonumber(counts.total) or 0) + 1
 	end
-	History.CountRecent(owner, entry.ts)
+	History.CountRecent(owner, entry.ts, entry.cat)
 	if not ready then
 		-- Logging is not loaded: the line waits (never loads it per line)
 		local db = PourSocialScoreDB
@@ -456,14 +456,16 @@ end
 -- 24 hours, for the Summary pie, without PourSocialScore_Logging (the
 -- lines themselves stay in the log). Kept in PourSocialScoreDB next to the
 -- outbox, so a /reload keeps them:
---   recent  = { last = newest slot,
+--   recent  = { v = 2, last = newest slot,
 --               day  = { [owner] = blocks in the last 24 hours },
---               [1..144] = { [owner] = blocks in that slot } }
+--               [1..144] = { [cat] = { [owner] = blocks } } }
 --             a slot is 10 minutes of server time; slot s is kept at
---             s % 144 + 1. When the time moves on, the slots that left the
---             day are taken off `day` and emptied, once per 10 minutes. A
---             slot table exists only while something was blocked in it, and
---             an owner is in it once however often it blocked.
+--             s % 144 + 1, its blocks by type (cat: whisper, partyInvite,
+--             ...) and owner. When the time moves on, the slots that left
+--             the day are taken off `day` and emptied, once per 10 minutes.
+--             A slot table exists only while something was blocked in it, a
+--             type only while it has blocks, and an owner is in it once
+--             however often it blocked.
 --             A lookup is one index (day[owner]).
 --   session = { [owner] = count }, emptied at each login (not a /reload);
 --   sessionStart = the server time of that login
@@ -471,6 +473,7 @@ end
 ------------------------------------------------------------------------
 local SLOT = 600
 local DAY_SLOTS = 144
+local UNKNOWN_CAT = "unknown"
 History.SLOT, History.DAY_SLOTS = SLOT, DAY_SLOTS
 
 function History.GuildKey(gkey) return gkey and ("G:" .. tostring(gkey)) or nil end
@@ -479,9 +482,11 @@ function History.GuildKey(gkey) return gkey and ("G:" .. tostring(gkey)) or nil 
 local function drop(r, day, i)
 	local t = r[i]
 	if not t then return end
-	for owner, c in pairs(t) do
-		local n = (day[owner] or 0) - c
-		day[owner] = n > 0 and n or nil
+	for _, owners in pairs(t) do
+		for owner, c in pairs(owners) do
+			local n = (day[owner] or 0) - c
+			day[owner] = n > 0 and n or nil
+		end
 	end
 	r[i] = nil
 end
@@ -491,9 +496,11 @@ local function recent(cur, create)
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return nil end
 	local r = rawget(db, "recent")
-	if type(r) ~= "table" or type(r.day) ~= "table" then
+	if type(r) ~= "table" or type(r.day) ~= "table" or r.v ~= 2 then
+		-- none yet, or the untyped layout of 3.2.0-dev1 (a day of test data)
+		if type(r) == "table" then rawset(db, "recent", nil) end
 		if not create then return nil end
-		r = { last = cur, day = {} }
+		r = { v = 2, last = cur, day = {} }
 		rawset(db, "recent", r)
 		return r
 	end
@@ -511,8 +518,8 @@ local function recent(cur, create)
 	return r
 end
 
--- One block for owner at server time ts (now when unknown).
-function History.CountRecent(owner, ts)
+-- One block of type cat for owner at server time ts (now when unknown).
+function History.CountRecent(owner, ts, cat)
 	if owner == nil then return end
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return end
@@ -529,7 +536,10 @@ function History.CountRecent(owner, ts)
 	local i = slot % DAY_SLOTS + 1
 	local t = r[i]
 	if not t then t = {}; r[i] = t end
-	t[owner] = (t[owner] or 0) + 1
+	cat = cat or UNKNOWN_CAT
+	local owners = t[cat]
+	if not owners then owners = {}; t[cat] = owners end
+	owners[owner] = (owners[owner] or 0) + 1
 	r.day[owner] = (r.day[owner] or 0) + 1
 end
 
@@ -540,6 +550,45 @@ function History.RecentCounts(owner)
 	local se = type(db) == "table" and rawget(db, "session")
 	local r = recent(math.floor(History.Now() / SLOT), false)
 	return type(se) == "table" and se[owner] or 0, r and r.day[owner] or 0
+end
+
+-- The last day's blocks of owner by 10 minutes and type, newest first:
+-- out[n] = { ts = start of the 10 minutes, cat = type, n = blocks } (a new
+-- array, for showing). Nothing when owner has no block in the day.
+function History.RecentSlots(owner)
+	local out = {}
+	if owner == nil then return out end
+	local cur = math.floor(History.Now() / SLOT)
+	local r = recent(cur, false)
+	if not (r and r.day[owner]) then return out end
+	for s = cur, cur - DAY_SLOTS + 1, -1 do
+		local t = r[s % DAY_SLOTS + 1]
+		if t then
+			for cat, owners in pairs(t) do
+				local c = owners[owner]
+				if c then out[#out + 1] = { ts = s * SLOT, cat = cat, n = c } end
+			end
+		end
+	end
+	return out
+end
+
+-- Where owner's lines are: in the log, in the keep (a person's own lines
+-- after they left the log) and waiting for Logging (the outbox). The log and
+-- the keep are only known once Logging is loaded (nil before; this never
+-- loads it). Walks the log: for showing one entry, not per block.
+function History.Where(owner)
+	local db = PourSocialScoreDB
+	local waiting = 0
+	local ob = type(db) == "table" and rawget(db, "outbox")
+	if type(ob) == "table" then
+		for i = 1, #ob do if type(ob[i]) == "table" and ob[i].o == owner then waiting = waiting + 1 end end
+	end
+	if not ready then return nil, nil, waiting end
+	local log, inLog = History.Log(), 0
+	for i = 1, #log do if log[i].o == owner then inLog = inLog + 1 end end
+	local kept = History.Keep()[owner]
+	return inLog, kept and #kept or 0, waiting
 end
 
 -- The server time this session started (its blocks are the ones since).
@@ -560,8 +609,13 @@ function History.ForgetRecent(owner)
 	r.day[owner] = nil
 	for i = 1, DAY_SLOTS do
 		local t = r[i]
-		if t and t[owner] then
-			t[owner] = nil
+		if t then
+			for cat, owners in pairs(t) do
+				if owners[owner] then
+					owners[owner] = nil
+					if next(owners) == nil then t[cat] = nil end
+				end
+			end
 			if next(t) == nil then r[i] = nil end
 		end
 	end

@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev2 - Recent counts by type, cleanup
+
+- The last 24 hours of block counts now also record the type of each block (whisper, invite, party, chat ...) per 10 minutes, so the time and type of a block are known even after its line has left the block history.
+- Removing a player, guild, guild member or chat filter also removes its recent counts. A new check runs 30 days of blocks and fails if any saved table keeps growing (recent counts, session, waiting lines, log).
+
 => 3.2.0-dev1 - Recent block counts
 
 - Every block is now also counted for this session and for the last 24 hours, per player, guild member, guild and chat filter, without loading the block history. The counts are kept in 10-minute steps (at most 144 per day) next to the waiting history lines, so a /reload keeps them; a new login starts a new session. Resetting a block history or a filter's count resets them too. The EllesmereUI Summary page will show them.
