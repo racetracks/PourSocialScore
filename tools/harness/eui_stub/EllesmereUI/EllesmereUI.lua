@@ -22,7 +22,21 @@ E.prebuild = false
 function E.IsSearchPrebuild() return E.prebuild end
 function E.GetPlugin(id) return plugins[id] end
 
-function E:ShowConfirmPopup(opts) E.log.popups[#E.log.popups + 1] = opts end
+-- the confirm popup also shows its screen-wide dimmer (EUIConfirmDimmer, as
+-- EllesmereUI names it) with the message on EUIConfirmPopup._msg
+function E:ShowConfirmPopup(opts)
+	E.log.popups[#E.log.popups + 1] = opts
+	if not EUIConfirmDimmer then
+		local d = CreateFrame("Frame", "EUIConfirmDimmer", UIParent)
+		local p = CreateFrame("Frame", "EUIConfirmPopup", d)
+		p._msg = p:CreateFontString()
+		EUIConfirmDimmer, EUIConfirmPopup = d, p
+	end
+	EUIConfirmPopup._msg:SetText(opts.message)
+	EUIConfirmDimmer:Show()
+end
+E.log.inputs = {}
+function E:ShowInputPopup(opts) E.log.inputs[#E.log.inputs + 1] = opts end
 function E:ShowCopyPopup(title, subtitle, str) E.log.copies[#E.log.copies + 1] = str end
 -- the import popup hands over E.importText as if it was pasted
 function E:ShowImportPopup(onImport) onImport(E.importText) end
@@ -64,6 +78,16 @@ end })
 -- which tabs show as selected (S.SetTabSelection)
 E.log.tabSel = {}
 function S.SetTabSelection(tab, selected) E.log.tabSel[tab] = selected end
+-- the accent (EllesmereUI's theme colour) and its change callbacks
+E.accent = { 0.2, 0.4, 0.6 }
+function S.GetAccentColor() return E.accent[1], E.accent[2], E.accent[3] end
+E.looks = {}
+function S.OnLooksChanged(fn) E.looks[#E.looks + 1] = fn end
+function E.ChangeLooks(r, g, b)
+	E.accent = { r, g, b }
+	for _, fn in ipairs(E.looks) do fn() end
+end
+E.S = S
 function E.RegisterSkin(name, fn)
 	if E.skinsOn then fn(S) end
 	return true
