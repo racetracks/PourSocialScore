@@ -21,6 +21,7 @@ local TOP_H = 58
 local LINE_H = 16
 local EXCL_KEY = M.PSS_GUILD_EXCL_OPEN
 local DOUBLE_CLICK = 0.35
+local PIE_SMALL = 84
 
 -- key/asc/find: the guild list sort and search; rows: the table the core
 -- fills with the list (M.PSS_GuildRows); selKind/sel: what is selected
@@ -239,7 +240,7 @@ local function ClickRow(row, i)
             return
         end
         lastClick, lastKey = now, item.key
-        Select("guild", item.key)
+        if G.selKind == "guild" and G.sel == item.key then Select(nil, nil) else Select("guild", item.key) end
     end
 end
 
@@ -603,7 +604,12 @@ local function BuildGroupBody(parent)
     b.state = Line(b, y); y = y - LINE_H - 4
     b.counts = Line(b, y)
     ns.Font(b.counts, 11)
-    b.pieTop = y - LINE_H - 8
+    local top = y - LINE_H - 6
+    b.charts = CreateFrame("Frame", nil, b)
+    b.charts:SetAllPoints()
+    b.summary = ns.NewSummary(b.charts, page, top, PIE_SMALL)
+    b.typePie = ns.NewTypePie(b.charts, top - PIE_SMALL - 10, PIE_SMALL)
+    b.recent = {}
     local toggle = ns.NewButton(b, "", 130, function()
         local k = pane.groupKey
         if k then M.PSS_SetManagedGroupActive(k, not M.PSS_ManagedGroupActive(k)) end
@@ -744,6 +750,10 @@ local function BuildPane(parent)
     pane.none:SetPoint("CENTER")
     pane.none:SetTextColor(1, 1, 1, 0.5)
     pane.none:SetText("Select a guild to see its details.")
+    pane.none:Hide()
+    -- nothing selected: every guild's totals (a click on the selected
+    -- guild deselects it)
+    pane.totals = ns.NewTotals(pane, page, "guilds", "Guild Ignore List", "Select a guild to see its details.")
 
     pane.bodies = {}
     pane.guild = BuildGuildBody(pane)
@@ -784,131 +794,16 @@ local function ShowGuild(key, fresh)
     return true
 end
 
--------------------------------------------------------------------------------
---  A default guild list's two pies (1.1.0-dev006): this session / last 24
---  hours / all time, and its blocks by type (all time; the session and
---  24 hour counts are not kept by type per guild). Every count is the sum
---  of the list's guilds' own counts (History.GuildKey), so nothing here
---  loads PourSocialScore_Logging. No click-through: a list has no Block
---  History view of its own. Made the first time a list is shown.
--------------------------------------------------------------------------------
-local GROUP_PIE = 84
-local TYPE_SLOTS = 7
-
-local function Legend(parent, x, y, w)
-    local sq = parent:CreateTexture(nil, "ARTWORK")
-    sq:SetSize(10, 10)
-    sq:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 3)
-    local t = ns.NewText(parent, 11)
-    t:SetPoint("TOPLEFT", sq, "TOPRIGHT", 6, 2)
-    t:SetWidth(w)
-    return { sq = sq, text = t }
-end
-
-local function SetLegend(l, r, g, b, text)
-    l.sq:SetColorTexture(r, g, b, 0.9)
-    l.text:SetText(text)
-    l.sq:Show()
-    l.text:Show()
-end
-
-local function HideLegend(l)
-    l.sq:Hide()
-    l.text:Hide()
-end
-
-local function HexColor(hex)
-    hex = tostring(hex or "ffffffff")
-    return (tonumber(hex:sub(3, 4), 16) or 255) / 255, (tonumber(hex:sub(5, 6), 16) or 255) / 255,
-        (tonumber(hex:sub(7, 8), 16) or 255) / 255
-end
-
-local function BuildGroupPies(owner)
-    local b = CreateFrame("Frame", nil, owner)
-    b:SetAllPoints()
-    owner.pies = b
-    b.heading = owner.heading
-    local top = owner.pieTop
-    local x = GROUP_PIE + 32
-    b.periodPie = ns.NewPie(b, GROUP_PIE)
-    b.periodPie.frame:SetPoint("TOPLEFT", b, "TOPLEFT", 14, top)
-    b.periodPie.tip = function(i)
-        local sl = b.periodSlices[i]
-        return ("%s\n%s: %d blocked"):format(b.heading:GetText() or "", sl.text, sl.value or 0)
+-- A default guild list's session and 24 hour counts: its guilds' own
+-- (History.GuildKey) added up. into: reused.
+local function GroupRecent(items, into)
+    into.session, into.day = 0, 0
+    if not (History.RecentCounts and History.GuildKey) then return into end
+    for i = 1, #items do
+        local s, d = History.RecentCounts(History.GuildKey(items[i].key))
+        into.session, into.day = into.session + (s or 0), into.day + (d or 0)
     end
-    b.periodKeys, b.periodSlices, b.periodValues = {}, {}, {}
-    for i, per in ipairs(ns.SUMMARY_PERIODS) do
-        b.periodKeys[i] = Legend(b, x, top - 12 - (i - 1) * 20, 220)
-        b.periodSlices[i] = { r = per.r, g = per.g, b = per.b, text = per.text, value = 0 }
-    end
-
-    local top2 = top - GROUP_PIE - 12
-    b.typePie = ns.NewPie(b, GROUP_PIE)
-    b.typePie.frame:SetPoint("TOPLEFT", b, "TOPLEFT", 14, top2)
-    b.typePie.tip = function(i)
-        local sl = b.typeSlices[i]
-        return ("%s\n%s: %d blocked (all time)"):format(b.heading:GetText() or "", sl.text, sl.value or 0)
-    end
-    b.typeSlices, b.typeKeys = {}, {}
-    for i = 1, TYPE_SLOTS do
-        local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
-        b.typeKeys[i] = Legend(b, x + col * 128, top2 - 4 - row * 20, 108)
-        b.typeSlices[i] = {}
-    end
-    b.typeEmpty = ns.NewText(b, 11)
-    b.typeEmpty:SetPoint("CENTER", b.typePie.frame, "CENTER", 0, 0)
-    b.typeEmpty:SetTextColor(1, 1, 1, 0.5)
-    b.typeEmpty:SetText("Nothing yet")
-    b.periodEmpty = ns.NewText(b, 11)
-    b.periodEmpty:SetPoint("CENTER", b.periodPie.frame, "CENTER", 0, 0)
-    b.periodEmpty:SetTextColor(1, 1, 1, 0.5)
-    b.periodEmpty:SetText("Nothing yet")
-end
-
--- items: the list's guild items ({ key, bc }); bc: their counts added up
-local function ShowGroupPies(owner, items, bc)
-    if not owner.pies then BuildGroupPies(owner) end
-    local b = owner.pies
-    b:Show()
-    local session, day = 0, 0
-    local recent = History.RecentCounts and History.GuildKey
-    if recent then
-        for i = 1, #items do
-            local s, d = History.RecentCounts(History.GuildKey(items[i].key))
-            session, day = session + (s or 0), day + (d or 0)
-        end
-    end
-    local values = b.periodValues
-    values.session, values.day, values.all = session, day, bc.total or 0
-    for i, per in ipairs(ns.SUMMARY_PERIODS) do
-        local sl = b.periodSlices[i]
-        sl.value = values[per.key]
-        local text = per.text .. "  |cffffffff" .. sl.value .. "|r"
-        if not recent and per.key ~= "all" then text = per.text .. "  |cff808080needs PourSocialScore 3.2|r" end
-        SetLegend(b.periodKeys[i], per.r, per.g, per.b, text)
-    end
-    b.periodPie:Set(b.periodSlices)
-    b.periodEmpty:SetShown(values.all == 0 and session == 0 and day == 0)
-
-    -- by type: the types it blocked, in the core's order
-    local slices, n = b.typeSlices, 0
-    for _, cat in ipairs(History.ALL_CATS or {}) do
-        local v = tonumber(bc[cat]) or 0
-        if v > 0 and n < TYPE_SLOTS then
-            n = n + 1
-            local sl = slices[n]
-            sl.r, sl.g, sl.b = HexColor(History.CAT_COLOR[cat])
-            sl.value, sl.text, sl.cat = v, History.CAT_LABEL[cat] or cat, cat
-            SetLegend(b.typeKeys[n], sl.r, sl.g, sl.b, sl.text .. "  |cffffffff" .. v .. "|r")
-        end
-    end
-    for i = n + 1, TYPE_SLOTS do
-        slices[i].value = 0
-        HideLegend(b.typeKeys[i])
-    end
-    b.typeCount = n
-    b.typePie:Set(slices)
-    b.typeEmpty:SetShown(n == 0)
+    return into
 end
 
 local function ShowGroup(k)
@@ -930,10 +825,14 @@ local function ShowGroup(k)
         or "|cffff5555Rule is OFF|r: nothing in this list is blocked.")
     b.counts:SetText(item and CountsText(item.bc) or "")
     local items = G.rows.groups and G.rows.groups[k]
+    b.charts:SetShown(item and items and true or false)
     if item and items then
-        ShowGroupPies(b, items, item.bc)
-    elseif b.pies then
-        b.pies:Hide()
+        -- the two pies (1.1.0-dev006): periods like a guild's Summary (no
+        -- click-through: a list has no Block History view of its own) and
+        -- all-time blocks by type
+        local name = tostring(grp.name or k)
+        b.summary:Set(nil, item.bc.total or 0, name, nil, nil, { noWhere = true, recent = GroupRecent(items, b.recent) })
+        b.typePie:Set(item.bc, name)
     end
     b.toggle:SetText(on and "Turn Rule Off" or "Turn Rule On")
     b.open:SetText(M.PSS_GuildGroupOpen(k) and "Collapse" or "Expand")
@@ -1003,7 +902,7 @@ function ShowDetail(fresh)
         shown = ShowExcl(G.sel)
     end
     if not shown then G.selKind, G.sel = nil, nil end
-    pane.none:SetShown(not shown)
+    if shown then pane.totals:Hide() else pane.totals:Show(G.rows.pool and G.rows or nil) end
 end
 
 -------------------------------------------------------------------------------

@@ -96,7 +96,8 @@ end
 
 -------------------------------------------------------------------------------
 --  Summary: a pie of this session / last 24 hours / all time (EUI_Pie.lua),
---  a tick box per period (all on; off takes its slice out), View Events.
+--  a tick box per period (all time starts off; off takes its slice out),
+--  View Events.
 --  A click on a slice opens the Block History view of that period. The
 --  session and day counts come from the core (History.RecentCounts, 3.2),
 --  all time from the entry's counts: nothing here loads
@@ -113,8 +114,9 @@ local PERIODS = {
 }
 ns.SUMMARY_PERIODS = PERIODS
 
--- the periods ticked (shared by every tab, kept while the window is loaded)
-local periodOn = { session = true, day = true, all = true }
+-- the periods ticked (shared by every tab, kept while the window is
+-- loaded). All time starts unticked: it holds the other two and dwarfs them.
+local periodOn = { session = true, day = true, all = false }
 
 function ns.PeriodText(key)
     for _, per in ipairs(PERIODS) do if per.key == key then return per.text end end
@@ -163,39 +165,70 @@ local summaries = {}
 
 local Build
 
+-- The periods ticked as slices. They are nested (the last 24 hours hold
+-- this session, all time holds both), so each slice is drawn as only what
+-- the smaller ticked ones before it do not hold: the overlap is drawn once,
+-- in the smaller slice, and lit with the bigger one on hover (within).
+-- v: { session, day, all }; pool: the slice tables, reused.
+function ns.PeriodSlices(v, slices, map, pool)
+    for i = #slices, 1, -1 do slices[i] = nil end
+    local n, inner = 0, 0
+    for _, per in ipairs(PERIODS) do
+        if periodOn[per.key] then
+            n = n + 1
+            local sl = pool[n] or { within = {} }
+            pool[n] = sl
+            local value = v[per.key] or 0
+            sl.value, sl.r, sl.g, sl.b, sl.text = value, per.r, per.g, per.b, per.text
+            sl.draw = math.max(0, value - inner)
+            sl.inner = math.min(inner, value)
+            for i in pairs(sl.within) do sl.within[i] = nil end
+            for i = 1, n - 1 do sl.within[i] = true end
+            sl.innerText = n > 1 and slices[n - 1].text or nil
+            slices[n] = sl
+            map[n] = per.key
+            inner = math.max(inner, value)
+        end
+    end
+    return n
+end
+
+-- A slice's tooltip: its count, and how much of it the smaller slice holds.
+function ns.PeriodTip(title, sl, click)
+    local t = ("%s\n%s: %d blocked"):format(title or "", sl.text, sl.value or 0)
+    if sl.innerText and (sl.inner or 0) > 0 then
+        t = t .. ("\n|cffaaaaaa%d of them also in %s (lit with it)|r"):format(sl.inner, string.lower(sl.innerText))
+    end
+    if click then t = t .. "\n\n|cffaaaaaaClick: these events in the Block History view.|r" end
+    return t
+end
+
 function SM:Refresh()
     if not self.page:IsVisible() then return end
     if not self.pie then Build(self) end
-    local s, d = Recent(self.owner)
+    local s, d
+    if self.recent then s, d = self.recent.session or 0, self.recent.day or 0 else s, d = Recent(self.owner) end
     local v = self.values
     v.session, v.day, v.all = s, d, self.allTime or 0
-    local slices, map, n = self.slices, self.map, 0
-    for i = #slices, 1, -1 do slices[i] = nil end
-    for _, per in ipairs(PERIODS) do
-        local box = self.boxes[per.key]
-        box.count:SetText(tostring(v[per.key]))
-        if periodOn[per.key] then
-            n = n + 1
-            local sl = self.pool[n] or {}
-            self.pool[n] = sl
-            sl.value, sl.r, sl.g, sl.b, sl.text = v[per.key], per.r, per.g, per.b, per.text
-            slices[n] = sl
-            map[n] = per.key
-        end
-    end
-    self.pie:Set(slices)
+    for _, per in ipairs(PERIODS) do self.boxes[per.key].count:SetText(tostring(v[per.key])) end
+    ns.PeriodSlices(v, self.slices, self.map, self.pool)
+    self.pie:Set(self.slices)
     self.where:SetText(self.noWhere and "" or ns.WhereText(self.owner, v.all, self.whoText))
     self.empty:SetShown(v.all == 0 and v.session == 0 and v.day == 0)
     self.viewButton:SetEnabled(self.specFn ~= nil)
+    self.viewButton:SetShown(self.specFn ~= nil)
 end
 
 -- owner: the core's owner key (History.PlayerKey ...); allTime: the
 -- entry's all-time count; title: its name; specFn(id): its Block History
 -- spec (made only when opened); opts.noWhere: no "Stored:" line (a guild:
--- its lines are its members'), opts.who: "this player" for the keep
+-- its lines are its members'), opts.who: "this player" for the keep,
+-- opts.recent: { session =, day = } counted elsewhere (a default guild
+-- list, a whole list) instead of the owner's
 function SM:Set(owner, allTime, title, specFn, id, opts)
     self.owner, self.allTime, self.title, self.specFn, self.id = owner, allTime, title, specFn, id
     self.noWhere, self.whoText = opts and opts.noWhere, opts and opts.who
+    self.recent = opts and opts.recent
     self:Refresh()
 end
 
@@ -209,21 +242,17 @@ end
 -- the pie, the tick boxes and View Events: made the first time the page shows
 function Build(sm)
     local page, top = sm.page, sm.top
-    local SIZE = 116
+    local SIZE = sm.size or 116
     sm.pie = ns.NewPie(page, SIZE, function(i) sm:Open(sm.map[i]) end)
     sm.pie.frame:SetPoint("TOPLEFT", page, "TOPLEFT", 18, top)
-    sm.pie.tip = function(i)
-        local sl = sm.slices[i]
-        return ("%s\n%s: %d blocked\n\n|cffaaaaaaClick: these events in the Block History view.|r")
-            :format(sm.title or "", sl.text, sl.value or 0)
-    end
+    sm.pie.tip = function(i) return ns.PeriodTip(sm.title, sm.slices[i], sm.specFn ~= nil) end
     sm.empty = ns.NewText(page, 11)
     sm.empty:SetPoint("CENTER", sm.pie.frame, "CENTER", 0, 0)
     sm.empty:SetTextColor(1, 1, 1, 0.5)
     sm.empty:SetText("Nothing yet")
 
     -- a tick box per period: its colour, name and count
-    local x, y = SIZE + 40, top - 8
+    local x, y = SIZE + 40, top - (sm.size and 2 or 8)
     for _, per in ipairs(PERIODS) do
         local c = ns.NewCheck(page)
         c:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
@@ -274,10 +303,135 @@ function Build(sm)
 end
 
 -- page: the Summary page; tabPage: the tab (for the Block History view);
--- top: where the pie starts
-function ns.NewSummary(page, tabPage, top)
-    local sm = setmetatable({ page = page, tabPage = tabPage, top = top, slices = {}, map = {}, pool = {},
-        values = {}, boxes = {} }, SM)
+-- top: where the pie starts; size: the pie (116 when nil)
+function ns.NewSummary(page, tabPage, top, size)
+    local sm = setmetatable({ page = page, tabPage = tabPage, top = top, size = size, slices = {}, map = {},
+        pool = {}, values = {}, boxes = {} }, SM)
     page:HookScript("OnShow", function() sm:Refresh() end)
     return sm
+end
+
+-------------------------------------------------------------------------------
+--  A pie of all-time blocks by type, with a legend of the types blocked (a
+--  default guild list, a whole list). Only all time: the session and 24
+--  hour counts are not added up by type. No click-through.
+--    local tp = ns.NewTypePie(parent, top, size)
+--    tp:Set(counts, title)    -- counts: total and one count per type
+--  Made the first time Set is called.
+-------------------------------------------------------------------------------
+local TYPE_SLOTS = 7
+
+local function HexColor(hex)
+    hex = tostring(hex or "ffffffff")
+    return (tonumber(hex:sub(3, 4), 16) or 255) / 255, (tonumber(hex:sub(5, 6), 16) or 255) / 255,
+        (tonumber(hex:sub(7, 8), 16) or 255) / 255
+end
+
+local TP = {}
+TP.__index = TP
+
+function TP:Build()
+    local f, size, top = self.frame, self.size, self.top
+    self.pie = ns.NewPie(f, size)
+    self.pie.frame:SetPoint("TOPLEFT", f, "TOPLEFT", 18, top)
+    self.pie.tip = function(i)
+        local sl = self.slices[i]
+        return ("%s\n%s: %d blocked (all time)"):format(self.title or "", sl.text, sl.value or 0)
+    end
+    self.keys = {}
+    for i = 1, TYPE_SLOTS do
+        local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
+        local sq = f:CreateTexture(nil, "ARTWORK")
+        sq:SetSize(10, 10)
+        sq:SetPoint("TOPLEFT", f, "TOPLEFT", size + 40 + col * 118, top - 6 - row * 20)
+        local t = ns.NewText(f, 11)
+        t:SetPoint("LEFT", sq, "RIGHT", 6, 0)
+        t:SetWidth(100)
+        self.keys[i] = { sq = sq, text = t }
+        self.slices[i] = {}
+    end
+    self.empty = ns.NewText(f, 11)
+    self.empty:SetPoint("CENTER", self.pie.frame, "CENTER", 0, 0)
+    self.empty:SetTextColor(1, 1, 1, 0.5)
+    self.empty:SetText("Nothing yet")
+end
+
+function TP:Set(counts, title)
+    if not self.pie then self:Build() end
+    self.title = title
+    local slices, n = self.slices, 0
+    for _, cat in ipairs(History.ALL_CATS or {}) do
+        local v = tonumber(counts and counts[cat]) or 0
+        if v > 0 and n < TYPE_SLOTS then
+            n = n + 1
+            local sl = slices[n]
+            sl.r, sl.g, sl.b = HexColor(History.CAT_COLOR[cat])
+            sl.value, sl.text, sl.cat = v, History.CAT_LABEL[cat] or cat, cat
+            local k = self.keys[n]
+            k.sq:SetColorTexture(sl.r, sl.g, sl.b, 0.9)
+            k.text:SetText(sl.text .. "  |cffffffff" .. v .. "|r")
+            k.sq:Show()
+            k.text:Show()
+        end
+    end
+    for i = n + 1, TYPE_SLOTS do
+        slices[i].value = 0
+        self.keys[i].sq:Hide()
+        self.keys[i].text:Hide()
+    end
+    self.count = n
+    self.pie:Set(slices)
+    self.empty:SetShown(n == 0)
+end
+
+-- parent: the frame it draws on; top: where the pie starts; size: the pie
+function ns.NewTypePie(parent, top, size)
+    return setmetatable({ frame = parent, top = top, size = size or 84, slices = {} }, TP)
+end
+
+-------------------------------------------------------------------------------
+--  A whole list's totals, shown in a tab's pane when nothing on it is
+--  selected: its blocks this session / last 24 hours / all time (the
+--  Summary pie, no click-through) and by type. The counts come from the
+--  core (M.PSS_ListTotals, PourSocialScore 3.2.0-dev004); nothing loads
+--  PourSocialScore_Logging. An older core: the hint only.
+--    local tot = ns.NewTotals(pane, tabPage, kind, title, hint)
+--    tot:Show(guildRows)      -- kind "players", "guilds" or "filters"
+-------------------------------------------------------------------------------
+local TT = {}
+TT.__index = TT
+
+function TT:Show(guildRows)
+    self.frame:Show()
+    local ok = M.PSS_ListTotals ~= nil
+    self.charts:SetShown(ok)
+    if not ok then return end
+    local c = M.PSS_ListTotals(self.kind, self.counts, guildRows)
+    self.recent.session, self.recent.day = c.session, c.day
+    self.info:SetText(("Blocked |cffffff00%d|r in all.  |cffaaaaaaSelect an entry to see its own.|r"):format(c.total or 0))
+    self.summary:Set(nil, c.total or 0, self.title, nil, nil, { noWhere = true, recent = self.recent })
+    self.typePie:Set(c, self.title)
+end
+
+function TT:Hide() self.frame:Hide() end
+
+function ns.NewTotals(pane, tabPage, kind, title, hint)
+    local tt = setmetatable({ kind = kind, title = title, counts = {}, recent = {} }, TT)
+    local f = CreateFrame("Frame", nil, pane)
+    f:SetAllPoints()
+    f:Hide()
+    tt.frame = f
+    local heading = ns.NewHeading(f, title)
+    heading:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -8)
+    tt.heading = heading
+    local info = ns.NewText(f, 12)
+    info:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -28)
+    info:SetPoint("RIGHT", f, "RIGHT", -10, 0)
+    info:SetText(hint)
+    tt.info = info
+    tt.charts = CreateFrame("Frame", nil, f)
+    tt.charts:SetAllPoints()
+    tt.summary = ns.NewSummary(tt.charts, tabPage, -52, 84)
+    tt.typePie = ns.NewTypePie(tt.charts, -52 - 84 - 10, 84)
+    return tt
 end
