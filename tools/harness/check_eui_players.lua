@@ -128,6 +128,7 @@ local sel = pane.row.entry
 check(type(sel) == "string" and sel:match("^Player"), "pane entry " .. tostring(sel))
 check(r1.sel:IsShown(), "selected row not marked")
 
+
 -- note and expiry save through the core
 pane.noteBox:SetText("  from the pane ")
 pane.noteBox:GetScript("OnEnterPressed")(pane.noteBox)
@@ -189,7 +190,13 @@ do
 	pane.pages:Select("summary")
 	local v = sm.values
 	check(v.session == 1 and v.day == 1 and v.all == 1, ("summary %s/%s/%s"):format(tostring(v.session), tostring(v.day), tostring(v.all)))
-	check(#sm.slices == 3 and sm.pie.total == 3 and sm.boxes.day.count:GetText() == "1", "pie slices")
+	-- All time starts unticked (EUI 1.1.0-dev007); ticked, the one block
+	-- counted in all three periods is drawn once, in the session's slice
+	check(#sm.slices == 2 and not sm.boxes.all:GetChecked(), "All time ticked by default")
+	sm.boxes.all:SetChecked(true)
+	sm.boxes.all:GetScript("OnClick")(sm.boxes.all)
+	check(#sm.slices == 3 and sm.pie.total == 1 and sm.slices[3].value == 1 and sm.slices[3].draw == 0
+		and sm.boxes.day.count:GetText() == "1", "pie slices")
 	local segs = 0
 	for s = 1, #sm.pie.segSlice do if sm.pie.segSlice[s] ~= 0 then segs = segs + 1 end end
 	check(segs == #sm.pie.segSlice, "pie not full: " .. segs)
@@ -328,6 +335,37 @@ check(pane.pages.shown == "rule" and not pane.pages.buttons[1]:IsEnabled() and n
 -- removal asks first (EllesmereUI's popup), then removes
 selectEntry(sel)
 check(pane.row.entry == sel, "player not selected again")
+-- a click on the selected entry deselects it: the pane shows the whole
+-- list's totals (3.2.0-dev004 / EUI 1.1.0-dev007), Logging still unloaded
+do
+	local logging = C_AddOns.IsAddOnLoaded("PourSocialScore_Logging")
+	selectEntry("Player0003-Realm3")
+	local tot = pane.totals
+	check(not pane.body:IsShown() and tot.frame:IsShown() , "deselect: totals not shown")
+	local want = M.PSS_ListTotals("players", {})
+	local v = tot.summary.values
+	check(want.total > 0 and v.all == want.total and v.session == want.session and v.day == want.day,
+		("player totals %s/%s/%s"):format(tostring(v.session), tostring(v.day), tostring(v.all)))
+	check(tot.typePie.count >= 1, "player totals type pie empty")
+	-- All time starts unticked; ticked, the nested slices take only their
+	-- own part (the overlap is drawn once, in the smaller slice)
+	local box = tot.summary.boxes.all
+	check(box:GetChecked() == pane.summary.boxes.all:GetChecked(), "tick boxes not shared with the entry's Summary")
+	box:SetChecked(false)
+	box:GetScript("OnClick")(box)
+	check(#tot.summary.slices == 2, "unticked All time still in the totals pie")
+	box:SetChecked(true)
+	box:GetScript("OnClick")(box)
+	local sl = tot.summary.slices
+	check(#sl == 3 and sl[1].draw == v.session and sl[2].draw == math.max(0, v.day - v.session)
+		and sl[3].draw == math.max(0, v.all - math.max(v.session, v.day)) and sl[3].within[1] and sl[3].within[2]
+		and not sl[1].within[2], "nested period slices")
+	box:SetChecked(false)
+	box:GetScript("OnClick")(box)
+	check(C_AddOns.IsAddOnLoaded("PourSocialScore_Logging") == logging, "totals loaded the block history")
+	selectEntry("Player0003-Realm3")
+	check(pane.body:IsShown() and not tot.frame:IsShown(), "pane not back after selecting again")
+end
 local nPopups = #E.log.popups
 pane.removeButton:GetScript("OnClick")(pane.removeButton)
 check(#E.log.popups == nPopups + 1 and E.log.popups[#E.log.popups].confirmText == "Remove", "remove not confirmed")
@@ -336,7 +374,7 @@ E.log.popups[#E.log.popups].onConfirm()
 check(M.PSS_PlayerPosition(sel) == 0, "not removed after the confirmation")
 check(M.PSS_GetPlayerRecord(sel) == nil, "record left after removal")
 check(list.count == total - 1, "list not redrawn after removal")
-check(not pane.body:IsShown() and pane.none:IsShown(), "pane still shows a removed entry")
+check(not pane.body:IsShown() and pane.totals.frame:IsShown(), "pane still shows a removed entry")
 
 -- Add Player selects the new entry
 page.add:SetText("Newbie-Realm1")
