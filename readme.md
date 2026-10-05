@@ -24,7 +24,11 @@ EllesmereUI is installed.
   longer stored show in the view as "Data expired from logs" rows, with
   their type and, for the last 24 hours, when; a person's world and guild
   chat, which the core counts but never stores (3.2), shows as "Counted,
-  not stored". Back / forward arrows (and mouse buttons 4 / 5) step through
+  not stored". Selecting a default guild list (its heading row on the Guild
+  Ignore List tab) shows two pies for the whole list: this session / the
+  last 24 hours / all time, and its blocks by type (all time), each the sum
+  of the list's guilds' own counts, so they never load the block history
+  either (1.1.0-dev006). Back / forward arrows (and mouse buttons 4 / 5) step through
   the views; Escape goes up a level through EllesmereUI's Escape handling
   (`RegisterEscapeClose` with `onEscape`).
 - A "Pour Social Score" section in the EllesmereUI panel (plugin API,
