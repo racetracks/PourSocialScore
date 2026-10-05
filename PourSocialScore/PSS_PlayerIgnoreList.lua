@@ -1187,6 +1187,7 @@ function M.PSS_ForgetPlayer(name, note)
 	if owner and (History.Loaded() or mayHaveLines(p)) then
 		History.Clear(function(h) return h.o == owner end)
 	end
+	History.ForgetRecent(owner)
 	if p then PourSocialScoreDB.playerData[key] = nil end
 end
 

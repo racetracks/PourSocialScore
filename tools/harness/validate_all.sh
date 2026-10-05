@@ -167,6 +167,11 @@ for ph in 1 2 3; do
 	src=$work/rc-$ph.lua
 done
 
+# saved data stays bounded (3.2): 30 days of blocks, rules added and removed
+echo "== growth"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_growth.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -q "PASS growth" && echo "$out" | grep "^growth:" && echo "PASS growth" || { echo "$out"; echo "FAIL growth"; fail=1; }
+
 # upgrade record (3.0): a 2.0 save gets step 1 once with one chat line, the
 # next login prints nothing; a fresh save is stamped without a message
 echo "== upgrade record"

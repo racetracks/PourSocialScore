@@ -64,10 +64,19 @@ if phase == 1 then
 		if type(k) == "number" then
 			check(k >= 1 and k <= History.DAY_SLOTS, "slot index " .. k)
 			slots = slots + 1
-			sum = sum + (t[pkey()] or 0)
+			for _, owners in pairs(t) do sum = sum + (owners[pkey()] or 0) end
 		end
 	end
 	check(slots <= History.DAY_SLOTS and sum == d and d >= 143 and d <= 144, ("slots %d sum %d day %d"):format(slots, sum, d))
+	-- by 10 minutes and type, newest first: whispers, one a slot
+	local list = History.RecentSlots(pkey())
+	local n, ordered, typed = 0, true, true
+	for i, x in ipairs(list) do
+		n = n + x.n
+		if x.cat ~= "whisper" then typed = false end
+		if i > 1 and x.ts > list[i - 1].ts then ordered = false end
+	end
+	check(n == d and ordered and typed and list[1].ts % History.SLOT == 0, ("slots list %d of %d"):format(n, d))
 	check(s == 5 + 150, "session " .. s)
 
 	-- a guild member: counted on the member and on the guild

@@ -146,6 +146,7 @@ function M.PSS_ResetFilterHistory(filterNum)
 	if not filterNum or not db.filterList[filterNum] then return end
 	local key = M.PSS_FilterOwnerKey(filterNum)
 	History.Clear(function(h) return h.o == key end)
+	History.ForgetRecent(key)
 	db.filterBlocked[filterNum] = { counts = History.EmptyCounts() }
 	db.filterBlockedLast[filterNum] = 0
 	M.Events.Fire("FILTER_HISTORY_CHANGED", filterNum)
@@ -180,10 +181,11 @@ function M.RemoveChatFilter (index)
 	if PourSocialScoreDB.filterList[index] then
 		-- with nothing counted there is nothing to clear, and the block
 		-- history (Logging) is not loaded for it
+		local key = M.PSS_FilterOwnerKey(index)
 		if History.Loaded() or filterMayHaveLines(index) then
-			local key = M.PSS_FilterOwnerKey(index)
 			History.Clear(function(h) return h.o == key end)
 		end
+		History.ForgetRecent(key)
 		table.remove(PourSocialScoreDB.filterList, index)
 		table.remove(PourSocialScoreDB.filterDesc, index)
 		table.remove(PourSocialScoreDB.filterCount, index)
