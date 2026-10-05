@@ -105,3 +105,82 @@ end
 function ns.HideTip()
     if EUI.HideWidgetTooltip then EUI.HideWidgetTooltip() end
 end
+
+-------------------------------------------------------------------------------
+--  Controls shared by the window tabs (each painted by the helpers above)
+-------------------------------------------------------------------------------
+function ns.NewText(parent, size)
+    local fs = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    ns.Font(fs, size or 12)
+    fs:SetTextColor(1, 1, 1)
+    fs:SetJustifyH("LEFT")
+    fs:SetWordWrap(false)
+    return fs
+end
+
+function ns.NewHeading(parent, text)
+    local fs = ns.NewText(parent, 13)
+    if ns.S then fs:SetTextColor(ns.S.GetAccentColor()) else fs:SetTextColor(1, 0.82, 0) end
+    fs:SetText(text)
+    return fs
+end
+
+function ns.NewCheck(parent)
+    local c = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    c:SetSize(24, 24)
+    ns.Checkbox(c)
+    return c
+end
+
+function ns.NewNumberBox(parent, w)
+    local e = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+    e:SetSize(w, 20)
+    e:SetAutoFocus(false)
+    e:SetNumeric(true)
+    e:SetJustifyH("CENTER")
+    ns.EditBox(e)
+    return e
+end
+
+-- commit on Enter and focus loss, once (ClearFocus fires focus loss again)
+function ns.OnCommit(e, commit, refresh)
+    local busy
+    local function run(self)
+        if busy then return end
+        busy = true
+        commit(self:GetText())
+        self:ClearFocus()
+        refresh()
+        busy = false
+    end
+    e:SetScript("OnEnterPressed", run)
+    e:SetScript("OnEditFocusLost", run)
+    e:SetScript("OnEscapePressed", function(self) self:ClearFocus(); refresh() end)
+end
+
+function ns.NewDropdown(parent, w, choices, onPick)
+    local d = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+    d:SetWidth(w)
+    d:SetupMenu(function(dd, root)
+        for _, ch in ipairs(choices) do
+            root:CreateButton(ch[2], function() onPick(ch[1]) end)
+        end
+    end)
+    ns.Dropdown(d)
+    return d
+end
+
+function ns.NewButton(parent, text, w, onClick)
+    local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    b:SetSize(w, 22)
+    b:SetText(text)
+    b:SetScript("OnClick", onClick)
+    ns.Button(b)
+    return b
+end
+
+function ns.TipOn(frame, owner, text)
+    frame:SetScript("OnEnter", function() ns.Tip(owner, text) end)
+    frame:SetScript("OnLeave", ns.HideTip)
+end
+

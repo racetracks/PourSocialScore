@@ -10,7 +10,7 @@ local EUI = EllesmereUI
 local WIN_W, WIN_H = 960, 470
 local TAB_H = 24
 local TABS = {
-    { "Player Ignore List", "The Player Ignore List comes in the next test build (E.4)." },
+    { "Player Ignore List", nil, "BuildPlayersTab" },
     { "Guild Ignore List",  "The Guild Ignore List comes in test build E.5." },
     { "Chat Filters",       "Chat Filters and the block history come in test build E.6." },
     { "Import/Export",      nil, "BuildImportExportTab" },
@@ -34,8 +34,9 @@ local function RestorePlace()
     end
 end
 
--- A tab with a builder (TABS[i][3], in EUI_Options.lua) is built on first
--- open; its builder returns the function that redraws it from saved data.
+-- A tab with a builder (TABS[i][3], in EUI_Players.lua or EUI_Options.lua) is
+-- built on first open; its builder returns the function that redraws it from
+-- saved data.
 local function SelectTab(id)
     local page = win.pages[id]
     local build = TABS[id][3]
@@ -71,6 +72,8 @@ local function Build()
         SavePlace()
     end)
     ns.Shell(win)
+    -- the shown tab is redrawn from the saved data each time the window opens
+    win:SetScript("OnShow", function() ns.RefreshTabs() end)
     if EUI.RegisterEscapeClose then
         EUI.RegisterEscapeClose(win)
     else
