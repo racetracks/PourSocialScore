@@ -18,7 +18,7 @@ local NAV_MAX = 50
 local TABS = {
     { "Player Ignore List", nil, "BuildPlayersTab" },
     { "Guild Ignore List",  nil, "BuildGuildsTab" },
-    { "Chat Filters",       "Chat Filters and the block history come in test build E.6." },
+    { "Chat Filters",       nil, "BuildFiltersTab" },
     { "Import/Export",      nil, "BuildImportExportTab" },
     { "Options",            nil, "BuildOptionsTab" },
 }
@@ -44,7 +44,8 @@ local function RestorePlace()
     end
 end
 
--- A tab with a builder (TABS[i][3], in EUI_Players.lua, EUI_Guilds.lua or EUI_Options.lua) is
+-- A tab with a builder (TABS[i][3], in EUI_Players.lua, EUI_Guilds.lua,
+-- EUI_Filters.lua or EUI_Options.lua) is
 -- built on first open; its builder returns the function that redraws it from
 -- saved data.
 local function SelectTab(id)
