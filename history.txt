@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev011 - Profession links no longer open on hover
+
+- Hovering a profession link in a blocked message (Block History in the PSS window, the Events tab and Event History in the EllesmereUI window) opened that profession's window. Hovering now only shows tooltips for links that have one (items, spells, achievements, quests and the like); a click still opens a profession link as in chat.
+
 => 3.2.0-dev010 - EllesmereUI window: an Events tab
 
 - New Events tab (after Chat Filters): the blocked lines of all three lists in one place, newest first, with a Source column. Three drop-downs filter them: Time (This session, Last 24 hours, All time, or a Custom range of dates and times), Types (a box per type, or All types) and Source (Player Ignore List, Guild Ignore List, Chat Filters, or only the player, guild or filter you came from). The search box stays. Back / forward step through your filter changes; Escape goes back to the tab you came from.

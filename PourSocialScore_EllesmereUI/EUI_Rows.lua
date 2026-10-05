@@ -19,6 +19,15 @@
 -------------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 
+-- link kinds whose tooltip GameTooltip:SetHyperlink shows (others, such as
+-- trade: profession links, open a window instead)
+local TIP_LINKS = {
+    item = true, spell = true, enchant = true, quest = true, achievement = true,
+    currency = true, talent = true, pvptal = true, glyph = true, instancelock = true,
+    keystone = true, mawpower = true, conduit = true, azessence = true, unit = true,
+    mount = true, transmogappearance = true, transmogillusion = true,
+}
+
 local HEADER_H = 20
 local SCROLLBAR_W = 22
 
@@ -179,7 +188,10 @@ function List:MakeRow(i)
         end)
         row:SetScript("OnHyperlinkEnter", function(btn, link)
             GameTooltip:SetOwner(btn, "ANCHOR_CURSOR")
-            local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, link)
+            -- only the kinds with a tooltip: SetHyperlink on a profession
+            -- (trade:) link opens the profession window
+            local kind = type(link) == "string" and link:match("^([^:]+)")
+            local ok = TIP_LINKS[kind] and pcall(GameTooltip.SetHyperlink, GameTooltip, link)
             if ok and GameTooltip:NumLines() > 0 then GameTooltip:Show() else GameTooltip:Hide() end
         end)
         row:SetScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
