@@ -117,7 +117,9 @@ echo "== split"
 rm -rf "$work/src-prev"; mkdir -p "$work/src-prev"
 git archive c5c8296 | tar -x -C "$work/src-prev"
 splitsaves="$work/sv-2.0.1.lua $work/sv-2.0.40.lua $work/sv-2.0.44.lua $work/sv-gr-2.0.44.lua"
-[ -n "$PSS_REAL_SAVES" ] && splitsaves="$splitsaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua')"
+# (2.0-layout saves only: a 3.x save already has PSS_OptionsDB, and the
+# old build cannot read it)
+[ -n "$PSS_REAL_SAVES" ] && splitsaves="$splitsaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua' -exec grep -L '^PSS_OptionsDB = ' {} +)"
 for sv in $splitsaves; do
 	# (optionsSet: dev12 saved every option; since 3.0.0-dev16 only changed
 	# ones are saved, and optionsChanged is the count compared. leftMarks:

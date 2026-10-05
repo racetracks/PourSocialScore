@@ -109,7 +109,6 @@ end
 -------------------------------------------------------------------------------
 local M = ns.M
 local History = M.PSS_History
-local DAY = 86400
 
 local PERIODS = {
     { key = "session", text = "This session",  r = 0.31, g = 0.76, b = 0.97 },
@@ -132,11 +131,7 @@ function ns.PeriodText(key)
 end
 
 -- the first server second of a period (nil: all time)
-function ns.SummarySince(key)
-    if key == "session" then return History.SessionStart and History.SessionStart() or nil end
-    if key == "day" then return History.Now() - DAY end
-    return nil
-end
+ns.SummarySince = M.PSS_PeriodSince
 
 -- the widest period ticked (View Events): nil is all time
 local function WidestOn()
@@ -161,14 +156,7 @@ local function OpenEvents(tabPage, spec, period, cats)
 end
 
 -- counts by type added up over the ticked types
-local function SumOn(t)
-    local n = 0
-    if type(t) ~= "table" then return 0 end
-    for _, cat in ipairs(History.ALL_CATS or {}) do
-        if not typeOff[cat] then n = n + (tonumber(t[cat]) or 0) end
-    end
-    return n
-end
+local function SumOn(t) return M.PSS_SumCats(t, typeOff) end
 
 local summaries, typePies = {}, {}
 
@@ -206,30 +194,8 @@ local function NewKey(parent, countX, onClick)
 end
 
 -- "Stored: 8 kept for this player, 1 waiting, 3 not stored or expired":
--- where owner's counted blocks are (History.Where, 3.2). A filter's lines
--- are in the 2000-line log, a person's in their kept lines (3.2-dev3);
--- world chat of a person is counted, never stored. From core
--- 3.2.0-dev007 (History.LOG_ALL) every line is in the log again and a
--- person's newest are kept once trimmed off it. Before the block
--- history is loaded only the waiting lines are known.
-function ns.WhereText(owner, total, who)
-    if not (owner and History.Where) or (total or 0) == 0 then return "" end
-    local inLog, kept, waiting = History.Where(owner)
-    if not inLog then
-        return ("Stored: %d waiting, the rest in the block history (not loaded)."):format(waiting)
-    end
-    local parts = {}
-    if inLog > 0 then parts[#parts + 1] = ("%d in the log"):format(inLog) end
-    if kept > 0 then parts[#parts + 1] = ("%d kept for %s"):format(kept, who or "this player") end
-    if waiting > 0 then parts[#parts + 1] = ("%d waiting"):format(waiting) end
-    local gone = total - inLog - kept - waiting
-    if gone > 0 then
-        local person = History.KeepsOwner and History.KeepsOwner(owner) and History.KEEP_TOTAL and not History.LOG_ALL
-        parts[#parts + 1] = ("|cffaaaaaa%d %s|r"):format(gone, person and "not stored or expired" or "expired from logs")
-    end
-    if #parts == 0 then return "Stored: nothing." end
-    return "Stored: " .. table.concat(parts, ", ") .. "."
-end
+-- where owner's counted blocks are (PSS_EventsQuery.lua)
+ns.WhereText = M.PSS_StoredText
 
 local SM = {}
 SM.__index = SM
