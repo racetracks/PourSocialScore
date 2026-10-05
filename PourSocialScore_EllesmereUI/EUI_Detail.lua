@@ -133,8 +133,10 @@ local function Recent(owner)
     return History.RecentCounts(owner)
 end
 
--- "Stored: 8 in the log, 2 kept for this player, 1 waiting, 1 expired":
--- where owner's counted blocks are (History.Where, 3.2). Before the block
+-- "Stored: 8 kept for this player, 1 waiting, 3 not stored or expired":
+-- where owner's counted blocks are (History.Where, 3.2). A filter's lines
+-- are in the 2000-line log, a person's in their kept lines (3.2-dev3);
+-- world chat of a person is counted, never stored. Before the block
 -- history is loaded only the waiting lines are known.
 function ns.WhereText(owner, total, who)
     if not (owner and History.Where) or (total or 0) == 0 then return "" end
@@ -142,11 +144,16 @@ function ns.WhereText(owner, total, who)
     if not inLog then
         return ("Stored: %d waiting, the rest in the block history (not loaded)."):format(waiting)
     end
-    local parts = { ("%d in the log"):format(inLog) }
+    local parts = {}
+    if inLog > 0 then parts[#parts + 1] = ("%d in the log"):format(inLog) end
     if kept > 0 then parts[#parts + 1] = ("%d kept for %s"):format(kept, who or "this player") end
     if waiting > 0 then parts[#parts + 1] = ("%d waiting"):format(waiting) end
     local gone = total - inLog - kept - waiting
-    if gone > 0 then parts[#parts + 1] = ("|cffaaaaaa%d expired from logs|r"):format(gone) end
+    if gone > 0 then
+        local person = History.KeepsOwner and History.KeepsOwner(owner) and History.KEEP_TOTAL
+        parts[#parts + 1] = ("|cffaaaaaa%d %s|r"):format(gone, person and "not stored or expired" or "expired from logs")
+    end
+    if #parts == 0 then return "Stored: nothing." end
     return "Stored: " .. table.concat(parts, ", ") .. "."
 end
 

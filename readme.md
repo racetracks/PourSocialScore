@@ -19,10 +19,12 @@ EllesmereUI is installed.
   slice opens that period's events and View Events all of them. The session
   and 24 hour counts come from the core (PourSocialScore 3.2), so the pie
   never loads the block history. Under the pie a Stored line says how many
-  of the blocks are still in the 2000-line log and how many only in the
-  player's kept lines (once the history is loaded). Blocks that are counted
-  but no longer stored show in the view as "Data expired from logs" rows,
-  with their type and, for the last 24 hours, when. Back / forward arrows (and mouse buttons 4 / 5) step through
+  of the blocks are in the 2000-line log (chat filters) or in the person's
+  kept lines (once the history is loaded). Blocks that are counted but no
+  longer stored show in the view as "Data expired from logs" rows, with
+  their type and, for the last 24 hours, when; a person's world and guild
+  chat, which the core counts but never stores (3.2), shows as "Counted,
+  not stored". Back / forward arrows (and mouse buttons 4 / 5) step through
   the views; Escape goes up a level through EllesmereUI's Escape handling
   (`RegisterEscapeClose` with `onEscape`).
 - A "Pour Social Score" section in the EllesmereUI panel (plugin API,
