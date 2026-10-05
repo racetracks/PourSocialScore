@@ -227,19 +227,19 @@ function M.PSS_LoadLogging()
 	if M.PSS_PrepareSavedData then M.PSS_PrepareSavedData() end
 	local db = PourSocialScoreDB
 	local ob = type(db) == "table" and rawget(db, "outbox")
-	-- older saves: people's lines out of the log first (3.2; they are
-	-- older than the waiting lines). A save from before 2.0.39 waits one
-	-- login: its upgrades still read these lines (the 24 hour stats are
-	-- filled from them, guild rule lines are taken off the filter counts).
-	if type(db) == "table" and type(db.blockStats) == "table" and db.guildRuleCountsV1 then History.MovePeople() end
+	-- the saved log (3.2.0-dev007) back into the log and the keep, and
+	-- saves of 3.2.0-dev3 to dev006: people's kept lines back in the log
+	-- (once), so it holds the newest lines of everyone again (both in
+	-- PourSocialScore_Logging/PSS_SavedLog.lua, loaded with the data)
+	if History.UnpackSaved then History.UnpackSaved() end
+	if History.KeepToLog and type(db) == "table" and not rawget(db, "logAllV1") then History.KeepToLog() end
 	if type(ob) == "table" then
 		local log = History.Log()
 		for i = 1, #ob do
 			local e = ob[i]
 			if type(e) == "table" then
 				setmetatable(e, History.EntryMT)
-				if not keepsOwner(e.o) then log[#log + 1] = e
-				else History.KeepAdd(e) end
+				log[#log + 1] = e
 			end
 		end
 		rawset(db, "outbox", nil)
@@ -279,17 +279,18 @@ end
 ------------------------------------------------------------------------
 -- PER-PLAYER KEEP (3.2)
 --
--- A listed player's or guild member's lines (owner "p:" / "g:", managed
--- default lists included) never go in the shared log: the log is for chat
--- filter lines only. A person's line goes straight to
--- PourSocialScoreDB.blockKeep, which holds each person's newest
+-- Every blocked line goes in the shared log first (3.2.0-dev007, as before
+-- 3.2.0-dev3): players, guild members, chat filters, world and guild chat
+-- too, the newest History.Cap() (2,000) of them. When a listed player's or
+-- guild member's line (owner "p:" / "g:", managed default lists included)
+-- is trimmed off the log, their newest
 --   10 whispers and party / raid / instance / battleground lines,
 --   5 party invites, 5 guild invites
--- and nothing else: their world chat (channels, say, yell, emotes), guild
--- chat and the rest are counted but never stored. The whole keep holds at
--- most KEEP_TOTAL (2000) lines: past that the oldest go first, whoever they
--- belong to. A line is in exactly ONE place (log or keep); the block
--- counters live on the owners and are never worked out from lines.
+-- move to PourSocialScoreDB.blockKeep; the rest (world chat, guild chat
+-- ...) is let go. The whole keep holds at most KEEP_TOTAL (2000) lines:
+-- past that the oldest go first, whoever they belong to. A line is in
+-- exactly ONE place (log or keep); the block counters live on the owners
+-- and are never worked out from lines.
 --
 -- Packed (3.2): one string a line, the person's name and guild once a list:
 --   blockKeep = { ["p:<key>" | "g:<key>"] = {
@@ -301,12 +302,16 @@ end
 -- About a third of the memory of a table a line (bench in check_growth's
 -- notes: 2000 lines 285 KB against 960 KB). Lines are unpacked into entry
 -- tables only to be shown (History.For / Collect / KeptLines).
--- Saves of older builds are cleaned when Logging loads: people's lines
--- leave the log for the keep (History.MovePeople), kept tables are packed,
--- lines of a kind no longer kept are dropped, then the cap.
+-- Saves of 3.2.0-dev3 to dev006 (people's lines kept out of the log) are
+-- put back when Logging loads (History.KeepToLog, once, in
+-- PourSocialScore_Logging/PSS_SavedLog.lua), then the log is trimmed and
+-- what leaves it settles into the keep. How the log and the keep are
+-- saved: the same file.
 ------------------------------------------------------------------------
 History.KEEP = { text = 10, party = 5, guild = 5 }
 History.KEEP_TOTAL = 2000
+-- every blocked line is stored (in the log) until it is trimmed (3.2.0-dev007)
+History.LOG_ALL = true
 local KEEP = History.KEEP
 local KEEP_KIND = { whisper = "text", partyRaid = "text", partyInvite = "party", guildInvite = "guild" }
 local CAT_CODE = { whisper = "w", partyRaid = "p", partyInvite = "i", guildInvite = "g" }
@@ -320,6 +325,10 @@ local KEPT_EVENTS = {
 	"CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_RAID_WARNING",
 	"CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER",
 	"CHAT_MSG_BATTLEGROUND", "CHAT_MSG_BATTLEGROUND_LEADER", "PARTY_INVITE", "GUILD_INVITE",
+	-- 3.2.0-dev007: the other blocked events, for the saved log
+	"CHAT_MSG_CHANNEL", "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_EMOTE", "CHAT_MSG_TEXT_EMOTE",
+	"CHAT_MSG_GUILD", "CHAT_MSG_OFFICER", "CHAT_MSG_COMMUNITIES_CHANNEL", "CHAT_MSG_WHISPER_INFORM",
+	"CHAT_MSG_AFK", "CHAT_MSG_DND",
 }
 local EVENT_LETTER, LETTER_EVENT = {}, {}
 for i, e in ipairs(KEPT_EVENTS) do
@@ -327,6 +336,9 @@ for i, e in ipairs(KEPT_EVENTS) do
 	EVENT_LETTER[e], LETTER_EVENT[c] = c, e
 end
 local keepTotal			-- lines in the keep (nil: count them again)
+-- for the saved log (PourSocialScore_Logging/PSS_SavedLog.lua)
+History.EventLetter, History.LetterEvent = EVENT_LETTER, LETTER_EVENT
+function History.KeepChanged() keepTotal = nil end
 
 -- text | party | guild, nil: never kept (world chat, guild chat, ...)
 function History.KeepKind(h)
@@ -367,6 +379,7 @@ local function pack(h, list)
 	return code .. math.floor(tonumber(h.ts) or 0) .. "\t" .. ev .. "\t" .. ch .. "\t" .. tostring(h.message or "")
 end
 History.PackLine = pack
+History.UsualChannel = usualChannel
 
 -- packed line -> a new entry table (for showing)
 local function unpackLine(o, list, s)
@@ -629,8 +642,6 @@ function History.Add(owner, counts, entry, ruleTag)
 		counts.total = (tonumber(counts.total) or 0) + 1
 	end
 	History.CountRecent(owner, entry.ts, entry.cat)
-	-- a person's world chat, guild chat ...: counted, never stored
-	if keepsOwner(owner) and not KEEP_KIND[entry.cat] then return entry end
 	if not ready then
 		-- Logging is not loaded: the line waits (never loads it per line)
 		local db = PourSocialScoreDB
@@ -638,17 +649,6 @@ function History.Add(owner, counts, entry, ruleTag)
 		local ob = rawget(db, "outbox")
 		if type(ob) ~= "table" then ob = {}; rawset(db, "outbox", ob) end
 		ob[#ob + 1] = entry
-		-- a person's waiting lines follow the keep's limits already, so one
-		-- busy person never fills the outbox (or loads Logging)
-		local k = keepsOwner(owner) and KEEP_KIND[entry.cat]
-		if k then
-			local have, first = 0, nil
-			for i = #ob, 1, -1 do
-				local e = ob[i]
-				if e.o == owner and KEEP_KIND[e.cat] == k then have = have + 1; first = i end
-			end
-			if have > KEEP[k] then table.remove(ob, first) end
-		end
 		-- never more waiting than the log holds (the oldest would be trimmed)
 		if #ob > History.Cap() then table.remove(ob, 1) end
 		if #ob >= OUTBOX_LOAD and not loadQueued then
@@ -657,7 +657,6 @@ function History.Add(owner, counts, entry, ruleTag)
 		end
 		return entry
 	end
-	if keepsOwner(owner) then History.KeepAdd(entry) return entry end
 	local log = History.Log()
 	log[#log + 1] = entry
 	History.Trim(false)

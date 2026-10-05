@@ -55,13 +55,13 @@ for _, g in pairs(PSS_GuildsDB.guildData) do
 		check(type(m) ~= "table" or m.blockCounts == nil or type(m.blockCounts) == "table", "member counts")
 	end
 end
--- a new filter block is logged in PSS_LoggingDB; a person's goes to their
--- kept lines there (3.2)
-local lines = #PSS_LoggingDB.blockLog
+-- a new block, a filter's or a person's, is logged in PSS_LoggingDB
+-- (3.2.0-dev007: a person's too)
+local log = PSS_LoggingDB.blockLog
 M.PSS_History.Add("f:zztest", nil, M.PSS_History.NewEntry("whisper", "CHAT_MSG_WHISPER", "hi"))
-check(#PSS_LoggingDB.blockLog == lines + 1 or #PSS_LoggingDB.blockLog == M.PSS_History.Cap(), "new line not in PSS_LoggingDB")
+check(log[#log] and log[#log].o == "f:zztest", "new line not in PSS_LoggingDB")
 M.PSS_History.Add("p:zztest", nil, M.PSS_History.NewEntry("whisper", "CHAT_MSG_WHISPER", "hi"))
-check(type(PSS_LoggingDB.blockKeep) == "table" and PSS_LoggingDB.blockKeep["p:zztest"] ~= nil, "person line not kept in PSS_LoggingDB")
+check(log[#log] and log[#log].o == "p:zztest", "person line not in PSS_LoggingDB's log")
 M.PSS_History.Clear(function(h) return h.o == "p:zztest" end)
 
 -- a new key of a routed name goes to its table; another key stays

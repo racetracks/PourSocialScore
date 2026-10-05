@@ -514,6 +514,21 @@ if hi then
 		local shared = false
 		for i = 1, ttp.count do if ttp.keys[i].cat == cat then shared = not ttp.keys[i].check:GetChecked() and ttp.slices[i].draw == 0 end end
 		check(shared, "type tick box not shared with the list totals")
+		-- its slices and View Events open the whole list's events (EUI 1.1.0-dev010)
+		local tsm = pane.totals.summary
+		check(tsm.viewButton:IsShown(), "guild totals: no View Events")
+		tsm.viewButton:GetScript("OnClick")(tsm.viewButton)
+		local tv = page.hview
+		check(tv and tv:IsOpen() and tv.spec.kind == "guild" and tv.spec.id == false and tv.period == nil,
+			"guild totals: View Events did not open the whole list")
+		E.PressEscape()
+		tsm:Open("session")
+		check(tv:IsOpen() and tv.period == "session" and tv.spec.id == false, "guild totals: the session slice")
+		E.PressEscape()
+		tsm:Open("all")
+		check(tv:IsOpen() and tv.period == nil, "guild totals: All time after a slice")
+		E.PressEscape()
+		H.Advance(1)
 		pane.totals:Hide()
 		k1.check:SetChecked(true)
 		k1.check:GetScript("OnClick")(k1.check)

@@ -78,21 +78,25 @@ check(lines <= people * per, "keep over its per-person limit")
 local most = 0
 for day = 1, DAYS do most = math.max(most, sizes[day].keep) end
 check(most <= History.KEEP_TOTAL * 1.05, "keep over its total: " .. most)
--- past the total the oldest lines go, whoever they belong to: 2500 more
--- people with one whisper each, one minute apart
-for k = 1, 2500 do
+-- every line goes in the log first (3.2.0-dev007); what is trimmed off it
+-- settles into the keep, and past the keep's total the oldest go, whoever
+-- they belong to: 4500 more people with one whisper each, a minute apart
+for k = 1, 4500 do
 	local h = History.NewEntry("whisper", "CHAT_MSG_WHISPER", "one " .. k)
 	H.Advance(60)
 	h.ts = GetServerTime()
 	History.Add(("p:capped%04d"):format(k), nil, h)
 end
 lines = History.KeepSize()
-print(("growth: keep     %d lines after 2500 more people"):format(lines))
+print(("growth: keep     %d lines after 4500 more people"):format(lines))
 check(lines >= History.KEEP_TOTAL and lines <= History.KEEP_TOTAL * 1.05, "keep total " .. lines)
-local keep = History.Keep()
-check(keep["p:capped2500"] ~= nil, "newest line dropped")
-check(keep["p:capped0001"] == nil, "oldest line kept")
+local keep, log = History.Keep(), History.Log()
+check(log[#log].o == "p:capped4500", "newest line not last in the log")
+local inLog = false
+for i = 1, #log do if log[i].o == "p:capped0001" then inLog = true end end
+check(keep["p:capped0001"] == nil and not inLog, "oldest line kept")
 check(keep[History.PlayerKey("Forever-Realm")] == nil, "older person's lines kept past the total")
-check(last.log == 0, "a person's line in the log: " .. last.log)
+-- (removing a player clears their lines, so it can sit a little under)
+check(last.log >= History.Cap() * 0.9, "the log does not hold the newest lines of everyone: " .. last.log)
 check(last.owners <= 80, "recent owners " .. last.owners)
 if not fail then print("PASS growth") end

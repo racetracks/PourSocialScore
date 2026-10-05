@@ -349,6 +349,18 @@ function M.PSS_Validate()
 	-- block history: log lines and lines kept per person
 	n.logLines = #tbl("blockLog")
 	n.keptLines, n.keptPeople = 0, 0
+	-- the saved log of 3.2.0-dev007: one group per person, kept lines first
+	if tbl("blockLog").v == 2 then
+		for o, g in pairs(tbl("blockLog")) do
+			if type(g) == "table" then
+				local k = tonumber(g.k) or 0
+				n.logLines = n.logLines + #g - k
+				if k > 0 then n.keptLines, n.keptPeople = n.keptLines + k, n.keptPeople + 1 end
+			elseif o ~= "v" then
+				problem("saved log lines of %s are not a table", tostring(o))
+			end
+		end
+	end
 	for o, l in pairs(tbl("blockKeep")) do
 		if type(l) ~= "table" then
 			problem("kept lines of %s are not a table", tostring(o))

@@ -266,6 +266,23 @@ H.RunTimers()
 check(db.filterDesc[nf] ~= "Gold sellers" and st.sel == nil and not pane.body:IsShown(), "filter not removed")
 check(list.count == #db.filterList, "list not redrawn after Remove")
 
+-- its slices and View Events open the whole list's events (EUI 1.1.0-dev010)
+pane.totals:Show()
+local tsm = pane.totals.summary
+check(tsm.viewButton:IsShown(), "filter totals: no View Events")
+tsm.viewButton:GetScript("OnClick")(tsm.viewButton)
+local tv = page.hview
+check(tv and tv:IsOpen() and tv.spec.kind == "filter" and tv.spec.id == false and tv.period == nil,
+	"filter totals: View Events did not open the whole list")
+E.PressEscape()
+tsm:Open("session")
+check(tv:IsOpen() and tv.period == "session" and tv.spec.id == false, "filter totals: the session slice")
+E.PressEscape()
+tsm:Open("all")
+check(tv:IsOpen() and tv.period == nil, "filter totals: All time after a slice")
+E.PressEscape()
+H.Advance(1)
+
 -- Reset Defaults asks first and leaves the built-ins only
 page.resetButton:GetScript("OnClick")(page.resetButton)
 E.log.popups[#E.log.popups].onConfirm()
