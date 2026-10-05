@@ -528,7 +528,7 @@ function ns.GroupHistorySpec(k)
         -- each guild's lines and, as in a guild's own view, its blocks
         -- counted but not stored (world and guild chat) or expired
         read = function(gk)
-            local out = {}
+            local out, merged = {}, {}
             local keep = History.KEEP_TOTAL ~= nil
             for _, key in ipairs(GroupGuilds(gk)) do
                 local lines = M.PSS_GetGuildBlockHistory(key) or {}
@@ -537,7 +537,22 @@ function ns.GroupHistorySpec(k)
                     ns.HistoryAddExpired(lines, counts,
                         History.RecentSlots and History.GuildKey and History.RecentSlots(History.GuildKey(key)), keep)
                 end
-                for _, h in ipairs(lines) do out[#out + 1] = h end
+                -- the counted rows of every guild merged per type and 10 minutes
+                for _, h in ipairs(lines) do
+                    if h.expired then
+                        local k = h.cat .. "\001" .. tostring(h.ts) .. "\001" .. h.channel
+                        local same = merged[k]
+                        if same then
+                            same.expired = same.expired + h.expired
+                            same.message = same.text .. ("  |cff888888x%d|r"):format(same.expired)
+                        else
+                            merged[k] = h
+                            out[#out + 1] = h
+                        end
+                    else
+                        out[#out + 1] = h
+                    end
+                end
             end
             return out
         end,

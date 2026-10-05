@@ -47,7 +47,8 @@ end
 -- since: only the events from then on (a Summary slice)
 local function Matches(h, find, since)
     if hidden[ns.HistoryType(h)] then return false end
-    if since and (tonumber(h.ts) or 0) < since then return false end
+    -- a counted row stands for its 10 minutes: in the period if they end in it
+    if since and (tonumber(h.slotEnd or h.ts) or 0) < since then return false end
     if find == "" then return true end
     return string.find(string.lower(h.member or ""), find, 1, true)
         or string.find(string.lower(h.channel or ""), find, 1, true)
@@ -79,7 +80,8 @@ local function AddExpired(lines, counts, slots, person)
         local never = person and History.KeepKind and not History.KeepKind({ cat = cat })
         local text = never and NOT_STORED or EXPIRED
         lines[n] = setmetatable({ ts = ts, cat = cat, member = "", channel = never and "Not stored" or "Expired",
-            message = count > 1 and (text .. ("  |cff888888x%d|r"):format(count)) or text, expired = count },
+            message = count > 1 and (text .. ("  |cff888888x%d|r"):format(count)) or text, expired = count,
+            text = text, slotEnd = ts > 0 and ts + SLOT or nil },
             History.EntryMT)
     end
     for _, x in ipairs(slots or {}) do
