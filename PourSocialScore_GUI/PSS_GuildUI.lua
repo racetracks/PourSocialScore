@@ -613,10 +613,7 @@ local function refreshGuildList(frame)
 	-- Nothing to draw while hidden; OnShow refreshes.
 	if not frame:IsVisible() then return end
 
-	local S = M.PSS_Stats
-	frame.stats:Set(1, S and S.Session("guild"))
-	frame.stats:Set(2, S and S.Last24("guild"))
-	frame.stats:Set(3, M.PSS_GetGuildBlockCounts())
+	UI.SetBlockStats(frame.stats, "guilds", M.PSS_GetGuildBlockCounts())
 	if frame.histPanel:IsShown() then frame.updateHistoryPanel() end
 
 	for _, row in ipairs(frame.rows) do row:Hide() end

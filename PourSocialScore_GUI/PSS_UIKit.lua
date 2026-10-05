@@ -157,10 +157,26 @@ function UI.CreateBlockStats(panel, window, cats, unit)
 		counts = counts or {}
 		r.total:SetText("|cffffff00" .. (tonumber(counts.total) or 0) .. "|r")
 		for j, c in ipairs(cats) do
-			r.cats[j]:SetText("|cffaaaaaa" .. c.label .. ":|r |c" .. c.color .. (tonumber(counts[c.key]) or 0) .. "|r")
+			local n = counts[c.key]
+			r.cats[j]:SetText("|cffaaaaaa" .. c.label .. ":|r |c" .. c.color .. (n == false and "-" or (tonumber(n) or 0)) .. "|r")
 		end
 	end
 	return s
+end
+
+-- The three lines of a tab: this session and the last 24 hours as the
+-- EllesmereUI window counts them (M.PSS_RecentListStats, in
+-- PourSocialScore_Libraries), then the tab's own totals. kind: "players",
+-- "guilds" or "filters". A Battle.net whisper counts as a whisper in the
+-- first two lines, so their Private messages read "-".
+local recentSession, recentDay = {}, {}
+function UI.SetBlockStats(stats, kind, total)
+	if not stats then return end
+	M.PSS_RecentListStats(kind, recentSession, recentDay)
+	if kind == "filters" then recentSession.private, recentDay.private = false, false end
+	stats:Set(1, recentSession)
+	stats:Set(2, recentDay)
+	stats:Set(3, total)
 end
 
 -- Section heading inside a panel (Options sections, detail window blocks).

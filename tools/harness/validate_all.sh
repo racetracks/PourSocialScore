@@ -126,8 +126,9 @@ for sv in $splitsaves; do
 	# counted since 3.0.0-dev18, which drops marks the shipped list no longer
 	# needs; membersShown is the count compared)
 	# (log and keep sizes change at 3.2: people's lines leave the log, their
-	# world chat is no longer kept)
-	lua5.1 "$here/run.lua" "$work/src-prev" "$sv" - "$here/dump_counts.lua" 2>&1 | grep '^N ' | grep -v "^N optionsSet=\|^N kept\|^N logLines" > "$work/split-a.txt"
+	# world chat is no longer kept; stats24h: the hourly blockStats table
+	# the old build reports is pruned from 3.3.0-dev002)
+	lua5.1 "$here/run.lua" "$work/src-prev" "$sv" - "$here/dump_counts.lua" 2>&1 | grep '^N ' | grep -v "^N optionsSet=\|^N kept\|^N logLines\|^N stats24h" > "$work/split-a.txt"
 	lua5.1 "$here/run.lua" . "$sv" "$work/split-1.lua" "$here/dump_counts.lua" > "$work/split-b.txt" 2>&1
 	lua5.1 "$here/run.lua" . "$work/split-1.lua" - "$here/dump_counts.lua" > "$work/split-c.txt" 2>&1
 	if [ -s "$work/split-a.txt" ] && grep '^N ' "$work/split-b.txt" | grep -v '^N leftMarks=\|^N kept\|^N logLines' | diff "$work/split-a.txt" - > /dev/null &&
@@ -222,7 +223,8 @@ done
 echo "== multi-addon harness"
 sh "$here/check_multi.sh" || fail=1
 
-# real saves: load, log in twice, and keep every rule, player and member
+# real saves: load, log in twice, keep every rule, player and member, and
+# show the same numbers in both windows
 if [ -n "$PSS_REAL_SAVES" ]; then
 	for sv in $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua'); do
 		echo "== real save $sv"
@@ -230,6 +232,10 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		lua5.1 "$here/run.lua" . "$work/real-1.lua" "$work/real-2.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
 		lua5.1 "$here/check_real.lua" "$sv" "$work/real-2.lua" || fail=1
 		lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_validate.lua" | grep -v '^|cff' || fail=1
+		# both windows show the same numbers (3.3.0-dev002)
+		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_match.lua" 2>&1 | grep -v '^|cff')
+		echo "$out"
+		echo "$out" | grep -q "^PASS match" || fail=1
 	done
 fi
 

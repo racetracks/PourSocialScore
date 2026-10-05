@@ -17,7 +17,13 @@ local function whisper(author)
 	lineID = lineID + 1
 	return M.PSS_CoreFilter(nil, "CHAT_MSG_WHISPER", "join olympus", author, "", "", "", "", 0, 0, "", 0, lineID, nil) == true
 end
-local S = M.PSS_Stats
+-- this session / last 24 hours as both windows count them (History.Recent*,
+-- 3.3.0-dev002: PSS_BlockStats is gone)
+local PREFIX = { player = "p:", guild = "G:", filter = "f:" }
+local S = {
+	Session = function(src) return { total = (M.PSS_History.RecentTotals(PREFIX[src])) } end,
+	Last24 = function(src) return { total = select(2, M.PSS_History.RecentTotals(PREFIX[src])) } end,
+}
 local i = M.PSS_ManagedGroupFilterIndex("olympus")
 
 -- the upgrade

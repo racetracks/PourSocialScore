@@ -126,8 +126,9 @@ local STEPS = {
 			if M.PSS_UpgradeLegacyData then M.PSS_UpgradeLegacyData() end
 			-- guild rule blocks are guild blocks only (2.0.39): undo the second count
 			if M.PSS_UnlinkGuildRuleCounts then M.PSS_UnlinkGuildRuleCounts() end
-			-- session / last 24 hours block counts (created on first login, PSS_BlockStats.lua)
-			if M.PSS_UpgradeBlockStats then M.PSS_UpgradeBlockStats() end
+			-- the old hourly session / last 24 hours counts (PSS_BlockStats.lua,
+			-- retired in 3.3.0-dev002: both windows read History.Recent*)
+			if PourSocialScoreDB.blockStats ~= nil then PourSocialScoreDB.blockStats = nil end
 			-- records of players no longer listed, and fields records no longer keep
 			if M.PSS_TidyPlayerData then M.PSS_TidyPlayerData() end
 			-- then tidy the block history (lines of things that are gone); not
@@ -395,14 +396,6 @@ function M.PSS_Validate()
 	local rowSum = 0
 	for i = 1, #flist do rowSum = rowSum + (tonumber(tbl("filterCount")[i]) or 0) end
 	n.filterRowCounts = rowSum
-	-- last 24 hours (the hours still stored)
-	for _, src in ipairs({ "player", "guild", "filter" }) do
-		local t = 0
-		for _, b in pairs(type(tbl("blockStats")[src]) == "table" and tbl("blockStats")[src] or {}) do
-			t = t + (type(b) == "table" and tonumber(b.total) or 0)
-		end
-		n["stats24h." .. src] = t
-	end
 
 	-- options: how many differ from their default (only those are saved
 	-- since 3.0)

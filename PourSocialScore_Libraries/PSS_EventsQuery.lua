@@ -261,10 +261,8 @@ function M.PSS_ResetListedPlayerEvents()
 		local e, kind = M.PSS_PlayerEntry(i)
 		if kind == "player" and M.PSS_GetPlayerRecord(e) then M.PSS_ResetPlayerBlockHistory(e) end
 	end
-	if M.PSS_Stats then M.PSS_Stats.Reset("player") end
 end
 
 function M.PSS_ResetAllGuildEvents()
 	for k in pairs(PourSocialScoreDB.guildData or {}) do M.PSS_ResetGuildBlockHistory(k) end
-	if M.PSS_Stats then M.PSS_Stats.Reset("guild") end
 end

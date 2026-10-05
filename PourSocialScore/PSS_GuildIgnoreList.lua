@@ -1052,7 +1052,6 @@ local function recordGuildBlock(g, m, cat, event, message, channel, gkey)
 	entry.gk = gkey			-- the rule at the time (used if they leave every rule)
 	History.Add(History.MemberKey(m), m.blockCounts, entry)
 	History.CountRecent(History.GuildKey(gkey), entry.ts, entry.cat)	-- the guild's own recent counts
-	if M.PSS_Stats then M.PSS_Stats.Count("guild", entry.cat) end
 	if entry.cat == "partyInvite" or entry.cat == "guildInvite" then
 		m.lastBlockedInvite = entry.time
 	end

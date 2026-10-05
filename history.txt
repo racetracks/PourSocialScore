@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.3.0-dev002 - One count for this session and the last 24 hours
+
+- The PSS window's "This session" and "Last 24 hours" lines on the Player Ignore List, Guild Ignore List and Chat Filters tabs now count blocks the same way as the EllesmereUI window (per player, guild and filter, in 10-minute steps), so both windows always show the same numbers. Before, the PSS window kept its own hourly counts, which could disagree: on some saves its Player tab read 0 over a list with blocks, and its 24 hours could span 25.
+- On the Chat Filters tab those two lines show Private messages as "-": a Battle.net whisper counts as a whisper there. The total line still splits them.
+- The old hourly counts (blockStats) are removed from your saved data on login, and the code that kept them has left the always-loaded addon: 12.1 KB less memory all the time.
+- EllesmereUI window: the Chat Filters list's All time now equals its rows added up. Blocks from before 2.0.36, which have no type, were missing from it; they show as Unknown (290 on the save tested).
+- Harness: check_match.lua checks both windows show the same numbers on every save, real ones included.
+
 => 3.3.0-dev001 - Shared Events logic moved to PourSocialScore_Libraries
 
 - Nothing you see changes. The Events logic both windows need (what type a blocked line is, the "Data expired from logs" and "Counted, not stored" rows, the This session / Last 24 hours / custom time ranges and search, the "Stored: ..." line, a default guild list's lines and counts, and the list-wide Reset Block History of every listed player or guild) now lives once in PourSocialScore_Libraries (PSS_EventsQuery.lua) instead of in the EllesmereUI folder, so the PSS window can use it too. The PSS window's All Players / All Guilds view and reset use it already (issue #77).

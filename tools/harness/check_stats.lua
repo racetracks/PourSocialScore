@@ -1,9 +1,11 @@
 -- Checks the three block count lines on the Player Ignore List, Guild
 -- Ignore List and Chat Filters tabs against PSS_EXPECT (from make_data.lua).
---   PSS_PHASE=2 : first login after the upgrade. Session 0, last 24 hours =
---                 the old blocks of the last 24 hours (seeded from the log),
---                 Total = what the old version showed. Then blocks one more
---                 line per tab and checks that all three lines go up.
+-- From 3.3.0-dev002 this session and the last 24 hours are the EllesmereUI
+-- window's numbers (History.Recent*, M.PSS_ListTotals): each line must equal
+-- them, type by type, and the old hourly blockStats table is gone.
+--   PSS_PHASE=2 : first login after the upgrade. Session 0, Total = what the
+--                 old version showed. Then blocks one more line per tab and
+--                 checks that all three lines go up by one.
 --   PSS_PHASE=3 : a login more than 24 hours after the old blocks. Session 0,
 --                 last 24 hours = only the phase 2 lines, Total unchanged.
 local expect = dofile(assert(os.getenv("PSS_EXPECT")))
@@ -23,8 +25,8 @@ local function readRow(stats, i)
 	local r = stats.rows[i]
 	local out = { total = tonumber(plain(r.total:GetText())) }
 	for _, fs in ipairs(r.cats) do
-		local label, n = plain(fs:GetText()):match("^(.-):%s*(%d+)$")
-		out[label] = tonumber(n)
+		local label, n = plain(fs:GetText()):match("^(.-):%s*([%d%-]+)$")
+		out[label] = tonumber(n) or n
 	end
 	return out
 end
@@ -50,11 +52,52 @@ local function add(a, b)
 end
 local ZERO = { total = 0 }
 
+-- the same lines as the EllesmereUI window reads them (its list totals)
+local KIND = { player = "players", guild = "guilds", filter = "filters" }
+local function eui(src)
+	M.PSS_Need("Libraries")
+	local t = M.PSS_ListTotals(KIND[src], {})
+	local s, d = { total = t.session }, { total = t.day }
+	local by = M.PSS_History.RecentByCat(nil, {}, ({ player = "p:", guild = "G:", filter = "f:" })[src])
+	for cat, n in pairs(by.session) do s[cat] = n end
+	for cat, n in pairs(by.day) do d[cat] = n end
+	return s, d
+end
+
 local function showTab(name) _G[name]:GetScript("OnClick")(_G[name]) end
+
+local FRAMES = { player = { "PSSTab1", "PSSFrame1" }, guild = { "PSSTabGuild", "PSSGuildTabFrame" }, filter = { "PSSTab2", "PSSFrame2" } }
+local function matchEUI(label)
+	for src, f in pairs(FRAMES) do
+		showTab(f[1])
+		local s, d = eui(src)
+		local want = { s, d }
+		for row = 1, 2 do
+			local got = readRow(_G[f[2]].stats, row)
+			if got.total ~= want[row].total then
+				print(("  FAIL %s %s line %d total: shows %s, the EllesmereUI window %s"):format(label, src, row, tostring(got.total), tostring(want[row].total)))
+				fails = fails + 1
+			end
+			for k, v in pairs(want[row]) do
+				local g = LABEL[k] and got[LABEL[k]]
+				if g ~= nil and k ~= "private" and g ~= v then
+					print(("  FAIL %s %s line %d %s: shows %s, the EllesmereUI window %s"):format(label, src, row, k, tostring(g), tostring(v)))
+					fails = fails + 1
+				end
+			end
+			if src == "filter" and got[LABEL.private] ~= "-" then
+				print(("  FAIL %s filter line %d Private messages: %s, expected -"):format(label, row, tostring(got[LABEL.private])))
+				fails = fails + 1
+			end
+		end
+	end
+	showTab("PSSTab1")
+end
 
 local function check(label, rowsWant)
 	SlashCmdList.PSS("gui")
 	H.RunTimers()
+	matchEUI(label)
 	showTab("PSSTab1")
 	compare(label .. " player session", readRow(PSSFrame1.stats, 1), rowsWant.player[1])
 	compare(label .. " player 24h", readRow(PSSFrame1.stats, 2), rowsWant.player[2])
@@ -71,7 +114,7 @@ local function check(label, rowsWant)
 end
 
 local db = PourSocialScoreDB
-assert(type(db.blockStats) == "table" and db.blockStats.v == 1, "blockStats missing after upgrade")
+assert(db.blockStats == nil, "blockStats not pruned by the upgrade")
 -- the titles are gone in list view
 for _, f in ipairs({ "PSSFrame1", "PSSGuildTabFrame", "PSSFrame2" }) do
 	if _G[f] and _G[f].title and _G[f].title:GetText():match("Ignore List") then
@@ -82,10 +125,16 @@ end
 local newP = { total = 1, whisper = 1 }
 local newG = { total = 1, whisper = 1 }
 local newF = { total = 1 }
+local function only(t, keys)
+	local out = {}
+	for _, k in ipairs(keys) do out[k] = t[k] end
+	return out
+end
 
 if phase == 2 then
-	-- the last 24 hours start from the block log lines of the last 24 hours
-	local seed = expect.recent
+	-- the last 24 hours as the EllesmereUI window counts them
+	local seed = {}
+	for src in pairs(FRAMES) do seed[src] = only(select(2, eui(src)), { "total", "whisper" }) end
 	check("after upgrade", {
 		player = { ZERO, seed.player, expect.player },
 		guild = { ZERO, seed.guild, expect.guild },
@@ -107,13 +156,6 @@ else
 		guild = { ZERO, newG, add(expect.guild, newG) },
 		filter = { ZERO, newF, add(expect.filter, newF) },
 	})
-	-- no hour older than 24 hours is kept
-	local oldest = math.floor(GetServerTime() / 3600) - 23
-	for _, src in ipairs({ "player", "guild", "filter" }) do
-		for h in pairs(db.blockStats[src]) do
-			if h < oldest then print("  FAIL " .. src .. " keeps an hour older than 24 h"); fails = fails + 1 end
-		end
-	end
 end
 
 print(fails == 0 and ("PASS phase " .. phase) or ("FAILED phase " .. phase .. ": " .. fails))

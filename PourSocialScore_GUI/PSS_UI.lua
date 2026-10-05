@@ -250,20 +250,12 @@ function SortUI.setFilterSort(key)
 	M.FilterListDrawUpdate(FilterScrollFrame)
 end
 
--- The three block count lines above a tab (PSS_BlockStats.lua for the
--- session and 24 hour counts; the totals are the tab's own).
-local function SetBlockStats(stats, src, total)
-	if not stats then return end
-	local S = M.PSS_Stats
-	stats:Set(1, S and S.Session(src))
-	stats:Set(2, S and S.Last24(src))
-	stats:Set(3, total)
-end
+local SetBlockStats = UI.SetBlockStats	-- PSS_UIKit.lua
 
 local function UpdateFilterStats()
 	if not Tab2Frame then return end
 	local db = PourSocialScoreDB
-	SetBlockStats(Tab2Frame.stats, "filter", {
+	SetBlockStats(Tab2Frame.stats, "filters", {
 		total = tonumber(db.filterTotal) or 0,
 		whisper = tonumber(db.filterWhisperTotal) or 0,
 		private = tonumber(db.filterPrivateTotal) or 0,
@@ -581,7 +573,7 @@ local function UpdateRuleSummaryTexts()
 	if not (MainFrame and MainFrame:IsVisible()) then return end
 	if Tab1Frame and M.PSS_GetPlayerBlockTotals then
 		local sum = M.PSS_ListedBlockTotals({ total = 0, whisper = 0, partyInvite = 0, guildInvite = 0, partyRaid = 0, world = 0 })
-		SetBlockStats(Tab1Frame.stats, "player", sum)
+		SetBlockStats(Tab1Frame.stats, "players", sum)
 	end
 	UpdateFilterStats()
 end
