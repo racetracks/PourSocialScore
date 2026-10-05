@@ -36,7 +36,7 @@ local FilterScrollSelect	= 0
 -- a function at most 60 upvalues, and BuildUIFrames is close to that).
 local SortUI				= { row = {} }		-- row: the entry being drawn (M.PSS_PlayerRow)
 local UI					= M.UI		-- shared look (PSS_UIKit.lua)
-local WINDOW_WIDTH			= 960	-- default and minimum (the guild and player tables need it)
+local WINDOW_WIDTH			= 960 + UI.PANE_W + 4	-- default and minimum: the tables need 960, then the totals pane (PSS_Pie.lua)
 local WINDOW_HEIGHT			= 470
 local WINDOW_OFFSET			= 113
 local BUTTON_HEIGHT			= 20
@@ -188,7 +188,9 @@ function M.FilterScrollChangeState (state)
 	if Tab2FrameState == 1 then
 		Tab2Frame:Hide()
 		Tab2FrameEdit:Show()
+		UI.ShowTotals(nil)	-- the editor takes the whole width
 	else
+		UI.ShowTotals("filters")
 		-- coming back from the editor: keep the current sort
 		if Tab2FrameEdit and Tab2FrameEdit:IsShown() then Tab2Frame.keepSort = true end
 		Tab2FrameEdit:Hide()
@@ -934,10 +936,11 @@ end
 -- headers at UI.HEADER_Y, 20 px rows from UI.LIST_TOP, buttons on the bar
 -- under the panel.
 
-local function newPanel(name, parent)
+-- list: leaves room for the totals pane on the right (PSS_Pie.lua)
+local function newPanel(name, parent, list)
 	local f = CreateFrame("Frame", name, parent, "InsetFrameTemplate")
 	f:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, -84)
-	f:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -11, 29)
+	f:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", list and UI.LIST_RIGHT or -11, 29)
 	return f
 end
 
@@ -953,7 +956,7 @@ end
 
 ------------------------------------------------------------ player list
 local function BuildPlayerTab()
-	Tab1Frame = newPanel("PSSFrame1", MainFrame)
+	Tab1Frame = newPanel("PSSFrame1", MainFrame, true)
 
 	Tab1Frame:SetScript("OnShow",
 		function(self)
@@ -1143,7 +1146,7 @@ end
 
 ------------------------------------------------------------ chat filters
 local function BuildFilterTab()
-	Tab2Frame = newPanel("PSSFrame2", MainFrame)
+	Tab2Frame = newPanel("PSSFrame2", MainFrame, true)
 	Tab2Frame:Hide()
 	Tab2Frame:SetScript("OnShow",
 		function(self)
@@ -1393,6 +1396,7 @@ local function BuildUIFrames()
 		Tab2FrameEdit:Hide()
 		Tab3Frame:Hide()
 		if TabIOFrame then TabIOFrame:Hide() end
+		UI.ShowTotals(id == 1 and "players" or id == 2 and "guilds" or id == 3 and "filters" or nil)
 		if id == 1 then
 			Tab1Frame:Show()
 		elseif id == 2 then
@@ -1424,6 +1428,8 @@ local function BuildUIFrames()
 		if TabGuildFrame then TabGuildFrame:Hide() end
 	end
 
+	UI.CreateTotalsPane(MainFrame)
+	UI.ShowTotals("players")
 	BuildPlayerTab()
 	BuildFilterTab()
 	BuildFilterEditor()
