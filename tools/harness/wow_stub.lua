@@ -100,6 +100,14 @@ function W:GetNumber() return tonumber(self._text) or 0 end
 function W:SetNumber(n) self._text = tostring(n) end
 function W:GetChecked() return self._checked == true end
 function W:SetChecked(c) self._checked = c and true or false end
+function W:SetupMenu(gen) self._menu = gen end
+-- the buttons of a SetupMenu drop-down: { { text, fn }, ... }
+function W:MenuButtons()
+	local out = {}
+	local root = { CreateButton = function(_, text, fn) out[#out + 1] = { text = text, fn = fn } end }
+	if self._menu then self._menu(self, root) end
+	return out
+end
 function W:IsEnabled() return self._enabled ~= false end
 function W:Enable() self._enabled = true end
 function W:Disable() self._enabled = false end

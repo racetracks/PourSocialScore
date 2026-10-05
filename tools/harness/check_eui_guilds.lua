@@ -273,6 +273,24 @@ check(find("thunderfury") == 1, "message search")
 check(find("member0100") == 1, "player search")
 check(find("whisper") == 2, "channel search")
 check(find("") == 2, "search not cleared")
+-- the Guilds drop-down: every guild rule A-Z; a pick shows that guild
+do
+	check(view.pick:IsShown(), "no Guilds drop-down in a guild's view")
+	local items = view.pick:MenuButtons()
+	local rules = 0
+	for _, g in pairs(PourSocialScoreDB.guildData) do if type(g) == "table" then rules = rules + 1 end end
+	check(#items == rules and rules >= N + 1, ("drop-down guilds %d of %d"):format(#items, rules))
+	local ok = true
+	for i = 2, #items do if string.lower(items[i - 1].text) > string.lower(items[i].text) then ok = false end end
+	check(ok, "drop-down not A-Z")
+	local tour
+	for _, it in ipairs(items) do if it.text == "Tour Guild 001" then tour = it end end
+	tour.fn()
+	check(view:IsOpen() and (view.heading:GetText() or ""):match("Tour Guild 001") and view.list.count == 0, "drop-down pick " .. tostring(view.heading:GetText()))
+	check(view.allButton:IsShown() and view.allButton:GetText() == "All Guilds", "All Guilds button gone")
+	for _, it in ipairs(view.pick:MenuButtons()) do if it.text == "Big Guild" then it.fn() end end
+	check(view.list.count == 2, "back to Big Guild: " .. view.list.count)
+end
 -- a type box in the view filters the pane too, and back
 local vw = view.boxes.whisper
 vw:SetChecked(false)
