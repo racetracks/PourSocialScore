@@ -1051,7 +1051,7 @@ local function recordGuildBlock(g, m, cat, event, message, channel, gkey)
 	local entry = History.NewEntry(cat, event, message, channel, m.name)
 	entry.gk = gkey			-- the rule at the time (used if they leave every rule)
 	History.Add(History.MemberKey(m), m.blockCounts, entry)
-	History.CountRecent(History.GuildKey(gkey), entry.ts)	-- the guild's own recent counts
+	History.CountRecent(History.GuildKey(gkey), entry.ts, entry.cat)	-- the guild's own recent counts
 	if M.PSS_Stats then M.PSS_Stats.Count("guild", entry.cat) end
 	if entry.cat == "partyInvite" or entry.cat == "guildInvite" then
 		m.lastBlockedInvite = entry.time
@@ -1170,6 +1170,7 @@ function M.PSS_RemoveGuildMember(guildName, playerName, sourceGuildKey, storedKe
 		if rck and not lookupGuildMemberCanon(rck) then
 			local owner = "g:" .. rck
 			History.Clear(function(h) return h.o == owner end)
+			History.ForgetRecent(owner)
 		end
 	end
 	return removed
@@ -2248,6 +2249,7 @@ function M.PSS_RemoveGuild(guildNameOrKey)
 	local removedGlobal = 0
 
 	PourSocialScoreDB.guildData[key] = nil
+	History.ForgetRecent(History.GuildKey(key))
 	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
 	M.Events.Fire("GUILD_REMOVED", key)
 	if PourSocialScoreDB.playerData then
