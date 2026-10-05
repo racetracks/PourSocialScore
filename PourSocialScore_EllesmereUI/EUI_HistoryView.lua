@@ -8,7 +8,8 @@
 --  double-click on a line opens the message in a copy box.
 --
 --  spec = { kind, id, label(id) -> name (nil: gone), read(id) -> lines,
---           reset(id), all = function() -> the spec of everything (or nil),
+--           reset(id) (asked first when id is nil or confirm is set),
+--           all = function() -> the spec of everything (or nil),
 --           allText = "All Guilds",
 --           period = "session" | "day" | nil (all time): what the time
 --           picker starts on (a Summary slice opens with its period),
@@ -256,7 +257,7 @@ local function Build(page)
     local reset = ns.NewButton(f, L["HISTORY_RESET"] or "Reset Block History", 130, function()
         local spec = view.spec
         if not spec then return end
-        if spec.id then
+        if spec.id and not spec.confirm then
             spec.reset(spec.id)
             view:Refresh(true)
             return

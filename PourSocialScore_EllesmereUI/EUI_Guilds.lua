@@ -22,14 +22,19 @@ local LINE_H = 16
 local EXCL_KEY = M.PSS_GUILD_EXCL_OPEN
 local DOUBLE_CLICK = 0.35
 local PIE_SMALL = 84
+-- the Managed Communities row (core 3.2.0-dev005): selected as "managed";
+-- its open state is saved only while it is closed
+local MANAGED = "__managed"
+local MANAGED_SHUT = M.PSS_GUILD_MANAGED_SHUT
+local MANAGED_PREFIX = "Managed Communities - "
 
 -- key/asc/find: the guild list sort and search; rows: the table the core
 -- fills with the list (M.PSS_GuildRows); selKind/sel: what is selected
--- ("guild" key, "group" key, "exclHeader", "excl" name). The members view:
+-- ("guild" key, "group" key, "managed", "exclHeader", "excl" name). The members view:
 -- mguild (rule key), mkey/masc/mfind, members (M.PSS_GuildMembers), msel
 -- (the member record).
 local G = {
-    key = "guild", asc = true, find = "", rows = {}, n = 0, dirty = true,
+    key = "guild", asc = true, find = "", rows = { nest = true }, n = 0, dirty = true,
     view = "guilds",
     mkey = "name", masc = true, mfind = "", members = {}, mn = 0, mtotal = 0, mdirty = true,
 }
@@ -112,6 +117,7 @@ local function ScanTipText(g)
 end
 
 local function IsSel(item)
+    if item.managedHeader then return G.selKind == "managed" end
     if item.header then return G.selKind == "group" and G.sel == item.groupKey end
     if item.exclHeader then return G.selKind == "exclHeader" end
     if item.exclItem then return G.selKind == "excl" and G.sel == item.name end
@@ -142,6 +148,15 @@ local function Resort()
     if page then UpdateCount() end
 end
 
+-- how many default guild lists have their rule on
+local function ManagedOn()
+    local n = 0
+    for k in pairs(M.PSS_ManagedGroups()) do
+        if M.PSS_ManagedGroupActive(k) then n = n + 1 end
+    end
+    return n
+end
+
 local function DrawRow(row, i)
     local item = G.rows[i]
     local c = row.cells
@@ -151,8 +166,17 @@ local function DrawRow(row, i)
         row.sel:Hide()
         return
     end
-    if item.header then
-        c.guild:SetText((item.open and "[-] " or "[+] ") .. "|cffffd100" .. item.name .. "|r"
+    if item.managedHeader then
+        c.guild:SetText((item.open and "[-] " or "[+] ") .. "|cffffd100Managed Communities|r"
+            .. ("  |cffaaaaaa(%d)|r"):format(item.groups))
+        c.members:SetText(item.members)
+        c["metric:total"]:SetText(item.bc.total or 0)
+        c.scan:SetText(("|cffaaaaaa%d of %d on|r"):format(ManagedOn(), item.groups))
+    elseif item.header then
+        -- under the Managed Communities row: indented, without its prefix
+        local name = item.name
+        if item.nested and name:sub(1, #MANAGED_PREFIX) == MANAGED_PREFIX then name = name:sub(#MANAGED_PREFIX + 1) end
+        c.guild:SetText((item.nested and "   " or "") .. (item.open and "[-] " or "[+] ") .. "|cffffd100" .. name .. "|r"
             .. ("  |cffaaaaaa(%d guilds)|r"):format(item.guilds))
         c.members:SetText(item.members)
         c["metric:total"]:SetText(item.bc.total or 0)
@@ -170,7 +194,9 @@ local function DrawRow(row, i)
         c.scan:SetText("|cff4dccffExcluded|r")
     else
         local g = item.g
-        c.guild:SetText(((item.inGroup and G.find == "") and "      " or "") .. tostring(g.name))
+        local indent = ""
+        if item.inGroup and G.find == "" then indent = G.rows.managedHead and "         " or "      " end
+        c.guild:SetText(indent .. tostring(g.name))
         c.members:SetText(g.memberCount or 0)
         c["metric:total"]:SetText(item.bc.total or 0)
         c.scan:SetText(M.PSS_GuildSweepLabel(item.key))
@@ -183,7 +209,10 @@ end
 local function RowTip(row, i)
     local item = G.rows[i]
     if not item then return end
-    if item.header then
+    if item.managedHeader then
+        ns.Tip(row, "Managed Communities\n\nThe default guild lists, each with its own rule on the Chat Filters tab."
+            .. "\n\nClick to expand or collapse and see them added up.")
+    elseif item.header then
         local grp = M.PSS_ManagedGroups()[item.groupKey] or {}
         ns.Tip(row, (item.name or "") .. "\n\nDefault guild list. Rule on the Chat Filters tab: "
             .. tostring(grp.rule) .. " (" .. tostring(grp.filter) .. ").\n\nClick to expand or collapse.")
@@ -219,7 +248,12 @@ local lastClick, lastKey = 0, nil
 local function ClickRow(row, i)
     local item = G.rows[i]
     if not item then return end
-    if item.header then
+    if item.managedHeader then
+        M.PSS_SetGuildGroupOpen(MANAGED_SHUT, item.open)
+        G.selKind, G.sel = "managed", MANAGED
+        Resort()
+        ShowDetail(true)
+    elseif item.header then
         M.PSS_SetGuildGroupOpen(item.groupKey, not item.open)
         G.selKind, G.sel = "group", item.groupKey
         Resort()
@@ -471,6 +505,39 @@ function ns.MemberHistorySpec(m, gkey)
         reset = M.PSS_ResetMemberBlockHistory,
     }
 end
+-- A default guild list (or MANAGED: every one): its guilds' lines together.
+-- Reset asks first (it clears every guild in it).
+local function GroupLabel(k)
+    if k == MANAGED then return "Managed Communities" end
+    local grp = M.PSS_ManagedGroups()[k]
+    return grp and tostring(grp.name or k) or nil
+end
+
+local function GroupGuilds(k)
+    local out = {}
+    for key, g in pairs(PourSocialScoreDB.guildData or {}) do
+        if type(g) == "table" and g.managed and (k == MANAGED or g.managed == k) then out[#out + 1] = key end
+    end
+    return out
+end
+
+function ns.GroupHistorySpec(k)
+    return {
+        kind = "group", id = k, confirm = true, allText = "All Guilds", all = AllGuilds,
+        label = GroupLabel, pick = GuildChoices, pickSpec = ns.GuildHistorySpec,
+        read = function(gk)
+            local out = {}
+            for _, key in ipairs(GroupGuilds(gk)) do
+                for _, h in ipairs(M.PSS_GetGuildBlockHistory(key) or {}) do out[#out + 1] = h end
+            end
+            return out
+        end,
+        reset = function(gk)
+            for _, key in ipairs(GroupGuilds(gk)) do M.PSS_ResetGuildBlockHistory(key) end
+        end,
+    }
+end
+
 local NO_WHERE, MEMBER_WHO = { noWhere = true }, { who = "this member" }
 -- the selected member's spec (the guild whose members are shown)
 local function MemberSpec(m) return ns.MemberHistorySpec(m, G.mguild) end
@@ -612,7 +679,7 @@ local function BuildGroupBody(parent)
     b.recent = {}
     local toggle = ns.NewButton(b, "", 130, function()
         local k = pane.groupKey
-        if k then M.PSS_SetManagedGroupActive(k, not M.PSS_ManagedGroupActive(k)) end
+        if k and k ~= MANAGED then M.PSS_SetManagedGroupActive(k, not M.PSS_ManagedGroupActive(k)) end
         G.dirty = true
         page.refresh()
     end)
@@ -621,7 +688,11 @@ local function BuildGroupBody(parent)
     b.toggle = toggle
     local open = ns.NewButton(b, "", 100, function()
         local k = pane.groupKey
-        if k then M.PSS_SetGuildGroupOpen(k, not M.PSS_GuildGroupOpen(k)) end
+        if k == MANAGED then
+            M.PSS_SetGuildGroupOpen(MANAGED_SHUT, not M.PSS_GuildGroupOpen(MANAGED_SHUT))
+        elseif k then
+            M.PSS_SetGuildGroupOpen(k, not M.PSS_GuildGroupOpen(k))
+        end
         Resort()
         ShowDetail()
     end)
@@ -806,36 +877,57 @@ local function GroupRecent(items, into)
     return into
 end
 
-local function ShowGroup(k)
-    local grp = M.PSS_ManagedGroups()[k]
-    if not grp then return false end
-    local item
-    for i = 1, G.n do
-        local it = G.rows[i]
-        if it.header and it.groupKey == k then item = it break end
+-- every guild of every default guild list (MANAGED), reused
+local managedItems = {}
+local function ManagedItems()
+    for i = #managedItems, 1, -1 do managedItems[i] = nil end
+    for _, items in pairs(G.rows.groups or {}) do
+        for _, it in ipairs(items) do managedItems[#managedItems + 1] = it end
     end
+    return managedItems
+end
+
+-- A default guild list, or (k = MANAGED) the Managed Communities row: all
+-- of them added up
+local function ShowGroup(k)
     local b = pane.group
+    local item, items, name, on
+    if k == MANAGED then
+        item = G.rows.managedHead
+        if not (item and G.rows.groups and next(G.rows.groups)) then return false end
+        items, name = ManagedItems(), "Managed Communities"
+        local nOn = ManagedOn()
+        b.info:SetText(("%d lists, %d guilds, %d members"):format(item.groups, item.guilds, item.members))
+        b.rule:SetText("Each list has its own rule on the Chat Filters tab.")
+        b.state:SetText(("%d of %d rules on."):format(nOn, item.groups))
+        b.toggle:Hide()
+        b.open:SetText(item.open and "Collapse" or "Expand")
+    else
+        local grp = M.PSS_ManagedGroups()[k]
+        if not grp then return false end
+        item = G.rows.heads and G.rows.heads[k]
+        items = G.rows.groups and G.rows.groups[k]
+        name = tostring(grp.name or k)
+        b.info:SetText(item and ("%d guilds, %d members"):format(item.guilds, item.members) or "")
+        b.rule:SetText(("Rule on the Chat Filters tab: %s (%s)"):format(tostring(grp.rule), tostring(grp.filter)))
+        on = M.PSS_ManagedGroupActive(k)
+        b.state:SetText(on and "|cff00ff00Rule is ON|r: its guilds are blocked, minus each guild's exclusions."
+            or "|cffff5555Rule is OFF|r: nothing in this list is blocked.")
+        b.toggle:Show()
+        b.toggle:SetText(on and "Turn Rule Off" or "Turn Rule On")
+        b.open:SetText(M.PSS_GuildGroupOpen(k) and "Collapse" or "Expand")
+    end
     pane.groupKey = k
     b:Show()
-    b.heading:SetText(tostring(grp.name or k))
-    b.info:SetText(item and ("%d guilds, %d members"):format(item.guilds, item.members) or "")
-    b.rule:SetText(("Rule on the Chat Filters tab: %s (%s)"):format(tostring(grp.rule), tostring(grp.filter)))
-    local on = M.PSS_ManagedGroupActive(k)
-    b.state:SetText(on and "|cff00ff00Rule is ON|r: its guilds are blocked, minus each guild's exclusions."
-        or "|cffff5555Rule is OFF|r: nothing in this list is blocked.")
+    b.heading:SetText(name)
     b.counts:SetText(item and CountsText(item.bc) or "")
-    local items = G.rows.groups and G.rows.groups[k]
     b.charts:SetShown(item and items and true or false)
     if item and items then
-        -- the two pies (1.1.0-dev006): periods like a guild's Summary (no
-        -- click-through: a list has no Block History view of its own) and
-        -- all-time blocks by type
-        local name = tostring(grp.name or k)
-        b.summary:Set(nil, item.bc.total or 0, name, nil, nil, { noWhere = true, recent = GroupRecent(items, b.recent) })
+        -- periods like a guild's Summary (a slice opens the list's lines in
+        -- the Block History view) and all-time blocks by type
+        b.summary:Set(nil, item.bc.total or 0, name, ns.GroupHistorySpec, k, { noWhere = true, recent = GroupRecent(items, b.recent) })
         b.typePie:Set(item.bc, name)
     end
-    b.toggle:SetText(on and "Turn Rule Off" or "Turn Rule On")
-    b.open:SetText(M.PSS_GuildGroupOpen(k) and "Collapse" or "Expand")
     return true
 end
 
@@ -896,6 +988,8 @@ function ShowDetail(fresh)
         shown = ShowGuild(G.sel, fresh)
     elseif G.selKind == "group" then
         shown = ShowGroup(G.sel)
+    elseif G.selKind == "managed" then
+        shown = ShowGroup(MANAGED)
     elseif G.selKind == "exclHeader" then
         shown = ShowExcl(nil)
     elseif G.selKind == "excl" then

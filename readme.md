@@ -34,7 +34,12 @@ EllesmereUI is installed.
   never load the block history either (1.1.0-dev006). With nothing
   selected on a tab (a click on the selected entry deselects it), its pane
   shows the same two pies for the whole list (1.1.0-dev007, needs
-  PourSocialScore 3.2.0-dev004). Back / forward arrows (and mouse buttons 4 / 5) step through
+  PourSocialScore 3.2.0-dev004). The default guild lists sit under one
+  Managed Communities row that opens and closes and shows them all added
+  up; a list's period pie opens its guilds' lines in the Block History view
+  (View Events or a slice), and the type pie has a tick box per type, shared
+  by every type pie (1.1.0-dev008, needs PourSocialScore 3.2.0-dev005).
+  Back / forward arrows (and mouse buttons 4 / 5) step through
   the views; Escape goes up a level through EllesmereUI's Escape handling
   (`RegisterEscapeClose` with `onEscape`).
 - A "Pour Social Score" section in the EllesmereUI panel (plugin API,

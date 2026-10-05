@@ -312,14 +312,20 @@ function ns.NewSummary(page, tabPage, top, size)
 end
 
 -------------------------------------------------------------------------------
---  A pie of all-time blocks by type, with a legend of the types blocked (a
---  default guild list, a whole list). Only all time: the session and 24
---  hour counts are not added up by type. No click-through.
+--  A pie of all-time blocks by type, with a tick box per type blocked (a
+--  default guild list, a whole list): unticked, its slice leaves the pie
+--  (its count stays in the legend). The ticks are shared by every type pie
+--  while the window is loaded. Only all time: the session and 24 hour
+--  counts are not added up by type. No click-through.
 --    local tp = ns.NewTypePie(parent, top, size)
 --    tp:Set(counts, title)    -- counts: total and one count per type
 --  Made the first time Set is called.
 -------------------------------------------------------------------------------
 local TYPE_SLOTS = 7
+
+-- types unticked (shared by every type pie)
+local typeOff = {}
+local typePies = {}
 
 local function HexColor(hex)
     hex = tostring(hex or "ffffffff")
@@ -341,15 +347,29 @@ function TP:Build()
     self.keys = {}
     for i = 1, TYPE_SLOTS do
         local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
+        local c = ns.NewCheck(f)
+        c:SetSize(18, 18)
+        c:SetPoint("TOPLEFT", f, "TOPLEFT", size + 28 + col * 126, top - 2 - row * 20)
         local sq = f:CreateTexture(nil, "ARTWORK")
         sq:SetSize(10, 10)
-        sq:SetPoint("TOPLEFT", f, "TOPLEFT", size + 40 + col * 118, top - 6 - row * 20)
+        sq:SetPoint("LEFT", c, "RIGHT", 2, 0)
         local t = ns.NewText(f, 11)
-        t:SetPoint("LEFT", sq, "RIGHT", 6, 0)
-        t:SetWidth(100)
-        self.keys[i] = { sq = sq, text = t }
+        t:SetPoint("LEFT", sq, "RIGHT", 5, 0)
+        t:SetWidth(90)
+        t:SetJustifyH("LEFT")
+        local k = { check = c, sq = sq, text = t }
+        c:SetScript("OnClick", function(btn)
+            if not k.cat then return end
+            typeOff[k.cat] = not btn:GetChecked() or nil
+            for _, other in ipairs(typePies) do
+                if other.counts then other:Set(other.counts, other.title) end
+            end
+        end)
+        ns.TipOn(c, c, "Shows this type in the pie.")
+        self.keys[i] = k
         self.slices[i] = {}
     end
+    typePies[#typePies + 1] = self
     self.empty = ns.NewText(f, 11)
     self.empty:SetPoint("CENTER", self.pie.frame, "CENTER", 0, 0)
     self.empty:SetTextColor(1, 1, 1, 0.5)
@@ -358,7 +378,7 @@ end
 
 function TP:Set(counts, title)
     if not self.pie then self:Build() end
-    self.title = title
+    self.title, self.counts = title, counts
     local slices, n = self.slices, 0
     for _, cat in ipairs(History.ALL_CATS or {}) do
         local v = tonumber(counts and counts[cat]) or 0
@@ -367,17 +387,24 @@ function TP:Set(counts, title)
             local sl = slices[n]
             sl.r, sl.g, sl.b = HexColor(History.CAT_COLOR[cat])
             sl.value, sl.text, sl.cat = v, History.CAT_LABEL[cat] or cat, cat
+            sl.draw = typeOff[cat] and 0 or nil
             local k = self.keys[n]
-            k.sq:SetColorTexture(sl.r, sl.g, sl.b, 0.9)
+            k.cat = cat
+            k.check:SetChecked(not typeOff[cat])
+            k.sq:SetColorTexture(sl.r, sl.g, sl.b, typeOff[cat] and 0.3 or 0.9)
             k.text:SetText(sl.text .. "  |cffffffff" .. v .. "|r")
+            k.check:Show()
             k.sq:Show()
             k.text:Show()
         end
     end
     for i = n + 1, TYPE_SLOTS do
-        slices[i].value = 0
-        self.keys[i].sq:Hide()
-        self.keys[i].text:Hide()
+        slices[i].value, slices[i].draw = 0, nil
+        local k = self.keys[i]
+        k.cat = nil
+        k.check:Hide()
+        k.sq:Hide()
+        k.text:Hide()
     end
     self.count = n
     self.pie:Set(slices)
