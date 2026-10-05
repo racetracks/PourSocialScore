@@ -2,12 +2,10 @@
 # The EllesmereUI checks of the harness on their own (run from the repo root,
 # needs lua5.1): the integration switch, then the window, panel pages,
 # options, import/export, Players, Guilds and Chat Filters tabs and the
-# core popups with PourSocialScore_EllesmereUI
-# from its own repository (PSS_EUI_ADDON, default
-# ../poursocialscore-ellesmereui/PourSocialScore_EllesmereUI).
+# core popups with PourSocialScore_EllesmereUI (this repository's folder, or
+# PSS_EUI_ADDON).
 #   sh tools/harness/check_eui_all.sh
-# validate_all.sh runs it; the PourSocialScore-EllesmereUI repository's CI
-# runs it against this repository.
+# validate_all.sh and the Rules GitHub check run it.
 here=$(dirname "$0")
 work=${TMPDIR:-/tmp}/pss-eui
 rm -rf "$work"; mkdir -p "$work"
@@ -20,7 +18,7 @@ echo "$out"
 echo "$out" | grep -q "PASS eui" || fail=1
 
 # EllesmereUI front end (3.1 E.2 on)
-eui=${PSS_EUI_ADDON:-$here/../../../poursocialscore-ellesmereui/PourSocialScore_EllesmereUI}
+eui=${PSS_EUI_ADDON:-PourSocialScore_EllesmereUI}
 if [ -f "$eui/PourSocialScore_EllesmereUI.toc" ]; then
 	echo "== EllesmereUI window"
 	x="$here/eui_stub/EllesmereUI,$eui"

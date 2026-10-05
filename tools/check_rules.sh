@@ -6,11 +6,13 @@
 #   4. Tabs, not spaces: indentation, mid-line alignment and no trailing
 #      whitespace (tools/check_style.lua; --fix there repairs these)
 #   6. Core logic files hold no UI code (tools/check_layers.lua)
+#   PourSocialScore_EllesmereUI is checked by tools/check_rules_eui.sh
+#   (the same rules in EllesmereUI's code style: spaces, not tabs)
 # Usage: sh tools/check_rules.sh   (from the repo root, needs luac5.1/lua5.1)
 
 fail=0
 # every addon folder (3.0 layout: PourSocialScore/, PourSocialScore_*/)
-files=$(ls PourSocialScore*/*.lua tools/*.lua tools/harness/*.lua 2>/dev/null)
+files=$(ls PourSocialScore*/*.lua tools/*.lua tools/harness/*.lua 2>/dev/null | grep -v '^PourSocialScore_EllesmereUI/')
 
 for f in $files; do
 	luac5.1 -p "$f" || fail=1
@@ -23,12 +25,14 @@ if LC_ALL=C grep -nP '[^\x00-\x7F]' $(ls PourSocialScore*/*.toc PourSocialScore*
 	fail=1
 fi
 
-if grep -nP '^\t* |[ \t]+$' $(ls PourSocialScore*/*.xml 2>/dev/null); then
+if grep -nP '^\t* |[ \t]+$' $(ls PourSocialScore*/*.xml 2>/dev/null | grep -v '^PourSocialScore_EllesmereUI/'); then
 	echo "Tabs, not spaces: space indentation or trailing whitespace found above"
 	fail=1
 fi
 
 lua5.1 tools/check_layers.lua || fail=1
+
+sh tools/check_rules_eui.sh > /dev/null || { sh tools/check_rules_eui.sh; fail=1; }
 
 [ $fail -eq 0 ] && echo "All rule checks passed"
 exit $fail
