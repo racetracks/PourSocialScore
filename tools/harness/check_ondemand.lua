@@ -6,7 +6,9 @@
 --   PSS_PHASE=2 : still not loaded at login, the line still waits. Opening
 --                 the history loads Logging and the waiting line joins the
 --                 log once; a removal loads it too.
---   PSS_PHASE=3 : 200 waiting lines load Logging by itself at a quiet moment.
+--   PSS_PHASE=3 : a busy person's waiting lines stay within the keep's
+--                 limits (10 whispers) and never load Logging; 200 waiting
+--                 chat filter lines load it by itself at a quiet moment.
 local phase = tonumber(os.getenv("PSS_PHASE") or "1")
 local History = M.PSS_History
 local fail = false
@@ -53,13 +55,30 @@ elseif phase == 2 then
 elseif phase == 3 then
 	M.PSS_AddIgnore("Flood-Realm", true)
 	for i = 1, 205 do whisper("flood " .. i, "Flood-Realm") end
+	H.RunTimers()
+	local w = 0
+	for _, e in ipairs(rawget(PourSocialScoreDB, "outbox") or {}) do
+		if e.o == History.PlayerKey("Flood-Realm") then w = w + 1 end
+	end
+	check(w == 10, "a person's waiting lines: " .. w)
+	check(not loaded("PourSocialScore_Logging"), "a busy person loaded Logging")
+	local fkey = M.PSS_FilterOwnerKey(1)		-- a filter that exists (the tidy-up keeps it)
+	for i = 1, 205 do
+		History.Add(fkey, nil, History.NewEntry("world", "CHAT_MSG_CHANNEL", "filter flood " .. i))
+	end
 	check(not loaded("PourSocialScore_Logging"), "loaded inside the chat filter")
 	H.RunTimers()
 	check(loaded("PourSocialScore_Logging"), "200 waiting lines did not load Logging")
 	check(History.Waiting() == 0, "outbox not emptied after the load")
-	local n = 0
-	for _, h in ipairs(History.Log()) do if h.o == History.PlayerKey("Flood-Realm") then n = n + 1 end end
+	local n, p = 0, 0
+	for _, h in ipairs(History.Log()) do
+		if h.o == fkey and h.message:find("^filter flood") then n = n + 1 end
+		if h.o == History.PlayerKey("Flood-Realm") then p = p + 1 end
+	end
 	check(n == 205, "flood lines in the log: " .. n)
+	check(p == 0, "a person's lines in the log: " .. p)
+	local kept = History.KeptLines(History.PlayerKey("Flood-Realm"))
+	check(#kept == 10 and kept[10].message == "flood 205" and kept[10].channel == "Whisper", "kept flood lines")
 end
 
 if not fail then print("PASS on demand " .. phase) end

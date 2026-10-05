@@ -1958,6 +1958,18 @@ function M.PSS_IsGuildExcluded(actualGuild)
 	return ck ~= nil and exclusions()[ck] ~= nil
 end
 
+-- True when actualGuild is your own guild: a guild rule never blocks your
+-- own guild's members (a Player Ignore List entry for one of them still
+-- does; that is a different list). Read from the client each time, so a
+-- guild change applies at once.
+local ownName, ownCk
+function M.PSS_IsOwnGuild(actualGuild)
+	local mine = GetGuildInfo and GetGuildInfo("player")
+	if type(mine) ~= "string" or mine == "" or isSecret(mine) then return false end
+	if mine ~= ownName then ownName, ownCk = mine, canonGuild(mine) end
+	return ownCk ~= nil and canonGuild(actualGuild) == ownCk
+end
+
 -- Sorted list of excluded guild names.
 function M.PSS_GuildExclusions()
 	local list = {}
@@ -2363,6 +2375,8 @@ if M.PSS_RegisterBlockSource then
 			if g.managed and not guildRuleActive(g) then return false end
 			-- a guild on the Guild Exclusion List is never blocked by a guild rule
 			if M.PSS_IsGuildExcluded(m.guild or g.name) then return false end
+			-- nor is your own guild
+			if M.PSS_IsOwnGuild(m.guild or g.name) then return false end
 			if cat == "whisper" or cat == "partyInvite" or cat == "guildInvite" or cat == "partyRaid" or cat == "world" then
 				return memberBlocks(g, m, cat)
 			elseif cat == "duel" or cat == "trade" then
