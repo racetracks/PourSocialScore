@@ -188,11 +188,16 @@ local function BuildPane(parent)
     pane.info = Line(b, -26)
     ns.Font(pane.info, 11)
 
+    -- the pages: Summary (counts), Event History, View/Edit Rule (the editor)
+    local dp = ns.NewDetailPages(b, -44, "filters")
+    pane.pages = dp
+    local rule = dp.rule
+
     -- [x] On   Description [..............]
-    local y = -44
-    local on = ns.NewCheck(b)
-    on:SetPoint("TOPLEFT", b, "TOPLEFT", 8, y + 2)
-    local onText = ns.NewText(b, 12)
+    local y = -2
+    local on = ns.NewCheck(rule)
+    on:SetPoint("TOPLEFT", rule, "TOPLEFT", 8, y + 2)
+    local onText = ns.NewText(rule, 12)
     onText:SetPoint("LEFT", on, "RIGHT", 0, 0)
     onText:SetText("On")
     ns.TipOn(on, on, "Turns this filter on or off at once.")
@@ -200,10 +205,10 @@ local function BuildPane(parent)
         if F.sel then M.PSS_SetFilterActive(F.sel, self:GetChecked() and true or false) end
     end)
     pane.onBox = on
-    Label(b, "Description", 74, y - 3)
-    local desc = CreateFrame("EditBox", nil, b, "InputBoxTemplate")
-    desc:SetPoint("TOPLEFT", b, "TOPLEFT", 156, y)
-    desc:SetPoint("RIGHT", b, "RIGHT", -12, 0)
+    Label(rule, "Description", 74, y - 3)
+    local desc = CreateFrame("EditBox", nil, rule, "InputBoxTemplate")
+    desc:SetPoint("TOPLEFT", rule, "TOPLEFT", 156, y)
+    desc:SetPoint("RIGHT", rule, "RIGHT", -12, 0)
     desc:SetHeight(20)
     desc:SetAutoFocus(false)
     desc:SetMaxLetters(100)
@@ -214,19 +219,19 @@ local function BuildPane(parent)
     y = y - 28
 
     -- Filter (?) and its text, several lines
-    local fl = Label(b, "Filter", 12, y)
-    local help = ns.NewButton(b, "?", 22, function() end)
+    local fl = Label(rule, "Filter", 12, y)
+    local help = ns.NewButton(rule, "?", 22, function() end)
     help:SetHeight(18)
     help:SetPoint("LEFT", fl, "RIGHT", 6, 0)
     ns.TipOn(help, help, L["TIP_1"])
-    pane.lock = ns.NewText(b, 11)
+    pane.lock = ns.NewText(rule, 11)
     pane.lock:SetPoint("LEFT", help, "RIGHT", 8, 0)
     pane.lock:SetTextColor(1, 1, 1, 0.5)
     pane.lock:SetText("Built-in: read only. Copy it to edit.")
     y = y - 18
-    local ff = CreateFrame("Frame", nil, b)
-    ff:SetPoint("TOPLEFT", b, "TOPLEFT", 10, y)
-    ff:SetPoint("RIGHT", b, "RIGHT", -10, 0)
+    local ff = CreateFrame("Frame", nil, rule)
+    ff:SetPoint("TOPLEFT", rule, "TOPLEFT", 10, y)
+    ff:SetPoint("RIGHT", rule, "RIGHT", -10, 0)
     ff:SetHeight(58)
     ns.Panel(ff)
     -- a long filter scrolls inside the panel instead of spilling over the
@@ -263,18 +268,18 @@ local function BuildPane(parent)
     y = y - 62
 
     -- [Save Filter] [Copy] [Remove] [Reset Count]
-    local save = ns.NewButton(b, "Save Filter", 92, Save)
-    save:SetPoint("TOPLEFT", b, "TOPLEFT", 10, y)
+    local save = ns.NewButton(rule, "Save Filter", 92, Save)
+    save:SetPoint("TOPLEFT", rule, "TOPLEFT", 10, y)
     ns.TipOn(save, save, "Saves the description and filter text.")
     pane.saveButton = save
-    local copy = ns.NewButton(b, "Copy", 70, Copy)
+    local copy = ns.NewButton(rule, "Copy", 70, Copy)
     copy:SetPoint("LEFT", save, "RIGHT", 6, 0)
     ns.TipOn(copy, copy, "Makes an editable custom copy (starts Off).")
     pane.copyButton = copy
-    local remove = ns.NewButton(b, "Remove", 76, ConfirmRemove)
+    local remove = ns.NewButton(rule, "Remove", 76, ConfirmRemove)
     remove:SetPoint("LEFT", copy, "RIGHT", 6, 0)
     pane.removeButton = remove
-    local resetCount = ns.NewButton(b, "Reset Count", 100, function()
+    local resetCount = ns.NewButton(rule, "Reset Count", 100, function()
         if F.sel then M.PSS_ResetFilterCount(F.sel) end
     end)
     resetCount:SetPoint("LEFT", remove, "RIGHT", 6, 0)
@@ -283,13 +288,13 @@ local function BuildPane(parent)
     y = y - 28
 
     -- Test [chat line ............] [Test] BLOCKED / PASSED
-    Label(b, "Test", 12, y - 3)
-    local test = CreateFrame("EditBox", nil, b, "InputBoxTemplate")
-    test:SetPoint("TOPLEFT", b, "TOPLEFT", 56, y)
+    Label(rule, "Test", 12, y - 3)
+    local test = CreateFrame("EditBox", nil, rule, "InputBoxTemplate")
+    test:SetPoint("TOPLEFT", rule, "TOPLEFT", 56, y)
     test:SetSize(170, 20)
     test:SetAutoFocus(false)
     ns.EditBox(test)
-    local result = ns.NewText(b, 12)
+    local result = ns.NewText(rule, 12)
     local function RunTest()
         local res = M.PSS_TestChatFilter(fbox:GetText() or "", test:GetText() or "")
         result:SetText(res == "error" and "|cffffff00FILTER ERROR|r" or (res == "blocked" and "|cffff5c5cBLOCKED|r" or "|cff00ff96PASSED|r"))
@@ -298,17 +303,17 @@ local function BuildPane(parent)
     test:SetScript("OnEnterPressed", RunTest)
     test:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     ns.TipOn(test, test, L["TIP_2"])
-    local testButton = ns.NewButton(b, "Test", 50, RunTest)
+    local testButton = ns.NewButton(rule, "Test", 50, RunTest)
     testButton:SetPoint("LEFT", test, "RIGHT", 6, 0)
     result:SetPoint("LEFT", testButton, "RIGHT", 8, 0)
     pane.testBox, pane.testButton, pane.result = test, testButton, result
     y = y - 26
 
     -- Link [shift-click a link] -> its [tag], selected to copy
-    Label(b, "Link", 12, y - 3)
-    local link = CreateFrame("EditBox", nil, b, "InputBoxTemplate")
-    link:SetPoint("TOPLEFT", b, "TOPLEFT", 56, y)
-    link:SetPoint("RIGHT", b, "RIGHT", -12, 0)
+    Label(rule, "Link", 12, y - 3)
+    local link = CreateFrame("EditBox", nil, rule, "InputBoxTemplate")
+    link:SetPoint("TOPLEFT", rule, "TOPLEFT", 56, y)
+    link:SetPoint("RIGHT", rule, "RIGHT", -12, 0)
     link:SetHeight(20)
     link:SetAutoFocus(false)
     ns.EditBox(link)
@@ -320,18 +325,17 @@ local function BuildPane(parent)
     link:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     ns.TipOn(link, link, "Click here, then shift-click a link in chat (or paste one and press Enter): it turns into the filter [tag], selected to copy. Shift-clicking a link while the filter box is being edited puts the [tag] there directly.")
     pane.linkBox = link
-    y = y - 26
 
-    pane.counts = Line(b, y)
+    pane.counts = Line(dp.summary, -6)
     ns.Font(pane.counts, 11)
-    y = y - LINE_H
 
-    pane.hist = ns.NewHistory(b, y, {
+    -- Event History: the filter's block history, the whole page
+    pane.hist = ns.NewHistory(dp.history, -2, {
         names = true, empty = "Nothing blocked by this filter yet.",
         open = function(i) ns.OpenHistoryView(page, ns.FilterHistorySpec(i)) end,
     })
-    -- the block history fills the pane to the bottom (no buttons under it)
-    pane.hist.frame:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -4, 6)
+    -- no buttons under it: the list goes to the bottom of the page
+    pane.hist.frame:SetPoint("BOTTOMRIGHT", dp.history, "BOTTOMRIGHT", -4, 6)
 end
 
 -- A link shift-clicked while one of our boxes is being edited goes there:
@@ -389,8 +393,8 @@ function ns.ShowFilterDetail(fresh)
     pane.removeButton:SetEnabled(not r.builtin)
     pane.copyButton:SetEnabled(not r.guildRule)
     pane.resetCount:SetEnabled(not r.guildRule)
-    pane.counts:SetShown(not r.guildRule)
-    pane.hist.frame:SetShown(not r.guildRule)
+    -- a guild rule's blocks are counted on its guilds: only its settings here
+    pane.pages:Limit(r.guildRule and { rule = true } or nil)
     if r.guildRule then
         pane.hist:Clear()
         return

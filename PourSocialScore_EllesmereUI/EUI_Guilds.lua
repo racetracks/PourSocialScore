@@ -16,7 +16,7 @@ local EUI = EllesmereUI
 local L = PourSocialScore_NS.L
 local History = M.PSS_History
 
-local DETAIL_W = 360
+local DETAIL_W = 380
 local TOP_H = 58
 local LINE_H = 16
 local EXCL_KEY = M.PSS_GUILD_EXCL_OPEN
@@ -496,17 +496,23 @@ local function BuildGuildBody(parent)
     b.heading = ns.NewHeading(b, "")
     b.heading:SetPoint("TOPLEFT", b, "TOPLEFT", 10, -8)
     b.heading:SetPoint("RIGHT", b, "RIGHT", -10, 0)
-    local y = -28
-    b.info = Line(b, y); y = y - LINE_H - 4
+    b.info = Line(b, -28)
+    local dp = ns.NewDetailPages(b, -46, "guilds")
+    b.pages = dp
+    b.counts = Line(dp.summary, -6)
+    ns.Font(b.counts, 11)
 
-    b.excl = ExclBoxes(b, y, "Ticked = allowed from every member of the guild, unticked = blocked. A member's own setting wins.",
+    -- View/Edit Rule
+    local rule = dp.rule
+    local y = -2
+    b.excl = ExclBoxes(rule, y, "Ticked = allowed from every member of the guild, unticked = blocked. A member's own setting wins.",
         function(cat, box)
             if pane.guildKey then M.PSS_SetGuildBlock(pane.guildKey, cat, not box:GetChecked()) end
         end)
     y = y - 28
 
     -- Scan (the sweep), Scan Fields, Custom Scan
-    local sr = Strip(b, y, 24)
+    local sr = Strip(rule, y, 24)
     local scan = ns.NewButton(sr, "Scan", 100, function()
         local _, g = M.PSS_FindGuildRule(pane.guildKey)
         if not g or M.PSS_ScanBlockedMsg() then return end
@@ -545,28 +551,25 @@ local function BuildGuildBody(parent)
     b.custom = ScanButton(custom)
     y = y - 28
 
-    local h
-    b.overrides, h = Overrides(b, y, "guild", function() local _, g = M.PSS_FindGuildRule(pane.guildKey) return g end)
-    y = y - h
-    b.counts = Line(b, y)
-    ns.Font(b.counts, 11)
-    y = y - LINE_H - 2
-    b.hist = ns.NewHistory(b, y, {
+    b.overrides = Overrides(rule, y, "guild", function() local _, g = M.PSS_FindGuildRule(pane.guildKey) return g end)
+
+    local members = ns.NewButton(rule, "Members", 90, function() OpenMembers(pane.guildKey) end)
+    members:SetPoint("BOTTOMLEFT", rule, "BOTTOMLEFT", 10, 4)
+    ns.TipOn(members, members, "The guild's members, in place of the guild list.")
+    b.membersButton = members
+    local remove = ns.NewButton(rule, "Remove Guild", 100, ConfirmRemoveGuild)
+    remove:SetPoint("LEFT", members, "RIGHT", 6, 0)
+    b.removeButton = remove
+
+    -- Event History: the guild's block history, the whole page
+    b.hist = ns.NewHistory(dp.history, -2, {
         names = true, empty = "Nothing blocked from this guild yet.",
         open = function(key) ns.OpenHistoryView(page, ns.GuildHistorySpec(key)) end,
     })
-
-    local members = ns.NewButton(b, "Members", 90, function() OpenMembers(pane.guildKey) end)
-    members:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 10, 8)
-    ns.TipOn(members, members, "The guild's members, in place of the guild list.")
-    b.membersButton = members
-    local remove = ns.NewButton(b, "Remove Guild", 100, ConfirmRemoveGuild)
-    remove:SetPoint("LEFT", members, "RIGHT", 6, 0)
-    b.removeButton = remove
-    local reset = ns.NewButton(b, L["HISTORY_RESET"] or "Reset Block History", 130, function()
+    local reset = ns.NewButton(dp.history, L["HISTORY_RESET"] or "Reset Block History", 130, function()
         if pane.guildKey then M.PSS_ResetGuildBlockHistory(pane.guildKey) end
     end)
-    reset:SetPoint("LEFT", remove, "RIGHT", 6, 0)
+    reset:SetPoint("BOTTOMLEFT", dp.history, "BOTTOMLEFT", 10, 4)
     return b
 end
 
@@ -630,11 +633,18 @@ local function BuildMemberBody(parent)
     b.heading = ns.NewHeading(b, "")
     b.heading:SetPoint("TOPLEFT", b, "TOPLEFT", 10, -8)
     b.heading:SetPoint("RIGHT", b, "RIGHT", -10, 0)
-    local y = -28
-    b.guildLine = Line(b, y); y = y - LINE_H
-    b.addedLine = Line(b, y); y = y - LINE_H - 4
+    local dp = ns.NewDetailPages(b, -28, "guilds")
+    b.pages = dp
+    b.counts = Line(dp.summary, -6)
+    ns.Font(b.counts, 11)
 
-    local nr = Strip(b, y, 22)
+    -- View/Edit Rule
+    local rule = dp.rule
+    local y = -2
+    b.guildLine = Line(rule, y); y = y - LINE_H
+    b.addedLine = Line(rule, y); y = y - LINE_H - 4
+
+    local nr = Strip(rule, y, 22)
     Label(nr, "Note")
     local note = CreateFrame("EditBox", nil, nr, "InputBoxTemplate")
     note:SetPoint("LEFT", nr, "LEFT", 94, 0)
@@ -659,7 +669,7 @@ local function BuildMemberBody(parent)
 
     -- ticked = allowed; dimmed = following the guild; right-click = follow
     -- the guild again
-    b.excl = ExclBoxes(b, y, "Ticked = allowed from this player, unticked = blocked. Dimmed boxes follow the guild's setting; right-click to follow it again.",
+    b.excl = ExclBoxes(rule, y, "Ticked = allowed from this player, unticked = blocked. Dimmed boxes follow the guild's setting; right-click to follow it again.",
         function(cat, box, button)
             local m = G.msel
             local _, gg = M.PSS_FindGuildRule(G.mguild)
@@ -674,25 +684,22 @@ local function BuildMemberBody(parent)
         end)
     y = y - 28
 
-    local h
-    b.overrides, h = Overrides(b, y, "person", function() return G.msel end)
-    y = y - h
-    b.counts = Line(b, y)
-    ns.Font(b.counts, 11)
-    y = y - LINE_H - 2
-    b.hist = ns.NewHistory(b, y, {
+    b.overrides = Overrides(rule, y, "person", function() return G.msel end)
+
+    local remove = ns.NewButton(rule, "Remove Member", 110, ConfirmRemoveMember)
+    remove:SetPoint("BOTTOMLEFT", rule, "BOTTOMLEFT", 10, 4)
+    b.removeButton = remove
+
+    -- Event History: the member's block history, the whole page
+    b.hist = ns.NewHistory(dp.history, -2, {
         empty = "Nothing blocked from this player yet.",
         open = function(m) ns.OpenHistoryView(page, ns.MemberHistorySpec(m, G.mguild)) end,
     })
-
-    local remove = ns.NewButton(b, "Remove Member", 110, ConfirmRemoveMember)
-    remove:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 10, 8)
-    b.removeButton = remove
-    local reset = ns.NewButton(b, L["HISTORY_RESET"] or "Reset Block History", 130, function()
+    local reset = ns.NewButton(dp.history, L["HISTORY_RESET"] or "Reset Block History", 130, function()
         if G.msel then M.PSS_ResetMemberBlockHistory(G.msel) end
     end)
-    reset:SetPoint("LEFT", remove, "RIGHT", 6, 0)
-    local addGuild = ns.NewButton(b, "Add Guild", 90, function()
+    reset:SetPoint("BOTTOMLEFT", dp.history, "BOTTOMLEFT", 10, 4)
+    local addGuild = ns.NewButton(rule, "Add Guild", 90, function()
         local m = G.msel
         if m and M.PSS_AddMembersGuild(G.mguild, m.guild) then
             G.mdirty, G.dirty = true, true
@@ -700,7 +707,7 @@ local function BuildMemberBody(parent)
             ShowDetail()
         end
     end)
-    addGuild:SetPoint("LEFT", reset, "RIGHT", 6, 0)
+    addGuild:SetPoint("LEFT", remove, "RIGHT", 6, 0)
     ns.TipOn(addGuild, addGuild, "The player's actual guild is not this rule: adds a rule for it and moves its members there.")
     b.addGuild = addGuild
     return b

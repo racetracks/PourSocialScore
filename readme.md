@@ -11,7 +11,9 @@ EllesmereUI is installed.
   rows that fit are made, so long lists cost the same as short ones. Their
   block history (`EUI_History.lua`) loads PourSocialScore_Logging only when
   asked for; a double-click opens the Block History view
-  (`EUI_HistoryView.lua`). Back / forward arrows (and mouse buttons 4 / 5) step through
+  (`EUI_HistoryView.lua`). The detail pane of each tab has three pages,
+  picked by the buttons along its bottom (`EUI_Detail.lua`): Summary, Event
+  History and View/Edit Rule. Back / forward arrows (and mouse buttons 4 / 5) step through
   the views; Escape goes up a level through EllesmereUI's Escape handling
   (`RegisterEscapeClose` with `onEscape`).
 - A "Pour Social Score" section in the EllesmereUI panel (plugin API,
@@ -26,7 +28,8 @@ EllesmereUI code. Code style follows EllesmereUI's CONTRIBUTING.md (Lua 5.1,
 ASCII, house tooltips and popups, `W:DualRow` rows with no empty slots).
 
 Install: copy `PourSocialScore_EllesmereUI` into `Interface/AddOns` next to
-the other PourSocialScore folders, same version (3.1.0 is the first full
-release). Then tick "Enable EllesmereUI integration" in Pour Social Score's
+the other PourSocialScore folders. From 1.1 this folder has its own version
+number; it needs PourSocialScore 3.1.0 or later (3.1.0 was the first full
+release, numbered with the core). Then tick "Enable EllesmereUI integration" in Pour Social Score's
 Options (or `/pss eui enable`) and reload. The user guide is the ELLESMEREUI
 section of the core readme.txt.
