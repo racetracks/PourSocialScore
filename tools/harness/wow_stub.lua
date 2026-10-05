@@ -101,13 +101,26 @@ function W:SetNumber(n) self._text = tostring(n) end
 function W:GetChecked() return self._checked == true end
 function W:SetChecked(c) self._checked = c and true or false end
 function W:SetupMenu(gen) self._menu = gen end
--- the buttons of a SetupMenu drop-down: { { text, fn }, ... }
+-- the entries of a SetupMenu drop-down: { { text, fn, kind, on }, ... }
+-- (kind "button", "radio" or "checkbox"; on: its isSelected() as built)
 function W:MenuButtons()
 	local out = {}
-	local root = { CreateButton = function(_, text, fn) out[#out + 1] = { text = text, fn = fn } end }
+	local function sel(kind)
+		return function(_, text, isSelected, setSelected, data)
+			out[#out + 1] = { text = text, kind = kind, on = isSelected(data) and true or false,
+				fn = function() return setSelected(data) end }
+		end
+	end
+	local root = {
+		CreateButton = function(_, text, fn, data) out[#out + 1] = { text = text, kind = "button", fn = function() return fn(data) end } end,
+		CreateRadio = sel("radio"),
+		CreateCheckbox = sel("checkbox"),
+	}
 	if self._menu then self._menu(self, root) end
 	return out
 end
+-- the text a drop-down shows (OverrideText)
+function W:OverrideText(t) self._ddText = t end
 function W:IsEnabled() return self._enabled ~= false end
 function W:Enable() self._enabled = true end
 function W:Disable() self._enabled = false end

@@ -101,6 +101,21 @@ if phase == 1 then
 	check(fs == 0 and fd == 0, "Reset Count kept the recent counts")
 	check(trade("Seller-Realm1", "recentspam again"), "Trade line not blocked")
 
+	-- by type (3.2.0-dev010): the player's whispers, the filter's Trade
+	-- line as world chat; by key prefix, every player at once
+	-- (one count above came without a type: its own; the query is in
+	-- PourSocialScore_Libraries)
+	M.PSS_Need("Libraries")
+	local function sum(t) local n = 0 for _, v in pairs(t) do n = n + v end return n end
+	local by = History.RecentByCat(pkey())
+	check(sum(by.session) == s and by.session.whisper == s - 1 and sum(by.day) == d,
+		("player by type %s/%s"):format(tostring(by.session.whisper), tostring(by.day.whisper)))
+	local again = History.RecentByCat(M.PSS_FilterOwnerKey(f), by)
+	check(again == by and by.session.whisper == nil and by.session.world == 1 and by.day.world == 1, "filter by type")
+	local players = History.RecentByCat(nil, nil, "p:")
+	check(sum(players.session) == s and sum(players.day) == d, "every player by type")
+	local fp = History.RecentByCat(nil, nil, "f:")
+	check(fp.session.world == 1 and fp.session.whisper == nil, "every filter by type")
 	-- lookups: one index each
 	local t0 = os.clock()
 	for _ = 1, 100000 do rc(pkey()) end
@@ -135,6 +150,9 @@ elseif phase == 2 or phase == 3 then
 	local s, d = rc(pkey())
 	if phase == 2 then
 		check(s == 0 and d >= 142, ("reload: session %d day %d"):format(s, d))
+		M.PSS_Need("Libraries")
+		local by = History.RecentByCat(pkey())
+		check(next(by.session) == nil and by.day.whisper == d, "reload: by type")
 		check(History.SessionStart() == GetServerTime(), "a /reload did not start the session now")
 	else
 		check(s == 0 and d >= 142, ("new login: session %d day %d"):format(s, d))
@@ -147,6 +165,9 @@ elseif phase == 2 or phase == 3 then
 		M.PSS_ResetPlayerBlockHistory(P)
 		s, d = rc(pkey())
 		check(s == 0 and d == 0, ("reset kept %d/%d"):format(s, d))
+		M.PSS_Need("Libraries")
+		local by = History.RecentByCat(pkey())
+		check(next(by.session) == nil and next(by.day) == nil, "reset kept the counts by type")
 		M.PSS_ResetGuildBlockHistory(GK)
 		s, d = rc(History.GuildKey(GK))
 		check(s == 0 and d == 0, "guild reset kept the guild's counts")

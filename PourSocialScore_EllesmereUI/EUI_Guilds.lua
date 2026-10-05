@@ -451,7 +451,7 @@ end
 -- The Block History view (EUI_HistoryView.lua) of a guild, a member (All:
 -- their guild) or every guild.
 local allGuilds = {
-    kind = "guild", id = false, allText = "All Guilds",
+    kind = "guild", id = false, allText = "All Guilds", source = "guilds",
     label = function() return "All Guilds" end,
     read = M.PSS_GetGuildBlockHistory,
     reset = function()
@@ -460,6 +460,7 @@ local allGuilds = {
     end,
 }
 local function AllGuilds() return allGuilds end
+ns.RegisterEventSource("guilds", "Guild Ignore List", AllGuilds)
 
 -- the guild rules A-Z, for the view's Guilds drop-down (read when it opens)
 local function GuildChoices()
@@ -699,8 +700,19 @@ local function BuildGroupBody(parent)
     b.charts = CreateFrame("Frame", nil, b)
     b.charts:SetAllPoints()
     b.summary = ns.NewSummary(b.charts, page, top, PIE_SMALL)
-    b.typePie = ns.NewTypePie(b.charts, top - PIE_SMALL - 10, PIE_SMALL)
+    b.typePie = ns.NewTypePie(b.charts, top - PIE_SMALL - 10, PIE_SMALL, page)
     b.recent = {}
+    -- the list's guilds' session and 24 hour counts by type, added up
+    local one = {}
+    b.recentByCat = function(into)
+        for _, t in ipairs({ into.session, into.day }) do for k in pairs(t) do t[k] = 0 end end
+        local items = b.groupItems or {}
+        for i = 1, #items do
+            History.RecentByCat(History.GuildKey(items[i].key), one)
+            for cat, n in pairs(one.session) do into.session[cat] = (into.session[cat] or 0) + n end
+            for cat, n in pairs(one.day) do into.day[cat] = (into.day[cat] or 0) + n end
+        end
+    end
     local toggle = ns.NewButton(b, "", 130, function()
         local k = pane.groupKey
         if k and k ~= MANAGED then M.PSS_SetManagedGroupActive(k, not M.PSS_ManagedGroupActive(k)) end
@@ -885,6 +897,7 @@ local function ShowGuild(key, fresh)
     b.removeButton:SetEnabled(not M.PSS_IsStaticManagedGuild(key))
     b.membersButton:SetShown(G.view ~= "members")
     b.hist:Set(key, c.total or 0, M.PSS_GetGuildBlockHistory, fresh)
+    NO_WHERE.counts = c
     b.summary:Set(History.GuildKey and History.GuildKey(key), c.total or 0, tostring(g.name), ns.GuildHistorySpec, key, NO_WHERE)
     return true
 end
@@ -949,8 +962,10 @@ local function ShowGroup(k)
     if item and items then
         -- periods like a guild's Summary (a slice opens the list's lines in
         -- the Block History view) and all-time blocks by type
-        b.summary:Set(nil, item.bc.total or 0, name, ns.GroupHistorySpec, k, { noWhere = true, recent = GroupRecent(items, b.recent) })
-        b.typePie:Set(item.bc, name)
+        b.groupItems = items
+        b.summary:Set(nil, item.bc.total or 0, name, ns.GroupHistorySpec, k,
+            { noWhere = true, recent = GroupRecent(items, b.recent), counts = item.bc, recentByCat = b.recentByCat })
+        b.typePie:Set(item.bc, name, ns.GroupHistorySpec, k)
     end
     return true
 end
@@ -997,6 +1012,7 @@ local function ShowMember(fresh)
     local c = M.PSS_GetMemberBlockCounts(m)
     b.counts:SetText(CountsText(c))
     b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory, fresh)
+    MEMBER_WHO.counts = c
     b.summary:Set(History.MemberKey(m), c.total or 0, tostring(m.name), MemberSpec, m, MEMBER_WHO)
     return true
 end

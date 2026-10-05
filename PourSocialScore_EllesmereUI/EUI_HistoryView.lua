@@ -1,24 +1,25 @@
 -------------------------------------------------------------------------------
---  EUI_HistoryView.lua -- the Block History view: a tab's block history in
---  place of the tab (the PSS window's Block History panel in EllesmereUI's
---  style). Opened by a double-click on a line of a pane's history.
---  Time | Player | Type | Channel | Message, sorted by a header click; the
---  type tick boxes (shared with the panes) and a search box over player,
---  channel and message above it. Links in a message work as in chat; a
---  double-click on a line opens the message in a copy box.
+--  EUI_HistoryView.lua -- the Events tab: the blocked lines of the lists, in
+--  place of the PSS window's Block History panel. Three drop-downs filter
+--  them: Time (this session, the last 24 hours, all time or a custom range
+--  of dates), Types, and Source (the Player and Guild Ignore Lists and the
+--  Chat Filters, or one entry of them); a search box goes over player,
+--  channel and message.
+--  Time | Source | Player | Type | Channel | Message, sorted by a header
+--  click. Links in a message work as in chat; a double-click on a line
+--  opens the message in a copy box.
+--  The pies of the other tabs open it (ns.OpenEvents) with their entry, a
+--  period and the types ticked; so do View Events and a double-click on a
+--  pane's Event History. Opening it loads PourSocialScore_Logging.
 --
---  spec = { kind, id, label(id) -> name (nil: gone), read(id) -> lines,
---           reset(id) (asked first when id is nil or confirm is set),
---           all = function() -> the spec of everything (or nil),
---           allText = "All Guilds",
---           period = "session" | "day" | nil (all time): what the time
---           picker starts on (a Summary slice opens with its period),
---           pick = function() -> { { key, name }, ... } and pickSpec(key):
---           a drop-down to jump to another entry (the guilds),
---           owner(id) -> the core's owner key, counts(id) -> its counts by
---           type: blocks counted but no longer in the block history show
---           as "Data expired from logs" lines (with their type, and their
---           10 minutes when in the last day) }
+--  spec (an entry, from the tabs) = { kind, id, label(id) -> name (nil:
+--           gone), read(id) -> lines, reset(id) (asked first when confirm
+--           is set), owner(id) -> the core's owner key, counts(id) -> its
+--           counts by type: blocks counted but no longer in the block
+--           history show as "Data expired from logs" lines (with their
+--           type, and their 10 minutes when in the last day) }
+--  A whole list's spec has id false and source = its key (that list as
+--  the source).
 -------------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = ns.M
@@ -27,12 +28,34 @@ local L = PourSocialScore_NS.L
 local History = M.PSS_History
 
 local TIME_FMT = "%Y/%m/%d %H:%M:%S"
+local INPUT_FMT = "%Y-%m-%d %H:%M"
 local DOUBLE_CLICK = 0.35
-local hidden = ns.histHidden
-local views = {}
+local DAY = 86400
+
+-- the lists whose events show (EUI_Players.lua, EUI_Guilds.lua and
+-- EUI_Filters.lua register theirs): { key, text, all() -> its spec }
+local SOURCES = {}
+function ns.RegisterEventSource(key, text, all)
+    SOURCES[#SOURCES + 1] = { key = key, text = text, all = all }
+end
+
+local TIMES = {
+    { key = "session", text = "This session" },
+    { key = "day",     text = "Last 24 hours" },
+    { key = "all",     text = "All time" },
+    { key = "custom",  text = "Custom range" },
+}
+
+local view                  -- the one Events view (built with the tab)
+
+local function SourceText(view, h)
+    local src = History.sourceLabel and History.sourceLabel[h]
+    return src or view.srcOf[h] or view.name or ""
+end
 
 local SORT = {
     time    = function(h) return tonumber(h.ts) or 0 end,
+    source  = function(h) return string.lower(SourceText(view, h)) end,
     member  = function(h) return string.lower(h.member or "") end,
     kind    = function(h) return ns.HistoryType(h) end,
     channel = function(h) return string.lower(h.channel or "") end,
@@ -44,15 +67,16 @@ local function TimeText(h)
     return ts and ts > 0 and date(TIME_FMT, ts) or History.UNKNOWN
 end
 
--- since: only the events from then on (a Summary slice)
-local function Matches(h, find, since)
-    if hidden[ns.HistoryType(h)] then return false end
-    -- a counted row stands for its 10 minutes: in the period if they end in it
-    if since and (tonumber(h.slotEnd or h.ts) or 0) < since then return false end
-    if find == "" then return true end
-    return string.find(string.lower(h.member or ""), find, 1, true)
-        or string.find(string.lower(h.channel or ""), find, 1, true)
-        or string.find(string.lower(h.message or ""), find, 1, true)
+-- "2026-10-05 13:20" -> server seconds (nil: not a date)
+local function ParseTime(text)
+    local y, mo, d, hh, mm = tostring(text or ""):match("^%s*(%d%d%d%d)%-(%d%d?)%-(%d%d?)%s+(%d%d?):(%d%d)%s*$")
+    if not y then
+        y, mo, d = tostring(text or ""):match("^%s*(%d%d%d%d)%-(%d%d?)%-(%d%d?)%s*$")
+        hh, mm = 0, 0
+    end
+    if not y then return nil end
+    return time({ year = tonumber(y), month = tonumber(mo), day = tonumber(d),
+        hour = tonumber(hh), min = tonumber(mm), sec = 0 })
 end
 
 -- Blocks counted for one entry but no longer in its lines: a line per
@@ -105,15 +129,102 @@ ns.HistoryAddExpired = AddExpired
 local View = {}
 View.__index = View
 
+-- The query shown: q = { scope = an entry's spec (nil: the sources),
+-- sources = { [key] = true }, period = "session" | "day" | "custom" | nil
+-- (all time), from, to (custom), cats = { [cat] = true } (nil: every type) }
+local function NewQuery()
+    local q = { sources = {} }
+    for _, src in ipairs(SOURCES) do q.sources[src.key] = true end
+    return q
+end
+
+local function CopyQuery(q)
+    local c = { scope = q.scope, period = q.period, from = q.from, to = q.to, sources = {} }
+    for k, v in pairs(q.sources) do c.sources[k] = v end
+    if q.cats then
+        c.cats = {}
+        for k, v in pairs(q.cats) do c.cats[k] = v end
+    end
+    return c
+end
+
+-- a string for the query (back / forward tell views apart by it); nil for
+-- the tab as it opens
+local function QueryKey(q)
+    local parts = {}
+    if q.scope then parts[#parts + 1] = tostring(q.scope.kind) .. "=" .. tostring(q.scope.id) end
+    for _, src in ipairs(SOURCES) do if not q.sources[src.key] then parts[#parts + 1] = "-" .. src.key end end
+    if q.period then parts[#parts + 1] = q.period .. (q.period == "custom" and (tostring(q.from) .. "-" .. tostring(q.to)) or "") end
+    if q.cats then
+        for _, cat in ipairs(History.ALL_CATS or {}) do if q.cats[cat] then parts[#parts + 1] = "+" .. cat end end
+    end
+    if #parts == 0 then return nil end
+    return table.concat(parts, " ")
+end
+
+-- the first and last second shown (nil: open ended)
+local function Range(q)
+    if q.period == "custom" then return q.from, q.to end
+    if q.period then return ns.SummarySince(q.period), nil end
+    return nil, nil
+end
+
+local function Matches(q, h, find, since, upto)
+    if q.cats and not q.cats[h.cat or "unknown"] then return false end
+    -- a counted row stands for its 10 minutes: in the period if they end in it
+    local t = tonumber(h.slotEnd or h.ts) or 0
+    if since and t < since then return false end
+    if upto and (tonumber(h.ts) or 0) > upto then return false end
+    if find == "" then return true end
+    return string.find(string.lower(h.member or ""), find, 1, true)
+        or string.find(string.lower(h.channel or ""), find, 1, true)
+        or string.find(string.lower(h.message or ""), find, 1, true)
+end
+
+-- the name of what is shown
+local function Title(q, name)
+    if q.scope then return name or "?" end
+    local on, all = {}, true
+    for _, src in ipairs(SOURCES) do
+        if q.sources[src.key] then on[#on + 1] = src.text else all = false end
+    end
+    if all then return "All sources" end
+    if #on == 0 then return "No source" end
+    return table.concat(on, ", ")
+end
+
+local function TimeLabel(q)
+    if q.period == "custom" then
+        return ("%s to %s"):format(q.from and date(INPUT_FMT, q.from) or "...", q.to and date(INPUT_FMT, q.to) or "now")
+    end
+    return ns.PeriodText(q.period or "all")
+end
+
+local function TypesLabel(q)
+    if not q.cats then return "All types" end
+    local on = {}
+    for _, cat in ipairs(History.ALL_CATS or {}) do
+        if q.cats[cat] then on[#on + 1] = History.CAT_LABEL[cat] or cat end
+    end
+    if #on == 0 then return "No type" end
+    if #on <= 2 then return table.concat(on, ", ") end
+    return ("%d types"):format(#on)
+end
+
+local function SetDropText(d, text)
+    d.shownText = text
+    if d.OverrideText then d:OverrideText(text) elseif d.SetDefaultText then d:SetDefaultText(text) end
+end
+
 -- Filter and sort what was read into self.shown.
 function View:Apply(top)
+    local q = self.q
     local find = string.lower(M.trim(self.search:GetText() or "") or "")
-    local period = self.period
-    local since = period and ns.SummarySince(period)
+    local since, upto = Range(q)
     local out, n = self.shown, 0
     for i = 1, #self.all do
         local h = self.all[i]
-        if Matches(h, find, since) then
+        if Matches(q, h, find, since, upto) then
             n = n + 1
             out[n] = h
         end
@@ -136,59 +247,79 @@ function View:Apply(top)
     self.list:SetSort(self.sortKey, self.sortAsc)
     self.list:SetCount(n)
     if top then self.list:Top() end
-    local name = self.name or "?"
-    if since then name = name .. ", " .. string.lower(ns.PeriodText(period)) end
-    for key, b in pairs(self.periodButtons) do ns.SetTabSelected(b, key == (period or "all")) end
-    self.heading:SetText(("Block History: %s  |cffaaaaaa(%s)|r"):format(name,
+    self.heading:SetText(("Events: %s  |cffaaaaaa(%s)|r"):format(Title(q, self.name),
         n == #self.all and tostring(n) or (n .. " of " .. #self.all)))
-    self.list:SetEmptyText(#self.all == 0 and "Nothing blocked here yet." or "No line matches the search and the ticked types.")
+    SetDropText(self.timeDrop, TimeLabel(q))
+    SetDropText(self.typeDrop, TypesLabel(q))
+    SetDropText(self.sourceDrop, q.scope and ("Only " .. (self.name or "?")) or Title(q))
+    self.custom:SetShown(q.period == "custom")
+    self.listFrame:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 8, q.period == "custom" and -88 or -62)
+    self.resetButton:SetShown(q.scope ~= nil)
+    self.list:SetEmptyText(#self.all == 0 and "Nothing blocked here yet."
+        or "No line matches the time, the types and the search.")
 end
 
--- Read the lines again (the spec's owner gone: everything instead).
+-- Read the lines again (an entry gone: its list instead).
 function View:Refresh(top)
-    local spec = self.spec
-    if not spec then return end
-    local name = spec.label(spec.id)
-    if not name and spec.all then
-        local all = spec.all()
-        if all and all ~= spec then self.spec = all; return self:Refresh(true) end
-    end
-    self.name = name or "?"
-    self.all = spec.read(spec.id) or {}
-    if spec.id and spec.owner and spec.counts then
-        local counts = spec.counts(spec.id)
-        if counts then
-            AddExpired(self.all, counts, History.RecentSlots and History.RecentSlots(spec.owner(spec.id)),
-                spec.kind ~= "filter" and History.KEEP_TOTAL ~= nil and not History.LOG_ALL)
+    local q = self.q
+    local all, srcOf = {}, self.srcOf
+    wipe(srcOf)
+    local scope = q.scope
+    local name = scope and scope.label(scope.id)
+    if scope and not name then
+        -- the entry is gone: its whole list
+        if scope.all then
+            local list = scope.all()
+            if list and list.source then
+                for k in pairs(q.sources) do q.sources[k] = k == list.source end
+            end
         end
+        q.scope, scope = nil, nil
     end
-    self.allButton:SetShown(spec.id and spec.all ~= nil or false)
-    if spec.allText then self.allButton:SetText(spec.allText) end
-    self.pick:SetShown(spec.pick ~= nil)
+    self.name = name
+    if scope then
+        local lines = scope.read(scope.id) or {}
+        for i = 1, #lines do all[i] = lines[i] end
+        if scope.owner and scope.counts then
+            local counts = scope.counts(scope.id)
+            if counts then
+                AddExpired(all, counts, History.RecentSlots and History.RecentSlots(scope.owner(scope.id)),
+                    scope.kind ~= "filter" and History.KEEP_TOTAL ~= nil and not History.LOG_ALL)
+            end
+        end
+    else
+        local order = self.order
+        wipe(order)
+        for _, src in ipairs(SOURCES) do
+            if q.sources[src.key] then
+                local spec = src.all()
+                local lines = spec and spec.read(false) or {}
+                for i = 1, #lines do
+                    local h = lines[i]
+                    all[#all + 1] = h
+                    srcOf[h] = src.text
+                    order[h] = #all
+                end
+            end
+        end
+        -- newest first across the lists
+        table.sort(all, function(a, b)
+            local x, y = tonumber(a.ts) or 0, tonumber(b.ts) or 0
+            if x ~= y then return x > y end
+            return order[a] < order[b]
+        end)
+    end
+    self.all = all
     self:Apply(top)
 end
 
-function View:Open(spec)
-    self.spec = spec
-    self.period = spec.period
-    self.sortKey, self.sortAsc = "time", false
-    self.search:SetText("")
-    self.page:Hide()
-    self.frame:Show()
+-- q changed by a drop-down: show it, as a step of its own
+function View:Changed()
     self:Refresh(true)
+    ns.NavRecord()
 end
 
-function View:Close()
-    if not self.spec then return end
-    self.spec = nil
-    self.all = {}
-    wipe(self.shown)
-    self.frame:Hide()
-    self.page:Show()
-    if self.page.refresh then self.page.refresh() end
-end
-
-function View:IsOpen() return self.spec ~= nil end
+function View:IsOpen() return self.frame:IsVisible() end
 
 local function Draw(view, row, i)
     local h = view.shown[i]
@@ -198,6 +329,7 @@ local function Draw(view, row, i)
         return
     end
     c.time:SetText(TimeText(h))
+    c.source:SetText(SourceText(view, h))
     c.member:SetText(M.removeServer and M.removeServer(h.member or "", true) or (h.member or ""))
     c.kind:SetText("|c" .. (History.CAT_COLOR[h.cat or "unknown"] or "ffffffff") .. ns.HistoryType(h) .. "|r")
     c.channel:SetText(h.channel or "")
@@ -208,9 +340,8 @@ end
 local function Tip(view, row, i)
     local h = view.shown[i]
     if not h then return end
-    local src = History.sourceLabel and History.sourceLabel[h]
     ns.Tip(row, TimeText(h) .. "  " .. (h.channel or "") .. "\n" .. (h.member or "")
-        .. (src and ("\n|cffaaaaaa" .. src .. "|r") or "") .. "\n\n" .. (h.message or "")
+        .. "\n|cffaaaaaa" .. SourceText(view, h) .. "|r\n\n" .. (h.message or "")
         .. "\n\n|cffaaaaaaClick a link to open it, shift-click to paste it. Double-click: copy the message.|r")
 end
 
@@ -222,7 +353,7 @@ local function Click(view, row, i, button)
         view.lastClick = nil
         local h = view.shown[i]
         if h and EUI.ShowCopyPopup then
-            EUI:ShowCopyPopup("Block History", (h.member or "") .. "  " .. TimeText(h), h.message or "")
+            EUI:ShowCopyPopup("Events", (h.member or "") .. "  " .. TimeText(h), h.message or "")
         end
     else
         view.lastClick, view.lastClickAt = i, now
@@ -238,29 +369,28 @@ local function SetSort(view, key)
     view:Apply(true)
 end
 
-local function Build(page)
-    local win = page:GetParent()
-    local view = setmetatable({ page = page, all = {}, shown = {}, vals = {}, order = {},
-        sortKey = "time", sortAsc = false }, View)
-    local f = CreateFrame("Frame", nil, win)
-    f:SetAllPoints(page)
-    f:Hide()
-    ns.Panel(f)
-    view.frame = f
+-- a drop-down whose menu is built each time it opens
+local function NewMenu(parent, w, build)
+    local d = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+    d:SetWidth(w)
+    d:SetupMenu(function(_, root) build(root) end)
+    ns.Dropdown(d)
+    return d
+end
 
-    -- Block History: name (n)                  [All Guilds] [Reset] [Close]
+-- the tab page: built the first time the tab shows (EUI_Window.lua)
+function ns.BuildEventsTab(page)
+    view = setmetatable({ page = page, frame = page, q = NewQuery(), all = {}, shown = {}, vals = {},
+        order = {}, srcOf = {}, saved = {}, nsaved = 0, sortKey = "time", sortAsc = false }, View)
+    local f = page
+
+    -- Events: name (n)                                  [Reset Block History]
     view.heading = ns.NewHeading(f, "")
     view.heading:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -10)
-    local close = ns.NewButton(f, "Close", 80, function()
-        view:Close()
-        ns.NavRecord()
-    end)
-    close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -6)
-    ns.TipOn(close, close, "Back to the tab (Escape too).")
-    local reset = ns.NewButton(f, L["HISTORY_RESET"] or "Reset Block History", 130, function()
-        local spec = view.spec
+    local reset = ns.NewButton(f, L["HISTORY_RESET"] or "Reset Block History", 140, function()
+        local spec = view.q.scope
         if not spec then return end
-        if spec.id and not spec.confirm then
+        if not spec.confirm then
             spec.reset(spec.id)
             view:Refresh(true)
             return
@@ -276,94 +406,144 @@ local function Build(page)
             end,
         })
     end)
-    reset:SetPoint("RIGHT", close, "LEFT", -6, 0)
+    reset:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -6)
+    ns.TipOn(reset, reset, "Clears this entry's block history and counts.")
     view.resetButton = reset
-    view.allButton = ns.NewButton(f, "All", 100, function()
-        local spec = view.spec
-        local all = spec and spec.all and spec.all()
-        if not all then return end
-        view.spec = all
-        view:Refresh(true)
-        ns.NavRecord()
-    end)
-    view.allButton:SetPoint("RIGHT", reset, "LEFT", -6, 0)
 
-    -- [x] whisper ... [x] guild          [search player, channel or message]
+    -- [Time v] [Types v] [Source v]          [search player, channel or message]
     local bar = CreateFrame("Frame", nil, f)
-    bar:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -36)
+    bar:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -34)
     bar:SetPoint("RIGHT", f, "RIGHT", -10, 0)
-    bar:SetHeight(20)
-    view.boxes = ns.TypeBoxes(bar)
-    local search = CreateFrame("EditBox", nil, bar, "InputBoxTemplate")
-    search:SetPoint("RIGHT", bar, "RIGHT", 0, 0)
-    search:SetSize(260, 20)
-    search:SetAutoFocus(false)
-    ns.EditBox(search)
-    local hint = ns.NewText(search, 12)
-    hint:SetPoint("LEFT", search, "LEFT", 2, 0)
-    hint:SetTextColor(1, 1, 1, 0.4)
-    hint:SetText("Search player, channel or message")
-    search:SetScript("OnTextChanged", function(self)
-        local text = self:GetText() or ""
-        hint:SetShown(text == "")
-        if text ~= view.lastFind then
-            view.lastFind = text
-            if view.spec then view:Apply(true) end
+    bar:SetHeight(22)
+    view.timeDrop = NewMenu(bar, 190, function(root)
+        for _, t in ipairs(TIMES) do
+            root:CreateRadio(t.text, function() return (view.q.period or "all") == t.key end, function()
+                local q = view.q
+                if t.key == "custom" then
+                    q.period = "custom"
+                    q.from = q.from or (History.Now() - DAY)
+                    view.fromBox:SetText(date(INPUT_FMT, q.from))
+                    view.toBox:SetText(q.to and date(INPUT_FMT, q.to) or "")
+                else
+                    q.period = t.key ~= "all" and t.key or nil
+                end
+                view:Changed()
+            end)
         end
     end)
-    search:SetScript("OnEscapePressed", function(self) self:SetText(""); self:ClearFocus() end)
-    search:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    view.timeDrop:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0)
+    view.typeDrop = NewMenu(bar, 150, function(root)
+        root:CreateButton("All types", function()
+            view.q.cats = nil
+            view:Changed()
+        end)
+        for _, cat in ipairs(History.ALL_CATS or {}) do
+            root:CreateCheckbox(History.CAT_LABEL[cat] or cat, function()
+                return not view.q.cats or view.q.cats[cat] == true
+            end, function()
+                local q = view.q
+                if not q.cats then
+                    q.cats = {}
+                    for _, c in ipairs(History.ALL_CATS) do q.cats[c] = true end
+                end
+                q.cats[cat] = not q.cats[cat] or nil
+                local every = true
+                for _, c in ipairs(History.ALL_CATS) do if not q.cats[c] then every = false end end
+                if every then q.cats = nil end
+                view:Changed()
+            end)
+        end
+    end)
+    view.typeDrop:SetPoint("LEFT", view.timeDrop, "RIGHT", 6, 0)
+    view.sourceDrop = NewMenu(bar, 230, function(root)
+        local q = view.q
+        if q.scope then
+            root:CreateCheckbox("Only " .. (view.name or "?"), function() return view.q.scope ~= nil end, function()
+                view.q.scope = nil
+                for _, src in ipairs(SOURCES) do view.q.sources[src.key] = true end
+                view:Changed()
+            end)
+        end
+        for _, src in ipairs(SOURCES) do
+            root:CreateCheckbox(src.text, function()
+                return view.q.scope == nil and view.q.sources[src.key] == true
+            end, function()
+                local q2 = view.q
+                if q2.scope then
+                    -- from one entry to this whole list
+                    q2.scope = nil
+                    for k in pairs(q2.sources) do q2.sources[k] = k == src.key end
+                else
+                    q2.sources[src.key] = not q2.sources[src.key] or nil
+                end
+                view:Changed()
+            end)
+        end
+    end)
+    view.sourceDrop:SetPoint("LEFT", view.typeDrop, "RIGHT", 6, 0)
+    local search = ns.NewSearchBox(bar, 240, "Search player, channel or message", function(text)
+        if text ~= view.lastFind then
+            view.lastFind = text
+            view:Apply(true)
+        end
+    end)
+    search:SetPoint("RIGHT", bar, "RIGHT", 0, 0)
     view.search = search
 
-    local lf = CreateFrame("Frame", nil, f)
-    -- [This session] [Last 24 hours] [All time]               [Guilds v]
-    local bar2 = CreateFrame("Frame", nil, f)
-    bar2:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -60)
-    bar2:SetPoint("RIGHT", f, "RIGHT", -10, 0)
-    bar2:SetHeight(22)
-    view.periodButtons = {}
-    local prevB
-    for _, per in ipairs(ns.SUMMARY_PERIODS) do
-        local b = CreateFrame("Button", nil, bar2)
-        b:SetNormalFontObject(GameFontHighlightSmall)
-        b:SetText(per.text)
-        b:SetSize(110, 22)
-        if prevB then b:SetPoint("LEFT", prevB, "RIGHT", 4, 0) else b:SetPoint("TOPLEFT", bar2, "TOPLEFT", 0, 0) end
-        b:SetScript("OnClick", function()
-            if not view.spec then return end
-            view.period = per.key ~= "all" and per.key or nil
-            view:Apply(true)
-        end)
-        ns.Tab(b)
-        ns.TipOn(b, b, per.key == "all" and "Every logged event." or ("Only the events of " .. string.lower(per.text) .. "."))
-        view.periodButtons[per.key] = b
-        prevB = b
+    -- the custom range: From [2026-10-04 13:20]  To [          ]  [Apply]
+    local custom = CreateFrame("Frame", nil, f)
+    custom:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -60)
+    custom:SetPoint("RIGHT", f, "RIGHT", -10, 0)
+    custom:SetHeight(22)
+    custom:Hide()
+    view.custom = custom
+    local function Box(label, x)
+        local t = ns.NewText(custom, 12)
+        t:SetPoint("LEFT", custom, "LEFT", x, 0)
+        t:SetText(label)
+        local e = CreateFrame("EditBox", nil, custom, "InputBoxTemplate")
+        e:SetSize(130, 20)
+        e:SetAutoFocus(false)
+        e:SetPoint("LEFT", t, "RIGHT", 8, 0)
+        ns.EditBox(e)
+        return e
     end
-    view.pick = ns.NewDropdown(bar2, 200, function()
-        local spec = view.spec
-        local out = {}
-        for i, c in ipairs(spec and spec.pick and spec.pick() or {}) do out[i] = { c.key, c.name } end
-        return out
-    end, function(key)
-        local spec = view.spec
-        if not (spec and spec.pickSpec) then return end
-        view.spec = spec.pickSpec(key)
-        view:Refresh(true)
-        ns.NavRecord()
+    view.fromBox = Box("From", 0)
+    view.toBox = Box("To", 190)
+    local apply
+    apply = ns.NewButton(custom, "Apply", 70, function()
+        local q = view.q
+        local from = ParseTime(view.fromBox:GetText())
+        local toText = M.trim(view.toBox:GetText() or "") or ""
+        local to = toText ~= "" and ParseTime(toText) or nil
+        view.rangeError:SetText((not from or (toText ~= "" and not to)) and "|cffff6060Dates as 2026-10-05 13:20|r" or "")
+        if not from or (toText ~= "" and not to) then return end
+        -- a "to" without a time takes the whole day
+        if to and not toText:find(":", 1, true) then to = to + DAY - 1 end
+        q.from, q.to = from, to
+        view:Changed()
     end)
-    view.pick:SetPoint("RIGHT", bar2, "RIGHT", 0, 0)
-    if view.pick.SetDefaultText then view.pick:SetDefaultText("Guilds") end
-    view.pick:Hide()
+    apply:SetPoint("LEFT", view.toBox, "RIGHT", 8, 0)
+    view.applyButton = apply
+    view.fromBox:SetScript("OnEnterPressed", function(self) self:ClearFocus(); apply:GetScript("OnClick")(apply) end)
+    view.toBox:SetScript("OnEnterPressed", function(self) self:ClearFocus(); apply:GetScript("OnClick")(apply) end)
+    ns.TipOn(view.fromBox, view.fromBox, "The first day and time shown, as 2026-10-05 13:20 (a day alone: from its start).")
+    ns.TipOn(view.toBox, view.toBox, "The last day and time shown (empty: up to now; a day alone: to its end).")
+    view.rangeError = ns.NewText(custom, 11)
+    view.rangeError:SetPoint("LEFT", apply, "RIGHT", 8, 0)
 
-    lf:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -88)
+    local lf = CreateFrame("Frame", nil, f)
+    lf:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -62)
     lf:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, 8)
+    view.listFrame = lf
     view.list = ns.NewRows(lf, {
         rowH = 18, fontSize = 12, links = true,
         cols = {
             { key = "time", text = "Time", width = 136 },
-            { key = "member", text = "Player", width = 150 },
-            { key = "kind", text = "Type", width = 64 },
-            { key = "channel", text = "Channel", width = 130 },
+            { key = "source", text = "Source", width = 140 },
+            { key = "member", text = "Player", width = 130 },
+            { key = "kind", text = "Type", width = 60 },
+            { key = "channel", text = "Channel", width = 120 },
             { key = "message", text = "Message" },
         },
         sort = function(key) SetSort(view, key) end,
@@ -371,37 +551,80 @@ local function Build(page)
         enter = function(row, i) Tip(view, row, i) end,
         click = function(row, i, button) Click(view, row, i, button) end,
     })
-    views[#views + 1] = view
-    page.hview = view
-    return view
-end
 
--- Open spec's Block History in place of page's tab.
-function ns.OpenHistoryView(page, spec, quiet)
-    local view = page.hview or Build(page)
-    view:Open(spec)
-    if not quiet then ns.NavRecord() end
-    return view
-end
-
--- the type boxes changed: redraw every open view
-ns.HistoryWatch(function()
-    for _, v in ipairs(views) do
-        for t, c in pairs(v.boxes) do c:SetChecked(not hidden[t]) end
-        if v.spec then v:Apply(false) end
+    -- back / forward (EUI_Window.lua): each query a step; Events in the
+    -- line by the arrows is the tab as it opens
+    page.navState = function()
+        local key = QueryKey(view.q)
+        if key and not view.saved[key] then
+            if view.nsaved >= 100 then wipe(view.saved); view.nsaved = 0 end
+            view.saved[key] = CopyQuery(view.q)
+            view.nsaved = view.nsaved + 1
+        end
+        return key
     end
-end)
+    page.navTitle = function(key)
+        local q = view.saved[key]
+        if not q then return "?" end
+        local t = Title(q, q.scope and q.scope.label(q.scope.id))
+        if q.period then t = t .. ", " .. TimeLabel(q) end
+        if q.cats then t = t .. ", " .. TypesLabel(q) end
+        return t
+    end
+    page.navApply = function(key)
+        local q = key and view.saved[key]
+        view.q = q and CopyQuery(q) or NewQuery()
+        view:Refresh(true)
+    end
+    page.navReset = function()
+        view.q = NewQuery()
+        view.search:SetText("")
+    end
+    page.view = view
+    return function()
+        view:Refresh(view.toTop)
+        view.toTop = nil
+    end
+end
 
--- new blocks: read an open view again, at most 4 times a second
+-- Show the Events tab for spec (an entry; a whole list: that list as the
+-- source; nil: every list) with opts.period and opts.cats (nil: every type).
+function ns.OpenEvents(tabPage, spec, opts)
+    if not ns.ShowEventsTab then return end
+    opts = opts or {}
+    ns.ShowEventsTab(function()
+        local q = NewQuery()
+        if spec and spec.id == false and spec.source then
+            for k in pairs(q.sources) do q.sources[k] = k == spec.source end
+        elseif spec then
+            q.scope = spec
+        end
+        q.period = opts.period ~= "all" and opts.period or nil
+        if opts.cats then
+            q.cats = {}
+            for k, v in pairs(opts.cats) do q.cats[k] = v end
+        end
+        view.q = q
+        view.search:SetText("")
+        view.sortKey, view.sortAsc = "time", false
+        view.toTop = true
+    end)
+    return view
+end
+
+-- the pane histories and older callers: spec's events, its period
+function ns.OpenHistoryView(page, spec)
+    return ns.OpenEvents(page, spec, { period = spec and spec.period })
+end
+
+-- new blocks: read the tab again while it shows, at most 4 times a second
 local pending
 local function Changed()
     if pending then return end
     pending = true
     C_Timer.After(0.25, function()
         pending = nil
-        for _, v in ipairs(views) do
-            if v.spec and v.frame:IsVisible() then v:Refresh(false) end
-        end
+        if view and view.frame:IsVisible() then view:Refresh(false) end
     end)
 end
 M.Events.Register("PLAYER_BLOCKED", Changed)
