@@ -305,6 +305,18 @@ check(view.list.count == 2 and (view.heading:GetText() or ""):match("Big Guild")
 check(win.where:GetText() == "Events  >  Big Guild", "where line " .. tostring(win.where:GetText()))
 check(view.resetButton:IsShown(), "no Reset Block History for a guild")
 check(view.list.rows[1]._links == true, "links in the view not clickable")
+-- hovering a link shows its tooltip, but never a profession link's
+-- SetHyperlink (that opens the profession window)
+do
+	local row, set = view.list.rows[1], {}
+	local oldSet, oldLines = GameTooltip.SetHyperlink, GameTooltip.NumLines
+	GameTooltip.SetHyperlink = function(_, link) set[#set + 1] = link end
+	GameTooltip.NumLines = function() return 1 end
+	row:GetScript("OnHyperlinkEnter")(row, "item:19019::::::::60:::::")
+	row:GetScript("OnHyperlinkEnter")(row, "trade:Player-1-0001:2259:171")
+	check(#set == 1 and set[1]:find("^item:"), "link hover: " .. table.concat(set, ", "))
+	GameTooltip.SetHyperlink, GameTooltip.NumLines = oldSet, oldLines
+end
 check(view.list.rows[1].cells.member:GetText() ~= "" and view.list.rows[1].cells.channel:GetText() == "Whisper", "player / channel cells")
 local function find(text)
 	view.search:SetText(text)
