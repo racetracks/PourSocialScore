@@ -23,7 +23,7 @@
 --   GUILD_BLOCKS_CHANGED         guild block counts changed (at most 4 a second)
 --   GUILD_SCAN_DONE              a /who answer was stored under the guild rules
 --   GUILD_REMOVED (key)          a guild rule was removed
---   GUILD_SEARCH_RESULTS (list, query, mode)  Guild Search found these guilds
+--   GUILD_SEARCH_RESULTS (list, query, mode, owner)  Guild Search found these guilds
 --   OPTION_CHANGED (key)         an option was set (any scope)
 ------------------------------------------------------------------------
 local addonName, addon = ...

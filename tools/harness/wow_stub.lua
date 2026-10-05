@@ -120,14 +120,25 @@ function W:GetMinMaxValues() return 0, 100 end
 function W:GetValue() return self._value or 0 end
 function W:SetValue(v) self._value = v end
 function W:GetMaxLetters() return 255 end
-function W:GetAlpha() return 1 end
+function W:SetAlpha(a) self._alpha = a end
+function W:GetAlpha() return self._alpha or 1 end
 function W:GetTextColor() return 1, 1, 1, 1 end
 function W:GetFont() return "Fonts\\FRIZQT__.TTF", 12, "" end
 function W:GetJustifyH() return "LEFT" end
+-- only text regions justify: on a Button or Frame the game has no such method
+local JUSTIFIES = { FontString = true, EditBox = true, SimpleHTML = true, MessageFrame = true, ScrollingMessageFrame = true }
+local function justify(self, name)
+	if not JUSTIFIES[self._kind] then error(("attempt to call method '%s' (a nil value) on a %s"):format(name, tostring(self._kind)), 3) end
+end
+function W:SetJustifyH() justify(self, "SetJustifyH") end
+function W:SetJustifyV() justify(self, "SetJustifyV") end
 function W:GetChildren() return end
 function W:GetRegions() return end
 function W:GetNumChildren() return 0 end
-function W:IsMouseOver() return false end
+function W:SetHyperlinksEnabled(on) self._links = on and true or false end
+function W:GetHyperlinksEnabled() return self._links or false end
+-- a check sets f._mouseOver to put the mouse over a frame
+function W:IsMouseOver() return self._mouseOver or false end
 function W:IsDragging() return false end
 function W:GetTexture() return nil end
 function W:GetAtlas() return nil end

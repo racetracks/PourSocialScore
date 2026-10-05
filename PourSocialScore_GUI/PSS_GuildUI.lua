@@ -14,14 +14,12 @@ local L = addon.L
 local Whois				= M.Whois
 local History			= M.PSS_History
 local CAT_ORDER, CAT_LABEL = History.CAT_ORDER, History.CAT_LABEL
-local parseTimeString	= History.ParseTime
 local normalizeGuild	= M.PSS_NormalizeGuild
 local ensureDB			= M.PSS_EnsureGuildDB
 local findGuildRecord	= M.PSS_FindGuildRecord
 local guildBlock		= M.PSS_GuildBlock
 local memberBlock		= M.PSS_MemberBlock
 local memberBlocks		= M.PSS_MemberBlocks
-local forEachMember		= M.PSS_ForEachGuildMember
 local isStaticGuild		= M.PSS_IsStaticManagedGuild
 local ensureMemberBlockData = M.PSS_EnsureMemberBlockData
 local pssSay			= M.PSS_Say
@@ -77,7 +75,9 @@ end
 --   mode nil       : ticked guilds become guild rules, with the players the
 --                    search saw in them as members
 --   mode "exclude" : ticked guilds go on the Guild Exclusion List
-local function showGuildSearchResults(list, query, mode)
+-- A search another window started (owner set) is that window's to show.
+local function showGuildSearchResults(list, query, mode, owner)
+	if owner then return end		-- another window's search (EllesmereUI)
 	ensureDB()
 	local exclude = mode == "exclude"
 
@@ -172,18 +172,11 @@ end
 -- frame.histPanel, frame.updateSelection.
 ------------------------------------------------------------------------
 local UI = M.UI
-local EXCL_OPEN_KEY = "__exclusions"	-- the Guild Exclusion List header
+local EXCL_OPEN_KEY = M.PSS_GUILD_EXCL_OPEN	-- the Guild Exclusion List header
 
 -- Open / closed state of the collapsible rows (managed groups and the
 -- Guild Exclusion List), a window preference kept in the save.
-local function groupOpen(k)
-	PourSocialScoreDB.guildGroupOpen = type(PourSocialScoreDB.guildGroupOpen) == "table" and PourSocialScoreDB.guildGroupOpen or {}
-	return PourSocialScoreDB.guildGroupOpen[k] == true
-end
-local function setGroupOpen(k, on)
-	groupOpen(k)
-	PourSocialScoreDB.guildGroupOpen[k] = on and true or nil
-end
+local groupOpen, setGroupOpen = M.PSS_GuildGroupOpen, M.PSS_SetGuildGroupOpen
 
 local function refreshTab(frame)
 	if frame.refresh then frame.refresh() end
@@ -287,7 +280,7 @@ local function buildGuildList(frame)
 	frame.rows = {}
 	frame.groupRows = {}
 	frame.exclRows = {}
-	frame.itemPool, frame.listBuf, frame.groupBuf = {}, {}, {}
+	frame.display = {}		-- M.PSS_GuildRows fills it on every redraw
 end
 
 -- Remove Guild and Block History on the bottom bar.
@@ -573,107 +566,6 @@ local function makeGuildRow(frame, i)
 end
 
 ---------------------------------------------------------------- list contents
--- Every guild rule as { key, g, bc }: the top-level ones, and each managed
--- group's under groups[group key].
--- The tables are the tab's own and reused on every redraw (one item per
--- guild rule, kept while the rule exists), so a redraw makes little garbage.
-local function collectGuilds(frame)
-	local pool = frame.itemPool
-	local list, groups = frame.listBuf, frame.groupBuf
-	for i = #list, 1, -1 do list[i] = nil end
-	for k, items in pairs(groups) do
-		for i = #items, 1, -1 do items[i] = nil end
-	end
-	for key in pairs(pool) do
-		if not PourSocialScoreDB.guildData[key] then pool[key] = nil end
-	end
-	for key, g in pairs(PourSocialScoreDB.guildData or {}) do
-		if type(g) == "table" then
-			g.memberCount = M.PSS_GuildMemberCount(g, key)
-			local item = pool[key] or {}
-			pool[key] = item
-			item.key, item.g, item.bc = key, g, M.PSS_GetGuildBlockCounts(key)
-			item.inGroup, item.groupOn, item.sv, item.nv = nil, nil, nil, nil
-			if g.managed then
-				groups[g.managed] = groups[g.managed] or {}
-				table.insert(groups[g.managed], item)
-			else
-				list[#list + 1] = item
-			end
-		end
-	end
-	-- a group left with no guilds is not shown
-	for k, items in pairs(groups) do
-		if #items == 0 then groups[k] = nil end
-	end
-	return list, groups
-end
-
--- Sorts items in place by the tab's sort column; ties by guild name A-Z.
-local function sortGuildItems(frame, items)
-	local sortKey, asc = frame.sortKey or "guild", frame.sortAsc ~= false
-	local group, cat = sortKey:match("^(%a+):(%a+)$")
-	local function flag(v) return UI.ExclChecked(v == true) and 1 or 0 end		-- by tick (allowed)
-	local function sortValue(item)
-		local g, bc = item.g, item.bc
-		if group == "metric" then return bc[cat] or 0
-		elseif group == "excl" then return flag(guildBlock(g)[cat])
-		elseif sortKey == "guild" then return string.lower(g.name or item.key or "")
-		elseif sortKey == "members" then return g.memberCount or 0
-		elseif sortKey == "scan" then return M.PSS_GuildSweepSent(item.key)
-		elseif sortKey == "fields" then return string.lower(g.customScan or "")
-		elseif sortKey == "custom" then return ((g.customScan or "") ~= "") and 1 or 0
-		end
-		return 0
-	end
-	for _, item in ipairs(items) do
-		item.sv = sortValue(item)
-		item.nv = string.lower(item.g.name or item.key or "")
-	end
-	table.sort(items, function(a, b)
-		if a.sv ~= b.sv then
-			if asc then return a.sv < b.sv else return a.sv > b.sv end
-		end
-		-- ties: always guild name A-Z (then key, so the order is stable)
-		if a.nv ~= b.nv then return a.nv < b.nv end
-		return tostring(a.key) < tostring(b.key)
-	end)
-end
-
--- Display order: managed groups (headers) first, then the Guild Exclusion
--- List, then the other guilds.
-local function guildDisplayList(frame, list, groups)
-	local display = {}
-	local gkeys = {}
-	for k in pairs(groups) do gkeys[#gkeys + 1] = k end
-	table.sort(gkeys)
-	for _, k in ipairs(gkeys) do
-		local items = groups[k]
-		sortGuildItems(frame, items)
-		local grp = M.PSS_ManagedGroups()[k] or {}
-		local total, bc = 0, History.EmptyCounts()
-		for _, it in ipairs(items) do
-			total = total + (it.g.memberCount or 0)
-			for c, v in pairs(it.bc) do bc[c] = (bc[c] or 0) + (tonumber(v) or 0) end
-		end
-		local open = groupOpen(k)
-		display[#display + 1] = { header = true, groupKey = k, name = grp.name or k, guilds = #items, members = total, bc = bc, open = open }
-		if open then
-			local on = M.PSS_ManagedGroupActive(k)
-			for _, it in ipairs(items) do it.inGroup = true; it.groupOn = on; display[#display + 1] = it end
-		end
-	end
-	-- then the Guild Exclusion List (always shown, so it can be found)
-	local excluded = M.PSS_GuildExclusions()
-	local exclOpen = groupOpen(EXCL_OPEN_KEY)
-	display[#display + 1] = { exclHeader = true, count = #excluded, open = exclOpen }
-	if exclOpen then
-		for _, name in ipairs(excluded) do display[#display + 1] = { exclItem = true, name = name } end
-	end
-	for _, it in ipairs(list) do display[#display + 1] = it end
-	return display
-end
-
 local function placeRow(frame, row, i)
 	row:ClearAllPoints()
 	row:SetPoint("TOPLEFT", frame.content, "TOPLEFT", 0, -(i - 1) * UI.ROW_H)
@@ -733,19 +625,20 @@ local function refreshGuildList(frame)
 	for _, row in ipairs(frame.exclRows) do row:Hide() end
 	if frame.exclHeader then frame.exclHeader:Hide() end
 
-	local list, groups = collectGuilds(frame)
-	sortGuildItems(frame, list)
+	-- managed groups, then the Guild Exclusion List, then the other guilds
+	-- (PSS_GuildQuery.lua)
+	local display, n = M.PSS_GuildRows(frame.sortKey or "guild", frame.sortAsc ~= false, nil, frame.display)
 	frame.header:SetSort(frame.sortKey or "guild", frame.sortAsc ~= false)
 	if frame.selectedGuildKey and not PourSocialScoreDB.guildData[frame.selectedGuildKey] then
 		frame.selectedGuildKey = nil
 	end
-	local display = guildDisplayList(frame, list, groups)
 
 	frame.content:SetWidth(math.max(frame.scroll:GetWidth() or 0, frame.header.total))
-	frame.content:SetHeight(math.max(1, #display * UI.ROW_H))
+	frame.content:SetHeight(math.max(1, n * UI.ROW_H))
 
 	local gi, hi, ei = 0, 0, 0
-	for i, item in ipairs(display) do
+	for i = 1, n do
+		local item = display[i]
 		if item.exclHeader then
 			local row = frame.exclHeader or makeExclHeader(frame)
 			placeRow(frame, row, i)
@@ -840,23 +733,7 @@ for _, c in ipairs({
 	{ key = "addGuild", text = "Guild Rule", width = 90, tip = "Add Guild appears when the player's actual guild is not this rule: it creates a rule for that guild and moves its members there." },
 }) do MEMBER_COLS[#MEMBER_COLS + 1] = c end
 
--- The guild rule for a key or (older callers) a display name: key, record.
-local function findGuildRule(guildNameOrKey)
-	-- Prefer the exact persisted guild key. This avoids accidentally creating a
-	-- new empty guild object when a UI row is opened after a scan.
-	local requestedKey = normalizeGuild(guildNameOrKey)
-	local g = requestedKey and PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[requestedKey]
-	if not g then
-		-- Compatibility: callers may still pass the display name.
-		for key, candidate in pairs(PourSocialScoreDB.guildData or {}) do
-			if normalizeGuild(candidate.name) == requestedKey then
-				requestedKey, g = key, candidate
-				break
-			end
-		end
-	end
-	return requestedKey, g
-end
+local findGuildRule = M.PSS_FindGuildRule
 
 -- show each W I G P C box: ticked = allowed (own choice or the
 -- guild's), dimmed = following the guild's setting
@@ -882,8 +759,8 @@ local function updateMemberSelection(f)
 	end
 	f.selectedEntry = nil
 	if f.selectedMember then
-		for _, e in ipairs(f.filtered or {}) do
-			if e.member == f.selectedMember then f.selectedEntry = e break end
+		for _, m in ipairs(f.filtered or {}) do
+			if m == f.selectedMember then f.selectedEntry = m break end
 		end
 	end
 	f.removeButton:SetEnabled(f.selectedEntry ~= nil)
@@ -903,9 +780,9 @@ end
 local function buildMembersBottomBar(f, inset)
 	local removeBtn = UI.BarButton(inset, "Remove Member")
 	removeBtn:SetScript("OnClick", function()
-		local e = f.selectedEntry
-		if e and e.member and M.PSS_RemoveGuildMember then
-			M.PSS_RemoveGuildMember(f.guildKey, e.member.name, e.sourceKey, e.storedKey)
+		local m = f.selectedEntry
+		if m and M.PSS_RemoveGuildMember then
+			M.PSS_RemoveGuildMember(f.guildKey, m.name, f.guildKey, f.filtered.stored[m] or nil)
 			f.selectedMember = nil
 			if f.refresh then f.refresh() end
 			if M.PSSUpdateGuildUI then M.PSSUpdateGuildUI() end
@@ -1006,57 +883,10 @@ local function buildMembersWindow()
 	return f
 end
 
--- Each guild rule shows ONLY the members stored under that rule (plus,
--- for a managed guild, its shipped members).
-local function collectMembers(f)
-	local all = {}
-	local gg = PourSocialScoreDB.guildData[f.guildKey]
-	if not gg or type(gg.members) ~= "table" then return all end
-	forEachMember(gg, f.guildKey, function(m, key)
-		all[#all + 1] = { member = m, sourceKey = f.guildKey, storedKey = key }
-	end, true)
-	return all
-end
-
-local function memberSortValue(f, entry, key)
-	local m = entry.member
-	local mcat = key:match("^metric:(.+)$")
-	if mcat then return tonumber(M.PSS_GetMemberBlockCounts(m)[mcat]) or 0 end
-	local cat = key:match("^excl:(.+)$")
-	if cat then
-		local gg = PourSocialScoreDB.guildData[f.guildKey]
-		return UI.ExclChecked(gg and memberBlocks(gg, m, cat)) and 1 or 0	-- by tick (allowed)
-	elseif key == "name" then return string.lower(m.name or "")
-	elseif key == "guild" then return string.lower(m.guild or "")
-	elseif key == "note" then return string.lower(m.note or "")
-	elseif key == "added" then return parseTimeString(m.whenBlocked) or 0
-	elseif key == "addGuild" then
-		-- members whose actual guild differs from this rule (Add Guild shown)
-		local ag = normalizeGuild(m.guild or "")
-		return (ag and ag ~= "" and ag ~= normalizeGuild(f.guildName)) and 1 or 0
-	end
-	return 0
-end
-
 -- Add Guild on a member row: a rule for the member's actual guild, with
 -- every stored member of that guild moved to it.
 local function addMembersGuild(f, actual)
-	local base = normalizeGuild(f.guildName)
-	if actual and actual ~= "" and normalizeGuild(actual) ~= base and M.PSS_AddCapturedGuild then
-		local srcG = PourSocialScoreDB.guildData[f.guildKey]
-		local added, migrated, removedRefs, perSource, leftover = M.PSS_AddCapturedGuild(actual, srcG and srcG.managed)
-		local from = {}
-		for _, s in ipairs(perSource or {}) do
-			from[#from + 1] = ("%s (%d)"):format(s.name, s.moved)
-		end
-		M.ChatMsg(("PSS: Added guild %q. Added %d new member(s) (%d total matched). Removed %d old record(s)%s. Blocked history moved with them."):format(
-			actual, added or 0, migrated or 0, removedRefs or 0,
-			#from > 0 and (" from: " .. table.concat(from, ", ")) or ""))
-		if (leftover or 0) > 0 then
-			M.ChatMsg(("PSS: WARNING - %d old record(s) for %q could not be removed."):format(leftover, actual))
-		end
-		if f.refresh then f.refresh() end
-	end
+	if M.PSS_AddMembersGuild(f.guildKey, actual) and f.refresh then f.refresh() end
 end
 
 local function memberRowClick(f, self, button)
@@ -1163,32 +993,11 @@ local function makeMemberRow(f, i)
 	return r
 end
 
--- The members matching the search box, sorted by the window's sort column.
-local function filteredMembers(f, rows, query)
-	local filtered = {}
-	for _, entry in ipairs(rows) do
-		local m = entry.member
-		local hay = string.lower((m.name or "") .. " " .. (m.guild or "") .. " " .. (m.note or ""))
-		if query == "" or hay:find(query, 1, true) then filtered[#filtered + 1] = entry end
-	end
-	local key, asc = f.sortKey or "name", f.sortAsc ~= false
-	for _, e in ipairs(filtered) do e.sv = memberSortValue(f, e, key); e.nv = string.lower(e.member.name or "") end
-	table.sort(filtered, function(a, b)
-		if a.sv ~= b.sv then
-			if asc then return a.sv < b.sv else return a.sv > b.sv end
-		end
-		return a.nv < b.nv		-- stable tie-break by name
-	end)
-	f.hr:SetSort(key, asc)
-	return filtered
-end
-
-local function fillMemberRow(f, r, entry, baseGuild)
-	local m = entry.member
+local function fillMemberRow(f, r, m, baseGuild)
 	r.member = m
 	r.memberName = m.name
-	r.memberGuildKey = entry.sourceKey
-	r.storedKey = entry.storedKey
+	r.memberGuildKey = f.guildKey
+	r.storedKey = f.filtered.stored[m] or nil
 	r.memberGuild = m.guild or ""
 	r.name:SetText(m.name or "")
 	local cc = m.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[m.class]
@@ -1257,16 +1066,20 @@ refreshMembers = function(f, auto)
 	end
 	f.refreshPending = false
 	local query = string.lower(trim(f.search:GetText() or ""))
-	local rows = collectMembers(f)
-	local filtered = filteredMembers(f, rows, query)
+	-- the members matching the search box, sorted by the window's sort
+	-- column (PSS_GuildQuery.lua)
+	local key, asc = f.sortKey or "name", f.sortAsc ~= false
+	local filtered, n, total = M.PSS_GuildMembers(f.guildKey, key, asc, query, f.filtered or {})
+	f.hr:SetSort(key, asc)
+	n = n or 0
 
 	f.heading:SetText("Members of |cffffff00" .. tostring(f.guildName) .. "|r")
-	f.count:SetText((#rows) .. " member" .. (#rows == 1 and "" or "s") .. " found" ..
-		(query ~= "" and ((" (%d shown)"):format(#filtered)) or ""))
+	f.count:SetText(total .. " member" .. (total == 1 and "" or "s") .. " found" ..
+		(query ~= "" and ((" (%d shown)"):format(n)) or ""))
 	f.metrics:Set(M.PSS_GetGuildBlockCounts(f.guildKey))
 	local rowH = UI.ROW_H
 	f.content:SetWidth(math.max(f.scroll:GetWidth() or 0, f.tableWidth))
-	f.content:SetHeight(math.max(1, #filtered * rowH))
+	f.content:SetHeight(math.max(1, n * rowH))
 	for _, r in ipairs(f.rows) do r:Hide() end
 
 	f.filtered = filtered

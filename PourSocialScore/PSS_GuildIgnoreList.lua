@@ -1515,7 +1515,7 @@ local function finishScan(req, numWhos, total, how)
 		-- temporary cache of who was seen in each guild (used by Save)
 		M.PSS_GuildSearchCache = { at = GetTime(), byGuild = searchState.players or {} }
 		C_Timer.After(0, function()
-			M.Events.Fire("GUILD_SEARCH_RESULTS", list, searchState.query, searchState.mode)
+			M.Events.Fire("GUILD_SEARCH_RESULTS", list, searchState.query, searchState.mode, searchState.owner)
 		end)
 	end
 
@@ -1572,7 +1572,8 @@ Whois.Listen({
 -- treated as a complete /who filter and sent untouched.
 -- mode "exclude" (the Guild Exclusion List search): the text is always a
 -- guild name, and the results picker adds to the exclusion list instead.
-function M.PSS_GuildSearch(text, mode)
+-- owner: who shows the results (nil = the PSS window, "eui" = EllesmereUI).
+function M.PSS_GuildSearch(text, mode, owner)
 	text = trim(text or "")
 	if text == "" then return false end
 
@@ -1585,7 +1586,7 @@ function M.PSS_GuildSearch(text, mode)
 	filter = M.PSS_CapWhoFilter(filter)		-- Options: scan level cap
 
 	-- /who must go out straight from the click (hardware event)
-	return Whois.Request({ kind = "guildSearch", filter = filter, query = text, mode = mode, found = {} })
+	return Whois.Request({ kind = "guildSearch", filter = filter, query = text, mode = mode, owner = owner, found = {} })
 end
 
 local function guildSearchChat(msg)

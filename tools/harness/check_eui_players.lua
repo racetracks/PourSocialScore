@@ -161,14 +161,52 @@ check(p.opts[okey] == false, "override not Off")
 ob:GetScript("OnClick")(ob)
 check(p.opts == nil or p.opts[okey] == nil, "override not back to Default")
 
--- a block from them shows in the pane (history read only once something
--- was blocked)
-check(#pane.history == 0 and pane.histList.count == 0, "history before any block")
+-- a block from them is counted at once; the block history
+-- (PourSocialScore_Logging) loads only on Show Block History, not for a
+-- click on the row
+local hv = pane.hist
+check(hv.list.count == 0 and not hv.gate:IsShown(), "history before any block")
+check(not loaded("PourSocialScore_Logging"), "Logging loaded before the history was asked for")
 M.PSS_RecordPlayerBlock(sel, "CHAT_MSG_WHISPER", "buy gold", nil, "whisper")
 H.RunTimers()
-check(pane.histList.count == 1, "history after a block: " .. pane.histList.count)
 check(pane.counts:GetText():match("^Blocked 1"), "counts " .. tostring(pane.counts:GetText()))
-check((pane.histList.rows[1].cells.message:GetText() or ""):match("buy gold"), "history row text")
+check(not loaded("PourSocialScore_Logging"), "a block shown in the pane loaded Logging")
+check(hv.gate:IsShown() and hv.gate:GetText() == "Show Block History (1)", "no Show Block History button")
+check(hv.list.count == 0, "history read without Logging")
+hv.gate:GetScript("OnClick")(hv.gate)
+check(loaded("PourSocialScore_Logging"), "Show Block History did not load Logging")
+check(not hv.gate:IsShown(), "button still shown once loaded")
+check(hv.list.count == 1, "history after Show Block History: " .. hv.list.count)
+local hc = hv.list.rows[1].cells
+check((hc.message:GetText() or ""):match("buy gold"), "history row text")
+check((hc.kind:GetText() or ""):match("|c%x+whisper|r"), "type not one word: " .. tostring(hc.kind:GetText()))
+check((hc.time:GetText() or ""):match("^%d%d%d%d/%d%d/%d%d %d%d:%d%d:%d%d$"), "time format " .. tostring(hc.time:GetText()))
+check(hc.name == nil, "a Name column in the player view")
+-- untick whisper: its lines hide (every list), tick again: back
+hv.boxes.whisper:SetChecked(false)
+hv.boxes.whisper:GetScript("OnClick")(hv.boxes.whisper)
+check(hv.list.count == 0, "whisper line not filtered")
+hv.boxes.whisper:SetChecked(true)
+hv.boxes.whisper:GetScript("OnClick")(hv.boxes.whisper)
+check(hv.list.count == 1, "whisper line not back")
+-- one word per type, party and raid lines by channel
+local T = hv.typeOf
+check(T({ cat = "partyInvite" }) == "invite" and T({ cat = "guildInvite" }) == "invite", "invite type")
+check(T({ cat = "world", channel = "2. Trade" }) == "world" and T({ cat = "guildChat" }) == "guild", "world / guild type")
+check(T({ cat = "partyRaid", channel = "Party Leader" }) == "party", "party type")
+check(T({ cat = "partyRaid", channel = "Raid Warning" }) == "raid", "raid type")
+check(T({ cat = "partyRaid", channel = "Battleground" }) == "BG" and T({ cat = "partyRaid", channel = "Instance" }) == "BG", "BG type")
+-- a double-click on a line opens the Block History view in place of the tab
+H.Advance(1)
+local hr = hv.list.rows[1]
+hr:GetScript("OnClick")(hr, "LeftButton")
+hr:GetScript("OnClick")(hr, "LeftButton")
+local view = page.hview
+check(view and view:IsOpen() and not page:IsShown() and view.list.count == 1, "player Block History view not opened")
+view.allButton:GetScript("OnClick")(view.allButton)
+check(view.spec.id == false and view.list.count >= 1, "All Players: " .. view.list.count)
+check(EllesmereUI.PressEscape() and not view:IsOpen() and page:IsShown(), "Escape did not close the player view")
+H.Advance(1)
 
 -- NPC entry: the player-only parts hide
 idx = M.PSS_SortPlayers(list.sortKey, list.sortAsc, nil)
