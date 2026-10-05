@@ -1,7 +1,8 @@
 -- PourSocialScore_Logging on demand (3.0 Step 4.4), as a run.lua script on a
 -- save that has already been upgraded (a login after the split):
 --   PSS_PHASE=1 : Logging is not loaded at login. A block is counted at once
---                 (PSS_CountsDB) and its line waits in the outbox. Logout.
+--                 (PSS_CountsDB) and its line waits in the outbox; removing
+--                 a player with nothing blocked leaves it unloaded. Logout.
 --   PSS_PHASE=2 : still not loaded at login, the line still waits. Opening
 --                 the history loads Logging and the waiting line joins the
 --                 log once; a removal loads it too.
@@ -31,6 +32,13 @@ if phase == 1 then
 	check(History.Waiting() == 1, "line not waiting (" .. History.Waiting() .. ")")
 	M.PSS_MemReport()
 	check(not loaded("PourSocialScore_Logging"), "/pss mem loaded Logging")
+	-- removing a player with nothing blocked has no lines to clear
+	M.PSS_AddIgnore("Quiet-Realm", true)
+	local pos = M.PSS_PlayerPosition("Quiet-Realm")
+	check(pos > 0, "Quiet-Realm not listed")
+	M.PSS_RemovePlayerAt(pos)
+	check(M.PSS_PlayerPosition("Quiet-Realm") == 0, "Quiet-Realm not removed")
+	check(not loaded("PourSocialScore_Logging"), "removing a player with no blocks loaded Logging")
 elseif phase == 2 then
 	check(History.Waiting() == 1, "waiting line lost over the logout")
 	local n = 0

@@ -8,7 +8,9 @@
 --         Scan All and the key binding with the /who cooldown, the members
 --         view (note, W I G P C, confirmed removal), managed groups, the
 --         Guild Exclusion List, Guild Search with Save, confirmed Remove
---         Guild; PourSocialScore_GUI never loads
+--         Guild, block history on demand (type filters, names), back /
+--         forward, mouse buttons 4 / 5, Escape up a level;
+--         PourSocialScore_GUI never loads
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL eui guilds: " .. msg) fail = true end end
 local loaded = C_AddOns.IsAddOnLoaded
@@ -210,6 +212,29 @@ M.Events.Fire("GUILD_BLOCKS_CHANGED")
 H.RunTimers()
 check(list.rows[1].index == drawn and list.rows[1]:IsShown(), "rows lost after a block")
 
+------------------------------------------------------------------ block history
+-- a blocked whisper is counted at once; the block history
+-- (PourSocialScore_Logging) loads only on Show Block History
+check(not loaded("PourSocialScore_Logging"), "Logging loaded before any history was asked for")
+local lineID = 90000
+local function whisper(author, msg)
+	lineID = lineID + 1
+	return M.PSS_CoreFilter(nil, "CHAT_MSG_WHISPER", msg, author, "", "", "", "", 0, 0, "", 0, lineID, nil) == true
+end
+check(whisper("Member0100-Realm1", "cheap gold"), "member whisper not blocked")
+H.RunTimers()
+selectGuild(bigKey)
+local hv = gb.hist
+check(gb.counts:GetText():match("^Blocked 1"), "guild counts " .. tostring(gb.counts:GetText()))
+check(not loaded("PourSocialScore_Logging"), "selecting a guild with blocks loaded Logging")
+check(hv.gate:IsShown() and hv.list.count == 0, "guild history read without Logging")
+hv.gate:GetScript("OnClick")(hv.gate)
+check(loaded("PourSocialScore_Logging") and hv.list.count == 1, "Show Block History: " .. hv.list.count)
+local hc = hv.list.rows[1].cells
+check(hc.name and hc.name:GetText() == "Member0100", "guild history name " .. tostring(hc.name and hc.name:GetText()))
+check((hc.kind:GetText() or ""):match("|c%x+whisper|r"), "guild history type " .. tostring(hc.kind:GetText()))
+check((hc.time:GetText() or ""):match("^%d%d%d%d/%d%d/%d%d %d%d:%d%d:%d%d$"), "guild history time " .. tostring(hc.time:GetText()))
+
 ------------------------------------------------------------------ members view
 selectGuild(bigKey)
 gb.membersButton:GetScript("OnClick")(gb.membersButton)
@@ -251,6 +276,43 @@ E.log.popups[#E.log.popups].onConfirm()
 check(mlist.count == MEMBERS - 1 and st.msel == nil, "member not removed: " .. mlist.count)
 mview.back:GetScript("OnClick")(mview.back)
 check(list.scroll:IsVisible() and not mview:IsShown(), "back to the guilds")
+
+------------------------------------------------------------------ back / forward, Escape
+-- Escape goes up a level, back / forward step through the views
+local eo = E.log.escapeOpts[win]
+check(eo and eo.onEscape, "Escape not handed to EllesmereUI with a step back")
+gb.membersButton:GetScript("OnClick")(gb.membersButton)
+check(mview:IsShown(), "members view not shown again")
+check((win.where:GetText() or ""):match("Members of <Big Guild>"), "where line " .. tostring(win.where:GetText()))
+check(E.PressEscape() and win:IsShown() and not mview:IsShown() and list.scroll:IsVisible(), "Escape did not go back to the guilds")
+check(win.back:IsEnabled() and not win.forward:IsEnabled(), "arrows after Escape")
+win.back:GetScript("OnClick")(win.back)
+check(mview:IsShown() and st.mguild == bigKey, "Back did not return to the members")
+check(win.forward:IsEnabled(), "Forward disabled after Back")
+win.forward:GetScript("OnClick")(win.forward)
+check(not mview:IsShown() and list.scroll:IsVisible(), "Forward did not return to the guilds")
+-- mouse buttons 4 / 5, over the window only
+win._mouseOver = false
+H.Fire("GLOBAL_MOUSE_UP", "Button4")
+check(not mview:IsShown(), "mouse button 4 away from the window went back")
+win._mouseOver = true
+H.Fire("GLOBAL_MOUSE_UP", "Button4")
+check(mview:IsShown(), "mouse button 4 did not go back")
+H.Fire("GLOBAL_MOUSE_UP", "LeftButton")
+check(mview:IsShown(), "a left click stepped")
+H.Fire("GLOBAL_MOUSE_UP", "Button5")
+check(not mview:IsShown(), "mouse button 5 did not go forward")
+-- across tabs
+win.tabs[5]:GetScript("OnClick")(win.tabs[5])
+check(win.pages[5]:IsShown(), "Options tab not shown")
+H.Fire("GLOBAL_MOUSE_UP", "Button4")
+check(page:IsShown() and not win.pages[5]:IsShown(), "Back did not return to the Guilds tab")
+-- at the top Escape closes; closed, the mouse buttons are not listened to
+check(E.PressEscape() and not win:IsShown(), "Escape at the top did not close the window")
+check(not win:IsEventRegistered("GLOBAL_MOUSE_UP"), "mouse buttons listened to while closed")
+SlashCmdList.PSS("gui")
+check(win:IsShown() and page:IsShown() and win:IsEventRegistered("GLOBAL_MOUSE_UP"), "window not back")
+win._mouseOver = nil
 
 ------------------------------------------------------------------ groups, exclusions
 local hi = indexOf(function(it) return it.header end)
@@ -308,6 +370,14 @@ H.RunTimers()
 check(M.PSS_IsGuildListed("Tour New Guild"), "Save did not add the guild")
 check(not picker:IsShown() and list.scroll:IsVisible(), "results not closed")
 check(M.PSS_GuildSearchCache == nil, "search cache kept")
+-- Escape closes the Guild Search results, the window stays
+H.Advance(10)
+page.add:SetText("Tour")
+page.searchButton:GetScript("OnClick")(page.searchButton)
+answerWho({ { fullName = "Other-Realm1", fullGuildName = "Tour Other Guild", level = 70 } })
+H.RunTimers()
+check(picker:IsShown(), "second Guild Search not shown")
+check(E.PressEscape() and win:IsShown() and not picker:IsShown() and list.scroll:IsVisible(), "Escape did not close the Guild Search results")
 
 -- Add Guild selects the new rule
 page.add:SetText("Tour Added Guild")

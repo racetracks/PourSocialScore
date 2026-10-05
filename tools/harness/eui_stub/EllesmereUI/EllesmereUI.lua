@@ -32,7 +32,24 @@ function E:GetActiveModule() return E.active end
 function E:RefreshPage() E.log.refreshed = E.log.refreshed + 1 end
 function E.ShowWidgetTooltip() end
 function E.HideWidgetTooltip() end
-function E.RegisterEscapeClose(frame) E.log.escape[#E.log.escape + 1] = frame end
+-- E.log.escapeOpts[frame]: the opts given (onEscape runs in place of Hide)
+E.log.escapeOpts = {}
+function E.RegisterEscapeClose(frame, opts)
+	E.log.escape[#E.log.escape + 1] = frame
+	E.log.escapeOpts[frame] = opts
+end
+-- one Escape press over the registered frames, newest first
+function E.PressEscape()
+	for i = #E.log.escape, 1, -1 do
+		local f = E.log.escape[i]
+		if f:IsShown() then
+			local o = E.log.escapeOpts[f]
+			if o and o.onEscape then o.onEscape(f) else f:Hide() end
+			return true
+		end
+	end
+	return false
+end
 function E.GetFontPath() return "Fonts\\FRIZQT__.TTF" end
 E.PanelPP = { CreateBorder = function() end }
 function E.BlankRowCfg() return { type = "label", text = "" } end

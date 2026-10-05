@@ -135,7 +135,8 @@ function W:SetJustifyV() justify(self, "SetJustifyV") end
 function W:GetChildren() return end
 function W:GetRegions() return end
 function W:GetNumChildren() return 0 end
-function W:IsMouseOver() return false end
+-- a check sets f._mouseOver to put the mouse over a frame
+function W:IsMouseOver() return self._mouseOver or false end
 function W:IsDragging() return false end
 function W:GetTexture() return nil end
 function W:GetAtlas() return nil end

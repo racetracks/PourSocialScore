@@ -1159,6 +1159,20 @@ function M.PSS_GetPlayerRecord(name)
 	return key and PourSocialScoreDB and PourSocialScoreDB.playerData and PourSocialScoreDB.playerData[key]
 end
 
+-- Could p own block history lines? Counted blocks, or the counters and
+-- lines of older saves.
+local OLD_COUNTERS = { "blockedWhispers", "blockedWhisperMessages", "blockedPrivateMessages", "blockedChatMessages", "blockedInvites" }
+local function mayHaveLines(p)
+	if type(p) ~= "table" then return false end
+	local c = p.blockCounts
+	if type(c) == "table" and (tonumber(c.total) or 0) > 0 then return true end
+	if type(p.blockHistory) == "table" and next(p.blockHistory) ~= nil then return true end
+	for _, f in ipairs(OLD_COUNTERS) do
+		if (tonumber(p[f]) or 0) > 0 then return true end
+	end
+	return false
+end
+
 -- A player left the Player Ignore List: nothing about them stays saved (their
 -- record and block history lines). If they are on a built-in guild list
 -- they stay blocked there, see M.PSS_KeepBlockedOnBuiltIn.
@@ -1167,7 +1181,12 @@ function M.PSS_ForgetPlayer(name, note)
 	local p = key and PourSocialScoreDB.playerData and PourSocialScoreDB.playerData[key]
 	if M.PSS_KeepBlockedOnBuiltIn then M.PSS_KeepBlockedOnBuiltIn(p and p.name or name, note) end
 	local owner = History.PlayerKey(p and p.name or name)
-	if owner then History.Clear(function(h) return h.o == owner end) end
+	-- a line is only ever added with a count, so with nothing counted for
+	-- them there is nothing to clear and the block history (Logging) is
+	-- not loaded for it
+	if owner and (History.Loaded() or mayHaveLines(p)) then
+		History.Clear(function(h) return h.o == owner end)
+	end
 	if p then PourSocialScoreDB.playerData[key] = nil end
 end
 

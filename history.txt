@@ -9,6 +9,9 @@ POUR SOCIAL SCORE - VERSION HISTORY
 - Click a default list's row for its rule, with Turn Rule On / Off.
 - Scan All, Guild Search and Add Guild at the top right, and a second row to add to the Guild Exclusion List (Guild Search or Exclude). Guild Search results open in the window: click the guilds to add, then Save. Every scan button greys out while /who cools down, and the Scan All key binding still works.
 - Both windows now list guilds and members through the same functions. They live in PourSocialScore_Libraries, which loads with either window, so they take no memory until a window opens.
+- Block history in both EllesmereUI tabs: clicking a player or guild no longer loads the block history (PourSocialScore_Logging) by itself. When it isn't loaded yet, the pane shows "Show Block History (n)" and loads it on click; once loaded it shows straight away. Removing a player with nothing blocked no longer loads it either.
+- The history shows the time as yyyy/mm/dd hh:mm:ss and the type as one word (whisper, invite, party, raid, BG, world, guild). Tick boxes above it show or hide each type. A guild's history adds the player's name.
+- Back and forward arrows under the tabs step through the views you've opened (tabs, a guild's members), and mouse buttons 4 and 5 do the same over the window. Escape goes up one level (Guild Search results or a guild's members back to the guild list) and closes the window only from the top.
 - Version 3.1.0-dev5.
 
 => 3.1.0-dev4 - EllesmereUI Player Ignore List (3.1 test build)
