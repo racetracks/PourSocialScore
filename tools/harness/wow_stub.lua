@@ -107,7 +107,9 @@ function W:GetFrameLevel() return 1 end
 function W:GetFrameStrata() return "MEDIUM" end
 function W:GetID() return self._id or 0 end
 function W:SetID(i) self._id = i end
-function W:HasFocus() return false end
+-- a check sets f._focus to give a box the keyboard
+function W:HasFocus() return self._focus or false end
+function W:Insert(t) self._text = (self._text or "") .. tostring(t or "") end
 function W:GetCursorPosition() return 0 end
 function W:GetVerticalScroll() return self._vscroll or 0 end
 function W:SetVerticalScroll(v)

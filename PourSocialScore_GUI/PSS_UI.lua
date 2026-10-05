@@ -207,6 +207,7 @@ end
 -- each group the list is sorted by the chosen column (default Description
 -- A-Z). Ties fall back to the description A-Z.
 SortUI.filterKey, SortUI.filterAsc = "desc", true
+SortUI.filterRow = {}		-- M.PSS_FilterRow fills it for each row drawn
 -- Chat Filters columns (the Filter column stretches with the window)
 SortUI.FILTER_COLUMNS = {
 	{ key = "desc",		text = L["COL_9"],	width = 230, tipName = "Description" },
@@ -233,36 +234,15 @@ local FilterSortIndex = {}		-- display position -> filter number
 -- A guild rule counts nothing itself: its blocks are guild blocks, counted
 -- once on the Guild Ignore List. Its Blocked cell reads n/a.
 local GUILD_RULE_INFO = "Blocks: |cffffff00n/a|cffffffff - this guild rule's blocks are counted on the Guild Ignore List."
-local function filterBlockedText(i)
-	if M.PSS_IsGuildRuleFilter(i) then return "n/a" end
-	return tostring(tonumber(PourSocialScoreDB.filterCount[i]) or 0)
-end
+local function filterBlockedText(i) return M.PSS_FilterBlockedText(i) end
 local function filterInfoText(i)
 	if M.PSS_IsGuildRuleFilter(i) then return GUILD_RULE_INFO end
 	return format(L["INFO_3"], (PourSocialScoreDB.filterCount[i] or 0))
 end
 
 local function buildFilterSortIndex()
-	local db = PourSocialScoreDB
-	local key, asc = SortUI.filterKey, SortUI.filterAsc
-	local items = {}
-	for i = 1, #db.filterList do
-		local v
-		if key == "state" then v = db.filterActive[i] == true and 1 or 0
-		elseif key == "blocked" then v = M.PSS_IsGuildRuleFilter(i) and -1 or (tonumber(db.filterCount[i]) or 0)
-		elseif key == "filter" then v = string.lower(db.filterList[i] or "")
-		else v = string.lower(db.filterDesc[i] or "") end
-		items[#items + 1] = { i = i, b = M.PSS_IsBuiltinFilter(i) and 0 or 1, v = v, d = string.lower(db.filterDesc[i] or "") }
-	end
-	table.sort(items, function(a, b)
-		if a.b ~= b.b then return a.b < b.b end				-- built-ins first, always
-		if a.v ~= b.v then if asc then return a.v < b.v else return a.v > b.v end end
-		if a.d ~= b.d then return a.d < b.d end
-		return a.i < b.i
-	end)
-	FilterSortIndex = {}
-	for pos, it in ipairs(items) do FilterSortIndex[pos] = it.i end
-	if SortUI.filterHR then SortUI.filterHR:SetSort(key, asc) end
+	FilterSortIndex = M.PSS_FilterRows(SortUI.filterKey, SortUI.filterAsc, nil, FilterSortIndex)
+	if SortUI.filterHR then SortUI.filterHR:SetSort(SortUI.filterKey, SortUI.filterAsc) end
 end
 
 function SortUI.setFilterSort(key)
@@ -301,60 +281,52 @@ function M.FilterListDrawUpdate (self)
 	end
 
 	buildFilterSortIndex()
-	FauxScrollFrame_Update(self, #PourSocialScoreDB.filterList, BUTTON_TOTAL, BUTTON_HEIGHT)
+	local total, nb, nc, non = M.PSS_FilterCount()
+	FauxScrollFrame_Update(self, total, BUTTON_TOTAL, BUTTON_HEIGHT)
 
-	if FilterScrollSelect > #PourSocialScoreDB.filterList then
-		FilterScrollSelect = #PourSocialScoreDB.filterList
+	if FilterScrollSelect > total then
+		FilterScrollSelect = total
 	end
 
 	UpdateFilterStats()
-	do
-		local nb, nc, non = 0, 0, 0
-		for i = 1, #PourSocialScoreDB.filterList do
-			if M.PSS_IsBuiltinFilter(i) then nb = nb + 1 else nc = nc + 1 end
-			if PourSocialScoreDB.filterActive[i] == true then non = non + 1 end
-		end
-		Tab2Frame.title:SetText(("|cffaaaaaaFilters:|r %d    |cffaaaaaaBuilt-in:|r %d    |cffaaaaaaCustom:|r %d    |cffaaaaaaOn:|r |cff33ff99%d|r"):format(nb + nc, nb, nc, non))
-	end
+	Tab2Frame.title:SetText(("|cffaaaaaaFilters:|r %d    |cffaaaaaaBuilt-in:|r %d    |cffaaaaaaCustom:|r %d    |cffaaaaaaOn:|r |cff33ff99%d|r"):format(total, nb, nc, non))
 
 	local offset = FauxScrollFrame_GetOffset(self)
-	local index		= 0
-	local pName = ""
+	local row = SortUI.filterRow
 	for count = 1, BUTTON_TOTAL do
-		index = FilterSortIndex[count + offset]
+		local b = FilterScrollButtons[count]
+		local index = FilterSortIndex[count + offset]
 
-		if index and PourSocialScoreDB.filterList[index] then
-			pName = PourSocialScoreDB.filterDesc[index]
-
-			if M.PSS_IsBuiltinFilter(index) then
+		if index and M.PSS_FilterRow(index, row) then
+			if row.builtin then
 				-- built-in: greyed out, read-only
-				local tag = M.PSS_IsGuildRuleFilter(index) and "(guild rule)" or "(built-in)"
-				FilterScrollButtons[count].name:SetText("|cff8a8a8a" .. (PourSocialScoreDB.filterDesc[index] or "") .. " |cff5f5f5f" .. tag .. "|r")
-				FilterScrollButtons[count].filter:SetText("|cff7a7a7a" .. (PourSocialScoreDB.filterList[index] or "") .. "|r")
+				local tag = row.guildRule and "(guild rule)" or "(built-in)"
+				b.name:SetText("|cff8a8a8a" .. row.desc .. " |cff5f5f5f" .. tag .. "|r")
+				b.filter:SetText("|cff7a7a7a" .. row.filter .. "|r")
 			else
-				FilterScrollButtons[count].name:SetText(PourSocialScoreDB.filterDesc[index])
-				FilterScrollButtons[count].filter:SetText(PourSocialScoreDB.filterList[index])
+				b.name:SetText(row.desc)
+				b.filter:SetText(row.filter)
 			end
 
-			if PourSocialScoreDB.filterActive[index] == true then
-				FilterScrollButtons[count].state:SetText("|cff33ff99" .. L["ON"]);
+			if row.active then
+				b.state:SetText("|cff33ff99" .. L["ON"]);
 			else
-				FilterScrollButtons[count].state:SetText("|cffe60000" .. L["OFF"]);
+				b.state:SetText("|cffe60000" .. L["OFF"]);
 			end
 
-			FilterScrollButtons[count].blocked:SetText(filterBlockedText(index))
+			b.blocked:SetText(filterBlockedText(index))
 
-			FilterScrollButtons[count]:SetID(index)
+			b:SetID(index)
 
 			if FilterScrollSelect == index then
-				FilterScrollButtons[count]:LockHighlight()
+				b:LockHighlight()
 			else
-				FilterScrollButtons[count]:UnlockHighlight()
+				b:UnlockHighlight()
 			end
 
-			FilterScrollButtons[count]:Show()
+			b:Show()
 		else
-			FilterScrollButtons[count]:Hide()
+			b:Hide()
 		end
 	end
 	for count = BUTTON_TOTAL + 1, #FilterScrollButtons do
@@ -868,56 +840,7 @@ end
 -- LINK CONVERTER --
 --------------------
 
-local function convertLink (text)
-
-	if text == nil or text == "" then
-		return "UNKNOWN"
-	end
-
-	local temp = string.match(text, "|Hitem:(%d+)")
-	if temp then
-		return "[item=".. temp .. "]"
-	end
-
-	temp = string.match(text, "|Hspell:(%d+)")
-	if temp then
-		return "[spell=".. temp.."]"
-	end
-
-	temp = string.match(text, "|Htalent:(%d+)")
-	if temp then
-		return "[talent=" .. temp .. "]"
-	end
-
-	temp = string.match(text, "|Hachievement:(%d+)")
-	if temp then
-		return "[achievement=".. temp .. "]"
-	end
-
-	temp = string.match(text, "|Hbattlepet:(%d+)")
-	if temp then
-		return "[pet=" .. temp .. "]"
-	end
-
-	temp = string.match(text, "|Hjournal:(%d+)")
-	if temp then
-		return "[journal]"
-	end
-
-	if string.match(text, "|Htrade:") then
-		return "[trade]"
-	end
-
-	if string.match(text, "|Hclubfinder:") then
-		return "[guild]"
-	end
-
-	if string.match(text, "|Hclubticket:") then
-		return "[community]"
-	end
-
-	return "UNKNOWN"
-end
+local convertLink = function(text) return M.PSS_ConvertChatLink(text) end
 
 ---------------------
 -- TAB BUTTON HELPERS --
@@ -1304,26 +1227,15 @@ local function BuildFilterTab()
 		allText = "all filters", allButton = "All Filters",
 		setListShown = setListShown,
 		entries = function(i)
-			local db = PourSocialScoreDB
 			if i then return M.PSS_FilterHistory(i) or {} end
-			-- every filter's lines, labelled (guild rules have none: their
-			-- blocks are on the Guild Ignore List)
-			local byKey = {}
-			for n = 1, #db.filterList do
-				byKey[M.PSS_FilterOwnerKey(n)] = "Filter: " .. tostring(db.filterDesc[n] or n)
-			end
-			return History.Collect(function(h)
-				local l = byKey[h.o]
-				if l then History.SetSource(h, l) return true end
-				return false
-			end)
+			return M.PSS_AllFilterHistory()
 		end,
 		label = function(i) return PourSocialScoreDB.filterDesc[i] end,
 		reset = function(i)
 			if i then
 				M.PSS_ResetFilterHistory(i)
 			else
-				for n = 1, #PourSocialScoreDB.filterList do M.PSS_ResetFilterHistory(n) end
+				M.PSS_ResetAllFilterHistory()
 			end
 		end,
 		extra = { text = L["BUT_11"] or "Edit Filter",
@@ -1445,12 +1357,10 @@ local function BuildFilterEditor()
 	test.EditBox:SetScript("OnTextChanged", function(self) result:SetText("") end)
 
 	testBtn:SetScript("OnClick", function()
-		local chatStr	= string.lower(test.EditBox:GetText())
-		local filterStr = field.EditBox:GetText()
-		local res = M.filterComplex(filterStr, chatStr, 1)
-		if V.lastFilterError == true then
+		local res = M.PSS_TestChatFilter(field.EditBox:GetText(), test.EditBox:GetText())
+		if res == "error" then
 			result:SetText("|cffffff00FILTER ERROR")
-		elseif res == true then
+		elseif res == "blocked" then
 			result:SetText("|cffff5c5cBLOCKED")
 		else
 			result:SetText("|cff00ff96PASSED")

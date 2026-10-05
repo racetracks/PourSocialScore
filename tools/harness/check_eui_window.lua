@@ -118,9 +118,9 @@ check(#E.log.escape == 1, "Escape not registered")
 local shells = 0
 for _, k in ipairs(E.log.skinned) do if k == "Shell" then shells = shells + 1 end end
 check(shells == 1, "window not painted with S.Shell (" .. shells .. ")")
--- the list, Options and Import/Export tabs build on first open, and only
+-- every tab builds on first open, and only
 -- the clicked tab shows as selected (S.Tab's accent underline)
-for _, i in ipairs({ 1, 2, 4, 5 }) do
+for _, i in ipairs({ 1, 2, 3, 4, 5 }) do
 	win.tabs[i]:GetScript("OnClick")(win.tabs[i])
 	check(win.pages[i]:IsShown() and win.pages[i].refresh, "tab " .. i .. " not built")
 	for j = 1, #win.tabs do
