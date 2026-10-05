@@ -874,9 +874,8 @@ function History.ForgetRecent(owner)
 	end
 end
 
--- At login or /reload a new session starts, as the PSS window's own
--- session counts (PSS_BlockStats.lua) do (3.2.0-dev006); a loading screen
--- keeps it. The day is brought up to now and dropped when empty.
+-- At login or /reload a new session starts (3.2.0-dev006); a loading
+-- screen keeps it. The day is brought up to now and dropped when empty.
 function History.StartSession(initialLogin, reloading)
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return end

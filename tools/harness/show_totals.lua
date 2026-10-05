@@ -13,7 +13,7 @@ print(("totals: player %d (w %d, pi %d, pr %d, world %d, gi %d)  guild %d (w %d,
 	sum.total, sum.whisper, sum.partyInvite, sum.partyRaid, sum.world, sum.guildInvite,
 	gc.total, gc.whisper, gc.partyInvite, gc.partyRaid, gc.world, gc.guildInvite,
 	db.filterTotal or 0, db.filterWhisperTotal or 0, db.filterPrivateTotal or 0, db.blockLog and #db.blockLog or 0))
-if M.PSS_Stats then
+if M.PSS_Stats or M.PSS_Need then
 	SlashCmdList.PSS("gui")
 	H.RunTimers()
 	local function plain(s) return (tostring(s or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end

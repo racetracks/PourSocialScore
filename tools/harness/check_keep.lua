@@ -59,12 +59,19 @@ local function expectList(what, got, prefix, from, to)
 	for i = 1, math.min(#got, #want) do eq(what .. " line " .. i, got[i], want[i]) end
 end
 
+-- this session / last 24 hours as both windows count them (History.Recent*,
+-- 3.3.0-dev002: PSS_BlockStats is gone)
+local PREFIX = { player = "p:", guild = "G:", filter = "f:" }
+local S = {
+	Session = function(src) return { total = (M.PSS_History.RecentTotals(PREFIX[src])) } end,
+	Last24 = function(src) return { total = select(2, M.PSS_History.RecentTotals(PREFIX[src])) } end,
+}
 local function counts()
 	local p = M.PSS_GetPlayerBlockCounts("Spammer-Realm")
-	local s, l = M.PSS_Stats.Session("player"), M.PSS_Stats.Last24("player")
+	local s, l = S.Session("player"), S.Last24("player")
 	local gc = M.PSS_GetGuildBlockCounts()
-	return { p = p.total, ps = s.total or 0, pl = l.total or 0, g = gc.total, gl = M.PSS_Stats.Last24("guild").total or 0,
-		f = db.filterTotal or 0, fl = M.PSS_Stats.Last24("filter").total or 0 }
+	return { p = p.total, ps = s.total or 0, pl = l.total or 0, g = gc.total, gl = S.Last24("guild").total or 0,
+		f = db.filterTotal or 0, fl = S.Last24("filter").total or 0 }
 end
 
 if phase == 4 then

@@ -44,7 +44,8 @@ PSS_OptionsDB.chatmsg = was
 for _, k in ipairs({ "blockLog", "blockKeep" }) do
 	check(type(PSS_LoggingDB[k]) == "table", "PSS_LoggingDB." .. k)
 end
-for _, k in ipairs({ "blockStats", "filterCount", "filterBlocked", "builtinStats" }) do
+check(PSS_CountsDB.blockStats == nil, "PSS_CountsDB.blockStats not pruned (3.3.0-dev002)")
+for _, k in ipairs({ "filterCount", "filterBlocked", "builtinStats" }) do
 	check(type(PSS_CountsDB[k]) == "table", "PSS_CountsDB." .. k)
 end
 check(type(PSS_CountsDB.filterTotal) == "number", "PSS_CountsDB.filterTotal")
