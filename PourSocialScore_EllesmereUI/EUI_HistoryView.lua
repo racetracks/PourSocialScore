@@ -56,8 +56,11 @@ end
 -- Blocks counted for one entry but no longer in its lines: a line per
 -- type and 10 minutes for the last day (History.RecentSlots), then a line
 -- per type of time unknown. Added to lines (the array read for the view).
+-- person: a player / guild / member, whose world and guild chat the core
+-- counts but never stores (3.2): those say so instead of "expired".
 local EXPIRED = "|cff888888Data expired from logs|r"
-local function AddExpired(lines, counts, slots)
+local NOT_STORED = "|cff888888Counted, not stored (only whispers, party / raid and invites are kept)|r"
+local function AddExpired(lines, counts, slots, person)
     local SLOT = History.SLOT or 600
     local found, foundAt = {}, {}
     for i = 1, #lines do
@@ -72,8 +75,10 @@ local function AddExpired(lines, counts, slots)
     local recentGone = {}
     local function add(ts, cat, count)
         n = n + 1
-        lines[n] = setmetatable({ ts = ts, cat = cat, member = "", channel = "Expired",
-            message = count > 1 and (EXPIRED .. ("  |cff888888x%d|r"):format(count)) or EXPIRED, expired = count },
+        local never = person and History.KeepKind and not History.KeepKind({ cat = cat })
+        local text = never and NOT_STORED or EXPIRED
+        lines[n] = setmetatable({ ts = ts, cat = cat, member = "", channel = never and "Not stored" or "Expired",
+            message = count > 1 and (text .. ("  |cff888888x%d|r"):format(count)) or text, expired = count },
             History.EntryMT)
     end
     for _, x in ipairs(slots or {}) do
@@ -148,7 +153,10 @@ function View:Refresh(top)
     self.all = spec.read(spec.id) or {}
     if spec.id and spec.owner and spec.counts then
         local counts = spec.counts(spec.id)
-        if counts then AddExpired(self.all, counts, History.RecentSlots and History.RecentSlots(spec.owner(spec.id))) end
+        if counts then
+            AddExpired(self.all, counts, History.RecentSlots and History.RecentSlots(spec.owner(spec.id)),
+                spec.kind ~= "filter" and History.KEEP_TOTAL ~= nil)
+        end
     end
     self.allButton:SetShown(spec.id and spec.all ~= nil or false)
     if spec.allText then self.allButton:SetText(spec.allText) end
