@@ -1,7 +1,8 @@
 -------------------------------------------------------------------------------
 --  EUI_Detail.lua -- the details pane of the Players, Guilds and Chat Filters
 --  tabs as three pages, picked by the buttons along its bottom:
---    Summary         the entry's block counts
+--    Summary         the counts and a pie of this session / last 24 hours /
+--                    all time (ns.NewSummary below, EUI_Pie.lua)
 --    Event History   the block history list, the whole page
 --    View/Edit Rule  the entry's settings and actions
 --  One frame per page, built with the pane; the page picked is kept per tab.
@@ -91,4 +92,157 @@ function ns.NewDetailPages(body, top, kind)
     Lay()
     dp:Select(picked[kind] or "summary")
     return dp
+end
+
+-------------------------------------------------------------------------------
+--  Summary: a pie of this session / last 24 hours / all time (EUI_Pie.lua),
+--  a tick box per period (all on; off takes its slice out), View Events.
+--  A click on a slice opens the Block History view of that period. The
+--  session and day counts come from the core (History.RecentCounts, 3.2),
+--  all time from the entry's counts: nothing here loads
+--  PourSocialScore_Logging; View Events and a slice do, as asked.
+-------------------------------------------------------------------------------
+local M = ns.M
+local History = M.PSS_History
+local DAY = 86400
+
+local PERIODS = {
+    { key = "session", text = "This session",  r = 0.31, g = 0.76, b = 0.97 },
+    { key = "day",     text = "Last 24 hours", r = 1.00, g = 0.72, b = 0.30 },
+    { key = "all",     text = "All time",      r = 0.58, g = 0.46, b = 0.80 },
+}
+ns.SUMMARY_PERIODS = PERIODS
+
+-- the periods ticked (shared by every tab, kept while the window is loaded)
+local periodOn = { session = true, day = true, all = true }
+
+-- the first server second of a period (nil: all time)
+function ns.SummarySince(key)
+    if key == "session" then return History.SessionStart and History.SessionStart() or nil end
+    if key == "day" then return History.Now() - DAY end
+    return nil
+end
+
+local function Recent(owner)
+    if not (owner and History.RecentCounts) then return 0, 0 end
+    return History.RecentCounts(owner)
+end
+
+local SM = {}
+SM.__index = SM
+local summaries = {}
+
+local Build
+
+function SM:Refresh()
+    if not self.page:IsVisible() then return end
+    if not self.pie then Build(self) end
+    local s, d = Recent(self.owner)
+    local v = self.values
+    v.session, v.day, v.all = s, d, self.allTime or 0
+    local slices, map, n = self.slices, self.map, 0
+    for i = #slices, 1, -1 do slices[i] = nil end
+    for _, per in ipairs(PERIODS) do
+        local box = self.boxes[per.key]
+        box.count:SetText(tostring(v[per.key]))
+        if periodOn[per.key] then
+            n = n + 1
+            local sl = self.pool[n] or {}
+            self.pool[n] = sl
+            sl.value, sl.r, sl.g, sl.b, sl.text = v[per.key], per.r, per.g, per.b, per.text
+            slices[n] = sl
+            map[n] = per.key
+        end
+    end
+    self.pie:Set(slices)
+    self.empty:SetShown(v.all == 0 and v.session == 0 and v.day == 0)
+    self.viewButton:SetEnabled(self.specFn ~= nil)
+end
+
+-- owner: the core's owner key (History.PlayerKey ...); allTime: the
+-- entry's all-time count; title: its name; specFn(id): its Block History
+-- spec (made only when opened)
+function SM:Set(owner, allTime, title, specFn, id)
+    self.owner, self.allTime, self.title, self.specFn, self.id = owner, allTime, title, specFn, id
+    self:Refresh()
+end
+
+function SM:Open(key)
+    local spec = self.specFn and self.specFn(self.id)
+    if not spec then return end
+    local since = ns.SummarySince(key)
+    if since then
+        for _, per in ipairs(PERIODS) do
+            if per.key == key then spec.window = { since = since, text = string.lower(per.text) } end
+        end
+    end
+    ns.OpenHistoryView(self.tabPage, spec)
+end
+
+-- the pie, the tick boxes and View Events: made the first time the page shows
+function Build(sm)
+    local page, top = sm.page, sm.top
+    local SIZE = 116
+    sm.pie = ns.NewPie(page, SIZE, function(i) sm:Open(sm.map[i]) end)
+    sm.pie.frame:SetPoint("TOPLEFT", page, "TOPLEFT", 18, top)
+    sm.pie.tip = function(i)
+        local sl = sm.slices[i]
+        return ("%s\n%s: %d blocked\n\n|cffaaaaaaClick: these events in the Block History view.|r")
+            :format(sm.title or "", sl.text, sl.value or 0)
+    end
+    sm.empty = ns.NewText(page, 11)
+    sm.empty:SetPoint("CENTER", sm.pie.frame, "CENTER", 0, 0)
+    sm.empty:SetTextColor(1, 1, 1, 0.5)
+    sm.empty:SetText("Nothing yet")
+
+    -- a tick box per period: its colour, name and count
+    local x, y = SIZE + 40, top - 8
+    for _, per in ipairs(PERIODS) do
+        local c = ns.NewCheck(page)
+        c:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
+        c:SetChecked(periodOn[per.key])
+        local sq = page:CreateTexture(nil, "ARTWORK")
+        sq:SetSize(10, 10)
+        sq:SetColorTexture(per.r, per.g, per.b, 0.9)
+        sq:SetPoint("LEFT", c, "RIGHT", 2, 0)
+        local t = ns.NewText(page, 12)
+        t:SetPoint("LEFT", sq, "RIGHT", 6, 0)
+        t:SetText(per.text)
+        c.count = ns.NewText(page, 12)
+        c.count:SetPoint("LEFT", c, "RIGHT", 128, 0)
+        c.count:SetTextColor(per.r, per.g, per.b)
+        c:SetScript("OnClick", function(self)
+            periodOn[per.key] = self:GetChecked() and true or false
+            for _, other in ipairs(summaries) do
+                other.boxes[per.key]:SetChecked(periodOn[per.key])
+                other:Refresh()
+            end
+        end)
+        ns.TipOn(c, c, "Shows " .. string.lower(per.text) .. " in the pie.")
+        sm.boxes[per.key] = c
+        y = y - 26
+    end
+    if not History.RecentCounts then
+        -- an older core: all time only
+        for _, key in ipairs({ "session", "day" }) do
+            sm.boxes[key]:Disable()
+            ns.TipOn(sm.boxes[key], sm.boxes[key], "Needs PourSocialScore 3.2 or later.")
+        end
+    end
+
+    local view = ns.NewButton(page, "View Events", 110, function() sm:Open("all") end)
+    view:SetPoint("TOPLEFT", page, "TOPLEFT", x + 4, y - 8)
+    ns.TipOn(view, view, "Every logged event of this entry in the Block History view (loads the block history).")
+    sm.viewButton = view
+
+    summaries[#summaries + 1] = sm
+end
+
+-- page: the Summary page; tabPage: the tab (for the Block History view);
+-- top: where the pie starts
+function ns.NewSummary(page, tabPage, top)
+    local sm = setmetatable({ page = page, tabPage = tabPage, top = top, slices = {}, map = {}, pool = {},
+        values = {}, boxes = {} }, SM)
+    page:HookScript("OnShow", function() sm:Refresh() end)
+    return sm
 end

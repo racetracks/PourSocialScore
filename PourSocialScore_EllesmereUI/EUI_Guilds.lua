@@ -456,6 +456,8 @@ function ns.MemberHistorySpec(m, gkey)
         reset = M.PSS_ResetMemberBlockHistory,
     }
 end
+-- the selected member's spec (the guild whose members are shown)
+local function MemberSpec(m) return ns.MemberHistorySpec(m, G.mguild) end
 
 local function ConfirmRemoveGuild()
     local key = G.selKind == "guild" and G.sel or (G.view == "members" and G.mguild)
@@ -501,6 +503,7 @@ local function BuildGuildBody(parent)
     b.pages = dp
     b.counts = Line(dp.summary, -6)
     ns.Font(b.counts, 11)
+    b.summary = ns.NewSummary(dp.summary, page, -30)
 
     -- View/Edit Rule
     local rule = dp.rule
@@ -637,6 +640,7 @@ local function BuildMemberBody(parent)
     b.pages = dp
     b.counts = Line(dp.summary, -6)
     ns.Font(b.counts, 11)
+    b.summary = ns.NewSummary(dp.summary, page, -30)
 
     -- View/Edit Rule
     local rule = dp.rule
@@ -760,6 +764,7 @@ local function ShowGuild(key, fresh)
     b.removeButton:SetEnabled(not M.PSS_IsStaticManagedGuild(key))
     b.membersButton:SetShown(G.view ~= "members")
     b.hist:Set(key, c.total or 0, M.PSS_GetGuildBlockHistory, fresh)
+    b.summary:Set(History.GuildKey and History.GuildKey(key), c.total or 0, tostring(g.name), ns.GuildHistorySpec, key)
     return true
 end
 
@@ -828,6 +833,7 @@ local function ShowMember(fresh)
     local c = M.PSS_GetMemberBlockCounts(m)
     b.counts:SetText(CountsText(c))
     b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory, fresh)
+    b.summary:Set(History.MemberKey(m), c.total or 0, tostring(m.name), MemberSpec, m)
     return true
 end
 

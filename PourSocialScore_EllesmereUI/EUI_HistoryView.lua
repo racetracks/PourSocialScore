@@ -9,7 +9,9 @@
 --
 --  spec = { kind, id, label(id) -> name (nil: gone), read(id) -> lines,
 --           reset(id), all = function() -> the spec of everything (or nil),
---           allText = "All Guilds" }
+--           allText = "All Guilds",
+--           window = { since = server time, text = "this session" } (opened
+--           from a Summary slice: the events since then; nil: all) }
 -------------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = ns.M
@@ -35,8 +37,10 @@ local function TimeText(h)
     return ts and ts > 0 and date(TIME_FMT, ts) or History.UNKNOWN
 end
 
-local function Matches(h, find)
+-- since: only the events from then on (a Summary slice)
+local function Matches(h, find, since)
     if hidden[ns.HistoryType(h)] then return false end
+    if since and (tonumber(h.ts) or 0) < since then return false end
     if find == "" then return true end
     return string.find(string.lower(h.member or ""), find, 1, true)
         or string.find(string.lower(h.channel or ""), find, 1, true)
@@ -49,10 +53,12 @@ View.__index = View
 -- Filter and sort what was read into self.shown.
 function View:Apply(top)
     local find = string.lower(M.trim(self.search:GetText() or "") or "")
+    local win = self.spec and self.spec.window
+    local since = win and win.since
     local out, n = self.shown, 0
     for i = 1, #self.all do
         local h = self.all[i]
-        if Matches(h, find) then
+        if Matches(h, find, since) then
             n = n + 1
             out[n] = h
         end
@@ -76,6 +82,8 @@ function View:Apply(top)
     self.list:SetCount(n)
     if top then self.list:Top() end
     local name = self.name or "?"
+    if win then name = name .. ", " .. tostring(win.text) end
+    self.allLines:SetShown(win ~= nil)
     self.heading:SetText(("Block History: %s  |cffaaaaaa(%s)|r"):format(name,
         n == #self.all and tostring(n) or (n .. " of " .. #self.all)))
     self.list:SetEmptyText(#self.all == 0 and "Nothing blocked here yet." or "No line matches the search and the ticked types.")
@@ -215,6 +223,20 @@ local function Build(page)
         ns.NavRecord()
     end)
     view.allButton:SetPoint("RIGHT", reset, "LEFT", -6, 0)
+    -- opened from a Summary slice: every event of the same entry
+    view.allLines = ns.NewButton(f, "All Time", 80, function()
+        local spec = view.spec
+        if not (spec and spec.window) then return end
+        local copy = {}
+        for k, v in pairs(spec) do copy[k] = v end
+        copy.window = nil
+        view.spec = copy
+        view:Refresh(true)
+        ns.NavRecord()
+    end)
+    view.allLines:SetPoint("RIGHT", view.allButton, "LEFT", -6, 0)
+    ns.TipOn(view.allLines, view.allLines, "Every event of this entry, not only the Summary slice.")
+    view.allLines:Hide()
 
     -- [x] whisper ... [x] guild          [search player, channel or message]
     local bar = CreateFrame("Frame", nil, f)
