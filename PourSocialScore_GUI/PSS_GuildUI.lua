@@ -751,7 +751,7 @@ function M.PSS_BuildGuildUI(parent)
 	-- Same panel as every other tab (see PSS_UIKit.lua).
 	local frame = CreateFrame("Frame", "PSSGuildTabFrame", parent, "InsetFrameTemplate")
 	frame:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, -84)
-	frame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -11, 29)
+	frame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", UI.LIST_RIGHT, 29)	-- the totals pane on the right
 	M.PSSGuildTabFrame = frame
 
 	-- no title in list view (the tab says where you are); Block History uses it

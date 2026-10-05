@@ -49,7 +49,34 @@ for _, t in ipairs(TABS) do
 			fails = fails + 1
 		end
 	end
+	-- the totals pane beside the list (3.3.0-dev004): shown, and the same three numbers
+	local tt = M.UI.TOTALS and M.UI.TOTALS[t.kind]
+	if not (tt and tt.frame:IsVisible() and tt.boxes.session) then
+		print(("  FAIL match %s: totals pane not shown"):format(t.kind)); fails = fails + 1
+	else
+		for key, w in pairs({ session = tot.session, day = tot.day, all = tot.total }) do
+			local g = tonumber(tt.boxes[key].count:GetText())
+			if g ~= w then
+				print(("  FAIL match %s pane %s: PSS window %s, EllesmereUI window %s"):format(t.kind, key, tostring(g), tostring(w)))
+				fails = fails + 1
+			end
+		end
+	end
 	shown[#shown + 1] = ("%s %d/%d/%d"):format(t.kind, tot.session, tot.day, tot.total)
 end
+-- no pane over the filter editor or on the Options tab
+local function noPane(where)
+	for kind, tt in pairs(M.UI.TOTALS or {}) do
+		if tt.frame:IsVisible() then print(("  FAIL match: totals pane shown %s (%s)"):format(where, kind)); fails = fails + 1 end
+	end
+end
+M.FilterScrollChangeState(1)
+noPane("over the filter editor")
+M.FilterScrollChangeState(0)
+if not (M.UI.TOTALS.filters and M.UI.TOTALS.filters.frame:IsVisible()) then
+	print("  FAIL match: totals pane not back after the filter editor"); fails = fails + 1
+end
+PSSTab3:GetScript("OnClick")(PSSTab3)
+noPane("on the Options tab")
 print(("match: session/day/all time %s"):format(table.concat(shown, ", ")))
 print(fails == 0 and "PASS match" or ("FAIL match: " .. fails))

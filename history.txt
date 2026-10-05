@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.3.0-dev004 - PSS window: totals pane and period pie
+
+- Player Ignore List, Guild Ignore List and Chat Filters: a pane on the right of the list shows the whole list's blocks as a pie of this session, the last 24 hours and all time, as in the EllesmereUI window, with a tick box, colour and count per period. All time starts unticked; the ticks are shared by the three tabs while the window is open.
+- Hover a slice: the others dim, its count shows in the middle and the tooltip says how many of them are also in the smaller period. The numbers are the same as the EllesmereUI window's.
+- The window opens 1290 wide (was 960) so the lists keep every column; the pane hides on the filter editor, Import/Export and Options.
+- The pane redraws at most every quarter second while blocks come in, and only while it is shown. The new file (PSS_Pie.lua) is 11.4 KB compiled, in PourSocialScore_GUI (load on demand).
+- Harness: check_match.lua also checks the pane's numbers against the EllesmereUI window, and that it hides on the filter editor and Options.
+
 => 3.3.0-dev003 - PSS window: Managed Communities row
 
 - Guild Ignore List: the default guild lists now sit under one Managed Communities row at the top, as in the EllesmereUI window. It shows how many lists there are, their members and blocks added up, and how many of their rules are on.

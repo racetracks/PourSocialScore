@@ -177,6 +177,7 @@ function UI.SetBlockStats(stats, kind, total)
 	stats:Set(1, recentSession)
 	stats:Set(2, recentDay)
 	stats:Set(3, total)
+	if UI.RefreshTotals then UI.RefreshTotals(kind) end	-- PSS_Pie.lua
 end
 
 -- Section heading inside a panel (Options sections, detail window blocks).
