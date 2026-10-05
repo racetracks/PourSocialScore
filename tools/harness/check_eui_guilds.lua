@@ -416,6 +416,39 @@ if hi then
 	local wasOpen = M.PSS_GuildGroupOpen(gk)
 	clickAt(list, hi)
 	check(M.PSS_GuildGroupOpen(gk) ~= wasOpen and pane.group:IsShown(), "group header click")
+	-- the list's two pies (EUI 1.1.0-dev006): periods summed over its
+	-- guilds' own counts, all-time blocks by type; Logging stays unloaded
+	local History = M.PSS_History
+	local items = st.rows.groups[gk]
+	local g1, g2 = items[1].key, items[2] and items[2].key or items[1].key
+	History.CountRecent(History.GuildKey(g1), nil, "whisper")
+	History.CountRecent(History.GuildKey(g2), nil, "world")
+	local s, d = 0, 0
+	for _, it in ipairs(items) do
+		local a, b = History.RecentCounts(History.GuildKey(it.key))
+		s, d = s + a, d + b
+	end
+	local logging = loaded("PourSocialScore_Logging")
+	st.dirty = true
+	page.refresh()
+	local pies = pane.group.pies
+	local hdr = st.rows[indexOf(function(it) return it.header and it.groupKey == gk end)]
+	check(pies and pies:IsShown(), "group pies not shown")
+	if pies then
+		local v = pies.periodValues
+		check(v.session == s and v.day == d and s >= 2 and d >= 2,
+			("group period pie %s/%s, want %d/%d"):format(tostring(v.session), tostring(v.day), s, d))
+		check(v.all == (hdr.bc.total or 0), "group all-time slice is not the list's total")
+		local want = 0
+		for _, cat in ipairs(History.ALL_CATS) do if (hdr.bc[cat] or 0) > 0 then want = want + 1 end end
+		check(pies.typeCount == want, ("group type pie %s types, want %d"):format(tostring(pies.typeCount), want))
+		for i = 1, pies.typeCount do
+			local sl = pies.typeSlices[i]
+			check(sl.value == hdr.bc[sl.cat], "group type slice " .. tostring(sl.cat))
+		end
+		check(pies.typeEmpty:IsShown() == (want == 0), "group type pie empty text")
+	end
+	check(loaded("PourSocialScore_Logging") == logging, "group pies loaded the block history")
 	local ii = indexOf(function(it) return it.inGroup end)
 	if ii then
 		local sk = st.rows[ii].key
