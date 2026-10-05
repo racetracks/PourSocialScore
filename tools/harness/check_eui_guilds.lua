@@ -226,6 +226,13 @@ check(whisper("Member0100-Realm1", "cheap gold"), "member whisper not blocked")
 H.RunTimers()
 selectGuild(bigKey)
 local hv = gb.hist
+do
+	local dp = gb.pages
+	check(dp and #dp.buttons == 3 and gb.counts:GetParent() == dp.summary and hv.frame:GetParent() == dp.history
+		and gb.membersButton:GetParent() == dp.rule and gb.removeButton:GetParent() == dp.rule, "guild detail pages")
+	dp:Select("history")
+	check(hv.frame:IsVisible() and not gb.removeButton:IsVisible(), "guild history page")
+end
 check(gb.counts:GetText():match("^Blocked 1"), "guild counts " .. tostring(gb.counts:GetText()))
 check(not loaded("PourSocialScore_Logging"), "selecting a guild with blocks loaded Logging")
 check(hv.gate:IsShown() and hv.list.count == 0, "guild history read without Logging")
@@ -330,6 +337,8 @@ check(M.PSS_MemberBlock(m).whisper == nil, "member W not back to the guild's")
 
 local nPopups = #E.log.popups
 local removeMember = pane.member.removeButton
+check(pane.member.pages and removeMember:GetParent() == pane.member.pages.rule
+	and pane.member.hist.frame:GetParent() == pane.member.pages.history, "member detail pages")
 removeMember:GetScript("OnClick")(removeMember)
 check(#E.log.popups == nPopups + 1 and E.log.popups[#E.log.popups].confirmText == "Remove", "member removal not confirmed")
 E.log.popups[#E.log.popups].onConfirm()
