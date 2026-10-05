@@ -80,33 +80,9 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_gui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS gui" || fail=1
 
-# EllesmereUI integration switch (3.1): option, reload prompt, commands
-echo "== EllesmereUI switch"
-out=$(lua5.1 "$here/run.lua" . - - "$here/check_eui.lua" 2>&1 | grep -v '^|cff')
-echo "$out"
-echo "$out" | grep -q "PASS eui" || fail=1
-
-# EllesmereUI front end (3.1 E.2): needs PourSocialScore_EllesmereUI from its
-# own repository (PSS_EUI_ADDON, default ../poursocialscore-ellesmereui/...)
-eui=${PSS_EUI_ADDON:-$here/../../../poursocialscore-ellesmereui/PourSocialScore_EllesmereUI}
-if [ -f "$eui/PourSocialScore_EllesmereUI.toc" ]; then
-	echo "== EllesmereUI window"
-	x="$here/eui_stub/EllesmereUI,$eui"
-	out=$(PSS_PHASE=1 PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . - "$work/sv-eui.lua" "$here/check_eui_window.lua" 2>&1 | grep -v '^|cff')
-	out="$out
-$(PSS_PHASE=2 PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" - "$here/check_eui_window.lua" 2>&1 | grep -v '^|cff')"
-	out="$out
-$(PSS_PHASE=3 PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" - "$here/check_eui_window.lua" 2>&1 | grep -v '^|cff')"
-	echo "$out"
-	for p in 1 2 3; do echo "$out" | grep -q "PASS eui window $p" || fail=1; done
-	# the Players tab (3.1 E.4) and the core player queries
-	echo "== EllesmereUI Players tab"
-	out=$(PSS_EXTRA_ADDONS="$x" lua5.1 "$here/run.lua" . "$work/sv-eui.lua" - "$here/check_eui_players.lua" 2>&1 | grep -v '^|cff')
-	echo "$out"
-	echo "$out" | grep -q "PASS eui players" || fail=1
-else
-	echo "== EllesmereUI window: skipped (no PourSocialScore_EllesmereUI at $eui)"
-fi
+# EllesmereUI: the switch, and with PourSocialScore_EllesmereUI cloned next
+# to this repository the window, panel and Players tab (check_eui_all.sh)
+sh "$here/check_eui_all.sh" || fail=1
 
 # shipped guild lists on demand (3.0): PourSocialScore_Communities loads
 # only when the rule is on or members are needed
