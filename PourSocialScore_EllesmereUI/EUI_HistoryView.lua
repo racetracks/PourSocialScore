@@ -59,7 +59,8 @@ end
 -- type and 10 minutes for the last day (History.RecentSlots), then a line
 -- per type of time unknown. Added to lines (the array read for the view).
 -- person: a player / guild / member, whose world and guild chat the core
--- counts but never stores (3.2): those say so instead of "expired".
+-- counts but never stores (3.2-dev3 to dev006): those say so instead of
+-- "expired". From core 3.2.0-dev007 (History.LOG_ALL) they are stored.
 local EXPIRED = "|cff888888Data expired from logs|r"
 local NOT_STORED = "|cff888888Counted, not stored (only whispers, party / raid and invites are kept)|r"
 local function AddExpired(lines, counts, slots, person)
@@ -158,7 +159,7 @@ function View:Refresh(top)
         local counts = spec.counts(spec.id)
         if counts then
             AddExpired(self.all, counts, History.RecentSlots and History.RecentSlots(spec.owner(spec.id)),
-                spec.kind ~= "filter" and History.KEEP_TOTAL ~= nil)
+                spec.kind ~= "filter" and History.KEEP_TOTAL ~= nil and not History.LOG_ALL)
         end
     end
     self.allButton:SetShown(spec.id and spec.all ~= nil or false)

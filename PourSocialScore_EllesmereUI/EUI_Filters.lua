@@ -181,7 +181,7 @@ local function BuildPane(parent)
     pane.none:Hide()
     -- nothing selected: every filter's totals (a click on the selected
     -- filter deselects it)
-    pane.totals = ns.NewTotals(pane, page, "filters", "Chat Filters", "Select a filter to edit it.")
+    pane.totals = ns.NewTotals(pane, page, "filters", "Chat Filters", "Select a filter to edit it.", AllFilters)
 
     local b = CreateFrame("Frame", nil, pane)
     b:SetAllPoints()

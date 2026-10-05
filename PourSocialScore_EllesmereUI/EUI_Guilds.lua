@@ -529,7 +529,7 @@ function ns.GroupHistorySpec(k)
         -- counted but not stored (world and guild chat) or expired
         read = function(gk)
             local out, merged = {}, {}
-            local keep = History.KEEP_TOTAL ~= nil
+            local keep = History.KEEP_TOTAL ~= nil and not History.LOG_ALL
             for _, key in ipairs(GroupGuilds(gk)) do
                 local lines = M.PSS_GetGuildBlockHistory(key) or {}
                 local counts = M.PSS_GetGuildBlockCounts(key)
@@ -848,7 +848,7 @@ local function BuildPane(parent)
     pane.none:Hide()
     -- nothing selected: every guild's totals (a click on the selected
     -- guild deselects it)
-    pane.totals = ns.NewTotals(pane, page, "guilds", "Guild Ignore List", "Select a guild to see its details.")
+    pane.totals = ns.NewTotals(pane, page, "guilds", "Guild Ignore List", "Select a guild to see its details.", AllGuilds)
 
     pane.bodies = {}
     pane.guild = BuildGuildBody(pane)

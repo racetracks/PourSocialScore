@@ -138,7 +138,9 @@ end
 -- "Stored: 8 kept for this player, 1 waiting, 3 not stored or expired":
 -- where owner's counted blocks are (History.Where, 3.2). A filter's lines
 -- are in the 2000-line log, a person's in their kept lines (3.2-dev3);
--- world chat of a person is counted, never stored. Before the block
+-- world chat of a person is counted, never stored. From core
+-- 3.2.0-dev007 (History.LOG_ALL) every line is in the log again and a
+-- person's newest are kept once trimmed off it. Before the block
 -- history is loaded only the waiting lines are known.
 function ns.WhereText(owner, total, who)
     if not (owner and History.Where) or (total or 0) == 0 then return "" end
@@ -152,7 +154,7 @@ function ns.WhereText(owner, total, who)
     if waiting > 0 then parts[#parts + 1] = ("%d waiting"):format(waiting) end
     local gone = total - inLog - kept - waiting
     if gone > 0 then
-        local person = History.KeepsOwner and History.KeepsOwner(owner) and History.KEEP_TOTAL
+        local person = History.KeepsOwner and History.KeepsOwner(owner) and History.KEEP_TOTAL and not History.LOG_ALL
         parts[#parts + 1] = ("|cffaaaaaa%d %s|r"):format(gone, person and "not stored or expired" or "expired from logs")
     end
     if #parts == 0 then return "Stored: nothing." end
@@ -428,10 +430,12 @@ end
 -------------------------------------------------------------------------------
 --  A whole list's totals, shown in a tab's pane when nothing on it is
 --  selected: its blocks this session / last 24 hours / all time (the
---  Summary pie, no click-through) and by type. The counts come from the
---  core (M.PSS_ListTotals, PourSocialScore 3.2.0-dev004); nothing loads
---  PourSocialScore_Logging. An older core: the hint only.
---    local tot = ns.NewTotals(pane, tabPage, kind, title, hint)
+--  Summary pie) and by type. The counts come from the core
+--  (M.PSS_ListTotals, PourSocialScore 3.2.0-dev004); nothing loads
+--  PourSocialScore_Logging until a slice or View Events opens the whole
+--  list's events (allSpec(): its Block History spec). An older core: the
+--  hint only.
+--    local tot = ns.NewTotals(pane, tabPage, kind, title, hint, allSpec)
 --    tot:Show(guildRows)      -- kind "players", "guilds" or "filters"
 -------------------------------------------------------------------------------
 local TT = {}
@@ -445,14 +449,22 @@ function TT:Show(guildRows)
     local c = M.PSS_ListTotals(self.kind, self.counts, guildRows)
     self.recent.session, self.recent.day = c.session, c.day
     self.info:SetText(("Blocked |cffffff00%d|r in all.  |cffaaaaaaSelect an entry to see its own.|r"):format(c.total or 0))
-    self.summary:Set(nil, c.total or 0, self.title, nil, nil, { noWhere = true, recent = self.recent })
+    self.summary:Set(nil, c.total or 0, self.title, self.specFn, nil, { noWhere = true, recent = self.recent })
     self.typePie:Set(c, self.title)
 end
 
 function TT:Hide() self.frame:Hide() end
 
-function ns.NewTotals(pane, tabPage, kind, title, hint)
+function ns.NewTotals(pane, tabPage, kind, title, hint, allSpec)
     local tt = setmetatable({ kind = kind, title = title, counts = {}, recent = {} }, TT)
+    if allSpec then
+        -- a copy each time: a slice sets the period it opens on
+        tt.specFn = function()
+            local spec = {}
+            for k, v in pairs(allSpec()) do spec[k] = v end
+            return spec
+        end
+    end
     local f = CreateFrame("Frame", nil, pane)
     f:SetAllPoints()
     f:Hide()

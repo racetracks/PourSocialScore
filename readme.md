@@ -42,6 +42,10 @@ EllesmereUI is installed.
   A new block refreshes a list heading's counts and its pane at once, and
   the small pies keep View Events beside the counts, clear of the type
   legend (1.1.0-dev009).
+  With nothing selected, the list totals' pie slices and View Events open
+  the whole list's events (All Players, All Guilds, All Filters), and a
+  player's or guild's world and guild chat shows as its lines again, not
+  "Counted, not stored" (1.1.0-dev010, with PourSocialScore 3.2.0-dev007).
   Back / forward arrows (and mouse buttons 4 / 5) step through
   the views; Escape goes up a level through EllesmereUI's Escape handling
   (`RegisterEscapeClose` with `onEscape`).

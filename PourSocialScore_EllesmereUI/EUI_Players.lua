@@ -209,7 +209,7 @@ local function BuildPane(parent)
     pane.none:Hide()
     -- nothing selected: the whole list's totals (a click on the selected
     -- entry deselects it)
-    pane.totals = ns.NewTotals(pane, page, "players", "Player Ignore List", "Select an entry to see its details.")
+    pane.totals = ns.NewTotals(pane, page, "players", "Player Ignore List", "Select an entry to see its details.", AllPlayers)
 
     local body = CreateFrame("Frame", nil, pane)
     body:SetAllPoints()
