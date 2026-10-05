@@ -116,6 +116,11 @@ ns.SUMMARY_PERIODS = PERIODS
 -- the periods ticked (shared by every tab, kept while the window is loaded)
 local periodOn = { session = true, day = true, all = true }
 
+function ns.PeriodText(key)
+    for _, per in ipairs(PERIODS) do if per.key == key then return per.text end end
+    return ""
+end
+
 -- the first server second of a period (nil: all time)
 function ns.SummarySince(key)
     if key == "session" then return History.SessionStart and History.SessionStart() or nil end
@@ -170,12 +175,7 @@ end
 function SM:Open(key)
     local spec = self.specFn and self.specFn(self.id)
     if not spec then return end
-    local since = ns.SummarySince(key)
-    if since then
-        for _, per in ipairs(PERIODS) do
-            if per.key == key then spec.window = { since = since, text = string.lower(per.text) } end
-        end
-    end
+    if key ~= "all" then spec.period = key end
     ns.OpenHistoryView(self.tabPage, spec)
 end
 

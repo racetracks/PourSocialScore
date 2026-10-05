@@ -11,7 +11,8 @@ EllesmereUI is installed.
   rows that fit are made, so long lists cost the same as short ones. Their
   block history (`EUI_History.lua`) loads PourSocialScore_Logging only when
   asked for; a double-click opens the Block History view
-  (`EUI_HistoryView.lua`). The detail pane of each tab has three pages,
+  (`EUI_HistoryView.lua`: type boxes, a This session / Last 24 hours / All
+  time picker, search, and on guilds a Guilds drop-down). The detail pane of each tab has three pages,
   picked by the buttons along its bottom (`EUI_Detail.lua`): Summary, Event
   History and View/Edit Rule. Summary is a small pie (`EUI_Pie.lua`) of this
   session / the last 24 hours / all time, with a tick box per period; a
