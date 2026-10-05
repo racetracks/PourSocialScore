@@ -465,7 +465,8 @@ end
 --             slot table exists only while something was blocked in it, and
 --             an owner is in it once however often it blocked.
 --             A lookup is one index (day[owner]).
---   session = { [owner] = count }, emptied at each login (not a /reload)
+--   session = { [owner] = count }, emptied at each login (not a /reload);
+--   sessionStart = the server time of that login
 -- A guild rule is counted on its members and on History.GuildKey(gkey).
 ------------------------------------------------------------------------
 local SLOT = 600
@@ -539,6 +540,12 @@ function History.RecentCounts(owner)
 	return type(se) == "table" and se[owner] or 0, r and r.day[owner] or 0
 end
 
+-- The server time this session started (its blocks are the ones since).
+function History.SessionStart()
+	local db = PourSocialScoreDB
+	return type(db) == "table" and tonumber(rawget(db, "sessionStart")) or 0
+end
+
 -- Forget owner's recent counts (its block history or count was reset).
 function History.ForgetRecent(owner)
 	if owner == nil then return end
@@ -563,7 +570,10 @@ end
 function History.StartSession(initialLogin)
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return end
-	if initialLogin then rawset(db, "session", nil) end
+	if initialLogin or not tonumber(rawget(db, "sessionStart")) then
+		rawset(db, "session", nil)
+		rawset(db, "sessionStart", History.Now())
+	end
 	local r = recent(math.floor(History.Now() / SLOT), false)
 	if r and next(r.day) == nil then rawset(db, "recent", nil) end
 end

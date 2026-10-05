@@ -28,6 +28,8 @@ local function rc(owner) return History.RecentCounts(owner) end
 
 if phase == 1 then
 	check(rawget(PourSocialScoreDB, "session") == nil, "session table before any block")
+	local start = History.SessionStart()
+	check(start == GetServerTime(), "session start " .. start)
 	M.PSS_AddIgnore(P, true)
 	for _ = 1, 3 do check(whisper(P), "whisper not blocked") end
 	local s, d = rc(pkey())
@@ -113,8 +115,10 @@ elseif phase == 2 or phase == 3 then
 	local s, d = rc(pkey())
 	if phase == 2 then
 		check(s == 154 and d >= 142, ("reload lost counts %d/%d"):format(s, d))
+		check(History.SessionStart() == 1790000000, "a /reload moved the session start: " .. History.SessionStart())
 	else
 		check(s == 0 and d >= 142, ("new login: session %d day %d"):format(s, d))
+		check(History.SessionStart() == GetServerTime(), "a login did not start the session now")
 		-- a reset forgets the player's recent counts (Reset Block History)
 		M.PSS_ResetPlayerBlockHistory(P)
 		s, d = rc(pkey())
