@@ -107,7 +107,8 @@ if phase == 1 then
 	check(per < 20, "lookup too slow")
 	-- where the lines are, without loading Logging: only the waiting ones
 	local inLog, kept, waiting = History.Where(pkey())
-	check(inLog == nil and kept == nil and waiting == 154, ("where %s %s %s"):format(tostring(inLog), tostring(kept), tostring(waiting)))
+	-- (a person's waiting lines follow the keep's limits: 10 whispers)
+	check(inLog == nil and kept == nil and waiting == 10, ("where %s %s %s"):format(tostring(inLog), tostring(kept), tostring(waiting)))
 	check(not loaded("PourSocialScore_Logging"), "Logging loaded in phase 1")
 
 	-- the saved size: owners with a block in the last day only
@@ -137,10 +138,10 @@ elseif phase == 2 or phase == 3 then
 		check(s == 0 and d >= 142, ("new login: session %d day %d"):format(s, d))
 		check(History.SessionStart() == GetServerTime(), "a login did not start the session now")
 		-- a reset forgets the player's recent counts (Reset Block History)
-		-- once Logging is loaded: in the log (the waiting lines joined it)
+		-- once Logging is loaded: kept (a person's lines never join the log)
 		M.PSS_LoadLogging()
 		local inLog, kept, waiting = History.Where(pkey())
-		check(inLog == 154 and kept == 0 and waiting == 0, ("where after loading %s %s %s"):format(tostring(inLog), tostring(kept), tostring(waiting)))
+		check(inLog == 0 and kept == 10 and waiting == 0, ("where after loading %s %s %s"):format(tostring(inLog), tostring(kept), tostring(waiting)))
 		M.PSS_ResetPlayerBlockHistory(P)
 		s, d = rc(pkey())
 		check(s == 0 and d == 0, ("reset kept %d/%d"):format(s, d))

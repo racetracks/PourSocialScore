@@ -1,5 +1,5 @@
 POUR SOCIAL SCORE AND CHAT SPAM FILTER
-Version 3.2.0-dev2 - by Boaties
+Version 3.2.0-dev3 - by Boaties
 
 Pour Social Score is a quality-of-life addon with an unlimited, account-wide
 ignore list, a guild ignore list, and a chat/spam filter engine. It removes
@@ -121,19 +121,19 @@ Also
   closing the window, and otherwise every 10 minutes. Never in combat,
   within 5 minutes of leaving combat, or inside a dungeon, raid,
   battleground or arena. /pssguild status shows the cleanup state.
-* Block history is ONE shared log of the last 2,000 blocked lines across
-  every player, guild member and chat filter (Options > "Block history lines
-  kept in total" 100-20000). Memory has a hard ceiling however many people
-  you block: about 0.7 MB at 2,000 lines, and none until the history is
-  loaded (PourSocialScore_Logging). Blocks are counted at once; new lines
-  wait and join the log when it loads. The views (a player, a guild, a
-  member, a filter, "all ...") are filtered from the log; the blocked counts
-  are totals kept per person/filter and are never cut. A player's lines
-  follow them when they are moved to another guild rule.
-  When a person's lines leave the log, each player and guild member still
-  keeps their newest 10 chat lines, 5 emotes, 5 party invites and 5 guild
-  invites (moved, not copied, so nothing is stored or counted twice). Their
-  history shows those together with any lines still in the log.
+* Block history is ONE shared log of the last 2,000 chat filter lines
+  (Options > "Block history lines kept in total" 100-20000), and a short
+  history per listed player and guild member (default lists too): their
+  newest 10 whispers and party / raid / instance / battleground lines, 5
+  party invites and 5 guild invites, at most 2,000 of those lines in all
+  (the oldest go first). Their world chat (channels, say, yell, emotes) and
+  guild chat are counted but not stored. Memory has a hard ceiling however
+  many people you block, and none until the history is loaded
+  (PourSocialScore_Logging). Blocks are counted at once; new lines wait and
+  are stored when it loads (a person's waiting lines already follow the
+  limits above). The blocked counts are totals kept per person/filter and
+  are never cut. A player's lines follow them when they are moved to
+  another guild rule.
   /pss mem shows what the addon is using (/pss mem full: who has the most
   history lines).
 * Options apply to every character on the account; some can also be set
