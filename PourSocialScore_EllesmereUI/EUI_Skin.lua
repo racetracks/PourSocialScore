@@ -211,11 +211,15 @@ function ns.OnCommit(e, commit, refresh)
     e:SetScript("OnEscapePressed", function(self) self:ClearFocus(); refresh() end)
 end
 
+-- choices: { { value, text }, ... } or a function returning them (read
+-- each time the menu opens); a long menu scrolls
 function ns.NewDropdown(parent, w, choices, onPick)
     local d = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
     d:SetWidth(w)
     d:SetupMenu(function(dd, root)
-        for _, ch in ipairs(choices) do
+        local list = type(choices) == "function" and choices() or choices
+        if #list > 20 and root.SetScrollMode then root:SetScrollMode(400) end
+        for _, ch in ipairs(list) do
             root:CreateButton(ch[2], function() onPick(ch[1]) end)
         end
     end)

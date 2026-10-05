@@ -93,7 +93,7 @@ end
 
 local function HistKey(spec)
     return spec and (tostring(spec.kind) .. "\001" .. tostring(spec.id)
-        .. "\001" .. tostring(spec.window and spec.window.since)) or nil
+        .. "\001" .. tostring(spec.period)) or nil
 end
 
 local function UpdateNav()

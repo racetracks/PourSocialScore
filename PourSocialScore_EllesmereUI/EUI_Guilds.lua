@@ -426,6 +426,18 @@ local allGuilds = {
 }
 local function AllGuilds() return allGuilds end
 
+-- the guild rules A-Z, for the view's Guilds drop-down (read when it opens)
+local function GuildChoices()
+    local out = {}
+    for k, g in pairs(PourSocialScoreDB.guildData or {}) do
+        if type(g) == "table" then out[#out + 1] = { key = k, name = tostring(g.name or k) } end
+    end
+    table.sort(out, function(a, b) return string.lower(a.name) < string.lower(b.name) end)
+    return out
+end
+allGuilds.pick = GuildChoices
+allGuilds.pickSpec = function(key) return ns.GuildHistorySpec(key) end
+
 local function GuildLabel(key)
     local _, g = M.PSS_FindGuildRule(key)
     return g and tostring(g.name or key) or nil
@@ -434,7 +446,7 @@ end
 function ns.GuildHistorySpec(key)
     return {
         kind = "guild", id = key, allText = "All Guilds", all = AllGuilds,
-        label = GuildLabel,
+        label = GuildLabel, pick = GuildChoices, pickSpec = ns.GuildHistorySpec,
         read = M.PSS_GetGuildBlockHistory,
         reset = M.PSS_ResetGuildBlockHistory,
     }
@@ -442,7 +454,7 @@ end
 
 function ns.MemberHistorySpec(m, gkey)
     return {
-        kind = "member", id = m, allText = "Whole Guild",
+        kind = "member", id = m, allText = "Whole Guild", pick = GuildChoices, pickSpec = ns.GuildHistorySpec,
         all = function() return GuildLabel(gkey) and ns.GuildHistorySpec(gkey) or allGuilds end,
         label = function(rec)
             local _, g = M.PSS_FindGuildRule(gkey)

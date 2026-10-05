@@ -10,8 +10,10 @@
 --  spec = { kind, id, label(id) -> name (nil: gone), read(id) -> lines,
 --           reset(id), all = function() -> the spec of everything (or nil),
 --           allText = "All Guilds",
---           window = { since = server time, text = "this session" } (opened
---           from a Summary slice: the events since then; nil: all) }
+--           period = "session" | "day" | nil (all time): what the time
+--           picker starts on (a Summary slice opens with its period),
+--           pick = function() -> { { key, name }, ... } and pickSpec(key):
+--           a drop-down to jump to another entry (the guilds) }
 -------------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = ns.M
@@ -53,8 +55,8 @@ View.__index = View
 -- Filter and sort what was read into self.shown.
 function View:Apply(top)
     local find = string.lower(M.trim(self.search:GetText() or "") or "")
-    local win = self.spec and self.spec.window
-    local since = win and win.since
+    local period = self.period
+    local since = period and ns.SummarySince(period)
     local out, n = self.shown, 0
     for i = 1, #self.all do
         local h = self.all[i]
@@ -82,8 +84,8 @@ function View:Apply(top)
     self.list:SetCount(n)
     if top then self.list:Top() end
     local name = self.name or "?"
-    if win then name = name .. ", " .. tostring(win.text) end
-    self.allLines:SetShown(win ~= nil)
+    if since then name = name .. ", " .. string.lower(ns.PeriodText(period)) end
+    for key, b in pairs(self.periodButtons) do ns.SetTabSelected(b, key == (period or "all")) end
     self.heading:SetText(("Block History: %s  |cffaaaaaa(%s)|r"):format(name,
         n == #self.all and tostring(n) or (n .. " of " .. #self.all)))
     self.list:SetEmptyText(#self.all == 0 and "Nothing blocked here yet." or "No line matches the search and the ticked types.")
@@ -102,11 +104,13 @@ function View:Refresh(top)
     self.all = spec.read(spec.id) or {}
     self.allButton:SetShown(spec.id and spec.all ~= nil or false)
     if spec.allText then self.allButton:SetText(spec.allText) end
+    self.pick:SetShown(spec.pick ~= nil)
     self:Apply(top)
 end
 
 function View:Open(spec)
     self.spec = spec
+    self.period = spec.period
     self.sortKey, self.sortAsc = "time", false
     self.search:SetText("")
     self.page:Hide()
@@ -223,20 +227,6 @@ local function Build(page)
         ns.NavRecord()
     end)
     view.allButton:SetPoint("RIGHT", reset, "LEFT", -6, 0)
-    -- opened from a Summary slice: every event of the same entry
-    view.allLines = ns.NewButton(f, "All Time", 80, function()
-        local spec = view.spec
-        if not (spec and spec.window) then return end
-        local copy = {}
-        for k, v in pairs(spec) do copy[k] = v end
-        copy.window = nil
-        view.spec = copy
-        view:Refresh(true)
-        ns.NavRecord()
-    end)
-    view.allLines:SetPoint("RIGHT", view.allButton, "LEFT", -6, 0)
-    ns.TipOn(view.allLines, view.allLines, "Every event of this entry, not only the Summary slice.")
-    view.allLines:Hide()
 
     -- [x] whisper ... [x] guild          [search player, channel or message]
     local bar = CreateFrame("Frame", nil, f)
@@ -266,7 +256,46 @@ local function Build(page)
     view.search = search
 
     local lf = CreateFrame("Frame", nil, f)
-    lf:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -62)
+    -- [This session] [Last 24 hours] [All time]               [Guilds v]
+    local bar2 = CreateFrame("Frame", nil, f)
+    bar2:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -60)
+    bar2:SetPoint("RIGHT", f, "RIGHT", -10, 0)
+    bar2:SetHeight(22)
+    view.periodButtons = {}
+    local prevB
+    for _, per in ipairs(ns.SUMMARY_PERIODS) do
+        local b = CreateFrame("Button", nil, bar2)
+        b:SetNormalFontObject(GameFontHighlightSmall)
+        b:SetText(per.text)
+        b:SetSize(110, 22)
+        if prevB then b:SetPoint("LEFT", prevB, "RIGHT", 4, 0) else b:SetPoint("TOPLEFT", bar2, "TOPLEFT", 0, 0) end
+        b:SetScript("OnClick", function()
+            if not view.spec then return end
+            view.period = per.key ~= "all" and per.key or nil
+            view:Apply(true)
+        end)
+        ns.Tab(b)
+        ns.TipOn(b, b, per.key == "all" and "Every logged event." or ("Only the events of " .. string.lower(per.text) .. "."))
+        view.periodButtons[per.key] = b
+        prevB = b
+    end
+    view.pick = ns.NewDropdown(bar2, 200, function()
+        local spec = view.spec
+        local out = {}
+        for i, c in ipairs(spec and spec.pick and spec.pick() or {}) do out[i] = { c.key, c.name } end
+        return out
+    end, function(key)
+        local spec = view.spec
+        if not (spec and spec.pickSpec) then return end
+        view.spec = spec.pickSpec(key)
+        view:Refresh(true)
+        ns.NavRecord()
+    end)
+    view.pick:SetPoint("RIGHT", bar2, "RIGHT", 0, 0)
+    if view.pick.SetDefaultText then view.pick:SetDefaultText("Guilds") end
+    view.pick:Hide()
+
+    lf:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -88)
     lf:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, 8)
     view.list = ns.NewRows(lf, {
         rowH = 18, fontSize = 12, links = true,
