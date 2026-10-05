@@ -270,6 +270,32 @@ do
 	view.periodButtons.all:GetScript("OnClick")(view.periodButtons.all)
 	check(view.list.count == 2, "All time hides the older event")
 	EllesmereUI.PressEscape()
+	-- where the blocks are (Logging is loaded by now): in the log (the older
+	-- line above was added without a count: 2 lines)
+	pane.pages:Select("summary")
+	check((sm.where:GetText() or "") == "Stored: 2 in the log.", "where line " .. tostring(sm.where:GetText()))
+	-- the lines leave the block history, the counts stay: the view shows
+	-- the block as expired, with its type and 10 minutes (from the core's
+	-- recent counts) and the message "Data expired from logs"
+	local key = M.PSS_PlayerHistoryKey(sel)
+	M.PSS_History.Clear(function(h) return h.o == key end)
+	sm:Refresh()
+	check((sm.where:GetText() or ""):find("1 expired from logs", 1, true), "where after expiry " .. tostring(sm.where:GetText()))
+	sm.viewButton:GetScript("OnClick")(sm.viewButton)
+	local x = view.shown[1]
+	-- (the counted block and the older line fall in the same 10 minutes)
+	check(view.list.count == 1 and x and x.expired == 2 and x.cat == "whisper" and x.ts > 0 and x.ts % 600 == 0
+		and (x.message or ""):find("Data expired from logs", 1, true), "expired line " .. view.list.count)
+	check((view.list.rows[1].cells.time:GetText() or "") ~= "Unknown", "expired line without its time")
+	-- older than a day: still shown, time unknown, on All time only
+	H.Advance(86400 + 600)
+	EllesmereUI.PressEscape()
+	sm.viewButton:GetScript("OnClick")(sm.viewButton)
+	x = view.shown[1]
+	check(view.list.count == 1 and x.ts == 0 and x.cat == "whisper", "expired line after a day")
+	view.periodButtons.day:GetScript("OnClick")(view.periodButtons.day)
+	check(view.list.count == 0, "an expired line of unknown time in Last 24 hours")
+	EllesmereUI.PressEscape()
 	pane.pages:Select("history")
 	H.Advance(1)
 end
