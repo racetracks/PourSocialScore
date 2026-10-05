@@ -1,6 +1,19 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0 - Events tab, recent counts, smaller saves
+
+- The EllesmereUI folder (PourSocialScore_EllesmereUI) is now part of the main download and has the same version number.
+- New Events tab in the EllesmereUI window: the blocked lines of the Player Ignore List, Guild Ignore List and Chat Filters in one place, newest first, with a Source column. Filter them by Time (This session, Last 24 hours, All time or a custom range), Types and Source, and search them. Every pie slice, View Events and a double-click on a pane's history open it with the matching filters set.
+- Each list's pane shows pies of this session / the last 24 hours / all time and of blocks by type, for an entry or, with nothing selected, the whole list. Unticking a type takes it out of that page's period pie too. Default guild lists sit under one Managed Communities row.
+- Every block is counted for this session and the last 24 hours (in 10-minute steps, with its type) without loading the block history. "This session" means the same in both windows: since your login or last /reload.
+- The 2,000 line block log holds every blocked line again, and is saved grouped per person, filter or guild member: on a real save 2,000 lines take 203 KB instead of 633 KB. When a person's lines leave the log, their newest whispers, party / raid lines and invites are still kept for them.
+- A guild rule never blocks the guild you are in.
+- EllesmereUI window: deselect with a click under a list or on the selected line, a tab click resets the tab, and the line by the back / forward arrows is clickable.
+- Hovering a profession link in a blocked message no longer opens the profession window.
+- The test builds 3.2.0-dev1 to dev012 below list each change in detail.
+- Version 3.2.0.
+
 => 3.2.0-dev012 - Review fixes
 
 - EllesmereUI window: the type tick boxes under a list's type pie (a whole list, a default guild list) filter that page's period pie and View Events only. A player's, guild's, member's or filter's own pie, which has no type pie beside it, always shows every type again, so its numbers match the PSS window.
