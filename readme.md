@@ -6,9 +6,9 @@ Pour Social Score in EllesmereUI's style: the addon folder
 EllesmereUI is installed.
 
 - A Pour Social Score window next to the Friends list, painted through
-  EllesmereUI's skinning API (`EllesmereUI.RegisterSkin`). Its Player Ignore
-  List tab uses one pooled row list (`EUI_Rows.lua`) that the other list tabs
-  will share.
+  EllesmereUI's skinning API (`EllesmereUI.RegisterSkin`). Its Player and
+  Guild Ignore List tabs share one pooled row list (`EUI_Rows.lua`): only the
+  rows that fit are made, so long lists cost the same as short ones.
 - A "Pour Social Score" section in the EllesmereUI panel (plugin API,
   registered by the core).
 

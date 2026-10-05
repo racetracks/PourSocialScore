@@ -5,7 +5,7 @@
 ## Group: PourSocialScore
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
-## Version: 3.1.0-dev4
+## Version: 3.1.0-dev5
 ## LoadOnDemand: 1
 ## Dependencies: PourSocialScore, PourSocialScore_Libraries, EllesmereUI
 ## SavedVariables: PSS_EllesmereUIDB
@@ -15,4 +15,5 @@ EUI_Skin.lua
 EUI_Options.lua
 EUI_Rows.lua
 EUI_Players.lua
+EUI_Guilds.lua
 EUI_Window.lua
