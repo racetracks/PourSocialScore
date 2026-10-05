@@ -39,6 +39,9 @@ EllesmereUI is installed.
   up; a list's period pie opens its guilds' lines in the Block History view
   (View Events or a slice), and the type pie has a tick box per type, shared
   by every type pie (1.1.0-dev008, needs PourSocialScore 3.2.0-dev005).
+  A new block refreshes a list heading's counts and its pane at once, and
+  the small pies keep View Events beside the counts, clear of the type
+  legend (1.1.0-dev009).
   Back / forward arrows (and mouse buttons 4 / 5) step through
   the views; Escape goes up a level through EllesmereUI's Escape handling
   (`RegisterEscapeClose` with `onEscape`).

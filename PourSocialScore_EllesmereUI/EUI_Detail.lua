@@ -265,7 +265,7 @@ function Build(sm)
         t:SetPoint("LEFT", sq, "RIGHT", 6, 0)
         t:SetText(per.text)
         c.count = ns.NewText(page, 12)
-        c.count:SetPoint("LEFT", c, "RIGHT", 128, 0)
+        c.count:SetPoint("LEFT", c, "RIGHT", sm.size and 104 or 128, 0)
         c.count:SetTextColor(per.r, per.g, per.b)
         c:SetScript("OnClick", function(self)
             periodOn[per.key] = self:GetChecked() and true or false
@@ -294,8 +294,17 @@ function Build(sm)
     sm.where:SetWordWrap(true)
     sm.where:SetTextColor(1, 1, 1, 0.7)
 
-    local view = ns.NewButton(page, "View Events", 110, function() sm:Open("all") end)
-    view:SetPoint("TOPLEFT", page, "TOPLEFT", x + 4, y - 8)
+    local view
+    if sm.size then
+        -- a small pie (a list's pane): beside the All time count, so it
+        -- stays clear of what is drawn under the pie
+        view = ns.NewButton(page, "View Events", 80, function() sm:Open("all") end)
+        view:SetPoint("RIGHT", page, "RIGHT", -10, 0)
+        view:SetPoint("TOP", sm.boxes.all, "TOP", 0, 0)
+    else
+        view = ns.NewButton(page, "View Events", 110, function() sm:Open("all") end)
+        view:SetPoint("TOPLEFT", page, "TOPLEFT", x + 4, y - 8)
+    end
     ns.TipOn(view, view, "Every logged event of this entry in the Block History view (loads the block history).")
     sm.viewButton = view
 
@@ -349,13 +358,13 @@ function TP:Build()
         local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
         local c = ns.NewCheck(f)
         c:SetSize(18, 18)
-        c:SetPoint("TOPLEFT", f, "TOPLEFT", size + 28 + col * 126, top - 2 - row * 20)
+        c:SetPoint("TOPLEFT", f, "TOPLEFT", size + 20 + col * 132, top - 2 - row * 20)
         local sq = f:CreateTexture(nil, "ARTWORK")
         sq:SetSize(10, 10)
         sq:SetPoint("LEFT", c, "RIGHT", 2, 0)
         local t = ns.NewText(f, 11)
         t:SetPoint("LEFT", sq, "RIGHT", 5, 0)
-        t:SetWidth(90)
+        t:SetWidth(98)
         t:SetJustifyH("LEFT")
         local k = { check = c, sq = sq, text = t }
         c:SetScript("OnClick", function(btn)

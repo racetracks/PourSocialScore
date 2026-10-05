@@ -1376,6 +1376,19 @@ M.Events.Register("GUILD_SCAN_DONE", Changed)
 local pending
 local function RedrawCounts()
     if G.view == "guilds" then
+        -- a list heading on screen or selected (its counts are its guilds'
+        -- added up): the whole list again, as the PSS window does
+        local sums = G.selKind == "group" or G.selKind == "managed"
+        for i = 1, list.shown or 0 do
+            local it = G.rows[list.first + i]
+            if it and (it.header or it.managedHeader) then sums = true end
+        end
+        if sums then
+            Resort()
+            list:Redraw()
+            ShowDetail()
+            return
+        end
         for i = 1, list.shown or 0 do
             local it = G.rows[list.first + i]
             if it and it.key then it.bc = M.PSS_GetGuildBlockCounts(it.key) end
