@@ -30,6 +30,14 @@ if os.getenv("PSS_PHASE") == "3" then
 	local win = _G.PSS_EllesmereUIWindow
 	check(win and win:IsShown(), "no window without skinning")
 	check(#E.log.skinned == 0, "skinned with skinning off")
+	-- the plain look: the list tabs build, the selected tab is underlined
+	for _, i in ipairs({ 1, 2 }) do
+		win.tabs[i]:GetScript("OnClick")(win.tabs[i])
+		check(win.pages[i]:IsShown() and win.pages[i].refresh, "plain tab " .. i .. " not built")
+		for j = 1, #win.tabs do
+			check(win.tabs[j].pssUnderline:IsShown() == (i == j), ("plain underline on tab %d after clicking tab %d"):format(j, i))
+		end
+	end
 	if not fail then print("PASS eui window 3") end
 	return
 end
@@ -110,10 +118,14 @@ check(#E.log.escape == 1, "Escape not registered")
 local shells = 0
 for _, k in ipairs(E.log.skinned) do if k == "Shell" then shells = shells + 1 end end
 check(shells == 1, "window not painted with S.Shell (" .. shells .. ")")
--- the Options and Import/Export tabs build on first open
-for _, i in ipairs({ 4, 5 }) do
+-- the list, Options and Import/Export tabs build on first open, and only
+-- the clicked tab shows as selected (S.Tab's accent underline)
+for _, i in ipairs({ 1, 2, 4, 5 }) do
 	win.tabs[i]:GetScript("OnClick")(win.tabs[i])
 	check(win.pages[i]:IsShown() and win.pages[i].refresh, "tab " .. i .. " not built")
+	for j = 1, #win.tabs do
+		check(E.log.tabSel[win.tabs[j]] == (i == j), ("tab %d selected %s after clicking tab %d"):format(j, tostring(E.log.tabSel[win.tabs[j]]), i))
+	end
 end
 M.PSS_SetOpt("skipParty", "global", true)
 M.PSS_SetOpt("skipParty", "global", false)

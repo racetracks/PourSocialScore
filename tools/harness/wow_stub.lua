@@ -125,6 +125,13 @@ function W:GetAlpha() return self._alpha or 1 end
 function W:GetTextColor() return 1, 1, 1, 1 end
 function W:GetFont() return "Fonts\\FRIZQT__.TTF", 12, "" end
 function W:GetJustifyH() return "LEFT" end
+-- only text regions justify: on a Button or Frame the game has no such method
+local JUSTIFIES = { FontString = true, EditBox = true, SimpleHTML = true, MessageFrame = true, ScrollingMessageFrame = true }
+local function justify(self, name)
+	if not JUSTIFIES[self._kind] then error(("attempt to call method '%s' (a nil value) on a %s"):format(name, tostring(self._kind)), 3) end
+end
+function W:SetJustifyH() justify(self, "SetJustifyH") end
+function W:SetJustifyV() justify(self, "SetJustifyV") end
 function W:GetChildren() return end
 function W:GetRegions() return end
 function W:GetNumChildren() return 0 end

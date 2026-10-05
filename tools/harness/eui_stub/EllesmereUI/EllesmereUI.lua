@@ -44,6 +44,9 @@ local S = setmetatable({ apiVersion = 3 }, { __index = function(t, k)
 	rawset(t, k, f)
 	return f
 end })
+-- which tabs show as selected (S.SetTabSelection)
+E.log.tabSel = {}
+function S.SetTabSelection(tab, selected) E.log.tabSel[tab] = selected end
 function E.RegisterSkin(name, fn)
 	if E.skinsOn then fn(S) end
 	return true
