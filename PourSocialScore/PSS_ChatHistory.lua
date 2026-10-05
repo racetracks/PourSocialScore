@@ -573,6 +573,24 @@ function History.RecentSlots(owner)
 	return out
 end
 
+-- Where owner's lines are: in the log, in the keep (a person's own lines
+-- after they left the log) and waiting for Logging (the outbox). The log and
+-- the keep are only known once Logging is loaded (nil before; this never
+-- loads it). Walks the log: for showing one entry, not per block.
+function History.Where(owner)
+	local db = PourSocialScoreDB
+	local waiting = 0
+	local ob = type(db) == "table" and rawget(db, "outbox")
+	if type(ob) == "table" then
+		for i = 1, #ob do if type(ob[i]) == "table" and ob[i].o == owner then waiting = waiting + 1 end end
+	end
+	if not ready then return nil, nil, waiting end
+	local log, inLog = History.Log(), 0
+	for i = 1, #log do if log[i].o == owner then inLog = inLog + 1 end end
+	local kept = History.Keep()[owner]
+	return inLog, kept and #kept or 0, waiting
+end
+
 -- The server time this session started (its blocks are the ones since).
 function History.SessionStart()
 	local db = PourSocialScoreDB
