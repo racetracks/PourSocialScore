@@ -16,10 +16,17 @@ EllesmereUI is installed.
   (`RegisterEscapeClose` with `onEscape`).
 - A "Pour Social Score" section in the EllesmereUI panel (plugin API,
   registered by the core).
+- With the integration on, the core's note prompt and party warning use
+  EllesmereUI's input and confirm popups (`ShowInputPopup`,
+  `ShowConfirmPopup`); that code is in the core (`PSS_BlizzardUI.lua`), so
+  this folder does not have to load for them.
 
 It uses EllesmereUI's documented public APIs only and contains no
 EllesmereUI code. Code style follows EllesmereUI's CONTRIBUTING.md (Lua 5.1,
 ASCII, house tooltips and popups, `W:DualRow` rows with no empty slots).
 
 Install: copy `PourSocialScore_EllesmereUI` into `Interface/AddOns` next to
-the other PourSocialScore folders, same version.
+the other PourSocialScore folders, same version (3.1.0 is the first full
+release). Then tick "Enable EllesmereUI integration" in Pour Social Score's
+Options (or `/pss eui enable`) and reload. The user guide is the ELLESMEREUI
+section of the core readme.txt.
