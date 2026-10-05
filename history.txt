@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev005 - Managed Communities row
+
+- The guild list query can put every default guild list (Managed Communities - Asmongold ...) under one Managed Communities row that opens and closes, for the EllesmereUI window. The PSS window's list is unchanged. The row is open unless you close it; only a closed row is saved.
+
 => 3.2.0-dev004 - Totals for a whole list
 
 - New: the blocks of a whole list added up (Player Ignore List, Guild Ignore List or Chat Filters), with this session and the last 24 hours, for the EllesmereUI window to show when nothing on the list is selected. It reads the counters only (the block history stays unloaded) and is in PourSocialScore_Libraries, so it takes no memory until a window opens.

@@ -68,6 +68,37 @@ end
 local item = rows[firstGuild]
 local again = M.PSS_GuildRows("guild", true, nil, rows)
 check(again == rows and rows[firstGuild] == item, "rows not reused")
+-- into.nest (3.2.0-dev005): one Managed Communities row over the groups,
+-- open unless closed; the PSS window (no nest) has none
+do
+	local plain = 0
+	for i = 1, n do if rows[i].managedHeader then plain = plain + 1 end end
+	check(plain == 0, "Managed Communities row without nest")
+	local nr = { nest = true }
+	local _, nn = M.PSS_GuildRows("guild", true, nil, nr)
+	local heads = 0
+	for k in pairs(nr.groups) do heads = heads + 1 end
+	if heads > 0 then
+		local mh = nr[1]
+		check(mh.managedHeader and mh.open and mh.groups == heads, "Managed Communities row not first")
+		local guilds, total = 0, 0
+		for k, items in pairs(nr.groups) do
+			guilds = guilds + #items
+			total = total + (nr.heads[k].bc.total or 0)
+			check(nr.heads[k].nested, "group header not nested")
+		end
+		check(mh.guilds == guilds and mh.bc.total == total, "Managed Communities row sums")
+		check(nn == n + 1, ("nest rows %d, want %d"):format(nn, n + 1))
+		check(PourSocialScoreDB.guildGroupOpen[M.PSS_GUILD_MANAGED_SHUT] == nil, "an open row was saved")
+		M.PSS_SetGuildGroupOpen(M.PSS_GUILD_MANAGED_SHUT, true)
+		local _, shut = M.PSS_GuildRows("guild", true, nil, nr)
+		local inside = 0
+		for i = 1, shut do if nr[i].header or nr[i].inGroup then inside = inside + 1 end end
+		check(not nr[1].open and inside == 0 and nr.heads[next(nr.groups)] ~= nil, "closed row still lists the groups")
+		M.PSS_SetGuildGroupOpen(M.PSS_GUILD_MANAGED_SHUT, false)
+		check(PourSocialScoreDB.guildGroupOpen[M.PSS_GUILD_MANAGED_SHUT] == nil, "reopened row still saved")
+	end
+end
 local all = M.PSS_GuildCount()
 check(all >= N + 1, "guild count " .. all)
 local _, found = M.PSS_GuildRows("guild", true, "TOUR GUILD 01", {})
@@ -421,6 +452,12 @@ win._mouseOver = nil
 ------------------------------------------------------------------ groups, exclusions
 local hi = indexOf(function(it) return it.header end)
 if hi then
+	-- the window's list (EUI 1.1.0-dev008): the groups under the Managed
+	-- Communities row, indented, without the "Managed Communities - " prefix
+	check(st.rows[1].managedHeader and st.rows[hi].nested, "no Managed Communities row in the window")
+	local hr = rowFor(list, hi)
+	local ht = hr and hr.cells.guild:GetText() or ""
+	check(not ht:find("Managed Communities -", 1, true) and ht:sub(1, 3) == "   ", "nested group row text: " .. ht)
 	local gk = st.rows[hi].groupKey
 	local wasOpen = M.PSS_GuildGroupOpen(gk)
 	clickAt(list, hi)
@@ -450,7 +487,7 @@ if hi then
 	-- the same tick boxes as a guild's Summary; All time starts unticked
 	check(gp.summary.boxes.all and not gp.summary.boxes.all:GetChecked() and gp.summary.boxes.session:GetChecked(),
 		"group tick boxes (All time should start off)")
-	check(not gp.summary.viewButton:IsShown(), "View Events on a default guild list")
+	check(gp.summary.viewButton:IsShown(), "no View Events on a default guild list")
 	local want = 0
 	for _, cat in ipairs(History.ALL_CATS) do if (hdr.bc[cat] or 0) > 0 then want = want + 1 end end
 	local tp = gp.typePie
@@ -461,6 +498,56 @@ if hi then
 	end
 	check(tp.empty:IsShown() == (want == 0), "group type pie empty text")
 	check(loaded("PourSocialScore_Logging") == logging, "group pies loaded the block history")
+	-- a type tick box takes its slice out (the count stays), shared by the
+	-- type pies; ticked again, it is back
+	if tp.count > 0 then
+		local k1 = tp.keys[1]
+		local cat = k1.cat
+		local sum = 0
+		for i = 1, tp.count do sum = sum + tp.slices[i].value end
+		k1.check:SetChecked(false)
+		k1.check:GetScript("OnClick")(k1.check)
+		check(tp.slices[1].draw == 0 and tp.slices[1].value == hdr.bc[cat] and tp.pie.total == sum - hdr.bc[cat],
+			"unticked type still in the pie")
+		pane.totals:Show(st.rows)
+		local ttp = pane.totals.typePie
+		local shared = false
+		for i = 1, ttp.count do if ttp.keys[i].cat == cat then shared = not ttp.keys[i].check:GetChecked() and ttp.slices[i].draw == 0 end end
+		check(shared, "type tick box not shared with the list totals")
+		pane.totals:Hide()
+		k1.check:SetChecked(true)
+		k1.check:GetScript("OnClick")(k1.check)
+		check(tp.slices[1].draw == nil and tp.pie.total == sum, "ticked type not back")
+	end
+	-- View Events and a slice: the list's lines in the Block History view
+	local wantLines = 0
+	for _, it in ipairs(items) do wantLines = wantLines + #M.PSS_GetGuildBlockHistory(it.key) end
+	gp.summary.viewButton:GetScript("OnClick")(gp.summary.viewButton)
+	local gv = page.hview
+	check(gv and gv:IsOpen() and gv.spec.kind == "group" and gv.spec.id == gk and #gv.all == wantLines,
+		("View Events on a default guild list: %s lines, want %d"):format(gv and tostring(#gv.all) or "?", wantLines))
+	-- its Reset asks first (it clears every guild in the list)
+	local asked = #E.log.popups
+	gv.resetButton:GetScript("OnClick")(gv.resetButton)
+	check(#E.log.popups == asked + 1, "a default guild list's Reset did not ask")
+	if EUIConfirmDimmer then EUIConfirmDimmer:Hide() end
+	check(E.PressEscape() and not gv:IsOpen() and page:IsShown(), "Escape did not close the list's view")
+	gp.summary:Open(gp.summary.map[1])
+	check(gv:IsOpen() and gv.spec.kind == "group" and gv.period == "session", "a slice of a default guild list")
+	check(E.PressEscape() and not gv:IsOpen(), "Escape did not close the slice's view")
+	-- the Managed Communities row: every list added up, a click opens or
+	-- closes it (only a closed row is saved)
+	clickAt(list, 1)
+	check(st.selKind == "managed" and pane.group:IsShown() and not gp.toggle:IsShown(), "Managed Communities row click")
+	check(PourSocialScoreDB.guildGroupOpen[M.PSS_GUILD_MANAGED_SHUT] == true and st.rows[1].open == false, "Managed Communities row did not close")
+	local mh = st.rows[1]
+	check(gp.summary.values.all == (mh.bc.total or 0) and gp.typePie.count >= tp.count, "Managed Communities totals")
+	check(gp.summary.viewButton:IsShown(), "no View Events on Managed Communities")
+	local inside = 0
+	for i = 1, st.n do if st.rows[i].header or st.rows[i].inGroup then inside = inside + 1 end end
+	check(inside == 0, "closed Managed Communities row still lists groups")
+	gp.open:GetScript("OnClick")(gp.open)
+	check(PourSocialScoreDB.guildGroupOpen[M.PSS_GUILD_MANAGED_SHUT] == nil and st.rows[1].open, "Expand on Managed Communities")
 	local ii = indexOf(function(it) return it.inGroup end)
 	if ii then
 		local sk = st.rows[ii].key

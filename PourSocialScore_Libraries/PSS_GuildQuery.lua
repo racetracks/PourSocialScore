@@ -13,7 +13,9 @@
 --   M.PSS_GuildGroupOpen(k) / M.PSS_SetGuildGroupOpen(k, on)
 --                                         collapsible rows (managed groups,
 --                                         M.PSS_GUILD_EXCL_OPEN = the Guild
---                                         Exclusion List), kept in the save
+--                                         Exclusion List), kept in the save;
+--                                         M.PSS_GUILD_MANAGED_SHUT = the
+--                                         Managed Communities row is closed
 --   M.PSS_FindGuildRule(guildNameOrKey)   key, record of a guild rule
 --   M.PSS_AddMembersGuild(gkey, actual)   Add Guild on a member: a rule for
 --                                         the member's actual guild
@@ -27,6 +29,8 @@ local lower, find = string.lower, string.find
 local History = M.PSS_History
 
 M.PSS_GUILD_EXCL_OPEN = "__exclusions"
+-- stored only while the Managed Communities row is closed (open by default)
+M.PSS_GUILD_MANAGED_SHUT = "__managedShut"
 
 function M.PSS_GuildGroupOpen(k)
 	PourSocialScoreDB.guildGroupOpen = type(PourSocialScoreDB.guildGroupOpen) == "table" and PourSocialScoreDB.guildGroupOpen or {}
@@ -138,6 +142,9 @@ end
 --   it when open; then the other guilds, as items { key, g, bc }.
 -- find: text in the guild name (any case); a search lists only the guilds
 -- that match, groups and exclusions left out (inGroup / groupOn still set).
+-- into.nest = true (set by the caller, 3.2.0-dev005): the groups go under
+-- one row { managedHeader, groups, guilds, members, bc, open } (open
+-- unless M.PSS_GUILD_MANAGED_SHUT), and each group header gets nested.
 -- key: guild, members, scan, fields, custom, "metric:<cat>", "excl:<cat>".
 -- into: the caller's table, reused (nil = a new one). Returns into, n.
 function M.PSS_GuildRows(sortKey, asc, findText, into)
@@ -179,6 +186,29 @@ function M.PSS_GuildRows(sortKey, asc, findText, into)
 	clearArray(gkeys)
 	for k in pairs(into.groups) do gkeys[#gkeys + 1] = k end
 	table.sort(gkeys)
+	-- the Managed Communities row: the groups added up, over them
+	local nest = into.nest and #gkeys > 0
+	local nestOpen = true
+	if nest then
+		nestOpen = not M.PSS_GuildGroupOpen(M.PSS_GUILD_MANAGED_SHUT)
+		local mh = into.managedHead
+		if mh then
+			for c in pairs(mh.bc) do mh.bc[c] = 0 end
+		else
+			mh = { managedHeader = true, bc = History.EmptyCounts() }
+			into.managedHead = mh
+		end
+		local guilds, members, bc = 0, 0, mh.bc
+		for _, k in ipairs(gkeys) do
+			for _, it in ipairs(into.groups[k]) do
+				guilds = guilds + 1
+				members = members + (it.g.memberCount or 0)
+				for c, v in pairs(it.bc) do bc[c] = (bc[c] or 0) + (tonumber(v) or 0) end
+			end
+		end
+		mh.groups, mh.guilds, mh.members, mh.open = #gkeys, guilds, members, nestOpen
+		put(mh)
+	end
 	for _, k in ipairs(gkeys) do
 		local items = into.groups[k]
 		sortGuildItems(items, sortKey, asc)
@@ -197,8 +227,9 @@ function M.PSS_GuildRows(sortKey, asc, findText, into)
 		end
 		local open = M.PSS_GuildGroupOpen(k)
 		h.name, h.guilds, h.members, h.open = grp.name or k, #items, total, open
-		put(h)
-		if open then
+		h.nested = nest or nil
+		if nestOpen then put(h) end
+		if open and nestOpen then
 			local on = M.PSS_ManagedGroupActive(k)
 			for _, it in ipairs(items) do it.inGroup = true; it.groupOn = on; put(it) end
 		end
