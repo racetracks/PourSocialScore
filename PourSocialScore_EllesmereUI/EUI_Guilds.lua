@@ -413,6 +413,50 @@ local function PaintOverrides(buttons, t)
     end
 end
 
+-- The Block History view (EUI_HistoryView.lua) of a guild, a member (All:
+-- their guild) or every guild.
+local allGuilds = {
+    kind = "guild", id = false, allText = "All Guilds",
+    label = function() return "All Guilds" end,
+    read = M.PSS_GetGuildBlockHistory,
+    reset = function()
+        for k in pairs(PourSocialScoreDB.guildData or {}) do M.PSS_ResetGuildBlockHistory(k) end
+        if M.PSS_Stats then M.PSS_Stats.Reset("guild") end
+    end,
+}
+local function AllGuilds() return allGuilds end
+
+local function GuildLabel(key)
+    local _, g = M.PSS_FindGuildRule(key)
+    return g and tostring(g.name or key) or nil
+end
+
+function ns.GuildHistorySpec(key)
+    return {
+        kind = "guild", id = key, allText = "All Guilds", all = AllGuilds,
+        label = GuildLabel,
+        read = M.PSS_GetGuildBlockHistory,
+        reset = M.PSS_ResetGuildBlockHistory,
+    }
+end
+
+function ns.MemberHistorySpec(m, gkey)
+    return {
+        kind = "member", id = m, allText = "Whole Guild",
+        all = function() return GuildLabel(gkey) and ns.GuildHistorySpec(gkey) or allGuilds end,
+        label = function(rec)
+            local _, g = M.PSS_FindGuildRule(gkey)
+            if not (g and type(g.members) == "table") then return nil end
+            for _, x in pairs(g.members) do
+                if x == rec then return tostring(rec.name or "?") end
+            end
+            return nil
+        end,
+        read = M.PSS_GetMemberBlockHistory,
+        reset = M.PSS_ResetMemberBlockHistory,
+    }
+end
+
 local function ConfirmRemoveGuild()
     local key = G.selKind == "guild" and G.sel or (G.view == "members" and G.mguild)
     local _, g = M.PSS_FindGuildRule(key)
@@ -507,7 +551,10 @@ local function BuildGuildBody(parent)
     b.counts = Line(b, y)
     ns.Font(b.counts, 11)
     y = y - LINE_H - 2
-    b.hist = ns.NewHistory(b, y, { names = true, empty = "Nothing blocked from this guild yet." })
+    b.hist = ns.NewHistory(b, y, {
+        names = true, empty = "Nothing blocked from this guild yet.",
+        open = function(key) ns.OpenHistoryView(page, ns.GuildHistorySpec(key)) end,
+    })
 
     local members = ns.NewButton(b, "Members", 90, function() OpenMembers(pane.guildKey) end)
     members:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 10, 8)
@@ -633,7 +680,10 @@ local function BuildMemberBody(parent)
     b.counts = Line(b, y)
     ns.Font(b.counts, 11)
     y = y - LINE_H - 2
-    b.hist = ns.NewHistory(b, y, { empty = "Nothing blocked from this player yet." })
+    b.hist = ns.NewHistory(b, y, {
+        empty = "Nothing blocked from this player yet.",
+        open = function(m) ns.OpenHistoryView(page, ns.MemberHistorySpec(m, G.mguild)) end,
+    })
 
     local remove = ns.NewButton(b, "Remove Member", 110, ConfirmRemoveMember)
     remove:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 10, 8)

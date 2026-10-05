@@ -159,8 +159,25 @@ function List:MakeRow(i)
     end
     PlaceCells(row, spec.cols, row.cells, 4)
 
+    -- spec.links: links in the text work as in chat (hover for the
+    -- tooltip, click to open, shift-click to paste into chat)
+    if spec.links and row.SetHyperlinksEnabled then
+        row:SetHyperlinksEnabled(true)
+        row:SetScript("OnHyperlinkClick", function(btn, link, text, button)
+            btn.linkClickAt = GetTime()
+            if SetItemRef then pcall(SetItemRef, link, text, button, DEFAULT_CHAT_FRAME) end
+        end)
+        row:SetScript("OnHyperlinkEnter", function(btn, link)
+            GameTooltip:SetOwner(btn, "ANCHOR_CURSOR")
+            local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, link)
+            if ok and GameTooltip:NumLines() > 0 then GameTooltip:Show() else GameTooltip:Hide() end
+        end)
+        row:SetScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
+    end
     if spec.click then
         row:SetScript("OnClick", function(btn, button)
+            -- a click on a link in the row is the link's, not the row's
+            if btn.linkClickAt and GetTime() - btn.linkClickAt < 0.05 then return end
             if btn.index then spec.click(btn, btn.index, button) end
         end)
     end

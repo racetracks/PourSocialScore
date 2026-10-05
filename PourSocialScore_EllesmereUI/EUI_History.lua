@@ -13,6 +13,7 @@ local TIME_FMT = "%Y/%m/%d %H:%M:%S"
 
 -- the filter order, and the one word shown for each line
 local TYPES = { "whisper", "invite", "party", "raid", "BG", "world", "guild" }
+ns.HISTORY_TYPES = TYPES
 local CAT_TYPE = {
     whisper     = "whisper",
     partyInvite = "invite",
@@ -36,11 +37,51 @@ end
 
 local EMPTY = {}
 
--- types switched off, shared by every history list until /reload
+-- types switched off, shared by every history list and the Block History
+-- view until /reload; ns.HistoryFiltersChanged() redraws them all
 local hidden = {}
+ns.histHidden = hidden
 local lists = {}
+local watchers = {}
 
-local function Filter(hv)
+function ns.HistoryWatch(fn) watchers[#watchers + 1] = fn end
+
+local Filter
+function ns.HistoryFiltersChanged()
+    for _, hv in ipairs(lists) do
+        for t, c in pairs(hv.boxes) do c:SetChecked(not hidden[t]) end
+        Filter(hv)
+    end
+    for _, fn in ipairs(watchers) do fn() end
+end
+
+-- [x] whisper [x] invite ...: untick a type to hide its lines
+function ns.TypeBoxes(parent)
+    local boxes, prev = {}, nil
+    for _, t in ipairs(ns.HISTORY_TYPES) do
+        local c = ns.NewCheck(parent)
+        c:SetSize(18, 18)
+        if prev then
+            c:SetPoint("LEFT", prev, "RIGHT", 4, 0)
+        else
+            c:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
+        end
+        local label = ns.NewText(parent, 10)
+        label:SetPoint("LEFT", c, "RIGHT", 0, 0)
+        label:SetText(t)
+        c:SetChecked(not hidden[t])
+        c:SetScript("OnClick", function(self)
+            hidden[t] = not self:GetChecked() or nil
+            ns.HistoryFiltersChanged()
+        end)
+        ns.TipOn(c, c, ("Show %s lines."):format(t))
+        boxes[t] = c
+        prev = label
+    end
+    return boxes, prev
+end
+
+function Filter(hv)
     local out, n = hv.shown, 0
     for i = 1, #hv.all do
         local h = hv.all[i]
@@ -78,7 +119,21 @@ local function Tip(hv, row, i)
     if not h then return end
     local ts = tonumber(h.ts)
     ns.Tip(row, (ts and ts > 0 and date(TIME_FMT, ts) or "") .. "  " .. (h.channel or "")
-        .. ((h.member or "") ~= "" and ("  " .. h.member) or "") .. "\n\n" .. (h.message or ""))
+        .. ((h.member or "") ~= "" and ("  " .. h.member) or "") .. "\n\n" .. (h.message or "")
+        .. (hv.open and "\n\n|cffaaaaaaDouble-click: the Block History view (search, links).|r" or ""))
+end
+
+-- a second left click on the same line within DOUBLE_CLICK opens the view
+local DOUBLE_CLICK = 0.35
+local function Click(hv, row, i, button)
+    if not hv.open or button ~= "LeftButton" then return end
+    local now = GetTime()
+    if hv.lastClick == i and now - (hv.lastClickAt or 0) <= DOUBLE_CLICK then
+        hv.lastClick = nil
+        hv.open(hv.id)
+    else
+        hv.lastClick, hv.lastClickAt = i, now
+    end
 end
 
 local HV = {}
@@ -114,41 +169,18 @@ function HV:Clear()
 end
 
 -- body: the pane body; y: top of the list; opts.names adds a Name column,
--- opts.empty is the text with nothing blocked. Fills the space down to the
+-- opts.empty is the text with nothing blocked, opts.open(id) opens the
+-- Block History view (a double-click on a line). Fills the space down to the
 -- buttons at the bottom of the body.
 function ns.NewHistory(body, y, opts)
-    local hv = setmetatable({ all = EMPTY, shown = {}, emptyText = opts.empty or "", typeOf = ns.HistoryType }, HV)
+    local hv = setmetatable({ all = EMPTY, shown = {}, emptyText = opts.empty or "", typeOf = ns.HistoryType,
+        open = opts.open }, HV)
     local f = CreateFrame("Frame", nil, body)
     f:SetPoint("TOPLEFT", body, "TOPLEFT", 6, y)
     f:SetPoint("BOTTOMRIGHT", body, "BOTTOMRIGHT", -4, 36)
     hv.frame = f
 
-    -- [x] whisper [x] invite ...: untick a type to hide its lines
-    hv.boxes = {}
-    local prev
-    for _, t in ipairs(TYPES) do
-        local c = ns.NewCheck(f)
-        c:SetSize(18, 18)
-        if prev then
-            c:SetPoint("LEFT", prev, "RIGHT", 4, 0)
-        else
-            c:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
-        end
-        local label = ns.NewText(f, 10)
-        label:SetPoint("LEFT", c, "RIGHT", 0, 0)
-        label:SetText(t)
-        c:SetChecked(not hidden[t])
-        c:SetScript("OnClick", function(self)
-            hidden[t] = not self:GetChecked() or nil
-            for _, other in ipairs(lists) do
-                other.boxes[t]:SetChecked(not hidden[t])
-                Filter(other)
-            end
-        end)
-        ns.TipOn(c, c, ("Show %s lines."):format(t))
-        hv.boxes[t] = c
-        prev = label
-    end
+    hv.boxes = ns.TypeBoxes(f)
 
     local lf = CreateFrame("Frame", nil, f)
     lf:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -20)
@@ -163,6 +195,7 @@ function ns.NewHistory(body, y, opts)
         rowH = 16, fontSize = 11, height = 60, cols = cols,
         draw = function(row, i) Draw(hv, row, i) end,
         enter = function(row, i) Tip(hv, row, i) end,
+        click = function(row, i, button) Click(hv, row, i, button) end,
     })
     hv.list:SetEmptyText(hv.emptyText)
 

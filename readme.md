@@ -10,7 +10,8 @@ EllesmereUI is installed.
   Guild Ignore List tabs share one pooled row list (`EUI_Rows.lua`): only the
   rows that fit are made, so long lists cost the same as short ones. Their
   block history (`EUI_History.lua`) loads PourSocialScore_Logging only when
-  asked for. Back / forward arrows (and mouse buttons 4 / 5) step through
+  asked for; a double-click opens the Block History view
+  (`EUI_HistoryView.lua`). Back / forward arrows (and mouse buttons 4 / 5) step through
   the views; Escape goes up a level through EllesmereUI's Escape handling
   (`RegisterEscapeClose` with `onEscape`).
 - A "Pour Social Score" section in the EllesmereUI panel (plugin API,

@@ -154,6 +154,43 @@ local function ConfirmRemove()
     })
 end
 
+-- The Block History view (EUI_HistoryView.lua) of one player, or of every
+-- listed player.
+local allPlayers
+local function AllPlayers()
+    if allPlayers then return allPlayers end
+    allPlayers = {
+        kind = "player", id = false, allText = "All Players",
+        label = function() return "All Players" end,
+        read = function()
+            local keys = {}
+            for i = 1, M.PSS_PlayerCount() do
+                local e, kind = M.PSS_PlayerEntry(i)
+                local k = kind == "player" and M.PSS_PlayerHistoryKey(e)
+                if k then keys[k] = true end
+            end
+            return History.Collect(function(h) return keys[h.o] == true end)
+        end,
+        reset = function()
+            for i = 1, M.PSS_PlayerCount() do
+                local e, kind = M.PSS_PlayerEntry(i)
+                if kind == "player" and M.PSS_GetPlayerRecord(e) then M.PSS_ResetPlayerBlockHistory(e) end
+            end
+            if M.PSS_Stats then M.PSS_Stats.Reset("player") end
+        end,
+    }
+    return allPlayers
+end
+
+function ns.PlayerHistorySpec(entry)
+    return {
+        kind = "player", id = entry, allText = "All Players", all = AllPlayers,
+        label = function(e) return M.PSS_PlayerPosition(e) > 0 and e or nil end,
+        read = M.PSS_GetPlayerBlockHistory,
+        reset = M.PSS_ResetPlayerBlockHistory,
+    }
+end
+
 local function BuildPane(parent)
     pane = CreateFrame("Frame", nil, parent)
     pane:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -8, -TOP_H - 4)
@@ -305,7 +342,10 @@ local function BuildPane(parent)
     pane.addGuild = addGuild
 
     -- the block history of this player
-    pane.hist = ns.NewHistory(body, y, { empty = "Nothing blocked from this player yet." })
+    pane.hist = ns.NewHistory(body, y, {
+        empty = "Nothing blocked from this player yet.",
+        open = function(entry) ns.OpenHistoryView(page, ns.PlayerHistorySpec(entry)) end,
+    })
     pane.player[#pane.player + 1] = pane.hist.frame
 end
 

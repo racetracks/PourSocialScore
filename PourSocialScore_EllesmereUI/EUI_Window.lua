@@ -3,8 +3,9 @@
 --  Opens next to the Friends window (option "openWithFriends") and with
 --  /pss gui; dragged elsewhere it remembers the place for /pss gui.
 --  Back / forward arrows under the tabs (and mouse buttons 4 / 5) step
---  through the views shown; Escape goes up one level (the guild members
---  back to the guild list) and closes the window from the top.
+--  through the views shown; Escape goes up one level (a Block History
+--  view back to its tab, the guild members back to the guild list) and
+--  closes the window from the top.
 -------------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = ns.M
@@ -57,9 +58,14 @@ local function SelectTab(id)
     end
     for i, tab in ipairs(win.tabs) do
         ns.SetTabSelected(tab, i == id)
-        win.pages[i]:SetShown(i == id)
+        -- a tab showing its Block History view shows that in its place
+        local hv = win.pages[i].hview
+        local hist = hv and hv:IsOpen()
+        win.pages[i]:SetShown(i == id and not hist)
+        if hv then hv.frame:SetShown(i == id and hist) end
     end
-    if page.refresh then page.refresh() end
+    if page.hview and page.hview:IsOpen() then page.hview:Refresh(false)
+    elseif page.refresh then page.refresh() end
     ns.DB().tab = id
 end
 
@@ -67,38 +73,46 @@ end
 function ns.RefreshTabs()
     if not (win and win:IsShown()) then return end
     local page = win.pages[ns.DB().tab or 1]
-    if page and page.refresh then page.refresh() end
+    if page and page.hview and page.hview:IsOpen() then page.hview:Refresh(false)
+    elseif page and page.refresh then page.refresh() end
 end
 
 -------------------------------------------------------------------------------
 --  Back / forward. A page with sub-views gives navState() (its view now),
 --  navApply(view) (show it again), navUp() (one level up; true if it went)
---  and navTitle(view) (for the line by the arrows).
+--  and navTitle(view) (for the line by the arrows). A Block History view
+--  (EUI_HistoryView.lua, page.hview) is a step of its own over the page.
 -------------------------------------------------------------------------------
 local function ShownState()
     local tab = ns.DB().tab or 1
     local page = win.pages[tab]
-    return tab, page.navState and page.navState() or nil
+    local hv = page.hview
+    return tab, page.navState and page.navState() or nil, hv and hv.spec or nil
+end
+
+local function HistKey(spec)
+    return spec and (tostring(spec.kind) .. "\001" .. tostring(spec.id)) or nil
 end
 
 local function UpdateNav()
     win.back:SetEnabled(navPos > 1)
     win.forward:SetEnabled(navPos < #nav)
-    local tab, view = ShownState()
+    local tab, view, hist = ShownState()
     local page = win.pages[tab]
     local where = TABS[tab][1]
     if view ~= nil and page.navTitle then where = where .. "  >  " .. page.navTitle(view) end
+    if hist then where = where .. "  >  Block History: " .. tostring(page.hview.name or "?") end
     win.where:SetText(where)
 end
 
 -- After the user changed the view: a new step (dropping any forward steps).
 function ns.NavRecord()
     if applying or not win then return end
-    local tab, view = ShownState()
+    local tab, view, hist = ShownState()
     local top = nav[navPos]
-    if not (top and top.tab == tab and top.view == view) then
+    if not (top and top.tab == tab and top.view == view and HistKey(top.hist) == HistKey(hist)) then
         for i = #nav, navPos + 1, -1 do nav[i] = nil end
-        nav[#nav + 1] = { tab = tab, view = view }
+        nav[#nav + 1] = { tab = tab, view = view, hist = hist }
         if #nav > NAV_MAX then table.remove(nav, 1) end
         navPos = #nav
     end
@@ -113,13 +127,17 @@ local function Go(pos)
     local ok, err = pcall(function()
         local page = win.pages[st.tab]
         if page.navClose then page.navClose() end
+        if not st.hist and page.hview then page.hview:Close() end
         SelectTab(st.tab)
         if page.navApply then page.navApply(st.view) end
+        if st.hist then ns.OpenHistoryView(page, st.hist, true) end
     end)
     applying = false
     -- a view that is gone (a removed guild) leaves the page as it is
-    local tab, view = ShownState()
-    if tab ~= st.tab or view ~= st.view then nav[navPos] = { tab = tab, view = view } end
+    local tab, view, hist = ShownState()
+    if tab ~= st.tab or view ~= st.view or HistKey(hist) ~= HistKey(st.hist) then
+        nav[navPos] = { tab = tab, view = view, hist = hist }
+    end
     UpdateNav()
     if not ok then geterrorhandler()(err) end
 end
@@ -138,6 +156,11 @@ end
 -- Escape: up one level; false at the top (the window closes).
 function ns.NavUp()
     local page = win.pages[ns.DB().tab or 1]
+    if page.hview and page.hview:IsOpen() then
+        page.hview:Close()
+        ns.NavRecord()
+        return true
+    end
     if page.navUp and page.navUp() then
         ns.NavRecord()
         return true
