@@ -288,21 +288,35 @@ check(hc.name and hc.name:GetText() == "Member0100", "guild history name " .. to
 check((hc.kind:GetText() or ""):match("|c%x+whisper|r"), "guild history type " .. tostring(hc.kind:GetText()))
 check((hc.time:GetText() or ""):match("^%d%d%d%d/%d%d/%d%d %d%d:%d%d:%d%d$"), "guild history time " .. tostring(hc.time:GetText()))
 
--- the Block History view: a double-click on a line opens it in place of
--- the tab, with the type boxes and a search over player, channel, message
+-- the Events tab: a double-click on a line opens the guild's events there,
+-- with Time, Types and Source drop-downs and a search over player,
+-- channel, message
 check(whisper("Member0101-Realm1", "wts |cffa335ee|Hitem:19019::::::::60:::::|h[Thunderfury]|h|r"), "second whisper not blocked")
 H.Advance(1)
 H.RunTimers()
 check(hv.list.count == 2, "pane history after a second block: " .. hv.list.count)
 local r1 = hv.list.rows[1]
 r1:GetScript("OnClick")(r1, "LeftButton")
-check(not page.hview, "one click opened the Block History view")
+check(not win.pages[4]:IsShown(), "one click opened the Events tab")
 r1:GetScript("OnClick")(r1, "LeftButton")
-local view = page.hview
-check(view and view:IsOpen() and view.frame:IsShown() and not page:IsShown(), "double-click did not open the Block History view")
+local view = win.pages[4].view
+check(view and view:IsOpen() and view.frame:IsShown() and not page:IsShown(), "double-click did not open the Events tab")
 check(view.list.count == 2 and (view.heading:GetText() or ""):match("Big Guild"), "view of the guild: " .. view.list.count)
-check((win.where:GetText() or ""):match("Block History: Big Guild"), "where line " .. tostring(win.where:GetText()))
+check(win.where:GetText() == "Events  >  Big Guild", "where line " .. tostring(win.where:GetText()))
+check(view.resetButton:IsShown(), "no Reset Block History for a guild")
 check(view.list.rows[1]._links == true, "links in the view not clickable")
+-- hovering a link shows its tooltip, but never a profession link's
+-- SetHyperlink (that opens the profession window)
+do
+	local row, set = view.list.rows[1], {}
+	local oldSet, oldLines = GameTooltip.SetHyperlink, GameTooltip.NumLines
+	GameTooltip.SetHyperlink = function(_, link) set[#set + 1] = link end
+	GameTooltip.NumLines = function() return 1 end
+	row:GetScript("OnHyperlinkEnter")(row, "item:19019::::::::60:::::")
+	row:GetScript("OnHyperlinkEnter")(row, "trade:Player-1-0001:2259:171")
+	check(#set == 1 and set[1]:find("^item:"), "link hover: " .. table.concat(set, ", "))
+	GameTooltip.SetHyperlink, GameTooltip.NumLines = oldSet, oldLines
+end
 check(view.list.rows[1].cells.member:GetText() ~= "" and view.list.rows[1].cells.channel:GetText() == "Whisper", "player / channel cells")
 local function find(text)
 	view.search:SetText(text)
@@ -313,32 +327,21 @@ check(find("thunderfury") == 1, "message search")
 check(find("member0100") == 1, "player search")
 check(find("whisper") == 2, "channel search")
 check(find("") == 2, "search not cleared")
--- the Guilds drop-down: every guild rule A-Z; a pick shows that guild
-do
-	check(view.pick:IsShown(), "no Guilds drop-down in a guild's view")
-	local items = view.pick:MenuButtons()
-	local rules = 0
-	for _, g in pairs(PourSocialScoreDB.guildData) do if type(g) == "table" then rules = rules + 1 end end
-	check(#items == rules and rules >= N + 1, ("drop-down guilds %d of %d"):format(#items, rules))
-	local ok = true
-	for i = 2, #items do if string.lower(items[i - 1].text) > string.lower(items[i].text) then ok = false end end
-	check(ok, "drop-down not A-Z")
-	local tour
-	for _, it in ipairs(items) do if it.text == "Tour Guild 001" then tour = it end end
-	tour.fn()
-	check(view:IsOpen() and (view.heading:GetText() or ""):match("Tour Guild 001") and view.list.count == 0, "drop-down pick " .. tostring(view.heading:GetText()))
-	check(view.allButton:IsShown() and view.allButton:GetText() == "All Guilds", "All Guilds button gone")
-	for _, it in ipairs(view.pick:MenuButtons()) do if it.text == "Big Guild" then it.fn() end end
-	check(view.list.count == 2, "back to Big Guild: " .. view.list.count)
+local function menu(d, text)
+	for _, it in ipairs(d:MenuButtons()) do if it.text == text then return it end end
 end
--- a type box in the view filters the pane too, and back
-local vw = view.boxes.whisper
-vw:SetChecked(false)
-vw:GetScript("OnClick")(vw)
-check(view.list.count == 0 and not hv.boxes.whisper:GetChecked() and hv.list.count == 0, "type box not shared")
-vw:SetChecked(true)
-vw:GetScript("OnClick")(vw)
-check(view.list.count == 2 and hv.list.count == 2, "type box not back")
+-- the Types drop-down: a box per type; unticked, its lines hide (here
+-- only: the pane's own type boxes are apart), All types brings them back
+do
+	local wl = M.PSS_History.CAT_LABEL.whisper
+	local it = menu(view.typeDrop, wl)
+	check(it and it.kind == "checkbox" and it.on, "no ticked Whisper in the Types drop-down")
+	it.fn()
+	check(view.list.count == 0 and not menu(view.typeDrop, wl).on and hv.list.count == 2, "Types drop-down: " .. view.list.count)
+	check(view.typeDrop.shownText ~= "All types", "Types text " .. tostring(view.typeDrop.shownText))
+	menu(view.typeDrop, "All types").fn()
+	check(view.list.count == 2 and view.q.cats == nil and view.typeDrop.shownText == "All types", "All types")
+end
 -- sort by Player (A-Z)
 local ph
 for _, h in ipairs(view.list.heads) do if h.key == "member" then ph = h end end
@@ -351,19 +354,44 @@ local copies = #E.log.copies
 vr:GetScript("OnClick")(vr, "LeftButton")
 vr:GetScript("OnClick")(vr, "LeftButton")
 check(#E.log.copies == copies + 1, "double-click did not copy the message")
--- All Guilds, Back to the guild, Escape back to the tab
-view.allButton:GetScript("OnClick")(view.allButton)
-check(view.spec.id == false and (view.heading:GetText() or ""):match("All Guilds") and view.list.count >= 2, "All Guilds")
+-- the Source drop-down: the Guild Ignore List as a whole, every list,
+-- Back to the guild, Escape back to the tab
+menu(view.sourceDrop, "Guild Ignore List").fn()
+check(view.q.scope == nil and (view.heading:GetText() or ""):match("Guild Ignore List") and view.list.count >= 2
+	and not view.resetButton:IsShown(), "All Guilds")
+local guildsOnly = view.list.count
+menu(view.sourceDrop, "Player Ignore List").fn()
+menu(view.sourceDrop, "Chat Filters").fn()
+check(view.q.sources.players and view.q.sources.filters and view.list.count >= guildsOnly
+	and view.sourceDrop.shownText == "All sources", "every source: " .. tostring(view.sourceDrop.shownText))
+for _, h in ipairs(view.list.heads) do if h.key == "time" then h:GetScript("OnClick")(h) end end
+check(view.sortKey == "time" and not view.sortAsc, "sort by time")
+local newest = true
+for i = 2, view.list.count do if (view.shown[i].ts or 0) > (view.shown[i - 1].ts or 0) then newest = false end end
+check(newest, "every source not newest first")
+menu(view.sourceDrop, "Player Ignore List").fn()
+menu(view.sourceDrop, "Chat Filters").fn()
+-- the line by the arrows: Events, then the source; Events goes to every event
+check(win.where:GetText() == "Events  >  Guild Ignore List", "where line " .. tostring(win.where:GetText()))
 win.back:GetScript("OnClick")(win.back)
-check(view:IsOpen() and view.spec.id == bigKey, "Back did not return to the guild's history")
-check(E.PressEscape() and win:IsShown() and not view:IsOpen() and page:IsShown(), "Escape did not close the Block History view")
-win.back:GetScript("OnClick")(win.back)
-check(view:IsOpen() and view.spec.id == bigKey, "Back did not reopen the Block History view")
+check(view.q.sources.guilds and view.q.sources.filters and not view.q.sources.players, "Back did not undo a source")
+for _ = 1, 10 do
+	if view.q.scope then break end
+	win.back:GetScript("OnClick")(win.back)
+end
+check(view:IsOpen() and view.q.scope and view.q.scope.id == bigKey, "Back did not return to the guild's events")
+check(E.PressEscape() and win:IsShown() and not view:IsOpen() and page:IsShown(), "Escape did not go back to the guild tab")
+win.forward:GetScript("OnClick")(win.forward)
+check(view:IsOpen() and view.q.scope and view.q.scope.id == bigKey, "Forward did not reopen the guild's events")
+win.crumbs[1]:GetScript("OnClick")(win.crumbs[1])
+check(view:IsOpen() and view.q.scope == nil and view.q.sources.players and view.q.sources.guilds and view.q.sources.filters
+	and win.where:GetText() == "Events", "the Events crumb did not show every event: " .. tostring(win.where:GetText()))
 win.tabs[1]:GetScript("OnClick")(win.tabs[1])
 check(not view.frame:IsShown() and not page:IsShown(), "view shown on another tab")
+-- a tab click (the tab shown too) opens the tab as it opens: nothing selected
 win.tabs[2]:GetScript("OnClick")(win.tabs[2])
-check(view.frame:IsShown() and not page:IsShown(), "view not back with its tab")
-check(E.PressEscape() and not view:IsOpen() and page:IsShown(), "Escape did not close the view")
+check(not view:IsOpen() and page:IsShown() and st.sel == nil and pane.totals.frame:IsShown()
+	and win.where:GetText() == "Guild Ignore List", "tab click did not reset the tab: " .. tostring(win.where:GetText()))
 
 ------------------------------------------------------------------ members view
 selectGuild(bigKey)
@@ -412,6 +440,41 @@ check(mlist.count == MEMBERS - 1 and st.msel == nil, "member not removed: " .. m
 mview.back:GetScript("OnClick")(mview.back)
 check(list.scroll:IsVisible() and not mview:IsShown(), "back to the guilds")
 
+------------------------------------------------------------------ deselect, tab reset, the line by the arrows
+-- a click under the rows deselects: the list's totals again
+if st.sel ~= bigKey then selectGuild(bigKey) end
+check(st.sel == bigKey, "guild not selected")
+list.scroll:GetScript("OnMouseUp")(list.scroll, "LeftButton")
+check(st.sel == nil and pane.totals.frame:IsShown(), "a click under the guilds did not deselect")
+-- the members: the selected member again, or a click under them, shows
+-- the guild's own pane again
+selectGuild(bigKey)
+gb.membersButton:GetScript("OnClick")(gb.membersButton)
+clickAt(mlist, 3)
+check(st.msel and pane.member:IsShown(), "member not selected")
+clickAt(mlist, 3)
+check(st.msel == nil and pane.guild:IsShown() and not pane.member:IsShown(), "the selected member again did not deselect")
+clickAt(mlist, 3)
+mlist.scroll:GetScript("OnMouseUp")(mlist.scroll, "LeftButton")
+check(st.msel == nil and pane.guild:IsShown(), "a click under the members did not deselect")
+-- the line by the arrows: each part but the last goes back to it
+gb.summary:Open("all")
+check(view:IsOpen() and win.where:GetText() == "Events  >  Big Guild", "where line " .. tostring(win.where:GetText()))
+check(win.crumbs[1]:IsShown() and not (win.crumbs[2] and win.crumbs[2]:IsShown()), "parts of the line not buttons")
+check(E.PressEscape() and not view:IsOpen() and mview:IsShown() and st.mguild == bigKey, "Escape did not go back to the members")
+check(win.where:GetText() == "Guild Ignore List  >  Members of <Big Guild>", "where line " .. tostring(win.where:GetText()))
+check(not (win.crumbs[2] and win.crumbs[2]:IsShown()), "the part shown is a button")
+win.crumbs[1]:GetScript("OnClick")(win.crumbs[1])
+check(not mview:IsShown() and list.scroll:IsVisible() and st.sel == nil and pane.totals.frame:IsShown()
+	and win.where:GetText() == "Guild Ignore List", "Guild Ignore List did not go back to the tab")
+-- the tab shown, clicked from a view in it: the tab as it opens
+selectGuild(bigKey)
+gb.membersButton:GetScript("OnClick")(gb.membersButton)
+clickAt(mlist, 3)
+win.tabs[2]:GetScript("OnClick")(win.tabs[2])
+check(not mview:IsShown() and list.scroll:IsVisible() and st.sel == nil and st.msel == nil, "the tab shown did not reset")
+H.Advance(1)
+
 ------------------------------------------------------------------ back / forward, Escape
 -- Escape goes up a level, back / forward step through the views
 local eo = E.log.escapeOpts[win]
@@ -438,10 +501,10 @@ check(mview:IsShown(), "a left click stepped")
 H.Fire("GLOBAL_MOUSE_UP", "Button5")
 check(not mview:IsShown(), "mouse button 5 did not go forward")
 -- across tabs
-win.tabs[5]:GetScript("OnClick")(win.tabs[5])
-check(win.pages[5]:IsShown(), "Options tab not shown")
+win.tabs[6]:GetScript("OnClick")(win.tabs[6])
+check(win.pages[6]:IsShown(), "Options tab not shown")
 H.Fire("GLOBAL_MOUSE_UP", "Button4")
-check(page:IsShown() and not win.pages[5]:IsShown(), "Back did not return to the Guilds tab")
+check(page:IsShown() and not win.pages[6]:IsShown(), "Back did not return to the Guilds tab")
 -- at the top Escape closes; closed, the mouse buttons are not listened to
 check(E.PressEscape() and not win:IsShown(), "Escape at the top did not close the window")
 check(not win:IsEventRegistered("GLOBAL_MOUSE_UP"), "mouse buttons listened to while closed")
@@ -518,15 +581,15 @@ if hi then
 		local tsm = pane.totals.summary
 		check(tsm.viewButton:IsShown(), "guild totals: no View Events")
 		tsm.viewButton:GetScript("OnClick")(tsm.viewButton)
-		local tv = page.hview
-		check(tv and tv:IsOpen() and tv.spec.kind == "guild" and tv.spec.id == false and tv.period == nil,
-			"guild totals: View Events did not open the whole list")
+		local tv = win.pages[4].view
+		check(tv and tv:IsOpen() and tv.q.scope == nil and tv.q.sources.guilds and not tv.q.sources.players
+			and tv.q.cats and not tv.q.cats[cat], "guild totals: View Events did not open the whole list, ticked types")
 		E.PressEscape()
 		tsm:Open("session")
-		check(tv:IsOpen() and tv.period == "session" and tv.spec.id == false, "guild totals: the session slice")
+		check(tv:IsOpen() and tv.q.period == "session" and tv.q.scope == nil, "guild totals: the session slice")
 		E.PressEscape()
 		tsm:Open("all")
-		check(tv:IsOpen() and tv.period == nil, "guild totals: All time after a slice")
+		check(tv:IsOpen() and tv.q.period == nil, "guild totals: All time after a slice")
 		E.PressEscape()
 		H.Advance(1)
 		pane.totals:Hide()
@@ -543,10 +606,10 @@ if hi then
 	local t0 = os.clock()
 	gp.summary.viewButton:GetScript("OnClick")(gp.summary.viewButton)
 	print(("eui guilds: a default guild list's view (%d guilds) read in %.3fs"):format(#items, os.clock() - t0))
-	local gv = page.hview
+	local gv = win.pages[4].view
 	local shownBlocks = 0
 	for _, h in ipairs(gv and gv.all or {}) do shownBlocks = shownBlocks + (h.expired or 1) end
-	check(gv and gv:IsOpen() and gv.spec.kind == "group" and gv.spec.id == gk and shownBlocks >= wantBlocks and wantBlocks >= 2,
+	check(gv and gv:IsOpen() and gv.q.scope.kind == "group" and gv.q.scope.id == gk and shownBlocks >= wantBlocks and wantBlocks >= 2,
 		("View Events on a default guild list: %d blocks shown, %d counted"):format(shownBlocks, wantBlocks))
 	-- one counted row per type and 10 minutes for the whole list
 	local seen, dup = {}, false
@@ -565,7 +628,7 @@ if hi then
 	if EUIConfirmDimmer then EUIConfirmDimmer:Hide() end
 	check(E.PressEscape() and not gv:IsOpen() and page:IsShown(), "Escape did not close the list's view")
 	gp.summary:Open(gp.summary.map[1])
-	check(gv:IsOpen() and gv.spec.kind == "group" and gv.period == "session", "a slice of a default guild list")
+	check(gv:IsOpen() and gv.q.scope.kind == "group" and gv.q.period == "session", "a slice of a default guild list")
 	-- this session's blocks show even when their 10 minutes began before it
 	local sessionBlocks = 0
 	for i = 1, gv.list.count do sessionBlocks = sessionBlocks + (gv.shown[i].expired or 1) end

@@ -13,6 +13,10 @@
 --           last 24 hours)
 --     guildRows: for "guilds", a table M.PSS_GuildRows already filled
 --           (its counts are added up instead of read again); nil reads them
+--   History.RecentByCat(owner, into, prefix) (3.2.0-dev010)
+--     this session's and the last 24 hours' blocks by type of owner, or
+--     with prefix set of every owner whose key starts with it:
+--     into.session[cat], into.day[cat] (into and its tables reused)
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
 local M = addon.M
@@ -59,6 +63,47 @@ function M.PSS_ListTotals(kind, into, guildRows)
 	into.session, into.day = 0, 0
 	if PREFIX[kind] and History.RecentTotals then
 		into.session, into.day = History.RecentTotals(PREFIX[kind])
+	end
+	return into
+end
+
+local function zero(t)
+	for k in pairs(t) do t[k] = nil end
+	return t
+end
+
+function History.RecentByCat(owner, into, prefix)
+	into = into or {}
+	local se = zero(into.session or {})
+	local dy = zero(into.day or {})
+	into.session, into.day = se, dy
+	local sessionCat, r = History.RecentByCatData()
+	local function want(o)
+		if prefix then return type(o) == "string" and string.find(o, prefix, 1, true) == 1 end
+		return o == owner
+	end
+	for cat, owners in pairs(sessionCat) do
+		if prefix then
+			for o, n in pairs(owners) do if want(o) then se[cat] = (se[cat] or 0) + n end end
+		elseif owner ~= nil and owners[owner] then
+			se[cat] = owners[owner]
+		end
+	end
+	if r and (prefix or r.day[owner]) then
+		local slots = History.DAY_SLOTS
+		local cur = math.floor(History.Now() / History.SLOT)
+		for s = cur, cur - slots + 1, -1 do
+			local t = r[s % slots + 1]
+			if t then
+				for cat, owners in pairs(t) do
+					if prefix then
+						for o, n in pairs(owners) do if want(o) then dy[cat] = (dy[cat] or 0) + n end end
+					elseif owners[owner] then
+						dy[cat] = (dy[cat] or 0) + owners[owner]
+					end
+				end
+			end
+		end
 	end
 	return into
 end

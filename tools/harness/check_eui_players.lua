@@ -235,16 +235,33 @@ check(T({ cat = "world", channel = "2. Trade" }) == "world" and T({ cat = "guild
 check(T({ cat = "partyRaid", channel = "Party Leader" }) == "party", "party type")
 check(T({ cat = "partyRaid", channel = "Raid Warning" }) == "raid", "raid type")
 check(T({ cat = "partyRaid", channel = "Battleground" }) == "BG" and T({ cat = "partyRaid", channel = "Instance" }) == "BG", "BG type")
--- a double-click on a line opens the Block History view in place of the tab
+-- a double-click on a line opens its events on the Events tab
 H.Advance(1)
 local hr = hv.list.rows[1]
 hr:GetScript("OnClick")(hr, "LeftButton")
 hr:GetScript("OnClick")(hr, "LeftButton")
-local view = page.hview
-check(view and view:IsOpen() and not page:IsShown() and view.list.count == 1, "player Block History view not opened")
-view.allButton:GetScript("OnClick")(view.allButton)
-check(view.spec.id == false and view.list.count >= 1, "All Players: " .. view.list.count)
-check(EllesmereUI.PressEscape() and not view:IsOpen() and page:IsShown(), "Escape did not close the player view")
+local view = win.pages[4].view
+check(view and view:IsOpen() and not page:IsShown() and win.pages[4]:IsShown() and view.list.count == 1
+	and view.q.scope and view.q.scope.id == sel, "player events not opened on the Events tab")
+check(E.log.tabSel[win.tabs[4]] == true, "Events tab not selected")
+check((view.sourceDrop.shownText or ""):find("Only ", 1, true), "source drop-down " .. tostring(view.sourceDrop.shownText))
+check((win.where:GetText() or ""):find("Events  >  ", 1, true), "where line " .. tostring(win.where:GetText()))
+-- the Source drop-down: this player's list as a whole
+local function menu(d, text)
+	for _, it in ipairs(d:MenuButtons()) do if it.text == text then return it end end
+end
+local function pick(d, text)
+	local it = menu(d, text)
+	check(it, "no menu entry " .. text)
+	if it then it.fn() end
+end
+pick(view.sourceDrop, "Player Ignore List")
+check(view.q.scope == nil and view.q.sources.players and not view.q.sources.guilds and view.list.count >= 1,
+	"All Players: " .. view.list.count)
+check(view.sourceDrop.shownText == "Player Ignore List", "source text " .. tostring(view.sourceDrop.shownText))
+check(view.shown[1] and view.list.rows[1].cells.source:GetText() == "Player Ignore List", "Source column")
+check(EllesmereUI.PressEscape() and not view:IsOpen() and page:IsShown(),
+	"Escape did not go back to the player tab")
 H.Advance(1)
 -- a pie slice: that period's events; All Time: every event; View Events
 do
@@ -254,28 +271,52 @@ do
 	sm.pie.frame:GetScript("OnClick")(sm.pie.frame)		-- not on a slice (the cursor is away)
 	check(not view:IsOpen(), "a click off the ring opened the view")
 	sm:Open("session")
-	check(view:IsOpen() and view.period == "session" and view.list.count == 1, "session slice")
-	check((view.heading:GetText() or ""):find(", this session", 1, true), "slice heading " .. tostring(view.heading:GetText()))
-	check(view.periodButtons.session.isSelected and not view.periodButtons.all.isSelected, "time picker not on the session")
+	check(view:IsOpen() and view.q.period == "session" and view.list.count == 1, "session slice")
+	check(view.timeDrop.shownText == "This session", "time drop-down " .. tostring(view.timeDrop.shownText))
+	local function radio(text) local it = menu(view.timeDrop, text) return it and it.on end
+	check(radio("This session") and not radio("All time"), "time drop-down not on the session")
 	EllesmereUI.PressEscape()
 	sm:Open("day")
-	check(view:IsOpen() and view.period == "day" and view.periodButtons.day.isSelected, "day slice")
-	-- the time picker: All time shows every event, the period again filters
-	view.periodButtons.all:GetScript("OnClick")(view.periodButtons.all)
-	check(view.period == nil and view.periodButtons.all.isSelected and view.list.count == 1
-		and not (view.heading:GetText() or ""):find(", ", 1, true), "time picker All time")
+	check(view:IsOpen() and view.q.period == "day" and radio("Last 24 hours"), "day slice")
+	-- the time drop-down: All time shows every event, the period again filters
+	pick(view.timeDrop, "All time")
+	check(view.q.period == nil and radio("All time") and view.list.count == 1
+		and view.timeDrop.shownText == "All time", "time drop-down All time")
 	EllesmereUI.PressEscape()
+	-- View Events (top right): the widest period ticked
+	check(sm.viewButton:IsShown(), "no View Events")
+	check(sm.boxes.all:GetChecked(), "all time not ticked here")
 	sm.viewButton:GetScript("OnClick")(sm.viewButton)
-	check(view:IsOpen() and view.period == nil and view.spec.id == sel and not view.pick:IsShown(), "View Events")
+	check(view:IsOpen() and view.q.period == nil and view.q.scope.id == sel, "View Events: " .. tostring(view.q.period))
 	EllesmereUI.PressEscape()
+	sm.boxes.all:SetChecked(false)
+	sm.boxes.all:GetScript("OnClick")(sm.boxes.all)
+	sm.viewButton:GetScript("OnClick")(sm.viewButton)
+	check(view.q.period == "day", "View Events without all time: " .. tostring(view.q.period))
+	EllesmereUI.PressEscape()
+	sm.boxes.all:SetChecked(true)
+	sm.boxes.all:GetScript("OnClick")(sm.boxes.all)
 	-- an event from before the session is not in the session slice
 	local old = M.PSS_History.NewEntry("whisper", "CHAT_MSG_WHISPER", "old line", "Whisper", sel)
 	old.ts = start - 60
 	M.PSS_History.Add(M.PSS_History.PlayerKey(sel), nil, old)
 	sm:Open("session")
 	check(view.list.count == 1 and #view.all == 2, "session slice shows an older event: " .. view.list.count)
-	view.periodButtons.all:GetScript("OnClick")(view.periodButtons.all)
+	pick(view.timeDrop, "All time")
 	check(view.list.count == 2, "All time hides the older event")
+	-- a custom range: from before the older event to before the newer one
+	pick(view.timeDrop, "Custom range")
+	check(view.q.period == "custom" and view.custom:IsShown(), "custom range not shown")
+	view.fromBox:SetText(date("%Y-%m-%d %H:%M", start - 3600))
+	view.toBox:SetText(date("%Y-%m-%d %H:%M", start - 1))
+	view.applyButton:GetScript("OnClick")(view.applyButton)
+	check(view.list.count == 1 and view.shown[1].message == "old line", "custom range: " .. view.list.count)
+	view.toBox:SetText("")
+	view.applyButton:GetScript("OnClick")(view.applyButton)
+	check(view.list.count == 2 and view.q.to == nil, "custom range up to now: " .. view.list.count)
+	view.fromBox:SetText("yesterday")
+	view.applyButton:GetScript("OnClick")(view.applyButton)
+	check(view.list.count == 2 and (view.rangeError:GetText() or "") ~= "", "a bad date not reported")
 	EllesmereUI.PressEscape()
 	-- where the blocks are (Logging is loaded by now): in the log, as every
 	-- line again since core 3.2.0-dev007 (the older line above was added
@@ -298,16 +339,16 @@ do
 	-- older than a day: still shown, time unknown, on All time only
 	H.Advance(86400 + 600)
 	EllesmereUI.PressEscape()
-	sm.viewButton:GetScript("OnClick")(sm.viewButton)
+	sm:Open("all")
 	x = view.shown[1]
 	check(view.list.count == 1 and x.ts == 0 and x.cat == "whisper", "expired line after a day")
-	view.periodButtons.day:GetScript("OnClick")(view.periodButtons.day)
+	pick(view.timeDrop, "Last 24 hours")
 	check(view.list.count == 0, "an expired line of unknown time in Last 24 hours")
 	EllesmereUI.PressEscape()
 	-- the player's world chat is stored again (core 3.2.0-dev007): its
 	-- line, no "Not stored" row
 	M.PSS_RecordPlayerBlock(sel, "CHAT_MSG_CHANNEL", "trade spam", nil, "world")
-	sm.viewButton:GetScript("OnClick")(sm.viewButton)
+	sm:Open("all")
 	local ns_, line = 0, 0
 	for i = 1, view.list.count do
 		local y = view.shown[i]
@@ -365,23 +406,76 @@ do
 	box:SetChecked(false)
 	box:GetScript("OnClick")(box)
 	check(C_AddOns.IsAddOnLoaded("PourSocialScore_Logging") == logging, "totals loaded the block history")
+	-- the type ticks (3.2.0-dev010): an unticked type leaves every period
+	-- pie, this session, 24 hours and all time alike; a click on its label
+	-- (not only its box) unticks it, again ticks it
+	do
+		local ttp = tot.typePie
+		local k1 = ttp.keys[1]
+		local cat = k1.cat
+		local s0, d0 = v.session, v.day
+		local by = M.PSS_History.RecentByCat(nil, nil, "p:")
+		local allOn = 0
+		for _, c in ipairs(M.PSS_History.ALL_CATS) do
+			if c ~= cat then allOn = allOn + (tonumber(ttp.counts[c]) or 0) end
+		end
+		k1.check.hit:GetScript("OnClick")(k1.check.hit)
+		check(not k1.check:GetChecked(), "a label click did not untick its type")
+		local v2 = tot.summary.values
+		print(("eui players: type %s off, totals %d/%d -> %d/%d/%d"):format(cat, s0, d0, v2.session, v2.day, v2.all))
+		check(v2.session == s0 - (by.session[cat] or 0) and v2.day == d0 - (by.day[cat] or 0) and v2.all == allOn,
+			("type unticked: %d/%d/%d, want %d/%d/%d"):format(v2.session, v2.day, v2.all,
+				s0 - (by.session[cat] or 0), d0 - (by.day[cat] or 0), allOn))
+		check((tot.summary.boxes.session.count:GetText() or "") == tostring(v2.session), "period count not of the ticked types")
+		-- View Events: the ticked types only
+		tot.summary.viewButton:GetScript("OnClick")(tot.summary.viewButton)
+		local ev = win.pages[4].view
+		check(ev and ev:IsOpen() and ev.q.cats and not ev.q.cats[cat] and ev.typeDrop.shownText ~= "All types",
+			"View Events not of the ticked types")
+		EllesmereUI.PressEscape()
+		-- a player's own pie has no type pie beside it: the ticks leave it alone
+		check(tot.summary.typed and not pane.summary.typed, "a player's pie filtered by the list's type ticks")
+		k1.check.hit:GetScript("OnClick")(k1.check.hit)
+		check(k1.check:GetChecked() and tot.summary.values.session == s0 and tot.summary.values.day == d0,
+			"a second label click did not tick it again")
+		-- a type slice: that type's events, the whole list
+		ttp.pie.SliceAt = function() return 1 end
+		ttp.pie.frame:GetScript("OnClick")(ttp.pie.frame)
+		ttp.pie.SliceAt = nil
+		local only = ev.q.cats
+		local n = 0
+		for _ in pairs(only or {}) do n = n + 1 end
+		check(ev:IsOpen() and n == 1 and only[cat] and ev.q.scope == nil and ev.q.sources.players
+			and not ev.q.sources.guilds, "a type slice did not open its events")
+		local same = true
+		for i = 1, ev.list.count do if (ev.shown[i].cat or "unknown") ~= cat then same = false end end
+		check(same, "a type slice shows other types")
+		EllesmereUI.PressEscape()
+	end
 	-- its slices and View Events open the whole list's events (EUI 1.1.0-dev010)
 	local tsm = pane.totals.summary
 	check(tsm.viewButton:IsShown(), "player totals: no View Events")
 	tsm.viewButton:GetScript("OnClick")(tsm.viewButton)
-	local tv = page.hview
-	check(tv and tv:IsOpen() and tv.spec.kind == "player" and tv.spec.id == false and tv.period == nil,
-		"player totals: View Events did not open the whole list")
+	local tv = win.pages[4].view
+	check(tv and tv:IsOpen() and tv.q.scope == nil and tv.q.sources.players and not tv.q.sources.filters
+		and tv.q.period == "day", "player totals: View Events did not open the whole list")
 	EllesmereUI.PressEscape()
 	tsm:Open("session")
-	check(tv:IsOpen() and tv.period == "session" and tv.spec.id == false, "player totals: the session slice")
+	check(tv:IsOpen() and tv.q.period == "session" and tv.q.scope == nil, "player totals: the session slice")
 	EllesmereUI.PressEscape()
 	tsm:Open("all")
-	check(tv:IsOpen() and tv.period == nil, "player totals: All time after a slice")
+	check(tv:IsOpen() and tv.q.period == nil, "player totals: All time after a slice")
 	EllesmereUI.PressEscape()
 	H.Advance(1)
 	selectEntry("Player0003-Realm3")
 	check(pane.body:IsShown() and not tot.frame:IsShown(), "pane not back after selecting again")
+	-- a click under the rows deselects too, and so does a click on the tab
+	page.list.scroll:GetScript("OnMouseUp")(page.list.scroll, "LeftButton")
+	check(not pane.body:IsShown() and tot.frame:IsShown(), "a click under the players did not deselect")
+	selectEntry("Player0003-Realm3")
+	_G.PSS_EllesmereUIWindow.tabs[1]:GetScript("OnClick")(_G.PSS_EllesmereUIWindow.tabs[1])
+	check(not pane.body:IsShown() and tot.frame:IsShown(), "the tab shown did not deselect")
+	selectEntry("Player0003-Realm3")
 end
 local nPopups = #E.log.popups
 pane.removeButton:GetScript("OnClick")(pane.removeButton)

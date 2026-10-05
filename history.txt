@@ -1,6 +1,35 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.2.0-dev012 - Review fixes
+
+- EllesmereUI window: the type tick boxes under a list's type pie (a whole list, a default guild list) filter that page's period pie and View Events only. A player's, guild's, member's or filter's own pie, which has no type pie beside it, always shows every type again, so its numbers match the PSS window.
+- This session's counts by type take less memory: about 40 KB for 1,000 spammers blocked once each, instead of about 140 KB.
+- Removed leftover code for the old Block History view's guild drop-down.
+
+=> 3.2.0-dev011 - Profession links no longer open on hover
+
+- Hovering a profession link in a blocked message (Block History in the PSS window, the Events tab and Event History in the EllesmereUI window) opened that profession's window. Hovering now only shows tooltips for links that have one (items, spells, achievements, quests and the like); a click still opens a profession link as in chat.
+
+=> 3.2.0-dev010 - EllesmereUI window: an Events tab
+
+- New Events tab (after Chat Filters): the blocked lines of all three lists in one place, newest first, with a Source column. Three drop-downs filter them: Time (This session, Last 24 hours, All time, or a Custom range of dates and times), Types (a box per type, or All types) and Source (Player Ignore List, Guild Ignore List, Chat Filters, or only the player, guild or filter you came from). The search box stays. Back / forward step through your filter changes; Escape goes back to the tab you came from.
+- Every pie slice, View Events button and double-click on a pane's Event History now takes you to the Events tab with the matching filters set: the player, guild, filter or list, the period, and the types ticked. The pies stay where they were.
+- View Events is at the top right of each pie page and opens the widest period ticked (all time when it is ticked) with the types ticked.
+- The type pie's boxes now filter the period pie too: untick a type and this session, the last 24 hours and all time count only the ticked types. A click on a type's name or colour ticks or unticks it, like its box. The legend is one column with full names and counts, and a click on a type slice opens just that type's events.
+- The core now counts this session's blocks by type as well (memory only, nothing more is saved; the always-loaded core grows by 0.8 KB). The lookup that adds them up is in PourSocialScore_Libraries, which only loads with a window.
+- The EllesmereUI window remembers its tab by name instead of number, so the new tab does not move you to the wrong one.
+
+=> 3.2.0-dev009 - EllesmereUI window: getting back
+
+- Click an empty spot under a list (players, guilds, guild members, chat filters), or the selected line again, to deselect it and see the whole list's events again (for a guild member: the guild's own).
+- A click on a tab, even the one shown, opens it as it opens: any Block History view or members list over it closes and nothing is selected.
+- The line next to the back / forward arrows is clickable: the tab name goes back to the tab as it opens, "Members of <guild>" closes the Block History view over the members.
+
+=> 3.2.0-dev008 - EllesmereUI folder in the main download
+
+- PourSocialScore_EllesmereUI is now part of Pour Social Score: it comes in the same zip as the other six folders and has the same version number (it was a separate download, last version 1.1.0-dev010). Nothing changes in game; without EllesmereUI the folder never loads and takes no memory.
+
 => 3.2.0-dev007 - Every blocked line in the log again, saved smaller
 
 - The 2,000 line block log holds every blocked line again, as before 3.2.0-dev3: listed players, guild members (default lists too), chat filters, world and guild chat. When a person's lines are trimmed off the log, their newest 10 whispers and party / raid lines, 5 party invites and 5 guild invites are still kept for them, at most 2,000 such lines in all. Lines kept by 3.2.0-dev3 to dev006 go back in the log once.

@@ -14,6 +14,15 @@ local History = M.PSS_History
 local UNKNOWN = History.UNKNOWN
 local CAT_LABEL, CAT_COLOR = History.CAT_LABEL, History.CAT_COLOR
 
+-- link kinds whose tooltip GameTooltip:SetHyperlink shows (others, such as
+-- trade: profession links, open a window instead)
+local TIP_LINKS = {
+	item = true, spell = true, enchant = true, quest = true, achievement = true,
+	currency = true, talent = true, pvptal = true, glyph = true, instancelock = true,
+	keystone = true, mawpower = true, conduit = true, azessence = true, unit = true,
+	mount = true, transmogappearance = true, transmogillusion = true,
+}
+
 ------------------------------------------------------------------------
 -- Right-click a history line
 ------------------------------------------------------------------------
@@ -161,7 +170,10 @@ function History.CreateList(parent, numRows, rowH, width, opts)
 			end)
 			row:SetScript("OnHyperlinkEnter", function(self, link)
 				GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
-				local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, link)
+				-- only the kinds with a tooltip: SetHyperlink on a profession
+				-- (trade:) link opens the profession window
+				local kind = type(link) == "string" and link:match("^([^:]+)")
+				local ok = TIP_LINKS[kind] and pcall(GameTooltip.SetHyperlink, GameTooltip, link)
 				if ok and GameTooltip:NumLines() > 0 then
 					GameTooltip:Show()
 				else

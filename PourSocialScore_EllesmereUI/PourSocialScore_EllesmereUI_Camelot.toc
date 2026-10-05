@@ -1,0 +1,24 @@
+## Interface: 16001
+## Title: |cff69ccf0PourSocialScore|r EllesmereUI
+## Notes: PourSocialScore in EllesmereUI's style, loaded when first opened
+## Category: PSS
+## Group: PourSocialScore
+## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
+## Author: Boaties
+## Version: 3.2.0-dev012
+## LoadOnDemand: 1
+## Dependencies: PourSocialScore, PourSocialScore_Libraries, EllesmereUI
+## SavedVariables: PSS_EllesmereUIDB
+
+EUI_Main.lua
+EUI_Skin.lua
+EUI_Options.lua
+EUI_Rows.lua
+EUI_History.lua
+EUI_HistoryView.lua
+EUI_Pie.lua
+EUI_Detail.lua
+EUI_Players.lua
+EUI_Guilds.lua
+EUI_Filters.lua
+EUI_Window.lua

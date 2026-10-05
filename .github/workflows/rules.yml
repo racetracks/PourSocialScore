@@ -1,5 +1,6 @@
-# Runs tools/check_rules.sh (Lua 5.1, ASCII only, tab indentation) on every
-# pull request and every push to main.
+# Runs tools/check_rules.sh (Lua 5.1, ASCII only, tab indentation; the
+# PourSocialScore_EllesmereUI folder in EllesmereUI's style) and the
+# harness's EllesmereUI checks on every pull request and every push to main.
 name: Rules
 
 on:
@@ -16,3 +17,12 @@ jobs:
         run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
       - name: Check rules
         run: sh tools/check_rules.sh
+
+  harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.1
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: EllesmereUI checks
+        run: PSS_EUI_REQUIRED=1 sh tools/harness/check_eui_all.sh

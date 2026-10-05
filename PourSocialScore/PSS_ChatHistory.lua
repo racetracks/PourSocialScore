@@ -730,6 +730,11 @@ local function recent(cur, create)
 	return r
 end
 
+-- this session's blocks by type and owner: sessionCat[cat][owner] (never
+-- saved, like the session; by type first, so an owner blocked once costs
+-- one key, not a table)
+local sessionCat = {}
+
 -- One block of type cat for owner at server time ts (now when unknown).
 function History.CountRecent(owner, ts, cat)
 	if owner == nil then return end
@@ -739,7 +744,13 @@ function History.CountRecent(owner, ts, cat)
 	if type(se) ~= "table" then se = {}; rawset(db, "session", se) end
 	ts = tonumber(ts) or 0
 	-- the session counts its own blocks (a line from before it is not)
-	if ts <= 0 or ts >= History.SessionStart() then se[owner] = (se[owner] or 0) + 1 end
+	if ts <= 0 or ts >= History.SessionStart() then
+		se[owner] = (se[owner] or 0) + 1
+		local k = cat or UNKNOWN_CAT
+		local c = sessionCat[k]
+		if not c then c = {}; sessionCat[k] = c end
+		c[owner] = (c[owner] or 0) + 1
+	end
 	local cur = math.floor(History.Now() / SLOT)
 	local slot = math.floor(ts / SLOT)
 	if slot <= 0 or slot > cur then slot = cur end
@@ -784,6 +795,13 @@ function History.RecentTotals(prefix)
 		end
 	end
 	return s, d
+end
+
+-- For History.RecentByCat (PourSocialScore_Libraries, PSS_TotalsQuery.lua):
+-- this session's blocks by type and owner, and the recent table brought up
+-- to now (nil: none). Read only.
+function History.RecentByCatData()
+	return sessionCat, recent(math.floor(History.Now() / SLOT), false)
 end
 
 -- The last day's blocks of owner by 10 minutes and type, newest first:
@@ -838,6 +856,7 @@ function History.ForgetRecent(owner)
 	if type(db) ~= "table" then return end
 	local se = rawget(db, "session")
 	if type(se) == "table" then se[owner] = nil end
+	for _, c in pairs(sessionCat) do c[owner] = nil end
 	local r = rawget(db, "recent")
 	if type(r) ~= "table" or type(r.day) ~= "table" or not r.day[owner] then return end
 	r.day[owner] = nil
@@ -863,6 +882,7 @@ function History.StartSession(initialLogin, reloading)
 	if type(db) ~= "table" then return end
 	if initialLogin or reloading or not tonumber(rawget(db, "sessionStart")) then
 		rawset(db, "session", nil)
+		sessionCat = {}
 		rawset(db, "sessionStart", History.Now())
 	end
 	local r = recent(math.floor(History.Now() / SLOT), false)
@@ -876,6 +896,7 @@ function History.EndSession()
 	if type(db) ~= "table" then return end
 	rawset(db, "session", nil)
 	rawset(db, "sessionStart", nil)
+	sessionCat = {}
 end
 
 -- Newest-first list of the lines where pred(entry) is true (a new array:

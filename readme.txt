@@ -33,10 +33,10 @@ AddOns folder) so the six folders sit side by side:
 The AddOns list shows them under one Pour Social Score heading. Keep all
 six enabled; PourSocialScore and PourSocialScore_Options are required.
 
-EllesmereUI users can add a seventh folder, PourSocialScore_EllesmereUI
-(its own download, always the same version as the other six). It is only
-loaded with EllesmereUI installed and "Enable EllesmereUI integration" on;
-see ELLESMEREUI below.
+A seventh folder, PourSocialScore_EllesmereUI, comes in the same zip (from
+3.2.0-dev008). It is only loaded with EllesmereUI installed and "Enable
+EllesmereUI integration" on, so without EllesmereUI it takes no memory; see
+ELLESMEREUI below.
 
 When updating, replace every folder (delete the old ones first so no stale
 file is left behind).
@@ -260,7 +260,7 @@ With the integration on:
   theme and accent colour (a plain dark panel when that skinning is off).
   It sits next to Friends, can be dragged (the place is kept) and closes
   with Escape. /pss gui force still opens the PSS windows.
-* It has the same five tabs. The selected tab shows a light wash and a
+* It has the same five tabs plus Events. The selected tab shows a light wash and a
   line underneath in your EllesmereUI accent colour. The Options tab has a
   search box at the right of the tab row. Player Ignore List, Guild Ignore
   List and Chat Filters show the list on the left and the selected entry's
@@ -269,9 +269,18 @@ With the integration on:
   click of a column heading.
 * Block history in a details pane loads only when you click Show Block
   History. Tick boxes show or hide each type (whisper, invite, party, raid,
-  BG, world, guild). Double-click a line for the Block History view, with a
-  search box, sortable columns, working chat links and a copy box on a
-  double-click.
+  BG, world, guild). Double-click a line to see the entry's lines on the
+  Events tab.
+* The Events tab lists the blocked lines of all three lists, newest first,
+  with a Source column. Filter them with the Time drop-down (This session,
+  Last 24 hours, All time or a Custom range), the Types drop-down and the
+  Source drop-down (each list, or only the entry you came from), plus a
+  search box. Columns sort on a click, chat links work, and a double-click
+  on a line opens a copy box.
+* Each pie page has View Events at the top right; it and every pie slice
+  open the Events tab with that entry or list, period and the types ticked
+  under the type pie. Unticking a type (its box, name or colour) also takes
+  it out of the period pie.
 * The back and forward arrows under the tabs (and mouse buttons 4 and 5)
   step through the views you opened. Escape goes up one level and closes
   the window only from the top.
