@@ -189,6 +189,7 @@ function ns.PlayerHistorySpec(entry)
         label = function(e) return M.PSS_PlayerPosition(e) > 0 and e or nil end,
         read = M.PSS_GetPlayerBlockHistory,
         reset = M.PSS_ResetPlayerBlockHistory,
+        owner = M.PSS_PlayerHistoryKey, counts = M.PSS_GetPlayerBlockCounts,
     }
 end
 
@@ -425,7 +426,7 @@ function ns.ShowPlayerDetail(newEntry)
     -- read again only when the entry or its count changed; the block
     -- history (PourSocialScore_Logging) loads only when asked for
     pane.hist:Set(r.entry, c.total or 0, M.PSS_GetPlayerBlockHistory, newEntry)
-    pane.summary:Set(History.PlayerKey(r.entry), c.total or 0, r.name or r.entry, ns.PlayerHistorySpec, r.entry)
+    pane.summary:Set(M.PSS_PlayerHistoryKey(r.entry), c.total or 0, r.name or r.entry, ns.PlayerHistorySpec, r.entry)
 end
 
 -------------------------------------------------------------------------------
