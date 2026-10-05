@@ -47,6 +47,46 @@ function ns.CloseButton(btn)
     if ns.S then ns.S.CloseButton(btn) end
 end
 
+-- The selected tab, as EllesmereUI's Friends window shows Contacts / Raid:
+-- a faint white wash over the tab and a pixel line across its bottom in
+-- the accent colour (EllesmereUI's theme: class colour, faction, a preset
+-- or custom). Drawn by us in both looks, so it shows on any EllesmereUI
+-- version; S.SetTabSelection (skin API 2+) also brightens S.Tab's label.
+local tabs = {}
+
+local function AccentColor()
+    if ns.S and ns.S.GetAccentColor then return ns.S.GetAccentColor() end
+    local c = EUI.ELLESMERE_GREEN or {}
+    return c.r or 0.047, c.g or 0.824, c.b or 0.616
+end
+
+local function PaintMark(tab)
+    local r, g, b = AccentColor()
+    tab.pssUnderline:SetColorTexture(r, g, b, 1)
+end
+
+local function Mark(tab)
+    local wash = tab:CreateTexture(nil, "ARTWORK", nil, 7)
+    wash:SetAllPoints()
+    wash:SetColorTexture(1, 1, 1, 0.05)
+    wash:SetBlendMode("ADD")
+    wash:Hide()
+    tab.pssWash = wash
+    local line = tab:CreateTexture(nil, "OVERLAY", nil, 7)
+    local pp = EUI.PanelPP
+    if pp and pp.DisablePixelSnap then pp.DisablePixelSnap(line) end
+    line:SetHeight(pp and pp.mult or 1)
+    line:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", 0, 0)
+    line:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
+    line:Hide()
+    tab.pssUnderline = line
+    PaintMark(tab)
+    if #tabs == 0 and ns.S and ns.S.OnLooksChanged then
+        ns.S.OnLooksChanged(function() for i = 1, #tabs do PaintMark(tabs[i]) end end)
+    end
+    tabs[#tabs + 1] = tab
+end
+
 -- S.Tab draws its own label over ours; our label is faded only by colour,
 -- which the button resets on state changes, so it showed through as a ghost.
 function ns.Tab(tab)
@@ -54,37 +94,34 @@ function ns.Tab(tab)
         ns.S.Tab(tab)
         local fs = tab:GetFontString()
         if fs then fs:SetAlpha(0) end
-        return
+    else
+        PlainFill(tab, 0.9)
+        PlainBorder(tab)
     end
-    PlainFill(tab, 0.9)
-    PlainBorder(tab)
-    -- the selected tab's underline, as S.Tab draws it: 1px across the
-    -- bottom in EllesmereUI's accent colour (its theme: class colour,
-    -- faction, a preset or custom; EllesmereUI.ELLESMERE_GREEN holds it)
-    local line = tab:CreateTexture(nil, "OVERLAY")
-    line:SetHeight(1)
-    line:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", 0, 0)
-    line:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
-    line:Hide()
-    tab.pssUnderline = line
+    Mark(tab)
 end
 
--- Visual selection of a tab this addon switches itself. Skinned, S.Tab's
--- own underline shows it (accent colour, EllesmereUI's accent bar setting).
+-- Visual selection of a tab this addon switches itself.
 function ns.SetTabSelected(tab, selected)
-    if ns.S and ns.S.SetTabSelection then
-        ns.S.SetTabSelection(tab, selected)
+    selected = selected and true or false
+    PaintMark(tab)
+    tab.pssWash:SetShown(selected)
+    tab.pssUnderline:SetShown(selected)
+    if ns.S then
+        -- S.Tab's label: bright when selected. Skin API 2 takes it directly;
+        -- older versions read the button's isSelected on their next tab
+        -- update (a tab click, or the PanelTemplates hook nudged here).
+        tab.isSelected = selected
+        if ns.S.SetTabSelection and (ns.S.apiVersion or 0) >= 2 then
+            ns.S.SetTabSelection(tab, selected)
+        elseif PanelTemplates_UpdateTabs then
+            pcall(PanelTemplates_UpdateTabs, {})
+        end
     else
         -- Alpha, not text colour: colour alpha leaves the shadow at full
         -- strength, which read as a second, offset label.
         local fs = tab:GetFontString()
         if fs then fs:SetAlpha(selected and 1 or 0.5) end
-        local line = tab.pssUnderline
-        if line then
-            local c = EUI.ELLESMERE_GREEN or {}
-            line:SetColorTexture(c.r or 0.047, c.g or 0.824, c.b or 0.616, 1)
-            line:SetShown(selected and true or false)
-        end
     end
 end
 
@@ -94,8 +131,8 @@ function ns.Checkbox(cb)
     if ns.S then ns.S.Checkbox(cb) end
 end
 
-function ns.EditBox(eb)
-    if ns.S then ns.S.EditBox(eb) end
+function ns.EditBox(eb, opts)
+    if ns.S then ns.S.EditBox(eb, opts) end
 end
 
 function ns.Dropdown(dd)
@@ -193,6 +230,47 @@ function ns.NewButton(parent, text, w, onClick)
     b:SetScript("OnClick", onClick)
     ns.Button(b)
     return b
+end
+
+-- A search box: EllesmereUI's skinned edit box (S.EditBox with its padded
+-- input) with a magnifier, a grey hint while empty and a clear button
+-- while not. onChange(text) runs as you type; Escape clears it.
+function ns.NewSearchBox(parent, w, hint, onChange)
+    local eb = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+    eb:SetSize(w, 20)
+    eb:SetAutoFocus(false)
+    eb:SetTextInsets(16, 18, 0, 0)
+    ns.EditBox(eb, { padInput = true })
+    local icon = eb:CreateTexture(nil, "OVERLAY")
+    icon:SetSize(12, 12)
+    icon:SetPoint("LEFT", eb, "LEFT", 2, 0)
+    icon:SetAtlas("common-search-magnifyingglass")
+    icon:SetAlpha(0.6)
+    local text = ns.NewText(eb, 11)
+    text:SetPoint("LEFT", eb, "LEFT", 18, 0)
+    text:SetTextColor(1, 1, 1, 0.4)
+    text:SetText(hint)
+    local clear = CreateFrame("Button", nil, eb)
+    clear:SetSize(14, 14)
+    clear:SetPoint("RIGHT", eb, "RIGHT", -2, 0)
+    local x = clear:CreateTexture(nil, "ARTWORK")
+    x:SetAllPoints()
+    x:SetAtlas("common-search-clearbutton")
+    x:SetAlpha(0.6)
+    clear:SetScript("OnEnter", function() x:SetAlpha(1) end)
+    clear:SetScript("OnLeave", function() x:SetAlpha(0.6) end)
+    clear:SetScript("OnClick", function() eb:SetText(""); eb:ClearFocus() end)
+    clear:Hide()
+    eb:SetScript("OnTextChanged", function(self)
+        local t = self:GetText() or ""
+        text:SetShown(t == "")
+        clear:SetShown(t ~= "")
+        onChange(t)
+    end)
+    eb:SetScript("OnEscapePressed", function(self) self:SetText(""); self:ClearFocus() end)
+    eb:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    eb.hint, eb.clear = text, clear
+    return eb
 end
 
 function ns.TipOn(frame, owner, text)
