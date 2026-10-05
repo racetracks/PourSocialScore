@@ -92,7 +92,8 @@ local function ShownState()
 end
 
 local function HistKey(spec)
-    return spec and (tostring(spec.kind) .. "\001" .. tostring(spec.id)) or nil
+    return spec and (tostring(spec.kind) .. "\001" .. tostring(spec.id)
+        .. "\001" .. tostring(spec.window and spec.window.since)) or nil
 end
 
 local function UpdateNav()

@@ -220,6 +220,7 @@ local function BuildPane(parent)
     pane.counts = Line(dp.summary, -6)
     ns.Font(pane.counts, 11)
     pane.player[#pane.player + 1] = pane.counts
+    pane.summary = ns.NewSummary(dp.summary, page, -30)
 
     -- View/Edit Rule
     local rule = dp.rule
@@ -424,6 +425,7 @@ function ns.ShowPlayerDetail(newEntry)
     -- read again only when the entry or its count changed; the block
     -- history (PourSocialScore_Logging) loads only when asked for
     pane.hist:Set(r.entry, c.total or 0, M.PSS_GetPlayerBlockHistory, newEntry)
+    pane.summary:Set(History.PlayerKey(r.entry), c.total or 0, r.name or r.entry, ns.PlayerHistorySpec, r.entry)
 end
 
 -------------------------------------------------------------------------------
