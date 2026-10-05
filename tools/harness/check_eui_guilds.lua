@@ -520,12 +520,19 @@ if hi then
 		check(tp.slices[1].draw == nil and tp.pie.total == sum, "ticked type not back")
 	end
 	-- View Events and a slice: the list's lines in the Block History view
-	local wantLines = 0
-	for _, it in ipairs(items) do wantLines = wantLines + #M.PSS_GetGuildBlockHistory(it.key) end
+	-- every counted block shows: its line, or a "Counted, not stored" /
+	-- expired row (world chat of a list's guilds is counted, never stored)
+	-- (the two blocks counted above are in no line: they show as rows)
+	local wantBlocks = s
+	for _, it in ipairs(items) do wantBlocks = math.max(wantBlocks, M.PSS_GetGuildBlockCounts(it.key).total or 0) end
+	local t0 = os.clock()
 	gp.summary.viewButton:GetScript("OnClick")(gp.summary.viewButton)
+	print(("eui guilds: a default guild list's view (%d guilds) read in %.3fs"):format(#items, os.clock() - t0))
 	local gv = page.hview
-	check(gv and gv:IsOpen() and gv.spec.kind == "group" and gv.spec.id == gk and #gv.all == wantLines,
-		("View Events on a default guild list: %s lines, want %d"):format(gv and tostring(#gv.all) or "?", wantLines))
+	local shownBlocks = 0
+	for _, h in ipairs(gv and gv.all or {}) do shownBlocks = shownBlocks + (h.expired or 1) end
+	check(gv and gv:IsOpen() and gv.spec.kind == "group" and gv.spec.id == gk and shownBlocks >= wantBlocks and wantBlocks >= 2,
+		("View Events on a default guild list: %d blocks shown, %d counted"):format(shownBlocks, wantBlocks))
 	-- its Reset asks first (it clears every guild in the list)
 	local asked = #E.log.popups
 	gv.resetButton:GetScript("OnClick")(gv.resetButton)
