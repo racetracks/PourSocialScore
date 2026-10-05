@@ -4,7 +4,9 @@
 --                 and a chat filter are counted; 10-minute slots older than
 --                 24 hours drop out; at most 144 slots per owner; a reset
 --                 forgets them; lookups are cheap. Logout.
---   PSS_PHASE=2 : a /reload (PSS_RELOAD=1): the session and the day stay.
+--   PSS_PHASE=2 : a /reload (PSS_RELOAD=1): the session starts again, as the
+--                 PSS window's own session counts do (3.2.0-dev006); the day
+--                 stays; the session was not saved at logout.
 --   PSS_PHASE=3 : a new login: the session starts again, the day stays.
 local phase = tonumber(os.getenv("PSS_PHASE") or "1")
 local History = M.PSS_History
@@ -132,8 +134,8 @@ if phase == 1 then
 elseif phase == 2 or phase == 3 then
 	local s, d = rc(pkey())
 	if phase == 2 then
-		check(s == 155 and d >= 142, ("reload lost counts %d/%d"):format(s, d))
-		check(History.SessionStart() == 1790000000, "a /reload moved the session start: " .. History.SessionStart())
+		check(s == 0 and d >= 142, ("reload: session %d day %d"):format(s, d))
+		check(History.SessionStart() == GetServerTime(), "a /reload did not start the session now")
 	else
 		check(s == 0 and d >= 142, ("new login: session %d day %d"):format(s, d))
 		check(History.SessionStart() == GetServerTime(), "a login did not start the session now")
