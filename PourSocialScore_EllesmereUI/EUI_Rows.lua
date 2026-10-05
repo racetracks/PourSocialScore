@@ -25,7 +25,9 @@ local function Accent()
     return 1, 0.82, 0
 end
 
--- cell positions from the column widths (the fill column stretches)
+-- cell positions from the column widths (the fill column stretches); the
+-- cells are font strings (rows) or buttons (the header, whose labels are
+-- justified where they are made: a button has no SetJustifyH)
 local function PlaceCells(frame, cols, cells, inset)
     local x = inset
     local fill
@@ -58,7 +60,7 @@ local function PlaceCells(frame, cols, cells, inset)
             fs:SetWidth(c.width - 6)
             rx = rx + c.width
         end
-        fs:SetJustifyH(c.justify or "LEFT")
+        if fs:GetObjectType() == "FontString" then fs:SetJustifyH(c.justify or "LEFT") end
     end
 end
 
@@ -81,6 +83,7 @@ function ns.NewRows(parent, spec)
         b:SetHeight(HEADER_H)
         local fs = ns.NewText(b, 11)
         fs:SetAllPoints()
+        fs:SetJustifyH(c.justify or "LEFT")
         b.label = fs
         b.key, b.text = c.key, c.text
         if spec.sort and c.sort ~= false then
@@ -156,8 +159,25 @@ function List:MakeRow(i)
     end
     PlaceCells(row, spec.cols, row.cells, 4)
 
+    -- spec.links: links in the text work as in chat (hover for the
+    -- tooltip, click to open, shift-click to paste into chat)
+    if spec.links and row.SetHyperlinksEnabled then
+        row:SetHyperlinksEnabled(true)
+        row:SetScript("OnHyperlinkClick", function(btn, link, text, button)
+            btn.linkClickAt = GetTime()
+            if SetItemRef then pcall(SetItemRef, link, text, button, DEFAULT_CHAT_FRAME) end
+        end)
+        row:SetScript("OnHyperlinkEnter", function(btn, link)
+            GameTooltip:SetOwner(btn, "ANCHOR_CURSOR")
+            local ok = pcall(GameTooltip.SetHyperlink, GameTooltip, link)
+            if ok and GameTooltip:NumLines() > 0 then GameTooltip:Show() else GameTooltip:Hide() end
+        end)
+        row:SetScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
+    end
     if spec.click then
         row:SetScript("OnClick", function(btn, button)
+            -- a click on a link in the row is the link's, not the row's
+            if btn.linkClickAt and GetTime() - btn.linkClickAt < 0.05 then return end
             if btn.index then spec.click(btn, btn.index, button) end
         end)
     end

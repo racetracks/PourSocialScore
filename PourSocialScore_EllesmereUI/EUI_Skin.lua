@@ -58,9 +58,19 @@ function ns.Tab(tab)
     end
     PlainFill(tab, 0.9)
     PlainBorder(tab)
+    -- the selected tab's underline, as S.Tab draws it: 1px across the
+    -- bottom in EllesmereUI's accent colour (its theme: class colour,
+    -- faction, a preset or custom; EllesmereUI.ELLESMERE_GREEN holds it)
+    local line = tab:CreateTexture(nil, "OVERLAY")
+    line:SetHeight(1)
+    line:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", 0, 0)
+    line:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
+    line:Hide()
+    tab.pssUnderline = line
 end
 
--- Visual selection of a tab this addon switches itself.
+-- Visual selection of a tab this addon switches itself. Skinned, S.Tab's
+-- own underline shows it (accent colour, EllesmereUI's accent bar setting).
 function ns.SetTabSelected(tab, selected)
     if ns.S and ns.S.SetTabSelection then
         ns.S.SetTabSelection(tab, selected)
@@ -69,6 +79,12 @@ function ns.SetTabSelected(tab, selected)
         -- strength, which read as a second, offset label.
         local fs = tab:GetFontString()
         if fs then fs:SetAlpha(selected and 1 or 0.5) end
+        local line = tab.pssUnderline
+        if line then
+            local c = EUI.ELLESMERE_GREEN or {}
+            line:SetColorTexture(c.r or 0.047, c.g or 0.824, c.b or 0.616, 1)
+            line:SetShown(selected and true or false)
+        end
     end
 end
 
