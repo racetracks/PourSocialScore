@@ -270,17 +270,18 @@ do
 	view.periodButtons.all:GetScript("OnClick")(view.periodButtons.all)
 	check(view.list.count == 2, "All time hides the older event")
 	EllesmereUI.PressEscape()
-	-- where the blocks are (Logging is loaded by now): in the log (the older
-	-- line above was added without a count: 2 lines)
+	-- where the blocks are (Logging is loaded by now): kept for the player,
+	-- never in the log since core 3.2-dev3 (the older line above was added
+	-- without a count: 2 lines)
 	pane.pages:Select("summary")
-	check((sm.where:GetText() or "") == "Stored: 2 in the log.", "where line " .. tostring(sm.where:GetText()))
+	check((sm.where:GetText() or "") == "Stored: 2 kept for this player.", "where line " .. tostring(sm.where:GetText()))
 	-- the lines leave the block history, the counts stay: the view shows
 	-- the block as expired, with its type and 10 minutes (from the core's
 	-- recent counts) and the message "Data expired from logs"
 	local key = M.PSS_PlayerHistoryKey(sel)
 	M.PSS_History.Clear(function(h) return h.o == key end)
 	sm:Refresh()
-	check((sm.where:GetText() or ""):find("1 expired from logs", 1, true), "where after expiry " .. tostring(sm.where:GetText()))
+	check((sm.where:GetText() or ""):find("1 not stored or expired", 1, true), "where after expiry " .. tostring(sm.where:GetText()))
 	sm.viewButton:GetScript("OnClick")(sm.viewButton)
 	local x = view.shown[1]
 	-- (the counted block and the older line fall in the same 10 minutes)
@@ -295,6 +296,16 @@ do
 	check(view.list.count == 1 and x.ts == 0 and x.cat == "whisper", "expired line after a day")
 	view.periodButtons.day:GetScript("OnClick")(view.periodButtons.day)
 	check(view.list.count == 0, "an expired line of unknown time in Last 24 hours")
+	EllesmereUI.PressEscape()
+	-- the player's world chat is counted, not stored: a "Not stored" row
+	M.PSS_RecordPlayerBlock(sel, "CHAT_MSG_CHANNEL", "trade spam", nil, "world")
+	sm.viewButton:GetScript("OnClick")(sm.viewButton)
+	local ns_ = 0
+	for i = 1, view.list.count do
+		local y = view.shown[i]
+		if y.cat == "world" and y.channel == "Not stored" and (y.message or ""):find("not stored", 1, true) then ns_ = ns_ + 1 end
+	end
+	check(ns_ == 1, "world chat not shown as not stored")
 	EllesmereUI.PressEscape()
 	pane.pages:Select("history")
 	H.Advance(1)
