@@ -449,6 +449,7 @@ function ns.GuildHistorySpec(key)
         label = GuildLabel, pick = GuildChoices, pickSpec = ns.GuildHistorySpec,
         read = M.PSS_GetGuildBlockHistory,
         reset = M.PSS_ResetGuildBlockHistory,
+        owner = History.GuildKey, counts = M.PSS_GetGuildBlockCounts,
     }
 end
 
@@ -465,9 +466,11 @@ function ns.MemberHistorySpec(m, gkey)
             return nil
         end,
         read = M.PSS_GetMemberBlockHistory,
+        owner = History.MemberKey, counts = M.PSS_GetMemberBlockCounts,
         reset = M.PSS_ResetMemberBlockHistory,
     }
 end
+local NO_WHERE, MEMBER_WHO = { noWhere = true }, { who = "this member" }
 -- the selected member's spec (the guild whose members are shown)
 local function MemberSpec(m) return ns.MemberHistorySpec(m, G.mguild) end
 
@@ -776,7 +779,7 @@ local function ShowGuild(key, fresh)
     b.removeButton:SetEnabled(not M.PSS_IsStaticManagedGuild(key))
     b.membersButton:SetShown(G.view ~= "members")
     b.hist:Set(key, c.total or 0, M.PSS_GetGuildBlockHistory, fresh)
-    b.summary:Set(History.GuildKey and History.GuildKey(key), c.total or 0, tostring(g.name), ns.GuildHistorySpec, key)
+    b.summary:Set(History.GuildKey and History.GuildKey(key), c.total or 0, tostring(g.name), ns.GuildHistorySpec, key, NO_WHERE)
     return true
 end
 
@@ -845,7 +848,7 @@ local function ShowMember(fresh)
     local c = M.PSS_GetMemberBlockCounts(m)
     b.counts:SetText(CountsText(c))
     b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory, fresh)
-    b.summary:Set(History.MemberKey(m), c.total or 0, tostring(m.name), MemberSpec, m)
+    b.summary:Set(History.MemberKey(m), c.total or 0, tostring(m.name), MemberSpec, m, MEMBER_WHO)
     return true
 end
 

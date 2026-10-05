@@ -18,7 +18,11 @@ EllesmereUI is installed.
   session / the last 24 hours / all time, with a tick box per period; a
   slice opens that period's events and View Events all of them. The session
   and 24 hour counts come from the core (PourSocialScore 3.2), so the pie
-  never loads the block history. Back / forward arrows (and mouse buttons 4 / 5) step through
+  never loads the block history. Under the pie a Stored line says how many
+  of the blocks are still in the 2000-line log and how many only in the
+  player's kept lines (once the history is loaded). Blocks that are counted
+  but no longer stored show in the view as "Data expired from logs" rows,
+  with their type and, for the last 24 hours, when. Back / forward arrows (and mouse buttons 4 / 5) step through
   the views; Escape goes up a level through EllesmereUI's Escape handling
   (`RegisterEscapeClose` with `onEscape`).
 - A "Pour Social Score" section in the EllesmereUI panel (plugin API,

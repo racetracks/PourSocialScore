@@ -96,6 +96,7 @@ function ns.FilterHistorySpec(i)
         end,
         read = M.PSS_FilterHistory,
         reset = M.PSS_ResetFilterHistory,
+        owner = M.PSS_FilterOwnerKey, counts = M.PSS_FilterCounts,
     }
 end
 

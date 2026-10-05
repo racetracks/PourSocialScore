@@ -13,7 +13,11 @@
 --           period = "session" | "day" | nil (all time): what the time
 --           picker starts on (a Summary slice opens with its period),
 --           pick = function() -> { { key, name }, ... } and pickSpec(key):
---           a drop-down to jump to another entry (the guilds) }
+--           a drop-down to jump to another entry (the guilds),
+--           owner(id) -> the core's owner key, counts(id) -> its counts by
+--           type: blocks counted but no longer in the block history show
+--           as "Data expired from logs" lines (with their type, and their
+--           10 minutes when in the last day) }
 -------------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = ns.M
@@ -48,6 +52,46 @@ local function Matches(h, find, since)
         or string.find(string.lower(h.channel or ""), find, 1, true)
         or string.find(string.lower(h.message or ""), find, 1, true)
 end
+
+-- Blocks counted for one entry but no longer in its lines: a line per
+-- type and 10 minutes for the last day (History.RecentSlots), then a line
+-- per type of time unknown. Added to lines (the array read for the view).
+local EXPIRED = "|cff888888Data expired from logs|r"
+local function AddExpired(lines, counts, slots)
+    local SLOT = History.SLOT or 600
+    local found, foundAt = {}, {}
+    for i = 1, #lines do
+        local h = lines[i]
+        local cat = h.cat or "unknown"
+        found[cat] = (found[cat] or 0) + 1
+        local s = math.floor((tonumber(h.ts) or 0) / SLOT)
+        local k = cat .. "\001" .. s
+        foundAt[k] = (foundAt[k] or 0) + 1
+    end
+    local n = #lines
+    local recentGone = {}
+    local function add(ts, cat, count)
+        n = n + 1
+        lines[n] = setmetatable({ ts = ts, cat = cat, member = "", channel = "Expired",
+            message = count > 1 and (EXPIRED .. ("  |cff888888x%d|r"):format(count)) or EXPIRED, expired = count },
+            History.EntryMT)
+    end
+    for _, x in ipairs(slots or {}) do
+        local k = x.cat .. "\001" .. math.floor(x.ts / SLOT)
+        local have = foundAt[k] or 0
+        local gone = x.n - have
+        foundAt[k] = have > x.n and have - x.n or 0
+        if gone > 0 then
+            add(x.ts, x.cat, gone)
+            recentGone[x.cat] = (recentGone[x.cat] or 0) + gone
+        end
+    end
+    for _, cat in ipairs(History.ALL_CATS or {}) do
+        local rest = (tonumber(counts[cat]) or 0) - (found[cat] or 0) - (recentGone[cat] or 0)
+        if rest > 0 then add(0, cat, rest) end
+    end
+end
+ns.HistoryAddExpired = AddExpired
 
 local View = {}
 View.__index = View
@@ -102,6 +146,10 @@ function View:Refresh(top)
     end
     self.name = name or "?"
     self.all = spec.read(spec.id) or {}
+    if spec.id and spec.owner and spec.counts then
+        local counts = spec.counts(spec.id)
+        if counts then AddExpired(self.all, counts, History.RecentSlots and History.RecentSlots(spec.owner(spec.id))) end
+    end
     self.allButton:SetShown(spec.id and spec.all ~= nil or false)
     if spec.allText then self.allButton:SetText(spec.allText) end
     self.pick:SetShown(spec.pick ~= nil)

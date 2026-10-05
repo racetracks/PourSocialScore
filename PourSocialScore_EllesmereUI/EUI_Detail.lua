@@ -133,6 +133,23 @@ local function Recent(owner)
     return History.RecentCounts(owner)
 end
 
+-- "Stored: 8 in the log, 2 kept for this player, 1 waiting, 1 expired":
+-- where owner's counted blocks are (History.Where, 3.2). Before the block
+-- history is loaded only the waiting lines are known.
+function ns.WhereText(owner, total, who)
+    if not (owner and History.Where) or (total or 0) == 0 then return "" end
+    local inLog, kept, waiting = History.Where(owner)
+    if not inLog then
+        return ("Stored: %d waiting, the rest in the block history (not loaded)."):format(waiting)
+    end
+    local parts = { ("%d in the log"):format(inLog) }
+    if kept > 0 then parts[#parts + 1] = ("%d kept for %s"):format(kept, who or "this player") end
+    if waiting > 0 then parts[#parts + 1] = ("%d waiting"):format(waiting) end
+    local gone = total - inLog - kept - waiting
+    if gone > 0 then parts[#parts + 1] = ("|cffaaaaaa%d expired from logs|r"):format(gone) end
+    return "Stored: " .. table.concat(parts, ", ") .. "."
+end
+
 local SM = {}
 SM.__index = SM
 local summaries = {}
@@ -160,15 +177,18 @@ function SM:Refresh()
         end
     end
     self.pie:Set(slices)
+    self.where:SetText(self.noWhere and "" or ns.WhereText(self.owner, v.all, self.whoText))
     self.empty:SetShown(v.all == 0 and v.session == 0 and v.day == 0)
     self.viewButton:SetEnabled(self.specFn ~= nil)
 end
 
 -- owner: the core's owner key (History.PlayerKey ...); allTime: the
 -- entry's all-time count; title: its name; specFn(id): its Block History
--- spec (made only when opened)
-function SM:Set(owner, allTime, title, specFn, id)
+-- spec (made only when opened); opts.noWhere: no "Stored:" line (a guild:
+-- its lines are its members'), opts.who: "this player" for the keep
+function SM:Set(owner, allTime, title, specFn, id, opts)
     self.owner, self.allTime, self.title, self.specFn, self.id = owner, allTime, title, specFn, id
+    self.noWhere, self.whoText = opts and opts.noWhere, opts and opts.who
     self:Refresh()
 end
 
@@ -229,6 +249,14 @@ function Build(sm)
             ns.TipOn(sm.boxes[key], sm.boxes[key], "Needs PourSocialScore 3.2 or later.")
         end
     end
+
+    -- where the blocks are: log / kept / waiting / expired
+    sm.where = ns.NewText(page, 11)
+    sm.where:SetPoint("TOPLEFT", page, "TOPLEFT", 12, top - SIZE - 12)
+    sm.where:SetPoint("RIGHT", page, "RIGHT", -10, 0)
+    sm.where:SetJustifyH("LEFT")
+    sm.where:SetWordWrap(true)
+    sm.where:SetTextColor(1, 1, 1, 0.7)
 
     local view = ns.NewButton(page, "View Events", 110, function() sm:Open("all") end)
     view:SetPoint("TOPLEFT", page, "TOPLEFT", x + 4, y - 8)
