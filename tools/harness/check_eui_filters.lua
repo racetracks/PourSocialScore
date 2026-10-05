@@ -210,6 +210,23 @@ check(view.spec.id == false and view.list.count >= 1 and view.shown[1].message =
 check(E.PressEscape() and not view:IsOpen() and page:IsShown(), "Escape did not close the view")
 H.Advance(1)
 
+-- the detail pages: three buttons, one page at a time, the pick is kept
+do
+	local dp = pane.pages
+	check(dp and #dp.buttons == 3 and dp.buttons[1]:GetText() == "Summary"
+		and dp.buttons[2]:GetText() == "Event History" and dp.buttons[3]:GetText() == "View/Edit Rule", "page buttons")
+	for i, key in ipairs({ "summary", "history", "rule" }) do
+		dp.buttons[i]:GetScript("OnClick")(dp.buttons[i])
+		check(dp.shown == key and dp[key]:IsShown(), "page " .. key .. " not shown")
+		local others = 0
+		for _, k in ipairs({ "summary", "history", "rule" }) do if k ~= key and dp[k]:IsShown() then others = others + 1 end end
+		check(others == 0, "page " .. key .. " shown with another")
+	end
+	check(pane.filterBox:GetParent():GetParent():GetParent() == dp.rule, "editor not on the rule page")
+	check(hv.frame:GetParent() == dp.history and pane.counts:GetParent() == dp.summary, "history or counts on the wrong page")
+	dp:Select("history")
+end
+
 -- Reset Count keeps the history
 pane.resetCount:GetScript("OnClick")(pane.resetCount)
 H.RunTimers()
@@ -220,7 +237,11 @@ local gi
 for i = 1, #db.filterList do if M.PSS_IsGuildRuleFilter(i) then gi = i break end end
 if gi then
 	selectFilter(gi)
-	check(not hv.frame:IsShown() and not pane.copyButton:IsEnabled() and not pane.resetCount:IsEnabled(), "guild rule pane")
+	check(not hv.frame:IsVisible() and not pane.copyButton:IsEnabled() and not pane.resetCount:IsEnabled(), "guild rule pane")
+	-- only its settings: the Summary and Event History buttons are off
+	local dp = pane.pages
+	check(dp.shown == "rule" and dp.rule:IsVisible() and not dp.buttons[1]:IsEnabled()
+		and not dp.buttons[2]:IsEnabled() and dp.buttons[3]:IsEnabled(), "guild rule pages")
 else
 	print("eui filters: no guild rules in this save (not checked)")
 end

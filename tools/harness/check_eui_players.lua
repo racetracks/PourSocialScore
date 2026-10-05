@@ -165,6 +165,17 @@ check(p.opts == nil or p.opts[okey] == nil, "override not back to Default")
 -- (PourSocialScore_Logging) loads only on Show Block History, not for a
 -- click on the row
 local hv = pane.hist
+-- the detail pages: counts on Summary, history on Event History, settings
+-- and Remove / Add Guild on View/Edit Rule, Reset under the history
+do
+	local dp = pane.pages
+	check(dp and #dp.buttons == 3 and pane.counts:GetParent() == dp.summary and hv.frame:GetParent() == dp.history
+		and pane.removeButton:GetParent() == dp.rule and pane.addGuild:GetParent() == dp.rule, "detail pages")
+	dp:Select("rule")
+	check(pane.noteBox:IsVisible() and not hv.frame:IsVisible() and not pane.counts:IsVisible(), "rule page")
+	dp:Select("history")
+	check(hv.frame:IsVisible() and not pane.noteBox:IsVisible(), "history page")
+end
 check(hv.list.count == 0 and not hv.gate:IsShown(), "history before any block")
 check(not loaded("PourSocialScore_Logging"), "Logging loaded before the history was asked for")
 M.PSS_RecordPlayerBlock(sel, "CHAT_MSG_WHISPER", "buy gold", nil, "whisper")
@@ -220,6 +231,7 @@ for i = 1, #idx do
 end
 check(pane.row.entry == "Gossip Vendor", "NPC not selected: " .. tostring(pane.row.entry))
 check(not pane.excl.whisper:IsVisible() and not pane.counts:IsVisible(), "player parts shown for an NPC")
+check(pane.pages.shown == "rule" and not pane.pages.buttons[1]:IsEnabled() and not pane.pages.buttons[2]:IsEnabled(), "NPC offered Summary or Event History")
 
 -- removal asks first (EllesmereUI's popup), then removes
 selectEntry(sel)
