@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.3.0-dev003 - PSS window: Managed Communities row
+
+- Guild Ignore List: the default guild lists now sit under one Managed Communities row at the top, as in the EllesmereUI window. It shows how many lists there are, their members and blocks added up, and how many of their rules are on.
+- Click it to collapse or expand everything under it; it stays as you left it. Right-click it to turn every list's rule on or off, or to collapse / expand.
+- Each list's own row sits under it, indented, without the "Managed Communities - " in its name. Its click, right-click menu and tooltip are unchanged.
+- Harness: check_managed_row.lua checks the row, its numbers against the EllesmereUI window, the click and the menu, on every real save too.
+
 => 3.3.0-dev002 - One count for this session and the last 24 hours
 
 - The PSS window's "This session" and "Last 24 hours" lines on the Player Ignore List, Guild Ignore List and Chat Filters tabs now count blocks the same way as the EllesmereUI window (per player, guild and filter, in 10-minute steps), so both windows always show the same numbers. Before, the PSS window kept its own hourly counts, which could disagree: on some saves its Player tab read 0 over a list with blocks, and its 24 hours could span 25.

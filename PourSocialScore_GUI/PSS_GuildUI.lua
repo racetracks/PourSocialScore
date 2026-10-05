@@ -280,7 +280,9 @@ local function buildGuildList(frame)
 	frame.rows = {}
 	frame.groupRows = {}
 	frame.exclRows = {}
-	frame.display = {}		-- M.PSS_GuildRows fills it on every redraw
+	-- M.PSS_GuildRows fills it on every redraw; nest: the default guild lists
+	-- go under one Managed Communities row, as in the EllesmereUI window
+	frame.display = { nest = true }
 end
 
 -- Remove Guild and Block History on the bottom bar.
@@ -406,6 +408,66 @@ local function makeGroupRow(frame, i)
 	end)
 	row:SetScript("OnLeave", hideTip)
 	frame.groupRows[i] = row
+	return row
+end
+
+---------------------------------------------------------------- Managed Communities
+-- One collapsible row over every managed group, their numbers added up
+-- (3.3.0-dev003, as in the EllesmereUI window). Open unless closed once;
+-- left-click toggles, right-click for options.
+local MANAGED_SHUT = M.PSS_GUILD_MANAGED_SHUT
+local MANAGED_PREFIX = "Managed Communities - "
+
+-- how many of the managed groups have their rule on
+local function managedOn()
+	local n = 0
+	for k in pairs(M.PSS_ManagedGroups()) do
+		if M.PSS_ManagedGroupActive(k) then n = n + 1 end
+	end
+	return n
+end
+
+local function setAllManaged(on)
+	for k in pairs(M.PSS_ManagedGroups()) do M.PSS_SetManagedGroupActive(k, on) end
+end
+
+local function makeManagedRow(frame)
+	local hr = frame.header
+	local row = UI.CreateRow(frame.content, hr.total)
+	local bg = row:CreateTexture(nil, "BACKGROUND")
+	bg:SetAllPoints(row)
+	bg:SetColorTexture(1, 0.82, 0, 0.14)
+	row.label = UI.TCell(row, hr, "guild", "LEFT", "GameFontNormal")
+	row.count = UI.TCell(row, hr, "members", "RIGHT")
+	row.blocks = UI.CreateMetricCells(row, hr)
+	row.state = UI.TCell(row, hr, "excl", "CENTER")
+	row:SetScript("OnClick", function(self, button)
+		local open = not groupOpen(MANAGED_SHUT)
+		if button == "RightButton" then
+			local on, all = managedOn(), self.groups or 0
+			MenuUtil.CreateContextMenu(UIParent, function(owner, root)
+				root:CreateTitle("Managed Communities")
+				if on < all then root:CreateButton("Turn every rule On", function() setAllManaged(true); refreshTab(frame) end) end
+				if on > 0 then root:CreateButton("Turn every rule Off", function() setAllManaged(false); refreshTab(frame) end) end
+				root:CreateButton(open and "Collapse" or "Expand", function()
+					setGroupOpen(MANAGED_SHUT, open)
+					refreshTab(frame)
+				end)
+			end)
+			return
+		end
+		setGroupOpen(MANAGED_SHUT, open)
+		refreshTab(frame)
+	end)
+	row:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+		GameTooltip:AddLine("Managed Communities", 1, 0.82, 0)
+		GameTooltip:AddLine("The default guild lists, each with its own rule on the Chat Filters tab, added up here.", 1, 1, 1, true)
+		GameTooltip:AddLine("Click to expand / collapse. Right-click to turn every rule on or off.", 0.7, 0.7, 0.7, true)
+		GameTooltip:Show()
+	end)
+	row:SetScript("OnLeave", hideTip)
+	frame.managedRow = row
 	return row
 end
 
@@ -571,11 +633,11 @@ local function placeRow(frame, row, i)
 end
 
 -- One guild rule's row: its cells, and the Scan / Custom Scan actions.
-local function fillGuildRow(row, item)
+local function fillGuildRow(row, item, nested)
 	local g, key = item.g, item.key
 	row.guildName = g.name
 	row.guildKey = key
-	row.name:SetText((item.inGroup and "      " or "") .. tostring(g.name))
+	row.name:SetText((item.inGroup and (nested and "         " or "      ") or "") .. tostring(g.name))
 	row.count:SetText(tostring(g.memberCount or 0))
 	UI.SetMetricCells(row.blocks, item.bc)
 	local gb = guildBlock(g)
@@ -619,6 +681,7 @@ local function refreshGuildList(frame)
 	for _, row in ipairs(frame.rows) do row:Hide() end
 	for _, row in ipairs(frame.groupRows) do row:Hide() end
 	for _, row in ipairs(frame.exclRows) do row:Hide() end
+	if frame.managedRow then frame.managedRow:Hide() end
 	if frame.exclHeader then frame.exclHeader:Hide() end
 
 	-- managed groups, then the Guild Exclusion List, then the other guilds
@@ -635,7 +698,16 @@ local function refreshGuildList(frame)
 	local gi, hi, ei = 0, 0, 0
 	for i = 1, n do
 		local item = display[i]
-		if item.exclHeader then
+		if item.managedHeader then
+			local row = frame.managedRow or makeManagedRow(frame)
+			row.groups = item.groups
+			placeRow(frame, row, i)
+			row.label:SetText((item.open and "[-] " or "[+] ") .. "Managed Communities" .. ("  |cffaaaaaa(%d)|r"):format(item.groups))
+			row.count:SetText(tostring(item.members))
+			UI.SetMetricCells(row.blocks, item.bc)
+			row.state:SetText(("|cffaaaaaa%d of %d on|r"):format(managedOn(), item.groups))
+			row:Show()
+		elseif item.exclHeader then
 			local row = frame.exclHeader or makeExclHeader(frame)
 			placeRow(frame, row, i)
 			row.label:SetText((item.open and "[-] " or "[+] ") .. "Guild Exclusion List" .. ("  |cffaaaaaa(%d guilds)|r"):format(item.count))
@@ -654,7 +726,10 @@ local function refreshGuildList(frame)
 			local row = frame.groupRows[hi] or makeGroupRow(frame, hi)
 			row.groupKey, row.groupName = item.groupKey, item.name
 			placeRow(frame, row, i)
-			row.label:SetText((item.open and "[-] " or "[+] ") .. item.name .. ("  |cffaaaaaa(%d guilds)|r"):format(item.guilds))
+			-- under the Managed Communities row: indented, without its prefix
+			local name = item.name
+			if item.nested and name:sub(1, #MANAGED_PREFIX) == MANAGED_PREFIX then name = name:sub(#MANAGED_PREFIX + 1) end
+			row.label:SetText((item.nested and "   " or "") .. (item.open and "[-] " or "[+] ") .. name .. ("  |cffaaaaaa(%d guilds)|r"):format(item.guilds))
 			row.count:SetText(tostring(item.members))
 			UI.SetMetricCells(row.blocks, item.bc)
 			local on = M.PSS_ManagedGroupActive(item.groupKey)
@@ -664,7 +739,7 @@ local function refreshGuildList(frame)
 			gi = gi + 1
 			local row = frame.rows[gi] or makeGuildRow(frame, gi)
 			placeRow(frame, row, i)
-			fillGuildRow(row, item)
+			fillGuildRow(row, item, display.managedHead ~= nil and display[1] == display.managedHead)
 		end
 	end
 	frame.updateSelection()
