@@ -32,7 +32,7 @@ Read when the task touches the topic:
 - `docs/baseline/templates/`, `docs/baseline/examples/`: generic; the live copies in `tools/` and `.github/workflows/` win
 
 ## Short form
-- Main is **3.3.0-dev004**; next stage **3.3.0-dev005** (type pie and type ticks, issue #78). Plain `3.3.0` only when Dan says parity is done.
+- Main is **3.3.0-dev005**; next stage **3.3.0-dev006** (type pie and type ticks, issue #78). Plain `3.3.0` only when Dan says parity is done.
 - Everything on `M` via `PourSocialScore_NS`; core fires `M.Events`; UIs write only through core setters. Tabs, except `PourSocialScore_EllesmereUI` (4 spaces).
 - Core holds only the chat filtering engine and the launchpad; anything not regularly active, or shared by both UIs, goes in `PourSocialScore_Libraries`, with a measured resident cost.
 - No application or service logic in `PourSocialScore_GUI` or `PourSocialScore_EllesmereUI`; the native GUI never reads or loads the EUI folder; the EUI folder is read only during parity work.

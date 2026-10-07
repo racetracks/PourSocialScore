@@ -4,7 +4,7 @@
 - `racetracks/PourSocialScore` main = **3.3.0-dev004** (`5c39f62`, PR #82 merged 2026-10-05 20:45Z). v3.2.0 is the last full release.
 - 3.3.0-dev004 has **no GitHub release**: the Release run on main was cancelled (05). Dan chose 2026-10-07: skip it; dev004 stays test-zip only and dev005 publishes next.
 - No addon work since 2026-10-05. 2026-10-07 was spent writing the general packs (baseline v4, scratch v2) and this pack; Dan said no code changes for that.
-- Next dev number: **3.3.0-dev005**.
+- Main is now **3.3.0-dev005** (PR #85 merged 2026-10-07 17:51Z): the bugfix for Retail 12.1's Social window. Next dev number: **3.3.0-dev006**.
 
 ## The current project: native GUI parity (08)
 | Dev | PR | What | State |
@@ -13,9 +13,10 @@
 | 3.3.0-dev002 | #80 | One counting system: `PSS_BlockStats` removed from core (-12.1 KB), native reads `History.Recent*`, `blockStats` pruned on login, EUI filter all-time fixed; `check_match.lua` | Merged |
 | 3.3.0-dev003 | #81 | Native Managed Communities parent row; `check_managed_row.lua` | Merged |
 | 3.3.0-dev004 | #82 | Native totals pane with the period pie (`PSS_Pie.lua`, G9 copy, 11.4 KB); window 1290 wide (side-pane layout, the recommended option of a card Dan did not answer) | Merged; release not published |
+| 3.3.0-dev005 | #85 | Bugfix: Retail 12.1 opens `SocialUIFrame` for the Friends key; core hooks it and FriendsFrame (Who tab), the window anchors to whichever opened (55 px clear of the Social side tabs) | Merged |
 
 ## Next step
-**3.3.0-dev005: type pie and type ticks** in the totals pane (as EUI's `ns.NewTypePie` and shared `typeOff`); ticks filter the period pie; numbers match the EUI window. Then the rest of the stage table in 08.
+**3.3.0-dev006: type pie and type ticks** in the totals pane (as EUI's `ns.NewTypePie` and shared `typeOff`); ticks filter the period pie; numbers match the EUI window. Then the rest of the stage table in 08.
 
 ## Waiting on Dan
 1. Archive `racetracks/PourSocialScore-EllesmereUI` and close its PR #18.
