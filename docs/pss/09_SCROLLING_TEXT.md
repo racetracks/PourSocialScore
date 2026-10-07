@@ -56,7 +56,7 @@ MSBT engine source: 379 KB of Lua, plus 844 KB of fonts and sounds. Compiled siz
   - Loot, money, currency, XP, reputation, honor, skill: their `CHAT_MSG_*` events, every argument through the secret check; a secret line is skipped.
   - Incoming combat on Retail: `UNIT_COMBAT` for player and pet, **display only** (`SetFormattedText`), no merge, no colour by amount, no threshold. Payload and secrecy verified in stage 0 (J11).
   - Outgoing combat: Camelot only, from CLEU, feature-detected and never registered on Retail; only if stage 0 shows Forever delivers CLEU.
-  - **Optional PSS tie-in**: if `PourSocialScore_NS` exists, subscribe to its `PLAYER_BLOCKED` event ("Blocked: Name") through the documented `M.Events` subscribe call; if PSS is absent or off, the source is hidden. Nothing in PSS knows about this folder.
+  - **Optional PSS tie-in**: if `PourSocialScore_NS` exists, subscribe to its `PLAYER_BLOCKED` event ("Blocked: Name") through `M.Events.Register`; if PSS is absent or off, the source is hidden. Nothing in PSS knows about this folder.
 - **Settings**: its own `PSS_ScrollingTextDB` (non-default values only, fixed keys, so it cannot grow) and its own settings page (decision 11). The PSS windows do not show these settings, since they must not read this folder (PSS 02 section 6 applies the same way).
 - **Not ported**: health or power threshold triggers and cooldown-ready alerts (secret on Retail in exactly the moments they matter), custom fonts and sounds, profiles, MSBT's own options window. Parked.
 - **Blizzard floating combat text**: never changes its CVars. The settings page says where the Blizzard setting is (Options, Gameplay, Combat).
