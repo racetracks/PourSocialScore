@@ -288,10 +288,6 @@ check(pg.pssParts.divider:IsShown() and not pg.pssParts.card:IsShown() and not p
 check(kit.tabs[1].pssSide.plate:IsShown() and not kit.tabs[1].pssLine:IsShown() and not kit.tabs[1].pssPlate:IsShown(), "Modern tabs not the gold-framed plate")
 check(kit.tabs[1].pssSide.plate._atlas == "common-button-tertiary-normal", "Modern tab not the straight plate")
 check(kit.tabs[1].pssSide.lit:IsShown() and not kit.tabs[2].pssSide.lit:IsShown(), "Modern selected tab not brighter")
-check(kit.tabs[3].pssSide.plate._atlas == "common-dropdown-b-button", "Modern third tab not the Filter art")
-kit.tabs[3]._scripts.OnClick(kit.tabs[3])
-check(kit.tabs[3].pssSide.plate._atlas == "common-dropdown-b-button-open" and not kit.tabs[3].pssSide.lit:IsShown(), "selected Filter tab not its open art")
-kit.tabs[1]._scripts.OnClick(kit.tabs[1])
 -- popups: newer border, the accept button red, cancel dark
 check(cf.pssParts.modernArt and cf.pssParts.modernArt:IsShown() and not cf.pssParts.art:IsShown() and not cf.pssParts.dim:IsShown(), "Modern popup not in the newer dialog border")
 check(cf.accept.pssParts.red.left:IsShown() and cf.cancel.pssParts.tertiary.texture:IsShown(), "Modern popup buttons not red accept and dark cancel")

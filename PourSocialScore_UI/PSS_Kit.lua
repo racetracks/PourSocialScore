@@ -81,7 +81,6 @@ end
 -- the pressed art while held; on hover the same art again, added on top, as
 -- Blizzard draws it. (Its side-tab plate has a cut corner: uneven on a row.)
 local PLATE, PLATE_DOWN = "common-button-tertiary-normal", "common-button-tertiary-pressed"
-local FILTER = "common-dropdown-b-button"
 
 local function TertiaryButton(b)
 	local t = ns.Own(b:CreateTexture(nil, "BACKGROUND", nil, 1))
@@ -380,9 +379,7 @@ local TAB_IDLE = { "Left", "Middle", "Right" }
 local TAB_ACTIVE = { "LeftActive", "MiddleActive", "RightActive" }
 local TAB_DIM = 0.7
 
--- style "filter": Modern draws the tab with the Social window's Filter
--- button art (its normal, hover and open art) instead of the plate
-function ns.NewTab(parent, text, onClick, style)
+function ns.NewTab(parent, text, onClick)
 	local tab
 	for _, t in ipairs(TAB_TEMPLATES) do
 		local ok, f = pcall(CreateFrame, "Button", nil, parent, t)
@@ -429,20 +426,17 @@ function ns.NewTab(parent, text, onClick, style)
 	sideHover:SetAllPoints(tab)
 	sideHover:SetBlendMode("ADD")
 	tab.pssSide = { plate = side, lit = sideLit, hover = sideHover }
-	tab.pssStyle = style
 	ns.OnPaint(function(dark)
 		local modern = ns.IsModern()
 		local plain = dark or not tab.pssTemplate
 		ns.ShowArt(tab, plain or modern)
 		plate:SetShown(plain and not modern)
 		side:SetShown(modern)
-		local filter = style == "filter"
-		sideHover:SetAlpha(modern and (filter and 1 or 0.3) or 0)
-		sideHover:SetBlendMode(filter and "BLEND" or "ADD")
+		sideHover:SetAlpha(modern and 0.3 or 0)
 		if modern then
-			side:SetAtlas(filter and FILTER or PLATE)
+			side:SetAtlas(PLATE)
 			sideLit:SetAtlas(PLATE)
-			sideHover:SetAtlas(filter and FILTER .. "-hover" or PLATE)
+			sideHover:SetAtlas(PLATE)
 		end
 		if plain then tab:SetNormalFontObject(ns.Font(11, "GameFontHighlightSmall")) end
 		ns.SetTabSelected(tab, tab.pssSelected)
@@ -457,10 +451,8 @@ function ns.SetTabSelected(tab, selected)
 	local plain = (ns.IsDark() or not tab.pssTemplate) and not modern
 	tab.pssWash:SetShown(plain and selected)
 	tab.pssLine:SetShown(plain and selected)
-	local filter = tab.pssStyle == "filter"
-	tab.pssSide.lit:SetShown(modern and selected and not filter)
+	tab.pssSide.lit:SetShown(modern and selected)
 	tab.pssSide.lit:SetAlpha(0.6)
-	if modern and filter then tab.pssSide.plate:SetAtlas(selected and FILTER .. "-open" or FILTER) end
 	tab.pssLine:SetColorTexture(ns.Accent())
 	-- one physical pixel, as the port's underline
 	tab.pssLine:SetHeight(ns.OnePixel(tab))

@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev004_4 - New PSS window: Modern buttons and tabs settled
+
+- Modern buttons and tabs keep the straight dark gold-framed plate (Dan's pick). The Filter-art tab and the "Straight art" comparison row are gone from the kit preview.
+
 => 3.4.0-dev004_3 - New PSS window: straight Modern buttons and tabs
 
 - Modern buttons and tabs use the Social window's straight dark button with a gold frame (its action buttons): the side-tab plate of dev004_2 has a cut corner, which looked uneven along the tab row. Hover brightens the frame; the selected tab stays brighter, with a white label.
