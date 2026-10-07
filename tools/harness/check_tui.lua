@@ -235,12 +235,17 @@ menu.slots[2]._scripts.OnClick(menu.slots[2])
 check(menu:IsShown() and mk.types[1] == false, "a tick did not stay open or did not toggle")
 menu:Hide()
 mk.long.dark._scripts.OnClick(mk.long.dark)
-check(menu.slots[1].text:GetText() == "Entry 1" and #menu.slots == 7, "long menu not 7 slots")
+local longShown = 0
+for _, sl in ipairs(menu.slots) do if sl:IsShown() then longShown = longShown + 1 end end
+check(menu.slots[1].text:GetText() == "Entry 1" and longShown == 7, "long menu does not show 7 entries")
 menu._scripts.OnMouseWheel(menu, -1)
 check(menu.slots[1].text:GetText() == "Entry 2", "mouse wheel did not scroll the long menu")
 menu:Hide()
 mk.area._scripts.OnClick(mk.area, "RightButton")
 check(menu:IsShown() and menu.slots[2].text:GetText() == "Show details", "Dark right-click menu not ours")
+-- compact: 20 px entries, a slim title and divider
+check(menu.slots[2]:GetHeight() == 20 and menu.slots[1]:GetHeight() == 18 and menu.slots[4]:GetHeight() == 7, "right-click menu not compact")
+check(menu:GetHeight() == 18 + 20 + 20 + 7 + 20 + 2, "right-click menu height not the sum of its entries")
 menu:Hide()
 
 -- the row list: only the rows that fit, header sort in the accent, selection

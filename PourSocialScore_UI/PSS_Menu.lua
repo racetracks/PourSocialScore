@@ -9,8 +9,10 @@
 --             m:Divider()   m:Title(text)
 -- Blizzard: Blizzard's menus (MenuUtil, the Menu API). Dark, or a client
 -- without the Menu API: our menu list (PSS_Menu), built on first use: a
--- dark list with a faint edge, 26 px items, the picked or ticked ones
--- marked in the accent, at most 200 tall and scrolled by the mouse wheel.
+-- dark list with a faint edge, the picked or ticked entries marked in the
+-- accent, at most 200 tall and scrolled by the mouse wheel. A drop-down's
+-- list has the port's 26 px items; a right-click menu is compact (20 px
+-- items, a slim title and divider, as wide as its longest entry).
 --   ns.NewDropdown(parent, w, build)   dd:SetLabel(text)
 --   ns.ContextMenu(owner, build)       at the cursor
 ------------------------------------------------------------------------
@@ -75,8 +77,28 @@ end
 local menu, slots, catcher
 local shown, offset, owner = nil, 0, nil
 
-local function Visible()
-	return min(#shown, floor((MAX_H - PAD * 2) / ITEM_H))
+-- Two sizes: a drop-down's list (the port's 26 px items) and a compact
+-- right-click menu. Titles and dividers take less room than items.
+local SIZES = {
+	list = { item = ITEM_H, title = 22, divider = 9, font = 13, inset = 10 },
+	compact = { item = 20, title = 18, divider = 7, font = 12, inset = 8 },
+}
+local size = SIZES.list
+
+local function HeightOf(e)
+	if e.kind == "title" then return size.title end
+	if e.kind == "divider" then return size.divider end
+	return size.item
+end
+
+-- do the entries from first on fit under the menu's height cap?
+local function FitsFrom(first)
+	local h = 0
+	for i = first, #shown do
+		h = h + HeightOf(shown[i])
+		if h > MAX_H - PAD * 2 then return false end
+	end
+	return true
 end
 
 local function Close()
@@ -84,48 +106,96 @@ local function Close()
 end
 ns.CloseMenu = Close
 
+local function MakeSlot(i)
+	local sl = CreateFrame("Button", nil, menu)
+	sl:SetPoint("RIGHT", menu, "RIGHT", -PAD, 0)
+	sl.picked = sl:CreateTexture(nil, "BACKGROUND")
+	sl.picked:SetAllPoints()
+	sl.picked:SetColorTexture(1, 1, 1, 0.04)
+	local hl = sl:CreateTexture(nil, "HIGHLIGHT")
+	hl:SetAllPoints()
+	hl:SetColorTexture(1, 1, 1, 0.08)
+	sl.box = sl:CreateTexture(nil, "ARTWORK")
+	sl.box:SetSize(12, 12)
+	sl.box:SetPoint("LEFT", sl, "LEFT", 8, 0)
+	sl.box:SetColorTexture(1, 1, 1, 0.12)
+	sl.mark = sl:CreateTexture(nil, "OVERLAY")
+	sl.mark:SetSize(8, 8)
+	sl.mark:SetPoint("CENTER", sl.box, "CENTER")
+	sl.text = ns.NewText(sl, 13)
+	sl.text:SetJustifyH("LEFT")
+	sl.text:SetWordWrap(false)
+	sl.line = sl:CreateTexture(nil, "ARTWORK")
+	sl.line:SetHeight(1)
+	sl.line:SetPoint("LEFT", sl, "LEFT", 8, 0)
+	sl.line:SetPoint("RIGHT", sl, "RIGHT", -8, 0)
+	sl.line:SetColorTexture(1, 1, 1, 0.10)
+	sl:SetScript("OnEnter", function(self) self.text:SetTextColor(1, 1, 1, 1) end)
+	sl:SetScript("OnLeave", function() ns.DrawMenu() end)
+	sl:SetScript("OnClick", function(self)
+		local e = self.entry
+		if not e then return end
+		if e.fn then e.fn() end
+		if e.kind == "check" then ns.DrawMenu() else Close() end
+	end)
+	slots[i] = sl
+	return sl
+end
+
+-- Lay the entries from offset down until the height cap; returns how many.
 local function Draw()
-	local n = Visible()
 	local marks = false
 	for _, e in ipairs(shown) do
 		if e.kind == "radio" or e.kind == "check" then marks = true break end
 	end
-	for i, s in ipairs(slots) do
-		local e = shown[offset + i]
-		if i <= n and e then
-			s.entry = e
-			s:Show()
-			local title, divider = e.kind == "title", e.kind == "divider"
-			s.text:SetText(divider and "" or e.text or "")
-			s.text:ClearAllPoints()
-			s.text:SetPoint("LEFT", s, "LEFT", marks and 24 or 10, 0)
-			s.text:SetPoint("RIGHT", s, "RIGHT", -8, 0)
-			s.text:SetTextColor(1, 1, 1, title and 0.41 or 0.53)
-			s.line:SetShown(divider)
-			local on = (e.kind == "radio" or e.kind == "check") and IsOn(e)
-			s.mark:SetShown(on)
-			s.mark:SetColorTexture(ns.Accent())
-			s.box:SetShown(e.kind == "check")
-			s.picked:SetShown(on and e.kind == "radio")
-			s:EnableMouse(not (title or divider))
-		else
-			s.entry = nil
-			s:Hide()
-		end
+	local y, n = PAD, 0
+	for i = offset + 1, #shown do
+		local e = shown[i]
+		local h = HeightOf(e)
+		if y + h > MAX_H - PAD then break end
+		n = n + 1
+		local sl = slots[n] or MakeSlot(n)
+		sl.entry = e
+		sl:SetHeight(h)
+		sl:ClearAllPoints()
+		sl:SetPoint("TOPLEFT", menu, "TOPLEFT", PAD, -y)
+		sl:SetPoint("RIGHT", menu, "RIGHT", -PAD, 0)
+		sl:Show()
+		local title, divider = e.kind == "title", e.kind == "divider"
+		sl.text:SetFontObject(ns.Font(title and size.font - 1 or size.font))
+		sl.text:SetText(divider and "" or e.text or "")
+		sl.text:ClearAllPoints()
+		sl.text:SetPoint("LEFT", sl, "LEFT", marks and 24 or size.inset, 0)
+		sl.text:SetPoint("RIGHT", sl, "RIGHT", -8, 0)
+		sl.text:SetTextColor(1, 1, 1, title and 0.41 or 0.53)
+		sl.line:SetShown(divider)
+		local on = (e.kind == "radio" or e.kind == "check") and IsOn(e)
+		sl.mark:SetShown(on)
+		sl.mark:SetColorTexture(ns.Accent())
+		sl.box:SetShown(e.kind == "check")
+		sl.picked:SetShown(on and e.kind == "radio")
+		sl:EnableMouse(not (title or divider))
+		y = y + h
 	end
-	menu:SetHeight(n * ITEM_H + PAD * 2)
+	for i = n + 1, #slots do
+		slots[i].entry = nil
+		slots[i]:Hide()
+	end
+	menu:SetHeight(y + PAD)
 	-- a list longer than the menu: a thin thumb on the right
-	local extra = #shown - n
-	if extra > 0 then
+	if n < #shown then
 		local h = max(20, (menu:GetHeight() - 8) * n / #shown)
+		local room = #shown - n
 		menu.thumb:SetHeight(h)
 		menu.thumb:ClearAllPoints()
-		menu.thumb:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -2, -4 - (menu:GetHeight() - 8 - h) * offset / extra)
+		menu.thumb:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -2, -4 - (menu:GetHeight() - 8 - h) * min(1, offset / room))
 		menu.thumb:Show()
 	else
 		menu.thumb:Hide()
 	end
+	return n
 end
+ns.DrawMenu = function() if menu and menu:IsShown() then Draw() end end
 
 local function BuildMenu()
 	menu = CreateFrame("Frame", "PSS_Menu", UIParent)
@@ -141,8 +211,12 @@ local function BuildMenu()
 	menu.thumb:SetWidth(4)
 	menu.thumb:SetColorTexture(1, 1, 1, 0.27)
 	menu:SetScript("OnMouseWheel", function(_, delta)
-		local extra = #shown - Visible()
-		offset = max(0, min(extra, offset - delta))
+		-- down only while the rest does not fit yet; up to the first entry
+		if delta < 0 and not FitsFrom(offset + 1) then
+			offset = offset + 1
+		elseif delta > 0 and offset > 0 then
+			offset = offset - 1
+		end
 		Draw()
 	end)
 	-- a click anywhere else closes the menu (a full-screen catcher under it)
@@ -161,49 +235,14 @@ local function BuildMenu()
 	tinsert(UISpecialFrames, "PSS_Menu")
 	slots = {}
 	menu.slots = slots
-	for i = 1, floor((MAX_H - PAD * 2) / ITEM_H) do
-		local s = CreateFrame("Button", nil, menu)
-		s:SetHeight(ITEM_H)
-		s:SetPoint("TOPLEFT", menu, "TOPLEFT", PAD, -PAD - (i - 1) * ITEM_H)
-		s:SetPoint("RIGHT", menu, "RIGHT", -PAD, 0)
-		s.picked = s:CreateTexture(nil, "BACKGROUND")
-		s.picked:SetAllPoints()
-		s.picked:SetColorTexture(1, 1, 1, 0.04)
-		local hl = s:CreateTexture(nil, "HIGHLIGHT")
-		hl:SetAllPoints()
-		hl:SetColorTexture(1, 1, 1, 0.08)
-		s.box = s:CreateTexture(nil, "ARTWORK")
-		s.box:SetSize(12, 12)
-		s.box:SetPoint("LEFT", s, "LEFT", 8, 0)
-		s.box:SetColorTexture(1, 1, 1, 0.12)
-		s.mark = s:CreateTexture(nil, "OVERLAY")
-		s.mark:SetSize(8, 8)
-		s.mark:SetPoint("CENTER", s.box, "CENTER")
-		s.text = ns.NewText(s, 13)
-		s.text:SetJustifyH("LEFT")
-		s.text:SetWordWrap(false)
-		s.line = s:CreateTexture(nil, "ARTWORK")
-		s.line:SetHeight(1)
-		s.line:SetPoint("LEFT", s, "LEFT", 8, 0)
-		s.line:SetPoint("RIGHT", s, "RIGHT", -8, 0)
-		s.line:SetColorTexture(1, 1, 1, 0.10)
-		s:SetScript("OnEnter", function(self) self.text:SetTextColor(1, 1, 1, 1) end)
-		s:SetScript("OnLeave", function() Draw() end)
-		s:SetScript("OnClick", function(self)
-			local e = self.entry
-			if not e then return end
-			if e.fn then e.fn() end
-			if e.kind == "check" then Draw() else Close() end
-		end)
-		slots[i] = s
-	end
 end
 
 -- Show our list for the entries; anchor(frame) places it.
-local function OpenOurs(list, width, place, by)
+local function OpenOurs(list, width, place, by, compact)
 	if not menu then BuildMenu() end
 	if menu:IsShown() then Close() end
 	shown, offset, owner = list, 0, by
+	size = compact and SIZES.compact or SIZES.list
 	menu:SetWidth(width)
 	menu:ClearAllPoints()
 	place(menu)
@@ -285,14 +324,14 @@ function ns.ContextMenu(by, build)
 	local list = Collect(build)
 	local x, y = GetCursorPosition()
 	local scale = UIParent:GetEffectiveScale()
-	local width = 120
+	local width = 100
 	OpenOurs(list, width, function(m)
 		m:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", (x or 0) / scale, (y or 0) / scale)
-	end, by)
-	-- as wide as its longest entry
+	end, by, true)
+	-- as wide as its longest entry, no wider
 	local widest = 0
-	for _, s in ipairs(slots) do
-		if s:IsShown() then widest = max(widest, s.text:GetStringWidth()) end
+	for _, sl in ipairs(slots) do
+		if sl:IsShown() then widest = max(widest, sl.text:GetStringWidth()) end
 	end
-	menu:SetWidth(max(width, widest + 40))
+	menu:SetWidth(max(width, widest + 28))
 end

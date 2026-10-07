@@ -42,7 +42,13 @@ function W:GetObjectType() return self._kind end
 function W:IsObjectType(k) return self._kind == k end
 function W:GetParent() return self._parent end
 function W:SetParent(p) self._parent = p end
-function W:SetScript(k, fn) self._scripts[k] = fn end
+-- as the client: a script is a function or nil (anything else is an error)
+function W:SetScript(k, fn)
+	if fn ~= nil and type(fn) ~= "function" then
+		error(("Usage: %s:SetScript(\"%s\", function): got a %s"):format(tostring(self._name or self._kind), tostring(k), type(fn)), 2)
+	end
+	self._scripts[k] = fn
+end
 function W:GetScript(k) return self._scripts[k] end
 function W:HasScript() return true end
 function W:HookScript(k, fn)

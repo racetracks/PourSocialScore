@@ -27,7 +27,7 @@ local DIALOG_BACKDROP = BACKDROP_DIALOG_32_32 or {
 -- A popup button: the kit's button; Dark gives it a dark fill and an edge,
 -- in the accent for the button that accepts.
 local function PopupButton(parent, w, h, accept)
-	local b = ns.NewButton(parent, "", w, h)
+	local b = ns.NewButton(parent, "", w)
 	b:SetHeight(h)
 	ns.OnPaint(function(dark)
 		local p = b.pssParts
