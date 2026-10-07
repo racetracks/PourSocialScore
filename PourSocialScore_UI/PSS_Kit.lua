@@ -76,26 +76,31 @@ local function RedButton(b)
 	return red
 end
 
--- Modern: the Social window's gold-framed dark plate (its side tabs, as Dan
--- picked from its Frame Stack), brighter on hover, the selected glow while
--- held.
+-- Modern: the Social window's straight dark button with a gold frame
+-- (common-button-tertiary, its action buttons), stretched over the button;
+-- the pressed art while held; on hover the same art again, added on top, as
+-- Blizzard draws it. (Its side-tab plate has a cut corner: uneven on a row.)
+local PLATE, PLATE_DOWN = "common-button-tertiary-normal", "common-button-tertiary-pressed"
+local FILTER = "common-dropdown-b-button"
+
 local function TertiaryButton(b)
 	local t = ns.Own(b:CreateTexture(nil, "BACKGROUND", nil, 1))
 	t:SetAllPoints(b)
 	local hl = ns.Own(b:CreateTexture(nil, "HIGHLIGHT"))
 	hl:SetAllPoints(b)
 	local on = false
-	b:HookScript("OnMouseDown", function() if on then ns.SideFrame(t, "common-sidetab-selected") end end)
-	b:HookScript("OnMouseUp", function() if on then ns.SideFrame(t, "common-sidetab") end end)
+	b:HookScript("OnMouseDown", function() if on then t:SetAtlas(PLATE_DOWN) end end)
+	b:HookScript("OnMouseUp", function() if on then t:SetAtlas(PLATE) end end)
 	local dim = { texture = t, highlight = hl }
 	function dim.Paint(modern)
 		on = modern
 		t:SetShown(modern)
 		if modern then
-			ns.SideFrame(t, "common-sidetab")
-			ns.SideFrame(hl, "common-sidetab-hover")
+			t:SetAtlas(PLATE)
+			hl:SetAtlas(PLATE)
+			hl:SetBlendMode("ADD")
 		end
-		hl:SetAlpha(modern and 1 or 0)
+		hl:SetAlpha(modern and 0.5 or 0)
 	end
 	return dim
 end
@@ -125,8 +130,8 @@ function ns.NewButton(parent, text, w, onClick)
 		-- a HIGHLIGHT texture shows on hover by itself: fade it in Blizzard
 		hover:SetAlpha(dark and 1 or 0)
 		edge:SetShown(dark)
-		-- Modern: the Social window's gold-framed plate; a button that accepts
-		-- (b.pssPrimary) is its red one
+		-- Modern: the Social window's straight gold-framed button; a button
+		-- that accepts (b.pssPrimary) is its red one
 		red.Paint(modern and b.pssPrimary == true)
 		dim.Paint(modern and not b.pssPrimary)
 		-- Dark labels are white when enabled (the normal font is gold in Blizzard)
@@ -375,7 +380,9 @@ local TAB_IDLE = { "Left", "Middle", "Right" }
 local TAB_ACTIVE = { "LeftActive", "MiddleActive", "RightActive" }
 local TAB_DIM = 0.7
 
-function ns.NewTab(parent, text, onClick)
+-- style "filter": Modern draws the tab with the Social window's Filter
+-- button art (its normal, hover and open art) instead of the plate
+function ns.NewTab(parent, text, onClick, style)
 	local tab
 	for _, t in ipairs(TAB_TEMPLATES) do
 		local ok, f = pcall(CreateFrame, "Button", nil, parent, t)
@@ -411,21 +418,32 @@ function ns.NewTab(parent, text, onClick)
 	line:SetPoint("BOTTOMLEFT")
 	line:SetPoint("BOTTOMRIGHT")
 	tab.pssWash, tab.pssLine, tab.pssPlate = wash, line, plate
-	-- Modern: the Social window's gold-framed plate, brighter on hover, its
-	-- gold glow on the selected tab (upright art, stretched in the middle)
+	-- Modern: the buttons' straight gold-framed plate; brighter on hover, and
+	-- kept brighter (the same art added on top) on the selected tab
 	local side = ns.Own(tab:CreateTexture(nil, "BACKGROUND", nil, 1))
 	side:SetAllPoints(tab)
+	local sideLit = ns.Own(tab:CreateTexture(nil, "BACKGROUND", nil, 2))
+	sideLit:SetAllPoints(tab)
+	sideLit:SetBlendMode("ADD")
 	local sideHover = ns.Own(tab:CreateTexture(nil, "HIGHLIGHT"))
 	sideHover:SetAllPoints(tab)
-	tab.pssSide = { plate = side, hover = sideHover }
+	sideHover:SetBlendMode("ADD")
+	tab.pssSide = { plate = side, lit = sideLit, hover = sideHover }
+	tab.pssStyle = style
 	ns.OnPaint(function(dark)
 		local modern = ns.IsModern()
 		local plain = dark or not tab.pssTemplate
 		ns.ShowArt(tab, plain or modern)
 		plate:SetShown(plain and not modern)
 		side:SetShown(modern)
-		sideHover:SetAlpha(modern and 1 or 0)
-		if modern then ns.SideFrame(sideHover, "common-sidetab-hover") end
+		local filter = style == "filter"
+		sideHover:SetAlpha(modern and (filter and 1 or 0.3) or 0)
+		sideHover:SetBlendMode(filter and "BLEND" or "ADD")
+		if modern then
+			side:SetAtlas(filter and FILTER or PLATE)
+			sideLit:SetAtlas(PLATE)
+			sideHover:SetAtlas(filter and FILTER .. "-hover" or PLATE)
+		end
 		if plain then tab:SetNormalFontObject(ns.Font(11, "GameFontHighlightSmall")) end
 		ns.SetTabSelected(tab, tab.pssSelected)
 	end)
@@ -439,7 +457,10 @@ function ns.SetTabSelected(tab, selected)
 	local plain = (ns.IsDark() or not tab.pssTemplate) and not modern
 	tab.pssWash:SetShown(plain and selected)
 	tab.pssLine:SetShown(plain and selected)
-	if modern then ns.SideFrame(tab.pssSide.plate, selected and "common-sidetab-selected" or "common-sidetab") end
+	local filter = tab.pssStyle == "filter"
+	tab.pssSide.lit:SetShown(modern and selected and not filter)
+	tab.pssSide.lit:SetAlpha(0.6)
+	if modern and filter then tab.pssSide.plate:SetAtlas(selected and FILTER .. "-open" or FILTER) end
 	tab.pssLine:SetColorTexture(ns.Accent())
 	-- one physical pixel, as the port's underline
 	tab.pssLine:SetHeight(ns.OnePixel(tab))

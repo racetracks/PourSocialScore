@@ -19,7 +19,8 @@ function ns.BuildKitPage(win)
 		end
 	end
 	for i, name in ipairs(NAMES) do
-		local tab = ns.NewTab(win, name, function() Select(i) end)
+		-- the third tab tries the Social window's Filter button art (Modern)
+		local tab = ns.NewTab(win, name, function() Select(i) end, i == 3 and "filter" or nil)
 		if prev then
 			tab:SetPoint("LEFT", prev, "RIGHT", 2, 0)
 		else
@@ -97,6 +98,37 @@ function ns.BuildKitPage(win)
 		local fs = ns.NewText(child, 12)
 		fs:SetPoint("TOPLEFT", child, "TOPLEFT", 4, -(i - 1) * 16)
 		fs:SetText("Line " .. i .. " of the scroll frame")
+	end
+
+	-- Straight frame art to compare in game (Blizzard's 12.x atlases, as
+	-- named in its UI source; a name the client lacks shows "missing")
+	y = y - 132
+	Label("Straight art")
+	local CANDIDATES = {
+		{ "common-button-tertiary-normal", "Tertiary" },
+		{ "common-button-tertiary-pressed", "Tertiary pressed" },
+		{ "common-dropdown-b-button", "Filter" },
+		{ "common-dropdown-b-button-hover", "Filter hover" },
+		{ "common-dropdown-b-button-open", "Filter open" },
+		{ "common-dropdown-c-button", "Drop-down C" },
+	}
+	local cprev
+	for _, c in ipairs(CANDIDATES) do
+		local f = CreateFrame("Frame", nil, page)
+		f:SetSize(100, 24)
+		local t = f:CreateTexture(nil, "BACKGROUND")
+		t:SetAllPoints(f)
+		local fs = ns.NewText(f, 10)
+		fs:SetPoint("CENTER")
+		if ns.HasAtlas(c[1]) then
+			t:SetAtlas(c[1])
+			fs:SetText(c[2])
+		else
+			fs:SetText(c[2] .. ": missing")
+			fs:SetTextColor(1, 1, 1, 0.5)
+		end
+		if cprev then f:SetPoint("LEFT", cprev, "RIGHT", 6, 0) else f:SetPoint("TOPLEFT", page, "TOPLEFT", 120, y - 2) end
+		cprev = f
 	end
 
 	local lists = ns.BuildKitLists(pages[2])

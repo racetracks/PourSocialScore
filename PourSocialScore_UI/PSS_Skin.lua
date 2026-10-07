@@ -64,7 +64,7 @@ end
 
 -- The art of Blizzard's new Social window (12.x); a client without it
 -- (Camelot) shows the Blizzard look when Modern is picked.
-local MODERN_ART = { "128-RedButton-Left", "common-sidetab", "common-sidetab-hover", "common-sidetab-selected", "friends-card-default", "perks-divider-short", "checkbox-minimal", "checkmark-minimal", "common-searchbar-a" }
+local MODERN_ART = { "128-RedButton-Left", "common-button-tertiary-normal", "common-button-tertiary-pressed", "friends-card-default", "perks-divider-short", "checkbox-minimal", "checkmark-minimal", "common-searchbar-a" }
 
 function ns.HasModernArt()
 	if modernArt == nil then
@@ -78,22 +78,6 @@ end
 
 function ns.IsModern()
 	return ns.Skin() == "modern" and ns.HasModernArt()
-end
-
--- The gold-framed plate of Blizzard's new Social window (its side tabs:
--- common-sidetab, -hover, -selected), stretched only in the middle so the
--- frame keeps its corners at any size (texture slice margins; a client
--- without them shows the plain stretched art).
-local SIDE_MARGIN = 8
-
-function ns.SideFrame(tex, atlas)
-	tex:SetAtlas(atlas)
-	if tex.SetTextureSliceMargins then
-		tex:SetTextureSliceMargins(SIDE_MARGIN, SIDE_MARGIN, SIDE_MARGIN, SIDE_MARGIN)
-		if tex.SetTextureSliceMode and Enum and Enum.UITextureSliceMode then
-			tex:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
-		end
-	end
 end
 
 -- Size an atlas texture to a height, keeping its proportions (three-slice
