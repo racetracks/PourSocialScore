@@ -95,49 +95,5 @@ function ns.BuildKitPage(win)
 		fs:SetText("Line " .. i .. " of the scroll frame")
 	end
 
-	-- Trial: the tab art of Blizzard's new Social window (common-sidetab,
-	-- its hover and its selected glow), turned on its side for a top tab
-	-- row, to judge in game where it should be used. Clients without the
-	-- art (Camelot) show a note instead.
-	y = y - 132
-	Label("Social tab art")
-	local trial = {}
-	if ns.HasAtlas("common-sidetab") and ns.HasAtlas("common-sidetab-selected") then
-		local tprev
-		local function Pick(i)
-			for j, t in ipairs(trial) do t.sel:SetShown(j == i); t.label:SetAlpha(j == i and 1 or 0.7) end
-		end
-		for i, name in ipairs({ "Player Ignore List", "Guild Ignore List", "Chat Filters" }) do
-			local t = CreateFrame("Button", nil, page)
-			t.label = ns.NewText(t, 11)
-			t.label:SetPoint("CENTER", t, "CENTER", 0, -1)
-			t.label:SetText(name)
-			t:SetSize(t.label:GetStringWidth() + 36, 30)
-			local function Art(atlas, layer)
-				local tex = t:CreateTexture(nil, layer)
-				tex:SetAtlas(atlas)
-				-- the art is a tall side tab open on its left: a quarter turn
-				-- lays it along the row, open side down, onto the page
-				tex:SetRotation(math.pi / 2)
-				tex:SetAllPoints(t)
-				return tex
-			end
-			Art("common-sidetab", "BACKGROUND")
-			t.sel = Art("common-sidetab-selected", "OVERLAY")
-			if ns.HasAtlas("common-sidetab-hover") then Art("common-sidetab-hover", "HIGHLIGHT") end
-			t:SetScript("OnClick", function() Pick(i) end)
-			if tprev then
-				t:SetPoint("LEFT", tprev, "RIGHT", 2, 0)
-			else
-				t:SetPoint("TOPLEFT", page, "TOPLEFT", 120, y + 4)
-			end
-			trial[i], tprev = t, t
-		end
-		Pick(1)
-	else
-		local note = Label("Not on this client (no common-sidetab art).", 120)
-		note:SetTextColor(1, 1, 1, 0.5)
-	end
-
-	win.kit = { tabs = tabs, page = page, trial = trial, buttons = { b1, b2 }, checks = { c1, c2 }, boxes = { e1, n1, s1 }, scroll = sf, tipOwner = hit }
+	win.kit = { tabs = tabs, page = page, buttons = { b1, b2 }, checks = { c1, c2 }, boxes = { e1, n1, s1 }, scroll = sf, tipOwner = hit }
 end
