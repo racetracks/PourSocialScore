@@ -87,7 +87,8 @@ end
 local fonts, fontList = {}, {}
 
 local function PaintFont(f, dark)
-	local src = _G[f.blizz] or GameFontHighlight
+	-- "Accent": GameFontNormal's face, coloured with the accent in every look
+	local src = _G[f.blizz == "Accent" and "GameFontNormal" or f.blizz] or GameFontHighlight
 	local face, _, flags = src:GetFont()
 	local picked = M.PSS_UIFontPath()
 	if dark then
@@ -100,6 +101,7 @@ local function PaintFont(f, dark)
 		f.obj:SetShadowColor(src:GetShadowColor())
 		f.obj:SetShadowOffset(src:GetShadowOffset())
 	end
+	if f.blizz == "Accent" then f.obj:SetTextColor(ns.Accent()) end
 	-- a picked face the client cannot load keeps the look's own
 	if not (picked and f.obj:SetFont(picked, f.size, flags or "")) then
 		f.obj:SetFont(face or FONT_DARK, f.size, flags or "")

@@ -30,7 +30,7 @@ are `pss-projects/pss-ui/` (01_ANALYSIS, 02_PLAN, 03_CODE_CHANGES,
 7. **Accent = your class colour, always, in every look; no option** (Dan: "class colour is mandatory"). The look's own colour (gold; green for Dark) only if the client gives no class colour. `M.PSS_UIAccent` in Libraries.
 8. **Font option `uiFont`**, both looks: the look's own (Blizzard's for Blizzard and Modern, Arial Narrow for Dark), or Game text, Unit names, Damage numbers, Friz Quadrata, Arial Narrow, Morpheus, Skurri, plus fonts other addons share through LibSharedMedia, **read only and only when another addon has loaded it** (Dan's OK for reading it). PSS ships no library and never creates `LibStub`. Expressway (EllesmereUI's font) carries "Do not distribute" and is never shipped.
 9. Old-GUI-only features are ported in the port's style before the cutover: Player Search, add your target, Prune, right-click menus. Resizable columns and windows are dropped.
-10. Popups: in Dark everything comes from our kit (window popups, tooltips, menus, and core's note, party warning and reload popups); Blizzard uses StaticPopup, GameTooltip and the Menu API.
+10. Popups: in Dark everything comes from our kit (window popups, tooltips, menus, and core's note, party warning and reload popups); Blizzard uses GameTooltip and the Menu API, and the window's popups are our own frames in Blizzard's dialog art (dev003: copy and import need a multi-line box, which StaticPopup lacks, and no `StaticPopupDialogs` entry is written). Core's StaticPopups stay as they are.
 11. Window place, last tab and new settings live in the Options addon's SavedVariables (`PSS_OptionsDB`, through the routed `PourSocialScoreDB` UI keys). No new SavedVariables.
 12. Version line **3.4.0**. Fixes to an unmerged dev build count up with `_N` (`3.4.0-dev002_2`, `_3`, ...); the next stage is the next devNNN.
 
@@ -38,8 +38,8 @@ are `pss-projects/pss-ui/` (01_ANALYSIS, 02_PLAN, 03_CODE_CHANGES,
 | Stage | Dev | What | State |
 | --- | --- | --- | --- |
 | A1 | dev001 | `PourSocialScore_UI` folder, loader part `UI`, option `uiSkin`, `/pss tui` empty window; `check_tui.lua`, `check_toc.sh`, PSS-names check | Merged #88 |
-| A2 | dev002 (to dev002_4) | Kit part 1 in Blizzard and Dark: shared fonts, heading, button, tick box, edit / number / search box, panel, scroll frame, tab row, tooltip; option `uiFont`; three looks; class colour accent; temporary kit preview page | PR #89 |
-| A2b | dev003 | Kit part 2: drop-down with our menu list, right-click menu, popups (confirm, copy, import), row list, pie | Next |
+| A2 | dev002 (to dev002_4) | Kit part 1 in Blizzard and Dark: shared fonts, heading, button, tick box, edit / number / search box, panel, scroll frame, tab row, tooltip; option `uiFont`; three looks; class colour accent; temporary kit preview page | Merged #89 (at dev002) and #90 (dev002_2 to _4, docs) |
+| A2b | dev003 | Kit part 2: drop-down and right-click menu, popups (confirm, copy, import), row list, pie | PR open |
 | Modern | to place (recommended right after A2b) | The Modern look across the kit | Planned |
 | A3 | dev004 | Libraries groundwork: navigation, detail maths, event view, shared helpers; numbers match the port on the real saves | Planned |
 | B1 to B7 | dev005 to dev011 | Window frame and navigation, then one tab per PR (Players, Guilds x2, Chat Filters, Events, Options + Import/Export) | Planned |
@@ -53,7 +53,10 @@ are `pss-projects/pss-ui/` (01_ANALYSIS, 02_PLAN, 03_CODE_CHANGES,
 | `PourSocialScore_UI/PSS_Skin.lua` | Looks, Dark colour tokens, accent, shared font objects (`PSS_Font1..n`, repainted in place), pixel border, `ns.NoSnap`, `ns.ShowArt` (fades a template's textures, restores their own alpha) |
 | `PourSocialScore_UI/PSS_Kit.lua` | The controls in each look; each widget keeps its Dark parts in `widget.pssParts` |
 | `PourSocialScore_UI/PSS_Tooltip.lua` | `ns.Tip` / `ns.HideTip` / `ns.TipOn` |
-| `PourSocialScore_UI/PSS_KitPage.lua` | Temporary kit preview, removed in B1 |
+| `PourSocialScore_UI/PSS_Menu.lua` | `ns.NewDropdown(parent, w, build)` (`dd:SetLabel`), `ns.ContextMenu(owner, build)`; `build(m)` adds `m:Button`, `m:Radio`, `m:Check`, `m:Divider`, `m:Title`; Blizzard's MenuUtil menus or our `PSS_Menu` list |
+| `PourSocialScore_UI/PSS_Popups.lua` | `ns.Confirm`, `ns.CopyText`, `ns.ImportText` (`PSS_Confirm`, `PSS_TextPopup`) |
+| `PourSocialScore_UI/PSS_Rows.lua`, `PSS_Pie.lua` | The virtual row list and the pie, carried over from our own port and drawn in the look shown |
+| `PourSocialScore_UI/PSS_KitPage.lua` | Temporary kit preview (three tabs), removed in B1 |
 | `PourSocialScore_UI/PSS_Window.lua` | The window, Escape helper `PSS_WindowEscape`, `M.PSS_TUI` |
 | `PourSocialScore_Libraries/PSS_ViewNav.lua` | `M.PSS_UISkin`, `M.PSS_UIPlace` / `M.PSS_SetUIPlace`, `M.PSS_UIFontPath`, `M.PSS_UIFontChoices`, `M.PSS_UIAccent` |
 | Core | `M.PSS_PARTS.UI`, `NEEDS.UI = "Libraries"`, options `uiSkin` and `uiFont`, `HELP_21` |
