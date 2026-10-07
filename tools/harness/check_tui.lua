@@ -264,4 +264,34 @@ for s = 1, 60 do seen[pie.segSlice[s]] = (seen[pie.segSlice[s]] or 0) + 1 end
 check(seen[1] and seen[2] and seen[3] and seen[0] == nil, "pie does not draw every slice")
 M.PSS_SetOpt("uiSkin", "global", 0)
 
+------------------------------------------------------------------------
+-- Modern: Blizzard's new Social window art (here faked as present)
+------------------------------------------------------------------------
+local realAtlas = C_Texture.GetAtlasInfo
+C_Texture.GetAtlasInfo = function() return { width = 32, height = 64 } end
+M.PSS_SetOpt("uiSkin", "global", 2)
+local red = b1.pssParts.red
+check(red.left:IsShown() and red.center:IsShown() and red.right:IsShown(), "Modern button has no red three-slice")
+check(not b1.pssParts.fill:IsShown(), "Modern button shows Dark parts")
+check(red.left:GetWidth() == 11, "red button end not scaled to the height")
+local c2 = kit.checks[2]
+check(c1.pssParts.modernBox:IsShown() and c1.pssParts.modernTick:IsShown(), "Modern ticked box not drawn")
+check(c2.pssParts.modernBox:IsShown() and not c2.pssParts.modernTick:IsShown(), "Modern unticked box shows a tick")
+c2:SetChecked(true)
+check(c2.pssParts.modernTick:IsShown(), "Modern tick does not follow SetChecked")
+c2:SetChecked(false)
+check(e1.pssParts.modernBox:IsShown() and not e1.pssParts.fill:IsShown(), "Modern box art not shown")
+kit.tabs[2]._scripts.OnClick(kit.tabs[2])
+check(kit.tabs[2].pssSide.plate:IsShown() and kit.tabs[2].pssSide.selected:IsShown(), "Modern selected tab has no side-tab glow")
+check(not kit.tabs[1].pssSide.selected:IsShown() and kit.tabs[1].pssSide.plate:IsShown(), "Modern unselected tab art wrong")
+check(not kit.tabs[2].pssLine:IsShown(), "Modern tab shows Dark's underline")
+check(cf.pssParts.modernArt and cf.pssParts.modernArt:IsShown() and not cf.pssParts.art:IsShown() and not cf.pssParts.dim:IsShown(), "Modern popup not in the newer dialog border")
+check(dd.blizz:IsShown() and not dd.dark:IsShown(), "Modern drop-down is not Blizzard's")
+-- without the art (Camelot) Modern is the Blizzard look
+C_Texture.GetAtlasInfo = realAtlas
+M.PSS_SetOpt("uiSkin", "global", 2)
+check(not red.left:IsShown() and not c1.pssParts.modernBox:IsShown() and not kit.tabs[2].pssSide.plate:IsShown(), "Modern without the art is not the Blizzard look")
+kit.tabs[1]._scripts.OnClick(kit.tabs[1])
+M.PSS_SetOpt("uiSkin", "global", 0)
+
 if not fail then print("PASS tui") end

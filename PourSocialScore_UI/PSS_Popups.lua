@@ -6,7 +6,8 @@
 --   ns.Confirm({ title, text, accept, cancel, onAccept, onCancel })
 --   ns.CopyText({ title, subtitle, text })          read only, selected
 --   ns.ImportText({ title, subtitle, accept, onAccept(text) })
--- Blizzard: Blizzard's dialog frame and buttons. Dark: a flat panel with a
+-- Blizzard: Blizzard's dialog frame and buttons. Modern: Blizzard's newer
+-- dialog border and red buttons. Dark: a flat panel with a
 -- faint edge over a dimmed screen (a click on it or Escape cancels), the
 -- accept button in the accent. Escape cancels in both looks.
 ------------------------------------------------------------------------
@@ -68,6 +69,15 @@ local function Shell(name, w, h)
 	else
 		art = nil
 	end
+	-- Modern: Blizzard's newer dialog border (the new Social window's side
+	-- panels), where the client has it
+	local okM, modernArt = pcall(CreateFrame, "Frame", nil, f, "DialogBorderTemplate")
+	if okM and modernArt then
+		modernArt:SetAllPoints(f)
+		modernArt:SetFrameLevel(f:GetFrameLevel())
+	else
+		modernArt = nil
+	end
 	local fill = ns.Fill(f, POP_FILL, -6)
 	local edge = ns.PixelBorder(f, POP_EDGE)
 	local dim = CreateFrame("Button", nil, f)
@@ -77,13 +87,15 @@ local function Shell(name, w, h)
 	dim:SetScript("OnClick", function() f:Hide() end)
 	f.title = ns.NewText(f, 16, "GameFontNormalLarge")
 	f.title:SetPoint("TOP", f, "TOP", 0, -20)
-	f.pssParts = { fill = fill, edge = edge, art = art, dim = dim }
+	f.pssParts = { fill = fill, edge = edge, art = art, modernArt = modernArt, dim = dim }
 	ns.OnPaint(function(dark)
-		local ours = dark or not art
+		local modern = ns.IsModern() and modernArt ~= nil
+		local ours = dark or (not art and not modern)
 		fill:SetShown(ours)
 		edge:SetShown(ours)
 		dim:SetShown(dark)
-		if art then art:SetShown(not ours) end
+		if art then art:SetShown(not ours and not modern) end
+		if modernArt then modernArt:SetShown(modern) end
 	end)
 	return f
 end

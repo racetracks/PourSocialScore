@@ -24,7 +24,7 @@ are `pss-projects/pss-ui/` (01_ANALYSIS, 02_PLAN, 03_CODE_CHANGES,
    | Value | Name in Options | Look | Built |
    | --- | --- | --- | --- |
    | 0 | Blizzard (Default) | Blizzard's classic templates (`ButtonFrameTemplate`, `UIPanelButtonTemplate`, `UICheckButtonTemplate`, `InputBoxTemplate`, `InsetFrameTemplate`, top tabs, `GameTooltip`) | dev002 |
-   | 2 | Modern | The art of Blizzard's new 12.x Social window (`common-sidetab`, `-hover`, `-selected` green glow, `common-*` buttons); Retail only, Blizzard elsewhere | Planned, own stage; paints as Blizzard until then |
+   | 2 | Modern | The art of Blizzard's new 12.x Social window: `128-RedButton` three-slice buttons, `checkbox-minimal` / `checkmark-minimal`, `common-searchbar-a` boxes and `common-searchbar-icon-a`, `common-sidetab` tabs turned a quarter (hover, and the `-selected` glow desaturated and tinted with the class colour), `DialogBorderTemplate` popups; frame, panels, drop-downs, menus and tooltips as Blizzard. Retail only; without the art it is the Blizzard look | dev004 |
    | 1 | Dark | The port's style in full (EllesmereUI's skin numbers): flat fills, one-pixel edges | dev002 (was named "Modern" until dev002_3; value 1 kept) |
 
 7. **Accent = your class colour, always, in every look; no option** (Dan: "class colour is mandatory"). The look's own colour (gold; green for Dark) only if the client gives no class colour. `M.PSS_UIAccent` in Libraries.
@@ -39,12 +39,12 @@ are `pss-projects/pss-ui/` (01_ANALYSIS, 02_PLAN, 03_CODE_CHANGES,
 | --- | --- | --- | --- |
 | A1 | dev001 | `PourSocialScore_UI` folder, loader part `UI`, option `uiSkin`, `/pss tui` empty window; `check_tui.lua`, `check_toc.sh`, PSS-names check | Merged #88 |
 | A2 | dev002 (to dev002_4) | Kit part 1 in Blizzard and Dark: shared fonts, heading, button, tick box, edit / number / search box, panel, scroll frame, tab row, tooltip; option `uiFont`; three looks; class colour accent; temporary kit preview page | Merged #89 (at dev002) and #90 (dev002_2 to _4, docs) |
-| A2b | dev003 | Kit part 2: drop-down and right-click menu, popups (confirm, copy, import), row list, pie | PR open |
-| Modern | to place (recommended right after A2b) | The Modern look across the kit | Planned |
-| A3 | dev004 | Libraries groundwork: navigation, detail maths, event view, shared helpers; numbers match the port on the real saves | Planned |
-| B1 to B7 | dev005 to dev011 | Window frame and navigation, then one tab per PR (Players, Guilds x2, Chat Filters, Events, Options + Import/Export) | Planned |
-| C1, C2 | dev012, dev013 | Player Search, add target, Prune; right-click menus | Planned |
-| D1 to D3 | dev014 to dev016 | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
+| A2b | dev003 (to dev003_2) | Kit part 2: drop-down and right-click menu, popups (confirm, copy, import), row list, pie | Merged #92 |
+| Modern | dev004 | The Modern look across the kit (Dan chose it next, 2026-10-07) | PR open |
+| A3 | dev005 | Libraries groundwork: navigation, detail maths, event view, shared helpers; numbers match the port on the real saves | Planned |
+| B1 to B7 | dev006 to dev012 | Window frame and navigation, then one tab per PR (Players, Guilds x2, Chat Filters, Events, Options + Import/Export) | Planned |
+| C1, C2 | dev013, dev014 | Player Search, add target, Prune; right-click menus | Planned |
+| D1 to D3 | dev015 to dev017 | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
 | Release | 3.4.0 | When Dan says it is done | |
 
 ## Code map

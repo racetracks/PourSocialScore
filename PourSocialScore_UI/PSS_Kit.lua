@@ -28,6 +28,54 @@ function ns.NewHeading(parent, text)
 	return fs
 end
 
+-- Modern: Blizzard's red three-slice button (the new Social window's
+-- "Add New Friend"), its ends scaled to the height, with its pressed,
+-- disabled and highlight art.
+local RED = "128-RedButton"
+
+local function RedButton(b)
+	local l = ns.Own(b:CreateTexture(nil, "BACKGROUND", nil, 1))
+	local c = ns.Own(b:CreateTexture(nil, "BACKGROUND", nil, 1))
+	local r = ns.Own(b:CreateTexture(nil, "BACKGROUND", nil, 1))
+	local hl = ns.Own(b:CreateTexture(nil, "HIGHLIGHT"))
+	l:SetPoint("TOPLEFT")
+	l:SetPoint("BOTTOMLEFT")
+	r:SetPoint("TOPRIGHT")
+	r:SetPoint("BOTTOMRIGHT")
+	c:SetPoint("TOPLEFT", l, "TOPRIGHT")
+	c:SetPoint("BOTTOMRIGHT", r, "BOTTOMLEFT")
+	hl:SetAllPoints(b)
+	local on, pressed = false, false
+	local function State()
+		if not on then return end
+		local post = (not b:IsEnabled()) and "-Disabled" or (pressed and "-Pressed" or "")
+		l:SetAtlas(RED .. "-Left" .. post)
+		c:SetAtlas("_" .. RED .. "-Center" .. post)
+		r:SetAtlas(RED .. "-Right" .. post)
+		local h = b:GetHeight()
+		l:SetWidth(ns.AtlasWidth(RED .. "-Left", h))
+		r:SetWidth(ns.AtlasWidth(RED .. "-Right", h))
+	end
+	b:HookScript("OnMouseDown", function() pressed = true; State() end)
+	b:HookScript("OnMouseUp", function() pressed = false; State() end)
+	b:HookScript("OnEnable", State)
+	b:HookScript("OnDisable", State)
+	b:HookScript("OnSizeChanged", State)
+	local parts = { l, c, r }
+	local red = { left = l, center = c, right = r, highlight = hl }
+	function red.Paint(modern)
+		on = modern
+		for _, t in ipairs(parts) do t:SetShown(modern) end
+		if modern then
+			hl:SetAtlas(RED .. "-Highlight")
+			hl:SetBlendMode("ADD")
+			State()
+		end
+		hl:SetAlpha(modern and 1 or 0)
+	end
+	return red
+end
+
 -- Labels: Blizzard's gold / white / grey button fonts; Dark white, grey
 -- when disabled (the shared font objects follow the look).
 function ns.NewButton(parent, text, w, onClick)
@@ -43,13 +91,16 @@ function ns.NewButton(parent, text, w, onClick)
 	hover:SetAllPoints(b)
 	hover:SetColorTexture(DARK.hover[1], DARK.hover[2], DARK.hover[3], DARK.hover[4])
 	local edge = ns.PixelBorder(b, DARK.border)
-	b.pssParts = { fill = fill, edge = edge }
+	local red = RedButton(b)
+	b.pssParts = { fill = fill, edge = edge, red = red }
 	ns.OnPaint(function(dark)
-		ns.ShowArt(b, dark)
+		local modern = ns.IsModern()
+		ns.ShowArt(b, dark or modern)
 		fill:SetShown(dark)
 		-- a HIGHLIGHT texture shows on hover by itself: fade it in Blizzard
 		hover:SetAlpha(dark and 1 or 0)
 		edge:SetShown(dark)
+		red.Paint(modern)
 		-- Dark labels are white when enabled (the normal font is gold in Blizzard)
 		b:SetNormalFontObject(ns.Font(12, dark and "GameFontHighlight" or "GameFontNormal"))
 	end)
@@ -73,11 +124,32 @@ function ns.NewCheck(parent)
 	local tick, tickOff = c:GetCheckedTexture(), c.GetDisabledCheckedTexture and c:GetDisabledCheckedTexture()
 	if tick then keep[tick] = true end
 	if tickOff then keep[tickOff] = true end
-	c.pssParts = { box = box, edge = edge, tick = tick }
+	-- Modern: Blizzard's minimal box and tick (our own textures; the tick
+	-- follows the ticked state)
+	local mbox = ns.Own(c:CreateTexture(nil, "ARTWORK"))
+	mbox:SetAllPoints(c)
+	local mtick = ns.Own(c:CreateTexture(nil, "OVERLAY"))
+	mtick:SetAllPoints(c)
+	local modernOn = false
+	local function Tick()
+		mtick:SetShown(modernOn and c:GetChecked() and true or false)
+		if modernOn then mtick:SetAtlas(c:IsEnabled() and "checkmark-minimal" or "checkmark-minimal-disabled") end
+	end
+	hooksecurefunc(c, "SetChecked", Tick)
+	c:HookScript("OnClick", Tick)
+	c:HookScript("OnEnable", Tick)
+	c:HookScript("OnDisable", Tick)
+	c.pssParts = { box = box, edge = edge, tick = tick, modernBox = mbox, modernTick = mtick }
 	ns.OnPaint(function(dark)
-		ns.ShowArt(c, dark, keep)
+		local modern = ns.IsModern()
+		modernOn = modern
+		-- Modern hides the template's tick too (ours draws it)
+		ns.ShowArt(c, dark or modern, not modern and keep or nil)
 		box:SetShown(dark)
 		edge:SetShown(dark)
+		mbox:SetShown(modern)
+		if modern then mbox:SetAtlas("checkbox-minimal") end
+		Tick()
 		if tick then
 			if dark then tick:SetVertexColor(ns.Accent()) else tick:SetVertexColor(1, 1, 1) end
 		end
@@ -94,11 +166,17 @@ local function SkinBox(e, size)
 	local holder = CreateFrame("Frame", nil, e)
 	holder:SetAllPoints(fill)
 	local edge = ns.PixelBorder(holder, DARK.border)
-	e.pssParts = { fill = fill, edge = edge }
+	-- Modern: the new search bar's box art, stretched (it is nine-sliced)
+	local bar = ns.Own(e:CreateTexture(nil, "BACKGROUND", nil, -5))
+	bar:SetAllPoints(fill)
+	e.pssParts = { fill = fill, edge = edge, modernBox = bar }
 	ns.OnPaint(function(dark)
-		ns.ShowArt(e, dark)
+		local modern = ns.IsModern()
+		ns.ShowArt(e, dark or modern)
 		fill:SetShown(dark)
 		edge:SetShown(dark)
+		bar:SetShown(modern)
+		if modern then bar:SetAtlas("common-searchbar-a") end
 		e:SetFontObject(ns.Font(size or 12, "ChatFontNormal"))
 	end)
 end
@@ -143,8 +221,16 @@ function ns.NewSearchBox(parent, w, hint, onChange)
 	local icon = ns.Own(eb:CreateTexture(nil, "OVERLAY"))
 	icon:SetSize(12, 12)
 	icon:SetPoint("LEFT", eb, "LEFT", 2, 0)
-	icon:SetAtlas("common-search-magnifyingglass")
-	icon:SetAlpha(0.6)
+	ns.OnPaint(function()
+		-- Modern: the new search bar's own magnifier
+		if ns.IsModern() then
+			icon:SetAtlas("common-searchbar-icon-a")
+			icon:SetAlpha(1)
+		else
+			icon:SetAtlas("common-search-magnifyingglass")
+			icon:SetAlpha(0.6)
+		end
+	end)
 	local text = ns.NewText(eb, 11)
 	text:SetPoint("LEFT", eb, "LEFT", 18, 0)
 	text:SetTextColor(1, 1, 1, 0.4)
@@ -279,10 +365,30 @@ function ns.NewTab(parent, text, onClick)
 	line:SetPoint("BOTTOMLEFT")
 	line:SetPoint("BOTTOMRIGHT")
 	tab.pssWash, tab.pssLine, tab.pssPlate = wash, line, plate
+	-- Modern: the new Social window's side-tab art (its plate, hover and
+	-- selected glow), a quarter turn so it lies along a top row with its open
+	-- side down onto the page; the glow takes the class colour
+	local function SideArt(layer)
+		local t = ns.Own(tab:CreateTexture(nil, layer))
+		t:SetAllPoints(tab)
+		return t
+	end
+	local side, sideSel, sideHover = SideArt("BACKGROUND"), SideArt("ARTWORK"), SideArt("HIGHLIGHT")
+	tab.pssSide = { plate = side, selected = sideSel, hover = sideHover }
 	ns.OnPaint(function(dark)
+		local modern = ns.IsModern()
 		local plain = dark or not tab.pssTemplate
-		ns.ShowArt(tab, plain)
-		plate:SetShown(plain)
+		ns.ShowArt(tab, plain or modern)
+		plate:SetShown(plain and not modern)
+		side:SetShown(modern)
+		sideHover:SetAlpha(modern and 1 or 0)
+		if modern then
+			side:SetAtlas("common-sidetab")
+			sideSel:SetAtlas("common-sidetab-selected")
+			sideHover:SetAtlas("common-sidetab-hover")
+			for _, t in ipairs({ side, sideSel, sideHover }) do t:SetRotation(math.pi / 2) end
+			sideSel:SetDesaturated(true)
+		end
 		if plain then tab:SetNormalFontObject(ns.Font(11, "GameFontHighlightSmall")) end
 		ns.SetTabSelected(tab, tab.pssSelected)
 	end)
@@ -292,9 +398,13 @@ end
 function ns.SetTabSelected(tab, selected)
 	selected = selected and true or false
 	tab.pssSelected = selected
-	local plain = ns.IsDark() or not tab.pssTemplate
+	local modern = ns.IsModern()
+	local plain = (ns.IsDark() or not tab.pssTemplate) and not modern
 	tab.pssWash:SetShown(plain and selected)
 	tab.pssLine:SetShown(plain and selected)
+	local glow = tab.pssSide.selected
+	glow:SetShown(modern and selected)
+	if modern then glow:SetVertexColor(ns.Accent()) end
 	tab.pssLine:SetColorTexture(ns.Accent())
 	-- one physical pixel, as the port's underline
 	tab.pssLine:SetHeight(ns.OnePixel(tab))
@@ -304,7 +414,11 @@ function ns.SetTabSelected(tab, selected)
 	-- bottom), which put ours near the bottom edge: the label and the active
 	-- art are set here instead. Our tabs are 24 high, all art.
 	fs:ClearAllPoints()
-	if plain then
+	if modern then
+		fs:SetPoint("CENTER", tab, "CENTER", 0, 0)
+		fs:SetAlpha(1)
+		tab:SetNormalFontObject(ns.Font(11, selected and "GameFontHighlightSmall" or "GameFontNormalSmall"))
+	elseif plain then
 		fs:SetPoint("CENTER", tab, "CENTER", 0, 0)
 		-- unselected: dimmed but easy to read on the dark plate (Dan, 2026-10-07)
 		fs:SetAlpha(selected and 1 or TAB_DIM)

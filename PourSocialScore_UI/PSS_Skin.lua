@@ -49,7 +49,7 @@ local ACCENT = { dark = { 0.047, 0.824, 0.616 }, blizzard = { 1, 0.82, 0 } }
 
 ns.TITLE_H = 25
 
-local skin
+local skin, modernArt
 local painters = {}
 
 -- "blizzard" or "dark"
@@ -60,6 +60,32 @@ end
 
 function ns.IsDark()
 	return ns.Skin() == "dark"
+end
+
+-- The art of Blizzard's new Social window (12.x); a client without it
+-- (Camelot) shows the Blizzard look when Modern is picked.
+local MODERN_ART = { "128-RedButton-Left", "common-sidetab", "common-sidetab-selected", "checkbox-minimal", "checkmark-minimal", "common-searchbar-a" }
+
+function ns.HasModernArt()
+	if modernArt == nil then
+		modernArt = true
+		for _, a in ipairs(MODERN_ART) do
+			if not ns.HasAtlas(a) then modernArt = false break end
+		end
+	end
+	return modernArt
+end
+
+function ns.IsModern()
+	return ns.Skin() == "modern" and ns.HasModernArt()
+end
+
+-- Size an atlas texture to a height, keeping its proportions (three-slice
+-- ends); returns the width used.
+function ns.AtlasWidth(atlas, h)
+	local info = C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
+	if not info or not info.height or info.height == 0 then return h end
+	return info.width * h / info.height
 end
 
 -- r, g, b of the accent: your class colour in every look; the look's own
@@ -123,6 +149,7 @@ end
 
 function ns.Repaint()
 	skin = M.PSS_UISkin()
+	modernArt = nil	-- looked up again on the next paint
 	local dark = skin == "dark"
 	for _, key in ipairs(fontList) do PaintFont(fonts[key], dark) end
 	for _, fn in ipairs(painters) do fn(dark) end
