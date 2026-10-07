@@ -20,18 +20,38 @@ M.PSS_Stub("PSS_GUI", "GUI")
 
 -- With EllesmereUI integration the window at Friends is the EllesmereUI one
 -- (PourSocialScore_EllesmereUI), else the PSS window.
-FriendsFrame:HookScript("OnShow", function()
+-- Retail 12.1 opens the Social window (SocialUIFrame) for the Friends key
+-- and button; FriendsFrame only shows for the Who tab. Both are hooked, and
+-- the window follows whichever opened. SocialUIFrame has its tabs on its
+-- right edge, so the window sits clear of them (x offset).
+local hosts = { FriendsFrame }
+local HOST_X = { [FriendsFrame] = 12 }
+if SocialUIFrame then
+	hosts[#hosts + 1] = SocialUIFrame
+	HOST_X[SocialUIFrame] = 55
+end
+
+local function hostShow(host)
 	if not M.PSS_Opt("openWithFriends") then return end
 	if M.PSS_UseEUI() and M.PSS_Need("EllesmereUI") and M.EUI_FriendsShow then
-		M.EUI_FriendsShow(FriendsFrame)
+		M.EUI_FriendsShow(host, HOST_X[host])
 	elseif M.PSS_Need("GUI") then
-		M.PSS_FriendsShow()
+		M.PSS_FriendsShow(host, HOST_X[host])
 	end
-end)
-FriendsFrame:HookScript("OnHide", function()
+end
+-- switching Social to the Who tab hides one host and shows the other: the
+-- window stays while either is still shown
+local function hostHide()
+	for i = 1, #hosts do
+		if hosts[i]:IsShown() then return end
+	end
 	if M.EUI_FriendsHide then M.EUI_FriendsHide() end
 	if M.PSS_FriendsHide then M.PSS_FriendsHide() end
-end)
+end
+for i = 1, #hosts do
+	hosts[i]:HookScript("OnShow", hostShow)
+	hosts[i]:HookScript("OnHide", hostHide)
+end
 
 -----------------------------------------
 -- POPUPS AND ALERTS (fire during play) --

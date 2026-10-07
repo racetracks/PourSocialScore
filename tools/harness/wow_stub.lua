@@ -89,6 +89,7 @@ function W:GetCenter() return 0, 0 end
 function W:GetScale() return 1 end
 function W:GetEffectiveScale() return 1 end
 function W:GetNumPoints() return 0 end
+function W:SetPoint(...) self._point = { ... } end
 function W:SetText(t) self._text = t == nil and "" or tostring(t) end
 function W:SetColorTexture(r, g, b, a) self._color = { r, g, b, a } end
 function W:GetText() return self._text end
@@ -263,6 +264,8 @@ UIParent = new("Frame", "UIParent")
 WorldFrame = new("Frame", "WorldFrame")
 FriendsFrame = new("Frame", "FriendsFrame")
 FriendsFrame._shown = false
+SocialUIFrame = new("Frame", "SocialUIFrame")	-- Retail 12.1 Social window
+SocialUIFrame._shown = false
 GameTooltip = new("GameTooltip", "GameTooltip")
 ItemRefTooltip = new("GameTooltip", "ItemRefTooltip")
 DEFAULT_CHAT_FRAME = new("ScrollingMessageFrame", "DEFAULT_CHAT_FRAME")

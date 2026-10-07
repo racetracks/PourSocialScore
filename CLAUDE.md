@@ -33,7 +33,7 @@ Read when the task touches the topic:
 - `docs/baseline/reference/wow-api/` (start with its README): WoW API reference from the Warcraft Wiki. Read for any hook, Blizzard frame, combat or instance path, chat event handling, secret values, a taint report, a TOC or Interface change, or an API that differs between clients. Reference only; baseline 02 J and B carry the rules, and its README lists where it differs from the baseline
 
 ## Short form
-- Main is **3.3.0-dev004**; next stage **3.3.0-dev005** (type pie and type ticks, issue #78). Plain `3.3.0` only when Dan says parity is done.
+- Main is **3.3.1** (full release). The 3.3.0 parity project is closed at 3.3.1 (Dan, 2026-10-07); its remaining stages are dropped. No next stage is planned; fixes start `3.3.2-dev001`. Plain `3.3.0` only when Dan says parity is done.
 - Everything on `M` via `PourSocialScore_NS`; core fires `M.Events`; UIs write only through core setters. Tabs, except `PourSocialScore_EllesmereUI` (4 spaces).
 - Core holds only the chat filtering engine and the launchpad; anything not regularly active, or shared by both UIs, goes in `PourSocialScore_Libraries`, with a measured resident cost.
 - No application or service logic in `PourSocialScore_GUI` or `PourSocialScore_EllesmereUI`; the native GUI never reads or loads the EUI folder; the EUI folder is read only during parity work.

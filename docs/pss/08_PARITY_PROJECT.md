@@ -1,4 +1,6 @@
-# Current project: native GUI parity with the EllesmereUI window (3.3.0, issue #78)
+# Closed project: native GUI parity with the EllesmereUI window (3.3.0, issue #78)
+
+**Closed 2026-10-07 by Dan at 3.3.1:** "we're just going to merge whatever its at now and call that done, ive got other plans, scrap those features and just stamp this at 3.3.1". Stages 1 to 5 shipped in 3.3.1; the rest are dropped, not parked.
 
 This is the feature that owns the 3.3.0 line. It follows baseline 10 (design, stages, one PR per stage, validation between PRs). The original analysis and plan are in `reference/plans-3.3-parity/` (live on scratch `pss-projects/pss-native-gui-port/`); the plan's step table predates the decisions, so use the table below.
 
@@ -20,15 +22,16 @@ Also: issue #77 decided option b (logic leaves the EUI folder for Libraries), do
 | 2 | dev002 | One counting system; BlockStats retired; check_match | Migration on 3 real saves; numbers match | Merged #80 |
 | 3 | dev003 | Managed Communities row | check_managed_row; numbers match | Merged #81 |
 | 4 | dev004 | Totals pane + period pie (`PSS_Pie.lua`) | check_match on the pane; in game | Merged #82 (release not published) |
-| 5 | **dev005** | **Type pie and type ticks**; ticks filter the period pie | Numbers match per type; in game | **Next** |
-| 6 | dev006 | Three-page detail pane in the native side pane (decision 4) | Same numbers as the EUI detail pane; in game | Planned |
-| 7 to 9 | dev007 to dev009 | Events tab in three PRs: (a) tab, list, Source; (b) Time with custom range, Types; (c) expired / not-stored rows, search, sorting, opening from a slice or View Events | Same lines, counts and order as the EUI Events tab after each PR | Planned |
-| 10 | dev010 | Breadcrumb and back / forward (decision 2) | Behaves as in EUI | Planned |
-| 11 | dev011 | Small matches: type ticks over history, Options search, click-again deselect, a tab click resetting its tab | Behaves as in EUI | Planned |
-| 12 | dev012 | A rules check that fails if a UI folder gains query or counting logic; readme | Rules CI green | Planned |
-| Release | **3.3.0** | Version only; history section for the whole feature | Dan confirms parity is complete | |
+| 5 | dev005 | Bugfix: window opens next to Retail 12.1's Social window (`SocialUIFrame`) as well as FriendsFrame | Harness opens Social and the Who switch; ui_compare / eui_compare identical; real saves | Merged #85 |
+| 6 | dev006 | Type pie and type ticks; ticks filter the period pie | Numbers match per type; in game | Dropped |
+| 7 | dev007 | Three-page detail pane in the native side pane (decision 4) | Same numbers as the EUI detail pane; in game | Dropped |
+| 8 to 10 | dev008 to dev010 | Events tab in three PRs: (a) tab, list, Source; (b) Time with custom range, Types; (c) expired / not-stored rows, search, sorting, opening from a slice or View Events | Same lines, counts and order as the EUI Events tab after each PR | Dropped |
+| 11 | dev011 | Breadcrumb and back / forward (decision 2) | Behaves as in EUI | Dropped |
+| 12 | dev012 | Small matches: type ticks over history, Options search, click-again deselect, a tab click resetting its tab | Behaves as in EUI | Dropped |
+| 13 | dev013 | A rules check that fails if a UI folder gains query or counting logic; readme | Rules CI green | Dropped |
+| Release | **3.3.1** | Version only; history section for dev001 to dev005 | Dan stamped it done, 2026-10-07 | Released on merge |
 
-Dev numbers past dev005 are expected values; any split takes the next number and shifts the rest. Every stage: one PR from main, all TOCs bumped, history section, test zip on scratch, check_rules, check_eui_all, validate_all on the three real saves, ui_compare or eui_compare as relevant, measured size of anything added.
+Every stage: one PR from main, all TOCs bumped, history section, test zip on scratch, check_rules, check_eui_all, validate_all on the three real saves, ui_compare or eui_compare as relevant, measured size of anything added.
 
 ## Not in this project
 - Native-only features (Player Search, Prune, right-click menus, resizable columns) in the EUI window: a later project.
