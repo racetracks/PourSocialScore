@@ -4,9 +4,9 @@
 - `racetracks/PourSocialScore` main = **3.3.0-dev004** (`5c39f62`, PR #82 merged 2026-10-05 20:45Z). v3.2.0 is the last full release.
 - 3.3.0-dev004 has **no GitHub release**: the Release run on main was cancelled (05). Dan chose 2026-10-07: skip it; dev004 stays test-zip only and dev005 publishes next.
 - No addon work since 2026-10-05. 2026-10-07 was spent writing the general packs (baseline v4, scratch v2) and this pack; Dan said no code changes for that.
-- Main is now **3.3.0-dev005** (PR #85 merged 2026-10-07 17:51Z): the bugfix for Retail 12.1's Social window. Dan then released it as **3.3.1** (production, 2026-10-07). The next stage needs a new dev line, since 3.3.0-devNNN sorts below 3.3.1 (to confirm with Dan).
+- Main is now **3.3.0-dev005** (PR #85 merged 2026-10-07 17:51Z): the bugfix for Retail 12.1's Social window. Dan then stamped it **3.3.1**, a full release, and closed the parity project (2026-10-07): the remaining stages are dropped.
 
-## The current project: native GUI parity (08)
+## Closed project: native GUI parity (08), shipped as 3.3.1
 | Dev | PR | What | State |
 | --- | --- | --- | --- |
 | 3.3.0-dev001 | #79 | Shared Events logic moved from the EUI folder to `PourSocialScore_Libraries/PSS_EventsQuery.lua` (issue #77 option b); `eui_compare.sh`; split check fixed for 3.x saves | Merged |
@@ -16,15 +16,16 @@
 | 3.3.0-dev005 | #85 | Bugfix: Retail 12.1 opens `SocialUIFrame` for the Friends key; core hooks it and FriendsFrame (Who tab), the window anchors to whichever opened (55 px clear of the Social side tabs) | Merged |
 
 ## Next step
-**Next stage: type pie and type ticks** in the totals pane (as EUI's `ns.NewTypePie` and shared `typeOff`); ticks filter the period pie; numbers match the EUI window. Then the rest of the stage table in 08.
+None planned on PSS: Dan has other plans. Fixes to 3.3.1 start `3.3.2-dev001` (or ask Dan whether a fix goes straight out as `3.3.2`).
 
 ## Waiting on Dan
 1. Archive `racetracks/PourSocialScore-EllesmereUI` and close its PR #18.
 2. Delete merged `claude/*` branches (Claude gets 403).
-3. Whether the known rule deviations (01 section 5: idle GC timer, totals pane without opt-in, OnUpdate on hover) get fixed inside the parity line or later.
+3. Whether the known rule deviations (01 section 5: idle GC timer, totals pane without opt-in, OnUpdate on hover) get fixed in a later line.
+4. Close issue #78 (parity), now that the project is closed at 3.3.1.
 
 ## Open issues (addon repo)
-#78 parity project; #37 guild exclusion list is not saved (define its intent); #38 seeing a shipped-guild member loads the lists; #39 unload the GUI on close; #40 research whether a LoadOnDemand addon can unload; #44 clean up console output; #45 Questie-style upgrade output. #77 decided (option b) and done.
+#78 parity project (closed at 3.3.1; issue still open); #37 guild exclusion list is not saved (define its intent); #38 seeing a shipped-guild member loads the lists; #39 unload the GUI on close; #40 research whether a LoadOnDemand addon can unload; #44 clean up console output; #45 Questie-style upgrade output. #77 decided (option b) and done.
 
 ## Parked or offered
 - Pack the in-play chat filter log (offered, not started).
