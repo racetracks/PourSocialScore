@@ -2,7 +2,9 @@
 -- PourSocialScore_UI and PourSocialScore_Libraries are not loaded at login;
 -- /pss tui loads them (not the old windows) and toggles the window; Escape
 -- closes it; a dragged place is remembered; the look follows the uiSkin
--- option (Blizzard by default) and repaints the open window.
+-- option (Blizzard by default) and repaints the open window; the kit's
+-- controls and tooltips follow the look; the uiFont option picks a Blizzard
+-- font or, only while another addon has loaded it, a LibSharedMedia font.
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL tui: " .. msg) fail = true end end
 local loaded = function(name) return C_AddOns.IsAddOnLoaded(name) end
@@ -67,5 +69,77 @@ check(listed, "Escape helper not in UISpecialFrames")
 check(_G.PSS_WindowEscape:IsShown(), "Escape helper not shown with the window")
 _G.PSS_WindowEscape:Hide()
 check(not win:IsShown(), "Escape did not close the window")
+
+-- the kit preview, in both looks
+local kit = win.kit or {}
+check(kit.tabs and #kit.tabs == 6, "kit preview has no tab row")
+local b1, c1, e1 = kit.buttons and kit.buttons[1], kit.checks and kit.checks[1], kit.boxes and kit.boxes[1]
+local function modernShown(w) return w and w.pssParts and w.pssParts.fill:IsShown() end
+check(b1 and not modernShown(b1) and not b1.pssParts.edge:IsShown(), "Blizzard button shows Modern parts")
+check(e1 and not modernShown(e1), "Blizzard edit box shows Modern parts")
+check(kit.page and kit.page.pssParts.art and kit.page.pssParts.art:IsShown(), "Blizzard panel not shown")
+local tab1, tab2 = kit.tabs[1], kit.tabs[2]
+check(tab1.pssSelected and not tab2.pssSelected, "first tab not selected")
+SlashCmdList["PSS"]("tui")
+M.PSS_SetOpt("uiSkin", "global", 1)
+SlashCmdList["PSS"]("tui")
+check(modernShown(b1) and b1.pssParts.edge:IsShown(), "Modern button parts not shown")
+check(c1.pssParts.box:IsShown() and c1.pssParts.edge:IsShown(), "Modern tick box parts not shown")
+check(modernShown(e1), "Modern edit box parts not shown")
+check(modernShown(kit.page) and not kit.page.pssParts.art:IsShown(), "Modern panel not shown")
+check(tab1.pssLine:IsShown() and not tab2.pssLine:IsShown(), "Modern tab underline not on the selected tab only")
+check(tab2:GetFontString():GetAlpha() == 0.5 and tab1:GetFontString():GetAlpha() == 1, "Modern tab labels not faded by alpha")
+kit.tabs[3]._scripts.OnClick(kit.tabs[3])
+check(kit.tabs[3].pssSelected and not tab1.pssSelected, "tab click did not select it")
+
+-- tooltips: Modern draws its own; Blizzard uses GameTooltip
+local owner = kit.tipOwner
+owner._scripts.OnEnter(owner)
+check(_G.PSS_Tooltip and _G.PSS_Tooltip:IsShown(), "Modern tooltip not shown")
+owner._scripts.OnLeave(owner)
+M.PSS_SetOpt("uiSkin", "global", 0)
+check(not modernShown(b1) and not c1.pssParts.box:IsShown(), "back to Blizzard: Modern parts still shown")
+local tipOwner
+local realOwner = GameTooltip.SetOwner
+GameTooltip.SetOwner = function(_, o) tipOwner = o end
+owner._scripts.OnEnter(owner)
+GameTooltip.SetOwner = realOwner
+check(tipOwner ~= nil, "Blizzard tooltip not shown on GameTooltip")
+owner._scripts.OnLeave(owner)
+
+-- fonts: the look's own by default; a picked Blizzard font in both looks
+local function face() return (_G.PSS_Font1:GetFont()) end
+check(M.PSS_UIFontPath() == nil, "a font is picked by default")
+check(face() ~= "Fonts\\ARIALN.TTF", "Blizzard look uses Arial Narrow by default")
+M.PSS_SetOpt("uiSkin", "global", 1)
+check(face() == "Fonts\\ARIALN.TTF", "Modern look does not default to Arial Narrow")
+M.PSS_SetOpt("uiFont", "global", "morpheus")
+check(face() == "Fonts\\MORPHEUS.TTF", "picked font not used in Modern")
+M.PSS_SetOpt("uiSkin", "global", 0)
+check(face() == "Fonts\\MORPHEUS.TTF", "picked font not used in Blizzard")
+check(PourSocialScoreDB.uiFont == "morpheus", "picked font not saved")
+M.PSS_SetOpt("uiFont", "global", "")
+check(PourSocialScoreDB.uiFont == nil, "the default font was saved")
+
+-- LibSharedMedia: never created by us; read only when another addon has it
+check(_G.LibStub == nil, "LibStub appeared without another addon")
+local before = #M.PSS_OPTION_REG.uiFont.choices
+M.PSS_UIFontChoices()
+check(#M.PSS_OPTION_REG.uiFont.choices == before, "font choices grew without LibSharedMedia")
+local lsm = {
+	List = function(_, kind) return kind == "font" and { "Shared Face" } or {} end,
+	Fetch = function(_, kind, name) if kind == "font" and name == "Shared Face" then return "Interface\\AddOns\\Other\\face.ttf" end end,
+}
+_G.LibStub = setmetatable({}, { __call = function(_, name) if name == "LibSharedMedia-3.0" then return lsm end end })
+SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("tui")
+local found
+for _, ch in ipairs(M.PSS_OPTION_REG.uiFont.choices) do if ch[2] == "Shared Face" then found = ch[1] end end
+check(found ~= nil, "a shared font not listed once the window opened")
+M.PSS_SetOpt("uiFont", "global", found)
+check(M.PSS_UIFontPath() == "Interface\\AddOns\\Other\\face.ttf" and face() == "Interface\\AddOns\\Other\\face.ttf", "shared font not used")
+_G.LibStub = nil
+check(M.PSS_UIFontPath() == nil, "a shared font without LibSharedMedia did not fall back")
+M.PSS_SetOpt("uiFont", "global", "")
 
 if not fail then print("PASS tui") end

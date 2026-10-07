@@ -98,6 +98,8 @@ function W:GetPoint()
 	return p[1], p[2], p[3] or p[1], p[4] or 0, p[5] or 0
 end
 function W:GetShadowOffset() return 1, -1 end
+function W:GetShadowColor() return 0, 0, 0, 1 end
+function W:IsPlaying() return false end
 function W:SetText(t) self._text = t == nil and "" or tostring(t) end
 function W:SetColorTexture(r, g, b, a) self._color = { r, g, b, a } end
 function W:GetText() return self._text end
@@ -156,7 +158,11 @@ function W:GetMaxLetters() return 255 end
 function W:SetAlpha(a) self._alpha = a end
 function W:GetAlpha() return self._alpha or 1 end
 function W:GetTextColor() return 1, 1, 1, 1 end
-function W:GetFont() return "Fonts\\FRIZQT__.TTF", 12, "" end
+function W:GetFont()
+	if self._font then return self._font[1], self._font[2], self._font[3] end
+	return "Fonts\\FRIZQT__.TTF", 12, ""
+end
+function W:SetFont(path, size, flags) self._font = { path, size, flags }; return true end
 function W:GetJustifyH() return "LEFT" end
 -- only text regions justify: on a Button or Frame the game has no such method
 local JUSTIFIES = { FontString = true, EditBox = true, SimpleHTML = true, MessageFrame = true, ScrollingMessageFrame = true }
@@ -202,6 +208,9 @@ local TEMPLATE_PARTS = {
 	ButtonFrameTemplate = { "TitleText", "CloseButton", "Portrait", "Inset" },
 	InputBoxTemplate = { "Left", "Right", "Middle" },
 	UIPanelScrollFrameTemplate = { "ScrollBar" },
+	ScrollFrameTemplate = { "ScrollBar" },
+	InsetFrameTemplate = {},
+	PanelTopTabButtonTemplate = { "Left", "Right", "Middle", "Text" },
 	FauxScrollFrameTemplate = { "ScrollBar", "ScrollChildFrame" },
 	InputScrollFrameTemplate = { "EditBox", "CharCount", "ScrollBar" },
 	PanelTabButtonTemplate = { "Left", "Right", "Middle", "LeftActive", "RightActive", "MiddleActive", "Text" },
@@ -288,6 +297,13 @@ hash_SlashCmdList = {}
 -- font objects answer GetFont, GetShadowOffset and GetTextColor like regions
 local function fontObject() return setmetatable({ _kind = "Font", _scripts = {}, _events = {} }, WMT) end
 GameFontNormal, GameFontHighlight, GameFontHighlightSmall, GameFontNormalSmall = fontObject(), fontObject(), fontObject(), fontObject()
+GameFontDisable, ChatFontNormal = fontObject(), fontObject()
+-- CreateFont: a named font object (the kit's shared fonts)
+function CreateFont(name)
+	local f = fontObject()
+	if name then _G[name] = f end
+	return f
+end
 CANCEL, OKAY, ACCEPT, YES, NO, UNKNOWN, CLOSE = "Cancel", "Okay", "Accept", "Yes", "No", "Unknown", "Close"
 WOW_PROJECT_ID, WOW_PROJECT_MAINLINE = 1, 1
 LE_PARTY_CATEGORY_HOME = 1
