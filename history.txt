@@ -1,6 +1,28 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev004_4 - New PSS window: Modern buttons and tabs settled
+
+- Modern buttons and tabs keep the straight dark gold-framed plate (Dan's pick). The Filter-art tab and the "Straight art" comparison row are gone from the kit preview.
+
+=> 3.4.0-dev004_3 - New PSS window: straight Modern buttons and tabs
+
+- Modern buttons and tabs use the Social window's straight dark button with a gold frame (its action buttons): the side-tab plate of dev004_2 has a cut corner, which looked uneven along the tab row. Hover brightens the frame; the selected tab stays brighter, with a white label.
+- Kit preview: the third tab (Menus and popups) is drawn in Modern with the Social window's Filter button art (normal, hover, and its open art when selected), to compare with the other two tabs.
+- Kit preview, Controls tab: a "Straight art" row shows the straight candidates side by side (the action button and its pressed art, the Filter button's normal, hover and open art, and one drop-down button) to pick from in game.
+
+=> 3.4.0-dev004_2 - New PSS window: Modern redone after the Social window
+
+- Modern now follows Blizzard's new Social window as a whole, not only its controls: the same metal frame on a black background, pages on the black under the Social window's thin divider, and boxes as its dark cards.
+- Buttons and tabs are the Social window's gold-framed dark plate (its side tabs): brighter gold on hover, the gold glow on the selected tab and while a button is held. The art is now kept upright and stretched only in the middle, so its corners stay crisp; in dev004 it was turned on its side and showed as thin strips. The button that confirms a popup is the Social window's red one.
+- Tick boxes, text and search boxes and popups stay as in dev004.
+
+=> 3.4.0-dev004 - New PSS window: the Modern look
+
+- "Look of the new PSS window" > Modern now works: the art of Blizzard's new Social window. Buttons are Blizzard's red buttons (with their pressed, disabled and highlight art), tick boxes the new minimal box and tick, text and search boxes the new search bar (with its own magnifier), tabs the Social window's side-tab art laid along the top with the selected tab's glow in your class colour, and popups Blizzard's newer dialog border with red buttons.
+- The window frame, panels, drop-downs, menus and tooltips are Blizzard's, as in the Social window.
+- On a client without this art (Camelot) Modern shows the Blizzard look.
+
 => 3.4.0-dev003_2 - New PSS window: popups open, slimmer right-click menu
 
 - The Confirm, Copy and Import popups open again: their buttons were built with a wrong argument, which the game rejected with a Lua error, so nothing showed.

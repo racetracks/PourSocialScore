@@ -60,7 +60,7 @@ local OPTIONS = {
 	-- The new window (PourSocialScore_UI, /pss tui while it is built): its look
 	{ key = "uiSkin",			kind = "choice", default = 0,		section = 4, label = "Look of the new PSS window (/pss tui, in testing)",
 		choices = { { 0, "Blizzard (Default)" }, { 2, "Modern" }, { 1, "Dark" } },
-		tip = "Blizzard: Blizzard's own window art and fonts. Modern: the art of Blizzard's new Social window (in testing: shows the Blizzard look until it is built). Dark: flat and dark. All have the same layout." },
+		tip = "Blizzard: Blizzard's own window art and fonts. Modern: the art of Blizzard's new Social window (Retail; other clients show the Blizzard look). Dark: flat and dark. All have the same layout." },
 	{ key = "uiFont",			kind = "choice", default = "",		section = 4, label = "Font of the new PSS window (/pss tui, in testing)",
 		choices = {
 			{ "", "Default for the look" }, { "game", "Game text" }, { "names", "Unit names" }, { "damage", "Damage numbers" },

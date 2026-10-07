@@ -186,7 +186,9 @@ function W:GetHyperlinksEnabled() return self._links or false end
 function W:IsMouseOver() return self._mouseOver or false end
 function W:IsDragging() return false end
 function W:GetTexture() return nil end
-function W:GetAtlas() return nil end
+function W:GetAtlas() return self._atlas end
+function W:SetAtlas(a) self._atlas = a end
+function W:SetTextureSliceMargins(l, t, r, b) self._slice = { l, t, r, b } end
 function W:IsProtected() return false end
 function W:IsForbidden() return false end
 function W:GetDebugName() return self._name or "?" end

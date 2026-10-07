@@ -149,7 +149,24 @@ local function Build()
 	-- each look's parts, so the look shown can be checked
 	win.art = { blizzard = blizz, dark = dark, blizzardClose = blizzClose, darkClose = darkClose }
 
+	-- Modern: the same metal frame on black, as Blizzard's new Social window
+	-- (which sets its background to black)
+	local black
+	if blizz then
+		black = ns.Own(blizz:CreateTexture(nil, "BACKGROUND", nil, -5))
+		black:SetPoint("TOPLEFT", blizz, "TOPLEFT", 2, -2)
+		black:SetPoint("BOTTOMRIGHT", blizz, "BOTTOMRIGHT", -2, 2)
+		black:SetColorTexture(0, 0, 0, 1)
+	end
+	win.art.black = black
 	ns.OnPaint(function(isDark)
+		if black then
+			local modern = ns.IsModern()
+			black:SetShown(modern)
+			for _, k in ipairs({ "Bg", "TopTileStreaks" }) do
+				if blizz[k] and blizz[k].SetAlpha then blizz[k]:SetAlpha(modern and 0 or 1) end
+			end
+		end
 		-- a client without any Blizzard frame template falls back to Dark art
 		local useDark = isDark or not blizz
 		dark:SetShown(useDark)

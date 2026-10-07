@@ -264,4 +264,40 @@ for s = 1, 60 do seen[pie.segSlice[s]] = (seen[pie.segSlice[s]] or 0) + 1 end
 check(seen[1] and seen[2] and seen[3] and seen[0] == nil, "pie does not draw every slice")
 M.PSS_SetOpt("uiSkin", "global", 0)
 
+------------------------------------------------------------------------
+-- Modern: Blizzard's new Social window art (here faked as present)
+------------------------------------------------------------------------
+local realAtlas = C_Texture.GetAtlasInfo
+C_Texture.GetAtlasInfo = function() return { width = 32, height = 64 } end
+M.PSS_SetOpt("uiSkin", "global", 2)
+local red, tert = b1.pssParts.red, b1.pssParts.tertiary
+check(tert.texture:IsShown() and not red.left:IsShown(), "Modern button is not the gold-framed plate")
+check(not b1.pssParts.fill:IsShown(), "Modern button shows Dark parts")
+local c2 = kit.checks[2]
+check(c1.pssParts.modernBox:IsShown() and c1.pssParts.modernTick:IsShown(), "Modern ticked box not drawn")
+check(c2.pssParts.modernBox:IsShown() and not c2.pssParts.modernTick:IsShown(), "Modern unticked box shows a tick")
+c2:SetChecked(true)
+check(c2.pssParts.modernTick:IsShown(), "Modern tick does not follow SetChecked")
+c2:SetChecked(false)
+check(e1.pssParts.modernBox:IsShown() and not e1.pssParts.fill:IsShown(), "Modern box art not shown")
+-- the window on black, pages under a divider, boxes as cards
+check(win.art.black and win.art.black:IsShown() and art.blizzard:IsShown(), "Modern window not the metal frame on black")
+local pg = kit.pages[1]
+check(pg.pssParts.divider:IsShown() and not pg.pssParts.card:IsShown() and not pg.pssParts.art:IsShown(), "Modern page not on black under a divider")
+-- tabs: the gold-framed plate, the selected glow on the selected one only
+check(kit.tabs[1].pssSide.plate:IsShown() and not kit.tabs[1].pssLine:IsShown() and not kit.tabs[1].pssPlate:IsShown(), "Modern tabs not the gold-framed plate")
+check(kit.tabs[1].pssSide.plate._atlas == "common-button-tertiary-normal", "Modern tab not the straight plate")
+check(kit.tabs[1].pssSide.lit:IsShown() and not kit.tabs[2].pssSide.lit:IsShown(), "Modern selected tab not brighter")
+-- popups: newer border, the accept button red, cancel dark
+check(cf.pssParts.modernArt and cf.pssParts.modernArt:IsShown() and not cf.pssParts.art:IsShown() and not cf.pssParts.dim:IsShown(), "Modern popup not in the newer dialog border")
+check(cf.accept.pssParts.red.left:IsShown() and cf.cancel.pssParts.tertiary.texture:IsShown(), "Modern popup buttons not red accept and dark cancel")
+check(cf.accept.pssParts.red.left:GetWidth() == 13.5, "red button end not scaled to the height")
+check(dd.blizz:IsShown() and not dd.dark:IsShown(), "Modern drop-down is not Blizzard's")
+-- without the art (Camelot) Modern is the Blizzard look
+C_Texture.GetAtlasInfo = realAtlas
+M.PSS_SetOpt("uiSkin", "global", 2)
+check(not tert.texture:IsShown() and not c1.pssParts.modernBox:IsShown() and not win.art.black:IsShown() and kit.pages[1].pssParts.art:IsShown() and not kit.tabs[1].pssSide.plate:IsShown(), "Modern without the art is not the Blizzard look")
+kit.tabs[1]._scripts.OnClick(kit.tabs[1])
+M.PSS_SetOpt("uiSkin", "global", 0)
+
 if not fail then print("PASS tui") end
