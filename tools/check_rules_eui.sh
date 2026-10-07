@@ -56,7 +56,7 @@ done
 ver=$(sed -n 's/^## Version: *//p' "$base" | tr -d '\r')
 core=$(sed -n 's/^## Version: *//p' PourSocialScore/PourSocialScore.toc | tr -d '\r')
 [ "$ver" = "$core" ] || { echo "$base: Version $ver differs from the core's $core"; fail=1; }
-echo "$ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9]+)?$' || { echo "Version '$ver' is not X.Y.Z or X.Y.Z-suffix"; fail=1; }
+echo "$ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9]+(_[0-9]+)?)?$' || { echo "Version '$ver' is not X.Y.Z, X.Y.Z-suffix or X.Y.Z-suffix_N"; fail=1; }
 
 [ $fail -eq 0 ] && echo "All rule checks passed"
 exit $fail

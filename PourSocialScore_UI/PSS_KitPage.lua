@@ -76,7 +76,7 @@ function ns.BuildKitPage(win)
 	local hit = CreateFrame("Frame", nil, page)
 	hit:SetAllPoints(hover)
 	hit:EnableMouse(true)
-	ns.TipOn(hit, hover, "Plain tooltips follow the look: Blizzard's in Blizzard, a dark one in Modern.")
+	ns.TipOn(hit, hover, "Plain tooltips follow the look: Blizzard's in Blizzard, a dark one in Dark.")
 
 	y = y - 32
 	Label("Scroll frame")

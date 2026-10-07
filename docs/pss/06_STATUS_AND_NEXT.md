@@ -16,13 +16,14 @@
 | 3.3.0-dev005 | #85 | Bugfix: Retail 12.1 opens `SocialUIFrame` for the Friends key; core hooks it and FriendsFrame (Who tab), the window anchors to whichever opened (55 px clear of the Social side tabs) | Merged |
 
 ## Current project: the new PSS window (3.4.0)
-One window with the EllesmereUI port's layout, features and feel, drawn only with Blizzard's and our own resources, in two looks (option `uiSkin`: Blizzard, the default, or Modern). It replaces both `PourSocialScore_GUI` and `PourSocialScore_EllesmereUI`. Logic goes in `PourSocialScore_Libraries`, drawing in the new `PourSocialScore_UI`; `/pss tui` opens it until the cutover. Plan, decisions (Dan, 2026-10-07) and look spec: scratch `pss-projects/pss-ui/`.
+One window with the EllesmereUI port's layout, features and feel, drawn only with Blizzard's and our own resources, in three looks (option `uiSkin`: Blizzard (Default), Modern, Dark), the accent always the class colour. It replaces both `PourSocialScore_GUI` and `PourSocialScore_EllesmereUI`. Logic goes in `PourSocialScore_Libraries`, drawing in the new `PourSocialScore_UI`; `/pss tui` opens it until the cutover. Details: `09_PSS_UI_PROJECT.md`. Plan, decisions and look spec: scratch `latest/pss-ui/` (working copy `pss-projects/pss-ui/`).
 
 | Stage | Dev | What | State |
 | --- | --- | --- | --- |
 | A1 | 3.4.0-dev001 | `PourSocialScore_UI` folder, loader part `UI`, option `uiSkin`, `/pss tui` opens the empty window in either look; `check_tui.lua`; TOC and PSS-names checks in `check_rules.sh` | Merged #88 |
-| A2 | 3.4.0-dev002 | Kit part 1 in both looks: text, heading, button, tick box, edit / number / search box, panel, scroll frame, tab row, tooltip; the `uiFont` option (Blizzard fonts, plus LibSharedMedia fonts read only when another addon loaded it); a temporary kit preview page | PR open |
+| A2 | 3.4.0-dev002 to dev002_4 | Kit part 1 in Blizzard and Dark: text, heading, button, tick box, edit / number / search box, panel, scroll frame, tab row, tooltip; the `uiFont` option (Blizzard fonts, plus LibSharedMedia fonts read only when another addon loaded it); three looks (Blizzard (Default), Modern, Dark); class colour accent; Blizzard tab labels fixed; a temporary kit preview page | PR #89 open |
 | A2b | 3.4.0-dev003 | Kit part 2: drop-down with the Modern menu list, right-click menu, popups (confirm, copy, import), row list, pie | Next (A2 split in two, 2026-10-07) |
+| Modern | to place | Blizzard's new Social window art as the Modern look (recommended right after A2b) | Planned |
 | A3 to D3 | dev004 to dev016 | Libraries groundwork, the six tabs, old-GUI-only features, cutover (the new files move into `PourSocialScore_GUI`), removal | Planned |
 
 Fixes to 3.3.1 meanwhile would be `3.3.2-dev001`.

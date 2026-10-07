@@ -3,10 +3,11 @@
 --
 -- What the new window remembers and which look it draws. The window only
 -- draws; it reads and saves through these.
---   M.PSS_UISkin()                       "blizzard" (default) or "modern"
+--   M.PSS_UISkin()                       "blizzard" (default), "modern" or "dark"
 --   M.PSS_UIPlace(key)                   point, relPoint, x, y or nil
 --   M.PSS_SetUIPlace(key, point, relPoint, x, y)
 --   M.PSS_UIFontPath(), M.PSS_UIFontChoices()   (below)
+--   M.PSS_UIAccent()                     r, g, b of your class colour, or nil
 -- Places are saved with the other window places (PourSocialScoreDB
 -- windowPoints, held in PSS_OptionsDB).
 ------------------------------------------------------------------------
@@ -15,7 +16,8 @@ local M = addon.M
 
 local type, tonumber, ipairs, pcall = type, tonumber, ipairs, pcall
 
-local SKINS = { [0] = "blizzard", [1] = "modern" }
+-- saved values: 1 stays "dark" (it was the only other look first, named Modern)
+local SKINS = { [0] = "blizzard", [1] = "dark", [2] = "modern" }
 
 function M.PSS_UISkin()
 	return SKINS[tonumber(M.PSS_Opt("uiSkin")) or 0] or "blizzard"
@@ -33,6 +35,16 @@ function M.PSS_SetUIPlace(key, point, relPoint, x, y)
 	if type(db) ~= "table" or type(point) ~= "string" then return end
 	if type(db.windowPoints) ~= "table" then db.windowPoints = {} end
 	db.windowPoints[key] = { point, relPoint or point, tonumber(x) or 0, tonumber(y) or 0 }
+end
+
+-- The window's accent is always your class colour (Dan, 2026-10-07): your
+-- own class, never secret. nil only if the client gives none.
+function M.PSS_UIAccent()
+	local _, class = UnitClass("player")
+	if type(class) ~= "string" then return nil end
+	local c = C_ClassColor and C_ClassColor.GetClassColor and C_ClassColor.GetClassColor(class)
+	c = c or (RAID_CLASS_COLORS and RAID_CLASS_COLORS[class])
+	if type(c) == "table" and c.r then return c.r, c.g, c.b end
 end
 
 ------------------------------------------------------------------------

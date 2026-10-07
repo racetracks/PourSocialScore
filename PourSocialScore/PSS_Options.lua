@@ -59,14 +59,14 @@ local OPTIONS = {
 		choices = { { 0, "LOW" }, { 1, "MEDIUM" }, { 2, "HIGH" }, { 3, "DIALOG" } } },
 	-- The new window (PourSocialScore_UI, /pss tui while it is built): its look
 	{ key = "uiSkin",			kind = "choice", default = 0,		section = 4, label = "Look of the new PSS window (/pss tui, in testing)",
-		choices = { { 0, "Blizzard" }, { 1, "Modern" } },
-		tip = "Blizzard: Blizzard's own window art and fonts. Modern: flat and dark. Both have the same layout." },
+		choices = { { 0, "Blizzard (Default)" }, { 2, "Modern" }, { 1, "Dark" } },
+		tip = "Blizzard: Blizzard's own window art and fonts. Modern: the art of Blizzard's new Social window (in testing: shows the Blizzard look until it is built). Dark: flat and dark. All have the same layout." },
 	{ key = "uiFont",			kind = "choice", default = "",		section = 4, label = "Font of the new PSS window (/pss tui, in testing)",
 		choices = {
 			{ "", "Default for the look" }, { "game", "Game text" }, { "names", "Unit names" }, { "damage", "Damage numbers" },
 			{ "friz", "Friz Quadrata" }, { "arialn", "Arial Narrow" }, { "morpheus", "Morpheus" }, { "skurri", "Skurri" },
 		},
-		tip = "Blizzard's fonts, and fonts other addons have shared through LibSharedMedia (listed once the new window has been opened). Default: Blizzard's own for the Blizzard look, Arial Narrow for Modern." },
+		tip = "Blizzard's fonts, and fonts other addons have shared through LibSharedMedia (listed once the new window has been opened). Default: Blizzard's own for the Blizzard and Modern looks, Arial Narrow for Dark." },
 	-- EllesmereUI integration (PSS_EUI.lua); read at login, so a change asks for a reload
 	{ key = "euiIntegration",	kind = "bool",		default = false, section = 4, label = "Enable EllesmereUI integration",
 		reload = "EllesmereUI integration is now %s. Reload the UI to apply it.",

@@ -59,6 +59,16 @@ Problems seen in practice, what triggered them and the fix. Check this list befo
 - **Cause:** the newer Social UI hides the old `FriendsFrame`, and UI suites may draw their own friends window.
 - **Fix:** anchor to whichever friends window is visible, falling back to a saved position.
 
-### 4. A wide window on small screens
+### 4. Blizzard tab labels sat low or were cut short
+- **Seen when:** an addon used Blizzard's top tab template for its own tab row (shorter tabs than Blizzard's) and selected tabs with `PanelTemplates_SelectTab` / `PanelTemplates_DeselectTab`.
+- **Cause:** those functions re-anchor the label themselves (for top tabs 4 px below centre when selected, 8 px when not, made for Blizzard's 32 px tabs), overriding any anchor the addon set; the template's `OnShow` also resized the tab to Blizzard's own padding, truncating long labels.
+- **Fix:** on your own tab buttons, set the label anchor and show the idle or active art yourself, and clear the template's resize scripts (`SetScript("OnShow", nil)`, its display-size event) so your row sizes the tabs.
+- **Lesson:** before fixing a region's anchor, check what else re-anchors it. A fix that is overridden does nothing.
+
+### 5. A one-pixel line looked blurred or the wrong colour
+- **Seen when:** a 1-unit accent underline at a UI scale under 1.
+- **Fix:** size thin lines and edges in physical pixels (768 / physical screen height / effective scale) and turn grid snapping off (`SetSnapToPixelGrid(false)`, `SetTexelSnappingBias(0)`, feature-detected).
+
+### 6. A wide window on small screens
 - **Seen when:** a window's minimum width grew to make room for a side pane.
 - **Fix:** keep it resizable, clamp it to the screen (`SetClampedToScreen`), cap the maximum size at the screen size, and check the default size on a small UI scale before shipping.

@@ -6,7 +6,7 @@ Repos: racetracks/PourSocialScore (seven folders, one version) and racetracks/sc
 
 Clients: Retail 120007 and Camelot 16001, three TOCs per folder. Everything on M via PourSocialScore_NS; core fires M.Events; UIs write only through core setters. Tabs, except PourSocialScore_EllesmereUI (4 spaces).
 
-Current feature: native GUI parity with the EllesmereUI window, version line 3.3.0 (issue #78). Main is 3.3.0-dev004; next stage 3.3.0-dev005 (type pie and type ticks). Stages are suffixed pre-releases; plain 3.3.0 only when Dan says parity is done.
+Live release: 3.3.1 (the 3.3.0 parity project is closed). Current feature: the new PSS window, version line 3.4.0 (docs/pss/09_PSS_UI_PROJECT.md): one window in the EllesmereUI port's layout (the port is the reference; the old GUI is not authoritative), logic in PourSocialScore_Libraries, drawing in PourSocialScore_UI, opened with /pss tui until the cutover (its files then move into PourSocialScore_GUI). Three looks: Blizzard (Default), Modern (Blizzard's new Social window art), Dark (the port's style); accent always the class colour. Fixes to an unmerged dev build count up as devNNN_2, _3. Project data on scratch: always read latest/ first (latest/README.md).
 
 PSS rules (02_RULES in the PSS pack):
 - Core holds only the chat filtering engine and the launchpad; anything not regularly active, including code both UIs share, goes in PourSocialScore_Libraries, with a measured resident cost.

@@ -13,6 +13,11 @@ work=${TMPDIR:-/tmp}/pss-validate
 rm -rf "$work"; mkdir -p "$work"
 t0=1790000000
 fail=0
+# the upgrade checks rebuild old versions from git history: a shallow clone
+# (a Claude Code session) lacks it and the split checks then fail
+if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = "true" ] && ! git cat-file -e 767c49c 2>/dev/null; then
+	echo "NOTE: shallow clone without the 2.0 history; run: git fetch --depth=2000 origin main"
+fi
 
 for pair in 2.0.18:d885cd0 2.0.19:4b7066c 2.0.22:2837de0 2.0.35:9646596 2.0.36:9bfba2e 2.0.37:710d180 2.0.38:d331f82 2.0.39:24d234c 2.0.40:34092f7 2.0.41:35742b2 2.0.42:8a8a8fd 2.0.43:41444f3 2.0.44:767c49c; do
 	v=${pair%%:*}; c=${pair#*:}

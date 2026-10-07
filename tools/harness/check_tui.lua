@@ -40,17 +40,24 @@ check(win and win._point and win._point[1] == "CENTER", "first open is not centr
 -- Blizzard look by default
 local art = win and win.art or {}
 check(M.PSS_UISkin() == "blizzard", "default look is not Blizzard")
-check(art.blizzard and art.blizzard:IsShown() and not art.modern:IsShown(), "Blizzard look not shown")
-check(art.blizzardClose:IsShown() and not art.modernClose:IsShown(), "Blizzard close button not shown")
+check(art.blizzard and art.blizzard:IsShown() and not art.dark:IsShown(), "Blizzard look not shown")
+check(art.blizzardClose:IsShown() and not art.darkClose:IsShown(), "Blizzard close button not shown")
 
--- Modern: the open window repaints, and only a non-default value is saved
+-- Dark: the open window repaints, and only a non-default value is saved
 M.PSS_SetOpt("uiSkin", "global", 1)
-check(M.PSS_UISkin() == "modern", "option did not switch to Modern")
-check(art.modern:IsShown() and not art.blizzard:IsShown(), "window did not repaint Modern")
-check(art.modernClose:IsShown() and not art.blizzardClose:IsShown(), "Modern close button not shown")
+check(M.PSS_UISkin() == "dark", "option did not switch to Dark")
+check(art.dark:IsShown() and not art.blizzard:IsShown(), "window did not repaint Dark")
+check(art.darkClose:IsShown() and not art.blizzardClose:IsShown(), "Dark close button not shown")
 M.PSS_SetOpt("uiSkin", "global", 0)
-check(art.blizzard:IsShown() and not art.modern:IsShown(), "window did not repaint Blizzard")
+check(art.blizzard:IsShown() and not art.dark:IsShown(), "window did not repaint Blizzard")
 check(PourSocialScoreDB.uiSkin == nil, "the default look was saved")
+-- the three choices; Modern paints as Blizzard until it is built
+local labels = {}
+for _, ch in ipairs(M.PSS_OPTION_REG.uiSkin.choices) do labels[#labels + 1] = ch[2] end
+check(table.concat(labels, ",") == "Blizzard (Default),Modern,Dark", "look choices are not Blizzard (Default), Modern, Dark")
+M.PSS_SetOpt("uiSkin", "global", 2)
+check(M.PSS_UISkin() == "modern" and art.blizzard:IsShown() and not art.dark:IsShown(), "Modern does not paint as Blizzard yet")
+M.PSS_SetOpt("uiSkin", "global", 0)
 
 -- a dragged place is saved and used next time
 win:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 120.4, -80.6)
@@ -74,9 +81,9 @@ check(not win:IsShown(), "Escape did not close the window")
 local kit = win.kit or {}
 check(kit.tabs and #kit.tabs == 6, "kit preview has no tab row")
 local b1, c1, e1 = kit.buttons and kit.buttons[1], kit.checks and kit.checks[1], kit.boxes and kit.boxes[1]
-local function modernShown(w) return w and w.pssParts and w.pssParts.fill:IsShown() end
-check(b1 and not modernShown(b1) and not b1.pssParts.edge:IsShown(), "Blizzard button shows Modern parts")
-check(e1 and not modernShown(e1), "Blizzard edit box shows Modern parts")
+local function darkShown(w) return w and w.pssParts and w.pssParts.fill:IsShown() end
+check(b1 and not darkShown(b1) and not b1.pssParts.edge:IsShown(), "Blizzard button shows Dark parts")
+check(e1 and not darkShown(e1), "Blizzard edit box shows Dark parts")
 check(kit.page and kit.page.pssParts.art and kit.page.pssParts.art:IsShown(), "Blizzard panel not shown")
 local tab1, tab2 = kit.tabs[1], kit.tabs[2]
 check(tab1.pssSelected and not tab2.pssSelected, "first tab not selected")
@@ -89,25 +96,34 @@ check(tab1.MiddleActive:IsShown() and not tab1.Middle:IsShown(), "selected tab n
 check(tab2.Middle:IsShown() and not tab2.MiddleActive:IsShown(), "unselected tab showing the active art")
 check(tab1._scripts.OnShow == nil, "tab template still resizes itself on show")
 check(tab1:GetWidth() == tab1:GetFontString():GetStringWidth() + 32, "tab not sized to its label + 32")
+-- the accent is always your class colour (here a Druid's orange)
+local realClass, realColor = UnitClass, C_ClassColor.GetClassColor
+UnitClass = function() return "Druid", "DRUID", 11 end
+C_ClassColor.GetClassColor = function(c) if c == "DRUID" then return { r = 1, g = 0.49, b = 0.04 } end end
 SlashCmdList["PSS"]("tui")
 M.PSS_SetOpt("uiSkin", "global", 1)
 SlashCmdList["PSS"]("tui")
-check(modernShown(b1) and b1.pssParts.edge:IsShown(), "Modern button parts not shown")
-check(c1.pssParts.box:IsShown() and c1.pssParts.edge:IsShown(), "Modern tick box parts not shown")
-check(modernShown(e1), "Modern edit box parts not shown")
-check(modernShown(kit.page) and not kit.page.pssParts.art:IsShown(), "Modern panel not shown")
-check(tab1.pssLine:IsShown() and not tab2.pssLine:IsShown(), "Modern tab underline not on the selected tab only")
-check(tab2:GetFontString():GetAlpha() == 0.5 and tab1:GetFontString():GetAlpha() == 1, "Modern tab labels not faded by alpha")
+local lc = tab1.pssLine._color
+check(lc and lc[1] == 1 and lc[2] == 0.49 and lc[3] == 0.04, "Dark underline is not the class colour")
+check(M.PSS_OPTION_REG.uiAccent == nil, "the accent has an option (the class colour is mandatory)")
+check(darkShown(b1) and b1.pssParts.edge:IsShown(), "Dark button parts not shown")
+check(c1.pssParts.box:IsShown() and c1.pssParts.edge:IsShown(), "Dark tick box parts not shown")
+check(darkShown(e1), "Dark edit box parts not shown")
+check(darkShown(kit.page) and not kit.page.pssParts.art:IsShown(), "Dark panel not shown")
+check(tab1.pssLine:IsShown() and not tab2.pssLine:IsShown(), "Dark tab underline not on the selected tab only")
+check(tab2:GetFontString():GetAlpha() == 0.7 and tab1:GetFontString():GetAlpha() == 1, "Dark tab labels not faded to 0.7 by alpha")
 kit.tabs[3]._scripts.OnClick(kit.tabs[3])
 check(kit.tabs[3].pssSelected and not tab1.pssSelected, "tab click did not select it")
 
--- tooltips: Modern draws its own; Blizzard uses GameTooltip
+UnitClass, C_ClassColor.GetClassColor = realClass, realColor
+
+-- tooltips: Dark draws its own; Blizzard uses GameTooltip
 local owner = kit.tipOwner
 owner._scripts.OnEnter(owner)
-check(_G.PSS_Tooltip and _G.PSS_Tooltip:IsShown(), "Modern tooltip not shown")
+check(_G.PSS_Tooltip and _G.PSS_Tooltip:IsShown(), "Dark tooltip not shown")
 owner._scripts.OnLeave(owner)
 M.PSS_SetOpt("uiSkin", "global", 0)
-check(not modernShown(b1) and not c1.pssParts.box:IsShown(), "back to Blizzard: Modern parts still shown")
+check(not darkShown(b1) and not c1.pssParts.box:IsShown(), "back to Blizzard: Dark parts still shown")
 local tipOwner
 local realOwner = GameTooltip.SetOwner
 GameTooltip.SetOwner = function(_, o) tipOwner = o end
@@ -121,9 +137,9 @@ local function face() return (_G.PSS_Font1:GetFont()) end
 check(M.PSS_UIFontPath() == nil, "a font is picked by default")
 check(face() ~= "Fonts\\ARIALN.TTF", "Blizzard look uses Arial Narrow by default")
 M.PSS_SetOpt("uiSkin", "global", 1)
-check(face() == "Fonts\\ARIALN.TTF", "Modern look does not default to Arial Narrow")
+check(face() == "Fonts\\ARIALN.TTF", "Dark look does not default to Arial Narrow")
 M.PSS_SetOpt("uiFont", "global", "morpheus")
-check(face() == "Fonts\\MORPHEUS.TTF", "picked font not used in Modern")
+check(face() == "Fonts\\MORPHEUS.TTF", "picked font not used in Dark")
 M.PSS_SetOpt("uiSkin", "global", 0)
 check(face() == "Fonts\\MORPHEUS.TTF", "picked font not used in Blizzard")
 check(PourSocialScoreDB.uiFont == "morpheus", "picked font not saved")

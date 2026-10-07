@@ -10,7 +10,7 @@ The **PourSocialScore-only layer.** It is written to sit on top of two general p
 
 **Where they differ, this pack wins for PourSocialScore.** Everything not mentioned here follows the baseline. Section numbers like "baseline 02 C3" point into layer 1.
 
-Last state: main is **3.3.0-dev004** (PR #82 merged 2026-10-05 20:45Z). Its release did not publish (06). Next dev number **3.3.0-dev005**.
+Last state (pack written): main was **3.3.0-dev004**. Since then: 3.3.1 released (full, the parity project closed), and the new PSS window project started on the **3.4.0** line (09). Current state is always in 06; project data on scratch `latest/`.
 
 ## How to restart
 1. New Claude project. Attach `racetracks/PourSocialScore` (the addon) and `racetracks/scratch` (hosting). Never attach `racetracks/PourSocialScore-EllesmereUI` (retired).
@@ -28,7 +28,8 @@ Last state: main is **3.3.0-dev004** (PR #82 merged 2026-10-05 20:45Z). Its rele
 | 05_RELEASE.md | What PSS does on top of the baseline pipeline: names, jobs, version history, test zip paths |
 | 06_STATUS_AND_NEXT.md | Merged and open work, the parity project, open issues, items waiting on Dan, the next step |
 | 07_HARNESS.md | PSS harness commands and checks |
-| 08_PARITY_PROJECT.md | The current project (3.3.0): objective, decisions, stage table |
+| 08_PARITY_PROJECT.md | The closed 3.3.0 parity project (shipped as 3.3.1): objective, decisions, stage table |
+| 09_PSS_UI_PROJECT.md | The current project (3.4.0): the new PSS window, decisions, three looks, stages, code map, lessons; plan on scratch `latest/pss-ui/` |
 | PROJECT_INSTRUCTIONS.md | Paste-ready project instructions |
 | savedvariables/<version>/ | Dan's real saves: 2.0.44, 3.0.0, 3.2.0-dev011 |
 | ci/ | Copies of the live release.yml, rules.yml and check scripts from main |
