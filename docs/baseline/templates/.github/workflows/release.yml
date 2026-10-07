@@ -1,0 +1,78 @@
+# Publishes a GitHub release whenever the version in $ADDON/$ADDON.toc changes
+# on main: tags v<version> and attaches $ADDON-<version>.zip (every addon folder
+# $ADDON and $ADDON_*, readme.txt and history.txt inside $ADDON; no .github or
+# tools), with that version's section of history.txt as the notes. Does nothing
+# if the release exists. Versions with a suffix (1.0.0-dev004) are pre-releases.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ADDON: MyAddon   # main folder / TOC name
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: v
+        run: |
+          ver=$(sed -n 's/^## Version: *//p' "$ADDON/$ADDON.toc" | tr -d '\r')
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          if gh release view "v$ver" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build zip and notes
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          ver=${{ steps.v.outputs.version }}
+          mkdir -p build
+          for d in "$ADDON" "$ADDON"_*/; do
+            if [ -d "$d" ]; then cp -r "${d%/}" build/; fi
+          done
+          cp readme.txt history.txt "build/$ADDON/"
+          (cd build && zip -qr "../$ADDON-$ver.zip" .)
+          {
+            echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\`."
+            echo
+            echo "### Changes"
+            awk -v v="$ver" '
+              index($0, "=> " v " ") == 1 { on = 1; next }
+              on && /^=> / { exit }
+              on { print }
+            ' history.txt
+            echo
+            echo "Full changelog: history.txt"
+          } > notes.md
+
+      - name: Publish release
+        if: steps.v.outputs.exists == 'false'
+        run: |
+          ver=${{ steps.v.outputs.version }}
+          pre=""
+          case "$ver" in *-*) pre="--prerelease" ;; esac
+          gh release create "v$ver" "$ADDON-$ver.zip" $pre \
+            --target "$GITHUB_SHA" --title "$ADDON $ver" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Mark suffixed releases as pre-releases
+        run: |
+          gh release list --limit 100 --json tagName,isPrerelease \
+            --jq '.[] | select(.isPrerelease | not) | .tagName | select(contains("-"))' |
+          while read -r tag; do gh release edit "$tag" --prerelease; done
+        env:
+          GH_TOKEN: ${{ github.token }}
