@@ -6,7 +6,7 @@ PourSocialScore**; everything it does not mention follows the baseline.
 
 | Layer | Folder | Holds |
 | --- | --- | --- |
-| 1 | `docs/baseline/` | WoW addon baseline v4 (2026-10-07): how any addon is built, released and delivered |
+| 1 | `docs/baseline/` | WoW addon baseline v5 (2026-10-07): how any addon is built, released and delivered; v5 adds 02 J (taint, secret values) and `reference/wow-api/` |
 | 2 | (not in repo) | Scratch repo usage pack v2: how `racetracks/scratch` hosts builds, saves and packs |
 | 3 | `docs/pss/` | PSS handover pack v4 (2026-10-07): only what is true of PourSocialScore |
 
@@ -30,6 +30,7 @@ Read when the task touches the topic:
 - `docs/pss/reference/`: original 3.3 analysis and plan, issue #77 notes, 2026-10-07 memory snapshot (history; 06 and 08 are newer)
 - `docs/baseline/01, 03, 04, 05, 06, 08, 09`: API limits, references, architecture, suite integration and known fixes, harness, lifecycle, release pipeline
 - `docs/baseline/templates/`, `docs/baseline/examples/`: generic; the live copies in `tools/` and `.github/workflows/` win
+- `docs/baseline/reference/wow-api/` (start with its README): WoW API reference from the Warcraft Wiki. Read for any hook, Blizzard frame, combat or instance path, chat event handling, secret values, a taint report, a TOC or Interface change, or an API that differs between clients. Reference only; baseline 02 J and B carry the rules, and its README lists where it differs from the baseline
 
 ## Short form
 - Main is **3.3.0-dev004**; next stage **3.3.0-dev005** (type pie and type ticks, issue #78). Plain `3.3.0` only when Dan says parity is done.
@@ -37,6 +38,7 @@ Read when the task touches the topic:
 - Core holds only the chat filtering engine and the launchpad; anything not regularly active, or shared by both UIs, goes in `PourSocialScore_Libraries`, with a measured resident cost.
 - No application or service logic in `PourSocialScore_GUI` or `PourSocialScore_EllesmereUI`; the native GUI never reads or loads the EUI folder; the EUI folder is read only during parity work.
 - Every number the EUI window shows equals the native window's. Logging loads only when logs are called.
+- Taint and secrets (baseline 02 J, PSS 02 section 10): never write or replace Blizzard state; post-hooks and `Menu.ModifyMenu` only; every chat, unit and hook value goes through `M.PSS_IsSecret` before any compare or index; a secret line is neither filtered nor counted.
 - Never change TOC Title or Notes. SavedVariables layout changes need Dan's OK and a migration validated on the three real saves.
 - Never write to `racetracks/PourSocialScore-EllesmereUI` (retired). Read only: `EllesmereGaming/EllesmereUI` (all rights reserved), `Gethe/wow-ui-source`.
 - Before pushing: `sh tools/check_rules.sh`, `sh tools/check_rules_eui.sh`, `sh tools/harness/check_eui_all.sh`, `PSS_REAL_SAVES=/mnt/project-files/baselines sh tools/harness/validate_all.sh`, and `ui_compare.sh` / `eui_compare.sh` for any window that should not change.

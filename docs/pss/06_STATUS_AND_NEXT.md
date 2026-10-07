@@ -21,6 +21,7 @@
 1. Archive `racetracks/PourSocialScore-EllesmereUI` and close its PR #18.
 2. Delete merged `claude/*` branches (Claude gets 403).
 3. Whether the known rule deviations (01 section 5: idle GC timer, totals pane without opt-in, OnUpdate on hover) get fixed inside the parity line or later.
+4. **Retail Interface number.** Every TOC says `120007` (12.0.7); the reference set's 2026-10-08 snapshot lists live Retail as 12.1.0 (`120100`), and 12.1.5 PTR adds a `_Standard` TOC suffix that beats `_Mainline` (baseline 02 B5). Recommendation: confirm in game with `/dump select(4, GetBuildInfo())`, then bump the Interface lines as their own devNNN (not inside dev005). Forever `16001` matches.
 
 ## Open issues (addon repo)
 #78 parity project; #37 guild exclusion list is not saved (define its intent); #38 seeing a shipped-guild member loads the lists; #39 unload the GUI on close; #40 research whether a LoadOnDemand addon can unload; #44 clean up console output; #45 Questie-style upgrade output. #77 decided (option b) and done.

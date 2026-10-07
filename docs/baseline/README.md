@@ -1,4 +1,4 @@
-# WoW addon baseline (2026-10-07, v4)
+# WoW addon baseline (2026-10-07, v5)
 
 The baseline for creating and maintaining any World of Warcraft addon with Claude: the author's frameworks, rules, styles, preferences, release pipeline and references. **It names no addon and no repository of ours.** Attach it to a fresh Claude project together with:
 - an **addon-specific pack** (that addon's purpose, repos, data layout, plans and status), and
@@ -27,6 +27,13 @@ The baseline for creating and maintaining any World of Warcraft addon with Claud
 | HANDOVER_TEMPLATE.md | Layout for the addon-specific pack when a thread gets long |
 | templates/ | release.yml, rules.yml, check_rules.sh, a TOC set, history.txt layout |
 | examples/ | Harness tooling to adapt (stub, runner, style and layer checks, UI compare) |
+| reference/wow-api/ | WoW API reference set from the Warcraft Wiki: load order, TOC format and interface numbers, object security, taint, secure templates and handlers, Retail 12.x secret values. Reference only; its README lists where it differs from 02 |
+
+## Changes in v5
+- New 02 section J: security, taint and secret values (never write Blizzard state, post-hooks only, combat guards, `IsForbidden`, secret values on Retail 12.x, no combat log, restriction CVars, taint logs). C4 points to it.
+- 02 B5 and B6: interface numbers checked every patch, new TOC suffixes, feature detection, `WOW_PROJECT_ID` constants.
+- New `reference/wow-api/` (Warcraft Wiki reference set, compiled 2026-10-08, ASCII), with a table of where it differs from this baseline.
+- 01 and 03 point to it; 03 adds Townlong Yak, BlizzardInterfaceResources and WoWUIBugs.
 
 ## Changes in v4
 - Written for any author: no personal names.
