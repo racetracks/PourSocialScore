@@ -18,7 +18,7 @@ The pipeline is the baseline's (baseline 09). Live copies of PSS's files are in 
 | 3.1.0 | Full | EllesmereUI integration |
 | 3.2.0 | Full, 2026-10-05 | **Last full release** |
 | 3.3.0-dev001 to dev003 | Pre-releases | Parity stages, published on merge |
-| 3.3.0-dev004 | **Not published** | PR #82 merged 2026-10-05 20:45Z, but the Release and Rules runs on main (5c39f62) were **cancelled**, so no release or tag exists. Fix: run the Release workflow by hand (`workflow_dispatch`) on main while 3.3.0-dev004 is still the version, or let the next stage (dev005) publish and leave dev004 as test-zip only. Ask Dan which |
+| 3.3.0-dev004 | **Not published** | PR #82 merged 2026-10-05 20:45Z, but the Release and Rules runs on main (5c39f62) were **cancelled**, so no release or tag exists. Fix: run the Release workflow by hand (`workflow_dispatch`) on main while 3.3.0-dev004 is still the version, or let the next stage (dev005) publish and leave dev004 as test-zip only. **Dan chose skip (2026-10-07)**: dev004 is test-zip only |
 
 ## Test zips
 - Scratch: `PourSocialScore/test-builds/PourSocialScore-<version>.zip`; dev001 to dev003 are also in the old `pss-builds/`. Link `https://github.com/racetracks/scratch/raw/main/<path>`. Copy to `/mnt/project-files/builds/`.
