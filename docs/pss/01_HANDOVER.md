@@ -31,18 +31,20 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; 03), `Gethe/wow-u
 | `PourSocialScore_Libraries` | On demand | Shared logic for both UIs: PSS_Commands, PSS_GuildQuery, PSS_FilterQuery, PSS_TotalsQuery, PSS_EventsQuery, PSS_ImportExport |
 | `PourSocialScore_Logging` | On demand, only when logs are called | `PSS_LoggingDB` (blockLog, blockKeep); PSS_SavedLog.lua, PSS_LoggingData.lua |
 | `PourSocialScore_Communities` | On demand | Packed shipped lists (~460 KB) |
-| `PourSocialScore_EllesmereUI` | On demand, only when the integration is on | The EllesmereUI window (03); `PSS_EllesmereUIDB` |
+| `PourSocialScore_EllesmereUI` | On demand, only when the integration is on | The EllesmereUI window (03); `PSS_EllesmereUIDB`. Deleted at the 3.4.0 cutover (09) |
+| `PourSocialScore_UI` (from 3.4.0-dev001) | On demand, `/pss tui` only | The new PSS window while it is built (09): PSS_Skin, PSS_Kit, PSS_Tooltip, PSS_KitPage (temporary), PSS_Window. Drawing only; no SavedVariables. Its files move into `PourSocialScore_GUI` at the cutover |
 
 ## 4. Real names (the project's own objects)
 - **Namespace:** everything hangs on `M`, shared through the global `PourSocialScore_NS`. Private file tables are `ns` in the EUI folder.
 - **Events:** `M.Events` (core bus). UIs listen (for example `OPTION_CHANGED`) and write through core setters.
-- **Loader** (`PSS_Loader.lua`): `M.PSS_PARTS`; `NEEDS = {GUI="Libraries", EllesmereUI="Libraries"}`; `M.PSS_Need(key)` loads a part and what it needs; a part whose version differs from core's prints a warning. Logging: `M.PSS_LoadLogging()`.
+- **Loader** (`PSS_Loader.lua`): `M.PSS_PARTS`; `NEEDS = {GUI="Libraries", EllesmereUI="Libraries", UI="Libraries"}`; `M.PSS_Need(key)` loads a part and what it needs; a part whose version differs from core's prints a warning. Logging: `M.PSS_LoadLogging()`.
 - **Options:** `M.PSS_OPTIONS` (one table, both UIs render from it); read `M.PSS_Opt`, write `M.PSS_SetOpt`; only non-defaults stored.
 - **Helpers and kit:** `M.ShowMsg`, `M.Trim`; UIKit `UI.CreateWindow`, `UI.InputBox`, `UI.NumberBox`, `UI.TextArea`, `UI.ScrollList`.
 - **Counting and history:** `History.*` (04); totals `M.PSS_RecentListStats`, `M.PSS_ListTotals` (Libraries).
 - **Guild rules:** `M.PSS_GuildRuleActive`, `M.PSS_IsOwnGuild`.
 - **GC helper:** `PSS_Perf.lua` (stepped collection; option `gcEnabled`).
-- **Commands:** `/pss`, `/pss gui`, `/pss gui force`, `/pss eui`, `/pss eui enable|disable`.
+- **Commands:** `/pss`, `/pss gui`, `/pss gui force`, `/pss eui`, `/pss eui enable|disable`; `/pss tui` (the new window, 3.4.0, until the cutover).
+- **New window (09):** looks `M.PSS_UISkin()` (option `uiSkin`), accent `M.PSS_UIAccent()` (class colour), font `M.PSS_UIFontPath()` / `M.PSS_UIFontChoices()` (option `uiFont`), place `M.PSS_UIPlace` / `M.PSS_SetUIPlace` (Libraries `PSS_ViewNav.lua`); window `PSS_Window`, entry `M.PSS_TUI`.
 
 ## 5. Crucial context
 - Three TOCs per folder; one combined TOC broke Camelot in 3.0.0-dev6.
@@ -60,6 +62,7 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; 03), `Gethe/wow-u
 | EllesmereUI integration E.1 to E.7 | Done, v3.1.0 |
 | Detail pane redesign, log every line, grouped save, EUI merged into the repo, EUI navigation, Events tab | Done, **v3.2.0 (last full release, 2026-10-05)** |
 | Native GUI parity with the EllesmereUI window (3.3.0, issue #78) | Closed at **v3.3.1** (2026-10-07): dev001 to dev005 shipped, the rest dropped. 08 and 06 |
+| **The new PSS window (3.4.0)**: one window in the port's layout, three looks, replaces both old windows | **Current**, started 2026-10-07. 09 and 06; plan on scratch `latest/pss-ui/` |
 
 ## 7. Observations about Dan on this project
 Beyond baseline 07:

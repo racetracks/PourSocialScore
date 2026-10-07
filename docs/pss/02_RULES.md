@@ -53,9 +53,18 @@ So core = the chat filtering engine plus the loader, with what filtering needs (
 
 ## 9. Hosting paths on scratch
 - Test zips: `PourSocialScore/test-builds/PourSocialScore-<version>.zip` (old `pss-builds/` kept for links). Also copy to `/mnt/project-files/builds/`.
-- Plans: `pss-projects/<project>/` (current: `pss-native-gui-port/`). Issue notes: `pss-issues/`.
+- Plans: `pss-projects/<project>/` (current: `pss-ui/`; closed: `pss-native-gui-port/`). Issue notes: `pss-issues/`.
+- **`latest/`** (from 2026-10-07): copies of the newest markdown, the current plan (`latest/pss-ui/`) and these docs (`latest/pss-docs/`), with an index `latest/README.md`. Always read it first; refresh it whenever a plan or these docs change.
 - Saves: `pss-projects/savedvariables/<version>/` (the `PourSocialScore/savedvariables/` copies stay for old links).
 - Packs: `handover-packs/` (this pack is `pss-handover-<date>-vN`).
+
+## 11. The new PSS window (3.4.0, Dan, 2026-10-07; details in 09)
+1. The EllesmereUI port is the reference for every visual and layout choice; the old GUI is not authoritative on anything.
+2. Logic in `PourSocialScore_Libraries`; drawing only in `PourSocialScore_UI` (later `PourSocialScore_GUI`). No `EUI` or `Ellesmere` names in new code (checked by `check_rules.sh`); never copy EllesmereUI's code or media.
+3. Three looks with the same layout, features and feel: Blizzard (Default), Modern (Blizzard's new Social window art), Dark (the port's style in full). Dark draws everything from our kit, popups and menus included.
+4. **The accent is always the player's class colour**, in every look; no option.
+5. Fonts: the look's own, a Blizzard font, or a LibSharedMedia font read only when another addon loaded it. PSS ships no library.
+6. Window state and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` keys); no new SavedVariables.
 
 ## 10. Taint and secret values on PSS (baseline 02 J, added 2026-10-07)
 PSS is a chat filter: on Retail 12.x its inputs are the values most likely to be secret (chat event arguments under chat messaging lockdown, `UnitName` and GUIDs while restricted).

@@ -3,13 +3,14 @@
 The pipeline is the baseline's (baseline 09). Live copies of PSS's files are in `ci/`. PSS-specific details:
 
 ## Names and paths
-- Main TOC (version source): `PourSocialScore/PourSocialScore.toc`. Zip: `PourSocialScore-<version>.zip` holding all seven `PourSocialScore*` folders, readme.txt and history.txt copied into the core folder.
+- Main TOC (version source): `PourSocialScore/PourSocialScore.toc`. Zip: `PourSocialScore-<version>.zip` holding every `PourSocialScore*` folder (eight from 3.4.0-dev001 with `PourSocialScore_UI`), readme.txt and history.txt copied into the core folder.
 - Release title: `Pour Social Score <version>`. Tags `v<version>`.
 - history.txt opens with "POUR SOCIAL SCORE - VERSION HISTORY" and "(newest first)"; a release section ends with the bullet "- Version X.Y.Z.".
 
 ## CI jobs (rules.yml)
 - `check`: `sh tools/check_rules.sh` (Lua 5.1 syntax, ASCII, tabs, layers) plus `tools/check_rules_eui.sh` (the EUI folder's 4-space style and Version = core's).
-- `harness`: `PSS_EUI_REQUIRED=1 sh tools/harness/check_eui_all.sh`.
+- `harness`: `PSS_EUI_REQUIRED=1 sh tools/harness/check_eui_all.sh`, then `check_tui.lua` (the new window, from 3.4.0-dev001).
+- `check` also runs `tools/check_toc.sh` on every `PourSocialScore_*` folder (three TOCs agree, files exist, Version = core's) and the PSS-names check.
 
 ## Release history
 | Version | Kind | Notes |
@@ -18,7 +19,12 @@ The pipeline is the baseline's (baseline 09). Live copies of PSS's files are in 
 | 3.1.0 | Full | EllesmereUI integration |
 | 3.2.0 | Full, 2026-10-05 | **Last full release** |
 | 3.3.0-dev001 to dev003 | Pre-releases | Parity stages, published on merge |
+| 3.3.1 | Full, 2026-10-07 | Parity project closed (dev001 to dev005) |
+| 3.4.0-dev001 on | Pre-releases | The new PSS window (09) |
 | 3.3.0-dev004 | **Not published** | PR #82 merged 2026-10-05 20:45Z, but the Release and Rules runs on main (5c39f62) were **cancelled**, so no release or tag exists. Fix: run the Release workflow by hand (`workflow_dispatch`) on main while 3.3.0-dev004 is still the version, or let the next stage (dev005) publish and leave dev004 as test-zip only. **Dan chose skip (2026-10-07)**: dev004 is test-zip only |
+
+## Fix builds before merge (Dan, 2026-10-07)
+A round of fixes on a dev build that has not merged yet is `devNNN_N` (`3.4.0-dev002_2`, `_3`, ...): every TOC, a history section and the zip name. `check_toc.sh` and `check_rules_eui.sh` accept the form; the workflow publishes it as a pre-release (it contains `-`). The next stage is the next devNNN.
 
 ## Test zips
 - Scratch: `PourSocialScore/test-builds/PourSocialScore-<version>.zip`; dev001 to dev003 are also in the old `pss-builds/`. Link `https://github.com/racetracks/scratch/raw/main/<path>`. Copy to `/mnt/project-files/builds/`.
