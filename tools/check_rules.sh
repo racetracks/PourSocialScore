@@ -6,6 +6,9 @@
 #   4. Tabs, not spaces: indentation, mid-line alignment and no trailing
 #      whitespace (tools/check_style.lua; --fix there repairs these)
 #   6. Core logic files hold no UI code (tools/check_layers.lua)
+#   Every PourSocialScore_* folder's three TOCs agree (tools/check_toc.sh)
+#   The new window (PourSocialScore_UI) and the Libraries code it calls use
+#   PSS names only: no EllesmereUI or EUI names
 #   PourSocialScore_EllesmereUI is checked by tools/check_rules_eui.sh
 #   (the same rules in EllesmereUI's code style: spaces, not tabs)
 # Usage: sh tools/check_rules.sh   (from the repo root, needs luac5.1/lua5.1)
@@ -31,6 +34,15 @@ if grep -nP '^\t* |[ \t]+$' $(ls PourSocialScore*/*.xml 2>/dev/null | grep -v '^
 fi
 
 lua5.1 tools/check_layers.lua || fail=1
+
+for d in PourSocialScore_*/; do
+	sh tools/check_toc.sh "${d%/}" || fail=1
+done
+
+if grep -nE 'EUI|[Ee]llesmere' PourSocialScore_UI/* PourSocialScore_Libraries/PSS_ViewNav.lua; then
+	echo "PSS names only: an EllesmereUI or EUI name found above"
+	fail=1
+fi
 
 sh tools/check_rules_eui.sh > /dev/null || { sh tools/check_rules_eui.sh; fail=1; }
 

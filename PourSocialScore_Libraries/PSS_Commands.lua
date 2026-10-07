@@ -264,6 +264,10 @@ function M.PSS_SlashPSS (msg)
 
 		M.PSS_OpenUI(args[2] == "force")
 
+	elseif args[1] == "tui" then
+
+		if M.PSS_Need("UI") and M.PSS_TUI then M.PSS_TUI() end
+
 	elseif args[1] == "eui" then
 
 		if args[2] == "enable" or args[2] == "disable" then
@@ -308,6 +312,7 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  " .. L["HELP_16"])
 		M.ShowMsg ("  " .. L["HELP_19"])
 		M.ShowMsg ("  " .. L["HELP_20"])
+		M.ShowMsg ("  " .. L["HELP_21"])
 		M.ShowMsg ("  " .. L["HELP_17"])
 		M.ShowMsg ("  " .. L["HELP_18"])
 		M.ShowMsg ("  " .. L["HELP_9"])

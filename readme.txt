@@ -549,6 +549,9 @@ filter that mixes them without brackets may now behave differently.)
                           integration"). It takes effect after a reload;
                           you are asked to reload. Needs the
                           PourSocialScore_EllesmereUI folder
+/pss tui                  Open the new PSS window while it is being built
+                          (PourSocialScore_UI; Options tab: "Look of the
+                          new PSS window", Blizzard or Modern)
 /pss list [days|server]   List entries; optionally only those listed for
                           [days] or more, or from one server
 /pss add name [days] [note]
