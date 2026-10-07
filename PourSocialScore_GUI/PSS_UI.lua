@@ -1493,7 +1493,8 @@ end
 -- HOOK INTO FRIENDS WINDOW --
 ------------------------------
 
-local function friendsShow()
+-- host: the Friends or Social window that opened; x: offset from its right edge
+local function friendsShow(host, x)
 
 	if not M.PSS_Opt("openWithFriends") then
 		return
@@ -1505,7 +1506,7 @@ local function friendsShow()
 
 	if MainFrame ~= nil then
 		MainFrame:ClearAllPoints()
-		MainFrame:SetPoint("TOPLEFT", FriendsFrame, "TOPRIGHT", 12, -10)
+		MainFrame:SetPoint("TOPLEFT", host or FriendsFrame, "TOPRIGHT", x or 12, -10)
 		MainFrame:Show()
 	end
 end
