@@ -1,6 +1,21 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev003_2 - New PSS window: popups open, slimmer right-click menu
+
+- The Confirm, Copy and Import popups open again: their buttons were built with a wrong argument, which the game rejected with a Lua error, so nothing showed.
+- Dark right-click menus are compact: 20 px entries, a slim title and divider, and only as wide as the longest entry. Drop-down lists keep the full size.
+- Harness: a script given anything but a function is now an error, as in the game, so this kind of mistake fails the checks.
+
+=> 3.4.0-dev003 - New PSS window: menus, popups, lists and the pie
+
+- The kit preview (/pss tui) now has three tabs: Controls, Lists and pie, Menus and popups.
+- Drop-downs and right-click menus: Blizzard look uses Blizzard's own menus; Dark draws its own list (dark, a faint edge, the picked or ticked entries marked in your class colour, ticks stay open, a long list scrolls with the mouse wheel; a click elsewhere or Escape closes it).
+- Popups: a confirm, a copy popup (the text selected, read only) and an import popup. Blizzard look: Blizzard's dialog frame and buttons. Dark: a flat dark panel over a dimmed screen, the accept button in your class colour. Escape (or, in Dark, a click on the dimmed screen) cancels.
+- The row list every list tab will use: only the rows that fit are made, so a long list costs the same as a short one; click a header to sort (the sorted column in your class colour with ^ or v), click a row to select it (a class-colour wash), click under the rows to clear it. Links in rows show their tooltip on hover.
+- The pie: hover a slice and the others dim while its count shows in the middle.
+- Nothing else changes.
+
 => 3.4.0-dev002_4 - New PSS window: class colour accent, clearer tabs
 
 - The new window's accent is your class colour in every look: the selected tab's underline, headings and ticks now (sorted columns and selected rows as they arrive).

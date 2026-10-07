@@ -1,0 +1,229 @@
+------------------------------------------------------------------------
+-- POUR SOCIAL SCORE UI - POPUPS
+--
+-- The window's own popups, in the look shown, built on first use. One of
+-- each; showing one again replaces what it showed.
+--   ns.Confirm({ title, text, accept, cancel, onAccept, onCancel })
+--   ns.CopyText({ title, subtitle, text })          read only, selected
+--   ns.ImportText({ title, subtitle, accept, onAccept(text) })
+-- Blizzard: Blizzard's dialog frame and buttons. Dark: a flat panel with a
+-- faint edge over a dimmed screen (a click on it or Escape cancels), the
+-- accept button in the accent. Escape cancels in both looks.
+------------------------------------------------------------------------
+local ADDON_NAME, ns = ...
+
+local DARK = ns.DARK
+local POP_FILL = { 0.077, 0.068, 0.058, 1 }
+local POP_EDGE = { 1, 1, 1, 0.15 }
+local DIM = { 0, 0, 0, 0.25 }
+
+local DIALOG_BACKDROP = BACKDROP_DIALOG_32_32 or {
+	bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+	tile = true, tileSize = 32, edgeSize = 32,
+	insets = { left = 11, right = 12, top = 12, bottom = 11 },
+}
+
+-- A popup button: the kit's button; Dark gives it a dark fill and an edge,
+-- in the accent for the button that accepts.
+local function PopupButton(parent, w, h, accept)
+	local b = ns.NewButton(parent, "", w)
+	b:SetHeight(h)
+	ns.OnPaint(function(dark)
+		local p = b.pssParts
+		if dark then
+			p.fill:SetColorTexture(0, 0, 0, 0.5)
+			if accept then
+				local r, g, bl = ns.Accent()
+				p.edge:SetColor(r, g, bl, 0.9)
+			else
+				p.edge:SetColor(1, 1, 1, 0.5)
+			end
+			b:SetNormalFontObject(ns.Font(12, accept and "Accent" or "GameFontHighlight"))
+		else
+			p.fill:SetColorTexture(DARK.control[1], DARK.control[2], DARK.control[3], DARK.control[4])
+			p.edge:SetColor(DARK.border[1], DARK.border[2], DARK.border[3], DARK.border[4])
+		end
+	end)
+	return b
+end
+
+-- The frame both popups share the build of: Blizzard dialog art or the Dark
+-- panel, a title, Escape, and in Dark a dimmed screen behind.
+local function Shell(name, w, h)
+	local f = CreateFrame("Frame", name, UIParent)
+	f:SetSize(w, h)
+	f:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
+	f:SetFrameStrata("FULLSCREEN_DIALOG")
+	f:SetFrameLevel(100)
+	f:SetToplevel(true)
+	f:EnableMouse(true)
+	f:Hide()
+	tinsert(UISpecialFrames, name)
+	local ok, art = pcall(CreateFrame, "Frame", nil, f, "BackdropTemplate")
+	if ok and art and art.SetBackdrop then
+		art:SetAllPoints(f)
+		art:SetFrameLevel(f:GetFrameLevel())
+		art:SetBackdrop(DIALOG_BACKDROP)
+	else
+		art = nil
+	end
+	local fill = ns.Fill(f, POP_FILL, -6)
+	local edge = ns.PixelBorder(f, POP_EDGE)
+	local dim = CreateFrame("Button", nil, f)
+	dim:SetAllPoints(UIParent)
+	dim:SetFrameLevel(math.max(0, f:GetFrameLevel() - 1))
+	ns.Fill(dim, DIM, -8)
+	dim:SetScript("OnClick", function() f:Hide() end)
+	f.title = ns.NewText(f, 16, "GameFontNormalLarge")
+	f.title:SetPoint("TOP", f, "TOP", 0, -20)
+	f.pssParts = { fill = fill, edge = edge, art = art, dim = dim }
+	ns.OnPaint(function(dark)
+		local ours = dark or not art
+		fill:SetShown(ours)
+		edge:SetShown(ours)
+		dim:SetShown(dark)
+		if art then art:SetShown(not ours) end
+	end)
+	return f
+end
+
+------------------------------------------------------------------------
+-- Confirm
+------------------------------------------------------------------------
+local confirm, confirmOpts
+
+local function BuildConfirm()
+	confirm = Shell("PSS_Confirm", 390, 176)
+	confirm.text = ns.NewText(confirm, 12)
+	confirm.text:SetPoint("TOP", confirm.title, "BOTTOM", 0, -10)
+	confirm.text:SetWidth(330)
+	confirm.text:SetJustifyH("CENTER")
+	confirm.text:SetSpacing(4)
+	confirm.text:SetWordWrap(true)
+	confirm.accept = PopupButton(confirm, 125, 27, true)
+	confirm.cancel = PopupButton(confirm, 125, 27, false)
+	confirm.accept:SetPoint("BOTTOMRIGHT", confirm, "BOTTOM", -8, 13)
+	confirm.cancel:SetPoint("BOTTOMLEFT", confirm, "BOTTOM", 8, 13)
+	confirm.accept:SetScript("OnClick", function()
+		local o = confirmOpts
+		confirmOpts = nil
+		confirm:Hide()
+		if o and o.onAccept then o.onAccept() end
+	end)
+	confirm.cancel:SetScript("OnClick", function() confirm:Hide() end)
+	-- hidden any other way (Cancel, Escape, a click on the dimmed screen,
+	-- another popup) is a cancel
+	confirm:SetScript("OnHide", function()
+		local o = confirmOpts
+		confirmOpts = nil
+		if o and o.onCancel then o.onCancel() end
+	end)
+	ns.OnPaint(function(dark)
+		confirm.text:SetTextColor(1, 1, 1, dark and 0.53 or 1)
+	end)
+end
+
+function ns.Confirm(opts)
+	if not confirm then BuildConfirm() end
+	if confirm:IsShown() then confirm:Hide() end
+	confirmOpts = opts
+	confirm.title:SetText(opts.title or "Pour Social Score")
+	confirm.text:SetText(opts.text or "")
+	confirm.accept:SetText(opts.accept or OKAY or "Okay")
+	confirm.cancel:SetText(opts.cancel or CANCEL or "Cancel")
+	-- grows with a long message
+	local over = math.max(0, confirm.text:GetStringHeight() - 44)
+	confirm:SetHeight(176 + over)
+	confirm:Show()
+	confirm:Raise()
+	return confirm
+end
+
+------------------------------------------------------------------------
+-- Copy and import: one text popup
+------------------------------------------------------------------------
+local textPop, textOpts
+
+local function BuildText()
+	local f = Shell("PSS_TextPopup", 520, 310)
+	textPop = f
+	f.title:SetPoint("TOP", f, "TOP", 0, -20)
+	f.subtitle = ns.NewText(f, 11)
+	f.subtitle:SetPoint("TOP", f.title, "BOTTOM", 0, -4)
+	f.subtitle:SetTextColor(1, 1, 1, 0.45)
+	local box = ns.NewPanel(f, true)
+	box:SetPoint("TOPLEFT", f, "TOPLEFT", 20, -58)
+	box:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -20, 52)
+	local sf = ns.NewScrollFrame(box)
+	sf:SetPoint("TOPLEFT", box, "TOPLEFT", 6, -6)
+	sf:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -24, 6)
+	local eb = CreateFrame("EditBox", nil, sf)
+	eb:SetMultiLine(true)
+	eb:SetAutoFocus(false)
+	eb:SetFontObject(ns.Font(11, "ChatFontNormal"))
+	eb:SetWidth(440)
+	sf:SetScrollChild(eb)
+	eb:SetScript("OnEscapePressed", function() f:Hide() end)
+	-- copy: the text stays as given, all of it selected
+	eb:SetScript("OnTextChanged", function(self, user)
+		if user and textOpts and textOpts.readOnly then
+			self:SetText(textOpts.text or "")
+			self:HighlightText()
+		end
+	end)
+	eb:SetScript("OnCursorChanged", function(self, _, y, _, h)
+		-- keep the cursor in view while typing or pasting
+		local top = sf:GetVerticalScroll()
+		if -y < top then sf:SetVerticalScroll(-y)
+		elseif -y + h > top + sf:GetHeight() then sf:SetVerticalScroll(-y + h - sf:GetHeight()) end
+	end)
+	f.edit = eb
+	f.accept = PopupButton(f, 120, 26, true)
+	f.close = PopupButton(f, 120, 26, false)
+	f.accept:SetScript("OnClick", function()
+		local o = textOpts
+		local text = eb:GetText() or ""
+		textOpts = nil
+		f:Hide()
+		if o and o.onAccept then o.onAccept(text) end
+	end)
+	f.close:SetScript("OnClick", function() f:Hide() end)
+	f:SetScript("OnHide", function()
+		textOpts = nil
+		eb:SetText("")
+		eb:ClearFocus()
+	end)
+end
+
+local function ShowText(opts, readOnly)
+	if not textPop then BuildText() end
+	if textPop:IsShown() then textPop:Hide() end
+	opts.readOnly = readOnly
+	textOpts = opts
+	local f = textPop
+	f.title:SetText(opts.title or "Pour Social Score")
+	f.subtitle:SetText(opts.subtitle or "")
+	f.edit:SetText(opts.text or "")
+	f.accept:ClearAllPoints()
+	f.close:ClearAllPoints()
+	if readOnly then
+		f.accept:Hide()
+		f.close:SetText(CLOSE or "Close")
+		f.close:SetPoint("BOTTOM", f, "BOTTOM", 0, 14)
+	else
+		f.accept:Show()
+		f.accept:SetText(opts.accept or "Import")
+		f.close:SetText(CANCEL or "Cancel")
+		f.accept:SetPoint("BOTTOMRIGHT", f, "BOTTOM", -4, 14)
+		f.close:SetPoint("BOTTOMLEFT", f, "BOTTOM", 4, 14)
+	end
+	f:Show()
+	f:Raise()
+	f.edit:SetFocus()
+	if readOnly then f.edit:HighlightText() end
+	return f
+end
+
+function ns.CopyText(opts) return ShowText(opts, true) end
+function ns.ImportText(opts) return ShowText(opts, false) end

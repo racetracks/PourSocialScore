@@ -79,7 +79,7 @@ check(not win:IsShown(), "Escape did not close the window")
 
 -- the kit preview, in both looks
 local kit = win.kit or {}
-check(kit.tabs and #kit.tabs == 6, "kit preview has no tab row")
+check(kit.tabs and #kit.tabs == 3, "kit preview has no tab row of three")
 local b1, c1, e1 = kit.buttons and kit.buttons[1], kit.checks and kit.checks[1], kit.boxes and kit.boxes[1]
 local function darkShown(w) return w and w.pssParts and w.pssParts.fill:IsShown() end
 check(b1 and not darkShown(b1) and not b1.pssParts.edge:IsShown(), "Blizzard button shows Dark parts")
@@ -114,6 +114,8 @@ check(tab1.pssLine:IsShown() and not tab2.pssLine:IsShown(), "Dark tab underline
 check(tab2:GetFontString():GetAlpha() == 0.7 and tab1:GetFontString():GetAlpha() == 1, "Dark tab labels not faded to 0.7 by alpha")
 kit.tabs[3]._scripts.OnClick(kit.tabs[3])
 check(kit.tabs[3].pssSelected and not tab1.pssSelected, "tab click did not select it")
+check(kit.pages[3]:IsShown() and not kit.pages[1]:IsShown(), "tab click did not show its page")
+kit.tabs[1]._scripts.OnClick(kit.tabs[1])
 
 UnitClass, C_ClassColor.GetClassColor = realClass, realColor
 
@@ -166,5 +168,100 @@ check(M.PSS_UIFontPath() == "Interface\\AddOns\\Other\\face.ttf" and face() == "
 _G.LibStub = nil
 check(M.PSS_UIFontPath() == nil, "a shared font without LibSharedMedia did not fall back")
 M.PSS_SetOpt("uiFont", "global", "")
+
+------------------------------------------------------------------------
+-- dev003: menus, popups, row list, pie (Blizzard first, then Dark)
+------------------------------------------------------------------------
+local mk, ls = kit.menus, kit.lists
+check(mk and ls, "kit has no menus or lists page")
+M.PSS_SetOpt("uiSkin", "global", 0)
+local dd = mk.pick
+check(dd.blizz and dd.blizz:IsShown() and not dd.dark:IsShown(), "Blizzard drop-down not shown")
+local items = dd.blizz:MenuButtons()
+check(#items == 4 and items[1].kind == "radio" and items[1].on and not items[2].on, "Blizzard drop-down entries wrong")
+items[2].fn()
+check(mk.result:GetText() == "Last: Last 24 hours", "Blizzard drop-down pick did not run")
+local tk = mk.ticks.blizz:MenuButtons()
+check(#tk == 8 and tk[1].kind == "checkbox", "Blizzard tick menu entries wrong")
+-- right-click: Blizzard's context menu
+local made
+local realCtx = MenuUtil.CreateContextMenu
+MenuUtil.CreateContextMenu = function(o, gen) made = o end
+mk.area._scripts.OnClick(mk.area, "RightButton")
+MenuUtil.CreateContextMenu = realCtx
+check(made == mk.area, "Blizzard right-click menu not opened")
+-- confirm: accept and cancel
+mk.confirm._scripts.OnClick(mk.confirm)
+local cf = _G.PSS_Confirm
+check(cf and cf:IsShown(), "confirm popup not shown")
+check(cf.pssParts.art and cf.pssParts.art:IsShown() and not cf.pssParts.dim:IsShown(), "Blizzard confirm not in Blizzard art")
+cf.accept._scripts.OnClick(cf.accept)
+check(not cf:IsShown() and mk.result:GetText() == "Last: Confirmed", "confirm accept did not run")
+mk.confirm._scripts.OnClick(mk.confirm)
+cf:Hide()	-- Escape hides it
+check(mk.result:GetText() == "Last: Cancelled", "confirm Escape did not cancel")
+-- copy (read only) and import
+mk.copy._scripts.OnClick(mk.copy)
+local tp = _G.PSS_TextPopup
+check(tp and tp:IsShown() and tp.edit:GetText():find("^PSS1:") and not tp.accept:IsShown(), "copy popup wrong")
+tp:Hide()
+mk.import._scripts.OnClick(mk.import)
+check(tp:IsShown() and tp.accept:IsShown(), "import popup wrong")
+tp.edit:SetText("PSS1:xyz")
+tp.accept._scripts.OnClick(tp.accept)
+check(not tp:IsShown() and mk.result:GetText() == "Last: Imported 8 characters", "import did not hand over the text")
+for _, n in ipairs({ "PSS_Confirm", "PSS_TextPopup" }) do
+	local listed = false
+	for _, x in ipairs(UISpecialFrames) do if x == n then listed = true end end
+	check(listed, n .. " does not close on Escape")
+end
+
+-- Dark: our own menu list
+M.PSS_SetOpt("uiSkin", "global", 1)
+check(dd.dark:IsShown() and not dd.blizz:IsShown(), "Dark drop-down not shown")
+check(cf.pssParts.dim:IsShown() and cf.pssParts.fill:IsShown(), "Dark confirm has no dimmed screen")
+dd.dark._scripts.OnClick(dd.dark)
+local menu = _G.PSS_Menu
+check(menu and menu:IsShown(), "Dark drop-down did not open our menu")
+local shownSlots = 0
+for _, sl in ipairs(menu.slots) do if sl:IsShown() then shownSlots = shownSlots + 1 end end
+check(shownSlots == 4, "Dark menu does not show 4 entries")
+check(menu.slots[2].mark:IsShown() and not menu.slots[1].mark:IsShown(), "Dark menu does not mark the picked entry")
+menu.slots[3]._scripts.OnClick(menu.slots[3])
+check(not menu:IsShown() and mk.result:GetText() == "Last: All time", "Dark radio pick did not run and close")
+mk.ticks.dark._scripts.OnClick(mk.ticks.dark)
+check(menu.slots[1].entry.kind == "title", "tick menu has no title")
+menu.slots[2]._scripts.OnClick(menu.slots[2])
+check(menu:IsShown() and mk.types[1] == false, "a tick did not stay open or did not toggle")
+menu:Hide()
+mk.long.dark._scripts.OnClick(mk.long.dark)
+local longShown = 0
+for _, sl in ipairs(menu.slots) do if sl:IsShown() then longShown = longShown + 1 end end
+check(menu.slots[1].text:GetText() == "Entry 1" and longShown == 7, "long menu does not show 7 entries")
+menu._scripts.OnMouseWheel(menu, -1)
+check(menu.slots[1].text:GetText() == "Entry 2", "mouse wheel did not scroll the long menu")
+menu:Hide()
+mk.area._scripts.OnClick(mk.area, "RightButton")
+check(menu:IsShown() and menu.slots[2].text:GetText() == "Show details", "Dark right-click menu not ours")
+-- compact: 20 px entries, a slim title and divider
+check(menu.slots[2]:GetHeight() == 20 and menu.slots[1]:GetHeight() == 18 and menu.slots[4]:GetHeight() == 7, "right-click menu not compact")
+check(menu:GetHeight() == 18 + 20 + 20 + 7 + 20 + 2, "right-click menu height not the sum of its entries")
+menu:Hide()
+
+-- the row list: only the rows that fit, header sort in the accent, selection
+local list = ls.list
+check(list.count == 200 and list.shown and list.shown > 0 and list.shown < 200, "row list not virtual")
+check(list.rows[1].cells.name:GetText() == "Sample-001", "row list did not draw")
+list.heads[2]._scripts.OnClick(list.heads[2])
+check(list.sortKey == "n" and list.heads[2].label:GetText() == "Blocked ^", "header sort not shown")
+list.rows[1]._scripts.OnClick(list.rows[1], "LeftButton")
+check(list.rows[1].sel:IsShown(), "row click did not select")
+-- the pie: shares and hover
+local pie = ls.pie
+check(pie.total == 65, "pie total wrong")
+local seen = {}
+for s = 1, 60 do seen[pie.segSlice[s]] = (seen[pie.segSlice[s]] or 0) + 1 end
+check(seen[1] and seen[2] and seen[3] and seen[0] == nil, "pie does not draw every slice")
+M.PSS_SetOpt("uiSkin", "global", 0)
 
 if not fail then print("PASS tui") end
