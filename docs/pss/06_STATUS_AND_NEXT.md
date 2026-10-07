@@ -20,9 +20,10 @@ One window with the EllesmereUI port's layout, features and feel, drawn only wit
 
 | Stage | Dev | What | State |
 | --- | --- | --- | --- |
-| A1 | 3.4.0-dev001 | `PourSocialScore_UI` folder, loader part `UI`, option `uiSkin`, `/pss tui` opens the empty window in either look; `check_tui.lua`; TOC and PSS-names checks in `check_rules.sh` | PR open |
-| A2 | 3.4.0-dev002 | The kit in both looks, plus the `uiFont` option (Blizzard fonts, and LibSharedMedia fonts read only when another addon loaded it) | Next |
-| A3 to D3 | dev003 to dev015 | Libraries groundwork, the six tabs, old-GUI-only features, cutover, removal | Planned |
+| A1 | 3.4.0-dev001 | `PourSocialScore_UI` folder, loader part `UI`, option `uiSkin`, `/pss tui` opens the empty window in either look; `check_tui.lua`; TOC and PSS-names checks in `check_rules.sh` | Merged #88 |
+| A2 | 3.4.0-dev002 | Kit part 1 in both looks: text, heading, button, tick box, edit / number / search box, panel, scroll frame, tab row, tooltip; the `uiFont` option (Blizzard fonts, plus LibSharedMedia fonts read only when another addon loaded it); a temporary kit preview page | PR open |
+| A2b | 3.4.0-dev003 | Kit part 2: drop-down with the Modern menu list, right-click menu, popups (confirm, copy, import), row list, pie | Next (A2 split in two, 2026-10-07) |
+| A3 to D3 | dev004 to dev016 | Libraries groundwork, the six tabs, old-GUI-only features, cutover (the new files move into `PourSocialScore_GUI`), removal | Planned |
 
 Fixes to 3.3.1 meanwhile would be `3.3.2-dev001`.
 

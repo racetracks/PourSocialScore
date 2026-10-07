@@ -2,8 +2,8 @@
 -- POUR SOCIAL SCORE UI - WINDOW
 --
 -- The Pour Social Score window, 960 x 494. While it is being built it opens
--- with /pss tui only (M.PSS_TUI); the tabs, navigation and pages come in the
--- next stages. Dragged elsewhere it remembers the place (Libraries
+-- with /pss tui only (M.PSS_TUI) and shows the kit preview (PSS_KitPage.lua);
+-- the tabs, navigation and pages come in the next stages. Dragged elsewhere it remembers the place (Libraries
 -- M.PSS_UIPlace); Escape closes it.
 --
 -- Blizzard look: a Blizzard window frame (ButtonFrameTemplate) behind our
@@ -159,11 +159,12 @@ local function Build()
 	end)
 
 	EscapeFrame()
+	ns.BuildKitPage(win)
 
 	M.Events.Register("OPTION_CHANGED", function(key)
 		if key == "frameStrata" then
 			win:SetFrameStrata(M.PSS_FrameStrataName())
-		elseif key == "uiSkin" then
+		elseif key == "uiSkin" or key == "uiFont" then
 			ns.Repaint()
 		end
 	end)
@@ -177,6 +178,8 @@ function M.PSS_TUI(show)
 		return
 	end
 	RestorePlace()
+	-- fonts other addons shared since the last open join the font choices
+	M.PSS_UIFontChoices()
 	win:Show()
 	win:Raise()
 end

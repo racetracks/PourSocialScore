@@ -5,20 +5,21 @@
 -- M.PSS_UISkin): "blizzard" (the default: Blizzard frames, templates and
 -- fonts) and "modern" (flat dark fills and one-pixel borders, drawn here).
 -- Every widget is built once with the parts of both looks and registers a
--- painter with ns.OnPaint; switching the option repaints the window in
--- place. Only the paint differs: sizes, places and behaviour are the same.
+-- painter with ns.OnPaint; switching the look or the font (option uiFont)
+-- repaints the window in place. Only the paint differs: sizes, places and
+-- behaviour are the same in both looks.
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = PourSocialScore_NS.M
 ns.M = M
 
 local floor, max = math.floor, math.max
-local ipairs = ipairs
+local ipairs, select = ipairs, select
 
--- Fonts: Blizzard keeps its own; Modern uses the client's Arial Narrow
+-- Modern's face when no font is picked: the client's Arial Narrow
 local FONT_MODERN = "Fonts\\ARIALN.TTF"
 
--- colours: { r, g, b, a }
+-- Modern colours: { r, g, b, a }
 ns.MODERN = {
 	window = { 0.067, 0.067, 0.067, 0.97 },
 	titleBar = { 0, 0, 0, 0.5 },
@@ -26,7 +27,23 @@ ns.MODERN = {
 	close = { 1, 1, 1, 0.75 },
 	closeHover = { 1, 1, 1, 1 },
 	text = { 1, 1, 1, 1 },
+	disabledText = { 0.5, 0.5, 0.5, 1 },
+	panel = { 0.08, 0.08, 0.08, 0.92 },
+	inset = { 0.04, 0.04, 0.04, 0.85 },
+	control = { 0.08, 0.08, 0.08, 0.92 },
+	box = { 0.02, 0.02, 0.02, 1 },
+	checkBorder = { 0.25, 0.25, 0.25, 1 },
+	hover = { 1, 1, 1, 0.10 },
+	tab = { 0.068, 0.056, 0.052, 1 },
+	tabWash = { 1, 1, 1, 0.02 },
+	thumb = { 1, 1, 1, 0.30 },
+	tip = { 0.067, 0.067, 0.067, 0.92 },
+	tipBorder = { 1, 1, 1, 0.15 },
+	tipText = { 1, 1, 1, 0.80 },
 }
+
+-- the accent: underlines, sorted columns, row washes, ticks
+local ACCENT = { modern = { 0.047, 0.824, 0.616 }, blizzard = { 1, 0.82, 0 } }
 
 ns.TITLE_H = 25
 
@@ -43,18 +60,77 @@ function ns.IsModern()
 	return ns.Skin() == "modern"
 end
 
--- fn(modern) runs now and again on every skin change
+-- r, g, b of the accent in the look shown
+function ns.Accent()
+	local c = ACCENT[ns.Skin()] or ACCENT.blizzard
+	return c[1], c[2], c[3]
+end
+
+-- fn(modern) runs now and again on every look or font change
 function ns.OnPaint(fn)
 	painters[#painters + 1] = fn
 	fn(ns.IsModern())
 end
 
+------------------------------------------------------------------------
+-- Fonts: shared font objects, one per (size, Blizzard font object), painted
+-- in place, so every text, button and box using one follows a change.
+-- Blizzard: the Blizzard object's face, colour and shadow at our size.
+-- Modern: Arial Narrow, white (grey for a disabled object), no shadow.
+-- A picked font (uiFont) replaces the face in both looks.
+------------------------------------------------------------------------
+local fonts, fontList = {}, {}
+
+local function PaintFont(f, modern)
+	local src = _G[f.blizz] or GameFontHighlight
+	local face, _, flags = src:GetFont()
+	local picked = M.PSS_UIFontPath()
+	if modern then
+		face, flags = FONT_MODERN, ""
+		local c = f.blizz:find("Disable") and ns.MODERN.disabledText or ns.MODERN.text
+		f.obj:SetTextColor(c[1], c[2], c[3], c[4])
+		f.obj:SetShadowOffset(0, 0)
+	else
+		f.obj:SetTextColor(src:GetTextColor())
+		f.obj:SetShadowColor(src:GetShadowColor())
+		f.obj:SetShadowOffset(src:GetShadowOffset())
+	end
+	-- a picked face the client cannot load keeps the look's own
+	if not (picked and f.obj:SetFont(picked, f.size, flags or "")) then
+		f.obj:SetFont(face or FONT_MODERN, f.size, flags or "")
+	end
+end
+
+function ns.Font(size, blizz)
+	size, blizz = size or 12, blizz or "GameFontHighlight"
+	local key = blizz .. size
+	local f = fonts[key]
+	if not f then
+		fontList[#fontList + 1] = key
+		f = { obj = CreateFont("PSS_Font" .. #fontList), size = size, blizz = blizz }
+		fonts[key] = f
+		PaintFont(f, ns.IsModern())
+	end
+	return f.obj
+end
+
 function ns.Repaint()
 	skin = M.PSS_UISkin()
 	local modern = skin == "modern"
+	for _, key in ipairs(fontList) do PaintFont(fonts[key], modern) end
 	for _, fn in ipairs(painters) do fn(modern) end
 end
 
+-- A FontString on a shared font object; colour set on it stays its own.
+function ns.NewText(parent, size, blizz, layer)
+	local fs = parent:CreateFontString(nil, layer or "OVERLAY")
+	fs:SetFontObject(ns.Font(size, blizz))
+	return fs
+end
+
+------------------------------------------------------------------------
+-- Primitives
+------------------------------------------------------------------------
 -- One physical pixel at the frame's scale (768 units span the screen height).
 local function OnePixel(frame)
 	local h = GetPhysicalScreenSize and select(2, GetPhysicalScreenSize())
@@ -92,8 +168,8 @@ function ns.PixelBorder(frame, color)
 end
 
 -- A flat fill behind everything else on the frame
-function ns.Fill(frame, color, sub)
-	local t = frame:CreateTexture(nil, "BACKGROUND", nil, sub or -6)
+function ns.Fill(frame, color, sub, layer)
+	local t = frame:CreateTexture(nil, layer or "BACKGROUND", nil, sub or -6)
 	t:SetAllPoints(frame)
 	t:SetColorTexture(color[1], color[2], color[3], color[4])
 	return t
@@ -104,28 +180,27 @@ function ns.HasAtlas(name)
 	return C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(name) ~= nil
 end
 
--- A FontString that follows the skin: Blizzard uses the font object
--- (its face, colour and shadow), Modern the Modern face at the same size.
--- size: Modern point size; blizzObject: the Blizzard font object name.
-function ns.NewText(parent, size, blizzObject, layer)
-	local fs = parent:CreateFontString(nil, layer or "OVERLAY", blizzObject or "GameFontHighlight")
-	size = size or 12
-	ns.OnPaint(function(modern)
-		local obj = _G[blizzObject or "GameFontHighlight"]
-		if modern then
-			fs:SetFont(FONT_MODERN, size, "")
-			fs:SetShadowOffset(0, 0)
-			local c = ns.MODERN.text
-			fs:SetTextColor(c[1], c[2], c[3], c[4])
-		elseif obj then
-			fs:SetFontObject(obj)
-			local face, _, flags = obj:GetFont()
-			if face then fs:SetFont(face, size, flags or "") end
-			fs:SetShadowOffset(obj:GetShadowOffset())
-			fs:SetTextColor(obj:GetTextColor())
+-- The look's own parts of a widget: Modern parts are ours (kept in a table
+-- per widget); Blizzard parts are the template's textures. ns.ShowArt shows
+-- one set and fades the other (alpha, so a template's state changes cannot
+-- bring a hidden texture back; Blizzard gets each texture's own alpha back).
+-- keep: template textures Modern keeps.
+local own = setmetatable({}, { __mode = "k" })
+local alphaOf = setmetatable({}, { __mode = "k" })	-- a template texture's own alpha
+
+function ns.Own(region)
+	own[region] = true
+	return region
+end
+
+function ns.ShowArt(frame, modern, keep)
+	for i = 1, select("#", frame:GetRegions()) do
+		local r = select(i, frame:GetRegions())
+		if r and r:GetObjectType() == "Texture" and not own[r] and not (keep and keep[r]) then
+			if alphaOf[r] == nil then alphaOf[r] = r:GetAlpha() end
+			r:SetAlpha(modern and 0 or alphaOf[r])
 		end
-	end)
-	return fs
+	end
 end
 
 -- Round to whole units (saved places stay small and stable)

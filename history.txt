@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev002 - New PSS window: the controls in both looks, and a font option
+
+- /pss tui now shows a kit preview in place of the tabs to come: the tab row, buttons (one disabled), tick boxes, a text box, a number box, a search box, a tooltip and a scroll frame, each in the look chosen in Options.
+- Blizzard look: Blizzard's own buttons, tick boxes, boxes, top tabs, inset panels, scroll bars and tooltip. Modern look: dark flat buttons and boxes with thin grey edges, ticks in the accent green, dark tabs with the selected one underlined, a thin scroll thumb and a dark tooltip that fades in.
+- New option "Font of the new PSS window" (Options tab, User interface): the look's own font (Blizzard's for Blizzard, Arial Narrow for Modern), or Game text, Unit names, Damage numbers, Friz Quadrata, Arial Narrow, Morpheus or Skurri. Fonts that other addons share through LibSharedMedia are listed too once the new window has been opened; PSS only reads that list when another addon has loaded it and ships no library. Changing it repaints the open window.
+- Blizzard look: tab labels sit in the middle of their tabs (Blizzard's tab code dropped them towards the bottom edge), every label shows in full ("Player Ignore List" was cut short), and the selected tab shows Blizzard's raised tab art.
+- The kit preview is temporary: the window's real tabs replace it in a later stage. Nothing else changes.
+
 => 3.4.0-dev001 - New PSS window: the folder and the empty window
 
 - First stage of the new PSS window (3.4.0), which will replace both the PSS windows and the EllesmereUI window with one window in the EllesmereUI window's layout, built only from Blizzard's and our own art.
