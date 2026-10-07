@@ -229,6 +229,9 @@ function CreateFrame(kind, name, parent, template)
 end
 
 -- events
+-- every frame that ever registered an event (checks look for forbidden ones)
+function stub.EventFrames() return eventFrames end
+
 function stub.Fire(event, ...)
 	local list = {}
 	for f in pairs(eventFrames) do

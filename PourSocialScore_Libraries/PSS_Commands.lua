@@ -308,6 +308,7 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  " .. L["HELP_16"])
 		M.ShowMsg ("  " .. L["HELP_19"])
 		M.ShowMsg ("  " .. L["HELP_20"])
+		if V.wowIsForever then M.ShowMsg ("  " .. L["HELP_21"]) end
 		M.ShowMsg ("  " .. L["HELP_17"])
 		M.ShowMsg ("  " .. L["HELP_18"])
 		M.ShowMsg ("  " .. L["HELP_9"])

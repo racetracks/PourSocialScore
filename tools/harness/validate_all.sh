@@ -170,6 +170,20 @@ for sv in - "$work/sv-2.0.44.lua"; do
 	done
 done
 
+# Scrolling Battle Text switch (3.4.0-dev001): WoW Forever only, off by
+# default, nothing loaded while off; Retail never shows or loads it
+echo "== scrolling battle text"
+for sv in - "$work/sv-2.0.44.lua"; do
+	out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_sbt.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | grep -q "PASS sbt retail" && echo "PASS sbt retail ($sv)" || { echo "$out"; echo "FAIL sbt retail on $sv"; fail=1; }
+	src=$sv
+	for ph in 1 2; do
+		out=$(PSS_FOREVER=1 PSS_PHASE=$ph lua5.1 "$here/run.lua" . "$src" "$work/sbt-$ph.lua" "$here/check_sbt.lua" 2>&1 | grep -v '^|cff')
+		echo "$out" | grep -q "PASS sbt $ph" && echo "PASS sbt $ph ($sv)" || { echo "$out"; echo "FAIL sbt $ph on $sv"; fail=1; }
+		src=$work/sbt-$ph.lua
+	done
+done
+
 # recent counts (3.2): session and last-24-hour counts per owner without
 # Logging; a login or /reload starts a new session (3.2.0-dev006), which
 # is not saved at logout
@@ -245,6 +259,13 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_managed_row.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS managed row" || fail=1
+		# the Scrolling Battle Text switch on a real save, on WoW Forever
+		for ph in 1 2; do
+			src=$work/real-2.lua; [ $ph = 2 ] && src=$work/real-sbt-1.lua
+			out=$(PSS_FOREVER=1 PSS_PHASE=$ph lua5.1 "$here/run.lua" . "$src" "$work/real-sbt-$ph.lua" "$here/check_sbt.lua" 2>&1 | grep -v '^|cff')
+			echo "$out"
+			echo "$out" | grep -q "PASS sbt $ph" || fail=1
+		done
 	done
 fi
 

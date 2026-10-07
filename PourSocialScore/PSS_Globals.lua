@@ -426,6 +426,8 @@ V.wowIsCata		= false
 V.wowIsMOP		= false
 V.wowIsRetail	= (WOW_PROJECT_ID == nil) or (WOW_PROJECT_MAINLINE ~= nil and WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
 V.wowIsClassic	= false
+-- WoW Forever (game type camelot, project 18): Scrolling Battle Text runs only there
+V.wowIsForever	= WOW_PROJECT_ID ~= nil and WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT
 V.wowLongName	= V.wowIsRetail and "Mainline" or "Other"
 V.wowName		= V.wowLongName
 

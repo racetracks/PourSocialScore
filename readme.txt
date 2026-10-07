@@ -38,6 +38,12 @@ A seventh folder, PourSocialScore_EllesmereUI, comes in the same zip (from
 EllesmereUI integration" on, so without EllesmereUI it takes no memory; see
 ELLESMEREUI below.
 
+An eighth folder, PourSocialScore_ScrollingBattleText (from 3.4.0-dev001),
+is for WoW Forever only: it draws Scrolling Battle Text and loads only when
+"Enable Scrolling Battle Text" is on (Options, Scrolling Battle Text, or
+/pss sbt). Other clients never load it. In 3.4.0 test builds it is still
+being built: turning it on shows nothing yet.
+
 When updating, replace every folder (delete the old ones first so no stale
 file is left behind).
 
@@ -549,6 +555,8 @@ filter that mixes them without brackets may now behave differently.)
                           integration"). It takes effect after a reload;
                           you are asked to reload. Needs the
                           PourSocialScore_EllesmereUI folder
+/pss sbt [on|off]         WoW Forever: turn Scrolling Battle Text on or
+                          off (Options: "Enable Scrolling Battle Text")
 /pss list [days|server]   List entries; optionally only those listed for
                           [days] or more, or from one server
 /pss add name [days] [note]

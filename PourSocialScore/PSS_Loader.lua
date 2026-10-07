@@ -31,7 +31,7 @@ local function version(name)
 end
 
 -- parts that need another part first (the windows call the back end)
-local NEEDS = { GUI = "Libraries", EllesmereUI = "Libraries" }
+local NEEDS = { GUI = "Libraries", EllesmereUI = "Libraries", ScrollingBattleText = "Libraries" }
 
 local warned = {}
 

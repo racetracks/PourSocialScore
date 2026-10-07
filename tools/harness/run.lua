@@ -23,6 +23,11 @@ local addonDir, svIn, svOut, script = arg[1], arg[2], arg[3], arg[4]
 local H = dofile(here .. "/wow_stub.lua")
 H.SetTime(tonumber(os.getenv("PSS_TIME") or "") or 1790000000)
 _G.H = H
+-- PSS_FOREVER=1: the WoW Forever client (game type camelot, project 18)
+if os.getenv("PSS_FOREVER") == "1" then
+	WOW_PROJECT_CAMELOT, WOW_PROJECT_ID = 18, 18
+	function GetBuildInfo() return "1.60.1", "1", "Oct 1 2026", 16001 end
+end
 
 
 if svIn and svIn ~= "-" then

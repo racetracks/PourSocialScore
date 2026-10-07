@@ -141,6 +141,8 @@ local function ApplicationStartup(self)
 	M.PSS_HookFunctions()
 	-- our section in the EllesmereUI panel, when that front end is in use
 	M.PSS_RegisterEUI()
+	-- Scrolling Battle Text, when it is on (WoW Forever only)
+	M.PSS_SBTApply()
 
 	self:UnregisterEvent("IGNORELIST_UPDATE")
 	self:UnregisterEvent("PLAYER_ENTERING_WORLD")
@@ -305,7 +307,12 @@ SLASH_PSS1		= "/pss"
 SLASH_PSSGUILD1	= "/pssguild"
 M.PSS_Stub("PSS_SlashPSS", "Libraries")
 M.PSS_Stub("PSS_SlashGuild", "Libraries")
-SlashCmdList["PSS"] = function(msg) M.PSS_SlashPSS(msg) end
+-- /pss sbt is answered here in core (PSS_SBT.lua), without loading Libraries
+SlashCmdList["PSS"] = function(msg)
+	local word, rest = (msg or ""):match("^%s*(%S*)%s*(.-)%s*$")
+	if word and word:lower() == "sbt" then return M.PSS_SlashSBT(rest) end
+	M.PSS_SlashPSS(msg)
+end
 SlashCmdList["PSSGUILD"] = function(msg) M.PSS_SlashGuild(msg) end
 
 PSSFRAME:SetScript("OnEvent", EventHandler)

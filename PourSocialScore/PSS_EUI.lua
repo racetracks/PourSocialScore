@@ -55,6 +55,7 @@ function M.PSS_RegisterEUI()
 	if EllesmereUI.IsPluginRegistered and EllesmereUI.IsPluginRegistered(PLUGIN) then return end
 	-- one Options page per section of M.PSS_OPTION_SECTIONS, in that order
 	M.PSS_EUI_PAGES = { "Ignore List", "Blocking", "Chat Filters", "Interface", "Whois Scans" }
+	if M.PSS_OPTION_SECTIONS[6] then M.PSS_EUI_PAGES[6] = "Scrolling Battle Text" end
 	EllesmereUI.RegisterPlugin(PLUGIN, {
 		label	= "Pour Social Score",
 		modules	= {

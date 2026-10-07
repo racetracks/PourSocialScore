@@ -28,7 +28,7 @@ None planned on PSS: Dan has other plans. Fixes to 3.3.1 start `3.3.2-dev001` (o
 #78 parity project (closed at 3.3.1; issue still open); #37 guild exclusion list is not saved (define its intent); #38 seeing a shipped-guild member loads the lists; #39 unload the GUI on close; #40 research whether a LoadOnDemand addon can unload; #44 clean up console output; #45 Questie-style upgrade output. #77 decided (option b) and done.
 
 ## Parked or offered
-- Scrolling Battle Text for WoW Forever only (MSBT behaviour, 3.4.0): design and stages in `09_SCROLLING_TEXT.md`; decisions answered 2026-10-07; stage 0b (combat log check on Forever) open; next 3.4.0-dev001.
+- Scrolling Battle Text for WoW Forever only (MSBT behaviour, 3.4.0): design and stages in `09_SCROLLING_TEXT.md`; decisions answered and stage 0 done 2026-10-07 (no combat log on Forever; combat from UNIT_COMBAT); 3.4.0-dev001 built, next 3.4.0-dev002.
 - Pack the in-play chat filter log (offered, not started).
 - Dashboard / overview page (paused, branch `claude/project-thread-pa7y7o`).
 - Native-only features (Player Search, Prune, right-click menus, resizable columns) stay native-only for now (decision 5); a later project.

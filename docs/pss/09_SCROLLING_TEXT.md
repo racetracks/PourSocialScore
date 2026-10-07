@@ -1,6 +1,6 @@
 # Scrolling Battle Text in PSS: design (2026-10-07)
 
-Status: **design, decisions answered** (section 6); stage 0 partly done, the combat log question is open (section 9). Nothing is built. Version line: **3.4.0**.
+Status: **design, decisions answered** (section 6); stage 0 done (section 9): no combat log on Forever, combat from `UNIT_COMBAT`. Stage 1 (3.4.0-dev001) built. Version line: **3.4.0**.
 
 Source studied: Mik's Scrolling Battle Text (MSBT) 6.0.3, uploaded by Dan (Interface 11504, 40400, 110002; readme 5.7.148, author Mikord). Dan, 2026-10-07: "write our own code with our own standards, port what makes sense". So MSBT is read for behaviour; PSS writes its own code to PSS rules. No MSBT code is copied (baseline 02 H4). Dan, 2026-10-07: "i hold the license" for MSBT's bundled fonts and sounds, so those files may ship (decision 13).
 
@@ -109,14 +109,14 @@ Answered by Dan, 2026-10-07:
 | 1 | 3.4.0-dev001 | Groundwork: core `/pss sbt`, `sbtEnabled` and the options group (Forever only; both windows), part key and NEEDS; Libraries `PSS_SBTEngine.lua` with start/stop only; the new folder with its two TOCs and an empty file | Option only (Forever) | Option off: nothing loads, no events; Retail: no rows, folder never loads; resident cost of core lines measured; `ui_compare.sh` and `eui_compare.sh` identical on Retail |
 | 2 | 3.4.0-dev002 | Data: `PSS_SBTSettings.lua`, MSBT-equivalent defaults, the `sbt` table, the settings definitions table both settings windows will read, Libraries setters firing `M.Events`; media in `PourSocialScore_Libraries/Media/` with its path table | No | Real saves validated; save size measured; zip size measured |
 | 3 | 3.4.0-dev003 | Display: frame pool, the four scroll areas, Straight and Static styles, MSBT's fonts, `/pss sbt test` | Yes | Pool reuse, no frames before first line; memory and CPU per line measured |
-| 4 | 3.4.0-dev004 | Combat, incoming and outgoing, from the source stage 0b finds (CLEU, or `UNIT_COMBAT` display only); school colours; crits with Pow | Yes | Harness event stub; Retail never registers CLEU; secret values shown, never compared |
-| 5 | 3.4.0-dev005 | Merge and throttle (readable values only), power gains, combo points, auras gained and faded, kills, environmental, interrupts, dispels, as far as stage 0b allows | Yes | Merge counts match the raw lines in the harness |
+| 4 | 3.4.0-dev004 | Combat from `UNIT_COMBAT` (stage 0b): incoming on player and pet, outgoing as damage and heals the target takes (from anyone; the event names no source); school colours; crits with Pow | Yes | Harness event stub; Retail never registers CLEU; secret values shown, never compared |
+| 5 | 3.4.0-dev005 | Merge and throttle (amounts are readable), power gains and combo points out of combat only (power is secret in combat), auras from `UNIT_AURA` if readable, kills; interrupts and dispels need the combat log and are dropped | Yes | Merge counts match the raw lines in the harness |
 | 6 | 3.4.0-dev006 | Notifications: loot, money, currency, XP, reputation, honor, skill, combat enter/leave, PSS blocked (off) | Yes | Secret check on every chat value; restriction CVar runs |
 | 7 | 3.4.0-dev007 | Parabola, Angled, Horizontal styles (Path animations); `/pss sbt unlock` | Yes | No OnUpdate; cost per curved line measured |
 | 8 | 3.4.0-dev008 | Native SBT settings window (areas, events, colours, fonts, sounds) in the SBT folder; "Open SBT settings" | Yes | Every setting saves and reloads; only non-defaults saved |
 | 9 | 3.4.0-dev009 | EllesmereUI SBT settings window, same settings, EllesmereUI look; "Open SBT settings" opens it under EllesmereUI | Yes | Same settings both sides (a harness check like `check_match.lua`); `eui_compare.sh` on unchanged pages; skin on and off |
-| 10 | 3.4.0-dev010 | Triggers: MSBT's default triggers (low health, low mana, procs), custom triggers, MSBT's sounds | Yes | Trigger cap; secret values never compared (a trigger on a secret value does not fire) |
-| 11 | 3.4.0-dev011 | Cooldown-ready alerts from cooldown events | Yes | No OnUpdate polling; timers only while a cooldown runs |
+| 10 | 3.4.0-dev010 | Triggers: health and power are secret in combat, so low health and low mana cannot be compared; only triggers on readable events (procs from `UNIT_AURA` if readable). May be parked (decision 9) | Yes | Trigger cap; secret values never compared (a trigger on a secret value does not fire) |
+| 11 | 3.4.0-dev011 | Cooldown-ready alerts from cooldown events; `C_Spell.GetSpellCooldown` is missing on Forever, so the classic `GetSpellCooldown` and its secrecy are checked first. May be parked (decision 9) | Yes | No OnUpdate polling; timers only while a cooldown runs |
 | 12 | 3.4.0-dev012 | Fixes from testing, readme (disable MSBT), locale escapes | Yes | Full regression |
 | Release | 3.4.0 | Version and history only | | Dan confirms done |
 
@@ -130,7 +130,14 @@ Results from Dan, 2026-10-07:
 4. `enableFloatingCombatText` = "1", `floatingCombatTextCombatDamage` = "1": the CVars exist (read only; PSS does not write them).
 5. `Path` animations exist.
 
-**Stage 0b** (open; decides stages 4, 5, 10, 11). Each line on Forever, in a fight:
+**Stage 0b** results from Dan, 2026-10-07 (decide stages 4, 5, 10, 11):
+1. `CombatLogGetCurrentEventInfo` is missing; `C_EventUtils.IsEventValid("COMBAT_LOG_EVENT_UNFILTERED")` is true.
+2. Registering `COMBAT_LOG_EVENT_UNFILTERED` gave a **forbidden action**: the combat log is closed to addons on Forever, as on Retail 12.x. MSBT's parser is not ported; nothing in PSS registers it (`check_sbt.lua` asserts it).
+3. `UNIT_COMBAT` amounts were **not secret**, and Dan's hits on the target showed: the combat source.
+4. `UnitHealth` and `UnitPower` of the player are **secret** in combat.
+5. `C_Spell.GetSpellCooldown(61304)` gave nil (the API or its answer is missing).
+
+The checks as run:
 1. `/dump CombatLogGetCurrentEventInfo ~= nil, C_EventUtils and C_EventUtils.IsEventValid("COMBAT_LOG_EVENT_UNFILTERED")`
 2. `/run local f=CreateFrame("Frame") f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED") f:SetScript("OnEvent",function() print("CLEU ok") f:UnregisterAllEvents() end)` then hit a mob: "CLEU ok", an "action forbidden" message, or nothing?
 3. `/run local f=CreateFrame("Frame") f:RegisterUnitEvent("UNIT_COMBAT","player","target") f:SetScript("OnEvent",function(_,_,u,a,_,n) print(u,a,issecretvalue(n) and "SECRET" or n) end)` then fight: are amounts numbers or SECRET, and do your hits on the target show?

@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: |cff69ccf0PourSocialScore|r Scrolling Battle Text
+## Notes: PourSocialScore scrolling battle text for WoW Forever, loaded when turned on
+## Category: PSS
+## Group: PourSocialScore
+## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
+## Author: Boaties
+## Version: 3.4.0-dev001
+## LoadOnDemand: 1
+## Dependencies: PourSocialScore, PourSocialScore_Libraries
+## AllowLoadGameType: camelot
+## ExcludeLoadGameType: standard, classic
+
+PSS_SBTDisplay.lua

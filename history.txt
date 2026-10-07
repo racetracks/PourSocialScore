@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev001 - Scrolling Battle Text groundwork (WoW Forever)
+
+- First build of the 3.4.0 line: Scrolling Battle Text for WoW Forever, written for PSS from the behaviour of Mik's Scrolling Battle Text. Nothing scrolls yet.
+- WoW Forever: a Scrolling Battle Text section in Options (PSS window and EllesmereUI) with "Enable Scrolling Battle Text", off by default, and /pss sbt [on|off]. Turning it on loads PourSocialScore_Libraries and the new PourSocialScore_ScrollingBattleText folder; off, neither is loaded for it and nothing is registered.
+- Other clients: no change. The option and its section are not shown, /pss sbt says it is for WoW Forever, and the new folder never loads.
+- Harness: check_sbt.lua covers the switch on both clients.
+
 => 3.3.1 - Social window fix, PSS window totals and Managed Communities
 
 - Retail 12.1: the PSS window (and the EllesmereUI one) opens next to Blizzard's new Social window again, clear of its side tabs, and follows it to the Who tab (3.3.0-dev005).

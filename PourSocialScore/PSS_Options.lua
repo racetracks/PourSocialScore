@@ -69,6 +69,14 @@ local OPTIONS = {
 }
 local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:" }
 
+-- Scrolling Battle Text (PSS_SBT.lua): WoW Forever only, so Retail shows
+-- neither the row nor its section
+if V.wowIsForever then
+	OPTIONS[#OPTIONS + 1] = { key = "sbtEnabled", kind = "bool", default = false, section = 6, label = "Enable Scrolling Battle Text",
+		tip = "Combat numbers and notifications that scroll around your character. /pss sbt turns it on or off." }
+	SECTIONS[6] = "Scrolling Battle Text Options:"
+end
+
 local REG = {}
 for _, o in ipairs(OPTIONS) do REG[o.key] = o end
 M.PSS_OPTIONS = OPTIONS

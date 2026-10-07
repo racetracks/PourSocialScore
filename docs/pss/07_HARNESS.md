@@ -11,6 +11,8 @@ The general harness is baseline 06. PSS's commands, as of 3.3.0-dev004. Needs `l
 | `sh tools/harness/eui_compare.sh <ref> <save>` | The same for the EUI window: a tour (`eui_tour.lua`) clicks tabs, rows, View Events, slices, ticks and searches, about 482 snapshots |
 | `lua5.1 tools/harness/run.lua . <save> - tools/harness/check_match.lua` | Both windows show the same session / 24 h / all-time and per-type numbers, including the native totals pane |
 
+`PSS_FOREVER=1` before `run.lua` (or a compare script) runs as the WoW Forever client (project 18, interface 16001); `check_sbt.lua` checks the Scrolling Battle Text switch on both clients (in validate_all). `check_eui_all.sh` under `PSS_FOREVER=1` fails its switch check on main too (Forever prints the reload line instead of a popup): run it without.
+
 Other checks worth knowing: `check_keep`, `check_ondemand`, `check_recent`, `check_savedlog`, `check_growth`, `check_ownguild`, `check_guildrule`, `check_communities_seen`; `bench_recent.lua` (the benchmark behind the 144-slot layout); `show_totals.lua`, `dump_counts.lua` for inspection.
 
 PSS habits: a check that needs Libraries calls `M.PSS_Need("Libraries")` first; silence eui_compare's phase 1 on a save that already has the integration on; read every diff line on a real save before claiming "intended only".
