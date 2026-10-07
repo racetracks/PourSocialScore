@@ -7,7 +7,7 @@
 -- M.PSS_UIPlace); Escape closes it.
 --
 -- Blizzard look: a Blizzard window frame (ButtonFrameTemplate) behind our
--- frame, with its own art only. Modern look: a flat fill, a dark title
+-- frame, with its own art only. Dark look: a flat fill, a dark title
 -- strip, a thin frame and a plain close glyph.
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
@@ -58,18 +58,18 @@ local function BlizzardFrame()
 	end
 end
 
--- The Modern art: fill, title strip and frame. The frame is Blizzard's
+-- The Dark art: fill, title strip and frame. The frame is Blizzard's
 -- AdventureMap_TopBorder atlas where the client has it, else a thin border.
-local function ModernFrame()
+local function DarkFrame()
 	local f = CreateFrame("Frame", nil, win)
 	f:SetAllPoints(win)
 	f:SetFrameLevel(win:GetFrameLevel())
-	ns.Fill(f, ns.MODERN.window, -6)
+	ns.Fill(f, ns.DARK.window, -6)
 	local bar = f:CreateTexture(nil, "BACKGROUND", nil, -5)
 	bar:SetPoint("TOPLEFT")
 	bar:SetPoint("TOPRIGHT")
 	bar:SetHeight(ns.TITLE_H)
-	local c = ns.MODERN.titleBar
+	local c = ns.DARK.titleBar
 	bar:SetColorTexture(c[1], c[2], c[3], c[4])
 	if ns.HasAtlas("AdventureMap_TopBorder") then
 		local edge = CreateFrame("Frame", nil, f)
@@ -79,13 +79,13 @@ local function ModernFrame()
 		t:SetAllPoints(edge)
 		t:SetAtlas("AdventureMap_TopBorder")
 	else
-		ns.PixelBorder(f, ns.MODERN.border)
+		ns.PixelBorder(f, ns.DARK.border)
 	end
 	return f
 end
 
--- Modern close: Blizzard's close glyph, no plate, brighter on hover
-local function ModernClose()
+-- Dark close: Blizzard's close glyph, no plate, brighter on hover
+local function DarkClose()
 	local b = CreateFrame("Button", nil, win)
 	b:SetSize(24, 24)
 	b:SetPoint("TOPRIGHT", win, "TOPRIGHT", 0, 0)
@@ -98,7 +98,7 @@ local function ModernClose()
 	else
 		t:SetTexture("Interface\\Buttons\\UI-StopButton")
 	end
-	local c, h = ns.MODERN.close, ns.MODERN.closeHover
+	local c, h = ns.DARK.close, ns.DARK.closeHover
 	t:SetVertexColor(c[1], c[2], c[3], c[4])
 	b:SetScript("OnEnter", function() t:SetVertexColor(h[1], h[2], h[3], h[4]) end)
 	b:SetScript("OnLeave", function() t:SetVertexColor(c[1], c[2], c[3], c[4]) end)
@@ -136,26 +136,26 @@ local function Build()
 	end)
 
 	local blizz = BlizzardFrame()
-	local modern = ModernFrame()
+	local dark = DarkFrame()
 	local blizzClose = CreateFrame("Button", nil, win, "UIPanelCloseButton")
 	blizzClose:SetPoint("TOPRIGHT", win, "TOPRIGHT", 0, 0)
 	blizzClose:SetFrameLevel(win:GetFrameLevel() + 8)
-	local modernClose = ModernClose()
+	local darkClose = DarkClose()
 
 	local title = ns.NewText(win, 13, "GameFontNormal")
 	title:SetPoint("TOP", win, "TOP", 0, -6)
 	title:SetText("Pour Social Score")
 	win.title = title
 	-- each look's parts, so the look shown can be checked
-	win.art = { blizzard = blizz, modern = modern, blizzardClose = blizzClose, modernClose = modernClose }
+	win.art = { blizzard = blizz, dark = dark, blizzardClose = blizzClose, darkClose = darkClose }
 
-	ns.OnPaint(function(isModern)
-		-- a client without any Blizzard frame template falls back to Modern art
-		local useModern = isModern or not blizz
-		modern:SetShown(useModern)
-		if blizz then blizz:SetShown(not useModern) end
-		modernClose:SetShown(useModern)
-		blizzClose:SetShown(not useModern)
+	ns.OnPaint(function(isDark)
+		-- a client without any Blizzard frame template falls back to Dark art
+		local useDark = isDark or not blizz
+		dark:SetShown(useDark)
+		if blizz then blizz:SetShown(not useDark) end
+		darkClose:SetShown(useDark)
+		blizzClose:SetShown(not useDark)
 	end)
 
 	EscapeFrame()

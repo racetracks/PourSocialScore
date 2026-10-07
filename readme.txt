@@ -551,7 +551,7 @@ filter that mixes them without brackets may now behave differently.)
                           PourSocialScore_EllesmereUI folder
 /pss tui                  Open the new PSS window while it is being built
                           (PourSocialScore_UI; Options tab: "Look of the
-                          new PSS window", Blizzard or Modern, and "Font of
+                          new PSS window": Blizzard, Modern or Dark; "Font of
                           the new PSS window")
 /pss list [days|server]   List entries; optionally only those listed for
                           [days] or more, or from one server

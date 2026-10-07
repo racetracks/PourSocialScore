@@ -3,7 +3,7 @@
 --
 -- What the new window remembers and which look it draws. The window only
 -- draws; it reads and saves through these.
---   M.PSS_UISkin()                       "blizzard" (default) or "modern"
+--   M.PSS_UISkin()                       "blizzard" (default), "modern" or "dark"
 --   M.PSS_UIPlace(key)                   point, relPoint, x, y or nil
 --   M.PSS_SetUIPlace(key, point, relPoint, x, y)
 --   M.PSS_UIFontPath(), M.PSS_UIFontChoices()   (below)
@@ -15,7 +15,8 @@ local M = addon.M
 
 local type, tonumber, ipairs, pcall = type, tonumber, ipairs, pcall
 
-local SKINS = { [0] = "blizzard", [1] = "modern" }
+-- saved values: 1 stays "dark" (it was the only other look first, named Modern)
+local SKINS = { [0] = "blizzard", [1] = "dark", [2] = "modern" }
 
 function M.PSS_UISkin()
 	return SKINS[tonumber(M.PSS_Opt("uiSkin")) or 0] or "blizzard"

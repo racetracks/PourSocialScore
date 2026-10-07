@@ -3,7 +3,7 @@
 --
 -- Plain text tooltips for the window's controls.
 -- Blizzard: GameTooltip (checked with IsForbidden first).
--- Modern: our own frame, built on first use: a dark fill with a faint
+-- Dark: our own frame, built on first use: a dark fill with a faint
 -- edge, 10 px text centred, at most 250 wide, 4 above its owner, fading in
 -- and out over a quarter second.
 --   ns.Tip(owner, text)   ns.HideTip()   ns.TipOn(frame, owner, text)
@@ -11,7 +11,7 @@
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 
-local MOD = ns.MODERN
+local DARK = ns.DARK
 local MAX_W, PAD, FADE = 250, 8, 0.25
 
 local tip, tipText, fadeIn, fadeOut
@@ -23,13 +23,13 @@ local function Build()
 	tip:SetFrameLevel(200)
 	tip:SetClampedToScreen(true)
 	tip:Hide()
-	ns.Fill(tip, MOD.tip, -6)
-	ns.PixelBorder(tip, MOD.tipBorder)
+	ns.Fill(tip, DARK.tip, -6)
+	ns.PixelBorder(tip, DARK.tipBorder)
 	tipText = ns.NewText(tip, 10)
 	tipText:SetPoint("CENTER")
 	tipText:SetJustifyH("CENTER")
 	tipText:SetSpacing(3)
-	tipText:SetTextColor(MOD.tipText[1], MOD.tipText[2], MOD.tipText[3], MOD.tipText[4])
+	tipText:SetTextColor(DARK.tipText[1], DARK.tipText[2], DARK.tipText[3], DARK.tipText[4])
 	fadeIn = tip:CreateAnimationGroup()
 	local a = fadeIn:CreateAnimation("Alpha")
 	a:SetFromAlpha(0)
@@ -54,7 +54,7 @@ end
 function ns.Tip(owner, text)
 	text = TextOf(text)
 	if not owner or not text or text == "" then return end
-	if not ns.IsModern() then
+	if not ns.IsDark() then
 		if GameTooltip:IsForbidden() then return end
 		GameTooltip:SetOwner(owner, "ANCHOR_TOP")
 		GameTooltip:SetText(text, 1, 1, 1, 1, true)
