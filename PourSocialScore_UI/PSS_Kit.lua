@@ -255,6 +255,11 @@ function ns.NewTab(parent, text, onClick)
 	tab:SetDisabledFontObject(ns.Font(11, "GameFontHighlightSmall"))
 	tab:SetText(text)
 	tab:SetSize(tab:GetFontString():GetStringWidth() + 32, 24)
+	-- Blizzard's tab templates lift the label 2 px for their taller bottom
+	-- tabs; on our 24 px tabs it sat high, so centre it
+	local label = tab:GetFontString()
+	label:ClearAllPoints()
+	label:SetPoint("CENTER", tab, "CENTER", 0, 0)
 	tab:SetScript("OnClick", onClick)
 	local plate = ns.Own(ns.Fill(tab, MOD.tab, -6))
 	local wash = ns.Own(tab:CreateTexture(nil, "ARTWORK", nil, 7))

@@ -80,6 +80,8 @@ check(e1 and not modernShown(e1), "Blizzard edit box shows Modern parts")
 check(kit.page and kit.page.pssParts.art and kit.page.pssParts.art:IsShown(), "Blizzard panel not shown")
 local tab1, tab2 = kit.tabs[1], kit.tabs[2]
 check(tab1.pssSelected and not tab2.pssSelected, "first tab not selected")
+local lp = tab1:GetFontString()._point
+check(lp and lp[1] == "CENTER" and lp[3] == "CENTER" and lp[5] == 0, "tab label not centred (Blizzard tabs lift it 2 px)")
 SlashCmdList["PSS"]("tui")
 M.PSS_SetOpt("uiSkin", "global", 1)
 SlashCmdList["PSS"]("tui")
