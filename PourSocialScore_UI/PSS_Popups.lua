@@ -30,6 +30,9 @@ local DIALOG_BACKDROP = BACKDROP_DIALOG_32_32 or {
 local function PopupButton(parent, w, h, accept)
 	local b = ns.NewButton(parent, "", w)
 	b:SetHeight(h)
+	-- Modern: the accepting button is the red one
+	b.pssPrimary = accept and true or false
+	b.pssPaint()
 	ns.OnPaint(function(dark)
 		local p = b.pssParts
 		if dark then

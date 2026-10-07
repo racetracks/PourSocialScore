@@ -76,6 +76,30 @@ local function RedButton(b)
 	return red
 end
 
+-- Modern: the Social window's gold-framed dark plate (its side tabs, as Dan
+-- picked from its Frame Stack), brighter on hover, the selected glow while
+-- held.
+local function TertiaryButton(b)
+	local t = ns.Own(b:CreateTexture(nil, "BACKGROUND", nil, 1))
+	t:SetAllPoints(b)
+	local hl = ns.Own(b:CreateTexture(nil, "HIGHLIGHT"))
+	hl:SetAllPoints(b)
+	local on = false
+	b:HookScript("OnMouseDown", function() if on then ns.SideFrame(t, "common-sidetab-selected") end end)
+	b:HookScript("OnMouseUp", function() if on then ns.SideFrame(t, "common-sidetab") end end)
+	local dim = { texture = t, highlight = hl }
+	function dim.Paint(modern)
+		on = modern
+		t:SetShown(modern)
+		if modern then
+			ns.SideFrame(t, "common-sidetab")
+			ns.SideFrame(hl, "common-sidetab-hover")
+		end
+		hl:SetAlpha(modern and 1 or 0)
+	end
+	return dim
+end
+
 -- Labels: Blizzard's gold / white / grey button fonts; Dark white, grey
 -- when disabled (the shared font objects follow the look).
 function ns.NewButton(parent, text, w, onClick)
@@ -92,18 +116,23 @@ function ns.NewButton(parent, text, w, onClick)
 	hover:SetColorTexture(DARK.hover[1], DARK.hover[2], DARK.hover[3], DARK.hover[4])
 	local edge = ns.PixelBorder(b, DARK.border)
 	local red = RedButton(b)
-	b.pssParts = { fill = fill, edge = edge, red = red }
-	ns.OnPaint(function(dark)
-		local modern = ns.IsModern()
+	local dim = TertiaryButton(b)
+	b.pssParts = { fill = fill, edge = edge, red = red, tertiary = dim }
+	b.pssPaint = function()
+		local dark, modern = ns.IsDark(), ns.IsModern()
 		ns.ShowArt(b, dark or modern)
 		fill:SetShown(dark)
 		-- a HIGHLIGHT texture shows on hover by itself: fade it in Blizzard
 		hover:SetAlpha(dark and 1 or 0)
 		edge:SetShown(dark)
-		red.Paint(modern)
+		-- Modern: the Social window's gold-framed plate; a button that accepts
+		-- (b.pssPrimary) is its red one
+		red.Paint(modern and b.pssPrimary == true)
+		dim.Paint(modern and not b.pssPrimary)
 		-- Dark labels are white when enabled (the normal font is gold in Blizzard)
 		b:SetNormalFontObject(ns.Font(12, dark and "GameFontHighlight" or "GameFontNormal"))
-	end)
+	end
+	ns.OnPaint(b.pssPaint)
 	return b
 end
 
@@ -258,8 +287,10 @@ function ns.NewSearchBox(parent, w, hint, onChange)
 	return eb
 end
 
--- A tab page or a pane. Blizzard: the inset frame art. Dark: a flat fill
--- (darker when inset) with a grey edge.
+-- A tab page or a pane. Blizzard: the inset frame art. Modern: no frame (a
+-- page on the window's black under a thin divider; an inset box as the
+-- Social list's dark card). Dark: a flat fill (darker when inset) with a
+-- grey edge.
 function ns.NewPanel(parent, inset)
 	local p = CreateFrame("Frame", nil, parent)
 	local ok, art = pcall(CreateFrame, "Frame", nil, p, "InsetFrameTemplate")
@@ -272,12 +303,27 @@ function ns.NewPanel(parent, inset)
 	end
 	local fill = ns.Fill(p, inset and DARK.inset or DARK.panel, -6)
 	local edge = ns.PixelBorder(p, DARK.border)
-	p.pssParts = { fill = fill, edge = edge, art = art }
+	-- Modern: a page sits on the window's black with the Social window's thin
+	-- divider along its top; a pane or box is the Social list's dark card
+	local card = ns.Own(p:CreateTexture(nil, "BACKGROUND", nil, -5))
+	card:SetAllPoints(p)
+	local divider = ns.Own(p:CreateTexture(nil, "ARTWORK"))
+	divider:SetPoint("TOPLEFT", p, "TOPLEFT", 0, 1)
+	divider:SetPoint("TOPRIGHT", p, "TOPRIGHT", 0, 1)
+	divider:SetHeight(3)
+	p.pssParts = { fill = fill, edge = edge, art = art, card = card, divider = divider }
 	ns.OnPaint(function(dark)
-		local useDark = dark or not art
+		local modern = ns.IsModern()
+		local useDark = dark or (not art and not modern)
 		fill:SetShown(useDark)
 		edge:SetShown(useDark)
-		if art then art:SetShown(not useDark) end
+		if art then art:SetShown(not useDark and not modern) end
+		card:SetShown(modern and inset == true)
+		divider:SetShown(modern and not inset)
+		if modern then
+			card:SetAtlas("friends-card-default")
+			divider:SetAtlas("perks-divider-short")
+		end
 	end)
 	return p
 end
@@ -365,16 +411,13 @@ function ns.NewTab(parent, text, onClick)
 	line:SetPoint("BOTTOMLEFT")
 	line:SetPoint("BOTTOMRIGHT")
 	tab.pssWash, tab.pssLine, tab.pssPlate = wash, line, plate
-	-- Modern: the new Social window's side-tab art (its plate, hover and
-	-- selected glow), a quarter turn so it lies along a top row with its open
-	-- side down onto the page; the glow takes the class colour
-	local function SideArt(layer)
-		local t = ns.Own(tab:CreateTexture(nil, layer))
-		t:SetAllPoints(tab)
-		return t
-	end
-	local side, sideSel, sideHover = SideArt("BACKGROUND"), SideArt("ARTWORK"), SideArt("HIGHLIGHT")
-	tab.pssSide = { plate = side, selected = sideSel, hover = sideHover }
+	-- Modern: the Social window's gold-framed plate, brighter on hover, its
+	-- gold glow on the selected tab (upright art, stretched in the middle)
+	local side = ns.Own(tab:CreateTexture(nil, "BACKGROUND", nil, 1))
+	side:SetAllPoints(tab)
+	local sideHover = ns.Own(tab:CreateTexture(nil, "HIGHLIGHT"))
+	sideHover:SetAllPoints(tab)
+	tab.pssSide = { plate = side, hover = sideHover }
 	ns.OnPaint(function(dark)
 		local modern = ns.IsModern()
 		local plain = dark or not tab.pssTemplate
@@ -382,13 +425,7 @@ function ns.NewTab(parent, text, onClick)
 		plate:SetShown(plain and not modern)
 		side:SetShown(modern)
 		sideHover:SetAlpha(modern and 1 or 0)
-		if modern then
-			side:SetAtlas("common-sidetab")
-			sideSel:SetAtlas("common-sidetab-selected")
-			sideHover:SetAtlas("common-sidetab-hover")
-			for _, t in ipairs({ side, sideSel, sideHover }) do t:SetRotation(math.pi / 2) end
-			sideSel:SetDesaturated(true)
-		end
+		if modern then ns.SideFrame(sideHover, "common-sidetab-hover") end
 		if plain then tab:SetNormalFontObject(ns.Font(11, "GameFontHighlightSmall")) end
 		ns.SetTabSelected(tab, tab.pssSelected)
 	end)
@@ -402,9 +439,7 @@ function ns.SetTabSelected(tab, selected)
 	local plain = (ns.IsDark() or not tab.pssTemplate) and not modern
 	tab.pssWash:SetShown(plain and selected)
 	tab.pssLine:SetShown(plain and selected)
-	local glow = tab.pssSide.selected
-	glow:SetShown(modern and selected)
-	if modern then glow:SetVertexColor(ns.Accent()) end
+	if modern then ns.SideFrame(tab.pssSide.plate, selected and "common-sidetab-selected" or "common-sidetab") end
 	tab.pssLine:SetColorTexture(ns.Accent())
 	-- one physical pixel, as the port's underline
 	tab.pssLine:SetHeight(ns.OnePixel(tab))
