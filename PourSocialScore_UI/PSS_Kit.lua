@@ -238,6 +238,9 @@ end
 -- never text colour alpha (that leaves the shadow as a second label).
 ------------------------------------------------------------------------
 local TAB_TEMPLATES = { "PanelTopTabButtonTemplate", "TabButtonTemplate" }
+-- the template's art for an unselected and a selected tab
+local TAB_IDLE = { "Left", "Middle", "Right" }
+local TAB_ACTIVE = { "LeftActive", "MiddleActive", "RightActive" }
 
 function ns.NewTab(parent, text, onClick)
 	local tab
@@ -254,12 +257,16 @@ function ns.NewTab(parent, text, onClick)
 	tab:SetHighlightFontObject(ns.Font(11, "GameFontHighlightSmall"))
 	tab:SetDisabledFontObject(ns.Font(11, "GameFontHighlightSmall"))
 	tab:SetText(text)
-	tab:SetSize(tab:GetFontString():GetStringWidth() + 32, 24)
-	-- Blizzard's tab templates lift the label 2 px for their taller bottom
-	-- tabs; on our 24 px tabs it sat high, so centre it
+	if tab.pssTemplate then
+		-- the template resizes itself on show and on display changes to its
+		-- own padding (that cut "Player Ignore List" short): our row sizes it
+		tab:SetScript("OnShow", nil)
+		tab:SetScript("OnEvent", nil)
+		tab:UnregisterAllEvents()
+	end
 	local label = tab:GetFontString()
-	label:ClearAllPoints()
-	label:SetPoint("CENTER", tab, "CENTER", 0, 0)
+	label:SetWidth(0)
+	tab:SetSize(label:GetStringWidth() + 32, 24)
 	tab:SetScript("OnClick", onClick)
 	local plate = ns.Own(ns.Fill(tab, MOD.tab, -6))
 	local wash = ns.Own(tab:CreateTexture(nil, "ARTWORK", nil, 7))
@@ -275,7 +282,7 @@ function ns.NewTab(parent, text, onClick)
 		local plain = modern or not tab.pssTemplate
 		ns.ShowArt(tab, plain)
 		plate:SetShown(plain)
-		tab:SetNormalFontObject(ns.Font(11, plain and "GameFontHighlightSmall" or "GameFontNormalSmall"))
+		if plain then tab:SetNormalFontObject(ns.Font(11, "GameFontHighlightSmall")) end
 		ns.SetTabSelected(tab, tab.pssSelected)
 	end)
 	return tab
@@ -289,11 +296,23 @@ function ns.SetTabSelected(tab, selected)
 	tab.pssLine:SetShown(plain and selected)
 	tab.pssLine:SetColorTexture(ns.Accent())
 	local fs = tab:GetFontString()
+	-- Blizzard's PanelTemplates_SelectTab / DeselectTab move a top tab's
+	-- label 4 / 8 px below centre (for their 32 px tabs, art 24 at the
+	-- bottom), which put ours near the bottom edge: the label and the active
+	-- art are set here instead. Our tabs are 24 high, all art.
+	fs:ClearAllPoints()
 	if plain then
-		if fs then fs:SetAlpha(selected and 1 or 0.5) end
+		fs:SetPoint("CENTER", tab, "CENTER", 0, 0)
+		fs:SetAlpha(selected and 1 or 0.5)
 	else
-		if fs then fs:SetAlpha(1) end
-		local fn = selected and PanelTemplates_SelectTab or PanelTemplates_DeselectTab
-		if fn then pcall(fn, tab) end
+		fs:SetPoint("CENTER", tab, "CENTER", 0, selected and 0 or -1)
+		fs:SetAlpha(1)
+		for _, k in ipairs(TAB_IDLE) do
+			if tab[k] then tab[k]:SetShown(not selected) end
+		end
+		for _, k in ipairs(TAB_ACTIVE) do
+			if tab[k] then tab[k]:SetShown(selected) end
+		end
+		tab:SetNormalFontObject(ns.Font(11, selected and "GameFontHighlightSmall" or "GameFontNormalSmall"))
 	end
 end
