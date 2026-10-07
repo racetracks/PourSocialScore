@@ -1,0 +1,7 @@
+=> 1.0.0-dev002 - Short title
+- What changed, in plain words.
+- Version 1.0.0-dev002.
+
+=> 1.0.0-dev001 - First build
+- First test build.
+- Version 1.0.0-dev001.
