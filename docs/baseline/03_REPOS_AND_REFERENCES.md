@@ -24,9 +24,15 @@ Lessons:
 | --- | --- |
 | **Warcraft Wiki: Interface customization** (https://warcraft.wiki.gg/wiki/Warcraft_Wiki:Interface_customization) | The starting point for addon development: TOC format, the API and widget references, events, secure code and taint |
 | **wago.tools** (https://wago.tools) | Interface numbers per client, API signatures, DB2 lookups |
+| **Townlong Yak** (https://www.townlong-yak.com/framexml/live, API docs at https://www.townlong-yak.com/framexml/live/Blizzard_APIDocumentation) | Blizzard's FrameXML per build and the generated API docs, including secret-value annotations (02 J11) |
+| **BlizzardInterfaceResources** (https://github.com/Ketho/BlizzardInterfaceResources) | API, event and CVar dumps per client |
+| **WoWUIBugs** (https://github.com/Stanzilla/WoWUIBugs) | Known UI and API bugs, before assuming a bug is ours |
 | **ElvUI** (https://github.com/tukui-org/ElvUI) | The load-on-demand split: options in a `## LoadOnDemand: 1` addon, loaded from an always-loaded core with `C_AddOns.EnableAddOn` / `LoadAddOn` and `RequiredDeps` |
 | **DBM** (https://github.com/DeadlyBossMods) | `## Category`, `## Group` and coloured Titles that nest an addon's folders in the AddOns list. Copy the logic, never its IDs |
 | **EllesmereUI** (https://github.com/EllesmereGaming/EllesmereUI) | How a UI suite expects other addons to plug in and be skinned (05) |
 | **Questie** (https://github.com/Questie/Questie) | Clear console output on upgrade ("upgraded from X to Y") |
 
 Rule for all of them: **copy logic, never code or IDs.**
+
+## The WoW API reference set
+`reference/wow-api/` holds a condensed rewrite of the Warcraft Wiki hub and its security pages (taint, object security, secure templates and handlers, secret values, TOC format and interface numbers). Its rules are folded into 02 J and B; its README lists where it differs from this baseline (the baseline wins). When it and the live wiki or Blizzard's source differ, the live source wins.

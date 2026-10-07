@@ -13,6 +13,7 @@ PSS rules (02_RULES in the PSS pack):
 - No application or service logic in PourSocialScore_GUI or PourSocialScore_EllesmereUI. The native GUI never reads or loads a file from the EllesmereUI folder; the EUI folder is read only during parity work.
 - Ports to native use only our own or Blizzard resources, look as close as possible to the EUI version, and may copy our own EUI code when it is smaller (never EllesmereUI's code).
 - Every number the EUI window shows equals the native window's. Logging loads only when logs are called.
+- Taint and secrets (baseline 02 J, PSS 02 section 10): never write or replace Blizzard state, post-hooks and Menu.ModifyMenu only; every chat, unit and hook value goes through M.PSS_IsSecret before any compare or index; a secret line is neither filtered nor counted; test chat and hook changes with addonChatRestrictionsForced and addonCombatRestrictionsForced.
 - Never change TOC Title or Notes. SavedVariables layout changes need Dan's OK and a migration validated on the three real saves.
 - Before pushing: sh tools/check_rules.sh, sh tools/harness/check_eui_all.sh, PSS_REAL_SAVES=/mnt/project-files/baselines sh tools/harness/validate_all.sh, and ui_compare.sh / eui_compare.sh for any window that should not change.
 - Test zips on scratch PourSocialScore/test-builds/, linked as https://github.com/racetracks/scratch/raw/main/<path>. Never commit real saves to the addon repo.
