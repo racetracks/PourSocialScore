@@ -29,6 +29,7 @@ Last state: main is **3.3.0-dev004** (PR #82 merged 2026-10-05 20:45Z). Its rele
 | 06_STATUS_AND_NEXT.md | Merged and open work, the parity project, open issues, items waiting on Dan, the next step |
 | 07_HARNESS.md | PSS harness commands and checks |
 | 08_PARITY_PROJECT.md | The current project (3.3.0): objective, decisions, stage table |
+| 09_COMPLIANCE_REVIEW.md | Rules compliance review (2026-10-07): findings, decisions, proposed 3.3.2 stages |
 | PROJECT_INSTRUCTIONS.md | Paste-ready project instructions |
 | savedvariables/<version>/ | Dan's real saves: 2.0.44, 3.0.0, 3.2.0-dev011 |
 | ci/ | Copies of the live release.yml, rules.yml and check scripts from main |
