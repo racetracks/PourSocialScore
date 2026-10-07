@@ -384,10 +384,11 @@ function M.EUI_Toggle(show)
     win:Raise()
 end
 
-function M.EUI_FriendsShow(anchor)
+-- anchor: the Friends or Social window that opened; x: offset from its right edge
+function M.EUI_FriendsShow(anchor, x)
     if not win then Build() end
     win:ClearAllPoints()
-    win:SetPoint("TOPLEFT", anchor or FriendsFrame, "TOPRIGHT", 12, -10)
+    win:SetPoint("TOPLEFT", anchor or FriendsFrame, "TOPRIGHT", x or 12, -10)
     win.byFriends = true
     win:Show()
 end

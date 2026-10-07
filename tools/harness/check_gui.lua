@@ -56,6 +56,16 @@ check(loaded(), "Friends window did not load the GUI")
 check(_G.PSS and _G.PSS:IsShown(), "window not shown with the Friends window")
 FriendsFrame:Hide()
 check(not (_G.PSS and _G.PSS:IsShown()), "window not hidden with the Friends window")
+
+-- Retail 12.1 Social window: shows the window next to it, clear of its tabs
+SocialUIFrame:Show()
+check(_G.PSS:IsShown(), "window not shown with the Social window")
+check(_G.PSS._point and _G.PSS._point[2] == SocialUIFrame and _G.PSS._point[4] == 55, "window not anchored to the Social window")
+-- Social switching to the Who tab (FriendsFrame): the window stays and follows
+FriendsFrame:Show(); SocialUIFrame:Hide()
+check(_G.PSS:IsShown() and _G.PSS._point[2] == FriendsFrame, "window did not follow Social to the Who tab")
+FriendsFrame:Hide()
+check(not _G.PSS:IsShown(), "window not hidden with the Social window")
 PourSocialScoreDB.openWithFriends = opt
 
 -- /pss gui opens it (the stub was replaced by the real function)

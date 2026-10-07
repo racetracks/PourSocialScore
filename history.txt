@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.3.0-dev005 - Window opens next to the new Social window
+
+- Retail 12.1: the Friends key and button now open Blizzard's new Social window (SocialUIFrame) instead of the Friends window, so the PSS window (and the EllesmereUI one) no longer opened beside it. It now opens with either: next to the Social window, clear of its tabs on the right edge, or next to the Friends window as before (the Who tab and Camelot still use it).
+- Switching the Social window to the Who tab keeps the window open and moves it next to the Who window; it closes when both are closed.
+- Harness: check_gui.lua and check_eui_window.lua open and close the Social window too.
+
 => 3.3.0-dev004 - PSS window: totals pane and period pie
 
 - Player Ignore List, Guild Ignore List and Chat Filters: a pane on the right of the list shows the whole list's blocks as a pie of this session, the last 24 hours and all time, as in the EllesmereUI window, with a tick box, colour and count per period. All time starts unticked; the ticks are shared by the three tabs while the window is open.
