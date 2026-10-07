@@ -43,6 +43,14 @@ jobs:
           done
           cp readme.txt history.txt build/PourSocialScore/
           (cd build && zip -qr "../PourSocialScore-$ver.zip" .)
+          # Only addon folders ship: fail if anything else (CLAUDE.md, .github,
+          # tools) reached the zip.
+          bad=$(unzip -Z1 "PourSocialScore-$ver.zip" | grep -v '^PourSocialScore[^/]*/' || true)
+          if [ -n "$bad" ]; then
+            echo "Not an addon folder file, refusing to release:"
+            echo "$bad"
+            exit 1
+          fi
           {
             echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\` so you get \`AddOns/PourSocialScore/PourSocialScore.toc\` (and any \`AddOns/PourSocialScore_*\` folders next to it). Retail (Midnight) and Camelot are supported."
             echo

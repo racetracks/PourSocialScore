@@ -1,0 +1,7 @@
+# Repo-only files for Claude Code and GitHub: kept out of `git archive`
+# (test zips) and GitHub's "Source code" downloads on each release.
+# release.yml packs only the PourSocialScore*/ folders and checks it.
+CLAUDE.md export-ignore
+.claude export-ignore
+.gitattributes export-ignore
+.github/pull_request_template.md export-ignore
