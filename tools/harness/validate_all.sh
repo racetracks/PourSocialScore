@@ -80,6 +80,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_gui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS gui" || fail=1
 
+# the new PSS window (3.4.0): PourSocialScore_UI loads only with /pss tui
+echo "== new window on demand"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_tui.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS tui" || fail=1
+
 # the PSS window's Managed Communities row (3.3.0-dev003)
 echo "== Managed Communities row"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_managed_row.lua" 2>&1 | grep -v '^|cff')

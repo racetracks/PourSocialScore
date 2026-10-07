@@ -57,6 +57,10 @@ local OPTIONS = {
 	{ key = "gcEnabled",		kind = "bool",		default = true,		section = 4, label = "Background memory cleanup (out of combat, never causes a hitch)" },
 	{ key = "frameStrata",		kind = "choice", default = 3,		section = 4, label = L["OPT_25"],
 		choices = { { 0, "LOW" }, { 1, "MEDIUM" }, { 2, "HIGH" }, { 3, "DIALOG" } } },
+	-- The new window (PourSocialScore_UI, /pss tui while it is built): its look
+	{ key = "uiSkin",			kind = "choice", default = 0,		section = 4, label = "Look of the new PSS window (/pss tui, in testing)",
+		choices = { { 0, "Blizzard" }, { 1, "Modern" } },
+		tip = "Blizzard: Blizzard's own window art and fonts. Modern: flat and dark. Both have the same layout." },
 	-- EllesmereUI integration (PSS_EUI.lua); read at login, so a change asks for a reload
 	{ key = "euiIntegration",	kind = "bool",		default = false, section = 4, label = "Enable EllesmereUI integration",
 		reload = "EllesmereUI integration is now %s. Reload the UI to apply it.",

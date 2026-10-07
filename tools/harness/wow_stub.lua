@@ -90,6 +90,14 @@ function W:GetScale() return 1 end
 function W:GetEffectiveScale() return 1 end
 function W:GetNumPoints() return 0 end
 function W:SetPoint(...) self._point = { ... } end
+-- the last SetPoint as the game returns it: point, relativeTo, relativePoint, x, y
+function W:GetPoint()
+	local p = self._point
+	if not p then return nil end
+	if type(p[2]) == "string" then return p[1], nil, p[2], p[3] or 0, p[4] or 0 end
+	return p[1], p[2], p[3] or p[1], p[4] or 0, p[5] or 0
+end
+function W:GetShadowOffset() return 1, -1 end
 function W:SetText(t) self._text = t == nil and "" or tostring(t) end
 function W:SetColorTexture(r, g, b, a) self._color = { r, g, b, a } end
 function W:GetText() return self._text end
@@ -277,7 +285,9 @@ UISpecialFrames = {}
 StaticPopupDialogs = {}
 SlashCmdList = {}
 hash_SlashCmdList = {}
-GameFontNormal, GameFontHighlight, GameFontHighlightSmall, GameFontNormalSmall = {}, {}, {}, {}
+-- font objects answer GetFont, GetShadowOffset and GetTextColor like regions
+local function fontObject() return setmetatable({ _kind = "Font", _scripts = {}, _events = {} }, WMT) end
+GameFontNormal, GameFontHighlight, GameFontHighlightSmall, GameFontNormalSmall = fontObject(), fontObject(), fontObject(), fontObject()
 CANCEL, OKAY, ACCEPT, YES, NO, UNKNOWN, CLOSE = "Cancel", "Okay", "Accept", "Yes", "No", "Unknown", "Close"
 WOW_PROJECT_ID, WOW_PROJECT_MAINLINE = 1, 1
 LE_PARTY_CATEGORY_HOME = 1

@@ -109,6 +109,7 @@ L["HELP_17"]	= "|cffffff00mem [full]|cffffffff: Show how much memory Pour Social
 L["HELP_18"]	= "|cffffff00check|cffffffff: Count and check all saved data (lists, rules, history, counts)"
 L["HELP_19"]	= "|cffffff00gui force|cffffffff: Open the PSS windows even with EllesmereUI integration on"
 L["HELP_20"]	= "|cffffff00eui [enable/disable]|cffffffff: Open the EllesmereUI panel section, or switch EllesmereUI integration (asks to reload)"
+L["HELP_21"]	= "|cffffff00tui|cffffffff: Open the new PSS window (in testing)"
 L["EUI_1"]	= "EllesmereUI integration is %s (%s). Type /pss eui enable or /pss eui disable to switch it."
 L["EUI_2"]	= "EllesmereUI is loaded"
 L["EUI_3"]	= "EllesmereUI is not loaded"

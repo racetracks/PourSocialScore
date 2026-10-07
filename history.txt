@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev001 - New PSS window: the folder and the empty window
+
+- First stage of the new PSS window (3.4.0), which will replace both the PSS windows and the EllesmereUI window with one window in the EllesmereUI window's layout, built only from Blizzard's and our own art.
+- New folder PourSocialScore_UI, loaded only when the window is opened. /pss tui opens it: for now an empty 960 x 494 window with its title and close button; drag it to move it (the place is remembered), Escape closes it.
+- New option "Look of the new PSS window" (Options tab, User interface): Blizzard (the default: Blizzard's window frame and fonts) or Modern (flat and dark, with a thin frame). Switching it repaints the open window at once.
+- Nothing else changes: /pss gui, the Friends window and the EllesmereUI window work as before.
+
 => 3.3.1 - Social window fix, PSS window totals and Managed Communities
 
 - Retail 12.1: the PSS window (and the EllesmereUI one) opens next to Blizzard's new Social window again, clear of its side tabs, and follows it to the Who tab (3.3.0-dev005).

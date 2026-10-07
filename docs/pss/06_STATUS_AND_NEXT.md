@@ -15,8 +15,16 @@
 | 3.3.0-dev004 | #82 | Native totals pane with the period pie (`PSS_Pie.lua`, G9 copy, 11.4 KB); window 1290 wide (side-pane layout, the recommended option of a card Dan did not answer) | Merged; release not published |
 | 3.3.0-dev005 | #85 | Bugfix: Retail 12.1 opens `SocialUIFrame` for the Friends key; core hooks it and FriendsFrame (Who tab), the window anchors to whichever opened (55 px clear of the Social side tabs) | Merged |
 
-## Next step
-None planned on PSS: Dan has other plans. Fixes to 3.3.1 start `3.3.2-dev001` (or ask Dan whether a fix goes straight out as `3.3.2`).
+## Current project: the new PSS window (3.4.0)
+One window with the EllesmereUI port's layout, features and feel, drawn only with Blizzard's and our own resources, in two looks (option `uiSkin`: Blizzard, the default, or Modern). It replaces both `PourSocialScore_GUI` and `PourSocialScore_EllesmereUI`. Logic goes in `PourSocialScore_Libraries`, drawing in the new `PourSocialScore_UI`; `/pss tui` opens it until the cutover. Plan, decisions (Dan, 2026-10-07) and look spec: scratch `pss-projects/pss-ui/`.
+
+| Stage | Dev | What | State |
+| --- | --- | --- | --- |
+| A1 | 3.4.0-dev001 | `PourSocialScore_UI` folder, loader part `UI`, option `uiSkin`, `/pss tui` opens the empty window in either look; `check_tui.lua`; TOC and PSS-names checks in `check_rules.sh` | PR open |
+| A2 | 3.4.0-dev002 | The kit in both looks, plus the `uiFont` option (Blizzard fonts, and LibSharedMedia fonts read only when another addon loaded it) | Next |
+| A3 to D3 | dev003 to dev015 | Libraries groundwork, the six tabs, old-GUI-only features, cutover, removal | Planned |
+
+Fixes to 3.3.1 meanwhile would be `3.3.2-dev001`.
 
 ## Waiting on Dan
 1. Archive `racetracks/PourSocialScore-EllesmereUI` and close its PR #18.
