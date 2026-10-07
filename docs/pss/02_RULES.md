@@ -49,6 +49,7 @@ So core = the chat filtering engine plus the loader, with what filtering needs (
 - The 3.3.0 line is the parity feature (Dan chose it on 2026-10-05). Its stages are 3.3.0-devNNN pre-releases; plain `3.3.0` only when Dan says the parity work is complete.
 - Older builds used `-devN` (3.2.0-dev3). Do not copy that; three digits from 3.3.0 on.
 - A fix for 3.2.0 would be `3.2.1-dev001`; ask Dan if a fix line is needed.
+- **Fixes to a dev build before it merges count up with `_N` (Dan, 2026-10-07):** the first round of fixes on `3.4.0-dev002` is `3.4.0-dev002_2`, then `_3`; every TOC, the history section and the test zip name carry it. The next stage is still the next devNNN (`3.4.0-dev003`).
 
 ## 9. Hosting paths on scratch
 - Test zips: `PourSocialScore/test-builds/PourSocialScore-<version>.zip` (old `pss-builds/` kept for links). Also copy to `/mnt/project-files/builds/`.
