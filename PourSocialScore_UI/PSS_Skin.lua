@@ -44,7 +44,7 @@ ns.DARK = {
 	tipText = { 1, 1, 1, 0.80 },
 }
 
--- the accent: underlines, sorted columns, row washes, ticks
+-- the look's own accent, used only without a class colour
 local ACCENT = { dark = { 0.047, 0.824, 0.616 }, blizzard = { 1, 0.82, 0 } }
 
 ns.TITLE_H = 25
@@ -62,8 +62,11 @@ function ns.IsDark()
 	return ns.Skin() == "dark"
 end
 
--- r, g, b of the accent in the look shown
+-- r, g, b of the accent: your class colour in every look; the look's own
+-- only if the client gives no class colour
 function ns.Accent()
+	local r, g, b = M.PSS_UIAccent()
+	if r then return r, g, b end
 	local c = ACCENT[ns.Skin()] or ACCENT.blizzard
 	return c[1], c[2], c[3]
 end
@@ -134,12 +137,19 @@ end
 -- Primitives
 ------------------------------------------------------------------------
 -- One physical pixel at the frame's scale (768 units span the screen height).
-local function OnePixel(frame)
+function ns.OnePixel(frame)
 	local h = GetPhysicalScreenSize and select(2, GetPhysicalScreenSize())
 	if not h or h <= 0 then return 1 end
 	local scale = frame:GetEffectiveScale()
 	if not scale or scale <= 0 then scale = 1 end
 	return 768 / h / scale
+end
+
+-- A line or strip exactly as thick as asked in physical pixels: no snapping
+-- to the UI grid, which blurs a thin line at UI scales under 1.
+function ns.NoSnap(t)
+	if t.SetSnapToPixelGrid then t:SetSnapToPixelGrid(false) end
+	if t.SetTexelSnappingBias then t:SetTexelSnappingBias(0) end
 end
 
 -- A border of four flat strips inside the frame's edges, one physical pixel
@@ -150,9 +160,12 @@ function ns.PixelBorder(frame, color)
 	b:SetAllPoints(frame)
 	b:SetFrameLevel(frame:GetFrameLevel() + 1)
 	local strips = {}
-	for i = 1, 4 do strips[i] = b:CreateTexture(nil, "BORDER", nil, 7) end
+	for i = 1, 4 do
+		strips[i] = b:CreateTexture(nil, "BORDER", nil, 7)
+		ns.NoSnap(strips[i])
+	end
 	local function Layout()
-		local px = max(OnePixel(b), 0.0001)
+		local px = max(ns.OnePixel(b), 0.0001)
 		local t, btm, l, r = strips[1], strips[2], strips[3], strips[4]
 		t:ClearAllPoints(); t:SetPoint("TOPLEFT"); t:SetPoint("TOPRIGHT"); t:SetHeight(px)
 		btm:ClearAllPoints(); btm:SetPoint("BOTTOMLEFT"); btm:SetPoint("BOTTOMRIGHT"); btm:SetHeight(px)

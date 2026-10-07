@@ -96,17 +96,26 @@ check(tab1.MiddleActive:IsShown() and not tab1.Middle:IsShown(), "selected tab n
 check(tab2.Middle:IsShown() and not tab2.MiddleActive:IsShown(), "unselected tab showing the active art")
 check(tab1._scripts.OnShow == nil, "tab template still resizes itself on show")
 check(tab1:GetWidth() == tab1:GetFontString():GetStringWidth() + 32, "tab not sized to its label + 32")
+-- the accent is always your class colour (here a Druid's orange)
+local realClass, realColor = UnitClass, C_ClassColor.GetClassColor
+UnitClass = function() return "Druid", "DRUID", 11 end
+C_ClassColor.GetClassColor = function(c) if c == "DRUID" then return { r = 1, g = 0.49, b = 0.04 } end end
 SlashCmdList["PSS"]("tui")
 M.PSS_SetOpt("uiSkin", "global", 1)
 SlashCmdList["PSS"]("tui")
+local lc = tab1.pssLine._color
+check(lc and lc[1] == 1 and lc[2] == 0.49 and lc[3] == 0.04, "Dark underline is not the class colour")
+check(M.PSS_OPTION_REG.uiAccent == nil, "the accent has an option (the class colour is mandatory)")
 check(darkShown(b1) and b1.pssParts.edge:IsShown(), "Dark button parts not shown")
 check(c1.pssParts.box:IsShown() and c1.pssParts.edge:IsShown(), "Dark tick box parts not shown")
 check(darkShown(e1), "Dark edit box parts not shown")
 check(darkShown(kit.page) and not kit.page.pssParts.art:IsShown(), "Dark panel not shown")
 check(tab1.pssLine:IsShown() and not tab2.pssLine:IsShown(), "Dark tab underline not on the selected tab only")
-check(tab2:GetFontString():GetAlpha() == 0.5 and tab1:GetFontString():GetAlpha() == 1, "Dark tab labels not faded by alpha")
+check(tab2:GetFontString():GetAlpha() == 0.7 and tab1:GetFontString():GetAlpha() == 1, "Dark tab labels not faded to 0.7 by alpha")
 kit.tabs[3]._scripts.OnClick(kit.tabs[3])
 check(kit.tabs[3].pssSelected and not tab1.pssSelected, "tab click did not select it")
+
+UnitClass, C_ClassColor.GetClassColor = realClass, realColor
 
 -- tooltips: Dark draws its own; Blizzard uses GameTooltip
 local owner = kit.tipOwner

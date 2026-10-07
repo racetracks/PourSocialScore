@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev002_4 - New PSS window: class colour accent, clearer tabs
+
+- The new window's accent is your class colour in every look: the selected tab's underline, headings and ticks now (sorted columns and selected rows as they arrive).
+- Dark look: unselected tab labels are brighter (still dimmed, easier to read), and the selected tab's underline is exactly one screen pixel, so it stays crisp at any UI scale. The thin edges are drawn the same way.
+
 => 3.4.0-dev002_3 - New PSS window: three looks
 
 - "Look of the new PSS window" now offers Blizzard (Default), Modern and Dark. Dark is the flat dark look that was called Modern; if you picked it, it stays picked.

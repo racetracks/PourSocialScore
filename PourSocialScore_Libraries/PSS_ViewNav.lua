@@ -7,6 +7,7 @@
 --   M.PSS_UIPlace(key)                   point, relPoint, x, y or nil
 --   M.PSS_SetUIPlace(key, point, relPoint, x, y)
 --   M.PSS_UIFontPath(), M.PSS_UIFontChoices()   (below)
+--   M.PSS_UIAccent()                     r, g, b of your class colour, or nil
 -- Places are saved with the other window places (PourSocialScoreDB
 -- windowPoints, held in PSS_OptionsDB).
 ------------------------------------------------------------------------
@@ -34,6 +35,16 @@ function M.PSS_SetUIPlace(key, point, relPoint, x, y)
 	if type(db) ~= "table" or type(point) ~= "string" then return end
 	if type(db.windowPoints) ~= "table" then db.windowPoints = {} end
 	db.windowPoints[key] = { point, relPoint or point, tonumber(x) or 0, tonumber(y) or 0 }
+end
+
+-- The window's accent is always your class colour (Dan, 2026-10-07): your
+-- own class, never secret. nil only if the client gives none.
+function M.PSS_UIAccent()
+	local _, class = UnitClass("player")
+	if type(class) ~= "string" then return nil end
+	local c = C_ClassColor and C_ClassColor.GetClassColor and C_ClassColor.GetClassColor(class)
+	c = c or (RAID_CLASS_COLORS and RAID_CLASS_COLORS[class])
+	if type(c) == "table" and c.r then return c.r, c.g, c.b end
 end
 
 ------------------------------------------------------------------------

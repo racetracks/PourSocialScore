@@ -241,6 +241,7 @@ local TAB_TEMPLATES = { "PanelTopTabButtonTemplate", "TabButtonTemplate" }
 -- the template's art for an unselected and a selected tab
 local TAB_IDLE = { "Left", "Middle", "Right" }
 local TAB_ACTIVE = { "LeftActive", "MiddleActive", "RightActive" }
+local TAB_DIM = 0.7
 
 function ns.NewTab(parent, text, onClick)
 	local tab
@@ -274,7 +275,7 @@ function ns.NewTab(parent, text, onClick)
 	wash:SetColorTexture(DARK.tabWash[1], DARK.tabWash[2], DARK.tabWash[3], DARK.tabWash[4])
 	wash:SetBlendMode("ADD")
 	local line = ns.Own(tab:CreateTexture(nil, "OVERLAY", nil, 7))
-	line:SetHeight(1)
+	ns.NoSnap(line)
 	line:SetPoint("BOTTOMLEFT")
 	line:SetPoint("BOTTOMRIGHT")
 	tab.pssWash, tab.pssLine, tab.pssPlate = wash, line, plate
@@ -295,6 +296,8 @@ function ns.SetTabSelected(tab, selected)
 	tab.pssWash:SetShown(plain and selected)
 	tab.pssLine:SetShown(plain and selected)
 	tab.pssLine:SetColorTexture(ns.Accent())
+	-- one physical pixel, as the port's underline
+	tab.pssLine:SetHeight(ns.OnePixel(tab))
 	local fs = tab:GetFontString()
 	-- Blizzard's PanelTemplates_SelectTab / DeselectTab move a top tab's
 	-- label 4 / 8 px below centre (for their 32 px tabs, art 24 at the
@@ -303,7 +306,8 @@ function ns.SetTabSelected(tab, selected)
 	fs:ClearAllPoints()
 	if plain then
 		fs:SetPoint("CENTER", tab, "CENTER", 0, 0)
-		fs:SetAlpha(selected and 1 or 0.5)
+		-- unselected: dimmed but easy to read on the dark plate (Dan, 2026-10-07)
+		fs:SetAlpha(selected and 1 or TAB_DIM)
 	else
 		fs:SetPoint("CENTER", tab, "CENTER", 0, selected and 0 or -1)
 		fs:SetAlpha(1)
