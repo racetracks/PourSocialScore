@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.3.1 - Social window fix, PSS window totals and Managed Communities
+
+- Retail 12.1: the PSS window (and the EllesmereUI one) opens next to Blizzard's new Social window again, clear of its side tabs, and follows it to the Who tab (3.3.0-dev005).
+- PSS window: a totals pane beside the Player, Guild and Chat Filters lists with a pie of this session, the last 24 hours and all time, the same numbers as the EllesmereUI window; the window opens 1290 wide (3.3.0-dev004).
+- PSS window: the default guild lists sit under one Managed Communities row on the Guild Ignore List (3.3.0-dev003).
+- One count for this session and the last 24 hours in both windows; the old hourly counts are removed from saved data on login (12.1 KB less memory); EllesmereUI Chat Filters All time now includes pre-2.0.36 blocks as Unknown (3.3.0-dev002).
+- The shared Events logic moved to PourSocialScore_Libraries; nothing you see changes (3.3.0-dev001).
+
 => 3.3.0-dev005 - Window opens next to the new Social window
 
 - Retail 12.1: the Friends key and button now open Blizzard's new Social window (SocialUIFrame) instead of the Friends window, so the PSS window (and the EllesmereUI one) no longer opened beside it. It now opens with either: next to the Social window, clear of its tabs on the right edge, or next to the Friends window as before (the Who tab and Camelot still use it).
