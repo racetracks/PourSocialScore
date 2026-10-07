@@ -28,6 +28,7 @@ None planned on PSS: Dan has other plans. Fixes to 3.3.1 start `3.3.2-dev001` (o
 #78 parity project (closed at 3.3.1; issue still open); #37 guild exclusion list is not saved (define its intent); #38 seeing a shipped-guild member loads the lists; #39 unload the GUI on close; #40 research whether a LoadOnDemand addon can unload; #44 clean up console output; #45 Questie-style upgrade output. #77 decided (option b) and done.
 
 ## Parked or offered
+- Scrolling text from Mik's Scrolling Battle Text logic (3.4.0 proposed): design draft and stage plan in `09_SCROLLING_TEXT.md`, waiting on Dan's answers to its section 6.
 - Pack the in-play chat filter log (offered, not started).
 - Dashboard / overview page (paused, branch `claude/project-thread-pa7y7o`).
 - Native-only features (Player Search, Prune, right-click menus, resizable columns) stay native-only for now (decision 5); a later project.

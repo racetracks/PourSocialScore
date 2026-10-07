@@ -27,6 +27,7 @@ Read when the task touches the topic:
 - `docs/pss/05_RELEASE.md`: PSS release names, CI jobs, release history, pitfalls
 - `docs/pss/07_HARNESS.md`: PSS harness commands
 - `docs/pss/08_PARITY_PROJECT.md`: the current 3.3.0 parity project, decisions and stage table
+- `docs/pss/09_SCROLLING_TEXT.md`: the proposed scrolling text feature (MSBT logic on 12.x), decisions and stages
 - `docs/pss/reference/`: original 3.3 analysis and plan, issue #77 notes, 2026-10-07 memory snapshot (history; 06 and 08 are newer)
 - `docs/baseline/01, 03, 04, 05, 06, 08, 09`: API limits, references, architecture, suite integration and known fixes, harness, lifecycle, release pipeline
 - `docs/baseline/templates/`, `docs/baseline/examples/`: generic; the live copies in `tools/` and `.github/workflows/` win
