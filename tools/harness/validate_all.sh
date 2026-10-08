@@ -291,6 +291,12 @@ echo "== growth"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_growth.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -q "PASS growth" && echo "$out" | grep "^growth:" && echo "PASS growth" || { echo "$out"; echo "FAIL growth"; fail=1; }
 
+# the right-click menu (B2): a PSS header, Block Player and Block Guild
+echo "== unit menu"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_unitmenu.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS unitmenu" || fail=1
+
 # your own guild (3.2): a guild rule never blocks it, a player entry does
 echo "== own guild"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_ownguild.lua" 2>&1 | grep -v '^|cff')

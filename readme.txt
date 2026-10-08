@@ -75,7 +75,7 @@ Player Ignore List
   No warning when their whispers are allowed (W ticked). Options: "Warn when
   grouped with, or whispering, a player on any list"
 * Automatic decline of duels, trades and party invites from ignored players
-* Ignore from right-click menus on targets, raid frames and the LFG list
+* Block a player or their guild from the "PSS" heading in right-click menus on targets, raid frames, chat names and the LFG list
 
 Guild Ignore List
 * Ignore whole guilds. Members are captured by guild Scan (a /who sweep of
