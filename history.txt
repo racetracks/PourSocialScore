@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.30 - Mirror carries the release's files
+
+- Nothing changes in game.
+- The public copy of each full release (racetracks/Pour-Social-Score) now carries the addon's files, not only the release download: each full release's folders are committed to it, and the release sits on that commit. 3.4.0.29 is brought across this way when this build merges.
+
 => 3.4.0.29 - The new Pour Social Score window
 
 - One new Pour Social Score window replaces both old windows (the classic PSS window and the EllesmereUI window). /pss (also /pss gui, ui or eui), the Addon Compartment and your Friends or Social window open it; /pss help lists the chat commands.

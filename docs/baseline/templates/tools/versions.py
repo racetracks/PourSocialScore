@@ -16,6 +16,7 @@
 #                                                     pre-releases move under it
 #   python3 tools/versions.py pr <number>             set the PR of entries without one
 #   python3 tools/versions.py kind <version>          release | pre-release | unknown
+#   python3 tools/versions.py latest                  the latest release (empty if none)
 #   python3 tools/versions.py prs [<version>]         the versions and PRs between the
 #                                                     release before <version> and
 #                                                     <version> (default: the pending
@@ -169,6 +170,10 @@ def cmd_kind(args):
 		print("unknown")
 
 
+def cmd_latest(args):
+	print(load()["latestRelease"] or "")
+
+
 def cmd_prs(args):
 	data = load()
 	if not args:
@@ -235,7 +240,7 @@ def cmd_check(args):
 		sys.exit(1)
 
 
-CMDS = {"next": cmd_next, "add": cmd_add, "release": cmd_release, "pr": cmd_pr, "kind": cmd_kind,
+CMDS = {"next": cmd_next, "add": cmd_add, "release": cmd_release, "pr": cmd_pr, "kind": cmd_kind, "latest": cmd_latest,
 	"prs": cmd_prs, "check": cmd_check}
 
 if __name__ == "__main__":

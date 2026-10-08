@@ -10,8 +10,9 @@
 # A full release's notes are its history.txt section only: one summary of
 # every change since the previous release, written at release time from the
 # PRs versions.json lists between the two (CLAUDE.md, Full releases). Job
-# "mirror" then publishes the full release, with the same zip and notes, on
-# $MIRROR_REPO (secret MIRROR_TOKEN: contents read and write on that repo).
+# "mirror" keeps $MIRROR_REPO on the latest full release: the zip's contents
+# committed as its files, and the release with the same zip and notes on that
+# commit (secret MIRROR_TOKEN: contents read and write on that repo).
 # Pre-releases are not mirrored.
 name: Release
 
@@ -107,41 +108,85 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   mirror:
+    # Keeps $MIRROR_REPO on the latest full release (versions.json
+    # latestRelease): the release zip's contents committed as the repo's files
+    # (every addon folder at the root; files of the mirror's own, such as its
+    # readme.md, are kept), and the release, with the same zip and notes, on
+    # that commit. Runs after every push and does nothing when the mirror is
+    # already there, so a release that went across without its files is
+    # repaired by the next push (or Actions > Release > Run workflow).
     needs: release
-    if: ${{ needs.release.outputs.kind == 'release' }}
+    if: ${{ always() && needs.release.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Check the version and the mirror
+      - uses: actions/checkout@v4
+
+      - name: Check the latest release and the mirror
         id: m
         run: |
-          echo "skip=false" >> "$GITHUB_OUTPUT"
+          VER=$(python3 tools/versions.py latest)
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          if [ -z "$VER" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "No release yet: nothing to mirror"; exit 0; fi
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::Add a MIRROR_TOKEN secret with contents read and write on $MIRROR_REPO"
             exit 1
           fi
-          if gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+          git clone -q "https://x-access-token:${GH_TOKEN}@github.com/${MIRROR_REPO}.git" mirror
+          toc() { sed -n 's/^## Version: *//p' | tr -d '\r'; }
+          files=$( { toc < mirror/PourSocialScore/PourSocialScore.toc; } 2>/dev/null || true)
+          tagged=$(git -C mirror show "v$VER:PourSocialScore/PourSocialScore.toc" 2>/dev/null | toc || true)
+          if [ "$files" = "$VER" ] && [ "$tagged" = "$VER" ] && gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "The mirror is on $VER"
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "The mirror needs $VER (files: ${files:-none}, tagged: ${tagged:-none})"
           fi
         env:
-          VER: ${{ needs.release.outputs.version }}
           GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
 
       - name: Fetch the zip and notes
-        if: steps.m.outputs.skip == 'false' && steps.m.outputs.exists == 'false'
+        if: steps.m.outputs.skip == 'false'
         run: |
           gh release download "v$VER" --repo "$GITHUB_REPOSITORY" --pattern "PourSocialScore-$VER.zip"
           gh release view "v$VER" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
         env:
-          VER: ${{ needs.release.outputs.version }}
+          VER: ${{ steps.m.outputs.version }}
           GH_TOKEN: ${{ github.token }}
 
-      - name: Publish on the mirror
-        if: steps.m.outputs.skip == 'false' && steps.m.outputs.exists == 'false'
+      - name: Commit the release's files to the mirror
+        id: c
+        if: steps.m.outputs.skip == 'false'
         run: |
-          gh release create "v$VER" "PourSocialScore-$VER.zip" --repo "$MIRROR_REPO" \
-            --title "Pour Social Score $VER" --notes-file notes.md --latest
+          cd mirror
+          for d in PourSocialScore PourSocialScore_*/; do
+            if [ -d "$d" ]; then git rm -rq "${d%/}"; fi
+          done
+          unzip -q "../PourSocialScore-$VER.zip" -d .
+          git add -A
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "Pour Social Score $VER"
+            git push -q origin HEAD
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
         env:
-          VER: ${{ needs.release.outputs.version }}
+          VER: ${{ steps.m.outputs.version }}
+
+      - name: Publish the release on the mirror
+        if: steps.m.outputs.skip == 'false'
+        run: |
+          # a release whose tag is not on the release's files (made before the
+          # files were copied) is made again on them
+          tagged=$(git -C mirror show "v$VER:PourSocialScore/PourSocialScore.toc" 2>/dev/null | sed -n 's/^## Version: *//p' | tr -d '\r' || true)
+          if [ "$tagged" != "$VER" ] && gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
+            gh release delete "v$VER" --repo "$MIRROR_REPO" --cleanup-tag --yes
+          fi
+          if ! gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
+            gh release create "v$VER" "PourSocialScore-$VER.zip" --repo "$MIRROR_REPO" --target "$SHA" \
+              --title "Pour Social Score $VER" --notes-file notes.md --latest
+          fi
+        env:
+          VER: ${{ steps.m.outputs.version }}
+          SHA: ${{ steps.c.outputs.sha }}
           GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}

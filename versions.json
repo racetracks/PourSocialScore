@@ -1,6 +1,7 @@
 {
 	"latestRelease": "3.4.0.29",
 	"preReleases": [
+		{ "version": "3.4.1.30", "pr": null }
 	],
 	"releases": [
 		{
