@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev005 - New PSS window: Libraries groundwork
+
+- Nothing you can see changes yet: this stage adds the maths the new window's tabs will draw, in PourSocialScore_Libraries (new file PSS_DetailQuery.lua, and more in PSS_ViewNav.lua).
+- Detail panes: this session, the last 24 hours and all time for a player, a guild, a chat filter or a whole list, read from the same counts the EllesmereUI window shows; the period pie's nested slices and its tooltip; the type pie; the period and type ticks shared by every pane.
+- Navigation: back and forward through the tabs and views (capped), Escape from Events back to the tab before, double-click, a redraw throttle for bursts of blocks; the override cycle (default, on, off) and its button text.
+- A new harness check (check_viewquery.lua) proves every pane's numbers equal the core's counts on every save, the real ones included.
+
 => 3.4.0-dev004_4 - New PSS window: Modern buttons and tabs settled
 
 - Modern buttons and tabs keep the straight dark gold-framed plate (Dan's pick). The Filter-art tab and the "Straight art" comparison row are gone from the kit preview.

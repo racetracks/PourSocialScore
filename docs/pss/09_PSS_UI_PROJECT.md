@@ -15,7 +15,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 `latest/` (the newest). Real saves: `SavedVariables/<version>/`.
 
 ## Dan's brief and decisions (2026-10-07)
-1. Every element of the EllesmereUI port becomes native. No EllesmereUI dependency and no EllesmereUI names: PSS names only (`check_rules.sh` fails on `EUI` or `Ellesmere` in `PourSocialScore_UI` and `PSS_ViewNav.lua`).
+1. Every element of the EllesmereUI port becomes native. No EllesmereUI dependency and no EllesmereUI names: PSS names only (`check_rules.sh` fails on `EUI` or `Ellesmere` in `PourSocialScore_UI`, `PSS_ViewNav.lua` and `PSS_DetailQuery.lua`).
 2. **The port is the reference for every visual and layout choice; the old GUI is not authoritative on anything.**
 3. All logic (state, navigation, queries, shaping, validation, flows) in `PourSocialScore_Libraries`; drawing only in the new `PourSocialScore_UI` ("PourSocialScore UI"), split by function. Folder name `PourSocialScore_UI`.
 4. `/pss tui` (temp UI) opens it while it is built; at the cutover it takes over `/pss gui`, the Friends / Social docking and the Addon Compartment.
@@ -41,8 +41,8 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | A1 | dev001 | `PourSocialScore_UI` folder, loader part `UI`, option `uiSkin`, `/pss tui` empty window; `check_tui.lua`, `check_toc.sh`, PSS-names check | Merged #88 |
 | A2 | dev002 (to dev002_4) | Kit part 1 in Blizzard and Dark: shared fonts, heading, button, tick box, edit / number / search box, panel, scroll frame, tab row, tooltip; option `uiFont`; three looks; class colour accent; temporary kit preview page | Merged #89 (at dev002) and #90 (dev002_2 to _4, docs) |
 | A2b | dev003 (to dev003_2) | Kit part 2: drop-down and right-click menu, popups (confirm, copy, import), row list, pie | Merged #92 |
-| Modern | dev004 (to dev004_2) | The Modern look across the kit (Dan chose it next, 2026-10-07); dev004_2 redone after the whole Social window | PR #93 |
-| A3 | dev005 | Libraries groundwork: navigation, detail maths, event view, shared helpers; numbers match the port on the real saves | Planned |
+| Modern | dev004 (to dev004_2) | The Modern look across the kit (Dan chose it next, 2026-10-07); dev004_2 redone after the whole Social window, settled at dev004_4 | Merged #93 |
+| A3 | dev005 | Libraries groundwork: navigation, detail maths, shared helpers; numbers equal the core's counts on the real saves (`check_viewquery.lua`); the Events view query moves to B6, with the tab that draws it | PR open |
 | B1 to B7 | dev006 to dev012 | Window frame and navigation, then one tab per PR (Players, Guilds x2, Chat Filters, Events, Options + Import/Export) | Planned |
 | C1, C2 | dev013, dev014 | Player Search, add target, Prune; right-click menus | Planned |
 | D1 to D3 | dev015 to dev017 | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
@@ -59,7 +59,8 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | `PourSocialScore_UI/PSS_Rows.lua`, `PSS_Pie.lua` | The virtual row list and the pie, carried over from our own port and drawn in the look shown |
 | `PourSocialScore_UI/PSS_KitPage.lua` | Temporary kit preview (three tabs), removed in B1 |
 | `PourSocialScore_UI/PSS_Window.lua` | The window, Escape helper `PSS_WindowEscape`, `M.PSS_TUI` |
-| `PourSocialScore_Libraries/PSS_ViewNav.lua` | `M.PSS_UISkin`, `M.PSS_UIPlace` / `M.PSS_SetUIPlace`, `M.PSS_UIFontPath`, `M.PSS_UIFontChoices`, `M.PSS_UIAccent` |
+| `PourSocialScore_Libraries/PSS_ViewNav.lua` | `M.PSS_UISkin`, `M.PSS_UIPlace` / `M.PSS_SetUIPlace`, `M.PSS_UIFontPath`, `M.PSS_UIFontChoices`, `M.PSS_UIAccent`; back / forward `M.PSS_NavNew(max)` (`Record`, `Back`, `Forward`, `Replace`, `BackToOther`), `M.PSS_DoubleClick`, `M.PSS_Throttle` |
+| `PourSocialScore_Libraries/PSS_DetailQuery.lua` | Pane maths: `M.PSS_PERIODS`, period and type ticks, `M.PSS_SummaryValues`, `M.PSS_PeriodSlices` / `M.PSS_PeriodTip`, `M.PSS_TypeSlices`, `M.PSS_TotalsView`, `M.PSS_CountsText`, override cycle `M.PSS_NextOverride` / `M.PSS_OverrideText`, `M.PSS_ClassColor` |
 | Core | `M.PSS_PARTS.UI`, `NEEDS.UI = "Libraries"`, options `uiSkin` and `uiFont`, `HELP_21` |
 
 ## Lessons so far

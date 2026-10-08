@@ -8,6 +8,7 @@
 --   M.PSS_SetUIPlace(key, point, relPoint, x, y)
 --   M.PSS_UIFontPath(), M.PSS_UIFontChoices()   (below)
 --   M.PSS_UIAccent()                     r, g, b of your class colour, or nil
+--   M.PSS_NavNew(), M.PSS_DoubleClick(), M.PSS_Throttle()   (below)
 -- Places are saved with the other window places (PourSocialScoreDB
 -- windowPoints, held in PSS_OptionsDB).
 ------------------------------------------------------------------------
@@ -102,4 +103,98 @@ function M.PSS_UIFontChoices()
 		end
 	end
 	return o.choices
+end
+
+------------------------------------------------------------------------
+-- Back and forward: the views the window showed, oldest first, and the
+-- one shown. A view is { tab = id, view = what the tab's page says it
+-- shows (nil: how the tab opens) }. The window draws the arrows and the
+-- line by them; this only keeps the steps.
+--   local nav = M.PSS_NavNew(max)        (max steps kept, default 50)
+--   nav:Record(tab, view)  a new step after the user changed the view
+--                          (drops any forward steps); false if unchanged
+--   nav:Current()  nav:CanBack()  nav:CanForward()
+--   nav:Back()  nav:Forward()            the step to show, or nil
+--   nav:Replace(tab, view)               the step shown is now this (a
+--                                        view that is gone)
+--   nav:BackToOther(tab)  the newest earlier step on another tab (Escape on
+--                         the Events tab returns where it came from), or nil
+------------------------------------------------------------------------
+local Nav = {}
+Nav.__index = Nav
+
+function M.PSS_NavNew(max)
+	return setmetatable({ steps = {}, pos = 0, max = max or 50 }, Nav)
+end
+
+function Nav:Current() return self.steps[self.pos] end
+function Nav:CanBack() return self.pos > 1 end
+function Nav:CanForward() return self.pos < #self.steps end
+
+function Nav:Record(tab, view)
+	local top = self.steps[self.pos]
+	if top and top.tab == tab and top.view == view then return false end
+	for i = #self.steps, self.pos + 1, -1 do self.steps[i] = nil end
+	self.steps[#self.steps + 1] = { tab = tab, view = view }
+	if #self.steps > self.max then table.remove(self.steps, 1) end
+	self.pos = #self.steps
+	return true
+end
+
+function Nav:Back()
+	if self.pos <= 1 then return nil end
+	self.pos = self.pos - 1
+	return self.steps[self.pos]
+end
+
+function Nav:Forward()
+	if self.pos >= #self.steps then return nil end
+	self.pos = self.pos + 1
+	return self.steps[self.pos]
+end
+
+function Nav:Replace(tab, view)
+	if self.pos > 0 then self.steps[self.pos] = { tab = tab, view = view } end
+end
+
+function Nav:BackToOther(tab)
+	for pos = self.pos - 1, 1, -1 do
+		if self.steps[pos].tab ~= tab then
+			self.pos = pos
+			return self.steps[pos]
+		end
+	end
+	return nil
+end
+
+------------------------------------------------------------------------
+-- Small helpers the window's tabs share.
+--   M.PSS_DoubleClick(state, key [, now])  true for a second click on the
+--       same key within 0.35 s (state: the caller's own table)
+--   M.PSS_Throttle(fn [, delay])  a function that runs fn once, delay
+--       seconds (0.25) after the first of a burst of calls (redraws while
+--       blocks pour in)
+------------------------------------------------------------------------
+local DOUBLE_CLICK = 0.35
+
+function M.PSS_DoubleClick(state, key, now)
+	now = now or GetTime()
+	if state.key == key and state.at and now - state.at <= DOUBLE_CLICK then
+		state.key, state.at = nil, nil
+		return true
+	end
+	state.key, state.at = key, now
+	return false
+end
+
+function M.PSS_Throttle(fn, delay)
+	local waiting = false
+	return function()
+		if waiting then return end
+		waiting = true
+		C_Timer.After(delay or 0.25, function()
+			waiting = false
+			fn()
+		end)
+	end
 end
