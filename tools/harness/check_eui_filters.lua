@@ -67,7 +67,7 @@ M.RemoveChatFilter(q)
 check(not loaded("PourSocialScore_Logging"), "removing a filter with no blocks loaded Logging")
 
 ------------------------------------------------------------------ window
-SlashCmdList.PSS("gui")
+M.PSS_Need("EllesmereUI"); M.EUI_Toggle()
 local win = _G.PSS_EllesmereUIWindow
 check(win and win:IsShown(), "no window")
 win.tabs[3]:GetScript("OnClick")(win.tabs[3])

@@ -32,7 +32,7 @@ local function CheckExceptions(ex, t, parent, what)
 end
 local loaded = C_AddOns.IsAddOnLoaded
 
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
 check(win and win:IsShown(), "/pss tui did not open the window")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
@@ -49,7 +49,7 @@ check(chrome and win.art.blizzardClose:GetParent() == chrome and win.art.darkClo
 	and win.title:GetParent() == chrome, "close buttons or title not on the raised frame")
 win.art.blizzardClose._scripts.OnClick(win.art.blizzardClose)
 check(not win:IsShown(), "the close button did not close the window")
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 
 -- nothing selected: the list's totals
 local want = M.PSS_ListTotals("players", {})

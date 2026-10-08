@@ -1,24 +1,27 @@
--- EllesmereUI front end (3.1 Steps E.2, E.3), with the EllesmereUI stand-in and
--- PourSocialScore_EllesmereUI loaded through PSS_EXTRA_ADDONS.
---   PSS_PHASE=1 : switch the option on (saved; logout)
---   PSS_PHASE=3 : the window with EllesmereUI's skinning off for us
---   PSS_PHASE=2 : the login after the reload:
---   our panel section is registered at login, the new addon is not loaded
---   a page build loads it and draws its rows (DualRow slots filled, no nil)
---   the search pre-build never loads it
---   /pss gui and Friends open the EllesmereUI window, never PourSocialScore_GUI
---   /pss gui force opens PourSocialScore_GUI; /pss eui opens the panel
+-- The EllesmereUI front end is retired (3.4.0.23, D1), with the EllesmereUI
+-- stand-in and PourSocialScore_EllesmereUI loaded through PSS_EXTRA_ADDONS.
+--   PSS_PHASE=1 : a save with the old integration option on (no reload
+--                 prompt, nothing registered or loaded)
+--   PSS_PHASE=2 : the login after: no panel section is registered and the
+--                 old folder is not loaded; /pss gui and Friends / Social
+--                 open the Pour Social Score window; the old window, opened
+--                 directly (until D2 deletes it), still builds its tabs
+--   PSS_PHASE=3 : the old window with EllesmereUI's skinning off for us
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL eui window: " .. msg) fail = true end end
 local loaded = C_AddOns.IsAddOnLoaded
 local E = EllesmereUI
 local NAME = "PourSocialScore_EllesmereUI"
 
+local function OpenOld()
+	if M.PSS_Need("EllesmereUI") and M.EUI_Toggle then M.EUI_Toggle() end
+end
+
 if os.getenv("PSS_PHASE") == "1" then
-	check(#E.log.plugins == 0, "registered while off")
-	SlashCmdList.PSS("eui enable")
-	check(#E.log.popups == 1 and E.log.popups[1].reload, "no EllesmereUI reload prompt")
-	check(not loaded(NAME), "enable loaded the addon")
+	check(#E.log.plugins == 0, "registered at login")
+	M.PSS_SetOpt("euiIntegration", "global", true)
+	check(#E.log.popups == 0, "the retired option asked for a reload")
+	check(not loaded(NAME), "the option loaded the old folder")
 	if not fail then print("PASS eui window 1") end
 	return
 end
@@ -28,7 +31,7 @@ if os.getenv("PSS_PHASE") == "3" then
 	E.skinsOn = false
 	-- a tab saved by number (before 3.2.0-dev010, five tabs): 4 was Import/Export
 	PSS_EllesmereUIDB = { tab = 4 }
-	SlashCmdList.PSS("gui")
+	OpenOld()
 	local win = _G.PSS_EllesmereUIWindow
 	check(win and win:IsShown(), "no window without skinning")
 	check(win.pages[5]:IsShown() and win.tabs[4]:GetText() == "Events" and PSS_EllesmereUIDB.tab == "BuildImportExportTab",
@@ -47,78 +50,33 @@ if os.getenv("PSS_PHASE") == "3" then
 	return
 end
 
-check(M.PSS_UseEUI(), "integration not in use")
-check(E.log.plugins[1] == NAME and #E.log.plugins == 1, "panel section not registered once")
-local spec = E.GetPlugin(NAME)
-check(spec and spec.label == "Pour Social Score", "label")
+check(M.PSS_Opt("euiIntegration") == true, "the save does not have the old option on")
+check(#E.log.plugins == 0, "a panel section was registered at login")
 check(not loaded(NAME), "loaded at login")
 check(not loaded("PourSocialScore_GUI"), "GUI loaded at login")
 
-local opts, io = spec.modules[1], spec.modules[2]
-check(opts and #opts.pages == #M.PSS_OPTION_SECTIONS, "one Options page per section")
-check(io and io.key == "ImportExport", "no Import/Export module")
-
--- search pre-build pass before the addon is loaded: nothing loads
-E.prebuild = true
-check(opts.buildPage(opts.pages[1], {}, -10) == 0, "pre-build drew a page")
-check(not loaded(NAME), "pre-build loaded the addon")
-E.prebuild = false
-
--- every page builds; DualRow slots are filled left to right, never nil, and
--- only the last row of a section may end in a blank; every option has a row
-local function BLANK(c) return c.type == "label" and c.text == "" end
-local function buildPage(mod, page)
-	E.rows = {}
-	local h = mod.buildPage(page, {}, -10)
-	check(h and h > 10, page .. ": page height " .. tostring(h))
-	for i, r in ipairs(E.rows) do
-		if r[1] == "dual" then
-			check(r[2] ~= nil and r[3] ~= nil, page .. ": a DualRow with a nil slot")
-			check(not BLANK(r[2]), page .. ": a blank left slot")
-			local last = not E.rows[i + 1] or E.rows[i + 1][1] ~= "dual"
-			check(last or not BLANK(r[3]), page .. ": a blank slot before the last row")
-		end
-	end
-	return E.rows
-end
-local seen = {}
-for _, page in ipairs(opts.pages) do
-	for _, r in ipairs(buildPage(opts, page)) do
-		if r[1] == "dual" then seen[r[2].text or ""] = r[2]; seen[r[3].text or ""] = r[3] end
-	end
-end
-check(loaded(NAME), "page build did not load the addon")
-for _, o in ipairs(M.PSS_OPTIONS) do
-	local text = (o.label or o.key):gsub("[:%s]+$", "")
-	check(seen[text], "no panel row for option " .. o.key)
-end
-local ioRow = {}
-for _, r in ipairs(buildPage(io, io.pages[1])) do
-	if r[1] == "dual" then ioRow[r[2].text] = r[2]; ioRow[r[3].text] = r[3] end
-end
-check(type(PSS_EllesmereUIDB) == "table", "no saved table")
-
--- a change in the panel saves through the core and redraws the other surface
-local row = seen[(M.PSS_OPTION_REG.skipParty.label:gsub("[:%s]+$", ""))]
-E.active = E.GetPluginModuleKey(NAME, "Options")
-local before = E.log.refreshed
-row.setValue(true)
-check(M.PSS_Opt("skipParty") == true, "panel toggle not saved")
-check(E.log.refreshed > before, "panel not refreshed after a change")
-row.setValue(false)
-check(PourSocialScoreDB.skipParty == nil, "default value saved")
-local cap = seen["Enable scan level cap"]
-cap.setValue(true)
-check(M.PSS_Opt("whoLevelCapOn") ~= true, "level cap ticked with no cap")
-seen["Scan level cap"].setValue("70")
-cap.setValue(true)
-check(M.PSS_Opt("whoLevelCapOn") == true and M.PSS_Opt("whoLevelCap") == 70, "level cap not set")
-
--- the window
+-- /pss gui and Friends / Social: the Pour Social Score window
 SlashCmdList.PSS("gui")
+local pss = _G.PSS_Window
+check(pss and pss:IsShown(), "/pss gui did not open the Pour Social Score window")
+check(not loaded(NAME) and not loaded("PourSocialScore_GUI"), "/pss gui loaded an old window")
+SlashCmdList.PSS("gui")
+check(not pss:IsShown(), "/pss gui did not close it")
+FriendsFrame:Show()
+check(pss:IsShown() and pss.byFriends and pss._point[2] == FriendsFrame and pss._point[4] == 12, "Friends did not show the window beside it")
+FriendsFrame:Hide()
+check(not pss:IsShown(), "closing Friends left it open")
+SocialUIFrame:Show()
+check(pss:IsShown() and pss._point and pss._point[2] == SocialUIFrame and pss._point[4] == 55, "Social did not show the window clear of its tabs")
+SocialUIFrame:Hide()
+check(not pss:IsShown(), "closing Social left it open")
+check(not loaded(NAME) and not loaded("PourSocialScore_GUI"), "Friends or Social loaded an old window")
+
+-- the old window itself, opened directly (nothing else opens it now)
+OpenOld()
 local win = _G.PSS_EllesmereUIWindow
-check(win and win:IsShown(), "/pss gui did not show the window")
-check(not loaded("PourSocialScore_GUI"), "/pss gui loaded PourSocialScore_GUI")
+check(win and win:IsShown(), "the old window did not open")
+check(not loaded("PourSocialScore_GUI"), "it loaded PourSocialScore_GUI")
 check(#E.log.escape == 1, "Escape not registered")
 local shells = 0
 for _, k in ipairs(E.log.skinned) do if k == "Shell" then shells = shells + 1 end end
@@ -182,44 +140,5 @@ search:GetScript("OnTextChanged")(search)
 check(select(1, shownRows()) == all and search.hint:IsShown(), "clearing the search did not bring every option back")
 win.tabs[1]:GetScript("OnClick")(win.tabs[1])
 check(not search:IsVisible(), "Options search shows on another tab")
-
-M.PSS_SetOpt("skipParty", "global", true)
-M.PSS_SetOpt("skipParty", "global", false)
-
--- Import/Export through EllesmereUI's popups
-SlashCmdList.PSS("gui")
-check(not win:IsShown(), "/pss gui did not toggle it off")
-M.PSS_SetOpt("skipParty", "global", true)
-ioRow["Options (all characters)"].setValue(true)
-ioRow["Export the ticked sections"].onClick()
-local str = E.log.copies[1]
-check(type(str) == "string" and M.PSS_DecodeExport(str), "no export string")
-M.PSS_SetOpt("skipParty", "global", false)
-E.importText = str
-ioRow["Import a string"].onClick()
-check(M.PSS_Opt("skipParty") == true, "merge import did not apply the options")
-E.importText = "nonsense"
-ioRow["Import a string"].onClick()
-local n = #E.log.popups
-ioRow["Import mode"].setValue("replace")
-E.importText = str
-ioRow["Import a string"].onClick()
-check(#E.log.popups == n + 1 and E.log.popups[n + 1].confirmText == "Replace", "replace not confirmed")
-
-FriendsFrame:Show()
-check(win:IsShown() and win.byFriends, "Friends did not show the window")
-FriendsFrame:Hide()
-check(not win:IsShown(), "closing Friends left it open")
-check(not loaded("PourSocialScore_GUI"), "Friends loaded PourSocialScore_GUI")
-SocialUIFrame:Show()
-check(win:IsShown() and win._point and win._point[2] == SocialUIFrame and win._point[4] == 55, "Social did not show the window clear of its tabs")
-SocialUIFrame:Hide()
-check(not win:IsShown(), "closing Social left it open")
-
-SlashCmdList.PSS("eui")
-check(E.log.opened[1] == NAME, "/pss eui did not open the panel")
-
-SlashCmdList.PSS("gui force")
-check(loaded("PourSocialScore_GUI"), "/pss gui force did not open PourSocialScore_GUI")
 
 if not fail then print("PASS eui window 2") end

@@ -1,5 +1,5 @@
 POUR SOCIAL SCORE AND CHAT SPAM FILTER
-Version 3.4.0.18 - by Boaties
+Version 3.4.0.23 - by Boaties
 
 Pour Social Score is a quality-of-life addon with an unlimited, account-wide
 ignore list, a guild ignore list, and a chat/spam filter engine. It removes
@@ -33,15 +33,15 @@ client's AddOns folder) so the folders sit side by side:
 The AddOns list shows them under one Pour Social Score heading. Keep all
 six enabled; PourSocialScore and PourSocialScore_Options are required.
 
-A seventh folder, PourSocialScore_EllesmereUI, comes in the same zip (from
-3.2.0-dev008). It is only loaded with EllesmereUI installed and "Enable
-EllesmereUI integration" on, so without EllesmereUI it takes no memory; see
-ELLESMEREUI below.
-
 An eighth folder, PourSocialScore_UI, holds the new Pour Social Score window
-while it is being built (from 3.4.0). It is only loaded when you type
-/pss tui; at the end of the 3.4.0 work it replaces the window in
+(from 3.4.0). From 3.4.0.23 it is the window: /pss gui, your Friends window
+and the Addon Compartment open it, and it is loaded only then (see THE POUR
+SOCIAL SCORE WINDOW below). Before the 3.4.0 release its files move into
 PourSocialScore_GUI and the folder goes away.
+
+A seventh folder, PourSocialScore_EllesmereUI, still comes in the zip but is
+no longer loaded (from 3.4.0.23): the window's Dark look replaces it. It is
+removed before the 3.4.0 release; you can delete it.
 
 When updating, replace every folder (delete the old ones first so no stale
 file is left behind).
@@ -255,56 +255,33 @@ Removing
   straight away - there is no confirmation. Prune asks only how many days.
 
 
-== ELLESMEREUI
+== THE POUR SOCIAL SCORE WINDOW
 
-With EllesmereUI installed and the PourSocialScore_EllesmereUI folder next to
-the others, tick "Enable EllesmereUI integration" (Options tab, User
-Interface section, or /pss eui enable) and reload when asked. Untick it (or
-/pss eui disable) to go back to the PSS windows.
+From 3.4.0.23, /pss gui (or /pss ui), the Addon Compartment and, with
+"Open Pour Social Score UI with Blizzard Friends/Ignore UI" on, your Friends
+or Social window open one window. (THE WINDOWS above describes the window it replaces.)
 
-With the integration on:
-* Opening Friends or typing /pss gui shows a Pour Social Score window in
-  EllesmereUI's style, painted by EllesmereUI's skinning so it follows your
-  theme and accent colour (a plain dark panel when that skinning is off).
-  It sits next to Friends, can be dragged (the place is kept) and closes
-  with Escape. /pss gui force still opens the PSS windows.
-* It has the same five tabs plus Events. The selected tab shows a light wash and a
-  line underneath in your EllesmereUI accent colour. The Options tab has a
-  search box at the right of the tab row. Player Ignore List, Guild Ignore
-  List and Chat Filters show the list on the left and the selected entry's
-  details on the right (click an entry to select it). Only the rows on screen are drawn, so
-  long lists scroll smoothly. Every list has a search box and sorts on a
-  click of a column heading.
-* Block history in a details pane loads only when you click Show Block
-  History. Tick boxes show or hide each type (whisper, invite, party, raid,
-  BG, world, guild). Double-click a line to see the entry's lines on the
-  Events tab.
-* The Events tab lists the blocked lines of all three lists, newest first,
-  with a Source column. Filter them with the Time drop-down (This session,
-  Last 24 hours, All time or a Custom range), the Types drop-down and the
-  Source drop-down (each list, or only the entry you came from), plus a
-  search box. Columns sort on a click, chat links work, and a double-click
-  on a line opens a copy box.
-* Each pie page has View Events at the top right; it and every pie slice
-  open the Events tab with that entry or list, period and the types ticked
-  under the type pie. Unticking a type (its box, name or colour) also takes
-  it out of the period pie.
+* Three looks, chosen on its Options tab ("Look of the Pour Social Score
+  window"): Modern (the default, the art of Blizzard's Social window),
+  Classic (Blizzard's classic window art) and Dark (flat and dark). The
+  layout and every feature are the same in all three; the accent is your
+  class colour. "Font of the Pour Social Score window" picks its font.
+* Six tabs: Player Ignore List, Guild Ignore List, Chat Filters, Events,
+  Options and Import/Export. The lists show the selected entry's details on
+  the right (Summary with its pies, Event History, View/Edit Rule); with
+  nothing selected, the list's totals.
+* Right-click a row for its menu. Removing anything asks first.
+* For everyone listed, by default: no ignore response, no decline messages,
+  duels and trades declined. Each player, guild or guild member can be an
+  exception: the ticks under "For this player" on View/Edit Rule, or in the
+  row's menu (ticked = it happens).
 * The back and forward arrows under the tabs (and mouse buttons 4 and 5)
-  step through the views you opened. Escape goes up one level and closes
-  the window only from the top.
-* EllesmereUI's panel has a "Pour Social Score" section at the bottom of its
-  sidebar (/pss eui opens it, not in combat): an Options page per group and
-  Import/Export. A change there shows in the window at once and the other
-  way round.
-* The note prompt (Options > "Ask for a note") and the party warning use
-  EllesmereUI's popups. The party warning still closes itself after 15
-  seconds; in combat, or while another EllesmereUI popup is open, it uses
-  the PSS popup instead, because EllesmereUI's covers the screen.
-* Confirmations (Remove, Reset Defaults, Replace on import, reloads) use
-  EllesmereUI's popups.
-
-The EllesmereUI folder takes no memory until its window or panel section is
-opened, and the PSS window folder (PourSocialScore_GUI) is not loaded at all.
+  step through the views you opened. Escape closes a popup or menu first,
+  then goes up one level, and closes the window from the top.
+* Opened with Friends it sits beside it and closes with it; opened with
+  /pss gui it is where you last dragged it.
+* The note prompt, the party warning and the reload prompt are Blizzard's
+  popups.
 
 
 == NOTES AND KNOWN LIMITATIONS
@@ -548,19 +525,9 @@ filter that mixes them without brackets may now behave differently.)
 == CHAT COMMANDS
 
 /pss                      Show the command list
-/pss gui                  Open the interface (also /pss ui)
-/pss gui force            Open the PSS windows even with EllesmereUI
-                          integration on
-/pss eui [enable|disable] Open the Pour Social Score section of the
-                          EllesmereUI panel, or switch EllesmereUI
-                          integration (Options tab: "Enable EllesmereUI
-                          integration"). It takes effect after a reload;
-                          you are asked to reload. Needs the
-                          PourSocialScore_EllesmereUI folder
-/pss tui                  Open the new PSS window while it is being built
-                          (PourSocialScore_UI; Options tab: "Look of the
-                          new PSS window": Blizzard, Modern or Dark; "Font of
-                          the new PSS window")
+/pss gui                  Open or close the Pour Social Score window (also
+                          /pss ui; /pss tui until 3.4.0). Its look and font
+                          are on its Options tab
 /pss list [days|server]   List entries; optionally only those listed for
                           [days] or more, or from one server
 /pss add name [days] [note]

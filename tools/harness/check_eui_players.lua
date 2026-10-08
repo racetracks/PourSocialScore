@@ -74,7 +74,7 @@ check(n == total, "metric sort")
 -- the window: Players is the first tab and opens with /pss gui
 local fired = 0
 local id = M.Events.Register("PLAYERS_CHANGED", function() fired = fired + 1 end)
-SlashCmdList.PSS("gui")
+M.PSS_Need("EllesmereUI"); M.EUI_Toggle()
 local win = _G.PSS_EllesmereUIWindow
 check(win and win:IsShown(), "no window")
 win.tabs[1]:GetScript("OnClick")(win.tabs[1])
@@ -497,7 +497,7 @@ check(list.count == total, "list count after add " .. list.count)
 -- the native window keeps working on the same functions
 M.Events.Unregister("PLAYERS_CHANGED", id)
 check(not loaded("PourSocialScore_GUI"), "PourSocialScore_GUI loaded by the tab")
-SlashCmdList.PSS("gui force")
+M.PSS_GUI()
 check(loaded("PourSocialScore_GUI") and _G.PSS and _G.PSS:IsShown(), "/pss gui force")
 
 if not fail then print("PASS eui players") end

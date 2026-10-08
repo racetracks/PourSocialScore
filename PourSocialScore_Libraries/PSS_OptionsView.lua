@@ -64,7 +64,7 @@ function M.PSS_OptGroups()
 	for section = 1, #sections do
 		local g
 		for _, o in ipairs(M.PSS_OPTIONS) do
-			if o.section == section and not o.inline then
+			if o.section == section and not o.inline and not o.retired then
 				if not g then
 					g = { title = ((sections[section] or ""):gsub("[:%s]+$", "")), items = {} }
 					groups[#groups + 1] = g

@@ -18,7 +18,7 @@ local function readRow(stats, i)
 end
 if PourSocialScoreDB.blockStats ~= nil then print("  FAIL match: blockStats not pruned"); fails = fails + 1 end
 
-SlashCmdList.PSS("gui force")
+M.PSS_GUI()
 H.RunTimers()
 local TABS = {
 	{ kind = "players", prefix = "p:", tab = "PSSTab1", frame = "PSSFrame1" },

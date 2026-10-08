@@ -1,9 +1,12 @@
 ------------------------------------------------------------------------
 -- POUR SOCIAL SCORE UI - WINDOW
 --
--- The Pour Social Score window, 960 x 494. While it is being built it opens
--- with /pss tui only (M.PSS_TUI). Dragged elsewhere it remembers the place
--- (Libraries M.PSS_UIPlace) and the tab shown (M.PSS_UITab).
+-- The Pour Social Score window, 960 x 494. /pss gui (and /pss ui, /pss tui
+-- until D2) and the Addon Compartment open it (M.PSS_OpenWindow); with the
+-- option openWithFriends it opens beside the Friends or Social window and
+-- closes with it (M.PSS_WindowDock / M.PSS_WindowUndock, 3.4.0.23). Dragged
+-- elsewhere it remembers the place (Libraries M.PSS_UIPlace) and the tab
+-- shown (M.PSS_UITab).
 --
 -- Six tabs (M.PSS_UI_TABS); each is built on first open by its builder,
 -- ns.TabBuilders[key](page), which returns the function that redraws it.
@@ -491,16 +494,36 @@ local function Build()
 	end)
 end
 
--- /pss tui; show true opens without toggling.
-function M.PSS_TUI(show)
+-- /pss gui, /pss ui, the Addon Compartment (core M.PSS_OpenUI); show true
+-- opens without toggling. Opened this way the window is at its own place.
+function M.PSS_OpenWindow(show)
 	if not win then Build() end
 	if win:IsShown() and not show then
 		win:Hide()
 		return
 	end
+	win.byFriends = nil
 	RestorePlace()
 	-- fonts other addons shared since the last open join the font choices
 	M.PSS_UIFontChoices()
 	win:Show()
 	win:Raise()
+end
+-- /pss tui until the old windows are gone (D2)
+M.PSS_TUI = M.PSS_OpenWindow
+
+-- The Friends or Social window opened (core PSS_BlizzardUI.lua, option
+-- openWithFriends): the window sits beside it (x from its right edge) and
+-- closes with it. Opened from a command it stays put.
+function M.PSS_WindowDock(host, x)
+	if not win then Build() end
+	win:ClearAllPoints()
+	win:SetPoint("TOPLEFT", host or FriendsFrame, "TOPRIGHT", x or 12, -10)
+	win.byFriends = true
+	M.PSS_UIFontChoices()
+	win:Show()
+end
+
+function M.PSS_WindowUndock()
+	if win and win.byFriends then win:Hide() end
 end

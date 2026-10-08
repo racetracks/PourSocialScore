@@ -9,7 +9,7 @@ local fail = false
 local function check(ok, msg) if not ok then print("FAIL events: " .. msg) fail = true end end
 local loaded = C_AddOns.IsAddOnLoaded
 
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
 local ui = H.Private("PourSocialScore_UI")
 win.tabs[1]._scripts.OnClick(win.tabs[1])

@@ -19,7 +19,7 @@ local inserted = {}
 ChatFrameUtil.InsertLink = function(text) inserted[#inserted + 1] = text return true end
 ChatEdit_InsertLink = ChatFrameUtil.InsertLink
 
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
 win.tabs[3]._scripts.OnClick(win.tabs[3])
 local page = win.pages[3]
@@ -141,7 +141,7 @@ pane.testBox._focus = true
 ChatFrameUtil.InsertLink("|Hspell:133|h[Fireball]|h")
 pane.testBox._focus = nil
 check(pane.testBox:GetText() == "hello", "a link went into the hidden pane")
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 
 -- On, then a blocked Trade line: counted at once, the history only on request
 -- (selected straight: it is still the one selected, a row click would deselect it)

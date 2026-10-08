@@ -46,7 +46,7 @@ end
 local function lastSent() return sent[#sent] end
 local lineID = 0
 
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
 win.tabs[2]._scripts.OnClick(win.tabs[2])
 local page = win.pages[2]

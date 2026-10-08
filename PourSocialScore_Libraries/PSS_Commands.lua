@@ -260,24 +260,15 @@ function M.PSS_SlashPSS (msg)
 
 		M.PSS_PrintValidation()
 
-	elseif args[1] == "gui" or args[1] == "ui" then
+	elseif (args[1] == "gui" and args[2] == "force") or args[1] == "eui" then
 
-		M.PSS_OpenUI(args[2] == "force")
+		-- the old windows and the EllesmereUI switch are gone (3.4.0.23)
+		M.ShowMsg(L["CMD_GONE"])
 
-	elseif args[1] == "tui" then
+	elseif args[1] == "gui" or args[1] == "ui" or args[1] == "tui" then
 
-		if M.PSS_Need("UI") and M.PSS_TUI then M.PSS_TUI() end
-
-	elseif args[1] == "eui" then
-
-		if args[2] == "enable" or args[2] == "disable" then
-			M.PSS_SetEUI(args[2] == "enable")
-		elseif M.PSS_UseEUI() then
-			M.PSS_OpenEUIPanel()
-		else
-			M.ShowMsg(format(L["EUI_1"], OnOff(M.PSS_Opt("euiIntegration")),
-				M.PSS_HasEUI() and L["EUI_2"] or L["EUI_3"]))
-		end
+		-- /pss tui: the new window's name while it was built, until D2
+		M.PSS_OpenUI()
 
 	elseif args[1] == "sync" then
 
@@ -310,9 +301,6 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  " .. L["HELP_8"])
 		M.ShowMsg ("  " .. L["HELP_15"])
 		M.ShowMsg ("  " .. L["HELP_16"])
-		M.ShowMsg ("  " .. L["HELP_19"])
-		M.ShowMsg ("  " .. L["HELP_20"])
-		M.ShowMsg ("  " .. L["HELP_21"])
 		M.ShowMsg ("  " .. L["HELP_17"])
 		M.ShowMsg ("  " .. L["HELP_18"])
 		M.ShowMsg ("  " .. L["HELP_9"])

@@ -23,7 +23,7 @@ local function pick(text)
 	return false
 end
 
-SlashCmdList.PSS("gui force")
+M.PSS_GUI()
 H.RunTimers()
 _G.PSSTabGuild:GetScript("OnClick")(_G.PSSTabGuild)
 H.RunTimers()
