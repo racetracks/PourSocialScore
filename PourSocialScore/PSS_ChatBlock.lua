@@ -60,8 +60,11 @@ M.PSS_OwnRealm = ownRealm
 -- UnitName is a surname: Camelot's "First Last" characters arrive as
 -- ("First", "Last") with UnitRealmRelationship 1 (confirmed in game,
 -- 2026-10-08). Clients without the API keep the value as a realm.
+-- Your own character is always on your own realm, so its second value is
+-- always a surname.
 local REALM_SAME = LE_REALM_RELATION_SAME or 1
 local function isSurname(unit)
+	if unit == "player" then return true end
 	if not unit or not UnitRealmRelationship then return false end
 	local rel = UnitRealmRelationship(unit)
 	return not isSecret(rel) and rel == REALM_SAME
@@ -125,6 +128,40 @@ end
 function M.PSS_UnitFullName(unit)
 	local name, server = UnitName(unit)
 	return joinName(name, server, unit)
+end
+
+-- Your own character's "Name-Realm" display ("First Last-Realm" with a
+-- surname), the same shape as M.Proper(M.addServer(name)).
+function M.PSS_PlayerDisplayName()
+	if not UnitName then return nil end
+	local n, r = UnitName("player")
+	return (M.PSS_NormName(n, r, "player"))
+end
+
+-- A "First-Last" name handed to a hook (Blizzard's Ignore from a unit menu)
+-- is "First Last-<own realm>" when a unit the player can be acting on has
+-- that name and surname; anything else is returned as it is. Hook paths only.
+local FIX_UNITS = { "target", "mouseover", "focus" }
+local function unitHasSurname(u, base, rest)
+	if not UnitExists or not UnitExists(u) then return false end
+	local n, r = UnitName(u)
+	if type(n) ~= "string" or type(r) ~= "string" or isSecret(n) or isSecret(r) then return false end
+	return n == base and r == rest and isSurname(u)
+end
+function M.PSS_FixUnitName(name)
+	if type(name) ~= "string" or isSecret(name) or not UnitName then return name end
+	local base, rest = name:match("^([^%s%-]+)%-([^%s%-]+)$")
+	if not base then return name end
+	for _, u in ipairs(FIX_UNITS) do
+		if unitHasSurname(u, base, rest) then return base .. " " .. rest .. "-" .. ownRealm() end
+	end
+	if IsInGroup and IsInGroup() and GetNumGroupMembers then
+		local prefix = IsInRaid and IsInRaid() and "raid" or "party"
+		for i = 1, GetNumGroupMembers() do
+			if unitHasSurname(prefix .. i, base, rest) then return base .. " " .. rest .. "-" .. ownRealm() end
+		end
+	end
+	return name
 end
 
 function M.PSS_NormalizePlayer(name)
@@ -330,7 +367,7 @@ local function isSelf(canon, guid)
 	if not playerGUID then playerGUID = UnitGUID and UnitGUID("player") end
 	if not playerCanon and UnitName then
 		local n, r = UnitName("player")
-		if n then playerCanon = canonPlayer((r and r ~= "") and (n .. "-" .. r) or n) end
+		playerCanon = select(3, M.PSS_NormName(n, r, "player"))
 	end
 	return (guid and playerGUID and guid == playerGUID) or (canon and canon == playerCanon)
 end

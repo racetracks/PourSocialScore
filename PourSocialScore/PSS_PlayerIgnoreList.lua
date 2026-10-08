@@ -586,15 +586,17 @@ function M.ignoreFromCmd (argStr)
 	-- not Proper()-ed here: that would glue the note onto the name. The name
 	-- part is split off and normalised by PSS_AddIgnore.
 	argStr = M.trim(argStr or "")
+	local exact
 	if argStr == "" then
-		argStr = M.PSS_UnitFullName("target") or ""
+		-- a target's name is a whole name ("First Last"), never "name note"
+		argStr, exact = M.PSS_UnitFullName("target") or "", true
 		if argStr ~= "" and not UnitPlayerControlled("target") then
 			argStr = ""
 		end
 	end
 
 	if argStr ~= "" then
-		M.PSS_AddIgnore (argStr)
+		M.PSS_AddIgnore (argStr, nil, exact)
 	end
 end
 
@@ -623,7 +625,7 @@ M.PSS_AddIgnore = function(name, noNote, exactName)
 
 	--print("DEBUG: Info sent to C_FriendList.AddIgnore name="..(name or "nil") .. " note="..(noNote or "nil"))
 	if (not name or name == "") then
-		name = M.PSS_UnitFullName("target")
+		name, exactName = M.PSS_UnitFullName("target"), true
 	end
 
 	if (not name or name == "") then
@@ -661,7 +663,7 @@ M.PSS_AddIgnore = function(name, noNote, exactName)
 	local tmp = M.removeServer(name, true)
 	if (tmp == "") or (tmp == _G.UNKNOWN) then return end
 
-	if M.Proper(M.addServer(UnitName("player"))) ~= name then
+	if M.PSS_PlayerDisplayName() ~= name then
 
 		local index = M.hasGlobalIgnored(name)
 
@@ -945,20 +947,23 @@ end
 -- (2.0.8 did, which printed "already ignored").
 local function addFromBlizzard(name)
 	if not V.PSS_Loaded or type(name) ~= "string" or M.PSS_IsSecret(name) or name == "" then return end
-	local full = M.Proper(M.addServer(name))
+	local full = M.Proper(M.addServer(M.PSS_FixUnitName(name)))
 	local short = M.removeServer(full, true)
 	if short == "" or short == _G.UNKNOWN then return end
 	if M.hasGlobalIgnored(full) > 0 then return end
-	if M.Proper(M.addServer(UnitName("player"))) == full then return end
+	if M.PSS_PlayerDisplayName() == full then return end
 	AddToList(full, currentFaction())
 	V.needSorted = true
 	if M.PSS_Opt("chatmsg") ~= false then M.ShowMsg(format(L["ADD_2"], full)) end
 	M.Events.Fire("PLAYERS_CHANGED", true)
 end
 
-local function removeFromBlizzard(name)
+-- full: the name as fixed when the toggle was made (M.PSS_FixUnitName)
+local function removeFromBlizzard(name, full)
 	if not V.PSS_Loaded or type(name) ~= "string" or M.PSS_IsSecret(name) or name == "" then return end
-	local index = M.hasGlobalIgnored(M.Proper(M.addServer(name)))
+	-- "First-Last" from a unit menu, or as it was stored before 3.4.1.33
+	local index = M.hasGlobalIgnored(M.Proper(M.addServer(full or M.PSS_FixUnitName(name))))
+	if index == 0 then index = M.hasGlobalIgnored(M.Proper(M.addServer(name))) end
 	if index > 0 then
 		RemoveFromList(index)
 		V.needSorted = true
@@ -978,7 +983,8 @@ end
 
 local function PSS_IgnoreToggled(name)
 	if pssHookGuard or type(name) ~= "string" or M.PSS_IsSecret(name) or name == "" then return end
-	pendingToggle = { name = name, at = GetTime() }
+	-- the unit is read now: by the server's answer the target may have changed
+	pendingToggle = { name = name, full = M.PSS_FixUnitName(name), at = GetTime() }
 end
 
 local function PSS_IgnoreRemovedByIndex(index)
@@ -994,7 +1000,7 @@ hookFrame:SetScript("OnEvent", function(self, event)
 		local pt = pendingToggle
 		pendingToggle = nil
 		if GetTime() - pt.at < 10 then
-			if hasIgnored(pt.name) > 0 then addFromBlizzard(pt.name) else removeFromBlizzard(pt.name) end
+			if hasIgnored(pt.name) > 0 then addFromBlizzard(pt.full) else removeFromBlizzard(pt.name, pt.full) end
 		end
 	end
 	takeBlizzSnapshot()

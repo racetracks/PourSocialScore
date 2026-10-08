@@ -528,6 +528,9 @@ filter that mixes them without brackets may now behave differently.)
                           A name with a space needs its realm or quotes:
                           /pss add John Smith-Area52 note
                           /pss add "John Smith" note
+                          On Camelot two words are the name:
+                          /pss add John Smith 30 note
+                          (a one-word name with a note: /pss add "Bob" note)
 /pss remove name|number   Remove an entry by name or by its /pss list
                           number (also /pss delete)
 /pss expire name days     Remove [name] automatically after [days]

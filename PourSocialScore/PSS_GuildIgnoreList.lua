@@ -107,10 +107,9 @@ local function scanUnit(unit)
 	if type(name) ~= "string" or isSecret(name) or name == "" then return end
 	if realm ~= nil and (type(realm) ~= "string" or isSecret(realm)) then return end
 
-	local fullName = name
-	if realm and realm ~= "" and (not GetNormalizedRealmName or realm ~= GetNormalizedRealmName()) then
-		fullName = name .. "-" .. realm
-	end
+	-- one join for every name (a Camelot surname is not a realm)
+	local fullName = M.PSS_UnitFullName(unit)
+	if not fullName then return end
 
 	local guild = GetGuildInfo and GetGuildInfo(unit) or ""
 	if type(guild) ~= "string" or isSecret(guild) then guild = "" end
@@ -927,7 +926,10 @@ function M.PSS_FlushManaged()
 				g.members = g.members or {}
 				local key = r._playerKey or normalizePlayer(r.name)
 				if key and not g.members[key] then
-					r._virtual = nil
+					-- runtime only: rebuilt from the key when the lists load
+					-- (_managed stays: the member count reads it while they
+					-- are not loaded)
+					r._virtual, r._canon, r._gkey = nil, nil, nil
 					g.members[key] = r
 				end
 			end
@@ -1915,6 +1917,20 @@ local function mergeMemberRecord(existing, m)
 		if eb[c] == nil and mb[c] ~= nil then eb[c] = mb[c] end
 	end
 	if M.PSS_MergeMemberBlockData then M.PSS_MergeMemberBlockData(existing, m) end
+end
+
+-- Import: a shipped member's settings go into their shipped record (saved
+-- as the delta at logout), never into a second stored copy. False when ck
+-- is not a shipped member of gkey.
+function M.PSS_MergeIntoShipped(gkey, ck, m)
+	local g = PourSocialScoreDB and PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[gkey]
+	if not (g and g.managed) or isGone(g, ck) then return false end
+	if M.PSS_LoadManagedData then M.PSS_LoadManagedData() end
+	local r = isStaticMember(gkey, ck) and vrec(ck, gkey)
+	if not r then return false end
+	keepManaged(r)
+	mergeMemberRecord(r, m)
+	return true
 end
 
 -- Move every copy of a player stored under a guild rule OTHER than keepKey

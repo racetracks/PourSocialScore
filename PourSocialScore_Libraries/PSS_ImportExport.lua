@@ -341,8 +341,18 @@ function M.PSS_ApplyImport(data, mode, sections)
 					if sections.members and type(ge.members) == "table" then
 						for _, me in ipairs(ge.members) do
 							if type(me) == "table" and type(me.name) == "string" and me.name ~= "" then
-								local mk = (type(me.key) == "string" and me.key:find("-", 1, true)) and me.key or M.PSS_NormalizePlayer(me.name)
-								if mk and not g.members[mk] then
+								-- one key for every name; a shipped member merges into the shipped record
+								local mk = M.PSS_NormalizePlayer((type(me.key) == "string" and me.key:find("-", 1, true)) and me.key or me.name)
+								local ck = mk and M.PSS_CanonPlayer(mk)
+								local shipped
+								if mk and not g.members[mk] and ck and M.PSS_MergeIntoShipped then
+									local m = copyFields(me, MEMBER_FIELDS)
+									m.opts = copyOpts(me.opts)
+									m.block = copyBlock(me.block)
+									m._playerKey, m.guild, m.whenBlocked = nil, nil, nil
+									shipped = M.PSS_MergeIntoShipped(key, ck, m)
+								end
+								if mk and not shipped and not g.members[mk] then
 									local m = copyFields(me, MEMBER_FIELDS)
 									m.opts = copyOpts(me.opts)
 									m.block = copyBlock(me.block)	-- nil = converted from the old Allow fields
@@ -354,8 +364,7 @@ function M.PSS_ApplyImport(data, mode, sections)
 									if M.PSS_CompactMember then M.PSS_CompactMember(m) end		-- only non-default fields are kept
 									g.members[mk] = m
 									addedM = addedM + 1
-									local ck = M.PSS_GuildRuleActive(g) and M.PSS_CanonPlayer(me.name)
-									if ck and M.PSS__purgeBatch then M.PSS__purgeBatch[ck] = true end
+									if ck and M.PSS_GuildRuleActive(g) and M.PSS__purgeBatch then M.PSS__purgeBatch[ck] = true end
 								end
 							end
 						end
