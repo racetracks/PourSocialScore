@@ -33,7 +33,6 @@ local OPTIONS = {
 	{ key = "showWarning",		kind = "bool",		default = true, section = 1, label = L["OPT_18"] },
 	{ key = "defexpire",		kind = "number", default = 0,		section = 1, label = L["OPT_5"] },
 	-- Blocking (people)
-	{ key = "blizzardSync",		kind = "bool",		default = false, section = 1, label = "Also put listed players on Blizzard's ignore list (it ignores exclusions)" },
 	{ key = "ignoreResponse", kind = "bool",	default = false,	section = 2, label = L["OPT_24"], target = true },
 	{ key = "showDeclines",		kind = "bool",		default = false,		section = 2, label = L["OPT_28"], target = true },
 	{ key = "declineDuel",		kind = "bool",		default = true,		section = 2, label = "Decline duels from blocked players", target = true },
@@ -142,7 +141,8 @@ end
 -- Saved values equal to their default are dropped (3.0: only changes are
 -- saved; M.PSS_Opt returns the default for a missing value). Every login.
 -- (The 2.0.12 switch-off of ignoreResponse and blizzardSync is upgrade
--- step 5 now, PSS_Upgrade.lua.)
+-- step 5 now, PSS_Upgrade.lua. blizzardSync is a per-player tick from
+-- 3.4.1.35: step 8.)
 function M.PSS_ApplyOptionDefaults()
 	local db = PourSocialScoreDB
 	if not db then return end

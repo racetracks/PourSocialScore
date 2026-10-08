@@ -155,10 +155,15 @@ that, so they start unticked; tick one to let that one thing through.
 (Built-in chat filters are different: each one starts off, tick the ones
 you want.)
 
-By default PSS does all the blocking itself and leaves Blizzard's ignore
-list alone. Option "Also put listed players on Blizzard's ignore list" (off
-by default) syncs them to it as well - but Blizzard's list blocks everything
-and ignores these exclusions. The "You are being ignored" auto-reply is also
+PSS does all the blocking itself and leaves Blizzard's ignore list alone.
+Someone you ignore with Blizzard's own Ignore (or /ignore) is listed in PSS
+with the note "Synced from Blizzard ignore list on <date>" and taken off
+Blizzard's list; your existing Blizzard list is copied into PSS the first
+time you log in with this version and stays where it is. Tick "Also on
+Blizzard's ignore list" on a player's View/Edit Rule page (off by default)
+to keep that one player on Blizzard's list as well - but Blizzard's list
+blocks everything and ignores the exclusions. Removing a player from either
+list removes them from both. The "You are being ignored" auto-reply is also
 off by default.
 
   W  Whispers (including Battle.net whispers)

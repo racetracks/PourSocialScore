@@ -1,6 +1,15 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.35 - B1: PSS is authoritative over Blizzard's ignore list
+
+- Pour Social Score is now in charge of its own ignore list. "Also put listed players on Blizzard's ignore list" is no longer one setting for everyone: it is a tick box for each player (View/Edit Rule, "Also on Blizzard's ignore list"), off by default. Ticked, the player is also put on Blizzard's list (up to 50); unticked, taken off it.
+- Ignoring someone with Blizzard's own Ignore (or /ignore) lists them in Pour Social Score with the note "Synced from Blizzard ignore list on <date>" and takes them off Blizzard's list, so their blocks follow your W I G P C boxes. Someone already listed comes off too and keeps their note.
+- The first time you log in, anyone already on Blizzard's ignore list is listed with that note and ticked, and stays on Blizzard's list. Nobody is taken off it by this.
+- Removing a player from either list removes them from both.
+- If you had the old setting on, every listed player who is on Blizzard's list is ticked, then the old setting is dropped (saved data upgrade, step 8).
+- Blizzard's own "is now being ignored" lines are no longer hidden after login.
+
 => 3.4.1.34 - Core uplift: B1 and B2 planned
 
 - No change in game: the plan now includes PSS taking over Blizzard's ignore list and a PSS section in the right-click menu.

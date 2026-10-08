@@ -21,6 +21,7 @@
 --   M.PSS_PruneText(), M.PSS_PruneNote(days), M.PSS_PruneApply(days)
 --   M.PSS_PlayerCommitExpiry(entry, text) / M.PSS_PlayerCommitNote(entry, text)
 --   M.PSS_PlayerToggleAllowed(entry, field, allowed)
+--   M.PSS_PlayerOnBlizzard(p), M.PSS_PlayerToggleBlizzard(entry, on)   the Blizzard ignore tick (B1)
 --   M.PSS_PlayerAddGuild(guild)           the player's guild onto the guild list
 --   M.PSS_PlayerGuildState(p)             guild, listed (Add Guild button)
 --   M.PSS_PlayerEventsSpec(entry), M.PSS_AllPlayersSpec()
@@ -281,6 +282,22 @@ end
 function M.PSS_PlayerToggleAllowed(entry, field, allowed)
 	if not entry then return end
 	M.PSS_SetPlayerSetting(entry, field, not allowed)
+	M.PSS_PlayersChanged()
+end
+
+-- "Also on Blizzard's ignore list" (B1, 3.4.1.35): ticked = PSS keeps this
+-- player on Blizzard's list as well. Off by default; Blizzard's list blocks
+-- everything and ignores the W I G P C boxes.
+M.PSS_BLIZZARD_TEXT = "Also on Blizzard's ignore list"
+M.PSS_BLIZZARD_TIP = "Also puts this player on Blizzard's ignore list (up to 50 players), and takes them off when unticked.\n\nBlizzard's list blocks everything from them and ignores the Allowed boxes above. Off by default: Pour Social Score does the blocking itself."
+
+function M.PSS_PlayerOnBlizzard(p)
+	return type(p) == "table" and p.blizzardIgnore == true
+end
+
+function M.PSS_PlayerToggleBlizzard(entry, on)
+	if not entry then return end
+	M.PSS_SetBlizzardIgnore(entry, on)
 	M.PSS_PlayersChanged()
 end
 

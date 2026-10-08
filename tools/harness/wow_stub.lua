@@ -257,7 +257,15 @@ function CreateFrame(kind, name, parent, template)
 end
 
 -- events
+-- Blizzard's ignore list (C_FriendList below). PSS_BLIZZ_IGNORES="A;B" starts
+-- with those names on it; PSS_BLIZZ_LATE=1 hides the list until the first
+-- IGNORELIST_UPDATE, as at a real login.
+local blizzList = { names = {}, visible = os.getenv("PSS_BLIZZ_LATE") == nil }
+for n in (os.getenv("PSS_BLIZZ_IGNORES") or ""):gmatch("[^;]+") do blizzList.names[#blizzList.names + 1] = n end
+stub.blizzList = blizzList
+
 function stub.Fire(event, ...)
+	if event == "IGNORELIST_UPDATE" then blizzList.visible = true end
 	local list = {}
 	for f in pairs(eventFrames) do
 		if f._events[event] then list[#list + 1] = f end
@@ -415,12 +423,15 @@ function C_Timer.NewTimer(_, fn) timers[#timers + 1] = fn; return { Cancel = fun
 function C_Timer.NewTicker(_, fn) return { Cancel = function() end, IsCancelled = function() return true end } end
 
 C_FriendList = {}
-local ignores = {}
-function C_FriendList.GetNumIgnores() return #ignores end
-function C_FriendList.GetIgnoreName(i) return ignores[i] end
-function C_FriendList.AddIgnore(n) ignores[#ignores + 1] = n; return true end
-function C_FriendList.DelIgnore() end
-function C_FriendList.DelIgnoreByIndex() end
+local ignores = blizzList.names
+local function ignoreIndex(n)
+	for i, v in ipairs(ignores) do if v:lower() == tostring(n):lower() then return i end end
+end
+function C_FriendList.GetNumIgnores() return blizzList.visible and #ignores or 0 end
+function C_FriendList.GetIgnoreName(i) return blizzList.visible and ignores[i] or nil end
+function C_FriendList.AddIgnore(n) if not ignoreIndex(n) then ignores[#ignores + 1] = n end return true end
+function C_FriendList.DelIgnore(n) local i = ignoreIndex(n); if i then table.remove(ignores, i) end end
+function C_FriendList.DelIgnoreByIndex(i) if ignores[i] then table.remove(ignores, i) end end
 function C_FriendList.IsIgnored() return false end
 function C_FriendList.SendWho() end
 function C_FriendList.SetWhoToUi() end
