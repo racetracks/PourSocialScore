@@ -8,7 +8,8 @@
 3. **One step at a time.** The author names a step from the feature's stage plan (10_FEATURE_DESIGN_AND_DELIVERY.md); Claude ships exactly that step: one branch from the latest main and one PR per repo; every TOC bumped to the next build (`X.Y.Z.B`); a history section; checks green; a hosted test zip with the link; exact in-game checks.
 4. **The author tests in game and merges** before the next stage starts. Merging a version bump publishes the release (a pre-release for every build).
 5. **Bugs** found in testing become the next build, zipped and hosted like any build.
-6. **Long threads end with a handover**: this baseline plus an addon-specific pack.
+6. **One step per session** (02 E9 to E11): the author resets the session after each step; the step's PR updates the plan's stage table, the status, and the preferences file, so the next session starts from the project instructions alone.
+7. **Long threads end with a handover**: this baseline plus an addon-specific pack.
 
 ## Communication
 - **Plain language, answer first, short.** The author may read on the go.

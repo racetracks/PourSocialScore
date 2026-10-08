@@ -69,6 +69,9 @@ These are every rule the author has applied, written so they fit any addon. "Cor
 6. When `gh pr create` is blocked (GraphQL), create PRs through REST: `gh api repos/<owner>/<repo>/pulls -f title=... -f head=... -f base=main -f body=...`.
 7. Commits and PRs carry the attribution lines the session gives; no model names in repo files.
 8. Each PR reports the measured size of anything added or moved and what the look-compare showed.
+9. **One step per session (v9).** The author resets the session after each step of an implementation plan. A session builds only the step it was given and ends with that step's PR; a fresh session picks up from the project instructions file (`CLAUDE.md`) alone.
+10. **Context is updated in every PR (v9).** Before a step's PR is final, it updates what a fresh session needs: the current plan's stage table (state, PR, next build), the status file, the rules file for a new rule, the author's preferences file for a new preference, and the hosted copies of those docs. Nothing a later step needs may live only in the session.
+11. **Plans are references; state is re-summarized at release (v9).** The project instructions file points to the current plan and design and never copies them. At each full release the done stages are re-summarized into the addon's state document (how the addon works at that release) and leave the plan. The author's preferences and approach live in **one** file that the project instructions load; every other doc stays technical.
 
 ## F. Versions and releases (09_RELEASE_PIPELINE.md)
 1. **Releases are defined by feature.** A feature, or an agreed set of features, owns one version line `X.Y.Z`. Its design names the line before work starts (10_FEATURE_DESIGN_AND_DELIVERY.md).

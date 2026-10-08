@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.31 - Core uplift: the plan and working rules
+
+- Nothing changes in game.
+- The plan for the next releases is set: fixes for names with a space (WoW Forever), managed guild members found twice, expiry and a few smaller bugs; a short, readable report after each update; smaller and forward-compatible saved data; then core speed and a tidy of the window.
+
 => 3.4.1.30 - Mirror carries the release's files
 
 - Nothing changes in game.

@@ -50,7 +50,7 @@ How to cut stages:
 4. Run the validation for the stage (section 4) and fix until clean.
 5. Open the PR; build and host the test zip (`sh tools/host_build.sh`); give the author the link and a numbered list of exact in-game checks.
 6. The author tests and merges. Merging publishes the stage as a **pre-release** (09_RELEASE_PIPELINE.md).
-7. Update the status and the stage table (merged, next build), then start the next stage.
+7. In the same PR, update the status and the stage table (state, PR, next build) and anything else a fresh session needs (02 E10). The author resets the session; the next stage starts in a new one (02 E9).
 
 ## 4. Validation between PRs
 Nothing starts on stage N+1 until stage N is merged and has passed:
@@ -72,7 +72,7 @@ If a stage fails in game: fix it as the next build on the same line (a new PR fr
 ## 5. Finishing the feature
 - When every stage has merged and passed, run the full regression on the last build.
 - Ask the author to confirm the feature is complete. Only then does a PR make the next build the release (`sh tools/bump_version.sh release`), with one summary of every change since the previous release, written from its PRs; merging it publishes the full release.
-- Mark the design document done, record anything learned in project memory, and park leftover ideas for a later line.
+- Re-summarize the done stages into the addon's state document (how it works at this release) and take them out of the plan (02 E11); mark the design document done, record anything learned in the preferences file or the rules, and park leftover ideas for a later line.
 
 ## 6. A worked shape (generic)
 A feature "show a breakdown chart in the options window", line `1.5.0`:

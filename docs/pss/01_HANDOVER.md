@@ -1,4 +1,6 @@
-# PourSocialScore (PSS): handover (2026-10-07; rewritten at 3.4.0.26, D3, for the one window; status in 06)
+# PourSocialScore (PSS): the addon as it works (state at release 3.4.0.29)
+
+**The state document (baseline 02 E11, Dan, 2026-10-08):** how the addon works at the last full release. It is re-summarized at every full release from the plan's done stages (next: at 3.4.1.43, from `10_CORE_UPLIFT.md`). Status is in 06; Dan's preferences are in 11.
 
 ## 1. Purpose
 PourSocialScore is Dan's World of Warcraft chat moderation addon (GitHub `racetracks`, in-game author Boaties). Clients: Retail (Midnight, Interface **120007**) and Camelot (Interface **16001**).
@@ -61,14 +63,8 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 | EllesmereUI integration E.1 to E.7 | Done, v3.1.0 |
 | Detail pane redesign, log every line, grouped save, EUI merged into the repo, EUI navigation, Events tab | Done, **v3.2.0** (full release, 2026-10-05) |
 | Native GUI parity with the EllesmereUI window (3.3.0, issue #78) | Closed at **v3.3.1** (2026-10-07): dev001 to dev005 shipped, the rest dropped. 08 and 06 |
-| **The new PSS window (3.4.0)**: one window in the port's layout, three looks, replaces both old windows | **Current**, started 2026-10-07; the cutover (D2) merged at 3.4.0.25. Left: D3 (3.4.0.26), Versions (3.4.0.27, the versions file), the release. 09 and 06; plan on scratch `docs/latest/ui uplift/` |
-| Core performance (3.4.1 line) | Planned after the 3.4.0 release (06) |
+| **The new PSS window (3.4.0)**: one window in the port's layout, three looks, replaces both old windows | Done, **v3.4.0.29** (full release, 2026-10-08); started 2026-10-07; the cutover (D2) merged at 3.4.0.25. 09; plan on scratch `docs/latest/ui uplift/` |
+| **Core uplift (3.4.1 to 3.4.3)**: name bugs, fixes, upgrade report, sparse and forward-compatible saves, then core performance and the window tidy | **Current**, locked 2026-10-08 (`10_CORE_UPLIFT.md`; design on scratch `docs/latest/core-uplift/`) |
 
-## 7. Observations about Dan on this project
-Beyond baseline 07:
-- Reads GitHub Releases himself; production is explicit ("make 3.2.0 a release not a pre release").
-- Uploads WTF saves and names the version ("this is a 3.0.0 save").
-- Answers decision cards; when a card is unanswered, the PR is built on the recommended option and says so (dev004's layout).
-- Asked for code review passes before merging stacks in 3.2.0.
-- Tests a very old save on the final pre-release before a full release goes live (2026-10-08).
-- Wants build numbers kept consistent: a release carries its build number too, and later builds count on from it (2026-10-08; the Versions stage).
+## 7. Dan's preferences
+All in `11_PREFERENCES.md` (the one file, Dan, 2026-10-08).
