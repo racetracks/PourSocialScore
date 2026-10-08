@@ -3,9 +3,9 @@
 # its history.txt section on top (PSS 02 section 8; baseline 02 F). Every
 # version is X.Y.Z.B and the build number B never resets: a release is a
 # build too, and later lines count on from it (Dan, 2026-10-08).
-#   sh tools/bump_version.sh build "Title"         the next build:    3.4.0.26 -> 3.4.0.27
-#   sh tools/bump_version.sh release "Title"       a full release:    3.4.0.27 -> 3.4.0.28 (release)
-#   sh tools/bump_version.sh line X.Y.Z "Title"    a new line:        -> 3.4.1.29
+#   sh tools/bump_version.sh build "Title"         the next build:    3.4.0.27 -> 3.4.0.28
+#   sh tools/bump_version.sh release "Title"       a full release:    3.4.0.28 -> 3.4.0.29 (release)
+#   sh tools/bump_version.sh line X.Y.Z "Title"    a new line:        -> 3.4.1.30
 #   sh tools/bump_version.sh pr <number>           the PR that carries the new builds
 #                                                  (once it is open; the rules check
 #                                                  fails a pull request without it)

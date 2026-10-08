@@ -35,7 +35,7 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 - Job `mirror` publishes each full release, with the same zip and notes, on **`racetracks/Pour-Social-Score`** (`MIRROR_REPO` in release.yml). It needs the secret `MIRROR_TOKEN` (a fine-grained token with Contents: Read and write on that repo only) on the addon repo; the mirror repo already has a commit, which it needs. Builds are not mirrored. After fixing a secret, run Actions > Release > Run workflow on main.
 
 ## Build numbers (Dan, 2026-10-08)
-Every build is `X.Y.Z.B` (02 section 8): the next build number for every test zip, a stage or a fix, merged or not, and for a release (from 3.4.0.27 the number never resets: release `3.4.0.28`, then `3.4.1.29`); every TOC, a history section and the zip name carry it. `check_toc.sh` accepts only `X.Y.Z.B`. `release.yml` asks `versions.json` what a version is: the latest release is published as a full release and mirrored, a recorded pre-release as a pre-release (and kept one), anything else not at all.
+Every build is `X.Y.Z.B` (02 section 8): the next build number for every test zip, a stage or a fix, merged or not, and for a release (from 3.4.0.27 the number never resets: release `3.4.0.29`, then `3.4.1.30`); every TOC, a history section and the zip name carry it. `check_toc.sh` accepts only `X.Y.Z.B`. `release.yml` asks `versions.json` what a version is: the latest release is published as a full release and mirrored, a recorded pre-release as a pre-release (and kept one), anything else not at all.
 
 Until 3.4.0-dev012 a round of fixes on an unmerged dev build was `devNNN_N` (`3.4.0-dev002_2`, `_3`, ...).
 

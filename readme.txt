@@ -7,7 +7,7 @@ gold sellers, boosting spam, guild and community recruitment, non-latin text
 and anything else you write a filter for. Built with the WoW API only (no
 libraries).
 
-Type /pss gui (or open your Friends window) to open the interface, and /pss
+Type /pss (or open your Friends window) to open the interface, and /pss help
 for the chat command list.
 
 
@@ -180,7 +180,7 @@ Inv boxes and the members' Allow boxes are converted automatically.
 
 == THE POUR SOCIAL SCORE WINDOW
 
-/pss gui (or /pss ui), the Addon Compartment and, with "Open Pour Social
+/pss (also /pss gui, ui or eui), the Addon Compartment and, with "Open Pour Social
 Score UI with Blizzard Friends/Ignore UI" on, your Friends or Social window
 open the window. Opened with Friends it sits beside it and closes with it;
 opened with /pss gui it is where you last dragged it, on the tab you last
@@ -516,9 +516,10 @@ filter that mixes them without brackets may now behave differently.)
 
 == CHAT COMMANDS
 
-/pss                      Show the command list
-/pss gui                  Open or close the Pour Social Score window (also
-                          /pss ui). Its look and font are on its Options tab
+/pss                      Open or close the Pour Social Score window (also
+                          /pss gui, /pss ui and /pss eui). Its look and font
+                          are on its Options tab
+/pss help                 Show the command list
 /pss list [days|server]   List entries; optionally only those listed for
                           [days] or more, or from one server
 /pss add name [days] [note]

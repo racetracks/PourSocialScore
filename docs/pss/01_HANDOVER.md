@@ -42,7 +42,7 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 - **Counting and history:** `History.*` (04); totals `M.PSS_ListTotals` (Libraries).
 - **Guild rules:** `M.PSS_GuildRuleActive`, `M.PSS_IsOwnGuild`.
 - **GC helper:** `PSS_Perf.lua` (stepped collection; option `gcEnabled`).
-- **Commands:** `/pss`, `/pss gui` (also `/pss ui`) opens the window; `/pss gui force` and `/pss eui` only say the old windows are gone (3.4.0.23); `/pss tui` is gone (3.4.0.25).
+- **Commands:** `/pss` on its own opens or closes the window, and `/pss gui`, `ui` and `eui` are the same command (one alias table, `OPEN` in `PSS_Commands.lua`; Dan, 2026-10-08, 3.4.0.28); every other word is its own command and `/pss help` (or any word it does not know) lists them; `/pss tui` is gone.
 - **New window (09):** looks `M.PSS_UISkin()` (option `uiSkin`), accent `M.PSS_UIAccent()` (class colour), font `M.PSS_UIFontPath()` / `M.PSS_UIFontChoices()` (option `uiFont`), place `M.PSS_UIPlace` / `M.PSS_SetUIPlace` (Libraries `PSS_ViewNav.lua`); window `PSS_Window`, entry `M.PSS_OpenUI` (core) -> `M.PSS_OpenWindow`.
 
 ## 5. Crucial context

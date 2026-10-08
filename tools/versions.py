@@ -7,7 +7,7 @@
 # mirror (check fails if one turns up there).
 #
 # Build numbers never reset: every version is X.Y.Z.B, a release too, and B
-# counts on across lines (3.4.0.27, release 3.4.0.28, then 3.4.1.29).
+# counts on across lines (3.4.0.28, release 3.4.0.29, then 3.4.1.30).
 #
 #   python3 tools/versions.py next build|release      the next version
 #   python3 tools/versions.py next line X.Y.Z         the next version on a new line

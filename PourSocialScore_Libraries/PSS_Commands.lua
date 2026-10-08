@@ -111,6 +111,11 @@ end
 local function PSSTest()
 end
 
+-- /pss on its own opens (or closes) the window; these words are the same
+-- command (Dan, 2026-10-08). Every other word is a command of its own, and
+-- one /pss does not know (/pss help) lists them.
+local OPEN = { gui = true, ui = true, eui = true }
+
 function M.PSS_SlashPSS (msg)
 
 	-- Keywords are matched in lower case; everything after the command word
@@ -124,7 +129,11 @@ function M.PSS_SlashPSS (msg)
 	local argStr = (#rawArgs >= 2) and table.concat(rawArgs, " ", 2) or ""
 	msg = table.concat(args, " ")
 
-	if args[1] == "test" then
+	if not args[1] or OPEN[args[1]] then
+
+		M.PSS_OpenUI()
+
+	elseif args[1] == "test" then
 
 		PSSTest()
 
@@ -259,16 +268,6 @@ function M.PSS_SlashPSS (msg)
 	elseif args[1] == "check" then
 
 		M.PSS_PrintValidation()
-
-	elseif (args[1] == "gui" and args[2] == "force") or args[1] == "eui" then
-
-		-- the old windows and the EllesmereUI switch are gone (3.4.0.23):
-		-- say so to anyone who still types them
-		M.ShowMsg(L["CMD_GONE"])
-
-	elseif args[1] == "gui" or args[1] == "ui" then
-
-		M.PSS_OpenUI()
 
 	elseif args[1] == "sync" then
 
