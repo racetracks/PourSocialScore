@@ -21,7 +21,7 @@ local CORE = {
 	"PSS_Communities.lua", "PSS_MainlineCompat.lua", "PSS_ChatHistory.lua",
 	"PSS_ChatBlock.lua", "PSS_ChatFilters.lua", "PSS_PlayerIgnoreList.lua", "PSS_GuildIgnoreList.lua",
 	"PSS_WhoisHarvest.lua", "PourSocialScore.lua", "PSS_Options.lua", "PSS_ImportExport.lua", "PSS_PlayerQuery.lua", "PSS_GuildQuery.lua", "PSS_FilterQuery.lua",
-	"PSS_ViewNav.lua", "PSS_DetailQuery.lua",
+	"PSS_ViewNav.lua", "PSS_DetailQuery.lua", "PSS_PlayerView.lua",
 }
 
 -- { Lua pattern, what it is }
