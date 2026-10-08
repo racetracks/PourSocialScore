@@ -63,7 +63,7 @@ Scratch is **`racetracks/Pour-Social-Score_Scratch`**; its rules and procedures 
 ## 11. The new PSS window (3.4.0, Dan, 2026-10-07; details in 09)
 1. The EllesmereUI port is the reference for every visual and layout choice; the old GUI is not authoritative on anything.
 2. Logic in `PourSocialScore_Libraries`; drawing only in `PourSocialScore_UI` (later `PourSocialScore_GUI`). No `EUI` or `Ellesmere` names in new code (checked by `check_rules.sh`); never copy EllesmereUI's code or media.
-3. Three looks with the same layout, features and feel: Blizzard (Default), Modern (Blizzard's new Social window art), Dark (the port's style in full). Dark draws everything from our kit, popups and menus included.
+3. Three looks with the same layout, features and feel: Modern (the default from 3.4.0-dev008_4; Blizzard's new Social window art), Classic (Blizzard's classic art; named Blizzard (Default) before), Dark (the port's style in full). Dark draws everything from our kit, popups and menus included.
 4. **The accent is always the player's class colour**, in every look; no option.
 5. Fonts: the look's own, a Blizzard font, or a LibSharedMedia font read only when another addon loaded it. PSS ships no library.
 6. Window state and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` keys); no new SavedVariables.
