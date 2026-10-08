@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev008 - New PSS window: Guild Ignore List tab, part 1
+
+- The Guild Ignore List tab works in /pss tui, laid out like the EllesmereUI window: the Managed Communities row with the default guild lists under it, the Guild Exclusion List, and every other guild, with Members, Blocked and Scan columns. Headings open and close with a click; a list whose rule is off is dimmed.
+- Search by guild name, sort by any column, and select an entry. With nothing selected the pane shows every guild's totals: the period pie and a pie by type.
+- Top right: Scan All (its tooltip shows the sweep's progress), Add a Guild with Guild Search and Add Guild, and Exclude a Guild with its own Guild Search and Exclude. Scan buttons wait while /who cools down.
+- Guild Search shows what it found in place of the list: click the guilds to tick them, Tick All, then Save; Cancel or Escape closes it. An exclusion search that finds nobody offers to add the name anyway.
+- The selected entry's details and a guild's members come in the next build.
+
 => 3.4.0-dev007 - New PSS window: Player Ignore List tab
 
 - The Player Ignore List tab works in /pss tui, laid out like the EllesmereUI window: search, Add Player, sortable columns (Name, Server, Type, Listed, Expires, Blocked) and a detail pane.
