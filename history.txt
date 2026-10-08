@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev006_2 - New PSS window: lighter navigation line
+
+- The line beside the back and forward arrows (the tab and view shown) is lighter and easier to read.
+
 => 3.4.0-dev006 - New PSS window: tabs and navigation
 
 - /pss tui now opens the window with the EllesmereUI window's six tabs: Player Ignore List, Guild Ignore List, Chat Filters, Events, Import/Export and Options. Each tab is built the first time it is opened; until its own build arrives it shows a note.

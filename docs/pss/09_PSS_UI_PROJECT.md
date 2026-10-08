@@ -43,7 +43,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | A2b | dev003 (to dev003_2) | Kit part 2: drop-down and right-click menu, popups (confirm, copy, import), row list, pie | Merged #92 |
 | Modern | dev004 (to dev004_2) | The Modern look across the kit (Dan chose it next, 2026-10-07); dev004_2 redone after the whole Social window, settled at dev004_4 | Merged #93 |
 | A3 | dev005 | Libraries groundwork: navigation, detail maths, shared helpers; numbers equal the core's counts on the real saves (`check_viewquery.lua`); the Events view query moves to B6, with the tab that draws it | Merged #94 |
-| B1 | dev006 | Window frame and navigation: six tabs, back / forward, the line by the arrows, Escape, last tab remembered; kit preview out of the window (kept in the harness) | PR open |
+| B1 | dev006 (to dev006_2) | Window frame and navigation: six tabs, back / forward, the line by the arrows, Escape, last tab remembered; kit preview out of the window (kept in the harness) | PR open |
 | B2 to B7 | dev007 to dev012 | One tab per PR (Players, Guilds x2, Chat Filters, Events, Options + Import/Export) | Planned |
 | C1, C2 | dev013, dev014 | Player Search, add target, Prune; right-click menus | Planned |
 | D1 to D3 | dev015 to dev017 | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |

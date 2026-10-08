@@ -88,6 +88,7 @@ check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Fil
 check(win.tabs[1].pssSelected and win.pages[1]:IsShown() and not win.pages[2]:IsShown(), "first tab not shown first")
 check(win.pages[3].note and win.pages[3].note:GetText():find("later", 1, true), "an unbuilt tab has no note")
 check(win.where:GetText() == "Player Ignore List", "the line by the arrows does not name the tab")
+check(win.where:GetAlpha() == 0.9, "the line by the arrows is not at 0.9")
 check(not win.back:IsEnabled() and not win.forward:IsEnabled(), "arrows enabled with nowhere to go")
 check(win.kit == nil and _G.PSS_KitPage == nil, "the kit preview is still in the window")
 -- a tab click shows it, saves it (the first tab is not saved), and records a step
