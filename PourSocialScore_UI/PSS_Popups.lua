@@ -6,10 +6,11 @@
 --   ns.Confirm({ title, text, accept, cancel, onAccept, onCancel })
 --   ns.CopyText({ title, subtitle, text })          read only, selected
 --   ns.ImportText({ title, subtitle, accept, onAccept(text) })
--- Blizzard: Blizzard's dialog frame and buttons. Modern: Blizzard's newer
--- dialog border and red buttons. Dark: a flat panel with a
--- faint edge over a dimmed screen (a click on it or Escape cancels), the
--- accept button in the accent. Escape cancels in both looks.
+-- Classic and Modern: the window's own frame and background
+-- (ns.NewFrameArt: the metal frame on its stone, or on black in Modern),
+-- Blizzard's buttons (Modern: the red one to accept). Dark: a flat panel
+-- with a faint edge over a dimmed screen (a click on it or Escape cancels),
+-- the accept button in the accent. Escape cancels in every look.
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 
@@ -17,13 +18,6 @@ local DARK = ns.DARK
 local POP_FILL = { 0.077, 0.068, 0.058, 1 }
 local POP_EDGE = { 1, 1, 1, 0.15 }
 local DIM = { 0, 0, 0, 0.25 }
-
-local DIALOG_BACKDROP = BACKDROP_DIALOG_32_32 or {
-	bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-	tile = true, tileSize = 32, edgeSize = 32,
-	insets = { left = 11, right = 12, top = 12, bottom = 11 },
-}
 
 -- A popup button: the kit's button; Dark gives it a dark fill and an edge,
 -- in the accent for the button that accepts.
@@ -64,30 +58,11 @@ local function Shell(name, w, h)
 	f:EnableMouse(true)
 	f:Hide()
 	tinsert(UISpecialFrames, name)
-	local ok, art = pcall(CreateFrame, "Frame", nil, f, "BackdropTemplate")
-	if ok and art and art.SetBackdrop then
-		art:SetAllPoints(f)
-		art:SetFrameLevel(f:GetFrameLevel())
-		art:SetBackdrop(DIALOG_BACKDROP)
-	else
-		art = nil
-	end
-	-- Modern: Blizzard's newer dialog border (the new Social window's side
-	-- panels), where the client has it
-	local okM, modernArt = pcall(CreateFrame, "Frame", nil, f, "DialogBorderTemplate")
-	if okM and modernArt then
-		modernArt:SetAllPoints(f)
-		modernArt:SetFrameLevel(f:GetFrameLevel())
-	else
-		modernArt = nil
-	end
+	-- Classic and Modern: the same frame and background as the window
+	-- (Dan, dev011_3: Blizzard's dialog backgrounds were see-through)
+	local art = ns.NewFrameArt(f)
 	local fill = ns.Fill(f, POP_FILL, -6)
 	local edge = ns.PixelBorder(f, POP_EDGE)
-	-- Classic and Modern: solid black under the dialog art, inside its
-	-- border; both dialog backgrounds are see-through and the window behind
-	-- showed through the text (Dan, dev011_2)
-	local under = ns.Own(f:CreateTexture(nil, "BACKGROUND", nil, -8))
-	under:SetColorTexture(0, 0, 0, 1)
 	local dim = CreateFrame("Button", nil, f)
 	dim:SetAllPoints(UIParent)
 	dim:SetFrameLevel(math.max(0, f:GetFrameLevel() - 1))
@@ -95,21 +70,13 @@ local function Shell(name, w, h)
 	dim:SetScript("OnClick", function() f:Hide() end)
 	f.title = ns.NewText(f, 16, "GameFontNormalLarge")
 	f.title:SetPoint("TOP", f, "TOP", 0, -20)
-	f.pssParts = { fill = fill, edge = edge, art = art, modernArt = modernArt, dim = dim, under = under }
+	f.pssParts = { fill = fill, edge = edge, art = art, dim = dim }
 	ns.OnPaint(function(dark)
-		local modern = ns.IsModern() and modernArt ~= nil
-		local ours = dark or (not art and not modern)
+		local ours = dark or not art
 		fill:SetShown(ours)
 		edge:SetShown(ours)
-		under:SetShown(not ours)
-		-- inside the border: the classic box's insets, or the newer one's
-		local inset = modern and 6 or 11
-		under:ClearAllPoints()
-		under:SetPoint("TOPLEFT", f, "TOPLEFT", inset, -inset)
-		under:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -inset, inset)
 		dim:SetShown(dark)
-		if art then art:SetShown(not ours and not modern) end
-		if modernArt then modernArt:SetShown(modern) end
+		if art then art:SetShown(not ours) end
 	end)
 	return f
 end

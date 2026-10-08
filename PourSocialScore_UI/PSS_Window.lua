@@ -37,8 +37,6 @@ local EVENTS = M.PSS_UI_EVENTS_TAB
 -- the tabs' builders, keyed by M.PSS_UI_TABS key (the tab files add theirs)
 ns.TabBuilders = ns.TabBuilders or {}
 
--- tried in order; the first the client has is the Blizzard look
-local FRAME_TEMPLATES = { "ButtonFrameTemplate", "PortraitFrameTemplate", "BasicFrameTemplateWithInset" }
 
 local win, nav, curTab
 local applying = false
@@ -55,28 +53,6 @@ local function RestorePlace()
 		win:SetPoint(point, UIParent, relPoint, x, y)
 	else
 		win:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-	end
-end
-
--- The Blizzard window art: a template frame of our own, under our frame's
--- content, with its portrait, title and close button hidden (ours are used
--- in both looks so they sit in the same place).
-local function BlizzardFrame()
-	for _, t in ipairs(FRAME_TEMPLATES) do
-		local ok, f = pcall(CreateFrame, "Frame", nil, win, t)
-		if ok and f then
-			f:SetAllPoints(win)
-			f:SetFrameLevel(win:GetFrameLevel())
-			f:EnableMouse(false)
-			if ButtonFrameTemplate_HidePortrait and t == "ButtonFrameTemplate" then
-				pcall(ButtonFrameTemplate_HidePortrait, f)
-			end
-			if f.CloseButton then f.CloseButton:Hide() end
-			if f.TitleText then f.TitleText:Hide() end
-			if f.TitleContainer and f.TitleContainer.TitleText then f.TitleContainer.TitleText:Hide() end
-			if f.Inset then f.Inset:Hide() end
-			return f
-		end
 	end
 end
 
@@ -393,7 +369,7 @@ local function Build()
 		SavePlace()
 	end)
 
-	local blizz = BlizzardFrame()
+	local blizz = ns.NewFrameArt(win)
 	local dark = DarkFrame()
 	-- The title and the close buttons sit on a frame above the frame art:
 	-- the Blizzard frame's border (its NineSlice) has a fixed level of about
@@ -424,13 +400,8 @@ local function Build()
 
 	-- Modern: the same metal frame on black, as Blizzard's new Social window
 	-- (which sets its background to black)
-	local black
-	if blizz then
-		black = ns.Own(blizz:CreateTexture(nil, "BACKGROUND", nil, -5))
-		black:SetPoint("TOPLEFT", blizz, "TOPLEFT", 2, -2)
-		black:SetPoint("BOTTOMRIGHT", blizz, "BOTTOMRIGHT", -2, 2)
-		black:SetColorTexture(0, 0, 0, 1)
-	end
+	-- (the frame art's own black: ns.NewFrameArt)
+	local black = blizz and blizz.pssBlack
 	win.art.black = black
 	-- Modern: the band behind the tabs and the line under them is the
 	-- frame's stone with its streaks over it, as the AddOns list draws its
@@ -457,7 +428,6 @@ local function Build()
 	ns.OnPaint(function(isDark)
 		if black then
 			local modern = ns.IsModern()
-			black:SetShown(modern)
 			band:SetShown(modern)
 			-- ours where the client has the art, else the template's own
 			local own = ns.HasAtlas(STREAKS)
@@ -467,9 +437,6 @@ local function Build()
 				streaks:SetHorizTile(true)
 			end
 			if blizz.TopTileStreaks and blizz.TopTileStreaks.SetAlpha then blizz.TopTileStreaks:SetAlpha(own and 0 or 1) end
-			-- the template's own stone goes (ours is only the band); its
-			-- streak strip stays over the band
-			if blizz.Bg and blizz.Bg.SetAlpha then blizz.Bg:SetAlpha(modern and 0 or 1) end
 		end
 		-- a client without any Blizzard frame template falls back to Dark art
 		local useDark = isDark or not blizz
