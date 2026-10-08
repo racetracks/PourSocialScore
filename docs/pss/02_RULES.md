@@ -63,12 +63,15 @@ Scratch is **`racetracks/Pour-Social-Score_Scratch`**; its rules and procedures 
 - Update the root `readme.md` index whenever a folder's newest file changes; always reply with links.
 
 ## 11. The new PSS window (3.4.0, Dan, 2026-10-07; details in 09)
+The full rule set is the **Interface** section of `CLAUDE.md` (one section, Dan, 2026-10-08); this list is its short form.
 1. The EllesmereUI port is the reference for every visual and layout choice; the old GUI is not authoritative on anything.
 2. Logic in `PourSocialScore_Libraries`; drawing only in `PourSocialScore_UI` (later `PourSocialScore_GUI`). No `EUI` or `Ellesmere` names in new code (checked by `check_rules.sh`); never copy EllesmereUI's code or media.
-3. Three looks with the same layout, features and feel: Modern (the default from 3.4.0-dev008_4; Blizzard's new Social window art), Classic (Blizzard's classic art; named Blizzard (Default) before), Dark (the port's style in full). Dark draws everything from our kit, popups and menus included.
+3. Three looks with the same layout, features and feel, **listed in this order: Modern** (value 2, the default from 3.4.0-dev008_4; Blizzard's new Social window art), then the options **Classic** (0, Blizzard's classic art; named Blizzard (Default) before) and **Dark** (1, the port's style in full). Every element works in all three (`CLAUDE.md` Interface, the first rule). Dark draws the window's own popups, menus and tooltips from our kit.
 4. **The accent is always the player's class colour**, in every look; no option.
 5. Fonts: the look's own, a Blizzard font, or a LibSharedMedia font read only when another addon loaded it. PSS ships no library.
 6. Window state and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` keys); no new SavedVariables.
+7. **Only the main window's title carries the addon's name.** Popup and dialog titles say what they ask ("Remove Player?"), never the addon name (Dan, 2026-10-08).
+8. **Core's note, party warning and reload popups stay Blizzard StaticPopups in every look** (Dan, 2026-10-08; core never loads the UI folder for a popup). Section 1.4 still holds.
 
 ## 10. Taint and secret values on PSS (baseline 02 J, added 2026-10-07)
 PSS is a chat filter: on Retail 12.x its inputs are the values most likely to be secret (chat event arguments under chat messaging lockdown, `UnitName` and GUIDs while restricted).

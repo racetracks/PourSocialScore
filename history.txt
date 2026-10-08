@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.19 - New PSS window: interface rules
+
+- New window (/pss tui): the looks stay listed Modern (the default) first, then Classic and Dark.
+- The font option's tooltip names the looks as they are called now (Modern and Classic, was Blizzard and Modern).
+- Project docs: the window's rules are gathered in one place for future work. Nothing else changes in game.
+
 => 3.4.0.18 - New PSS window: popup titles
 
 - The window's popups no longer carry the addon's name: each title says what it asks, such as "Remove Player?", "Remove Guild?", "Remove Member?", "Remove Rule?", "Prune Players?", "Add Player?", "Reset Block History?", "Export" and "Import".
