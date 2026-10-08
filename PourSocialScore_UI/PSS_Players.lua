@@ -5,7 +5,7 @@
 -- for its menu, Libraries M.PSS_PlayerMenu) and a detail pane for the
 -- selected entry with three pages (PSS_Detail.lua): Summary (counts and the
 -- period pie), Event History and View/Edit Rule (note, expiry, W I G P C,
--- overrides, Remove, Add Guild). With nothing selected the pane shows the
+-- exceptions, Remove, Add Guild). With nothing selected the pane shows the
 -- whole list's totals. Libraries (PSS_PlayerView.lua) works out every text
 -- and does every edit; the core says when the list changed
 -- (PLAYERS_CHANGED, PLAYER_BLOCKED) and the tab redraws if it shows.
@@ -198,21 +198,9 @@ local function BuildPane(parent)
 	pane.player[#pane.player + 1] = exRow
 	y = y - 28
 
-	-- overrides of the Options for this player: Default > On > Off
-	pane.overrides = {}
-	local bw = (DETAIL_W - 26) / 2
-	for n, o in ipairs(M.PSS_OverrideOptions()) do
-		local b = ns.NewButton(rule, "", bw, function(self)
-			M.PSS_PlayerCycleOverride(pane.record, self.opt.key)
-			ns.ShowPlayerDetail()
-		end)
-		b.opt = o
-		local col, r = (n - 1) % 2, math.floor((n - 1) / 2)
-		b:SetPoint("TOPLEFT", rule, "TOPLEFT", 10 + col * (bw + 6), y - r * 24)
-		ns.TipOn(b, b, o.label .. "\n\nClick to change: Default (the Options tab) > On > Off.")
-		pane.overrides[#pane.overrides + 1] = b
-		pane.player[#pane.player + 1] = b
-	end
+	-- exceptions to the Options for this player (ticked = it happens)
+	pane.exceptions = ns.NewExceptions(rule, 10, y, DETAIL_W - 20, function() ns.ShowPlayerDetail() end)
+	pane.player[#pane.player + 1] = pane.exceptions.frame
 
 	-- the rule's actions: Remove, Add Guild
 	local remove = ns.NewButton(rule, "Remove", 100, ConfirmRemove)
@@ -283,9 +271,7 @@ function ns.ShowPlayerDetail(newEntry)
 	end
 
 	for _, e in ipairs(M.EXCL) do pane.excl[e.cat]:SetChecked(M.PSS_PlayerAllowed(p, e.field)) end
-	for _, b in ipairs(pane.overrides) do
-		b:SetText(M.PSS_OverrideText(b.opt, M.PSS_OverrideValue(p, b.opt.key)))
-	end
+	pane.exceptions:Set(p, "person", "this player")
 
 	local c = M.PSS_GetPlayerBlockCounts(p)
 	pane.counts:SetText(M.PSS_CountsText(c))
@@ -331,8 +317,8 @@ local function RowAct(entry, act, arg)
 		M.PSS_PlayerCommitExpiry(entry, "0")
 	elseif act == "resetHistory" then
 		M.PSS_ResetPlayerBlockHistory(entry)
-	elseif act == "override" then
-		M.PSS_PlayerCycleOverride(pane.record, arg)
+	elseif act == "exception" then
+		M.PSS_ToggleException(pane.record, "person", arg)
 		ns.ShowPlayerDetail()
 	elseif act == "remove" then
 		ConfirmRemove()

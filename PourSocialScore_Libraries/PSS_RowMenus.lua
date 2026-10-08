@@ -5,12 +5,13 @@
 -- only draws it (3.4.0.21, C2). A menu is a list of entries:
 --   { kind = "title", text = ... }   { kind = "divider" }
 --   { text = ..., act = "...", arg = ... }   a button: the tab runs act
+--   { kind = "check", text, on = fn, act, arg }   a tick (on: is it ticked)
 -- The tab maps each act to what its own buttons already do (a confirm for
 -- Remove, the Events tab for Block History). Counts come from the counters:
 -- opening a menu never loads the block history (PourSocialScore_Logging).
 --   M.PSS_PlayerMenu(entry)        a Player Ignore List row
 --   M.PSS_GuildRowMenu(item)       a Guild Ignore List row (any kind)
---   M.PSS_MemberMenu(m)            a guild member row
+--   M.PSS_MemberMenu(m, gkey)      a guild member row (gkey: its guild)
 --   M.PSS_FilterMenu(i)            a Chat Filters row
 --   M.PSS_SenderMenu(name)         a blocked line (Events, a pane's history)
 --   M.PSS_SenderAdd(name), M.PSS_SenderRemoveText(name) / M.PSS_SenderRemove(name)
@@ -27,13 +28,17 @@ local function Title(t, text) t[#t + 1] = { kind = "title", text = text } end
 local function Divider(t) t[#t + 1] = { kind = "divider" } end
 local function Button(t, text, act, arg) t[#t + 1] = { text = text, act = act, arg = arg } end
 
--- the Options a player or a guild can override: one entry each, a click
--- moves it on (Default > On > Off), as the pane's buttons do
-local function Overrides(t, target)
+-- the exceptions a player, guild or member can have (3.4.0.22): a tick
+-- each, ticked = it happens, as the pane's tick boxes; act "exception"
+-- turns it the other way (M.PSS_ToggleException)
+local function Exceptions(t, target, who, parentOpts)
 	if type(target) ~= "table" then return end
 	Divider(t)
+	Title(t, M.PSS_ExceptionHeading(who))
 	for _, o in ipairs(M.PSS_OverrideOptions()) do
-		Button(t, M.PSS_OverrideText(o, M.PSS_OverrideValue(target, o.key)), "override", o.key)
+		local key = o.key
+		t[#t + 1] = { kind = "check", text = M.PSS_OVERRIDE_SHORT[key] or key, act = "exception", arg = key,
+			on = function() return (M.PSS_ExceptionState(target, key, parentOpts)) end }
 	end
 end
 
@@ -62,7 +67,7 @@ function M.PSS_PlayerMenu(entry)
 	if (tonumber(r.expire) or 0) > 0 then Button(t, L["RCM_3"] or "Reset Expiration", "noExpiry") end
 	if p then
 		Button(t, L["HISTORY_RESET"] or "Reset Block History", "resetHistory")
-		Overrides(t, p)
+		Exceptions(t, p, "this player")
 	end
 	Divider(t)
 	Button(t, "Remove Player", "remove")
@@ -109,7 +114,7 @@ function M.PSS_GuildRowMenu(item)
 		Button(t, "Show Members", "members", item.key)
 		Button(t, HistoryText(item.bc and item.bc.total), "history", item.key)
 		Button(t, L["HISTORY_RESET"] or "Reset Block History", "resetHistory", item.key)
-		Overrides(t, g)
+		Exceptions(t, g, "this guild")
 		if not M.PSS_IsStaticManagedGuild(item.key) then
 			Divider(t)
 			Button(t, "Remove Guild", "remove", item.key)
@@ -122,14 +127,15 @@ function M.PSS_GuildSetAllRules(on)
 	for k in pairs(M.PSS_ManagedGroups()) do M.PSS_SetManagedGroupActive(k, on and true or false) end
 end
 
-function M.PSS_MemberMenu(m)
+function M.PSS_MemberMenu(m, gkey)
 	if type(m) ~= "table" then return nil end
+	local _, g = M.PSS_FindGuildRule(gkey)
 	local t = {}
 	Title(t, tostring(m.name))
 	Divider(t)
 	Button(t, HistoryText(M.PSS_MemberBlockTotal(m)), "history")
 	Button(t, L["HISTORY_RESET"] or "Reset Block History", "resetHistory")
-	Overrides(t, m)
+	Exceptions(t, m, "this member", g and g.opts)
 	Divider(t)
 	Button(t, "Remove Member", "remove")
 	return t

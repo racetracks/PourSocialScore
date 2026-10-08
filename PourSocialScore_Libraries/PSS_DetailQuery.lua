@@ -21,8 +21,13 @@
 --   M.PSS_TypeSlices(counts, slices [, max])   all time by type as slices
 --   M.PSS_TotalsView(kind, into, guildRows)    a whole list's counts
 --   M.PSS_CountsText(c)                   "Blocked 12:  Whispers 3  ..."
---   M.PSS_OVERRIDE_SHORT, M.PSS_NextOverride(cur), M.PSS_OverrideText(opt, cur)
+--   M.PSS_OVERRIDE_SHORT
 --   M.PSS_OverrideOptions(), M.PSS_OverrideValue(target, key)
+--   Exceptions (3.4.0.22, Dan): M.PSS_ExceptionState(target, key [, parentOpts])
+--   -> happens, isException, default; M.PSS_SetException(target, scope, key,
+--   happens [, parentOpts]), M.PSS_ToggleException(target, scope, key
+--   [, parentOpts]); M.PSS_ExceptionText(opt, isException),
+--   M.PSS_ExceptionTip(opt, who, default), M.PSS_ExceptionHeading(who)
 --   M.PSS_ClassColor(class)               r, g, b (white if unknown)
 --   M.PSS_HistHidden(type) / M.PSS_SetHistHidden(type, hidden)   the block
 --                                         history lists' type ticks
@@ -201,21 +206,14 @@ function M.PSS_CountsText(c)
 		Count(c.partyRaid or 0, "partyRaid"), Count(c.world or 0, "world"))
 end
 
--- Per-person and per-guild overrides of the target options: their short
--- names, the cycle a button steps through (default > on > off > default)
--- and the button's text.
+-- Per-person and per-guild exceptions to the target options: their short
+-- names.
 M.PSS_OVERRIDE_SHORT = {
-	ignoreResponse = "Ignore response",
+	ignoreResponse = "Send ignore response",
 	showDeclines = "Show declines",
 	declineDuel = "Decline duels",
 	declineTrade = "Decline trades",
 }
-
-function M.PSS_NextOverride(cur)
-	if cur == nil then return true end
-	if cur == true then return false end
-	return nil
-end
 
 -- The Options a player, guild or member can override (tick boxes marked
 -- target), in M.PSS_OPTIONS order; one list, made on first use
@@ -232,12 +230,62 @@ end
 
 -- a record's override of option key (nil: the Options tab's own value)
 function M.PSS_OverrideValue(target, key)
-	return type(target) == "table" and type(target.opts) == "table" and target.opts[key] or nil
+	local opts = type(target) == "table" and target.opts
+	if type(opts) ~= "table" then return nil end
+	return opts[key]
 end
 
-function M.PSS_OverrideText(opt, cur)
-	local state = cur == nil and "|cffaaaaaaDefault|r" or (cur and "|cff00ff00On|r" or "|cffff5555Off|r")
-	return (M.PSS_OVERRIDE_SHORT[opt.key] or opt.key) .. ": " .. state
+------------------------------------------------------------------------
+-- Exceptions (3.4.0.22, Dan): what the Options tab sets is what happens
+-- for every listed player and guild (by default: no ignore response, no
+-- decline messages, duels and trades declined); a player, guild or member
+-- can be an exception to any of it. A tick box shows what happens for that
+-- entry (ticked = it happens); ticking it away from the default makes an
+-- exception, ticking it back removes it. A member's default is its guild's
+-- (parentOpts: the guild's opts). Stored as before: opts[key] = the
+-- exception's value, nil = the default.
+------------------------------------------------------------------------
+local function Default(key, parentOpts)
+	return M.PSS_Opt(key, parentOpts and { guild = parentOpts } or nil) == true
+end
+
+function M.PSS_ExceptionState(target, key, parentOpts)
+	local base = Default(key, parentOpts)
+	local v = M.PSS_OverrideValue(target, key)
+	if v == nil or v == base then return base, false, base end
+	return v == true, true, base
+end
+
+function M.PSS_SetException(target, scope, key, happens, parentOpts)
+	if type(target) ~= "table" then return end
+	local base = Default(key, parentOpts)
+	happens = happens and true or false
+	-- an Off exception is stored as false (and/or would turn it to nil)
+	local v
+	if happens ~= base then v = happens end
+	M.PSS_SetOpt(key, scope, v, target)
+end
+
+-- a menu's tick: the other way round from what happens now
+function M.PSS_ToggleException(target, scope, key, parentOpts)
+	if type(target) ~= "table" then return end
+	M.PSS_SetException(target, scope, key, not M.PSS_ExceptionState(target, key, parentOpts), parentOpts)
+end
+
+-- who: "this player", "this guild", "this member"
+function M.PSS_ExceptionHeading(who)
+	return "For " .. who .. ":  |cffaaaaaaticked = it happens|r"
+end
+
+function M.PSS_ExceptionText(opt, isException)
+	return (M.PSS_OVERRIDE_SHORT[opt.key] or opt.key) .. (isException and "  |cffffd100(exception)|r" or "")
+end
+
+-- who: "this player", "this guild", "this member"
+function M.PSS_ExceptionTip(opt, who, base)
+	return (M.PSS_OVERRIDE_SHORT[opt.key] or opt.key) .. "\n\nTicked: it happens for " .. who .. ". For blocked players and guilds it is "
+		.. (base and "|cff00ff00On|r" or "|cffff5555Off|r") .. " by default (the Options tab).\n\nChange the tick to make "
+		.. who .. " an exception; set it back to remove the exception."
 end
 
 function M.PSS_ClassColor(class)

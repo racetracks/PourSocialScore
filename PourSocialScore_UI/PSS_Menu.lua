@@ -341,7 +341,7 @@ function ns.ContextMenu(by, build)
 end
 
 -- A row's right-click menu: entries from Libraries (PSS_RowMenus.lua), each
--- a title, a divider or a button whose act run(act, arg) carries out.
+-- a title, a divider, a tick or a button whose act run(act, arg) carries out.
 function ns.RowMenu(by, entries, run)
 	if not entries then return end
 	ns.ContextMenu(by, function(m)
@@ -350,6 +350,8 @@ function ns.RowMenu(by, entries, run)
 				m:Title(e.text)
 			elseif e.kind == "divider" then
 				m:Divider()
+			elseif e.kind == "check" then
+				m:Check(e.text, e.on, function() run(e.act, e.arg) end)
 			else
 				m:Button(e.text, function() run(e.act, e.arg) end)
 			end

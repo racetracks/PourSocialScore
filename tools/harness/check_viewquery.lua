@@ -102,7 +102,7 @@ nav:Record(4, nil)
 check(#nav.steps == 3 and nav.steps[1].tab == 2, "the oldest step is dropped past the cap")
 check(nav:BackToOther(4).tab == 3, "Escape from Events returns to the tab before")
 
--- double-click, throttle, overrides
+-- double-click, throttle, exceptions
 local dc = {}
 check(not M.PSS_DoubleClick(dc, "a", 10) and M.PSS_DoubleClick(dc, "a", 10.2), "double-click within 0.35 s")
 check(not M.PSS_DoubleClick(dc, "a", 11) and not M.PSS_DoubleClick(dc, "a", 11.5), "slow clicks are not a double-click")
@@ -113,9 +113,32 @@ redraw(); redraw(); redraw()
 check(ran == 0, "the throttle ran at once")
 H.RunTimers()
 check(ran == 1, "the throttle did not run once for the burst")
-check(M.PSS_NextOverride(nil) == true and M.PSS_NextOverride(true) == false and M.PSS_NextOverride(false) == nil,
-	"override cycle default > on > off > default")
-check(M.PSS_OverrideText({ key = "declineDuel" }, true):find("Decline duels", 1, true) ~= nil, "override text")
+-- what happens to listed players and guilds by default (Dan, 3.4.0.22):
+-- no ignore response, no decline messages, duels and trades declined
+local want = { ignoreResponse = false, showDeclines = false, declineDuel = true, declineTrade = true }
+local nOpts = 0
+for _, o in ipairs(M.PSS_OverrideOptions()) do
+	nOpts = nOpts + 1
+	check(want[o.key] == o.default, "default of " .. o.key)
+end
+check(nOpts == 4, "exception options " .. nOpts)
+-- exceptions: away from the default is stored, back to it removes it; a
+-- member's default is its guild's; an Off exception is an exception
+local base = M.PSS_Opt("declineDuel") == true
+local t = {}
+check(M.PSS_ExceptionState(t, "declineDuel") == base and not select(2, M.PSS_ExceptionState(t, "declineDuel")), "a new entry is on the default")
+M.PSS_ToggleException(t, "person", "declineDuel")
+check(t.opts and t.opts.declineDuel == (not base) and select(2, M.PSS_ExceptionState(t, "declineDuel")), "toggle made no exception")
+check(M.PSS_OverrideValue(t, "declineDuel") == (not base), "an exception's value read back")
+M.PSS_ToggleException(t, "person", "declineDuel")
+check(t.opts == nil or t.opts.declineDuel == nil, "toggle back left an exception")
+local gopts = { declineDuel = not base }
+local mem = {}
+check(M.PSS_ExceptionState(mem, "declineDuel", gopts) == (not base) and not select(2, M.PSS_ExceptionState(mem, "declineDuel", gopts)),
+	"a member does not follow its guild")
+M.PSS_SetException(mem, "person", "declineDuel", base, gopts)
+check(mem.opts and mem.opts.declineDuel == base and select(2, M.PSS_ExceptionState(mem, "declineDuel", gopts)), "a member's own exception")
+check(M.PSS_ExceptionText({ key = "declineDuel" }, true):find("(exception)", 1, true) ~= nil, "exception text")
 check(M.PSS_CountsText({ total = 5, whisper = 2 }):find("Blocked 5", 1, true) ~= nil, "counts text")
 
 if fails == 0 then print(("PASS viewquery (%d players, %d guilds, %d filters)"):format(panes.players, panes.guilds, panes.filters)) end

@@ -3,12 +3,33 @@
 -- selected the pane shows the list's totals (equal to M.PSS_ListTotals);
 -- then, on 200 added players, an NPC and a server: pooled rows, sorting,
 -- search, the detail pane (lines from Libraries, note, expiry, W I G P C,
--- overrides), a block counted at once with the Summary pie, the history
+-- exceptions), a block counted at once with the Summary pie, the history
 -- loaded only on Show Block History, confirmed removal and Add Player; the
 -- close button and the title sit above the frame art. Neither old window
 -- loads.
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL players: " .. msg) fail = true end end
+
+-- exceptions (3.4.0.22): ticked = it happens; a tick away from the default
+-- (the Options tab, or a member's guild) is an exception, marked so, and
+-- read by the engine; ticking it back removes it
+local function CheckExceptions(ex, t, parent, what)
+	check(ex and #ex.boxes == #M.PSS_OverrideOptions(), what .. ": no exception tick boxes")
+	if not ex then return end
+	for _, b in ipairs(ex.boxes) do
+		local key = b.opt.key
+		local base = M.PSS_Opt(key, parent and { guild = parent } or nil) == true
+		check(b:GetChecked() == base and not b.label:GetText():find("exception", 1, true), what .. " " .. key .. ": not on the default")
+		b:SetChecked(not base)
+		b._scripts.OnClick(b)
+		check(t.opts and t.opts[key] == (not base) and b:GetChecked() == (not base) and b.label:GetText():find("(exception)", 1, true) ~= nil,
+			what .. " " .. key .. ": exception not made")
+		check(M.PSS_Opt(key, { person = t.opts, guild = parent }) == (not base), what .. " " .. key .. ": the engine does not read the exception")
+		b:SetChecked(base)
+		b._scripts.OnClick(b)
+		check((t.opts == nil or t.opts[key] == nil) and not b.label:GetText():find("exception", 1, true), what .. " " .. key .. ": exception not removed")
+	end
+end
 local loaded = C_AddOns.IsAddOnLoaded
 
 SlashCmdList["PSS"]("tui")
@@ -110,17 +131,7 @@ w:SetChecked(false)
 w._scripts.OnClick(w)
 check(M.PSS_GetPlayerRecord(entry).whispersBlocked == true, "W not saved as blocked")
 
--- an override cycles Default > On > Off > Default
-local ob = pane.overrides[1]
-check(ob ~= nil, "no override buttons")
-local okey = ob.opt.key
-local p = M.PSS_GetPlayerRecord(entry)
-ob._scripts.OnClick(ob)
-check(p.opts and p.opts[okey] == true and ob:GetText():find("On", 1, true), "override not On")
-ob._scripts.OnClick(ob)
-check(p.opts[okey] == false, "override not Off")
-ob._scripts.OnClick(ob)
-check(p.opts == nil or p.opts[okey] == nil, "override not back to Default")
+CheckExceptions(pane.exceptions, M.PSS_GetPlayerRecord(entry), nil, "player")
 
 -- the detail pages
 local dp, hv = pane.pages, pane.hist

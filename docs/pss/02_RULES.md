@@ -19,6 +19,7 @@
 - **A guild rule never blocks your own guild** (`M.PSS_IsOwnGuild`). Player list entries for people in your guild still block.
 - **Removal** deletes all of a player's saved data. A player on a shipped guild list stays blocked with a member note.
 - **W I G P C:** ticked = allowed; a new entry blocks everything; built-in filters start off.
+- **What happens to anyone listed (Dan, 2026-10-08):** by default no ignore response is sent, no decline messages are shown, and their duels and trades are declined (the Options tab sets the default; Show declines Off from 3.4.0.22). Any player, guild or guild member can be an exception; the window shows each as a tick box (ticked = it happens) marked "(exception)" where it differs from the default, and a member's default is its guild's. Stored as before: `opts[key]` holds an exception, nil the default.
 - **Every number the EllesmereUI window shows must equal the native window's**, with the same definitions ("this session" = since login or /reload). `check_match.lua` gates it.
 - Every window closes on Escape. Native Blizzard look in our GUI, EllesmereUI's look under EllesmereUI.
 - No guild discovery from mouseover or nameplates in combat.

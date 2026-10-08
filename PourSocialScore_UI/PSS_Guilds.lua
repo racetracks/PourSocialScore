@@ -6,10 +6,10 @@
 -- double-click or the Members button), Scan All, the Add and Exclude entry
 -- rows with Guild Search, the Guild Search results picker in place of the
 -- list, and a pane for what is selected: a guild (Summary, Event History,
--- View/Edit Rule with W I G P C, Scan / Custom Scan, overrides, Members,
+-- View/Edit Rule with W I G P C, Scan / Custom Scan, exceptions, Members,
 -- Remove Guild), a default list or Managed Communities (counts, pies, its
 -- rule), the Guild Exclusion List or an excluded guild, or a member (note,
--- W I G P C that follow the guild until set, overrides, Remove Member, Add
+-- W I G P C that follow the guild until set, exceptions, Remove Member, Add
 -- Guild); with nothing selected, the list's totals. A right-click on a
 -- row or a member opens its menu (Libraries PSS_RowMenus.lua). Libraries
 -- (PSS_GuildView.lua) works out every text and does every change; the core
@@ -229,26 +229,10 @@ local function ExclBoxes(parent, y, tip, onClick)
 	return boxes, row
 end
 
--- Overrides of the Options for a guild or member record: Default > On > Off.
-local function Overrides(parent, y, scope, target)
-	local out = {}
-	local bw = (DETAIL_W - 26) / 2
-	for n, o in ipairs(M.PSS_OverrideOptions()) do
-		local b = ns.NewButton(parent, "", bw, function(self)
-			M.PSS_CycleOverride(target(), scope, self.opt.key)
-			ShowDetail()
-		end)
-		b.opt = o
-		local col, r = (n - 1) % 2, math.floor((n - 1) / 2)
-		b:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + col * (bw + 6), y - r * 24)
-		ns.TipOn(b, b, o.label .. "\n\nClick to change: Default (the Options tab) > On > Off.")
-		out[#out + 1] = b
-	end
-	return out
-end
-
-local function PaintOverrides(buttons, t)
-	for _, b in ipairs(buttons) do b:SetText(M.PSS_OverrideText(b.opt, M.PSS_OverrideValue(t, b.opt.key))) end
+-- the opts a member's exceptions are measured against: its guild's
+local function GuildOpts(key)
+	local _, g = M.PSS_FindGuildRule(key)
+	return g and g.opts or nil
 end
 
 local function OpenGuildEvents(key)
@@ -303,8 +287,8 @@ local function RowAct(item, act, arg)
 		OpenGuildEvents(arg)
 	elseif act == "resetHistory" then
 		M.PSS_ResetGuildBlockHistory(arg)
-	elseif act == "override" then
-		M.PSS_CycleOverride(select(2, M.PSS_FindGuildRule(item.key)), "guild", arg)
+	elseif act == "exception" then
+		M.PSS_ToggleException(select(2, M.PSS_FindGuildRule(item.key)), "guild", arg)
 		ShowDetail()
 	elseif act == "remove" then
 		ConfirmRemoveGuild()
@@ -323,8 +307,8 @@ local function MemberAct(m, act, arg)
 		if ns.OpenEvents then ns.OpenEvents(page, M.PSS_MemberEventsSpec(m, V.mguild), {}) end
 	elseif act == "resetHistory" then
 		M.PSS_ResetMemberBlockHistory(m)
-	elseif act == "override" then
-		M.PSS_CycleOverride(m, "person", arg)
+	elseif act == "exception" then
+		M.PSS_ToggleException(m, "person", arg, GuildOpts(V.mguild))
 		ShowDetail()
 	elseif act == "remove" then
 		ConfirmRemoveMember()
@@ -333,7 +317,7 @@ end
 
 function MemberMenu(row, m)
 	if m ~= V.msel then SelectMember(m) end
-	ns.RowMenu(row, M.PSS_MemberMenu(m), function(act, arg) MemberAct(m, act, arg) end)
+	ns.RowMenu(row, M.PSS_MemberMenu(m, V.mguild), function(act, arg) MemberAct(m, act, arg) end)
 end
 
 local function BuildGuildBody(parent)
@@ -379,10 +363,8 @@ local function BuildGuildBody(parent)
 	b.custom = ScanButton(custom)
 	y = y - 28
 
-	b.overrides = Overrides(rule, y, "guild", function()
-		local _, g = M.PSS_FindGuildRule(pane.guildKey)
-		return g
-	end)
+	-- exceptions to the Options for this guild (ticked = it happens)
+	b.exceptions = ns.NewExceptions(rule, 10, y, DETAIL_W - 20, function() ShowDetail() end)
 
 	local members = ns.NewButton(rule, "Members", 90, function() OpenMembers(pane.guildKey) end)
 	members:SetPoint("BOTTOMLEFT", rule, "BOTTOMLEFT", 10, 4)
@@ -489,7 +471,8 @@ local function BuildMemberBody(parent)
 		end)
 	y = y - 28
 
-	b.overrides = Overrides(rule, y, "person", function() return V.msel end)
+	-- exceptions for this member; its guild's settings are its default
+	b.exceptions = ns.NewExceptions(rule, 10, y, DETAIL_W - 20, function() ShowDetail() end)
 
 	local remove = ns.NewButton(rule, "Remove Member", 110, ConfirmRemoveMember)
 	remove:SetPoint("BOTTOMLEFT", rule, "BOTTOMLEFT", 10, 4)
@@ -546,7 +529,7 @@ local function ShowGuild(key, fresh)
 	for cat, c in pairs(b.excl) do c:SetChecked(M.PSS_GuildAllowed(g, cat)) end
 	b.scan:SetText(M.PSS_GuildSweepLabel(key))
 	if not pane.fieldsBox:HasFocus() then pane.fieldsBox:SetText(g.customScan or "") end
-	PaintOverrides(b.overrides, g)
+	b.exceptions:Set(g, "guild", "this guild")
 	local c = M.PSS_GetGuildBlockCounts(key)
 	b.counts:SetText(M.PSS_CountsText(c))
 	b.removeButton:SetEnabled(not M.PSS_IsStaticManagedGuild(key))
@@ -614,7 +597,7 @@ local function ShowMember(fresh)
 		c:SetChecked(on)
 		c:SetAlpha(own and 1 or 0.45)
 	end
-	PaintOverrides(b.overrides, m)
+	b.exceptions:Set(m, "person", "this member", gg.opts)
 	b.addGuild:SetShown(M.PSS_MemberOtherGuild(gg, V.mguild, m))
 	M.PSS_EnsureMemberBlockData(m)
 	local c = M.PSS_GetMemberBlockCounts(m)

@@ -21,7 +21,7 @@
 --   M.PSS_MemberAddedLine(m), M.PSS_MemberAllowed(gg, m, cat) (ticked, own),
 --   M.PSS_MemberOtherGuild(gg, gkey, m)
 --   Edits: M.PSS_GuildToggleAllowed, M.PSS_GuildScanNow, M.PSS_GuildCustomScan,
---   M.PSS_GuildCommitFields, M.PSS_CycleOverride(target, scope, key),
+--   M.PSS_GuildCommitFields, M.PSS_ToggleException(target, scope, key),
 --   M.PSS_GuildRemoveText / M.PSS_GuildRemove, M.PSS_MemberRemoveText /
 --   v:RemoveMember(), M.PSS_MemberCommitNote, M.PSS_MemberToggleAllowed,
 --   M.PSS_GroupToggleRule(k), M.PSS_GroupToggleOpen(k) (k: a default list,
@@ -593,12 +593,6 @@ end
 function M.PSS_GuildCommitFields(key, text)
 	local _, g = M.PSS_FindGuildRule(key)
 	if g then M.PSS_SetGuildScanFields(g, M.trim(text or "") or "") end
-end
-
--- an Options override (scope "guild" or "person"): Default > On > Off
-function M.PSS_CycleOverride(target, scope, key)
-	if type(target) ~= "table" then return end
-	M.PSS_SetOpt(key, scope, M.PSS_NextOverride(target.opts and target.opts[key]), target)
 end
 
 function M.PSS_GuildRemoveText(key)

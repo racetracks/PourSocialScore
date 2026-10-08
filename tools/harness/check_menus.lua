@@ -20,6 +20,7 @@ MenuUtil.CreateContextMenu = function(owner, gen)
 	function root:CreateButton(text, fn) got[#got + 1] = { text = text, fn = fn } return {} end
 	function root:CreateTitle(text) got[#got + 1] = { title = text } end
 	function root:CreateDivider() got[#got + 1] = { divider = true } end
+	function root:CreateCheckbox(text, isOn, fn) got[#got + 1] = { text = text, isOn = isOn, fn = fn, check = true } return {} end
 	gen(owner, root)
 end
 local function find(text)
@@ -62,13 +63,25 @@ if at then
 	check(pane.body:IsShown() and pane.heading:GetText():find("Menuplayer", 1, true), "right-click did not select the row")
 	check(find("Block History (0)") and find("Remove Player") and find("Reset Block History"), "player menu entries")
 	check(not find("Reset Expiration"), "Reset Expiration offered without an expiry")
-	-- an override moves on (Default > On)
-	local o = M.PSS_OverrideOptions()[1]
-	local ov = o and find(M.PSS_OverrideText(o, nil))
-	check(ov ~= nil, "override entry missing")
-	if ov then
-		ov.fn()
-		check(M.PSS_OverrideValue(M.PSS_GetPlayerRecord(entry), o.key) == true, "override entry did not cycle")
+	-- an exception is a tick (ticked = it happens); a click turns it the
+	-- other way, a second click takes the exception off
+	local heading
+	for _, e in ipairs(got or {}) do
+		if e.title and e.title:find("For this player", 1, true) then heading = true end
+	end
+	check(heading, "no exceptions heading")
+	for n, o in ipairs(M.PSS_OverrideOptions()) do
+		local base = M.PSS_Opt(o.key) == true
+		local ov = find(M.PSS_OVERRIDE_SHORT[o.key])
+		check(ov and ov.check and ov.isOn() == base, o.key .. ": exception tick missing or not on the default")
+		if ov then
+			ov.fn()
+			local p = M.PSS_GetPlayerRecord(entry)
+			check(M.PSS_OverrideValue(p, o.key) == (not base) and ov.isOn() == (not base)
+				and pane.exceptions.boxes[n]:GetChecked() == (not base), o.key .. ": the tick did not make an exception")
+			ov.fn()
+			check(M.PSS_OverrideValue(p, o.key) == nil, o.key .. ": the second tick did not take the exception off")
+		end
 	end
 	-- an expiry: Reset Expiration takes it off
 	M.PSS_PlayerCommitExpiry(entry, "30")
