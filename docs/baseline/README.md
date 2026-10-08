@@ -1,4 +1,4 @@
-# WoW addon baseline (2026-10-08, v8)
+# WoW addon baseline (2026-10-08, v9)
 
 The baseline for creating and maintaining any World of Warcraft addon with Claude: the author's frameworks, rules, styles, preferences, release pipeline and references. **It names no addon and no repository of ours.** Attach it to a fresh Claude project together with:
 - an **addon-specific pack** (that addon's purpose, repos, data layout, plans and status), and
@@ -28,6 +28,11 @@ The baseline for creating and maintaining any World of Warcraft addon with Claud
 | templates/ | release.yml (versions.json decides release or pre-release; the mirror job), rules.yml, check_rules.sh, bump_version.sh, versions.py, host_build.sh, a TOC set, history.txt layout |
 | examples/ | Harness tooling to adapt (stub, runner, style and layer checks, UI compare) |
 | reference/wow-api/ | WoW API reference set from the Warcraft Wiki: load order, TOC format and interface numbers, object security, taint, secure templates and handlers, Retail 12.x secret values. Reference only; its README lists where it differs from 02 |
+
+## Changes in v9
+- **One step per session** (02 E9, 07, 10 section 3): the author resets the session after each step of an implementation plan.
+- **Context updated in every PR** (02 E10): stage table, status, rules, the preferences file and their hosted copies.
+- **Plans are references; state re-summarized at each release; the author's preferences in one file** loaded by the project instructions (02 E11, 10 section 5).
 
 ## Changes in v8
 - **The mirror carries the release's files** (09 section 6, `templates/.github/workflows/release.yml`): the `mirror` job keeps the mirror repo on the latest full release in `versions.json`, committing the release zip's contents as its files and publishing the release on that commit; it runs after every push and repairs a mirror that is behind. `versions.py latest` prints the latest release.

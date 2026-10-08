@@ -8,39 +8,38 @@ is a bug to fix, and a new difference needs a row (and Dan's OK) first.
 
 | Layer | Folder | Holds |
 | --- | --- | --- |
-| 1 | `docs/baseline/` | WoW addon baseline v8 (2026-10-08): how any addon is built, released and delivered; mandatory; v5 added 02 J (taint, secret values) and `reference/wow-api/`, v6 the `X.Y.Z.B` versions and the version tools, v7 build numbers that never reset, `versions.json` and release notes summarized at release time from the PRs, v8 the mirror carries the release's files |
+| 1 | `docs/baseline/` | WoW addon baseline v9 (2026-10-08): how any addon is built, released and delivered; mandatory; v5 02 J (taint, secret values) and `reference/wow-api/`, v6 `X.Y.Z.B` and the version tools, v7 build numbers that never reset and `versions.json`, v8 the mirror carries the release's files, v9 one step per session, context updated in every PR, state re-summarized at release, the author's preferences in one file (02 E9 to E11) |
 | 2 | `docs/scratch/` | Scratch repo usage pack v4 (2026-10-07; the v2 pack adapted to `racetracks/Pour-Social-Score_Scratch`): how scratch hosts builds, saves, docs and summaries. Live copy on scratch `docs/latest/scratch-repo-usage/`, criteria in its `CLAUDE.md` |
-| 3 | `docs/pss/` | PSS handover pack v4 (2026-10-07), kept current since: only what is true of PourSocialScore (09 is the current project; 02 section 12 the Overrides table). Newest copies on scratch `docs/latest/pss-docs/` |
+| 3 | `docs/pss/` | PSS pack, kept current: only what is true of PourSocialScore (01 the addon as it works, 06 status, 10 the current project, 11 Dan's preferences; 02 section 12 the Overrides table). Newest copies on scratch `docs/latest/pss-docs/` |
 
-Loaded in every session:
+Loaded in every session (kept lean, Dan, 2026-10-08; everything else is read when a step needs it):
 
-@docs/baseline/README.md
+@docs/pss/11_PREFERENCES.md
 @docs/baseline/02_RULES.md
-@docs/baseline/07_WORKING_WITH_THE_AUTHOR.md
 @docs/baseline/10_FEATURE_DESIGN_AND_DELIVERY.md
-@docs/scratch/04_USAGE.md
 @docs/scratch/05_RULES.md
-@docs/pss/00_README.md
 @docs/pss/01_HANDOVER.md
 @docs/pss/02_RULES.md
 @docs/pss/06_STATUS_AND_NEXT.md
-@docs/pss/09_PSS_UI_PROJECT.md
+@docs/pss/10_CORE_UPLIFT.md
 
 Read when the task touches the topic:
+- `docs/pss/10_CORE_UPLIFT.md`'s appendices on scratch `docs/latest/core-uplift/` (01 core and Libraries findings N1 to N48, 02 GUI findings G1 to G30, 03 SavedVariables, 04 upgrade helper, 05 name bugs): only the one the current stage names
+- `docs/pss/09_PSS_UI_PROJECT.md`: the closed window project's code map and lessons, for any window change
+- `docs/baseline/README.md`, `07_WORKING_WITH_THE_AUTHOR.md` (generic; `11_PREFERENCES.md` wins), `docs/scratch/04_USAGE.md` (scratch procedures), `docs/pss/00_README.md` (pack index)
 - `docs/pss/03_ELLESMEREUI.md`: EllesmereUI as the reference for building UI elements (section 0, Dan, 2026-10-08), and the history of the old integration (deleted at 3.4.0.25): bridge, APIs, house rules, the tab shadow fix
 - `docs/pss/04_DATA_AND_LOGGING.md`: SavedVariables, outbox, Logging on demand, grouped save, recent counts, real saves
 - `docs/pss/05_RELEASE.md`: PSS release names, CI jobs, release history, pitfalls
 - `docs/pss/07_HARNESS.md`: PSS harness commands
 - `docs/pss/08_PARITY_PROJECT.md`: the closed 3.3.0 parity project (shipped as 3.3.1), decisions and stage table
-- `docs/pss/09_PSS_UI_PROJECT.md` (its rules are the Interface section below): **the current project**, the new PSS window (3.4.0): Dan's decisions, the three looks, stages, code map, lessons
 - `docs/pss/reference/`: original 3.3 analysis and plan, issue #77 notes, 2026-10-07 memory snapshot (history; 06 and 08 are newer)
 - `docs/baseline/01, 03, 04, 05, 06, 08, 09`: API limits, references, architecture, suite integration and known fixes, harness, lifecycle, release pipeline
 - `docs/baseline/templates/`, `docs/baseline/examples/`: generic; the live copies in `tools/` and `.github/workflows/` win
 - `docs/baseline/reference/wow-api/` (start with its README): WoW API reference from the Warcraft Wiki. Read for any hook, Blizzard frame, combat or instance path, chat event handling, secret values, a taint report, a TOC or Interface change, or an API that differs between clients. Reference only; baseline 02 J and B carry the rules, and its README lists where it differs from the baseline
 
 ## Short form
-- The live release is **3.4.0.29** (full, the new PSS window; Dan, 2026-10-08; published when its PR merges). Before it: 3.3.1 (the closed 3.3.0 parity project). Next: the 3.4.1 line from build 30 (core performance, 06).
-- **Current project: the new PSS window, line 3.4.0** (`docs/pss/09_PSS_UI_PROJECT.md`). One window with the EllesmereUI port's layout, features and feel (the port is the reference; the old GUI is not authoritative), drawn with Blizzard's and our own resources. Logic in `PourSocialScore_Libraries`, drawing in `PourSocialScore_GUI` (from 3.4.0.25, D2: the files moved there from `PourSocialScore_UI`, and the old window, `PourSocialScore_UI` and `PourSocialScore_EllesmereUI` are gone); `/pss` opens it (`gui`, `ui` and `eui` are aliases, Dan, 2026-10-08). Main is on the 3.4.0 builds (`3.4.0.B`, pre-releases).
+- The live release is **3.4.0.29** (full, the new PSS window, 2026-10-08). Main is on the 3.4.1 line (3.4.1.30 on); status in 06.
+- **Current project: core uplift** (`docs/pss/10_CORE_UPLIFT.md`, locked 2026-10-08): line 3.4.1 (name bugs, fixes, the upgrade report, sparse and forward-compatible saves), then 3.4.2 (core performance) and 3.4.3 (window tidy). The window (3.4.0, closed) is drawn in `PourSocialScore_GUI` with logic in `PourSocialScore_Libraries`; `/pss` opens it (`gui`, `ui`, `eui` aliases).
 - The window, its three looks (Modern the default, then Classic and Dark) and its popups: the **Interface** section below.
 - **Versions are `X.Y.Z.B` and the build number never resets (Dan, 2026-10-08; 3.4.0.27):** every build that gets a test zip, a stage or a fix, merged or not, takes the next build number, and so does a full release (`3.4.0.29`); a new line counts on (`3.4.1.30`), never back to 1. Every TOC, the history section and the zip name carry it. **`versions.json`** (repo root; `tools/versions.py`) records the latest release, every pre-release since it in order with its PR, and each past release with its pre-releases: references only, no text. It is never in a release zip, a test zip or the mirror. The pipeline publishes a version as a full release only when `versions.json` names it the latest release, and refuses a version it does not record. Bump with `sh tools/bump_version.sh build "Title"` (`release "Title"`, `line X.Y.Z "Title"`), then `sh tools/bump_version.sh pr <number>` once the PR is open; the rules check fails a missing or wrong PR in CI, a placeholder history bullet, and a history.txt whose top section is not the TOC version. Older names (`-devNNN`, `_N`, plain `3.3.1`) stay as they were. Baseline v7 (02 F).
 - **Full releases: one summary of every change between releases (Dan, 2026-10-08).** At release time Claude lists the PRs between the previous release and this one (`python3 tools/versions.py prs <version>`, after `bump_version.sh release`), reads each PR (title, description, diff as needed) through the GitHub tools, and writes **one player-facing summary of all the changes** as the release's history section, replacing the placeholder bullet. The release notes are that summary only (no per-build lists, no PR text). Full releases are mirrored to `racetracks/Pour-Social-Score` (job `mirror`; secret `MIRROR_TOKEN`; `docs/pss/05_RELEASE.md`): the release zip's contents are committed as that repo's files and the release goes on that commit (Dan, 2026-10-08); pre-releases keep their own history section as notes and are not mirrored. No Claude API summary in the pipeline.
@@ -90,7 +89,9 @@ The saved values never change (old saves keep their look). Nothing ships that wo
 - **The project files are the scratch repo** (Dan, 2026-10-08): saves, plans, docs, test zips and summaries are all there, and there is no `/mnt/project-files`. Wherever the packs say "project files" or `/mnt/project-files/...`, read scratch: `SavedVariables/<version>/` (saves), `docs/latest/` (plans and docs), `releases/` and `latest/` (zips).
 - **Real saves are never committed here** (baseline 02 D10). They live on scratch at `SavedVariables/<version>/` (2.0.44, 3.0.0, 3.2.0-dev011). For the real-save run: `sh tools/harness/build_saves.sh <scratch checkout> <out dir>` (out dir in the session scratchpad; it defaults to `/tmp/pss-baselines`), then `PSS_REAL_SAVES=<out dir> sh tools/harness/validate_all.sh` (needs `lua5.1` from apt). If scratch cannot be read, say the real-save run did not happen; never claim it did.
 - Test zips go to scratch `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`, and the same commit replaces the zip in `latest/` with it (scratch rule 9); `sh tools/host_build.sh <scratch checkout>` does it from HEAD (`--no-commit` to add docs to the same commit); link it as `https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/<path>`.
-- Update `docs/pss/06_STATUS_AND_NEXT.md` and the stage table of the current project (`docs/pss/09_PSS_UI_PROJECT.md`) when a stage merges.
+- **One step per session (Dan, 2026-10-08; baseline 02 E9 to E11).** Dan resets the session after each step of an implementation plan: build only the stage named (the next one in `docs/pss/10_CORE_UPLIFT.md`'s table unless Dan names another), then stop.
+- **Update the context in every PR:** the current project's stage table (state, PR, next build), `docs/pss/06_STATUS_AND_NEXT.md`, `02_RULES.md` for a new rule, `11_PREFERENCES.md` for a new preference, and the scratch copies (`docs/latest/pss-docs/`, `docs/latest/core-uplift/`) in the same delivery, so a fresh session starts from this file alone.
+- **At each full release** re-summarize the done stages into `docs/pss/01_HANDOVER.md` (the addon as it works) and take them out of the plan; this file only points to the plan and design, never copies them. Dan's preferences live only in `docs/pss/11_PREFERENCES.md`.
 - **Project data on scratch: always read `docs/latest/` first** (`docs/README.md` is the docs index, `readme.md` the repo index). It holds the newest markdown: the current project's plan (`docs/latest/ui uplift/`, the pss-ui project) and these PSS docs (`docs/latest/pss-docs/`). Each docs release is also zipped in the root of `docs/` (`<name>-<date>-vN.zip`) and a project or feature release keeps a history folder `docs/<project>/` (scratch rule 10). When a plan or these docs change, refresh `docs/latest/` in the same scratch commit. Status summaries go in `summary/<project>-<YYYY-MM-DD-hh-mm>.md`.
 - The clone is shallow: before `validate_all.sh`, run `git fetch --depth=2000 origin main` (its upgrade checks rebuild old versions from history; without it the "split" checks fail on 2.0.1 and 2.0.40).
 - Blizzard's UI source for a template or atlas question: a sparse clone of `Gethe/wow-ui-source` (for example `Interface/AddOns/Blizzard_SharedXML`, `Blizzard_SocialUI`); read only.
