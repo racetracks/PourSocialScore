@@ -49,6 +49,10 @@ M.PSS_FilterRowCells(M.PSS_FilterRow(V.index[1], rb), cells)
 check(r1.cells.desc:GetText() == cells.desc and r1.cells.blocked:GetText() == cells.blocked, "row text")
 check(M.PSS_IsBuiltinFilter(V.index[1]), "first row not a built-in")
 check((page.count:GetText() or ""):find("Custom", 1, true) ~= nil, "counts line")
+-- every cell is one line, cut short (long filters once wrapped over the rows below)
+for key, fs in pairs(r1.cells) do
+	check(fs._wrap == false and fs._maxLines == 1 and fs:GetHeight() == list.rowH, "cell " .. key .. " can wrap")
+end
 local function selectFilter(fi)
 	for i = 1, V.count do
 		if V.index[i] == fi then

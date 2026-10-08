@@ -47,7 +47,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | B2 | dev007 | Player Ignore List tab with the detail pane (three pages), totals and pies; Libraries `PSS_PlayerView.lua`; close button and title above the frame's border | Merged #97 |
 | B3 | dev008 (to dev008_4) | Guild Ignore List part 1: grouped list, entry rows, Guild Search picker, Scan All with status tip, totals; Libraries `PSS_GuildView.lua` | Merged #98 |
 | B4 | dev009 | Guild Ignore List part 2: guild, group, exclusion and member detail bodies, members view, confirms | Merged #100 |
-| B5 | dev010 | Chat Filters tab: list, editor, Test, link converter, Summary, Event History, totals; Libraries `PSS_FilterView.lua` | PR open |
+| B5 | dev010 (to dev010_2) | Chat Filters tab: list, editor, Test, link converter, Summary, Event History, totals; Libraries `PSS_FilterView.lua` | PR open |
 | B6, B7 | dev011, dev012 | Events; Options + Import/Export | Planned |
 | C1, C2 | dev013, dev014 | Player Search, add target, Prune; right-click menus | Planned |
 | D1 to D3 | dev015 to dev017 | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
@@ -85,4 +85,5 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 - **Frame art has its own levels** (dev007): `ButtonFrameTemplate`'s border (its NineSlice) sits at a fixed frame level of about 500, so our close button and title at the window's level + 8 were drawn under the metal edge. Anything that must show over a Blizzard frame template goes on a frame raised above the template's own parts.
 - **`M.PSS_FindGuildRule` returns the key first, even when the rule is gone** (dev009): test its second value, `select(2, M.PSS_FindGuildRule(key))`.
 - **Retail 12.x renamed the link insert** (dev010): Blizzard calls `ChatFrameUtil.InsertLink`; `ChatEdit_InsertLink` is only a deprecated copy (`Blizzard_DeprecatedChatInfo`, "removed at the next expansion"), so a post-hook on the old global never fires for Blizzard's own inserts. The EllesmereUI window still hooks the old name (its link converter's shift-click is likely dead on Retail; not changed, it is deleted at the cutover).
+- **List cells are one line** (dev010_2): a font string given only a width wraps and spills over the rows below; row cells set `SetWordWrap(false)`, `SetMaxLines(1)` and the row's height, so long text ends in "...".
 - **Ask which object a screenshot shows:** `/fstack` names only what is under the mouse; a screenshot of a highlighted region with an unrelated frame stack cannot be identified.
