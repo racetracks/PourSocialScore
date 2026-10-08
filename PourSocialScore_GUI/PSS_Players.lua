@@ -198,6 +198,22 @@ local function BuildPane(parent)
 	pane.player[#pane.player + 1] = exRow
 	y = y - 28
 
+	-- Also on Blizzard's ignore list (off by default)
+	local bzRow = CreateFrame("Frame", nil, rule)
+	bzRow:SetPoint("TOPLEFT", rule, "TOPLEFT", 10, y)
+	bzRow:SetSize(DETAIL_W - 20, 24)
+	Label(bzRow, "Blizzard")
+	local bz = ns.NewCheck(bzRow)
+	bz:SetPoint("LEFT", bzRow, "LEFT", 90, 0)
+	local bzText = ns.NewText(bzRow, 12)
+	bzText:SetPoint("LEFT", bz, "RIGHT", 0, 0)
+	bzText:SetText(M.PSS_BLIZZARD_TEXT)
+	ns.TipOn(bz, bz, M.PSS_BLIZZARD_TIP)
+	bz:SetScript("OnClick", function(self) M.PSS_PlayerToggleBlizzard(sel, self:GetChecked()) end)
+	pane.blizzard = bz
+	pane.player[#pane.player + 1] = bzRow
+	y = y - 28
+
 	-- exceptions to the Options for this player (ticked = it happens)
 	pane.exceptions = ns.NewExceptions(rule, 10, y, DETAIL_W - 20, function() ns.ShowPlayerDetail() end)
 	pane.player[#pane.player + 1] = pane.exceptions.frame
@@ -271,6 +287,7 @@ function ns.ShowPlayerDetail(newEntry)
 	end
 
 	for _, e in ipairs(M.EXCL) do pane.excl[e.cat]:SetChecked(M.PSS_PlayerAllowed(p, e.field)) end
+	pane.blizzard:SetChecked(M.PSS_PlayerOnBlizzard(p))
 	pane.exceptions:Set(p, "person", "this player")
 
 	local c = M.PSS_GetPlayerBlockCounts(p)

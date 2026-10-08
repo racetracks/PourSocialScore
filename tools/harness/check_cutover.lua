@@ -18,7 +18,7 @@ end
 local points = PSS_OptionsDB.windowPoints
 check(type(points) == "table" and points.PSS == nil and points.PSSGuildDetail == nil, "the old window's places not pruned")
 check(points and type(points.PSS_Window) == "table" and points.PSS_WindowTab == "guilds", "the window's place or tab lost")
-check(M.PSS_UPGRADE_STEPS == 7 and PourSocialScoreDB.upgrade.step == 7, "step 7 not recorded")
+check(M.PSS_UPGRADE_STEPS >= 7 and PourSocialScoreDB.upgrade.step == M.PSS_UPGRADE_STEPS, "step 7 not recorded")
 -- the window opens where it was and on its tab
 SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window

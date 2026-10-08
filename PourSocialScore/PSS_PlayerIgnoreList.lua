@@ -19,9 +19,13 @@ local maxHistorySize	= 250
 local BlizzardAddIgnore			= nil
 local BlizzardDelIgnore			= nil
 local BlizzardDelIgnoreByIndex = nil
+local pssHookGuard = false	-- true while PSS itself changes Blizzard's list (the hooks below ignore it)
+local pendingMove = {}		-- name -> GetTime(): listed from Blizzard, to come off Blizzard's list (B1)
 
 -- faction is learned at startup (V.faction)
 local function currentFaction() return V.faction or (UnitFactionGroup and UnitFactionGroup("player")) end
+
+local ensurePlayer	-- defined with the per-player settings below
 
 local function hasDeleted (name)
 
@@ -360,6 +364,78 @@ local function isValidList()
 	return true
 end
 
+-- Blizzard's ignore list and PSS (B1, 3.4.1.35; PSS is authoritative): a
+-- player is on Blizzard's list only when "Also on Blizzard's ignore list" is
+-- ticked for them (p.blizzardIgnore, true only), or while a player Blizzard
+-- listed is taken into PSS and moved off it (the hooks below).
+local function blizzardNote()
+	return "Synced from Blizzard ignore list on " .. date("%d %b %Y")
+end
+
+-- Blizzard's list as full names, secret and blank entries left out
+local function blizzardNames()
+	local t = {}
+	for i = 1, C_FriendList.GetNumIgnores() do
+		local raw = C_FriendList.GetIgnoreName(i)
+		if type(raw) == "string" and not M.PSS_IsSecret(raw) and raw ~= "" then
+			local short = M.removeServer(raw, true)
+			if short ~= "" and short ~= _G.UNKNOWN then t[#t + 1] = M.Proper(M.addServer(raw)) end
+		end
+	end
+	return t
+end
+
+-- Lists a player Blizzard has on its list, with the note. tick: also tick
+-- "Also on Blizzard's ignore list" (they stay on Blizzard's list).
+local function takeOn(full, tick)
+	AddToList(full, currentFaction(), blizzardNote())
+	if tick then
+		local p = M.PSS_GetPlayerRecord(full)
+		if p then p.blizzardIgnore = true end
+	end
+end
+
+-- Sets the tick for a player and puts them on, or takes them off,
+-- Blizzard's ignore list to match. Returns false when Blizzard's list is full.
+function M.PSS_SetBlizzardIgnore(name, on)
+	local p = ensurePlayer(name)
+	if not p then return false end
+	on = on == true
+	local full = M.Proper(M.addServer(name))
+	local idx = hasIgnored(full)
+	if on then
+		if idx == 0 then
+			if C_FriendList.GetNumIgnores() >= maxIgnoreSize then
+				M.ShowMsg("Blizzard's ignore list is full (" .. maxIgnoreSize .. " players).")
+				return false
+			end
+			-- the same realm goes by its short name, as Blizzard's own commands do
+			local who = isServerMatch(V.serverName, M.getServer(full)) and M.removeServer(full) or full
+			pssHookGuard = true; BlizzardAddIgnore(who); pssHookGuard = false
+		end
+		p.blizzardIgnore = true
+	else
+		p.blizzardIgnore = nil
+		if idx > 0 then
+			pssHookGuard = true; BlizzardDelIgnoreByIndex(idx); pssHookGuard = false
+		end
+	end
+	return true
+end
+
+-- Ticks every listed player who is on Blizzard's list now (upgrade step 8
+-- and the first list update after it); the number ticked.
+function M.PSS_TickBlizzardIgnored()
+	local n = 0
+	for _, full in ipairs(blizzardNames()) do
+		if M.hasGlobalIgnored(full) > 0 then
+			local p = M.PSS_GetPlayerPrefs(full)
+			if p and p.blizzardIgnore ~= true then p.blizzardIgnore = true; n = n + 1 end
+		end
+	end
+	return n
+end
+
 function M.SyncIgnoreList (silent)
 
 	if silent == nil then
@@ -403,7 +479,7 @@ function M.SyncIgnoreList (silent)
 					if M.hasGlobalIgnored(name) == 0 then
 						added = added + 1
 
-						AddToList(name, currentFaction())
+						takeOn(name, true)
 
 						if silent == false then
 							M.ShowMsg (format(L["LOAD_3"], name))
@@ -451,7 +527,7 @@ function M.SyncIgnoreList (silent)
 
 		if rawName == nil or rawName == "" then
 			M.debugMsg("Removing blank name on Blizzard ignore list")
-			BlizzardDelIgnoreByIndex(count)
+			pssHookGuard = true; BlizzardDelIgnoreByIndex(count); pssHookGuard = false
 		else
 			local short = M.removeServer(rawName, true)
 
@@ -464,14 +540,14 @@ function M.SyncIgnoreList (silent)
 						-- ignored with Blizzard's own UI: take it on (it is
 						-- already on Blizzard's list, so it is not added again)
 						M.debugMsg ("New player "..name.. " found on character, adding to Pour Social Score")
-						AddToList(name, currentFaction())
+						takeOn(name, true)
 						if not silent then M.ShowMsg (format(L["LOAD_3"], name)) end
 					else
 						if not silent then
 							M.ShowMsg (format(L["SYNC_1"], name))
 						end
 						M.debugMsg ("Removing "..name.." from character ignore because they are not on Pour Social Score")
-						BlizzardDelIgnoreByIndex(count)
+						pssHookGuard = true; BlizzardDelIgnoreByIndex(count); pssHookGuard = false
 					end
 				else
 					PourSocialScoreDB.syncInfo[globIdx] = {}
@@ -488,9 +564,9 @@ function M.SyncIgnoreList (silent)
 
 	local ignoreCount = C_FriendList.GetNumIgnores()
 
-	if ignoreCount < maxIgnoreSize and M.PSS_Opt("blizzardSync") == true then
+	if ignoreCount < maxIgnoreSize then
 
-		M.debugMsg("Moving characters from PSS to Ignore")
+		M.debugMsg("Moving ticked characters from PSS to Ignore")
 
 		for key = 1, #PourSocialScoreDB.ignoreList do
 			local value = PourSocialScoreDB.ignoreList[key]
@@ -498,8 +574,9 @@ function M.SyncIgnoreList (silent)
 			if PourSocialScoreDB.typeList[key] == "player" and getSyncValue(key) < maxSyncTries then
 
 				local name = M.Proper(M.addServer(value))
+				local rec = M.PSS_GetPlayerRecord(name)
 
-				if hasIgnored(name) == 0 then
+				if rec and rec.blizzardIgnore == true and hasIgnored(name) == 0 then
 					local ok = (PourSocialScoreDB.factionList[key] == currentFaction()) or (M.PSS_Opt("samefaction") == false)
 
 					if ok then
@@ -515,7 +592,7 @@ function M.SyncIgnoreList (silent)
 							M.ShowMsg (format(L["SYNC_2"], name))
 						end
 
-						BlizzardAddIgnore(name)
+						pssHookGuard = true; BlizzardAddIgnore(name); pssHookGuard = false
 					end
 				end
 			end
@@ -611,7 +688,6 @@ end
 BlizzardAddIgnore			= C_FriendList.AddIgnore
 BlizzardDelIgnore			= C_FriendList.DelIgnore
 BlizzardDelIgnoreByIndex	= C_FriendList.DelIgnoreByIndex
-local pssHookGuard = false
 
 -- name: "Name[-Realm] [days] [note]" as typed, or with exactName = true the
 -- whole string is the character name (it may contain a space).
@@ -681,21 +757,10 @@ M.PSS_AddIgnore = function(name, noNote, exactName)
 			if okDisplay == true then
 				M.ShowMsg(format(L["ADD_2"], name))
 			end
-
-			-- Blizzard's ignore list blocks everything, so it is only used when
-			-- you opt in to it (Options > "Also put listed players on
-			-- Blizzard's ignore list")
-			if M.PSS_Opt("blizzardSync") == true and hasIgnored(name) == 0 and C_FriendList.GetNumIgnores() < maxIgnoreSize then
-				pssHookGuard = true; BlizzardAddIgnore(M.removeServer(name)); pssHookGuard = false
-			end
-		else
-			if hasIgnored(name) > 0 then
-				if okDisplay == true then
-					M.ShowMsg(format(L["ADD_1"], name))
-				end
-			elseif M.PSS_Opt("blizzardSync") == true and C_FriendList.GetNumIgnores() < maxIgnoreSize then
-				pssHookGuard = true; BlizzardAddIgnore(M.removeServer(name)); pssHookGuard = false
-			end
+			-- (Blizzard's ignore list blocks everything, so a player goes on it
+			-- only when it is ticked for them: M.PSS_SetBlizzardIgnore)
+		elseif okDisplay == true then
+			M.ShowMsg(format(L["ADD_1"], name))
 		end
 
 		--removeDeleted(name)
@@ -944,18 +1009,67 @@ local function takeBlizzSnapshot()
 end
 
 -- Blizzard's list already has them: only add to PSS, never call AddIgnore again
--- (2.0.8 did, which printed "already ignored").
+-- (2.0.8 did, which printed "already ignored"). B1: PSS is authoritative, so
+-- they come off Blizzard's list at its next update (processMoves), with a
+-- note saying where they came from; someone PSS already lists comes off too
+-- and keeps their note, unless they are ticked "Also on Blizzard's ignore list".
 local function addFromBlizzard(name)
 	if not V.PSS_Loaded or type(name) ~= "string" or M.PSS_IsSecret(name) or name == "" then return end
 	local full = M.Proper(M.addServer(M.PSS_FixUnitName(name)))
 	local short = M.removeServer(full, true)
 	if short == "" or short == _G.UNKNOWN then return end
-	if M.hasGlobalIgnored(full) > 0 then return end
 	if M.PSS_PlayerDisplayName() == full then return end
-	AddToList(full, currentFaction())
-	V.needSorted = true
-	if M.PSS_Opt("chatmsg") ~= false then M.ShowMsg(format(L["ADD_2"], full)) end
-	M.Events.Fire("PLAYERS_CHANGED", true)
+	if M.hasGlobalIgnored(full) == 0 then
+		takeOn(full)
+		V.needSorted = true
+		if M.PSS_Opt("chatmsg") ~= false then M.ShowMsg(format(L["ADD_2"], full)) end
+		M.Events.Fire("PLAYERS_CHANGED", true)
+	end
+	local p = M.PSS_GetPlayerRecord(full)
+	if not (p and p.blizzardIgnore == true) then pendingMove[full] = GetTime() end
+end
+
+-- On a list update: the players waiting to come off Blizzard's list that it
+-- now shows come off it. A name not shown within 30 s is dropped.
+local function processMoves()
+	if next(pendingMove) == nil then return end
+	local now = GetTime()
+	for full, at in pairs(pendingMove) do
+		local idx = hasIgnored(full)
+		if idx > 0 then
+			pssHookGuard = true; BlizzardDelIgnoreByIndex(idx); pssHookGuard = false
+			pendingMove[full] = nil
+		elseif now - at > 30 then
+			pendingMove[full] = nil
+		end
+	end
+end
+
+-- Once per login, at the first list update: everyone on Blizzard's list
+-- whom PSS does not list is listed with the note and ticked, and stays on
+-- Blizzard's list; nobody is taken off it here. After upgrade step 8 the
+-- listed players already on it are ticked (V.PSS_TickOnSync).
+local loginSynced = false
+local function syncFromBlizzard()
+	loginSynced = true
+	local added = 0
+	for _, full in ipairs(blizzardNames()) do
+		if M.hasGlobalIgnored(full) == 0 and M.PSS_PlayerDisplayName() ~= full then
+			takeOn(full, true)
+			added = added + 1
+		end
+	end
+	if V.PSS_TickOnSync then
+		V.PSS_TickOnSync = nil
+		M.PSS_TickBlizzardIgnored()
+	end
+	if added > 0 then
+		V.needSorted = true
+		if M.PSS_Opt("chatmsg") ~= false then
+			M.ShowMsg(("Added %d player%s from Blizzard's ignore list to Pour Social Score."):format(added, added == 1 and "" or "s"))
+		end
+		M.Events.Fire("PLAYERS_CHANGED", true)
+	end
 end
 
 -- full: the name as fixed when the toggle was made (M.PSS_FixUnitName)
@@ -996,12 +1110,16 @@ local hookFrame = CreateFrame("Frame")
 hookFrame:RegisterEvent("IGNORELIST_UPDATE")
 hookFrame:RegisterEvent("PLAYER_LOGIN")
 hookFrame:SetScript("OnEvent", function(self, event)
-	if event == "IGNORELIST_UPDATE" and pendingToggle then
-		local pt = pendingToggle
-		pendingToggle = nil
-		if GetTime() - pt.at < 10 then
-			if hasIgnored(pt.name) > 0 then addFromBlizzard(pt.full) else removeFromBlizzard(pt.name, pt.full) end
+	if event == "IGNORELIST_UPDATE" then
+		if pendingToggle then
+			local pt = pendingToggle
+			pendingToggle = nil
+			if GetTime() - pt.at < 10 then
+				if hasIgnored(pt.name) > 0 then addFromBlizzard(pt.full) else removeFromBlizzard(pt.name, pt.full) end
+			end
 		end
+		if not loginSynced and V.PSS_Loaded then syncFromBlizzard() end
+		processMoves()
 	end
 	takeBlizzSnapshot()
 end)
@@ -1113,7 +1231,7 @@ local function ensureDB()
 	PourSocialScoreDB.guildData = PourSocialScoreDB.guildData or {}
 end
 
-local function ensurePlayer(name)
+function ensurePlayer(name)
 	ensureDB()
 	local key = normalizePlayer(name)
 	if not key then return nil end
@@ -1492,9 +1610,6 @@ if M.PSS_RegisterBlockHandler then
 		if doLoginIgnore and V.PSS_Loaded and since > 90 then doLoginIgnore = false end
 		if doLoginIgnore or (V.PSS_InSync == true and PourSocialScoreDB and M.PSS_Opt("chatmsg") == false) then
 			if message == ERR_IGNORE_NOT_FOUND or message == ERR_FRIEND_ERROR then return true end
-			for _, fmt in ipairs({ ERR_IGNORE_ADDED_S, ERR_IGNORE_REMOVED_S, ERR_IGNORE_ALREADY_S }) do
-				if type(fmt) == "string" and message:find((fmt:gsub("%%s", "")), 1, true) then return true end
-			end
 		end
 
 		-- "<Name> has come online / gone offline" for listed players and servers

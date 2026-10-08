@@ -4,6 +4,7 @@
 local addonName, addon	= ...
 local M = addon.M -- shared methods
 local L = addon.L -- localization entries
+local V = addon.V -- runtime state
 
 -- Saved data upgrades as numbered steps (the Questie model):
 --   * STEPS[1..N] run first to last. Append new steps at the end; never
@@ -206,6 +207,20 @@ local STEPS = {
 				if exists(name) then left[#left + 1] = name end
 			end
 			if #left > 0 then M.ShowMsg(L["OLD_FOLDERS"]:format(table.concat(left, ", "))) end
+		end,
+	},
+	-- 8 (3.4.1.35, B1): "Also put listed players on Blizzard's ignore list"
+	-- is a tick for each player now (PSS is authoritative). A save with the
+	-- global option on ticks every listed player Blizzard's list has, then
+	-- the global key goes. Blizzard's list may not have arrived yet at
+	-- login, so the first list update ticks again (V.PSS_TickOnSync).
+	{
+		data = function()
+			if db.blizzardSync == true then
+				if M.PSS_TickBlizzardIgnored then M.PSS_TickBlizzardIgnored() end
+				V.PSS_TickOnSync = true
+			end
+			db.blizzardSync = nil
 		end,
 	},
 }

@@ -143,6 +143,22 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_names.lua" 2>&1 | grep -v '^|cff
 echo "$out" | grep -E "names:|PASS|FAIL"
 echo "$out" | grep -q "PASS names" || fail=1
 
+# Blizzard's ignore list (core uplift B1, 3.4.1.35): PSS is authoritative.
+# Flow on a fresh save: the per-player tick, a Blizzard ignore moving into
+# PSS and off Blizzard's list, removal both ways, a full list. Then a
+# 3.4.1.34-style save (global option on) through upgrade step 8 and the
+# login sync, with Blizzard's list there at once and arriving late.
+echo "== blizzard ignore"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_blizzard.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -E "blizzard|PASS|FAIL"
+echo "$out" | grep -q "PASS blizzard" || fail=1
+PSS_PHASE=make lua5.1 "$here/run.lua" . - "$work/bz-make.lua" "$here/check_blizzard.lua" | grep -q "PASS blizzard make" || fail=1
+for late in "" 1; do
+	out=$(PSS_PHASE=login PSS_BLIZZ_IGNORES="Alpha;Stranger" PSS_BLIZZ_LATE=$late lua5.1 "$here/run.lua" . "$work/bz-make.lua" - "$here/check_blizzard.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | grep -E "blizzard|PASS|FAIL"
+	echo "$out" | grep -q "PASS blizzard login" || fail=1
+done
+
 # one window (3.4.0.25, D2): upgrade step 7 prunes euiIntegration (held in
 # PSS_OptionsDB, no longer an option) and the old window's sizes, column
 # widths and places, keeps the window's own; a PourSocialScore_EllesmereUI
