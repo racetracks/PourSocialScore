@@ -192,6 +192,103 @@ page.addButton._scripts.OnClick(page.addButton)
 check(M.PSS_PlayerPosition("Newcomer-Realm1") > 0 and pane.row.entry == "Newcomer-Realm1", "Add Player did not add and select")
 check(pane.excl.whisper:GetChecked() == false, "a new entry is not fully blocked")
 
+-- (3.4.0.17, C1) Add Player with the box empty adds your target (another
+-- player of your faction whose name can be read)
+do
+	local real = { UnitExists, UnitIsPlayer, UnitIsUnit, UnitFactionGroup, UnitName }
+	_G.UnitExists = function(u) return u == "target" or u == "player" end
+	_G.UnitIsPlayer = function() return true end
+	_G.UnitFactionGroup = function() return "Alliance", "Alliance" end
+	_G.UnitName = function(u) if u == "target" then return "Targeted", "Otherrealm" end return real[5](u) end
+	page.add:SetText("")
+	page.addButton._scripts.OnClick(page.addButton)
+	check(M.PSS_PlayerPosition("Targeted-Otherrealm") > 0, "the target was not added with the box empty")
+	_G.UnitFactionGroup = function(u) if u == "target" then return "Horde", "Horde" end return "Alliance", "Alliance" end
+	_G.UnitName = function(u) if u == "target" then return "Enemy", "Otherrealm" end return real[5](u) end
+	page.addButton._scripts.OnClick(page.addButton)
+	check(M.PSS_PlayerPosition("Enemy-Otherrealm") == 0, "a target of the other faction was added")
+	_G.UnitExists, _G.UnitIsPlayer, _G.UnitIsUnit, _G.UnitFactionGroup, _G.UnitName = real[1], real[2], real[3], real[4], real[5]
+end
+
+-- (3.4.0.17, C1) Player Search: a /who from the click; the results picker
+-- (listed players can't be ticked), Save adds the ticked; nobody found asks
+-- to add the name anyway; Escape closes the picker
+do
+	local sent, answer = {}, {}
+	local realSend, realNum, realInfo = C_FriendList.SendWho, C_FriendList.GetNumWhoResults, C_FriendList.GetWhoInfo
+	C_FriendList.SendWho = function(filter) sent[#sent + 1] = filter end
+	C_FriendList.GetNumWhoResults = function() return #answer, #answer end
+	C_FriendList.GetWhoInfo = function(i) return answer[i] end
+	local sb, picker = page.searchButton, page.picker
+	check(sb and picker, "no Player Search button or picker")
+	H.Advance(10)
+	page.add:SetText("Searchme")
+	sb._scripts.OnClick(sb)
+	check(sent[#sent] == 'n-"Searchme"', "Player Search sent " .. tostring(sent[#sent]))
+	answer = {
+		{ fullName = "Searchme-Realm1", level = 70, classStr = "Mage", fullGuildName = "Some Guild" },
+		{ fullName = "Searchmetoo-Realm1", level = 12, classStr = "Rogue" },
+		{ fullName = "Targeted-Otherrealm", level = 80, classStr = "Priest" },
+	}
+	H.Fire("WHO_LIST_UPDATE")
+	H.RunTimers(1)		-- the cooldown starts on the next frame
+	check(not sb:IsEnabled(), "Player Search enabled during the /who cooldown")
+	H.RunTimers()
+	check(picker:IsShown() and not list.scroll:IsVisible() and picker.list.count == 3, "results picker not shown")
+	local listed = 0
+	for _, it in ipairs(picker.items) do if it.listed then listed = listed + 1 end end
+	check(listed == 1, "listed players in the results: " .. listed)
+	picker.list.spec.click(nil, 1)
+	picker.saveButton._scripts.OnClick(picker.saveButton)
+	check(not picker:IsShown() and M.PSS_PlayerPosition("Searchme-Realm1") > 0 and M.PSS_PlayerPosition("Searchmetoo-Realm1") == 0, "Save did not add the ticked player only")
+	H.Advance(10)
+	H.RunTimers()
+	check(sb:IsEnabled(), "Player Search not enabled after the cooldown")
+	-- nobody found: add anyway
+	page.add:SetText("Nobodyhere")
+	sb._scripts.OnClick(sb)
+	answer = {}
+	H.Fire("WHO_LIST_UPDATE")
+	H.RunTimers()
+	local cf = _G.PSS_Confirm
+	check(cf and cf:IsShown() and cf.text:GetText():find("Nobodyhere", 1, true), "no add anyway question")
+	cf.accept._scripts.OnClick(cf.accept)
+	check(M.PSS_IsPlayerListed("Nobodyhere"), "add anyway did not add")
+	-- the picker closes on Escape (the window stays)
+	H.Advance(10)
+	H.RunTimers()
+	page.add:SetText("Searchme")
+	sb._scripts.OnClick(sb)
+	answer = { { fullName = "Another-Realm1", level = 5, classStr = "Druid" } }
+	H.Fire("WHO_LIST_UPDATE")
+	H.RunTimers()
+	check(picker:IsShown(), "picker not shown again")
+	H.Advance(1)
+	_G.PSS_WindowEscape:Hide()
+	check(not picker:IsShown() and win:IsShown() and list.scroll:IsVisible(), "Escape did not close only the picker")
+	C_FriendList.SendWho, C_FriendList.GetNumWhoResults, C_FriendList.GetWhoInfo = realSend, realNum, realInfo
+	H.Advance(10)
+	H.RunTimers()
+end
+
+-- (3.4.0.17, C1) Prune: a confirm with the days and how many that removes
+do
+	M.PSS_AddPlayer("Oldentry-Realm", "", 0)
+	local pos = M.PSS_PlayerPosition("Oldentry-Realm")
+	PourSocialScoreDB.dateList[pos] = "01 Jan 2020"
+	local before = M.PSS_PlayerCount()
+	page.pruneButton._scripts.OnClick(page.pruneButton)
+	local cf = _G.PSS_Confirm
+	check(cf:IsShown() and cf.number:IsShown() and cf.number:GetText() == "365", "Prune confirm without its days box")
+	check(cf.note:GetText():find("^1 entry listed for 365 days or more") ~= nil, "Prune note: " .. tostring(cf.note:GetText()))
+	cf.accept._scripts.OnClick(cf.accept)
+	check(M.PSS_PlayerPosition("Oldentry-Realm") == 0 and M.PSS_PlayerCount() == before - 1, "Prune did not remove only the old entry")
+	page.pruneButton._scripts.OnClick(page.pruneButton)
+	cf.cancel._scripts.OnClick(cf.cancel)
+	check(not cf.number:IsShown() or not cf:IsShown(), "Prune confirm stayed")
+	check(M.PSS_PlayerCount() == before - 1, "Cancel pruned")
+end
+
 -- a tab click deselects
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(pane.totals.frame:IsShown() and not pane.body:IsShown(), "a tab click did not deselect")

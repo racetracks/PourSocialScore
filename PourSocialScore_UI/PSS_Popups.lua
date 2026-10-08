@@ -4,6 +4,8 @@
 -- The window's own popups, in the look shown, built on first use. One of
 -- each; showing one again replaces what it showed.
 --   ns.Confirm({ title, text, accept, cancel, onAccept, onCancel })
+--     number = a starting number: a number box under the text (onAccept(n));
+--     numberNote(n) = the line under it, again as it is typed
 --   ns.CopyText({ title, subtitle, text })          read only, selected
 --   ns.ImportText({ title, subtitle, accept, onAccept(text) })
 -- Classic and Modern: the window's own frame and background
@@ -93,16 +95,32 @@ local function BuildConfirm()
 	confirm.text:SetJustifyH("CENTER")
 	confirm.text:SetSpacing(4)
 	confirm.text:SetWordWrap(true)
+	-- the number box (opts.number) and its note
+	confirm.number = ns.NewNumberBox(confirm, 70)
+	confirm.number:SetPoint("TOP", confirm.text, "BOTTOM", 0, -10)
+	confirm.number:Hide()
+	confirm.note = ns.NewText(confirm, 11)
+	confirm.note:SetPoint("TOP", confirm.number, "BOTTOM", 0, -6)
+	confirm.note:SetAlpha(0.7)
+	confirm.note:Hide()
+	confirm.number:SetScript("OnTextChanged", function(self)
+		local o = confirmOpts
+		if o and o.numberNote then confirm.note:SetText(o.numberNote(tonumber(self:GetText()))) end
+	end)
+	confirm.number:SetScript("OnEscapePressed", function() confirm:Hide() end)
 	confirm.accept = PopupButton(confirm, 125, 27, true)
 	confirm.cancel = PopupButton(confirm, 125, 27, false)
 	confirm.accept:SetPoint("BOTTOMRIGHT", confirm, "BOTTOM", -8, 13)
 	confirm.cancel:SetPoint("BOTTOMLEFT", confirm, "BOTTOM", 8, 13)
-	confirm.accept:SetScript("OnClick", function()
+	local function Accept()
 		local o = confirmOpts
 		confirmOpts = nil
+		local n = o and o.number ~= nil and tonumber(confirm.number:GetText()) or nil
 		confirm:Hide()
-		if o and o.onAccept then o.onAccept() end
-	end)
+		if o and o.onAccept then o.onAccept(n) end
+	end
+	confirm.accept:SetScript("OnClick", Accept)
+	confirm.number:SetScript("OnEnterPressed", Accept)
 	confirm.cancel:SetScript("OnClick", function() confirm:Hide() end)
 	-- hidden any other way (Cancel, Escape, a click on the dimmed screen,
 	-- another popup) is a cancel
@@ -126,11 +144,19 @@ function ns.Confirm(opts)
 	confirm.text:SetText(opts.text or "")
 	confirm.accept:SetText(opts.accept or OKAY or "Okay")
 	confirm.cancel:SetText(opts.cancel or CANCEL or "Cancel")
-	-- grows with a long message
+	local withNumber = opts.number ~= nil
+	confirm.number:SetShown(withNumber)
+	confirm.note:SetShown(withNumber)
+	if withNumber then
+		confirm.number:SetText(tostring(opts.number))
+		confirm.note:SetText(opts.numberNote and opts.numberNote(tonumber(opts.number)) or "")
+	end
+	-- grows with a long message (and the number box)
 	local over = math.max(0, confirm.text:GetStringHeight() - 44)
-	confirm:SetHeight(176 + over)
+	confirm:SetHeight(176 + over + (withNumber and 52 or 0))
 	confirm:Show()
 	confirm:Raise()
+	if withNumber then confirm.number:SetFocus() end
 	return confirm
 end
 

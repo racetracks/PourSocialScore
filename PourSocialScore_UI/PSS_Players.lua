@@ -22,7 +22,8 @@ local LINE_H = 16
 local V = M.PSS_PlayerListNew()
 local sel
 local rowBuf = {}
-local page, list, pane
+local page, list, pane, lf, picker, searchButton
+local pickCells = {}
 
 ns.TabBuilders = ns.TabBuilders or {}
 
@@ -315,6 +316,104 @@ local function SelectEntry(entry)
 	ns.ShowPlayerDetail(true)
 end
 
+------------------------------------------------------------------------
+-- Player Search results (in place of the list), as Guild Search's
+------------------------------------------------------------------------
+local function ClosePicker()
+	if not (picker and picker:IsShown()) then return false end
+	picker:Hide()
+	lf:Show()
+	return true
+end
+
+local function DrawPick(row, i)
+	local it = picker.items[i]
+	local c = row.cells
+	if not it then
+		for _, fs in pairs(c) do fs:SetText("") end
+		row.sel:Hide()
+		return
+	end
+	M.PSS_PlayerPickerCells(it, pickCells)
+	c.tick:SetText(it.listed and "|cff808080[x]|r" or (it.ticked and "|cff00ff00[x]|r" or "[  ]"))
+	c.name:SetText(pickCells.name)
+	c.level:SetText(pickCells.level)
+	c.class:SetText(pickCells.class)
+	c.guild:SetText(pickCells.guild)
+	c.state:SetText(it.listed and "|cff808080listed|r" or "")
+	row.sel:SetShown(it.ticked and not it.listed)
+end
+
+local function BuildPicker(parent)
+	picker = CreateFrame("Frame", nil, parent)
+	picker:SetPoint("TOPLEFT", lf, "TOPLEFT", 0, 0)
+	picker:SetPoint("BOTTOMRIGHT", lf, "BOTTOMRIGHT", 0, 0)
+	picker:Hide()
+	picker.items = {}
+	picker.title = ns.NewText(picker, 12)
+	picker.title:SetPoint("TOPLEFT", picker, "TOPLEFT", 4, -4)
+	picker.title:SetPoint("RIGHT", picker, "RIGHT", -4, 0)
+	picker.title:SetJustifyH("LEFT")
+	local rf = CreateFrame("Frame", nil, picker)
+	rf:SetPoint("TOPLEFT", picker, "TOPLEFT", 0, -24)
+	rf:SetPoint("BOTTOMRIGHT", picker, "BOTTOMRIGHT", 0, 34)
+	picker.list = ns.NewRows(rf, {
+		rowH = 20, height = 240,
+		cols = {
+			{ key = "tick", text = "", width = 36, justify = "CENTER" },
+			{ key = "name", text = "Name" },
+			{ key = "level", text = "Level", width = 44, justify = "RIGHT" },
+			{ key = "class", text = "Class", width = 86 },
+			{ key = "guild", text = "Guild", width = 120 },
+			{ key = "state", text = "", width = 54 },
+		},
+		draw = DrawPick,
+		click = function(_, i)
+			if M.PSS_PickerToggle(picker.items[i]) then picker.list:Redraw() end
+		end,
+	})
+	local save = ns.NewButton(picker, "Save", 90, function()
+		M.PSS_PlayerPickerSave(picker.items)
+		ClosePicker()
+	end)
+	save.pssPrimary = true
+	save.pssPaint()
+	save:SetPoint("BOTTOMLEFT", picker, "BOTTOMLEFT", 4, 4)
+	picker.saveButton = save
+	local all = ns.NewButton(picker, "Tick All", 90, function()
+		M.PSS_PickerTickAll(picker.items)
+		picker.list:Redraw()
+	end)
+	all:SetPoint("LEFT", save, "RIGHT", 6, 0)
+	picker.allButton = all
+	local cancel = ns.NewButton(picker, "Cancel", 90, ClosePicker)
+	cancel:SetPoint("LEFT", all, "RIGHT", 6, 0)
+	picker.cancelButton = cancel
+end
+
+-- the /who answer (Libraries M.PSS_PlayerSearchFromText calls it)
+local function ShowSearchResults(found, query)
+	if not picker then return end
+	if not found or #found == 0 then
+		local text, name = M.PSS_PlayerNoneFound(query)
+		if text then
+			ns.Confirm({ text = text, accept = "Add Anyway", onAccept = function() M.PSS_PlayerAddAnyway(name) end })
+		end
+		return
+	end
+	M.PSS_PlayerPickerItems(found, picker.items)
+	picker.title:SetText(M.PSS_PlayerPickerTitle(#found, query))
+	lf:Hide()
+	picker:Show()
+	picker.list:SetCount(#picker.items)
+	picker.list:Top()
+end
+
+local function ConfirmPrune()
+	ns.Confirm({ text = M.PSS_PruneText(), accept = "Prune", number = M.PSS_PRUNE_DAYS,
+		numberNote = M.PSS_PruneNote, onAccept = function(days) M.PSS_PruneApply(days) end })
+end
+
 ns.TabBuilders.players = function(pg)
 	page = pg
 
@@ -332,7 +431,7 @@ ns.TabBuilders.players = function(pg)
 	pg.count:SetPoint("LEFT", search, "RIGHT", 12, 0)
 	pg.count:SetAlpha(0.7)
 
-	local add = ns.NewEditBox(pg, 170, 64)
+	local add = ns.NewEditBox(pg, 150, 64)
 	local addHint = ns.NewText(add, 12)
 	addHint:SetPoint("LEFT", add, "LEFT", 2, 0)
 	addHint:SetAlpha(0.4)
@@ -346,16 +445,28 @@ ns.TabBuilders.players = function(pg)
 	end
 	local addButton = ns.NewButton(pg, "Add Player", 100, AddPlayer)
 	addButton:SetPoint("TOPRIGHT", pg, "TOPRIGHT", -8, -5)
-	add:SetPoint("RIGHT", addButton, "LEFT", -8, 0)
+	-- Player Search: a /who straight from the click (it needs a hardware event)
+	searchButton = ns.NewButton(pg, "Player Search", 100, function()
+		if M.PSS_PlayerSearchFromText(add:GetText(), ShowSearchResults) then add:SetText("") end
+		add:ClearFocus()
+	end)
+	searchButton:SetPoint("RIGHT", addButton, "LEFT", -6, 0)
+	searchButton:SetEnabled(not M.PSS_ScanCooldownActive())
+	add:SetPoint("RIGHT", searchButton, "LEFT", -8, 0)
 	add:SetScript("OnTextChanged", function(self) addHint:SetShown((self:GetText() or "") == "") end)
 	add:SetScript("OnEnterPressed", AddPlayer)
 	add:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-	ns.TipOn(addButton, addButton, "Adds the player typed in the box (Name or Name-Realm). Everything from them is blocked until you tick what to allow.")
-	pg.add, pg.addButton = add, addButton
+	ns.TipOn(addButton, addButton, "Adds the player typed in the box (Name or Name-Realm). With the box empty, adds your target if it is a player of your faction. Everything from them is blocked until you tick what to allow.")
+	ns.TipOn(searchButton, searchButton, "Runs a /who for the name in the box and lists the players found, so you can tick which to add. If nobody is found you can add the name anyway.\n\n/who cannot search by realm: only the name is searched for.")
+	-- Prune: entries listed for a number of days or more, after a confirm
+	local prune = ns.NewButton(pg, "Prune", 70, ConfirmPrune)
+	prune:SetPoint("RIGHT", add, "LEFT", -16, 0)
+	ns.TipOn(prune, prune, "Removes every entry added this many days ago or more (you choose the days and see how many first).")
+	pg.add, pg.addButton, pg.searchButton, pg.pruneButton = add, addButton, searchButton, prune
 
 	BuildPane(pg)
 
-	local lf = CreateFrame("Frame", nil, pg)
+	lf = CreateFrame("Frame", nil, pg)
 	lf:SetPoint("TOPLEFT", pg, "TOPLEFT", 8, -TOP_H - 4)
 	lf:SetPoint("BOTTOMRIGHT", pane, "BOTTOMLEFT", -8, 0)
 	list = ns.NewRows(lf, {
@@ -384,10 +495,20 @@ ns.TabBuilders.players = function(pg)
 		end,
 		emptyClick = function() if sel then SelectEntry(nil) end end,
 	})
-	-- a tab click (PSS_Window.lua): nothing selected
-	pg.navReset = function() if sel then SelectEntry(nil) end end
-	pg.list, pg.pane = list, pane
-	pg.stale = function() V.dirty = true end
+	BuildPicker(pg)
+	-- the results picker closes on Back and Escape, as Guild Search's
+	pg.navClose = ClosePicker
+	pg.navUp = ClosePicker
+	-- a tab click (PSS_Window.lua): nothing selected, the picker closed
+	pg.navReset = function()
+		ClosePicker()
+		if sel then SelectEntry(nil) end
+	end
+	pg.list, pg.pane, pg.picker = list, pane, picker
+	pg.stale = function()
+		V.dirty = true
+		searchButton:SetEnabled(not M.PSS_ScanCooldownActive())
+	end
 	pg.select = SelectEntry
 	V.dirty = true
 	return Refresh
@@ -408,4 +529,9 @@ local redrawCounts = M.PSS_Throttle(function()
 end)
 ns.Listen("PLAYER_BLOCKED", function()
 	if page and page:IsVisible() then redrawCounts() end
+end)
+
+-- the /who cooldown: Player Search waits with the guild scans
+ns.Listen("WHOIS_COOLDOWN", function(active)
+	if searchButton then searchButton:SetEnabled(not active) end
 end)

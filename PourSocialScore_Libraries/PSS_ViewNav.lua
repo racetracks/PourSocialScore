@@ -13,6 +13,7 @@
 --   M.PSS_UITab() / M.PSS_SetUITab(id)   the tab shown last (its number)
 --   M.PSS_NavNew(), M.PSS_DoubleClick(), M.PSS_Throttle()   (below)
 --   M.PSS_ListMixin(List)                 SortBy and SetFind for a list view
+--   M.PSS_PickerToggle(it), M.PSS_PickerTickAll(items)   a results picker's ticks
 -- Places are saved with the other window places (PourSocialScoreDB
 -- windowPoints, held in PSS_OptionsDB).
 ------------------------------------------------------------------------
@@ -271,4 +272,19 @@ end
 function M.PSS_ListMixin(List)
 	for k, fn in pairs(mixin) do List[k] = fn end
 	return List
+end
+
+------------------------------------------------------------------------
+-- A search results picker's entries { name, listed, ticked } (Guild Search,
+-- Player Search): a click ticks or unticks one (one already listed stays as
+-- it is); Tick All ticks every one not listed. Toggle: true when it changed.
+------------------------------------------------------------------------
+function M.PSS_PickerToggle(it)
+	if not it or it.listed then return false end
+	it.ticked = not it.ticked
+	return true
+end
+
+function M.PSS_PickerTickAll(items)
+	for _, it in ipairs(items) do it.ticked = not it.listed end
 end

@@ -319,17 +319,8 @@ function M.PSS_GuildPickerTitle(n, query, mode)
 		.. (exclude and "exclude." or "add.")
 end
 
--- A click on a picker entry ticks or unticks it (one already listed stays as
--- it is); Tick All ticks every one not listed. true when something changed.
-function M.PSS_GuildPickerToggle(it)
-	if not it or it.listed then return false end
-	it.ticked = not it.ticked
-	return true
-end
-
-function M.PSS_GuildPickerTickAll(items)
-	for _, it in ipairs(items) do it.ticked = not it.listed end
-end
+-- the picker's ticks: the shared ones (PSS_ViewNav.lua)
+M.PSS_GuildPickerToggle, M.PSS_GuildPickerTickAll = M.PSS_PickerToggle, M.PSS_PickerTickAll
 
 -- Save the ticked entries; the count saved
 function M.PSS_GuildPickerSave(items, mode)
