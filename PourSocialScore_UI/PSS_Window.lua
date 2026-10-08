@@ -2,9 +2,21 @@
 -- POUR SOCIAL SCORE UI - WINDOW
 --
 -- The Pour Social Score window, 960 x 494. While it is being built it opens
--- with /pss tui only (M.PSS_TUI) and shows the kit preview (PSS_KitPage.lua);
--- the tabs, navigation and pages come in the next stages. Dragged elsewhere it remembers the place (Libraries
--- M.PSS_UIPlace); Escape closes it.
+-- with /pss tui only (M.PSS_TUI). Dragged elsewhere it remembers the place
+-- (Libraries M.PSS_UIPlace) and the tab shown (M.PSS_UITab).
+--
+-- Six tabs (M.PSS_UI_TABS); each is built on first open by its builder,
+-- ns.TabBuilders[key](page), which returns the function that redraws it.
+-- A tab without a builder yet shows a note. Back / forward arrows under the
+-- tabs (and mouse buttons 4 / 5) step through the views shown; the line by
+-- them names the view, each part but the last a link back to it. Escape
+-- goes up one level and closes the window from the top. A tab click, even
+-- on the tab shown, puts the tab back to how it opens.
+--
+-- A page with sub-views gives navState() (its view now), navApply(view)
+-- (show it again), navUp() (one level up; true if it went), navTitle(view)
+-- (for the line), navReset() (as it opens) and navClose() (closes an
+-- overlay; true if one was open).
 --
 -- Blizzard look: a Blizzard window frame (ButtonFrameTemplate) behind our
 -- frame, with its own art only. Dark look: a flat fill, a dark title
@@ -15,11 +27,20 @@ local M = ns.M
 
 local WIN_W, WIN_H = 960, 494
 local PLACE = "PSS_Window"
+local TAB_H, NAV_H = 24, 20
+local TOP = -32
+local SEP = "  >  "
+local TABS = M.PSS_UI_TABS
+local EVENTS = M.PSS_UI_EVENTS_TAB
+
+-- the tabs' builders, keyed by M.PSS_UI_TABS key (the tab files add theirs)
+ns.TabBuilders = ns.TabBuilders or {}
 
 -- tried in order; the first the client has is the Blizzard look
 local FRAME_TEMPLATES = { "ButtonFrameTemplate", "PortraitFrameTemplate", "BasicFrameTemplateWithInset" }
 
-local win
+local win, nav, curTab
+local applying = false
 
 local function SavePlace()
 	local point, _, relPoint, x, y = win:GetPoint(1)
@@ -106,17 +127,253 @@ local function DarkClose()
 	return b
 end
 
+------------------------------------------------------------------------
+-- Tabs and pages
+------------------------------------------------------------------------
+local function BuildTab(id)
+	local page = win.pages[id]
+	local build = ns.TabBuilders[TABS[id].key]
+	if build and not page.refresh then
+		-- a tab that fails to build still reports its error and is selected;
+		-- it is built again on the next click
+		local ok, refresh = xpcall(function() return build(page) end, geterrorhandler())
+		if ok then
+			page.refresh = refresh
+			if page.note then page.note:Hide() end
+		end
+	end
+	return page
+end
+
+local function SelectTab(id)
+	local page = BuildTab(id)
+	curTab = id
+	for i, tab in ipairs(win.tabs) do
+		ns.SetTabSelected(tab, i == id)
+		win.pages[i]:SetShown(i == id)
+	end
+	if page.refresh then page.refresh() end
+	M.PSS_SetUITab(id)
+end
+
+-- redraw the tab shown (the others redraw when selected)
+function ns.RefreshTab()
+	if not (win and win:IsShown()) then return end
+	local page = win.pages[curTab]
+	if page and page.refresh then page.refresh() end
+end
+
+------------------------------------------------------------------------
+-- Back / forward (the steps are kept by Libraries M.PSS_NavNew)
+------------------------------------------------------------------------
+local function ShownState()
+	local page = win.pages[curTab]
+	return curTab, page.navState and page.navState() or nil
+end
+
+local ResetTab
+
+-- a button over each part of the line but the last (the view shown),
+-- underlined in the accent on hover
+local function Crumb(i)
+	local c = win.crumbs[i]
+	if c then return c end
+	c = CreateFrame("Button", nil, win)
+	c:SetHeight(NAV_H)
+	local hl = c:CreateTexture(nil, "HIGHLIGHT")
+	ns.NoSnap(hl)
+	hl:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 0, 2)
+	hl:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", 0, 2)
+	c.line = hl
+	c:SetScript("OnClick", function(self) self.go() end)
+	c:SetScript("OnEnter", function(self) ns.Tip(self, self.tipText) end)
+	c:SetScript("OnLeave", ns.HideTip)
+	win.crumbs[i] = c
+	return c
+end
+
+local function PlaceCrumbs(parts)
+	local text = ""
+	for i, part in ipairs(parts) do
+		if i < #parts then
+			local c = Crumb(i)
+			win.measure:SetText(text)
+			local left = text == "" and 0 or win.measure:GetStringWidth()
+			win.measure:SetText(part.text)
+			c:ClearAllPoints()
+			c:SetPoint("LEFT", win.where, "LEFT", left, 0)
+			c:SetWidth(math.max(8, win.measure:GetStringWidth()))
+			local r, g, b = ns.Accent()
+			c.line:SetColorTexture(r, g, b, 0.9)
+			c.line:SetHeight(ns.OnePixel(c))
+			c.go = part.go
+			c.tipText = "Back to " .. part.text .. "."
+			c:Show()
+		end
+		text = text .. (i > 1 and SEP or "") .. part.text
+	end
+	for i = #parts, #win.crumbs do win.crumbs[i]:Hide() end
+	win.where:SetText(text)
+end
+
+local function UpdateNav()
+	win.back:SetEnabled(nav:CanBack())
+	win.forward:SetEnabled(nav:CanForward())
+	local tab, view = ShownState()
+	local page = win.pages[tab]
+	local parts = { { text = TABS[tab].text, go = function() ResetTab(tab) end } }
+	if view ~= nil and page.navTitle then parts[2] = { text = page.navTitle(view) } end
+	PlaceCrumbs(parts)
+end
+
+-- After the user changed the view: a new step (dropping any forward steps).
+function ns.NavRecord()
+	if applying or not win then return end
+	nav:Record(ShownState())
+	UpdateNav()
+end
+
+local function Go(st)
+	if not st then return end
+	applying = true
+	local ok, err = pcall(function()
+		local page = win.pages[st.tab]
+		if page.navClose then page.navClose() end
+		SelectTab(st.tab)
+		if page.navApply then page.navApply(st.view) end
+	end)
+	applying = false
+	-- a view that is gone (a removed guild) leaves the page as it is
+	local tab, view = ShownState()
+	if tab ~= st.tab or view ~= st.view then nav:Replace(tab, view) end
+	UpdateNav()
+	if not ok then geterrorhandler()(err) end
+end
+
+-- A tab as it opens: every view over it closed, nothing selected.
+function ResetTab(id)
+	local page = win.pages[id]
+	if page.navClose then page.navClose() end
+	if page.navUp then
+		for _ = 1, 10 do if not page.navUp() then break end end
+	end
+	if page.navReset then page.navReset() end
+	SelectTab(id)
+	ns.NavRecord()
+end
+ns.ResetTab = function(id) ResetTab(id or curTab) end
+
+-- The Events tab, built if need be; prepare() then sets what it shows, as
+-- a step of its own (pies and View Events).
+function ns.ShowEventsTab(prepare)
+	if not win then return end
+	local page = BuildTab(EVENTS)
+	if not page.refresh then return end
+	local shown = win.pages[curTab]
+	if shown.navClose then shown.navClose() end
+	if prepare then prepare() end
+	SelectTab(EVENTS)
+	ns.NavRecord()
+end
+
+-- Back closes an overlay first (a picker), then steps back.
+function ns.NavBack()
+	local page = win.pages[curTab]
+	if page.navClose and page.navClose() then UpdateNav() return end
+	Go(nav:Back())
+end
+
+function ns.NavForward()
+	Go(nav:Forward())
+end
+
+-- Escape: up one level; false at the top (the window closes). Events
+-- opened from another tab (a pie, View Events) go back to that tab.
+function ns.NavUp()
+	local page = win.pages[curTab]
+	if page.navClose and page.navClose() then UpdateNav() return true end
+	if page.navUp and page.navUp() then
+		ns.NavRecord()
+		return true
+	end
+	if curTab == EVENTS then
+		local st = nav:BackToOther(EVENTS)
+		if st then
+			Go(st)
+			return true
+		end
+	end
+	return false
+end
+
 -- Escape: a helper frame in UISpecialFrames shown with the window; Escape
--- hides it, and that closes the window (the next stages step back first).
+-- hides it, and that steps up one level (shown again) or closes the window.
 local function EscapeFrame()
 	local esc = CreateFrame("Frame", "PSS_WindowEscape", UIParent)
 	esc:Hide()
 	tinsert(UISpecialFrames, "PSS_WindowEscape")
 	win:HookScript("OnShow", function() esc:Show() end)
 	win:HookScript("OnHide", function() esc:Hide() end)
-	esc:SetScript("OnHide", function()
-		if win:IsShown() then win:Hide() end
+	esc:SetScript("OnHide", function(self)
+		if not win:IsShown() then return end
+		if ns.NavUp() then
+			self:Show()
+		else
+			win:Hide()
+		end
 	end)
+end
+
+-- mouse buttons 4 / 5 over the window; listened to only while it shows
+local function OnMouseButton(self, _, button)
+	if button ~= "Button4" and button ~= "Button5" then return end
+	if not self:IsMouseOver() then return end
+	if button == "Button4" then ns.NavBack() else ns.NavForward() end
+end
+
+local function BuildTabs()
+	win.tabs, win.pages = {}, {}
+	local prev
+	for i, t in ipairs(TABS) do
+		-- (the tab shown too: back to how it opens)
+		local tab = ns.NewTab(win, t.text, function() ResetTab(i) end)
+		if prev then
+			tab:SetPoint("LEFT", prev, "RIGHT", 2, 0)
+		else
+			tab:SetPoint("TOPLEFT", win, "TOPLEFT", 10, TOP)
+		end
+		win.tabs[i], prev = tab, tab
+
+		local page = ns.NewPanel(win)
+		page:SetPoint("TOPLEFT", win, "TOPLEFT", 10, TOP - TAB_H - NAV_H - 8)
+		page:SetPoint("BOTTOMRIGHT", win, "BOTTOMRIGHT", -10, 10)
+		page:Hide()
+		-- until its stage is built
+		local note = ns.NewText(page, 12)
+		note:SetPoint("CENTER")
+		note:SetText(t.text .. " comes in a later 3.4.0 build.")
+		note:SetAlpha(0.7)
+		page.note = note
+		win.pages[i] = page
+	end
+
+	-- [<] [>]  Guild Ignore List  >  Members of <guild>
+	local navY = TOP - TAB_H - 4
+	win.back = ns.NewButton(win, "<", 26, ns.NavBack)
+	win.back:SetHeight(NAV_H)
+	win.back:SetPoint("TOPLEFT", win, "TOPLEFT", 10, navY)
+	ns.TipOn(win.back, win.back, "Back (mouse button 4). Escape goes up one level.")
+	win.forward = ns.NewButton(win, ">", 26, ns.NavForward)
+	win.forward:SetHeight(NAV_H)
+	win.forward:SetPoint("LEFT", win.back, "RIGHT", 4, 0)
+	ns.TipOn(win.forward, win.forward, "Forward (mouse button 5).")
+	win.where = ns.NewText(win, 11)
+	win.where:SetPoint("LEFT", win.forward, "RIGHT", 10, 0)
+	win.where:SetAlpha(0.9)
+	-- widths of the parts (never shown)
+	win.measure = ns.NewText(win, 11)
+	win.measure:Hide()
+	win.crumbs = {}
 end
 
 local function Build()
@@ -176,13 +433,26 @@ local function Build()
 	end)
 
 	EscapeFrame()
-	ns.BuildKitPage(win)
+	BuildTabs()
+	nav = M.PSS_NavNew()
+	-- the shown tab is redrawn each time the window opens
+	win:HookScript("OnShow", function(self)
+		ns.RefreshTab()
+		-- an unknown event (an older client) is not an error worth showing
+		pcall(self.RegisterEvent, self, "GLOBAL_MOUSE_UP")
+	end)
+	win:HookScript("OnHide", function(self) self:UnregisterEvent("GLOBAL_MOUSE_UP") end)
+	win:SetScript("OnEvent", OnMouseButton)
+	SelectTab(M.PSS_UITab())
+	ns.NavRecord()
 
 	M.Events.Register("OPTION_CHANGED", function(key)
 		if key == "frameStrata" then
 			win:SetFrameStrata(M.PSS_FrameStrataName())
 		elseif key == "uiSkin" or key == "uiFont" then
 			ns.Repaint()
+			-- the line by the arrows is measured in the font shown
+			UpdateNav()
 		end
 	end)
 end

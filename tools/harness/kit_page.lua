@@ -1,11 +1,9 @@
-------------------------------------------------------------------------
--- POUR SOCIAL SCORE UI - KIT PREVIEW (temporary)
---
--- While the window is being built (3.4.0), /pss tui shows every control of
--- the kit in the place the tabs will take, so every look can be checked in
--- game: three preview tabs (controls; lists and the pie; menus and
--- popups). The window's tabs replace this page (stage B1).
-------------------------------------------------------------------------
+-- The kit preview (3.4.0-dev002 to dev005), kept for the harness: it
+-- builds every control of PourSocialScore_UI's kit on a frame of its own,
+-- in three preview tabs (controls; lists and the pie; menus and popups),
+-- so check_tui.lua can check each look. It left the window in dev006
+-- (the window's six tabs took its place). Load it with the UI's namespace:
+--   loadfile("tools/harness/kit_page.lua")("PourSocialScore_UI", H.Private("PourSocialScore_UI"))
 local ADDON_NAME, ns = ...
 
 local NAMES = { "Controls", "Lists and pie", "Menus and popups" }

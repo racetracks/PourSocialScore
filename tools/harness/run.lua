@@ -112,6 +112,8 @@ end
 ------------------------------------------------------------------------
 local loaded, loading = {}, {}
 local privates = {}
+-- an addon's private table (its ns), for scripts that build test pages
+H.Private = function(name) return privates[name] end
 local coreAddon
 
 -- A LoadOnDemand addon's saved variables only exist once it loads (they are

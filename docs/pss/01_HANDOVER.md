@@ -32,7 +32,7 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; 03), `Gethe/wow-u
 | `PourSocialScore_Logging` | On demand, only when logs are called | `PSS_LoggingDB` (blockLog, blockKeep); PSS_SavedLog.lua, PSS_LoggingData.lua |
 | `PourSocialScore_Communities` | On demand | Packed shipped lists (~460 KB) |
 | `PourSocialScore_EllesmereUI` | On demand, only when the integration is on | The EllesmereUI window (03); `PSS_EllesmereUIDB`. Deleted at the 3.4.0 cutover (09) |
-| `PourSocialScore_UI` (from 3.4.0-dev001) | On demand, `/pss tui` only | The new PSS window while it is built (09): PSS_Skin, PSS_Kit, PSS_Tooltip, PSS_KitPage (temporary), PSS_Window. Drawing only; no SavedVariables. Its files move into `PourSocialScore_GUI` at the cutover |
+| `PourSocialScore_UI` (from 3.4.0-dev001) | On demand, `/pss tui` only | The new PSS window while it is built (09): PSS_Skin, PSS_Kit, PSS_Tooltip, PSS_Menu, PSS_Popups, PSS_Rows, PSS_Pie, PSS_Window. Drawing only; no SavedVariables. Its files move into `PourSocialScore_GUI` at the cutover |
 
 ## 4. Real names (the project's own objects)
 - **Namespace:** everything hangs on `M`, shared through the global `PourSocialScore_NS`. Private file tables are `ns` in the EUI folder.
