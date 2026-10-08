@@ -1,6 +1,23 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.22 - New PSS window: exceptions per player and guild
+
+- New default for everyone on the Player or Guild Ignore List: no ignore response is sent, no decline messages are shown, and their duels and trades are declined. Show declines is now Off by default (was On); the Options tab still sets the default.
+- New window (/pss tui): a player's, a guild's or a guild member's View/Edit Rule page shows these four as tick boxes under "For this player" (or guild, or member). Ticked = it happens. A tick that differs from the default makes that one an exception, marked "(exception)"; set it back and the exception is gone. A member follows its guild's settings unless it has its own.
+- The same ticks are in each row's right-click menu.
+- Fixed: an override set to Off showed as Default in the new window.
+- Upgrade: a Show declines On left in a save from 2.0 (which saved every option) is dropped, so the new default applies.
+
+=> 3.4.0.21 - New PSS window: right-click menus
+
+- New window (/pss tui): right-click a row for its menu, in every look (Blizzard's menus in Modern and Classic, the window's own in Dark). The row is selected first.
+- Player Ignore List: Block History, Add Guild (when the player's guild is not listed), Reset Expiration (when one is set), Reset Block History, the player's option overrides, Remove Player.
+- Guild Ignore List: a guild has Show Members, Block History, Reset Block History, its overrides and Remove Guild; a member has Block History, Reset Block History, overrides and Remove Member; Managed Communities and the default lists turn their rules on or off and expand or collapse; an excluded guild can be taken off the Guild Exclusion List.
+- Chat Filters: turn a filter on or off, Copy, Block History, Reset block count, Reset block history, Remove (not for built-ins).
+- Events tab and the panes' Event History: right-click a blocked line to add its sender to the Player Ignore List, or remove them.
+- Removing anything still asks first. Opening a menu never loads the block history.
+
 => 3.4.0.20 - Mandatory baseline, version tools, release notes and mirror
 
 - Nothing changes in game.

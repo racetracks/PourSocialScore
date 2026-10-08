@@ -101,6 +101,28 @@ local function OpenFilterEvents(i)
 	if ns.OpenEvents then ns.OpenEvents(page, M.PSS_FilterEventsSpec(i), {}) end
 end
 
+-- A row's right-click menu (Libraries M.PSS_FilterMenu): the row is
+-- selected first, so each entry acts on the pane's filter as its buttons do.
+local function RowAct(i, act, arg)
+	if i ~= sel then Select(i) end
+	if act == "toggle" then
+		M.PSS_SetFilterActive(i, arg and true or false)
+	elseif act == "copy" then
+		local n = M.PSS_FilterCopy(i)
+		if n then Select(n) end
+	elseif act == "history" then
+		OpenFilterEvents(i)
+	elseif act == "resetCount" then
+		M.PSS_ResetFilterCount(i)
+	elseif act == "resetHistory" then
+		M.PSS_ResetFilterHistory(i)
+		V.dirty = true
+		page.refresh()
+	elseif act == "remove" then
+		ConfirmRemove()
+	end
+end
+
 local function BuildPane(parent)
 	pane = ns.NewPanel(parent, true)
 	pane:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -8, -TOP_H - 4)
@@ -416,9 +438,15 @@ ns.TabBuilders.filters = function(pg)
 		end,
 		draw = DrawRow,
 		enter = RowTip,
-		click = function(_, i)
+		click = function(row, i, button)
 			local n = V.index[i]
-			if n then Select(n ~= sel and n or nil) end
+			if not n then return end
+			if button == "RightButton" then
+				if n ~= sel then Select(n) end
+				ns.RowMenu(row, M.PSS_FilterMenu(n), function(act, arg) RowAct(n, act, arg) end)
+			else
+				Select(n ~= sel and n or nil)
+			end
 		end,
 		emptyClick = function() if sel then Select(nil) end end,
 	})

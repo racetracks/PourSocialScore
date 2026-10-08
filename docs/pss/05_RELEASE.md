@@ -9,7 +9,7 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 
 ## CI jobs (rules.yml)
 - `check`: `sh tools/check_rules.sh` (Lua 5.1 syntax, ASCII, tabs, layers) plus `tools/check_rules_eui.sh` (the EUI folder's 4-space style and Version = core's).
-- `harness`: `PSS_EUI_REQUIRED=1 sh tools/harness/check_eui_all.sh`, then the new window's checks (`check_tui`, `check_viewquery`, `check_players`, `check_guilds`, `check_filters`, `check_events`, `check_options`) and `check_secrets.lua` (3.4.0.14).
+- `harness`: `PSS_EUI_REQUIRED=1 sh tools/harness/check_eui_all.sh`, then the new window's checks (`check_tui`, `check_viewquery`, `check_players`, `check_guilds`, `check_filters`, `check_events`, `check_options`, `check_menus` (3.4.0.21)) and `check_secrets.lua` (3.4.0.14).
 - `upgrades` (3.4.0.14): `sh tools/harness/validate_all.sh` on a full clone (`fetch-depth: 0`), without real saves: upgrades from every old layout, data, on demand, growth, the window checks. The real-save run stays local (saves built from scratch).
 - `check` also runs `tools/check_toc.sh` on every `PourSocialScore_*` folder (three TOCs agree, files exist, Version = core's) and the PSS-names check.
 

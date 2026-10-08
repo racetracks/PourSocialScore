@@ -6,7 +6,8 @@
 -- one entry of them), a search over player, channel and message, and
 -- Time | Source | Player | Type | Channel | Message sorted by a header
 -- click. Links in a message work as in chat; a double-click on a line
--- copies the message. The pies, View Events and a double-click on a pane's
+-- copies the message; a right-click puts its sender on or off the Player
+-- Ignore List (ns.SenderMenu, PSS_History.lua). The pies, View Events and a double-click on a pane's
 -- Event History open it (ns.OpenEvents) with their entry, a period and the
 -- types ticked; each query is a step for back / forward. Libraries
 -- (PSS_EventsView.lua) reads, filters and sorts; opening it loads
@@ -64,7 +65,12 @@ local function Draw(row, i)
 end
 
 local clicks = {}
-local function Click(_, i, button)
+local function Click(row, i, button)
+	if button == "RightButton" then
+		local h = view.shown[i]
+		if h then ns.SenderMenu(row, h.member) end
+		return
+	end
 	if button ~= "LeftButton" then return end
 	-- a double-click copies the message
 	if M.PSS_DoubleClick(clicks, i) then

@@ -1,10 +1,11 @@
 ------------------------------------------------------------------------
 -- POUR SOCIAL SCORE UI - PLAYER IGNORE LIST TAB
 --
--- The list (search, sortable columns, Add Player) and a detail pane for the
+-- The list (search, sortable columns, Add Player; a right-click on a row
+-- for its menu, Libraries M.PSS_PlayerMenu) and a detail pane for the
 -- selected entry with three pages (PSS_Detail.lua): Summary (counts and the
 -- period pie), Event History and View/Edit Rule (note, expiry, W I G P C,
--- overrides, Remove, Add Guild). With nothing selected the pane shows the
+-- exceptions, Remove, Add Guild). With nothing selected the pane shows the
 -- whole list's totals. Libraries (PSS_PlayerView.lua) works out every text
 -- and does every edit; the core says when the list changed
 -- (PLAYERS_CHANGED, PLAYER_BLOCKED) and the tab redraws if it shows.
@@ -197,21 +198,9 @@ local function BuildPane(parent)
 	pane.player[#pane.player + 1] = exRow
 	y = y - 28
 
-	-- overrides of the Options for this player: Default > On > Off
-	pane.overrides = {}
-	local bw = (DETAIL_W - 26) / 2
-	for n, o in ipairs(M.PSS_OverrideOptions()) do
-		local b = ns.NewButton(rule, "", bw, function(self)
-			M.PSS_PlayerCycleOverride(pane.record, self.opt.key)
-			ns.ShowPlayerDetail()
-		end)
-		b.opt = o
-		local col, r = (n - 1) % 2, math.floor((n - 1) / 2)
-		b:SetPoint("TOPLEFT", rule, "TOPLEFT", 10 + col * (bw + 6), y - r * 24)
-		ns.TipOn(b, b, o.label .. "\n\nClick to change: Default (the Options tab) > On > Off.")
-		pane.overrides[#pane.overrides + 1] = b
-		pane.player[#pane.player + 1] = b
-	end
+	-- exceptions to the Options for this player (ticked = it happens)
+	pane.exceptions = ns.NewExceptions(rule, 10, y, DETAIL_W - 20, function() ns.ShowPlayerDetail() end)
+	pane.player[#pane.player + 1] = pane.exceptions.frame
 
 	-- the rule's actions: Remove, Add Guild
 	local remove = ns.NewButton(rule, "Remove", 100, ConfirmRemove)
@@ -282,9 +271,7 @@ function ns.ShowPlayerDetail(newEntry)
 	end
 
 	for _, e in ipairs(M.EXCL) do pane.excl[e.cat]:SetChecked(M.PSS_PlayerAllowed(p, e.field)) end
-	for _, b in ipairs(pane.overrides) do
-		b:SetText(M.PSS_OverrideText(b.opt, M.PSS_OverrideValue(p, b.opt.key)))
-	end
+	pane.exceptions:Set(p, "person", "this player")
 
 	local c = M.PSS_GetPlayerBlockCounts(p)
 	pane.counts:SetText(M.PSS_CountsText(c))
@@ -315,6 +302,32 @@ local function SelectEntry(entry)
 	sel = entry
 	list:Redraw()
 	ns.ShowPlayerDetail(true)
+end
+
+-- A row's right-click menu (Libraries M.PSS_PlayerMenu): the row is
+-- selected first, so each entry acts on the pane's entry as its buttons do.
+local function RowAct(entry, act, arg)
+	if entry ~= sel then SelectEntry(entry) end
+	if act == "history" then
+		OpenPlayerEvents(entry)
+	elseif act == "addGuild" then
+		M.PSS_PlayerAddGuild(arg)
+		ns.ShowPlayerDetail()
+	elseif act == "noExpiry" then
+		M.PSS_PlayerCommitExpiry(entry, "0")
+	elseif act == "resetHistory" then
+		M.PSS_ResetPlayerBlockHistory(entry)
+	elseif act == "exception" then
+		M.PSS_ToggleException(pane.record, "person", arg)
+		ns.ShowPlayerDetail()
+	elseif act == "remove" then
+		ConfirmRemove()
+	end
+end
+
+local function RowMenu(row, entry)
+	if entry ~= sel then SelectEntry(entry) end
+	ns.RowMenu(row, M.PSS_PlayerMenu(entry), function(act, arg) RowAct(entry, act, arg) end)
 end
 
 ------------------------------------------------------------------------
@@ -489,10 +502,15 @@ ns.TabBuilders.players = function(pg)
 		end,
 		draw = DrawRow,
 		enter = RowTip,
-		click = function(_, i)
+		click = function(row, i, button)
 			local pos = V.index[i]
 			local entry = pos and M.PSS_PlayerEntry(pos)
-			if entry then SelectEntry(entry ~= sel and entry or nil) end
+			if not entry then return end
+			if button == "RightButton" then
+				RowMenu(row, entry)
+			else
+				SelectEntry(entry ~= sel and entry or nil)
+			end
 		end,
 		emptyClick = function() if sel then SelectEntry(nil) end end,
 	})

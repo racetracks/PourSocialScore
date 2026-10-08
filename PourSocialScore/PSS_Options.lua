@@ -35,7 +35,7 @@ local OPTIONS = {
 	-- Blocking (people)
 	{ key = "blizzardSync",		kind = "bool",		default = false, section = 1, label = "Also put listed players on Blizzard's ignore list (it ignores exclusions)" },
 	{ key = "ignoreResponse", kind = "bool",	default = false,	section = 2, label = L["OPT_24"], target = true },
-	{ key = "showDeclines",		kind = "bool",		default = true,		section = 2, label = L["OPT_28"], target = true },
+	{ key = "showDeclines",		kind = "bool",		default = false,		section = 2, label = L["OPT_28"], target = true },
 	{ key = "declineDuel",		kind = "bool",		default = true,		section = 2, label = "Decline duels from blocked players", target = true },
 	{ key = "declineTrade",		kind = "bool",		default = true,		section = 2, label = "Decline trades from blocked players", target = true },
 	{ key = "historyTotal",		kind = "number", default = 2000,	section = 2, min = 100, max = 20000,

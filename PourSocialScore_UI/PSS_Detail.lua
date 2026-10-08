@@ -10,6 +10,10 @@
 --   ns.NewTypePie(parent, top, size, tabPage) all time by type; tp:Set(counts, title, specFn, id)
 --   ns.NewTotals(pane, tabPage, kind, title, hint, allSpec)   a whole list's
 --       totals (nothing selected); tt:Show(guildRows), tt:Hide()
+--   ns.NewExceptions(parent, x, y, width, onChange)   a tick box per Option a
+--       player, guild or member can be an exception to (ticked = it
+--       happens; "(exception)" where it differs from the default);
+--       ex:Set(target, scope, who [, parentOpts])
 -- A slice or View Events opens the Events tab (ns.OpenEvents, from the
 -- Events tab's stage); until it is there they only show their counts.
 ------------------------------------------------------------------------
@@ -362,4 +366,62 @@ function ns.NewTotals(pane, tabPage, kind, title, hint, allSpec)
 	tt.summary = ns.NewSummary(f, tabPage, -52, 84)
 	tt.typePie = ns.NewTypePie(f, -52 - 84 - 10, 84, tabPage)
 	return tt
+end
+
+------------------------------------------------------------------------
+-- Exceptions (3.4.0.22, Dan): a tick box per Option a player, guild or
+-- member can be an exception to, two to a row. Ticked = it happens for
+-- this entry; a box that differs from the default (the Options tab, or a
+-- member's guild) is marked "(exception)", and setting it back removes the
+-- exception (Libraries M.PSS_ExceptionState / M.PSS_SetException).
+------------------------------------------------------------------------
+local EX = {}
+EX.__index = EX
+
+function EX:Set(target, scope, who, parentOpts)
+	self.target, self.scope, self.who, self.parentOpts = target, scope, who, parentOpts
+	self.heading:SetText(M.PSS_ExceptionHeading(who))
+	for _, b in ipairs(self.boxes) do
+		local on, isEx, base = M.PSS_ExceptionState(target, b.opt.key, parentOpts)
+		b:SetChecked(on)
+		b.label:SetText(M.PSS_ExceptionText(b.opt, isEx))
+		b.tip = M.PSS_ExceptionTip(b.opt, who, base)
+	end
+end
+
+-- ex.frame: placed at (x, y) on parent, width wide; ex.height its height
+function ns.NewExceptions(parent, x, y, width, onChange)
+	local ex = setmetatable({ boxes = {} }, EX)
+	local opts = M.PSS_OverrideOptions()
+	local f = CreateFrame("Frame", nil, parent)
+	ex.frame = f
+	ex.height = 18 + math.ceil(#opts / 2) * 24
+	f:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
+	f:SetSize(width, ex.height)
+	ex.heading = ns.NewText(f, 12)
+	ex.heading:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+	ex.heading:SetWidth(width)
+	ex.heading:SetJustifyH("LEFT")
+	ex.heading:SetWordWrap(false)
+	local colW = (width - 6) / 2
+	for n, o in ipairs(opts) do
+		local c = ns.NewCheck(f)
+		local col, r = (n - 1) % 2, math.floor((n - 1) / 2)
+		c:SetPoint("TOPLEFT", f, "TOPLEFT", col * (colW + 6), -16 - r * 24)
+		c.opt = o
+		c.label = ns.NewText(f, 12)
+		c.label:SetPoint("LEFT", c, "RIGHT", 0, 0)
+		c.label:SetWidth(colW - 24)
+		c.label:SetJustifyH("LEFT")
+		c.label:SetWordWrap(false)
+		c:SetScript("OnClick", function(self)
+			if not ex.target then return end
+			M.PSS_SetException(ex.target, ex.scope, o.key, self:GetChecked(), ex.parentOpts)
+			if onChange then onChange() end
+		end)
+		c:SetScript("OnEnter", function(self) if self.tip then ns.Tip(self, self.tip) end end)
+		c:SetScript("OnLeave", ns.HideTip)
+		ex.boxes[#ex.boxes + 1] = c
+	end
+	return ex
 end

@@ -21,7 +21,6 @@
 --   M.PSS_PruneText(), M.PSS_PruneNote(days), M.PSS_PruneApply(days)
 --   M.PSS_PlayerCommitExpiry(entry, text) / M.PSS_PlayerCommitNote(entry, text)
 --   M.PSS_PlayerToggleAllowed(entry, field, allowed)
---   M.PSS_PlayerCycleOverride(p, key)
 --   M.PSS_PlayerAddGuild(guild)           the player's guild onto the guild list
 --   M.PSS_PlayerGuildState(p)             guild, listed (Add Guild button)
 --   M.PSS_PlayerEventsSpec(entry), M.PSS_AllPlayersSpec()
@@ -283,12 +282,6 @@ function M.PSS_PlayerToggleAllowed(entry, field, allowed)
 	if not entry then return end
 	M.PSS_SetPlayerSetting(entry, field, not allowed)
 	M.PSS_PlayersChanged()
-end
-
--- an Options override for this player: Default > On > Off
-function M.PSS_PlayerCycleOverride(p, key)
-	if type(p) ~= "table" then return end
-	M.PSS_SetOpt(key, "person", M.PSS_NextOverride(p.opts and p.opts[key]), p)
 end
 
 function M.PSS_PlayerAddGuild(guild)

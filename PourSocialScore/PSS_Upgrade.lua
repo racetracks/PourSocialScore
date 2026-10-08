@@ -172,6 +172,14 @@ local STEPS = {
 			db.historySize = nil		-- not read by any code (historyTotal is the setting)
 		end,
 	},
+	-- 6 (3.4.0.22): decline messages are Off by default for listed players
+	-- and guilds (Dan). Show declines was On by default, so a saved On is
+	-- a leftover (2.0 saved every option), never a choice: drop it.
+	{
+		fields = function()
+			if db.showDeclines == true then db.showDeclines = nil end
+		end,
+	},
 }
 
 M.PSS_UPGRADE_STEPS = #STEPS

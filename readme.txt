@@ -65,7 +65,10 @@ Player Ignore List
 * Notes and expiry times (entries remove themselves after N days)
 * Per-player exclusions W I G P C (see EXCLUSIONS below)
 * Character names with a space ("First Last-Realm") are supported
-* Per-player overrides for ignore response, declines, duels and trades
+* For everyone listed, by default: no ignore response, no decline messages,
+  duels and trades declined (set on the Options tab). Any player, guild or
+  guild member can be an exception (ticks on its View/Edit Rule page, or
+  its right-click menu, in the new window: /pss tui)
 * Player detail window: double-click an entry (see THE WINDOWS below)
 * Warnings when you invite, or are grouped with, someone on your list
 * Group warning covers every list: the Player Ignore List and guild rules

@@ -10,6 +10,27 @@
 -- old window loads.
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL guilds: " .. msg) fail = true end end
+
+-- exceptions (3.4.0.22): ticked = it happens; a tick away from the default
+-- (the Options tab, or a member's guild) is an exception, marked so, and
+-- read by the engine; ticking it back removes it
+local function CheckExceptions(ex, t, parent, what)
+	check(ex and #ex.boxes == #M.PSS_OverrideOptions(), what .. ": no exception tick boxes")
+	if not ex then return end
+	for _, b in ipairs(ex.boxes) do
+		local key = b.opt.key
+		local base = M.PSS_Opt(key, parent and { guild = parent } or nil) == true
+		check(b:GetChecked() == base and not b.label:GetText():find("exception", 1, true), what .. " " .. key .. ": not on the default")
+		b:SetChecked(not base)
+		b._scripts.OnClick(b)
+		check(t.opts and t.opts[key] == (not base) and b:GetChecked() == (not base) and b.label:GetText():find("(exception)", 1, true) ~= nil,
+			what .. " " .. key .. ": exception not made")
+		check(M.PSS_Opt(key, { person = t.opts, guild = parent }) == (not base), what .. " " .. key .. ": the engine does not read the exception")
+		b:SetChecked(base)
+		b._scripts.OnClick(b)
+		check((t.opts == nil or t.opts[key] == nil) and not b.label:GetText():find("exception", 1, true), what .. " " .. key .. ": exception not removed")
+	end
+end
 local loaded = C_AddOns.IsAddOnLoaded
 
 -- /who: every filter sent, and the answer the next WHO_LIST_UPDATE reads
@@ -239,7 +260,7 @@ pane.info.removeButton._scripts.OnClick(pane.info.removeButton)
 H.RunTimers()
 check(not M.PSS_IsGuildExcluded("Friendly Guild") and V.selKind == nil, "exclusion not removed")
 
--- a guild: lines, W I G P C, overrides, Scan, Custom Scan
+-- a guild: lines, W I G P C, exceptions, Scan, Custom Scan
 local gkey = M.PSS_NormalizeGuild("Tui Guild 010")
 reselect(gkey)
 local gb = pane.guild
@@ -254,12 +275,7 @@ check(M.PSS_GuildBlock(g).whisper == false, "guild W not saved as allowed")
 gw:SetChecked(false)
 gw._scripts.OnClick(gw, "LeftButton")
 check(M.PSS_GuildBlock(g).whisper ~= false, "guild W not saved as blocked")
-local go = gb.overrides[1]
-go._scripts.OnClick(go)
-check(g.opts and g.opts[go.opt.key] == true and go:GetText():find("On", 1, true), "guild override not On")
-go._scripts.OnClick(go)
-go._scripts.OnClick(go)
-check(g.opts == nil or g.opts[go.opt.key] == nil, "guild override not back to Default")
+CheckExceptions(gb.exceptions, g, nil, "guild")
 H.Advance(10)
 H.RunTimers()
 local s0 = #sent
@@ -297,7 +313,7 @@ check(mlist.count == 1 and page.count:GetText() == "1 of 2 members", "member sea
 page.search:SetText("")
 page.search._scripts.OnTextChanged(page.search, true)
 
--- a member: note, W I G P C (own or following the guild), overrides
+-- a member: note, W I G P C (own or following the guild), exceptions
 local m = V.members[1]
 page.selectMember(m)
 local mb = pane.member
@@ -313,11 +329,17 @@ mw._scripts.OnClick(mw, "LeftButton")
 check(M.PSS_MemberBlock(m).whisper == false and mw:GetAlpha() == 1, "member W not set as their own")
 mw._scripts.OnClick(mw, "RightButton")
 check(M.PSS_MemberBlock(m).whisper == nil and mw:GetAlpha() == 0.45, "right-click did not follow the guild again")
-local mo = mb.overrides[1]
-mo._scripts.OnClick(mo)
-check(m.opts and m.opts[mo.opt.key] == true, "member override not On")
-mo._scripts.OnClick(mo)
-mo._scripts.OnClick(mo)
+CheckExceptions(mb.exceptions, m, g.opts, "member")
+-- a guild's exception is its members' default, not their exception
+local mbox = mb.exceptions.boxes[1]
+local mkey = mbox.opt.key
+local gset = not (M.PSS_Opt(mkey) == true)
+M.PSS_SetException(g, "guild", mkey, gset)
+page.selectMember(m)
+check(mbox:GetChecked() == gset and not mbox.label:GetText():find("exception", 1, true), "a member does not follow its guild's exception")
+M.PSS_SetException(g, "guild", mkey, not gset)
+check(g.opts == nil or g.opts[mkey] == nil, "the guild's exception not removed")
+page.selectMember(m)
 -- a block from the member counts at once (no Logging needed)
 lineID = lineID + 1
 local author = m.name:find("-", 1, true) and m.name or (m.name .. "-Realm1")
