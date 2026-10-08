@@ -5,9 +5,9 @@
 ## The step loop
 1. **Plan first.** For anything big the author asks for a sanity check and recommendations. Claude writes a short plan with numbered steps, says plainly what is impossible, and asks numbered questions, each with a recommendation.
 2. **The author answers by number** ("1: yes 2: no, keep it 3: your call"). Play the final decisions back in the next reply before building.
-3. **One step at a time.** The author names a step from the feature's stage plan (10_FEATURE_DESIGN_AND_DELIVERY.md); Claude ships exactly that step: one branch from the latest main and one PR per repo; every TOC bumped to the next devNNN; a history section; checks green; a hosted test zip with the link; exact in-game checks.
-4. **The author tests in game and merges** before the next stage starts. Merging a version bump publishes the release (a pre-release for every suffixed version).
-5. **Bugs** found in testing become the next devNNN, zipped and hosted like any build.
+3. **One step at a time.** The author names a step from the feature's stage plan (10_FEATURE_DESIGN_AND_DELIVERY.md); Claude ships exactly that step: one branch from the latest main and one PR per repo; every TOC bumped to the next build (`X.Y.Z.B`); a history section; checks green; a hosted test zip with the link; exact in-game checks.
+4. **The author tests in game and merges** before the next stage starts. Merging a version bump publishes the release (a pre-release for every build).
+5. **Bugs** found in testing become the next build, zipped and hosted like any build.
 6. **Long threads end with a handover**: this baseline plus an addon-specific pack.
 
 ## Communication

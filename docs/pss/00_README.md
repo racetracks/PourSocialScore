@@ -4,11 +4,11 @@ The **PourSocialScore-only layer.** It is written to sit on top of two general p
 
 | Layer | Pack | Holds |
 | --- | --- | --- |
-| 1 | `wow-addon-baseline-2026-10-07-v5.zip` (v4 plus 02 J and `reference/wow-api/`) | How any WoW addon is built, released and delivered with Claude: rules, architecture, harness, pipeline, feature design and staged delivery, working with the author |
+| 1 | `wow-addon-baseline-2026-10-08-v6.zip` (v5 plus `X.Y.Z.B` versions, the version tools, full-release notes; mandatory) | How any WoW addon is built, released and delivered with Claude: rules, architecture, harness, pipeline, feature design and staged delivery, working with the author |
 | 2 | `scratch-repo-usage-2026-10-07-v4.zip` (in the repo as `docs/scratch/`) | How the scratch repo, `racetracks/Pour-Social-Score_Scratch`, hosts builds, saves, docs and summaries |
 | 3 | **this pack** | Only what is true of PourSocialScore: its purpose, repos, real names, project rules, the EllesmereUI integration, its data, its pipeline details, status and next step, Dan's real saves |
 
-**Where they differ, this pack wins for PourSocialScore.** Everything not mentioned here follows the baseline. Section numbers like "baseline 02 C3" point into layer 1.
+**The baseline's rules are mandatory** (Dan, 2026-10-08). This pack overrides one only in 02 section 12 (the Overrides table); everything else follows the baseline. Section numbers like "baseline 02 C3" point into layer 1.
 
 Last state (pack written): main was **3.3.0-dev004**. Since then: 3.3.1 released (full, the parity project closed), and the new PSS window project started on the **3.4.0** line (09). Current state is always in 06; project data on scratch `docs/latest/`.
 
@@ -22,15 +22,14 @@ Last state (pack written): main was **3.3.0-dev004**. Since then: 3.3.1 released
 | File | What it holds |
 | --- | --- |
 | 01_HANDOVER.md | Purpose and features, clients, repos, folder layout and the real names (namespace, loader, options, events), references actually used, plans with status |
-| 02_RULES.md | Only the rules PSS adds to or overrides in the baseline, dated, with Dan's wording |
+| 02_RULES.md | Only the rules PSS adds to the baseline, dated, with Dan's wording; section 12 is the Overrides table (every place PSS differs from the baseline, and known breaches with their fix) |
 | 03_ELLESMEREUI.md | The EllesmereUI integration: files, bridge, APIs used, house rules, window, the PSS tab shadow fix |
 | 04_DATA_AND_LOGGING.md | SavedVariables layout, outbox, Logging on demand, the grouped save, recent counts, caps, retired BlockStats, real saves |
 | 05_RELEASE.md | What PSS does on top of the baseline pipeline: names, jobs, version history, test zip paths |
 | 06_STATUS_AND_NEXT.md | Merged and open work, the parity project, open issues, items waiting on Dan, the next step |
 | 07_HARNESS.md | PSS harness commands and checks |
 | 08_PARITY_PROJECT.md | The closed 3.3.0 parity project (shipped as 3.3.1): objective, decisions, stage table |
-| 09_PSS_UI_PROJECT.md | The current project (3.4.0): the new PSS window, decisions, three looks, stages, code map, lessons; plan on scratch `docs/latest/ui uplift/` |
+| 09_PSS_UI_PROJECT.md | The current project (3.4.0): the new PSS window, decisions, three looks, stages, code map, lessons; plan on scratch `docs/latest/ui uplift/`. The window's rules are `CLAUDE.md`'s Interface section |
 | PROJECT_INSTRUCTIONS.md | Paste-ready project instructions |
 | savedvariables/<version>/ | Dan's real saves: 2.0.44, 3.0.0, 3.2.0-dev011 (on scratch `SavedVariables/<version>/`) |
-| ci/ | Copies of the live release.yml, rules.yml and check scripts from main |
 | reference/ | The 3.3 parity analysis and plan, issue notes, a memory snapshot |

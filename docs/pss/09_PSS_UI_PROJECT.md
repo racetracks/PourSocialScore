@@ -6,6 +6,12 @@ with Blizzard's and our own resources, in three looks. It replaces both
 (the port). Started 2026-10-07. The live 3.3.1 release still ships both old
 windows; their docs (01, 03, 08) stay true for it until the cutover.
 
+**Rules:** the window's rules are the **Interface** section of `CLAUDE.md`
+(one section, Dan, 2026-10-08: every element works in all three looks;
+Modern first and the default; only the main window's title carries the
+addon's name). This file holds the decisions behind them, the code map and
+the lessons.
+
 **Project data on scratch (`racetracks/Pour-Social-Score_Scratch`), always
 read the newest:** `docs/latest/` (the index, `docs/README.md`) holds the
 newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
@@ -20,18 +26,18 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 3. All logic (state, navigation, queries, shaping, validation, flows) in `PourSocialScore_Libraries`; drawing only in the new `PourSocialScore_UI` ("PourSocialScore UI"), split by function. Folder name `PourSocialScore_UI`.
 4. `/pss tui` (temp UI) opens it while it is built; at the cutover it takes over `/pss gui`, the Friends / Social docking and the Addon Compartment.
 5. **At the cutover the new files move into `PourSocialScore_GUI`** (its Title and Notes stay), replacing the old GUI's files; `PourSocialScore_UI` then goes away and only `PourSocialScore_EllesmereUI` is deleted.
-6. **Three looks** (option `uiSkin`), same layout, features and feel in each. **Modern is the default from dev008_4** (Dan, 2026-10-08), and the Blizzard look is named Classic:
+6. **Three looks** (option `uiSkin`), same layout, features and feel in each. **Modern is the default from dev008_4** (Dan, 2026-10-08), and the Blizzard look is named Classic. Listed Modern first, then the options Classic and Dark (Dan, 2026-10-08); the values stay 2, 0, 1:
 
    | Value | Name in Options | Look | Built |
    | --- | --- | --- | --- |
-   | 0 | Classic (was Blizzard (Default) until dev008_4) | Blizzard's classic templates (`ButtonFrameTemplate`, `UIPanelButtonTemplate`, `UICheckButtonTemplate`, `InputBoxTemplate`, `InsetFrameTemplate`, top tabs, `GameTooltip`) | dev002 |
    | 2 | Modern (Default) | Blizzard's new 12.x Social window (Dan's /fstack screenshots, 2026-10-07): the same metal frame (`UI-Frame-Metal` nine-slice) on black (the Social window sets its Bg to black), behind the tab row and the line under it the frame's stone (`UI-Background-Rock`) with its streaks (`_UI-Frame-TopTileStreaks`) over it, as the AddOns list draws its top (Dan, dev008_3; the streaks alone are a dark overlay and show nothing on black); in Classic and Modern the streaks reach down past the arrows' line to the pages (dev008_4, our own texture; the template's stop 43 px down); pages on the black under `perks-divider-short`; inset boxes as `friends-card-default`; buttons and tabs the straight gold-framed action button (`common-button-tertiary-normal`, `-pressed` while held, the same art added on top for hover and a selected tab; dev004_3, after the side-tab plate's cut corner looked uneven), the accepting button `128-RedButton` three-slice; compared in game against the Filter button art and kept (Dan, dev004_4); `checkbox-minimal` / `checkmark-minimal`; `common-searchbar-a` boxes with `common-searchbar-icon-a`; popups in the window's own frame on black (dev011_3; `DialogBorderTemplate` until dev011_2); drop-downs, menus and tooltips Blizzard's. Retail only; without the art it is the Blizzard look | dev004_2 |
+   | 0 | Classic (was Blizzard (Default) until dev008_4) | Blizzard's classic templates (`ButtonFrameTemplate`, `UIPanelButtonTemplate`, `UICheckButtonTemplate`, `InputBoxTemplate`, `InsetFrameTemplate`, top tabs, `GameTooltip`) | dev002 |
    | 1 | Dark | The port's style in full (EllesmereUI's skin numbers): flat fills, one-pixel edges | dev002 (was named "Modern" until dev002_3; value 1 kept) |
 
 7. **Accent = your class colour, always, in every look; no option** (Dan: "class colour is mandatory"). The look's own colour (gold; green for Dark) only if the client gives no class colour. `M.PSS_UIAccent` in Libraries.
 8. **Font option `uiFont`**, both looks: the look's own (Blizzard's for Blizzard and Modern, Arial Narrow for Dark), or Game text, Unit names, Damage numbers, Friz Quadrata, Arial Narrow, Morpheus, Skurri, plus fonts other addons share through LibSharedMedia, **read only and only when another addon has loaded it** (Dan's OK for reading it). PSS ships no library and never creates `LibStub`. Expressway (EllesmereUI's font) carries "Do not distribute" and is never shipped.
 9. Old-GUI-only features are ported in the port's style before the cutover: Player Search, add your target, Prune, right-click menus. Resizable columns and windows are dropped.
-10. Popups (titles: what the popup asks, never the addon name, e.g. "Remove Player?", "Remove Guild?", "Remove Rule?"; Dan, 2026-10-08): in Dark everything comes from our kit (window popups, tooltips, menus, and core's note, party warning and reload popups); Blizzard uses GameTooltip and the Menu API, and the window's popups are our own frames in the window's own frame and background (`ns.NewFrameArt`; Dan, dev011_3: Blizzard's dialog backgrounds were see-through; dev003: copy and import need a multi-line box, which StaticPopup lacks, and no `StaticPopupDialogs` entry is written). Core's StaticPopups stay as they are.
+10. Popups (titles: what the popup asks, never the addon name, e.g. "Remove Player?", "Remove Guild?", "Remove Rule?"; **only the main window's title carries the addon's name**; Dan, 2026-10-08): in Dark the window's popups, tooltips and menus come from our kit; Modern and Classic use GameTooltip and the Menu API, and the window's popups are our own frames in the window's own frame and background (`ns.NewFrameArt`; Dan, dev011_3: Blizzard's dialog backgrounds were see-through; dev003: copy and import need a multi-line box, which StaticPopup lacks, and no `StaticPopupDialogs` entry is written). **Core's note, party warning and reload popups stay Blizzard StaticPopups in every look** (Dan, 2026-10-08: core never loads the UI folder for a popup; the plan's earlier "Dark draws core's popups" is dropped).
 11. Window place, last tab and new settings live in the Options addon's SavedVariables (`PSS_OptionsDB`, through the routed `PourSocialScoreDB` UI keys). No new SavedVariables.
 12. Version line **3.4.0**. Until dev012 the stages were `3.4.0-devNNN` with fixes as `_N`; from 2026-10-08 every build is `3.4.0.B`, the next build number for each test zip, a stage or a fix (02 section 8), starting at `3.4.0.13`. All are pre-releases; plain `3.4.0` when Dan says it is done.
 
@@ -54,7 +60,8 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | R1 | 3.4.0.14 | Code review fixes: secret values, Escape on popups and menus, small bugs, CI runs `validate_all.sh`; `check_secrets.lua` | Merged #106 |
 | R2 | 3.4.0.15 | Code review fixes: Logging on demand (guild and member removal, no Events tab at open), memory (Events lines and the members list dropped, GC on close, no full resort per block, Scan All tip cached), options import through the setter | Merged #107 |
 | R3 | 3.4.0.16 | The code review's window tidy: `SetAlpha` fades, events only while shown (`ns.Listen`), logic to Libraries, one list mixin; `tui_compare.sh` identical in all three looks | Merged #108 |
-| C1 | 3.4.0.17 to 3.4.0.18 | Player Search (results picker), add your target with the box empty, Prune with a days box; Libraries `PSS_PlayerView.lua`; popup titles say what they ask, no addon name (3.4.0.18) | PR open |
+| C1 | 3.4.0.17 to 3.4.0.18 | Player Search (results picker), add your target with the box empty, Prune with a days box; Libraries `PSS_PlayerView.lua`; popup titles say what they ask, no addon name (3.4.0.18) | Merged #109 |
+| Rules | 3.4.0.19 to 3.4.0.20 | One Interface section in `CLAUDE.md` (Dan, 2026-10-08); the font option's tip names the looks Modern and Classic; docs; 3.4.0.20: baseline v6 mandatory with the Overrides table (02 section 12), `X.Y.Z.B` in the baseline, `tools/bump_version.sh` and `tools/host_build.sh`, the history check, full-release notes (every build since the last release, no Claude summary) mirrored to `racetracks/Pour-Social-Score` (Dan, 2026-10-08) | PR #110 open |
 | C2 | next build | Right-click menus | Planned |
 | D1 to D3 | next builds | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
 | Release | 3.4.0 | When Dan says it is done | |

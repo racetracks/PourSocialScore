@@ -7,6 +7,7 @@
 #      whitespace (tools/check_style.lua; --fix there repairs these)
 #   6. Core logic files hold no UI code (tools/check_layers.lua)
 #   Every PourSocialScore_* folder's three TOCs agree (tools/check_toc.sh)
+#   history.txt starts with the section of the version every TOC carries
 #   The new window (PourSocialScore_UI) and the Libraries code it calls use
 #   PSS names only: no EllesmereUI or EUI names
 #   PourSocialScore_EllesmereUI is checked by tools/check_rules_eui.sh
@@ -38,6 +39,13 @@ lua5.1 tools/check_layers.lua || fail=1
 for d in PourSocialScore_*/; do
 	sh tools/check_toc.sh "${d%/}" || fail=1
 done
+
+ver=$(sed -n 's/^## Version: *//p' PourSocialScore/PourSocialScore.toc | tr -d '\r')
+top=$(sed -n 's/^=> \([^ ]*\) .*/\1/p' history.txt | head -n 1)
+if [ "$top" != "$ver" ]; then
+	echo "history.txt: the top section is '$top', the TOCs say '$ver'"
+	fail=1
+fi
 
 if grep -nE 'EUI|[Ee]llesmere' PourSocialScore_UI/* PourSocialScore_Libraries/PSS_ViewNav.lua PourSocialScore_Libraries/PSS_DetailQuery.lua PourSocialScore_Libraries/PSS_PlayerView.lua PourSocialScore_Libraries/PSS_GuildView.lua PourSocialScore_Libraries/PSS_FilterView.lua PourSocialScore_Libraries/PSS_EventsView.lua PourSocialScore_Libraries/PSS_OptionsView.lua; then
 	echo "PSS names only: an EllesmereUI or EUI name found above"

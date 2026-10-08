@@ -7,14 +7,14 @@ How a new addon project runs from an empty repo to production releases and long-
 - Create the repo, the main addon folder and its three TOCs (01, 02 B), readme.txt and history.txt.
 - Add the Rules CI and the release workflow before the first version you want released (09_RELEASE_PIPELINE.md).
 - Add the harness skeleton (06_HARNESS.md): the WoW stub, the runner, one check that loads the addon.
-- First version `0.1.0-dev001`: confirm the Rules check runs on the PR and a pre-release appears on merge.
+- First version `0.1.0.1`: confirm the Rules check runs on the PR and a pre-release appears on merge.
 
 **Documents:** the project instructions (from the template), readme.txt, history.txt.
 
 ## Phase 1: Plan
 **Goal:** agree what the addon does before building it.
 - Claude writes an **analysis**: the problem, what the WoW API allows and forbids (01), comparable addons and what to learn from them (03), risks.
-- Then a **plan**: numbered steps, smallest visible feature first, each with its dev number, what it does and how the author validates it in game.
+- Then a **plan**: numbered steps, smallest visible feature first, each with its build number, what it does and how the author validates it in game.
 - Every open choice becomes a **numbered decision** with options and a recommendation. The author answers by number; record the answers with the date.
 
 **Documents:** `01_ANALYSIS.md`, `02_PLAN.md` (a step table), the decisions list, and a feature design per feature (10).
@@ -25,7 +25,7 @@ How a new addon project runs from an empty repo to production releases and long-
 - A minimal native UI built with a UI kit file (04).
 - Checks for the engine, the option table and the upgrade record.
 
-**Documents:** history sections per dev build; the plan's step table marked as steps merge.
+**Documents:** history sections per build; the plan's step table marked as steps merge.
 
 ## Phase 3: Harden
 **Goal:** safe to leave running.
@@ -59,8 +59,8 @@ How a new addon project runs from an empty repo to production releases and long-
 
 ## Phase 8: Maintenance
 - Each client patch: check interface numbers and API changes on wago.tools, bump the TOCs, run the harness.
-- Bugs become the next devNNN with a hosted zip and in-game checks.
-- New work starts the next minor line (`X.Y+1.0-dev001`) with its own analysis and plan.
+- Bugs become the next build with a hosted zip and in-game checks.
+- New work starts the next minor line (`X.Y+1.0.1`) with its own analysis and plan.
 - Track issues on the addon repo; small notes for an issue go beside the plans.
 
 ## The documents that carry a project
@@ -68,8 +68,8 @@ How a new addon project runs from an empty repo to production releases and long-
 | --- | --- | --- |
 | Project instructions | The rules in short, the repos, how to start | When a rule changes |
 | `01_ANALYSIS.md` | What exists, gaps, constraints, numbered decisions with recommendations | Start of each project; decisions as the author answers |
-| `02_PLAN.md` | The step table: dev number, change, how to validate | As steps merge or split |
-| Status | Merged and open PRs, next dev number, open issues, parked ideas, items waiting on the author | Every step |
+| `02_PLAN.md` | The step table: build number, change, how to validate | As steps merge or split |
+| Status | Merged and open PRs, next build number, open issues, parked ideas, items waiting on the author | Every step |
 | history.txt | One section per version, newest first, plain bullets | Every version |
 | readme.txt | What the addon does for users | When features change |
 | Project memory | Decisions, preferences and facts a new thread would otherwise ask again | Whenever one is learned |

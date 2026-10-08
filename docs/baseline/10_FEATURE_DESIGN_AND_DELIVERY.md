@@ -24,15 +24,15 @@ Rules for the design:
 - Play the final decisions back to the author before the first stage starts.
 
 ## 2. Implementation plan: stages
-Cut the feature into stages. Each stage is one PR and one devNNN on the feature's line.
+Cut the feature into stages. Each stage is one PR and one build (`X.Y.Z.B`, the next build number) on the feature's line; a fix to a stage is the next build too.
 
-| Stage | devNNN | Change | Visible? | How it is validated |
+| Stage | Build | Change | Visible? | How it is validated |
 | --- | --- | --- | --- | --- |
-| 1 | `X.Y.0-dev001` | Groundwork: shared logic moved or added in the library folder, nothing visible changes | No | Harness green; look-compare "identical"; measured resident cost |
-| 2 | `X.Y.0-dev002` | Data: new counters or storage, with the migration | No | Migration run on every old layout and the author's real saves; save size measured |
-| 3 | `X.Y.0-dev003` | The smallest visible slice of the feature, behind its option (default OFF) | Yes | In-game checks; option off = no cost and no change |
-| 4.. | `X.Y.0-dev004`.. | One more visible piece per stage (one tab, one chart, one front end) | Yes | In-game checks for that piece, plus the earlier stages still passing |
-| Last | `X.Y.0-devNNN` | Polish, readme, edge cases from testing | Yes | Full regression: harness, look-compare, numbers match, real saves |
+| 1 | `X.Y.0.1` | Groundwork: shared logic moved or added in the library folder, nothing visible changes | No | Harness green; look-compare "identical"; measured resident cost |
+| 2 | `X.Y.0.2` | Data: new counters or storage, with the migration | No | Migration run on every old layout and the author's real saves; save size measured |
+| 3 | `X.Y.0.3` | The smallest visible slice of the feature, behind its option (default OFF) | Yes | In-game checks; option off = no cost and no change |
+| 4.. | `X.Y.0.4`.. | One more visible piece per stage (one tab, one chart, one front end) | Yes | In-game checks for that piece, plus the earlier stages still passing |
+| Last | `X.Y.0.B` | Polish, readme, edge cases from testing | Yes | Full regression: harness, look-compare, numbers match, real saves |
 | Release | `X.Y.0` | Version only, history section for the whole feature | | The author confirms the feature is complete |
 
 How to cut stages:
@@ -41,16 +41,16 @@ How to cut stages:
 - **A refactor that should change nothing is its own stage**, proven unchanged, never mixed with new behaviour.
 - **Keep stages small**: one concern per PR, ideally one folder or one window. If a stage grows while building, stop, split it, and tell the author before carrying on.
 - **One PR per stage, based on main**, after the previous stage has merged. Never stack PRs; a stage branch is cut from the main that already contains the stage before it.
-- Each stage's PR names its stage, its devNNN, what it changes and the measured cost of what it adds.
+- Each stage's PR names its stage, its build, what it changes and the measured cost of what it adds.
 
 ## 3. Delivering a stage
 1. Branch from the latest `origin/main` (which carries the previous stage).
 2. Build only that stage. Match the surrounding code (02 A3).
-3. Bump every TOC to the stage's devNNN; add its history section; update the readme if users see a change.
+3. Bump every TOC to the next build and add its history section (`sh tools/bump_version.sh build "Title"`); update the readme if users see a change.
 4. Run the validation for the stage (section 4) and fix until clean.
-5. Open the PR; build and host the test zip; give the author the link and a numbered list of exact in-game checks.
+5. Open the PR; build and host the test zip (`sh tools/host_build.sh`); give the author the link and a numbered list of exact in-game checks.
 6. The author tests and merges. Merging publishes the stage as a **pre-release** (09_RELEASE_PIPELINE.md).
-7. Update the status and the stage table (merged, next devNNN), then start the next stage.
+7. Update the status and the stage table (merged, next build), then start the next stage.
 
 ## 4. Validation between PRs
 Nothing starts on stage N+1 until stage N is merged and has passed:
@@ -67,18 +67,18 @@ Nothing starts on stage N+1 until stage N is merged and has passed:
 | Test zip in game | Every PR | The author's numbered in-game checks pass on the real client and real saves |
 | Earlier stages | Every PR | Earlier stages' checks still pass (the harness keeps them) |
 
-If a stage fails in game: fix it as the next devNNN on the same line (a new PR from main) before the next planned stage. Never fold a fix into an unrelated stage.
+If a stage fails in game: fix it as the next build on the same line (a new PR from main) before the next planned stage. Never fold a fix into an unrelated stage.
 
 ## 5. Finishing the feature
-- When every stage has merged and passed, run the full regression on the last devNNN.
+- When every stage has merged and passed, run the full regression on the last build.
 - Ask the author to confirm the feature is complete. Only then does a PR set the plain `X.Y.0` with a history section summing up the feature; merging it publishes the full release.
 - Mark the design document done, record anything learned in project memory, and park leftover ideas for a later line.
 
 ## 6. A worked shape (generic)
 A feature "show a breakdown chart in the options window", line `1.5.0`:
-1. `1.5.0-dev001`: move the totals query the chart needs into the library folder; the existing window calls it; look-compare identical.
-2. `1.5.0-dev002`: add a capped per-type counter with a migration; validated on real saves; no UI.
-3. `1.5.0-dev003`: draw the chart in the native window behind a new option (default OFF); option-off check; in-game checks.
-4. `1.5.0-dev004`: the same chart in the suite front end from the same library call; numbers-match check.
-5. `1.5.0-dev005`: fixes from testing, readme.
+1. `1.5.0.1`: move the totals query the chart needs into the library folder; the existing window calls it; look-compare identical.
+2. `1.5.0.2`: add a capped per-type counter with a migration; validated on real saves; no UI.
+3. `1.5.0.3`: draw the chart in the native window behind a new option (default OFF); option-off check; in-game checks.
+4. `1.5.0.4`: the same chart in the suite front end from the same library call; numbers-match check.
+5. `1.5.0.5`: fixes from testing, readme.
 6. `1.5.0`: production release once the author confirms.

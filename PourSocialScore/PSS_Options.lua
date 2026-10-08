@@ -66,7 +66,7 @@ local OPTIONS = {
 			{ "", "Default for the look" }, { "game", "Game text" }, { "names", "Unit names" }, { "damage", "Damage numbers" },
 			{ "friz", "Friz Quadrata" }, { "arialn", "Arial Narrow" }, { "morpheus", "Morpheus" }, { "skurri", "Skurri" },
 		},
-		tip = "Blizzard's fonts, and fonts other addons have shared through LibSharedMedia (listed once the new window has been opened). Default: Blizzard's own for the Blizzard and Modern looks, Arial Narrow for Dark." },
+		tip = "Blizzard's fonts, and fonts other addons have shared through LibSharedMedia (listed once the new window has been opened). Default: Blizzard's own for the Modern and Classic looks, Arial Narrow for Dark." },
 	-- EllesmereUI integration (PSS_EUI.lua); read at login, so a change asks for a reload
 	{ key = "euiIntegration",	kind = "bool",		default = false, section = 4, label = "Enable EllesmereUI integration",
 		reload = "EllesmereUI integration is now %s. Reload the UI to apply it.",

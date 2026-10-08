@@ -1,4 +1,4 @@
-# WoW addon baseline (2026-10-07, v5)
+# WoW addon baseline (2026-10-08, v6)
 
 The baseline for creating and maintaining any World of Warcraft addon with Claude: the author's frameworks, rules, styles, preferences, release pipeline and references. **It names no addon and no repository of ours.** Attach it to a fresh Claude project together with:
 - an **addon-specific pack** (that addon's purpose, repos, data layout, plans and status), and
@@ -8,7 +8,7 @@ The baseline for creating and maintaining any World of Warcraft addon with Claud
 1. Attach the addon repo and the hosting repo to the project.
 2. Fill in `PROJECT_INSTRUCTIONS_TEMPLATE.md` and paste it as the project instructions.
 3. Upload this zip, the addon pack and the hosting pack. Start with: "Read the baseline README, 02_RULES, 07_WORKING_WITH_THE_AUTHOR and 10_FEATURE_DESIGN_AND_DELIVERY, then the hosting pack and the addon pack, and confirm the next step."
-4. Where packs differ, the addon pack wins for that addon; this pack is the default for everything else.
+4. **This pack's rules are mandatory.** The addon pack adds what is specific to its addon and may override a rule here only by listing it in its Overrides table (rule, what applies instead, the author's OK and date; a known breach with the line that fixes it). Anything not listed follows this pack.
 
 ## Files
 | File | What it holds |
@@ -25,9 +25,16 @@ The baseline for creating and maintaining any World of Warcraft addon with Claud
 | 10_FEATURE_DESIGN_AND_DELIVERY.md | Feature design, implementation stages, one small testable PR per stage, validation between PRs |
 | PROJECT_INSTRUCTIONS_TEMPLATE.md | Paste-ready project instructions to fill in |
 | HANDOVER_TEMPLATE.md | Layout for the addon-specific pack when a thread gets long |
-| templates/ | release.yml, rules.yml, check_rules.sh, a TOC set, history.txt layout |
+| templates/ | release.yml (with full-release notes and the mirror job), rules.yml, check_rules.sh, bump_version.sh, host_build.sh, collect_notes.sh, summarize_notes.sh, a TOC set, history.txt layout |
 | examples/ | Harness tooling to adapt (stub, runner, style and layer checks, UI compare) |
 | reference/wow-api/ | WoW API reference set from the Warcraft Wiki: load order, TOC format and interface numbers, object security, taint, secure templates and handlers, Retail 12.x secret values. Reference only; its README lists where it differs from 02 |
+
+## Changes in v6
+- **Mandatory rules:** an addon pack overrides a rule only through its Overrides table (README step 4, 02 intro).
+- **Versions are `X.Y.Z.B`** (02 F, 07, 08, 09, 10, the instructions template): `B` is the build number on the line; every test zip, stage or fix takes the next one; every build is a pre-release; a plain `X.Y.Z` is the full release. Replaces `X.Y.0-devNNN`.
+- The rules check also fails a version of another shape, TOCs that disagree and a history.txt whose top section is another version (02 A12).
+- New tools in `templates/tools/`: `bump_version.sh` (next build, release or line), `host_build.sh` (test zip from HEAD, hosted), `collect_notes.sh` and `summarize_notes.sh` (a full release's notes, summarized for players by Claude).
+- `release.yml`: four-part versions are pre-releases; a full release gets the summarized notes and an optional `mirror` job publishes it on a second repo (09 section 6).
 
 ## Changes in v5
 - New 02 section J: security, taint and secret values (never write Blizzard state, post-hooks only, combat guards, `IsForbidden`, secret values on Retail 12.x, no combat log, restriction CVars, taint logs). C4 points to it.
