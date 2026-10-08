@@ -1,10 +1,10 @@
 ------------------------------------------------------------------------
 -- POUR SOCIAL SCORE UI - WINDOW
 --
--- The Pour Social Score window, 960 x 494. /pss gui (and /pss ui, /pss tui
--- until D2) and the Addon Compartment open it (M.PSS_OpenWindow); with the
--- option openWithFriends it opens beside the Friends or Social window and
--- closes with it (M.PSS_WindowDock / M.PSS_WindowUndock, 3.4.0.23). Dragged
+-- The Pour Social Score window, 960 x 494. /pss gui (and /pss ui) and the
+-- Addon Compartment open it (M.PSS_OpenWindow); with the option
+-- openWithFriends it opens beside the Friends or Social window and closes
+-- with it (M.PSS_WindowDock / M.PSS_WindowUndock, 3.4.0.23). Dragged
 -- elsewhere it remembers the place (Libraries M.PSS_UIPlace) and the tab
 -- shown (M.PSS_UITab).
 --
@@ -513,8 +513,6 @@ function M.PSS_OpenWindow(show)
 	win:Show()
 	win:Raise()
 end
--- /pss tui until the old windows are gone (D2)
-M.PSS_TUI = M.PSS_OpenWindow
 
 -- The Friends or Social window opened (core PSS_BlizzardUI.lua, option
 -- openWithFriends): the window sits beside it (x from its right edge) and

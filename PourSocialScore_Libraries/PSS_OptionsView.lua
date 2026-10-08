@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- POUR SOCIAL SCORE - OPTIONS AND IMPORT/EXPORT VIEW (for PourSocialScore_UI)
+-- POUR SOCIAL SCORE - OPTIONS AND IMPORT/EXPORT VIEW (for PourSocialScore_GUI)
 --
 -- What the window's Options and Import/Export tabs show and do, worked out
 -- here so the tabs only draw. Options come from M.PSS_OPTIONS (the one

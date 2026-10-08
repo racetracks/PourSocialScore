@@ -1,11 +1,10 @@
 ------------------------------------------------------------------------
 -- POUR SOCIAL SCORE - CHAT FILTER QUERIES (3.1)
 --
--- What a front end needs to show the Chat Filters, so the PSS window
--- (PourSocialScore_GUI) and the EllesmereUI window
--- (PourSocialScore_EllesmereUI) list, test and convert them the same way.
--- It is in PourSocialScore_Libraries, which both windows load first, so
--- none of it is in memory until a window opens. No events, no timers, and
+-- What a front end needs to show, test and convert the Chat Filters (the
+-- PSS window, PourSocialScore_GUI). It is in PourSocialScore_Libraries,
+-- which the window loads first, so none of it is in memory until the
+-- window opens. No events, no timers, and
 -- every table a query fills belongs to the caller (reused on every redraw).
 --   M.PSS_FilterCount()                 total, built-in, custom, on
 --   M.PSS_FilterRow(i, into)            one filter as shown

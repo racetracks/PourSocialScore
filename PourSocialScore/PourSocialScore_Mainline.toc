@@ -5,7 +5,7 @@
 ## Group: PourSocialScore
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
-## Version: 3.4.0.24
+## Version: 3.4.0.25
 ## SavedVariables: PourSocialScoreDB
 ## Dependencies: PourSocialScore_Options
 ## OptionalDeps: PoorSocialScore, GlobalIgnoreList
@@ -29,5 +29,4 @@ PSS_WhoisHarvest.lua
 PSS_Upgrade.lua
 PourSocialScore.lua
 PSS_Options.lua
-PSS_EUI.lua
 PSS_BlizzardUI.lua

@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.25 - New PSS window: one window (cutover)
+
+- The Pour Social Score window now lives in the PourSocialScore_GUI folder, in place of the old window. Nothing about the window changes: same look, layout and features.
+- Removed: the old window's code, the EllesmereUI window (PourSocialScore_EllesmereUI) and the temporary PourSocialScore_UI folder. Install the whole zip over the old one as usual.
+- If PourSocialScore_EllesmereUI or PourSocialScore_UI is still in your AddOns folder, Pour Social Score says so once at login; you can delete them.
+- /pss tui is gone; /pss gui (or /pss ui) opens the window.
+- Upgrade: the EllesmereUI integration setting and the old window's sizes, column widths and places are removed from your saved data. Your lists, rules, counts, history and the new window's place are kept.
+
 => 3.4.0.24 - New PSS window: arrows above the tabs
 
 - The window's back / forward arrows and the line naming the view now sit above the tab row, and the tabs sit straight above the page (Dan, 2026-10-08). The same in all three looks.

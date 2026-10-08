@@ -57,7 +57,7 @@ local OPTIONS = {
 	{ key = "gcEnabled",		kind = "bool",		default = true,		section = 4, label = "Background memory cleanup (out of combat, never causes a hitch)" },
 	{ key = "frameStrata",		kind = "choice", default = 3,		section = 4, label = L["OPT_25"],
 		choices = { { 0, "LOW" }, { 1, "MEDIUM" }, { 2, "HIGH" }, { 3, "DIALOG" } } },
-	-- The window (PourSocialScore_UI, /pss gui): its look
+	-- The window (PourSocialScore_GUI, /pss gui): its look
 	{ key = "uiSkin",			kind = "choice", default = 2,		section = 4, label = "Look of the Pour Social Score window",
 		choices = { { 2, "Modern (Default)" }, { 0, "Classic" }, { 1, "Dark" } },
 		tip = "Modern: the art of Blizzard's new Social window (Retail; other clients show the Classic look). Classic: Blizzard's classic window art and fonts. Dark: flat and dark. All have the same layout." },
@@ -67,9 +67,6 @@ local OPTIONS = {
 			{ "friz", "Friz Quadrata" }, { "arialn", "Arial Narrow" }, { "morpheus", "Morpheus" }, { "skurri", "Skurri" },
 		},
 		tip = "Blizzard's fonts, and fonts other addons have shared through LibSharedMedia (listed once the new window has been opened). Default: Blizzard's own for the Modern and Classic looks, Arial Narrow for Dark." },
-	-- EllesmereUI integration: retired at 3.4.0.23 (the window's Dark look
-	-- replaces it); not listed, nothing reads it, pruned from saves at D2
-	{ key = "euiIntegration",	kind = "bool",		default = false, section = 4, label = "Enable EllesmereUI integration", retired = true },
 	-- Whois scans (Scan, Scan All, Custom, Guild Search): see PSS_WhoisHarvest.lua.
 	-- The cap is drawn in the tickbox's row (field) and must be set to tick it.
 	{ key = "whoLevelCapOn",	kind = "bool",		default = false, section = 5, label = "Enable scan level cap", field = "whoLevelCap",

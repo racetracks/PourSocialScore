@@ -1,13 +1,12 @@
 -- The new window's Guild Ignore List tab, part 1 (3.4.0-dev008), as a
--- run.lua script on any save, real ones included: /pss tui builds it; with
+-- run.lua script on any save, real ones included: /pss gui builds it; with
 -- nothing selected the pane shows the list's totals (equal to
 -- M.PSS_ListTotals); the rows are the core's (M.PSS_GuildRows with the
 -- Managed Communities row) with Libraries' text; then, on 300 added
 -- guilds: pooled rows, sorting, search, selection, headings that open and
 -- close, Exclude, Scan All with its status tip and the /who cooldown,
 -- Guild Search with the results picker (Save, Tick All, Escape) for this
--- window only, an exclusion search with nothing found, Add Guild. Neither
--- old window loads.
+-- window only, an exclusion search with nothing found, Add Guild.
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL guilds: " .. msg) fail = true end end
 
@@ -31,7 +30,6 @@ local function CheckExceptions(ex, t, parent, what)
 		check((t.opts == nil or t.opts[key] == nil) and not b.label:GetText():find("exception", 1, true), what .. " " .. key .. ": exception not removed")
 	end
 end
-local loaded = C_AddOns.IsAddOnLoaded
 
 -- /who: every filter sent, and the answer the next WHO_LIST_UPDATE reads
 local sent, answer = {}, {}
@@ -157,10 +155,10 @@ local n0 = #sent
 page.scanAll._scripts.OnClick(page.scanAll)
 check(#sent == n0 + 1, "Scan All sent nothing")
 local tipText
-local realTip = H.Private("PourSocialScore_UI").Tip
-H.Private("PourSocialScore_UI").Tip = function(_, t) tipText = t end
+local realTip = H.Private("PourSocialScore_GUI").Tip
+H.Private("PourSocialScore_GUI").Tip = function(_, t) tipText = t end
 page.scanAll._scripts.OnEnter(page.scanAll)
-H.Private("PourSocialScore_UI").Tip = realTip
+H.Private("PourSocialScore_GUI").Tip = realTip
 check(tipText and tipText:find("Guilds swept", 1, true) and tipText:find("Waiting for the /who answer", 1, true), "Scan All tip: " .. tostring(tipText))
 answerWho({})
 H.RunTimers(1)
@@ -212,7 +210,7 @@ _G.PSS_WindowEscape:Hide()
 check(win:IsShown() and not picker:IsShown() and list.scroll:IsVisible(), "Escape did not close the results")
 check(not M.PSS_IsGuildListed("Tui Other Guild"), "Escape saved the ticked guild")
 -- another window's search does not open ours
-M.Events.Fire("GUILD_SEARCH_RESULTS", { "Elsewhere Guild" }, "Else", nil, "eui")
+M.Events.Fire("GUILD_SEARCH_RESULTS", { "Elsewhere Guild" }, "Else", nil, "other")
 check(not picker:IsShown(), "another window's results opened here")
 
 -- an exclusion search with nothing found offers to add the name anyway
@@ -234,12 +232,11 @@ page.addButton._scripts.OnClick(page.addButton)
 H.RunTimers()
 check(M.PSS_IsGuildListed("Tui Added Guild") and V.selKind == "guild" and V.sel == M.PSS_NormalizeGuild("Tui Added Guild"),
 	"Add Guild did not add and select")
-check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
 
 ------------------------------------------------------------------------
 -- B4 (3.4.0-dev009): the detail bodies, the members view, the confirms
 ------------------------------------------------------------------------
-local ui = H.Private("PourSocialScore_UI")
+local ui = H.Private("PourSocialScore_GUI")
 local function reselect(k)
 	V.dirty = true
 	page.refresh()
@@ -452,6 +449,5 @@ do
 end
 win.tabs[2]._scripts.OnClick(win.tabs[2])
 check(V.selKind == nil and V.view == "guilds" and pane.totals.frame:IsShown(), "a tab click did not reset the tab")
-check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
 
 if not fail then print(("PASS guilds (%d rules)"):format(M.PSS_GuildCount())) end

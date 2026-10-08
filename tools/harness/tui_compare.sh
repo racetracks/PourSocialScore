@@ -1,5 +1,5 @@
 #!/bin/sh
-# Checks that the new window (/pss tui) looks the same as another version in
+# Checks that the window (/pss gui) looks the same as another version in
 # all three looks: runs tui_tour.lua on both and compares what each step
 # showed (3.4.0.16).
 #   sh tools/harness/tui_compare.sh [git ref, default origin/main] [save.lua]

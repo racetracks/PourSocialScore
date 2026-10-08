@@ -13,10 +13,6 @@
 --           last 24 hours)
 --     guildRows: for "guilds", a table M.PSS_GuildRows already filled
 --           (its counts are added up instead of read again); nil reads them
---   M.PSS_RecentListStats(kind, session, day) (3.3.0-dev002)
---     a list's this session and last 24 hours blocks for the PSS window's
---     count lines: session.total, day.total and one count per block type
---     (both tables reused). The same numbers as the EllesmereUI window.
 --   History.RecentByCat(owner, into, prefix) (3.2.0-dev010)
 --     this session's and the last 24 hours' blocks by type of owner, or
 --     with prefix set of every owner whose key starts with it:
@@ -78,18 +74,6 @@ function M.PSS_ListTotals(kind, into, guildRows)
 		into.session, into.day = History.RecentTotals(PREFIX[kind])
 	end
 	return into
-end
-
-local byCat = {}
-function M.PSS_RecentListStats(kind, session, day)
-	local prefix = PREFIX[kind]
-	History.RecentByCat(nil, byCat, prefix)
-	for k in pairs(session) do session[k] = nil end
-	for k in pairs(day) do day[k] = nil end
-	for cat, n in pairs(byCat.session) do session[cat] = n end
-	for cat, n in pairs(byCat.day) do day[cat] = n end
-	session.total, day.total = History.RecentTotals(prefix)
-	return session, day
 end
 
 local function zero(t)

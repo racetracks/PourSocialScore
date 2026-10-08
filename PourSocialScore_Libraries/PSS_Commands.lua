@@ -262,12 +262,12 @@ function M.PSS_SlashPSS (msg)
 
 	elseif (args[1] == "gui" and args[2] == "force") or args[1] == "eui" then
 
-		-- the old windows and the EllesmereUI switch are gone (3.4.0.23)
+		-- the old windows and the EllesmereUI switch are gone (3.4.0.23):
+		-- say so to anyone who still types them
 		M.ShowMsg(L["CMD_GONE"])
 
-	elseif args[1] == "gui" or args[1] == "ui" or args[1] == "tui" then
+	elseif args[1] == "gui" or args[1] == "ui" then
 
-		-- /pss tui: the new window's name while it was built, until D2
 		M.PSS_OpenUI()
 
 	elseif args[1] == "sync" then

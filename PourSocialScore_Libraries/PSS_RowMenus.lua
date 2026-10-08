@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- POUR SOCIAL SCORE - RIGHT-CLICK MENUS (for PourSocialScore_UI)
+-- POUR SOCIAL SCORE - RIGHT-CLICK MENUS (for PourSocialScore_GUI)
 --
 -- What each list's right-click menu offers, worked out here so the window
 -- only draws it (3.4.0.21, C2). A menu is a list of entries:

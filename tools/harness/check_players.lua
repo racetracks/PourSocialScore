@@ -1,12 +1,11 @@
 -- The new window's Player Ignore List tab (3.4.0-dev007), as a run.lua
--- script on any save, real ones included: /pss tui builds it; with nothing
+-- script on any save, real ones included: /pss gui builds it; with nothing
 -- selected the pane shows the list's totals (equal to M.PSS_ListTotals);
 -- then, on 200 added players, an NPC and a server: pooled rows, sorting,
 -- search, the detail pane (lines from Libraries, note, expiry, W I G P C,
 -- exceptions), a block counted at once with the Summary pie, the history
 -- loaded only on Show Block History, confirmed removal and Add Player; the
--- close button and the title sit above the frame art. Neither old window
--- loads.
+-- close button and the title sit above the frame art.
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL players: " .. msg) fail = true end end
 
@@ -34,13 +33,12 @@ local loaded = C_AddOns.IsAddOnLoaded
 
 SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
-check(win and win:IsShown(), "/pss tui did not open the window")
+check(win and win:IsShown(), "/pss gui did not open the window")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 local page = win.pages[1]
 local list, pane = page.list, page.pane
 check(page:IsShown() and list and pane, "Players tab not built")
 check(not page.note:IsShown(), "the built tab still shows its note")
-check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
 
 -- the close button and the title above the frame art (its border is drawn
 -- at a fixed level of about 500)
@@ -311,6 +309,5 @@ end
 -- a tab click deselects
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(pane.totals.frame:IsShown() and not pane.body:IsShown(), "a tab click did not deselect")
-check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
 
 if not fail then print(("PASS players (%d listed)"):format(M.PSS_PlayerCount())) end

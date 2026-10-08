@@ -13,15 +13,15 @@ V.nameUI = ""		-- the player the note and expiry popups are for
 -- WINDOW --
 -------------
 
--- The old windows (PourSocialScore_GUI, PourSocialScore_EllesmereUI) are no
--- longer opened from 3.4.0.23 and go at D2; until then M.PSSUpdateUI is
--- theirs to replace when loaded (the harness still checks them), and
--- M.PSS_GUI loads the old one for those checks only.
-M.PSSUpdateUI = function() end
-M.PSS_Stub("PSS_GUI", "GUI")
+-- The Pour Social Score window (PourSocialScore_GUI, loaded on demand; the
+-- new window from 3.4.0): /pss gui, /pss ui and the Addon Compartment open
+-- it. show true: open, never toggle shut.
+function M.PSS_OpenUI(show)
+	if M.PSS_Need("GUI") and M.PSS_OpenWindow then M.PSS_OpenWindow(show) end
+end
 
--- The window (PourSocialScore_UI, from 3.4.0.23) opens beside the Friends
--- window when the option openWithFriends is on, and closes with it.
+-- The window opens beside the Friends window when the option
+-- openWithFriends is on, and closes with it.
 -- Retail 12.1 opens the Social window (SocialUIFrame) for the Friends key
 -- and button; FriendsFrame only shows for the Who tab. Both are hooked, and
 -- the window follows whichever opened. SocialUIFrame has its tabs on its
@@ -35,7 +35,7 @@ end
 
 local function hostShow(host)
 	if not M.PSS_Opt("openWithFriends") then return end
-	if M.PSS_Need("UI") and M.PSS_WindowDock then M.PSS_WindowDock(host, HOST_X[host]) end
+	if M.PSS_Need("GUI") and M.PSS_WindowDock then M.PSS_WindowDock(host, HOST_X[host]) end
 end
 -- switching Social to the Who tab hides one host and shows the other: the
 -- window stays while either is still shown
@@ -53,6 +53,28 @@ end
 -----------------------------------------
 -- POPUPS AND ALERTS (fire during play) --
 -----------------------------------------
+
+-- The reload prompt: Blizzard's StaticPopup in every look (Dan,
+-- 2026-10-08). Camelot (interface 16001) blocks ReloadUI() from addon code.
+local camelot = GetBuildInfo and (select(4, GetBuildInfo()) or 0) < 20000
+
+StaticPopupDialogs["PSS_RELOAD"] = {
+	preferredIndex	= STATICPOPUPS_NUMDIALOGS,
+	text			= "%s",
+	button1			= RELOADUI or "Reload UI",
+	button2			= LATER or "Later",
+	whileDead		= 1,
+	hideOnEscape	= 1,
+	OnAccept		= function() ReloadUI() end,
+}
+
+function M.PSS_AskReload(text)
+	if camelot then
+		M.ShowMsg(text .. " Type /reload.")
+	else
+		StaticPopup_Show("PSS_RELOAD", text)
+	end
+end
 
 StaticPopupDialogs["PSS_REASON"] = {
 

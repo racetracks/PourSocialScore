@@ -1,9 +1,9 @@
 -- The kit preview (3.4.0-dev002 to dev005), kept for the harness: it
--- builds every control of PourSocialScore_UI's kit on a frame of its own,
+-- builds every control of the window's kit (PourSocialScore_GUI) on a frame of its own,
 -- in three preview tabs (controls; lists and the pie; menus and popups),
 -- so check_tui.lua can check each look. It left the window in dev006
 -- (the window's six tabs took its place). Load it with the UI's namespace:
---   loadfile("tools/harness/kit_page.lua")("PourSocialScore_UI", H.Private("PourSocialScore_UI"))
+--   loadfile("tools/harness/kit_page.lua")("PourSocialScore_GUI", H.Private("PourSocialScore_GUI"))
 local ADDON_NAME, ns = ...
 
 local NAMES = { "Controls", "Lists and pie", "Menus and popups" }

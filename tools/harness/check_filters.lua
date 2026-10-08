@@ -1,5 +1,5 @@
 -- The new window's Chat Filters tab (3.4.0-dev010), as a run.lua script on
--- any save, real ones included: /pss tui builds it; with nothing selected
+-- any save, real ones included: /pss gui builds it; with nothing selected
 -- the pane shows every filter's totals (M.PSS_ListTotals); the rows are the
 -- core's with Libraries' text; search, sort; a built-in is read only (On
 -- works); Copy, New Filter, Save, Test; a link shift-clicked in chat goes
@@ -7,7 +7,7 @@
 -- Retail 12.x, never acting while the pane is hidden); a blocked Trade line
 -- is counted at once with the Summary pie, the history only on Show Block
 -- History; Reset Count keeps the history; a guild rule has View/Edit Rule
--- only; Remove and Reset Defaults ask first. Neither old window loads.
+-- only; Remove and Reset Defaults ask first.
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL filters: " .. msg) fail = true end end
 local loaded = C_AddOns.IsAddOnLoaded
@@ -222,6 +222,5 @@ do
 	ok = M.PSS_FilterRemove(1, "no such filter", 1)
 	check(not ok, "Remove took a row whose description changed")
 end
-check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
 
 if not fail then print(("PASS filters (%d filters)"):format(M.PSS_FilterCount())) end

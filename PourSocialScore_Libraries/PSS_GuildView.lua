@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- POUR SOCIAL SCORE - GUILD IGNORE LIST VIEW (for PourSocialScore_UI)
+-- POUR SOCIAL SCORE - GUILD IGNORE LIST VIEW (for PourSocialScore_GUI)
 --
 -- What the window's Guild Ignore List tab shows and does, worked out here
 -- so the tab only draws: the grouped list's sort, search and selection,

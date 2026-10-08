@@ -2,10 +2,9 @@
 -- POUR SOCIAL SCORE - GUILD IGNORE LIST QUERIES (3.1)
 --
 -- What a front end needs to show the Guild Ignore List and a guild's
--- members, so the PSS window (PourSocialScore_GUI) and the EllesmereUI
--- window (PourSocialScore_EllesmereUI) list them the same way. It is in
--- PourSocialScore_Libraries, which both windows load first, so none of it
--- is in memory until a window opens. No events, no timers, and every
+-- members (the PSS window, PourSocialScore_GUI). It is in
+-- PourSocialScore_Libraries, which the window loads first, so none of it
+-- is in memory until the window opens. No events, no timers, and every
 -- table a query fills belongs to the caller (reused on every redraw).
 --   M.PSS_GuildCount()                    guild rules on the list
 --   M.PSS_GuildRows(key, asc, find, into)   the list in display order
