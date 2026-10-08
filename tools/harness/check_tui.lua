@@ -373,6 +373,17 @@ c2:SetChecked(false)
 check(e1.pssParts.modernBox:IsShown() and not e1.pssParts.fill:IsShown(), "Modern box art not shown")
 -- the window on black, pages under a divider, boxes as cards
 check(win.art.black and win.art.black:IsShown() and art.blizzard:IsShown(), "Modern window not the metal frame on black")
+-- the template's stone background fades; its streak strip stays behind the
+-- tabs (the stub's template has neither: stand-ins)
+do
+	local bz = art.blizzard
+	bz.Bg, bz.TopTileStreaks = bz:CreateTexture(), bz:CreateTexture()
+	H.Private("PourSocialScore_UI").Repaint()
+	check(bz.Bg:GetAlpha() == 0 and bz.TopTileStreaks:GetAlpha() == 1, "Modern does not keep the streaks behind the tabs")
+	M.PSS_SetOpt("uiSkin", "global", 0)
+	check(bz.Bg:GetAlpha() == 1 and bz.TopTileStreaks:GetAlpha() == 1, "Blizzard look lost its background")
+	M.PSS_SetOpt("uiSkin", "global", 2)
+end
 local pg = kit.pages[1]
 check(pg.pssParts.divider:IsShown() and not pg.pssParts.card:IsShown() and not pg.pssParts.art:IsShown(), "Modern page not on black under a divider")
 -- tabs: the gold-framed plate, the selected glow on the selected one only

@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev008_2 - New PSS window: Modern tab row background
+
+- Modern: the strip behind the tabs is the Blizzard frame's streaked top band (as in the AddOns list) instead of plain black; the rest of the window stays black.
+
 => 3.4.0-dev008 - New PSS window: Guild Ignore List tab, part 1
 
 - The Guild Ignore List tab works in /pss tui, laid out like the EllesmereUI window: the Managed Communities row with the default guild lists under it, the Guild Exclusion List, and every other guild, with Members, Blocked and Scan columns. Headings open and close with a click; a list whose rule is off is dimmed.

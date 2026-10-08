@@ -435,9 +435,9 @@ local function Build()
 		if black then
 			local modern = ns.IsModern()
 			black:SetShown(modern)
-			for _, k in ipairs({ "Bg", "TopTileStreaks" }) do
-				if blizz[k] and blizz[k].SetAlpha then blizz[k]:SetAlpha(modern and 0 or 1) end
-			end
+			-- the stone background goes; the frame's streak strip stays behind
+			-- the tab row (Dan, 2026-10-08: as the AddOns list draws it)
+			if blizz.Bg and blizz.Bg.SetAlpha then blizz.Bg:SetAlpha(modern and 0 or 1) end
 		end
 		-- a client without any Blizzard frame template falls back to Dark art
 		local useDark = isDark or not blizz
