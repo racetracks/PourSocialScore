@@ -28,8 +28,17 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - Import (`PSS_ImportExport.lua:344`): normalise, and check the shipped lists.
   - `PSS_FlushManaged`: stops saving the runtime fields `_canon`, `_gkey`, `_managed` and `_virtual`.
 - **Left by N1 for N2 (2026-10-08; Dan answered both, decisions 13 and 14):**
-  - Display still takes the realm spelling from `V.serverName` (`Classicbetapvp`). **N2 moves display to `GetNormalizedRealmName` (`ClassicBetaPvP`)** (decision 13).
-  - `M.PSS_CharKey` (per-character options) still joins `UnitName("player")` as before. **Dan's own character has a surname** (decision 14), so N2 builds the key through `M.PSS_NormName(name, realm, "player")` and moves the old `first-last` key's settings to the new key once (run-once, keeps the old values, validated on the 3.4.0.28 save; Dan's OK given for this save change).
+  - Display keeps the realm spelling from `V.serverName` (`Classicbetapvp`). **Decision 13 reversed (Dan, 2026-10-08): realm names are not changed.**
+  - `M.PSS_CharKey` is built through `M.PSS_NormName(name, realm, "player")` (decision 14, done in N2). The unit `"player"` always reads a second value as a surname. Nothing in any save is keyed by it (it only fills the export's `by` field), so there were no settings to move and no save change.
+- **Done in N2 (3.4.1.33):**
+  - `scanUnit` and the unit menu build names through `M.PSS_UnitFullName` / `M.PSS_NormName` with the unit.
+  - `/pss add` on a target passes the whole name (`exactName`).
+  - Blizzard's Ignore hooks fix a `"First-Last"` they are handed when a unit (target, mouseover, focus, group) has that name and surname (`M.PSS_FixUnitName`); a removal also looks up the old form.
+  - Your own name (`M.PSS_PlayerDisplayName`) replaces `UnitName("player")` in the self checks (`isSelf`, adding yourself).
+  - `M.PSS_SplitNameArg`: two words are the name off Retail, or when "First Last" is listed; quotes still work.
+  - Import normalises the member key and merges a shipped member into its shipped record (`M.PSS_MergeIntoShipped`).
+  - `PSS_FlushManaged` no longer writes `_canon`, `_gkey` and `_virtual`. **`_managed` is still written:** the member count reads it while the lists are not loaded; it goes with the accessors in S2 and step 8 in S3.
+  - The roster warning already uses `GetUnitName(unit, true)`, which gives "First Last" (confirmed in game); unchanged.
 - **Shipped lists:** `tools/PSS_BuildManaged.lua` rejects or converts surname-as-realm names. Of its 212 entries, 196 are dropped and 16 converted (decision 6); the data file is rebuilt and re-measured.
 
 ### 2.2 SavedVariables (appendix 03)
@@ -134,7 +143,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | Plan | 3.4.1.31 | This plan; working rules (one stage per session, context updated in every PR, state re-summarized at release, Dan's preferences in `11_PREFERENCES.md`); baseline v9; CLAUDE.md loads less | No | `check_rules.sh` | PR #119 |
 | (Dan) | | Run the six `/dump` lines of 2.1 on Camelot and paste the output | | Confirms the cause before N1 | Done 2026-10-08 (2.1) |
 | N1 | 3.4.1.32 | `M.PSS_NormName`; the existing name helpers call it; `check_names.lua` | No (only `PSS_UnitFullName` on a Camelot surname target) | Every key on the four saves unchanged except the Camelot surname case | PR #120 |
-| N2 | 3.4.1.33 | Every name caller (2.1), multi-word `/pss add/remove/expire`, import with the managed check, runtime fields not flushed; also the two points N1 left (2.1 notes) | Yes | On Camelot, "First Last" added from the menu, Ignore and `/pss add`; Retail unchanged; the restriction CVars run | |
+| N2 | 3.4.1.33 | Every name caller (2.1), multi-word `/pss add/remove/expire`, import with the managed check, runtime fields not flushed; `M.PSS_CharKey` (decision 14; decision 13 reversed) | Yes | On Camelot, "First Last" added from the menu, Ignore and `/pss add`; Retail unchanged; the restriction CVars run | PR #121 |
 | N3 | 3.4.1.34 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | |
 | F1 | 3.4.1.35 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
 | F2 | 3.4.1.36 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |
@@ -179,7 +188,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 10. A downgrade prints one line and keeps the newer record. **Dan's addition:** check every saved field and rule against the code that uses it, tell the player which rules are incompatible, offer to export them, and make the layout as forward compatible as possible so the saves are not readdressed again (2.3).
 11. Expiry is applied at login and when a list opens (a bug fix).
 12. The name cause is confirmed in game with `/dump` before N1.
-13. Names show the realm as the game spells it (`GetNormalizedRealmName`, `ClassicBetaPvP`), in N2 (Dan, 2026-10-08).
+13. ~~Names show the realm as the game spells it (`GetNormalizedRealmName`, `ClassicBetaPvP`), in N2.~~ **Reversed (Dan, 2026-10-08): do not change realm names.**
 14. Dan's own character has a surname: N2 fixes `M.PSS_CharKey` and moves its per-character settings to the new key (Dan, 2026-10-08).
 
 ## 6. Risks

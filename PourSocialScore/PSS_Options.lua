@@ -88,7 +88,7 @@ local charKeyCache
 local function charKey()
 	if not charKeyCache and UnitName then
 		local n, r = UnitName("player")
-		if n then charKeyCache = M.PSS_NormalizePlayer((r and r ~= "") and (n .. "-" .. r) or n) end
+		charKeyCache = select(2, M.PSS_NormName(n, r, "player"))
 	end
 	return charKeyCache
 end

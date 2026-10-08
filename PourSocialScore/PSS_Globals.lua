@@ -135,6 +135,9 @@ end
 -- Split "name [rest]" typed by the user. The name may contain a space:
 --   "First Last-Realm note"   (a word with "-" within the first 3 words ends the name)
 --   "\"First Last\" note"      (quotes; the name may then have no realm)
+--   "First Last [days] [note]" (two words, the second not a number: a
+--                              listed "First Last", or any name on a client
+--                              other than Retail, where names have a space)
 -- Anything else: the first word is the name, as before.
 function M.PSS_SplitNameArg(str)
 	str = M.trim(tostring(str or ""))
@@ -147,6 +150,10 @@ function M.PSS_SplitNameArg(str)
 	if not string.find(words[1], "-", 1, true) then
 		for k = 2, math.min(3, #words) do
 			if string.find(words[k], "-", 1, true) then last = k break end
+		end
+		if last == 1 and words[2] and not tonumber(words[2]) then
+			local two = words[1] .. " " .. words[2]
+			if V.wowIsRetail ~= true or (M.PSS_IsPlayerListed and M.PSS_IsPlayerListed(two)) then last = 2 end
 		end
 	end
 	local name = table.concat(words, " ", 1, last)

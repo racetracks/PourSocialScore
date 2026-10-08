@@ -1,6 +1,15 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.33 - Core uplift N2: every name caller
+
+- On WoW Forever, a player with a surname ("First Last") is now listed by their whole name from every place you can add them: the PSS entry of the right-click menu, Blizzard's own Ignore, /pss add on your target, and players seen around you for guild rules. Before, they were saved as "First" on a realm called "Last" and never blocked.
+- On WoW Forever, /pss add, /pss remove and /pss expire take two words as the name: /pss add John Smith 30 spams trade. A one-word name with a note goes in quotes: /pss add "Bob" spams.
+- Your own character's surname is no longer read as a realm (your own lines, and adding yourself by mistake).
+- Importing a guild list no longer stores a second copy of someone already on a shipped list; their note and settings go onto the shipped entry.
+- Shipped guild members you changed are saved a little smaller (three internal fields are no longer written).
+- Realm names are shown as before.
+
 => 3.4.1.32 - Core uplift N1: one name normaliser
 
 - Groundwork for the WoW Forever name fixes: every name and realm is now joined in one place.

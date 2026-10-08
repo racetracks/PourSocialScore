@@ -228,8 +228,9 @@ function M.PSS_UnitMenuPlayer (owner, root, contextData)
 	if type(contextData) ~= "table" then return end
 	if contextData.bnetIDAccount and not contextData.unit then return end	-- a Battle.net friend, not a character
 	local target, server
-	if contextData.unit and UnitExists(contextData.unit) then
-		target, server = UnitName(contextData.unit)
+	local unit = contextData.unit and UnitExists(contextData.unit) and contextData.unit or nil
+	if unit then
+		target, server = UnitName(unit)
 	else
 		-- menus opened from a name in chat carry the name, not a unit
 		target, server = contextData.name, contextData.server
@@ -237,15 +238,11 @@ function M.PSS_UnitMenuPlayer (owner, root, contextData)
 	-- secret check first: a secret value can't even be compared with ""
 	if type(target) ~= "string" or M.PSS_IsSecret(target) or target == "" then return end
 	if server ~= nil and (type(server) ~= "string" or M.PSS_IsSecret(server)) then server = nil end
-	if contextData.unit and UnitIsUnit and UnitExists(contextData.unit) and UnitIsUnit(contextData.unit, "player") then return end
+	if unit and UnitIsUnit and UnitIsUnit(unit, "player") then return end
 
-	if server == nil or server == "" then
-		target = M.addServer(target)
-	else
-		target = target .. "-" .. server
-	end
-
-	target = M.Proper(target, true)
+	-- one join for every name: a unit's surname (Camelot) is not a realm
+	target = M.PSS_NormName(target, server, unit)
+	if not target then return end
 
 	local text = ""
 
