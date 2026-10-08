@@ -7,12 +7,10 @@
 # only a plain X.Y.Z is a full release. Older suffixed versions (3.4.0-dev012)
 # stay pre-releases too.
 # A full release's notes cover every build since the previous full release
-# (tools/collect_notes.sh), summarized for players by Claude
-# (tools/summarize_notes.sh; secret ANTHROPIC_API_KEY, optional: without it
-# the notes are the plain list of changes). Job "mirror" then publishes the
-# full release, with the same zip and notes, on $MIRROR_REPO (secret
-# MIRROR_TOKEN: contents read and write on that repo). Pre-releases are not
-# mirrored.
+# (tools/collect_notes.sh), as one list with repeats removed. Job "mirror"
+# then publishes the full release, with the same zip and notes, on
+# $MIRROR_REPO (secret MIRROR_TOKEN: contents read and write on that repo).
+# Pre-releases are not mirrored.
 name: Release
 
 on:
@@ -49,8 +47,6 @@ jobs:
 
       - name: Build zip and notes
         if: steps.v.outputs.exists == 'false'
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           ver=${{ steps.v.outputs.version }}
           mkdir -p build
@@ -72,8 +68,8 @@ jobs:
                 ' history.txt
                 ;;
               *)
-                sh tools/collect_notes.sh "$ver" > sections.txt
-                sh tools/summarize_notes.sh "$ver" sections.txt
+                echo "### Changes since the last release"
+                sh tools/collect_notes.sh "$ver" | grep '^- ' | awk '!seen[$0]++'
                 ;;
             esac
             echo
