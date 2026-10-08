@@ -247,6 +247,43 @@ function ns.ShowArt(frame, dark, keep)
 	end
 end
 
+-- The window's frame art in Classic and Modern, for the window and its
+-- popups alike: a Blizzard window frame template of our own (the metal
+-- frame and its stone background), its portrait, title, close button and
+-- inset hidden (ours are used). Modern puts the frame on black, as
+-- Blizzard's new Social window does (art.pssBlack). nil when the client
+-- has no such template (the Dark art is used then).
+local FRAME_TEMPLATES = { "ButtonFrameTemplate", "PortraitFrameTemplate", "BasicFrameTemplateWithInset" }
+
+function ns.NewFrameArt(parent)
+	for _, t in ipairs(FRAME_TEMPLATES) do
+		local ok, f = pcall(CreateFrame, "Frame", nil, parent, t)
+		if ok and f then
+			f:SetAllPoints(parent)
+			f:SetFrameLevel(parent:GetFrameLevel())
+			f:EnableMouse(false)
+			if ButtonFrameTemplate_HidePortrait and t == "ButtonFrameTemplate" then
+				pcall(ButtonFrameTemplate_HidePortrait, f)
+			end
+			if f.CloseButton then f.CloseButton:Hide() end
+			if f.TitleText then f.TitleText:Hide() end
+			if f.TitleContainer and f.TitleContainer.TitleText then f.TitleContainer.TitleText:Hide() end
+			if f.Inset then f.Inset:Hide() end
+			local black = ns.Own(f:CreateTexture(nil, "BACKGROUND", nil, -5))
+			black:SetPoint("TOPLEFT", f, "TOPLEFT", 2, -2)
+			black:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -2, 2)
+			black:SetColorTexture(0, 0, 0, 1)
+			f.pssBlack = black
+			ns.OnPaint(function()
+				local modern = ns.IsModern()
+				black:SetShown(modern)
+				if f.Bg and f.Bg.SetAlpha then f.Bg:SetAlpha(modern and 0 or 1) end
+			end)
+			return f
+		end
+	end
+end
+
 -- Round to whole units (saved places stay small and stable)
 function ns.Round(v)
 	return floor((v or 0) + 0.5)
