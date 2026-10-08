@@ -12,7 +12,7 @@ One document per feature (or per agreed feature set), beside the plans in the ho
 | Constraints | The rules that bite (02_RULES.md: zero cost when off, default OFF, no taint, SavedVariables growth, separation of logic and UI), API limits (01) |
 | Design | Where each piece lives (core, library folder, each UI folder, 04_ARCHITECTURE.md); new settings and their defaults; new events; data layout and its migration; how each front end draws it |
 | Decisions | Every open choice, numbered, with options and a recommendation. The author answers by number; record the answers with the date |
-| Version line | The `X.Y.0` this feature owns (02 F) |
+| Version line | The `X.Y.Z` line this feature owns (02 F); its builds take the next build numbers, which never reset |
 | Implementation plan | The stage table below |
 | Validation | How each stage and the whole feature will be proven (section 4) |
 | Risks | What could break existing users, and how a stage will catch it |
@@ -24,7 +24,7 @@ Rules for the design:
 - Play the final decisions back to the author before the first stage starts.
 
 ## 2. Implementation plan: stages
-Cut the feature into stages. Each stage is one PR and one build (`X.Y.Z.B`, the next build number) on the feature's line; a fix to a stage is the next build too.
+Cut the feature into stages. Each stage is one PR and one build (`X.Y.Z.B`, the next build number) on the feature's line; a fix to a stage is the next build too. The table numbers a first line from 1; build numbers never reset (02 F2), so a later line carries on from the last build (`1.5.0.9`, `1.5.0.10`, ...).
 
 | Stage | Build | Change | Visible? | How it is validated |
 | --- | --- | --- | --- | --- |
@@ -33,7 +33,7 @@ Cut the feature into stages. Each stage is one PR and one build (`X.Y.Z.B`, the 
 | 3 | `X.Y.0.3` | The smallest visible slice of the feature, behind its option (default OFF) | Yes | In-game checks; option off = no cost and no change |
 | 4.. | `X.Y.0.4`.. | One more visible piece per stage (one tab, one chart, one front end) | Yes | In-game checks for that piece, plus the earlier stages still passing |
 | Last | `X.Y.0.B` | Polish, readme, edge cases from testing | Yes | Full regression: harness, look-compare, numbers match, real saves |
-| Release | `X.Y.0` | Version only, history section for the whole feature | | The author confirms the feature is complete |
+| Release | `X.Y.0.B` (the next build) | Version only, recorded as the release in `versions.json`; its history section is one summary of every change since the previous release, written from the PRs between them (02 F5) | | The author confirms the feature is complete |
 
 How to cut stages:
 - **Each stage is installable and testable on its own**: it builds, loads, passes the checks and leaves the addon usable. A half-done feature hides behind its option, never behind a broken window.
@@ -71,7 +71,7 @@ If a stage fails in game: fix it as the next build on the same line (a new PR fr
 
 ## 5. Finishing the feature
 - When every stage has merged and passed, run the full regression on the last build.
-- Ask the author to confirm the feature is complete. Only then does a PR set the plain `X.Y.0` with a history section summing up the feature; merging it publishes the full release.
+- Ask the author to confirm the feature is complete. Only then does a PR make the next build the release (`sh tools/bump_version.sh release`), with one summary of every change since the previous release, written from its PRs; merging it publishes the full release.
 - Mark the design document done, record anything learned in project memory, and park leftover ideas for a later line.
 
 ## 6. A worked shape (generic)
@@ -81,4 +81,4 @@ A feature "show a breakdown chart in the options window", line `1.5.0`:
 3. `1.5.0.3`: draw the chart in the native window behind a new option (default OFF); option-off check; in-game checks.
 4. `1.5.0.4`: the same chart in the suite front end from the same library call; numbers-match check.
 5. `1.5.0.5`: fixes from testing, readme.
-6. `1.5.0`: production release once the author confirms.
+6. `1.5.0.6`: the release once the author confirms, recorded in `versions.json`, with one summary of every change since the previous release, written from the PRs of 1 to 5.

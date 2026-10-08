@@ -4,7 +4,7 @@ The **PourSocialScore-only layer.** It is written to sit on top of two general p
 
 | Layer | Pack | Holds |
 | --- | --- | --- |
-| 1 | `wow-addon-baseline-2026-10-08-v6.zip` (v5 plus `X.Y.Z.B` versions, the version tools, full-release notes; mandatory) | How any WoW addon is built, released and delivered with Claude: rules, architecture, harness, pipeline, feature design and staged delivery, working with the author |
+| 1 | `wow-addon-baseline-2026-10-08-v7.zip` (v6 plus build numbers that never reset, `versions.json`, release notes summarized at release time from the PRs; mandatory) | How any WoW addon is built, released and delivered with Claude: rules, architecture, harness, pipeline, feature design and staged delivery, working with the author |
 | 2 | `scratch-repo-usage-2026-10-07-v4.zip` (in the repo as `docs/scratch/`) | How the scratch repo, `racetracks/Pour-Social-Score_Scratch`, hosts builds, saves, docs and summaries |
 | 3 | **this pack** | Only what is true of PourSocialScore: its purpose, repos, real names, project rules, the EllesmereUI integration, its data, its pipeline details, status and next step, Dan's real saves |
 
@@ -23,7 +23,7 @@ Last state (pack written): main was **3.3.0-dev004**. Since then: 3.3.1 released
 | --- | --- |
 | 01_HANDOVER.md | Purpose and features, clients, repos, folder layout and the real names (namespace, loader, options, events), references actually used, plans with status |
 | 02_RULES.md | Only the rules PSS adds to the baseline, dated, with Dan's wording; section 12 is the Overrides table (every place PSS differs from the baseline, and known breaches with their fix) |
-| 03_ELLESMEREUI.md | The EllesmereUI integration: files, bridge, APIs used, house rules, window, the PSS tab shadow fix |
+| 03_ELLESMEREUI.md | EllesmereUI as the reference for building UI elements (section 0, Dan, 2026-10-08); the history of the old integration (deleted at 3.4.0.25): files, bridge, APIs used, house rules, window, the PSS tab shadow fix |
 | 04_DATA_AND_LOGGING.md | SavedVariables layout, outbox, Logging on demand, the grouped save, recent counts, caps, retired BlockStats, real saves |
 | 05_RELEASE.md | What PSS does on top of the baseline pipeline: names, jobs, version history, test zip paths |
 | 06_STATUS_AND_NEXT.md | Merged and open work, the parity project, open issues, items waiting on Dan, the next step |

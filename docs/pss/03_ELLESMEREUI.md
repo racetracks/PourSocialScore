@@ -1,6 +1,17 @@
-# The PSS EllesmereUI integration
+# EllesmereUI: the reference for UI work, and the old integration
 
-How PSS applies the baseline's UI suite pattern (baseline 05) to EllesmereUI (EUI): configured the same as the native window, assets in different places. This file holds the PSS names, the EUI APIs actually used, and the PSS-specific lessons.
+From 3.4.0.25 PSS has one window (`PourSocialScore_GUI`, 09) and no EllesmereUI integration. EllesmereUI stays useful: it is a mature UI framework, and the window was ported from our EllesmereUI window. Section 0 is how to use it now (Dan, 2026-10-08); sections 1 to 7 are the history of the integration (3.1.0 to 3.4.0.24), kept for its lessons.
+
+## 0. EllesmereUI as the reference for building UI elements (Dan, 2026-10-08)
+When building or changing a UI element needs more information than our own code and Blizzard's give (how a control behaves, lays out, skins, scrolls, pools or handles a corner case), **check out the EllesmereUI repo and reference it wherever possible, as a mature framework for UI porting.**
+1. **Where to look, in this order:** our window as it is (`PourSocialScore_GUI`, the kit, CLAUDE.md Interface, 09 code map); our own EllesmereUI window, the port's reference, in git history (`git fetch origin tag v3.4.0.24` then `git show v3.4.0.24:PourSocialScore_EllesmereUI/<file>`; or the tag `v3.3.1`); then EllesmereUI itself, `EllesmereGaming/EllesmereUI`.
+2. **Getting EllesmereUI into a session:** add it with `add_repo` (read access; never push), then a shallow or sparse clone outside the addon repo (for example the session scratchpad). If it cannot be added, say so and ask; never guess its behaviour.
+3. **Read only, all rights reserved.** EllesmereUI is a reference, never a source: read it to learn how it solves a problem, then **rewrite the solution to suit our rules**; never copy its code verbatim, and never copy its media, fonts (Expressway is "Do not distribute"), IDs or names. The baseline's I1 to I4 and H3, H4 still apply.
+4. **What "rewrite to our rules" means:** Lua 5.1 and tabs (02 section 1); our kit and the three looks, every element in Modern, Classic and Dark (CLAUDE.md Interface, the first rule); logic in `PourSocialScore_Libraries`, drawing only in `PourSocialScore_GUI`; PSS names only, no `EUI` or `Ellesmere` names (`check_rules.sh`); zero cost until opened, no OnUpdate polling, frames reused (baseline C); taint and secret values (baseline 02 J, PSS 02 section 10); Blizzard's or our own resources only (baseline I1).
+5. **Say where it came from:** a PR that ports behaviour from EllesmereUI names the EllesmereUI file or feature it studied, and what was rewritten and why.
+
+## History: the integration (3.1.0 to 3.4.0.24)
+How PSS applied the baseline's UI suite pattern (baseline 05) to EllesmereUI (EUI): configured the same as the native window, assets in different places. The folder `PourSocialScore_EllesmereUI`, the bridge `PSS_EUI.lua`, `check_rules_eui.sh` and the EUI harness were deleted at 3.4.0.25 (D2); the names below are as they were in 3.4.0.24.
 
 ## 1. The pattern
 | Layer | Where it lives | Shared? |

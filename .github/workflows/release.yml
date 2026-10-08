@@ -3,12 +3,14 @@
 # (every addon folder, PourSocialScore and PourSocialScore_*, with readme.txt and
 # history.txt in the core folder; no .github / tools), with that version's section
 # of history.txt as the release notes. Does nothing if the release exists.
-# Every build is X.Y.Z.B (B = build number) and is published as a pre-release;
-# only a plain X.Y.Z is a full release. Older suffixed versions (3.4.0-dev012)
-# stay pre-releases too.
-# A full release's notes cover every build since the previous full release
-# (tools/collect_notes.sh), as one list with repeats removed. Job "mirror"
-# then publishes the full release, with the same zip and notes, on
+# Every version is X.Y.Z.B (B = the build number, which never resets; a
+# release is a build too, Dan, 2026-10-08). versions.json (tools/versions.py,
+# never shipped) says what each one is: the latest release, or a pre-release
+# recorded with its PR. A version it does not record is not published.
+# A full release's notes are its history.txt section only: one summary of
+# every change since the previous release, written at release time from the
+# PRs versions.json lists between the two (CLAUDE.md, Full releases). Job
+# "mirror" then publishes the full release, with the same zip and notes, on
 # $MIRROR_REPO (secret MIRROR_TOKEN: contents read and write on that repo).
 # Pre-releases are not mirrored.
 name: Release
@@ -29,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.v.outputs.version }}
+      kind: ${{ steps.v.outputs.kind }}
     steps:
       - uses: actions/checkout@v4
 
@@ -36,7 +39,13 @@ jobs:
         id: v
         run: |
           ver=$(sed -n 's/^## Version: *//p' PourSocialScore/PourSocialScore.toc | tr -d '\r')
+          kind=$(python3 tools/versions.py kind "$ver")
+          if [ "$kind" = unknown ]; then
+            echo "::error::$ver is not in versions.json (sh tools/bump_version.sh records it)"
+            exit 1
+          fi
           echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "kind=$kind" >> "$GITHUB_OUTPUT"
           if gh release view "v$ver" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
@@ -58,20 +67,17 @@ jobs:
           {
             echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\` so you get \`AddOns/PourSocialScore/PourSocialScore.toc\` (and any \`AddOns/PourSocialScore_*\` folders next to it). Retail (Midnight) and Camelot are supported."
             echo
-            case "$ver" in
-              *-*|*.*.*.*)
-                echo "### Changes"
-                awk -v v="$ver" '
-                  index($0, "=> " v " ") == 1 { on = 1; next }
-                  on && /^=> / { exit }
-                  on { print }
-                ' history.txt
-                ;;
-              *)
-                echo "### Changes since the last release"
-                sh tools/collect_notes.sh "$ver" | grep '^- ' | awk '!seen[$0]++'
-                ;;
-            esac
+            if [ "${{ steps.v.outputs.kind }}" = release ]; then
+              prev=$(python3 -c 'import json; print(json.load(open("versions.json"))["releases"][0]["previous"])')
+              echo "### Changes since $prev"
+            else
+              echo "### Changes"
+            fi
+            awk -v v="$ver" '
+              index($0, "=> " v " ") == 1 { on = 1; next }
+              on && /^=> / { exit }
+              on { print }
+            ' history.txt
             echo
             echo "Full changelog: history.txt"
           } > notes.md
@@ -81,32 +87,33 @@ jobs:
         if: steps.v.outputs.exists == 'false'
         run: |
           ver=${{ steps.v.outputs.version }}
-          pre=""
-          case "$ver" in *-*|*.*.*.*) pre="--prerelease" ;; esac
+          pre="--latest"
+          [ "${{ steps.v.outputs.kind }}" = release ] || pre="--prerelease"
           gh release create "v$ver" "PourSocialScore-$ver.zip" $pre \
             --target "$GITHUB_SHA" --title "Pour Social Score $ver" --notes-file notes.md
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Mark build and suffixed releases as pre-releases
+      - name: Keep pre-releases marked as pre-releases
         run: |
           gh release list --limit 100 --json tagName,isPrerelease \
-            --jq '.[] | select(.isPrerelease | not) | .tagName | select(contains("-") or (split(".") | length > 3))' |
-          while read -r tag; do gh release edit "$tag" --prerelease; done
+            --jq '.[] | select(.isPrerelease | not) | .tagName' |
+          while read -r tag; do
+            v=${tag#v}
+            case "$v" in *-*) gh release edit "$tag" --prerelease; continue ;; esac
+            if [ "$(python3 tools/versions.py kind "$v")" = pre-release ]; then gh release edit "$tag" --prerelease; fi
+          done
         env:
           GH_TOKEN: ${{ github.token }}
 
   mirror:
     needs: release
-    if: ${{ needs.release.outputs.version != '' && !contains(needs.release.outputs.version, '-') }}
+    if: ${{ needs.release.outputs.kind == 'release' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check the version and the mirror
         id: m
         run: |
-          case "$VER" in
-            *-*|*.*.*.*) echo "skip=true" >> "$GITHUB_OUTPUT"; echo "$VER is a pre-release: not mirrored"; exit 0 ;;
-          esac
           echo "skip=false" >> "$GITHUB_OUTPUT"
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::Add a MIRROR_TOKEN secret with contents read and write on $MIRROR_REPO"

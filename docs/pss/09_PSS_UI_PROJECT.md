@@ -65,10 +65,11 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | C2 | 3.4.0.21 to 3.4.0.22 | Right-click menus on every list's rows, in all three looks; Libraries `PSS_RowMenus.lua`; `check_menus.lua`; 3.4.0.22: exceptions per player, guild and member (tick boxes, ticked = it happens) with Dan's defaults for anyone listed (no ignore response, no decline messages, duels and trades declined) | Merged #111 |
 | D1 | 3.4.0.23 | Switch-over: `/pss gui`, `/pss ui` (`/pss tui` until D2), the Addon Compartment and Friends / Social open the new window; `/pss gui force` and `/pss eui` retired; EllesmereUI integration retired; core's popups StaticPopups only; `check_gui.lua` into `check_tui.lua` | Merged #112 |
 | Layout | 3.4.0.24 | The arrows' line above the tab row, the tabs straight above the page (Dan, 2026-10-08) | Merged #113 |
-| D2 | 3.4.0.25 | One window: the files moved into `PourSocialScore_GUI`; `PourSocialScore_UI`, `PourSocialScore_EllesmereUI`, `PSS_EUI.lua` and the old windows' checks deleted; upgrade step 7 prunes `euiIntegration` and the old window's sizes, widths and places, and names a leftover folder once | PR #114 |
-| D3 | next build | Polish from testing, readme, docs | Planned |
-| Release | 3.4.0 | When Dan says it is done | |
-| Next line | 3.4.1 | Core performance fixes from the review, stored guild members capped at 1500 per rule (Dan, 2026-10-08), `memberCount` no longer saved (review L12; Dan's OK 2026-10-08) | Planned |
+| D2 | 3.4.0.25 | One window: the files moved into `PourSocialScore_GUI`; `PourSocialScore_UI`, `PourSocialScore_EllesmereUI`, `PSS_EUI.lua` and the old windows' checks deleted; upgrade step 7 prunes `euiIntegration` and the old window's sizes, widths and places, and names a leftover folder once | Merged #114 |
+| D3 | 3.4.0.26 | Readme and docs for the one window; EllesmereUI as the reference for UI elements (Dan, 2026-10-08, 03 section 0); no issues from testing | PR #115 |
+| Versions | 3.4.0.27 | `versions.json` and build numbers that never reset; release notes one summary of every change between releases, from the PRs (Dan, 2026-10-08; 06); on the D3 PR. The final pre-release, tested by Dan with a very old save | PR #115 |
+| Release | 3.4.0.28 | The release is a build too (Dan, 2026-10-08); when Dan says it is done | |
+| Next line | 3.4.1.29 on | Core performance fixes from the review, stored guild members capped at 1500 per rule (Dan, 2026-10-08), `memberCount` no longer saved (review L12; Dan's OK 2026-10-08) | Planned |
 
 ## Code map
 | Where | What |

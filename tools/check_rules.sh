@@ -8,6 +8,9 @@
 #   6. Core logic files hold no UI code (tools/check_layers.lua)
 #   Every PourSocialScore_* folder's three TOCs agree (tools/check_toc.sh)
 #   history.txt starts with the section of the version every TOC carries
+#   versions.json (tools/versions.py check): well formed, build numbers never
+#   go back, the TOC version is its newest entry, never in an addon folder;
+#   in CI every entry has its PR (PSS_PR: this pull request's number)
 #   The window (PourSocialScore_GUI) and the Libraries code it calls use
 #   PSS names only: no EllesmereUI or EUI names
 # Usage: sh tools/check_rules.sh   (from the repo root, needs luac5.1/lua5.1)
@@ -44,6 +47,16 @@ if [ "$top" != "$ver" ]; then
 	echo "history.txt: the top section is '$top', the TOCs say '$ver'"
 	fail=1
 fi
+
+# the top section's bullets are written (a release's summary at release time)
+if awk 'NR > 1 && /^=> / { n++ } n == 1' history.txt | grep -qE '^- (What changed, in plain words\.|Summary of every change since .*written at release time)'; then
+	echo "history.txt: the top section still holds the placeholder bullet"
+	fail=1
+fi
+
+strict=""
+[ -n "$CI" ] && strict="--strict"
+python3 tools/versions.py check --toc "$ver" $strict ${PSS_PR:+--pr "$PSS_PR"} || fail=1
 
 if grep -nE 'EUI|[Ee]llesmere' PourSocialScore_GUI/* PourSocialScore_Libraries/PSS_ViewNav.lua PourSocialScore_Libraries/PSS_DetailQuery.lua PourSocialScore_Libraries/PSS_PlayerView.lua PourSocialScore_Libraries/PSS_GuildView.lua PourSocialScore_Libraries/PSS_FilterView.lua PourSocialScore_Libraries/PSS_EventsView.lua PourSocialScore_Libraries/PSS_OptionsView.lua PourSocialScore_Libraries/PSS_RowMenus.lua; then
 	echo "PSS names only: an EllesmereUI or EUI name found above"

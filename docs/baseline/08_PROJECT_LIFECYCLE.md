@@ -54,13 +54,13 @@ How a new addon project runs from an empty repo to production releases and long-
 ## Phase 7: Production release
 **Goal:** a full release.
 - The author confirms the feature (or feature set) that owns this line is complete and tested.
-- A PR sets the plain `X.Y.0` in every TOC with its own history section; merging it publishes the full release.
+- A PR makes the next build the release (`sh tools/bump_version.sh release "Title"`, recorded in `versions.json`), with one summary of every change since the previous release as its history section, written from the PRs between them (02 F5); merging it publishes the full release.
 - Update the readme for users.
 
 ## Phase 8: Maintenance
 - Each client patch: check interface numbers and API changes on wago.tools, bump the TOCs, run the harness.
 - Bugs become the next build with a hosted zip and in-game checks.
-- New work starts the next minor line (`X.Y+1.0.1`) with its own analysis and plan.
+- New work starts the next minor line (`X.Y+1.0`, with the next build number; `B` never resets) with its own analysis and plan.
 - Track issues on the addon repo; small notes for an issue go beside the plans.
 
 ## The documents that carry a project
