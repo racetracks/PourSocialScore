@@ -122,6 +122,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_events.lua" 2>&1 | grep -v '^|cf
 echo "$out"
 echo "$out" | grep -q "PASS events" || fail=1
 
+# the new window's Options and Import/Export tabs (3.4.0-dev012)
+echo "== new window Options and Import/Export tabs"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -E "PASS|FAIL"
+echo "$out" | grep -q "PASS options" || fail=1
+
 # the PSS window's Managed Communities row (3.3.0-dev003)
 echo "== Managed Communities row"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_managed_row.lua" 2>&1 | grep -v '^|cff')
@@ -302,6 +308,9 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_events.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS events" || fail=1
+		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
+		echo "$out" | grep -E "PASS|FAIL"
+		echo "$out" | grep -q "PASS options" || fail=1
 	done
 fi
 

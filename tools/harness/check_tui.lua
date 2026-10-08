@@ -86,7 +86,7 @@ local names = {}
 for i, t in ipairs(win.tabs or {}) do names[i] = t:GetText() end
 check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,Events,Import/Export,Options", "tabs are not the six of the port")
 check(win.tabs[1].pssSelected and win.pages[1]:IsShown() and not win.pages[2]:IsShown(), "first tab not shown first")
-check(win.pages[6].note and win.pages[6].note:GetText():find("later", 1, true), "an unbuilt tab has no note")
+check(win.pages[6].note and win.pages[6].note:GetText():find("later", 1, true), "a tab not opened yet has no note")
 check(win.where:GetText() == "Player Ignore List", "the line by the arrows does not name the tab")
 check(win.where:GetAlpha() == 0.9, "the line by the arrows is not at 0.9")
 check(not win.back:IsEnabled() and not win.forward:IsEnabled(), "arrows enabled with nowhere to go")
@@ -148,12 +148,18 @@ check(win.pages[6]:IsShown() and M.PSS_UITab() == 6, "saved tab not reopened")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(PourSocialScoreDB.windowPoints.PSS_WindowTab == nil, "the first tab was saved")
 -- a tab with a builder is built on first open and redrawn when shown
+-- (the Import/Export tab's own builder, counted)
 local built, drawn = 0, 0
-ui.TabBuilders.importExport = function(page) built = built + 1 return function() drawn = drawn + 1 end end
+local realBuild = ui.TabBuilders.importExport
+ui.TabBuilders.importExport = function(page)
+	built = built + 1
+	local redraw = realBuild(page)
+	return function() drawn = drawn + 1 redraw() end
+end
 win.tabs[5]._scripts.OnClick(win.tabs[5])
 win.tabs[5]._scripts.OnClick(win.tabs[5])
 check(built == 1 and drawn == 2 and not win.pages[5].note:IsShown(), "a tab builder did not build once and redraw")
-ui.TabBuilders.importExport = nil
+ui.TabBuilders.importExport = realBuild
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 -- frame strata follows the option
 local strata
