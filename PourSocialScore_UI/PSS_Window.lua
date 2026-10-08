@@ -10,7 +10,7 @@
 --
 -- Six tabs (M.PSS_UI_TABS); each is built on first open by its builder,
 -- ns.TabBuilders[key](page), which returns the function that redraws it.
--- A tab without a builder yet shows a note. Back / forward arrows under the
+-- A tab without a builder yet shows a note. Back / forward arrows above the
 -- tabs (and mouse buttons 4 / 5) step through the views shown; the line by
 -- them names the view, each part but the last a link back to it. Escape
 -- goes up one level and closes the window from the top. A tab click, even
@@ -32,6 +32,11 @@ local WIN_W, WIN_H = 960, 494
 local PLACE = "PSS_Window"
 local TAB_H, NAV_H = 24, 20
 local TOP = -32
+-- the arrows' line first, the tab row under it (Dan, 3.4.0.24)
+local NAV_Y = TOP
+local TAB_Y = TOP - NAV_H - 4
+-- for what sits in the tab row (the Options search box)
+ns.TAB_ROW_Y = TAB_Y
 local STREAKS = "_UI-Frame-TopTileStreaks"
 local SEP = "  >  "
 local TABS = M.PSS_UI_TABS
@@ -323,7 +328,7 @@ local function BuildTabs()
 		if prev then
 			tab:SetPoint("LEFT", prev, "RIGHT", 2, 0)
 		else
-			tab:SetPoint("TOPLEFT", win, "TOPLEFT", 10, TOP)
+			tab:SetPoint("TOPLEFT", win, "TOPLEFT", 10, TAB_Y)
 		end
 		win.tabs[i], prev = tab, tab
 
@@ -341,10 +346,9 @@ local function BuildTabs()
 	end
 
 	-- [<] [>]  Guild Ignore List  >  Members of <guild>
-	local navY = TOP - TAB_H - 4
 	win.back = ns.NewButton(win, "<", 26, ns.NavBack)
 	win.back:SetHeight(NAV_H)
-	win.back:SetPoint("TOPLEFT", win, "TOPLEFT", 10, navY)
+	win.back:SetPoint("TOPLEFT", win, "TOPLEFT", 10, NAV_Y)
 	ns.TipOn(win.back, win.back, "Back (mouse button 4). Escape goes up one level.")
 	win.forward = ns.NewButton(win, ">", 26, ns.NavForward)
 	win.forward:SetHeight(NAV_H)
@@ -409,12 +413,12 @@ local function Build()
 	-- (the frame art's own black: ns.NewFrameArt)
 	local black = blizz and blizz.pssBlack
 	win.art.black = black
-	-- Modern: the band behind the tabs and the line under them is the
+	-- Modern: the band behind the arrows' line and the tabs under it is the
 	-- frame's stone with its streaks over it, as the AddOns list draws its
 	-- top (Dan, 2026-10-08); the streaks alone are a dark overlay and show
 	-- nothing on black. The black starts where the pages do.
-	-- Classic and Modern: the streaks reach down past the arrows' line to
-	-- the pages (the template's own stop 43 px down, inside that line).
+	-- Classic and Modern: the streaks reach down past the tab row to the
+	-- pages (the template's own stop 43 px down).
 	local band, streaks
 	local BAND_H = -TOP + TAB_H + NAV_H + 8 - 21
 	if blizz then

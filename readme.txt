@@ -1,5 +1,5 @@
 POUR SOCIAL SCORE AND CHAT SPAM FILTER
-Version 3.4.0.23 - by Boaties
+Version 3.4.0.24 - by Boaties
 
 Pour Social Score is a quality-of-life addon with an unlimited, account-wide
 ignore list, a guild ignore list, and a chat/spam filter engine. It removes
@@ -275,7 +275,7 @@ or Social window open one window. (THE WINDOWS above describes the window it rep
   duels and trades declined. Each player, guild or guild member can be an
   exception: the ticks under "For this player" on View/Edit Rule, or in the
   row's menu (ticked = it happens).
-* The back and forward arrows under the tabs (and mouse buttons 4 and 5)
+* The back and forward arrows above the tabs (and mouse buttons 4 and 5)
   step through the views you opened. Escape closes a popup or menu first,
   then goes up one level, and closes the window from the top.
 * Opened with Friends it sits beside it and closes with it; opened with
