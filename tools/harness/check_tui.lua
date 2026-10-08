@@ -86,7 +86,7 @@ local names = {}
 for i, t in ipairs(win.tabs or {}) do names[i] = t:GetText() end
 check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,Events,Import/Export,Options", "tabs are not the six of the port")
 check(win.tabs[1].pssSelected and win.pages[1]:IsShown() and not win.pages[2]:IsShown(), "first tab not shown first")
-check(win.pages[3].note and win.pages[3].note:GetText():find("later", 1, true), "an unbuilt tab has no note")
+check(win.pages[6].note and win.pages[6].note:GetText():find("later", 1, true), "an unbuilt tab has no note")
 check(win.where:GetText() == "Player Ignore List", "the line by the arrows does not name the tab")
 check(win.where:GetAlpha() == 0.9, "the line by the arrows is not at 0.9")
 check(not win.back:IsEnabled() and not win.forward:IsEnabled(), "arrows enabled with nowhere to go")
@@ -96,28 +96,28 @@ win.tabs[3]._scripts.OnClick(win.tabs[3])
 check(win.tabs[3].pssSelected and win.pages[3]:IsShown() and not win.pages[1]:IsShown(), "tab click did not show the tab")
 check(PourSocialScoreDB.windowPoints.PSS_WindowTab == "filters", "tab shown not saved")
 check(win.back:IsEnabled() and win.where:GetText() == "Chat Filters", "tab click is not a step back")
--- a page with a sub-view (as the Guilds tab's members view): the Chat
--- Filters page, not built yet, stands in
-local pg = win.pages[3]
+-- a page with a sub-view (as the Guilds tab's members view): the Options
+-- page, not built yet, stands in
+local pg = win.pages[6]
 local sub
 pg.navState = function() return sub end
 pg.navApply = function(v) sub = v end
 pg.navUp = function() if sub then sub = nil return true end return false end
 pg.navTitle = function(v) return "Members of " .. v end
-win.tabs[3]._scripts.OnClick(win.tabs[3])
+win.tabs[6]._scripts.OnClick(win.tabs[6])
 sub = "Badguild"
 local ui = H.Private("PourSocialScore_UI")
 ui.NavRecord()
-check(win.where:GetText() == "Chat Filters  >  Members of Badguild", "the line does not name the sub-view")
-check(win.crumbs[1] and win.crumbs[1]:IsShown() and win.crumbs[1].tipText == "Back to Chat Filters.", "no link back to the tab")
+check(win.where:GetText() == "Options  >  Members of Badguild", "the line does not name the sub-view")
+check(win.crumbs[1] and win.crumbs[1]:IsShown() and win.crumbs[1].tipText == "Back to Options.", "no link back to the tab")
 -- back, back, forward
 ui.NavBack()
-check(sub == nil and win.where:GetText() == "Chat Filters", "back did not leave the sub-view")
+check(sub == nil and win.where:GetText() == "Options", "back did not leave the sub-view")
 ui.NavBack()
-check(win.pages[1]:IsShown() and win.forward:IsEnabled(), "back did not return to the tab before")
+check(win.pages[3]:IsShown() and win.forward:IsEnabled(), "back did not return to the tab before")
 ui.NavForward()
 ui.NavForward()
-check(win.pages[3]:IsShown() and sub == "Badguild", "forward did not return to the sub-view")
+check(win.pages[6]:IsShown() and sub == "Badguild", "forward did not return to the sub-view")
 -- mouse buttons 4 / 5 over the window only
 win._mouseOver = true
 win._scripts.OnEvent(win, "GLOBAL_MOUSE_UP", "Button4")
@@ -129,7 +129,7 @@ win._scripts.OnEvent(win, "GLOBAL_MOUSE_UP", "Button4")
 check(sub == "Badguild", "mouse button 4 away from the window stepped back")
 -- the link back to the tab, and Escape up one level, then closed
 win.crumbs[1]._scripts.OnClick(win.crumbs[1])
-check(sub == nil and win.where:GetText() == "Chat Filters", "the link did not reset the tab")
+check(sub == nil and win.where:GetText() == "Options", "the link did not reset the tab")
 sub = "Badguild"
 ui.NavRecord()
 _G.PSS_WindowEscape:Hide()
@@ -138,13 +138,13 @@ check(win:IsShown() and sub == nil and _G.PSS_WindowEscape:IsShown(), "Escape di
 win.tabs[4]._scripts.OnClick(win.tabs[4])
 check(win.pages[4]:IsShown(), "Events tab not shown")
 _G.PSS_WindowEscape:Hide()
-check(win:IsShown() and win.pages[3]:IsShown(), "Escape on Events did not go back to the tab before")
+check(win:IsShown() and win.pages[6]:IsShown(), "Escape on Events did not go back to the tab before")
 _G.PSS_WindowEscape:Hide()
 check(not win:IsShown(), "Escape at the top did not close the window")
 pg.navState, pg.navApply, pg.navUp, pg.navTitle = nil, nil, nil, nil
 -- the tab shown last opens next time; the first tab clears the saved one
 SlashCmdList["PSS"]("tui")
-check(win.pages[3]:IsShown() and M.PSS_UITab() == 3, "saved tab not reopened")
+check(win.pages[6]:IsShown() and M.PSS_UITab() == 6, "saved tab not reopened")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(PourSocialScoreDB.windowPoints.PSS_WindowTab == nil, "the first tab was saved")
 -- a tab with a builder is built on first open and redrawn when shown
