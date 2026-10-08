@@ -2,25 +2,35 @@
 -- POUR SOCIAL SCORE UI - GUILD IGNORE LIST TAB
 --
 -- The guild list (Managed Communities and its default lists, the Guild
--- Exclusion List, the other guilds), Scan All, the Add and Exclude entry
+-- Exclusion List, the other guilds), a guild's members in its place (a
+-- double-click or the Members button), Scan All, the Add and Exclude entry
 -- rows with Guild Search, the Guild Search results picker in place of the
--- list, and a pane: the list's totals with nothing selected. Libraries
+-- list, and a pane for what is selected: a guild (Summary, Event History,
+-- View/Edit Rule with W I G P C, Scan / Custom Scan, overrides, Members,
+-- Remove Guild), a default list or Managed Communities (counts, pies, its
+-- rule), the Guild Exclusion List or an excluded guild, or a member (note,
+-- W I G P C that follow the guild until set, overrides, Remove Member, Add
+-- Guild); with nothing selected, the list's totals. Libraries
 -- (PSS_GuildView.lua) works out every text and does every change; the core
 -- says when guilds changed (GUILDS_CHANGED, GUILD_SCAN_DONE, GUILD_REMOVED,
 -- GUILD_BLOCKS_CHANGED) and the tab redraws if it shows. Scan buttons are
 -- disabled while /who cools down (WHOIS_COOLDOWN).
--- The selected entry's details and a guild's members come in the next
--- stage (B4): until then a selection shows its name and a note.
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = ns.M
+local L = PourSocialScore_NS.L
+local History = M.PSS_History
 
 local DETAIL_W = 380
 local TOP_H = 58
+local LINE_H = 16
+local PIE_SMALL = 84
+local MANAGED = M.PSS_GUILD_MANAGED
 
 local V = M.PSS_GuildListNew()
 local cells = {}
-local page, list, lf, pane, picker
+local groupView = {}
+local page, list, mlist, lf, mview, pane, picker
 local scanButtons = {}
 
 ns.TabBuilders = ns.TabBuilders or {}
@@ -32,7 +42,7 @@ local function ScanButton(b)
 	return b
 end
 
-local ShowDetail
+local ShowDetail, OpenMembers
 
 ------------------------------------------------------------------------
 -- Guild list
@@ -69,25 +79,383 @@ local function RowTip(row, i)
 	if item then ns.Tip(row, M.PSS_GuildRowTip(item)) end
 end
 
+local function ClearEdits()
+	-- saves what was typed first
+	if pane then
+		pane.fieldsBox:ClearFocus()
+		pane.noteBox:ClearFocus()
+	end
+end
+
 local function Select(kind, value)
+	ClearEdits()
 	V:Select(kind, value)
 	list:Redraw()
-	ShowDetail()
+	ShowDetail(true)
 end
 
 local function ClickRow(_, i)
-	local what = V:Click(V.rows[i])
+	ClearEdits()
+	local item = V.rows[i]
+	local what = V:Click(item)
 	if what == "resort" then
 		Resort()
 	else
 		list:Redraw()
 	end
-	ShowDetail()
+	ShowDetail(true)
+	if what == "members" then OpenMembers(item.key) end
 end
 
 ------------------------------------------------------------------------
--- Pane: the list's totals; a selection's name until B4 draws its details
+-- Members view (in place of the guild list)
 ------------------------------------------------------------------------
+local function MResort()
+	local n = V:MResort()
+	mlist:SetSort(V.mkey, V.masc)
+	mlist:SetCount(n)
+	mlist:SetEmptyText(V:MembersEmptyText())
+	mview.heading:SetText(V:MembersHeading())
+	page.count:SetText(V:CountText())
+end
+
+local function DrawMember(row, i)
+	local m = V.members[i]
+	local c = row.cells
+	if not m then
+		for _, fs in pairs(c) do fs:SetText("") end
+		row.sel:Hide()
+		return
+	end
+	c.name:SetText(m.name or "")
+	c.name:SetTextColor(M.PSS_ClassColor(m.class))
+	c.guild:SetText(m.guild or "")
+	c.note:SetText(m.note or "")
+	c["metric:total"]:SetText(M.PSS_GetMemberBlockCounts(m).total or 0)
+	row.sel:SetShown(m == V.msel)
+end
+
+local function SelectMember(m)
+	ClearEdits()
+	V.msel = m
+	mlist:Redraw()
+	ShowDetail(true)
+end
+
+local function ShowView(view)
+	V.view = view
+	page.search:SetText("")
+	page.search.hint:SetText(view == "members" and "Search name, guild or note" or "Search guild name")
+	lf:SetShown(view == "guilds")
+	mview:SetShown(view == "members")
+end
+
+function OpenMembers(key)
+	if not V:OpenMembers(key) then return end
+	ShowView("members")
+	MResort()
+	mlist:Top()
+	ShowDetail(true)
+	ns.NavRecord()
+end
+
+local function CloseMembers()
+	ClearEdits()
+	V:CloseMembers()
+	ShowView("guilds")
+	Resort()
+	ShowDetail(true)
+	ns.NavRecord()
+end
+
+------------------------------------------------------------------------
+-- Detail pane
+------------------------------------------------------------------------
+local function Line(parent, y)
+	local fs = ns.NewText(parent, 12)
+	fs:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, y)
+	fs:SetPoint("RIGHT", parent, "RIGHT", -10, 0)
+	fs:SetJustifyH("LEFT")
+	return fs
+end
+
+local function Label(parent, text)
+	local fs = ns.NewText(parent, 12)
+	fs:SetPoint("LEFT", parent, "LEFT", 0, 0)
+	fs:SetText(text)
+	fs:SetAlpha(0.7)
+	return fs
+end
+
+local function Strip(parent, y, h)
+	local f = CreateFrame("Frame", nil, parent)
+	f:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, y)
+	f:SetSize(DETAIL_W - 20, h or 22)
+	return f
+end
+
+local function Body(parent)
+	local b = CreateFrame("Frame", nil, parent)
+	b:SetAllPoints()
+	b:Hide()
+	b.heading = ns.NewHeading(b, "")
+	b.heading:SetPoint("TOPLEFT", b, "TOPLEFT", 10, -8)
+	b.heading:SetPoint("RIGHT", b, "RIGHT", -10, 0)
+	return b
+end
+
+-- W I G P C tick boxes (ticked = allowed). onClick(cat, box, button).
+local function ExclBoxes(parent, y, tip, onClick)
+	local row = Strip(parent, y, 24)
+	Label(row, "Allowed")
+	local boxes, prev = {}, nil
+	for _, e in ipairs(M.EXCL) do
+		local c = ns.NewCheck(row)
+		if prev then c:SetPoint("LEFT", prev, "RIGHT", 22, 0) else c:SetPoint("LEFT", row, "LEFT", 90, 0) end
+		c:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+		local letter = ns.NewText(row, 12)
+		letter:SetPoint("LEFT", c, "RIGHT", 0, 0)
+		letter:SetText(e.letter)
+		ns.TipOn(c, c, e.label .. "\n\n" .. tip)
+		c:SetScript("OnClick", function(self, button) onClick(e.cat, self, button) end)
+		boxes[e.cat] = c
+		prev = letter
+	end
+	return boxes, row
+end
+
+-- Overrides of the Options for a guild or member record: Default > On > Off.
+local function Overrides(parent, y, scope, target)
+	local out, n = {}, 0
+	local bw = (DETAIL_W - 26) / 2
+	for _, o in ipairs(M.PSS_OPTIONS) do
+		if o.target and o.kind == "bool" then
+			n = n + 1
+			local b = ns.NewButton(parent, "", bw, function(self)
+				M.PSS_CycleOverride(target(), scope, self.opt.key)
+				ShowDetail()
+			end)
+			b.opt = o
+			local col, r = (n - 1) % 2, math.floor((n - 1) / 2)
+			b:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + col * (bw + 6), y - r * 24)
+			ns.TipOn(b, b, o.label .. "\n\nClick to change: Default (the Options tab) > On > Off.")
+			out[#out + 1] = b
+		end
+	end
+	return out
+end
+
+local function PaintOverrides(buttons, t)
+	for _, b in ipairs(buttons) do b:SetText(M.PSS_OverrideText(b.opt, t and t.opts and t.opts[b.opt.key])) end
+end
+
+local function OpenGuildEvents(key)
+	if ns.OpenEvents then ns.OpenEvents(page, M.PSS_GuildEventsSpec(key), {}) end
+end
+
+local function ConfirmRemoveGuild()
+	local key = V.selKind == "guild" and V.sel or (V.view == "members" and V.mguild)
+	local text = M.PSS_GuildRemoveText(key)
+	if not text then return end
+	ns.Confirm({ text = text, accept = "Remove", onAccept = function()
+		if V.view == "members" then CloseMembers() end
+		M.PSS_GuildRemove(key)
+	end })
+end
+
+local function ConfirmRemoveMember()
+	local m = V.msel
+	if not m then return end
+	ns.Confirm({ text = M.PSS_MemberRemoveText(m), accept = "Remove", onAccept = function()
+		if V:RemoveMember() and page:IsVisible() then
+			MResort()
+			ShowDetail(true)
+		end
+	end })
+end
+
+local function BuildGuildBody(parent)
+	local b = Body(parent)
+	b.info = Line(b, -28)
+	local dp = ns.NewDetailPages(b, -46, "guilds")
+	b.pages = dp
+	b.counts = Line(dp.summary, -6)
+	b.summary = ns.NewSummary(dp.summary, page, -30)
+	b.sumSpec = { specFn = M.PSS_GuildEventsSpec, noWhere = true }
+
+	-- View/Edit Rule
+	local rule = dp.rule
+	local y = -2
+	b.excl = ExclBoxes(rule, y, "Ticked = allowed from every member of the guild, unticked = blocked. A member's own setting wins.",
+		function(cat, box) M.PSS_GuildToggleAllowed(pane.guildKey, cat, box:GetChecked()) end)
+	y = y - 28
+
+	-- Scan (the sweep), Scan Fields, Custom Scan: /who first, the window after
+	local sr = Strip(rule, y, 24)
+	local scan = ns.NewButton(sr, "Scan", 100, function() M.PSS_GuildScanNow(pane.guildKey, IsShiftKeyDown()) end)
+	scan:SetPoint("LEFT", sr, "LEFT", 0, 0)
+	scan:SetScript("OnEnter", function(self)
+		local _, g = M.PSS_FindGuildRule(pane.guildKey)
+		ns.Tip(self, M.PSS_GuildScanTip(g))
+	end)
+	scan:SetScript("OnLeave", ns.HideTip)
+	b.scan = ScanButton(scan)
+	local fields = ns.NewEditBox(sr, 120, 128)
+	fields:SetPoint("LEFT", scan, "RIGHT", 10, 0)
+	-- saves to the guild shown when typing started
+	ns.OnCommit(fields, function(text) M.PSS_GuildCommitFields(pane.fieldsKey or pane.guildKey, text) end,
+		function() ShowDetail() end)
+	fields:SetScript("OnEditFocusGained", function() pane.fieldsKey = pane.guildKey end)
+	ns.TipOn(fields, fields, "Custom Scan Fields\n\nExtra /who filters sent with the guild name by Custom Scan.\nExamples: 80   70-80   80 c-\"Mage\"   r-\"Orc\"")
+	pane.fieldsBox = fields
+	local custom = ns.NewButton(sr, "Custom Scan", 96, function()
+		M.PSS_GuildCustomScan(pane.guildKey, fields:GetText())
+		fields:ClearFocus()
+	end)
+	custom:SetPoint("LEFT", fields, "RIGHT", 8, 0)
+	ns.TipOn(custom, custom, "Custom Scan: /who for the guild plus its Scan Fields.")
+	b.custom = ScanButton(custom)
+	y = y - 28
+
+	b.overrides = Overrides(rule, y, "guild", function()
+		local _, g = M.PSS_FindGuildRule(pane.guildKey)
+		return g
+	end)
+
+	local members = ns.NewButton(rule, "Members", 90, function() OpenMembers(pane.guildKey) end)
+	members:SetPoint("BOTTOMLEFT", rule, "BOTTOMLEFT", 10, 4)
+	ns.TipOn(members, members, "The guild's members, in place of the guild list.")
+	b.membersButton = members
+	local remove = ns.NewButton(rule, "Remove Guild", 100, ConfirmRemoveGuild)
+	remove:SetPoint("LEFT", members, "RIGHT", 6, 0)
+	b.removeButton = remove
+
+	-- Event History: the guild's block history, the whole page
+	b.hist = ns.NewHistory(dp.history, -2, { names = true, empty = "Nothing blocked from this guild yet.", open = OpenGuildEvents })
+	local reset = ns.NewButton(dp.history, L["HISTORY_RESET"] or "Reset Block History", 130, function()
+		if pane.guildKey then M.PSS_ResetGuildBlockHistory(pane.guildKey) end
+	end)
+	reset:SetPoint("BOTTOMLEFT", dp.history, "BOTTOMLEFT", 10, 4)
+	b.resetButton = reset
+	return b
+end
+
+local function BuildGroupBody(parent)
+	local b = Body(parent)
+	local y = -28
+	b.info = Line(b, y); y = y - LINE_H
+	b.rule = Line(b, y); y = y - LINE_H
+	b.state = Line(b, y); y = y - LINE_H - 4
+	b.counts = Line(b, y)
+	local top = y - LINE_H - 6
+	b.charts = CreateFrame("Frame", nil, b)
+	b.charts:SetAllPoints()
+	b.summary = ns.NewSummary(b.charts, page, top, PIE_SMALL)
+	b.typePie = ns.NewTypePie(b.charts, top - PIE_SMALL - 10, PIE_SMALL, page)
+	b.recent = {}
+	-- the list's guilds' session and 24 hour counts by type, added up
+	local one = {}
+	b.sumSpec = { specFn = M.PSS_GroupEventsSpec, noWhere = true,
+		recentByCat = function(into) M.PSS_GroupRecentByCat(b.groupItems, into, one) end }
+	local toggle = ns.NewButton(b, "", 130, function()
+		M.PSS_GroupToggleRule(pane.groupKey)
+		V.dirty = true
+		page.refresh()
+	end)
+	toggle:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 10, 8)
+	ns.TipOn(toggle, toggle, "Turns this default guild list's rule on or off (the same switch as on the Chat Filters tab).")
+	b.toggle = toggle
+	local open = ns.NewButton(b, "", 100, function()
+		M.PSS_GroupToggleOpen(pane.groupKey)
+		Resort()
+		ShowDetail()
+	end)
+	open:SetPoint("LEFT", toggle, "RIGHT", 6, 0)
+	b.open = open
+	return b
+end
+
+local function BuildInfoBody(parent)
+	local b = Body(parent)
+	b.text = Line(b, -30)
+	b.text:SetWordWrap(true)
+	b.text:SetJustifyV("TOP")
+	b.text:SetHeight(160)
+	local remove = ns.NewButton(b, "Remove from Exclusion List", 190, function()
+		if M.PSS_ExclRemove(pane.exclName) then V:Select(nil, nil) end
+	end)
+	remove:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 10, 8)
+	b.removeButton = remove
+	return b
+end
+
+local function BuildMemberBody(parent)
+	local b = Body(parent)
+	local dp = ns.NewDetailPages(b, -28, "guilds")
+	b.pages = dp
+	b.counts = Line(dp.summary, -6)
+	b.summary = ns.NewSummary(dp.summary, page, -30)
+	b.sumSpec = { specFn = function(m) return M.PSS_MemberEventsSpec(m, V.mguild) end, who = "this member" }
+
+	-- View/Edit Rule
+	local rule = dp.rule
+	local y = -2
+	b.guildLine = Line(rule, y); y = y - LINE_H
+	b.addedLine = Line(rule, y); y = y - LINE_H - 4
+
+	local nr = Strip(rule, y, 22)
+	Label(nr, "Note")
+	local note = ns.NewEditBox(nr, 200, 25)
+	note:SetPoint("LEFT", nr, "LEFT", 94, 0)
+	note:SetPoint("RIGHT", nr, "RIGHT", -4, 0)
+	-- saves to the member shown when typing started
+	ns.OnCommit(note, function(text)
+		if M.PSS_MemberCommitNote(pane.noteMember or V.msel, text) then V.mdirty = true end
+	end, function() if page:IsVisible() then MResort(); ShowDetail() end end)
+	note:SetScript("OnEditFocusGained", function() pane.noteMember = V.msel end)
+	pane.noteBox = note
+	y = y - 28
+
+	-- ticked = allowed; dimmed = following the guild; right-click = follow
+	-- the guild again
+	b.excl = ExclBoxes(rule, y, "Ticked = allowed from this player, unticked = blocked. Dimmed boxes follow the guild's setting; right-click to follow it again.",
+		function(cat, box, button)
+			if M.PSS_MemberToggleAllowed(V.mguild, V.msel, cat, box:GetChecked(), button == "RightButton") then
+				V.dirty = true
+				ShowDetail()
+			end
+		end)
+	y = y - 28
+
+	b.overrides = Overrides(rule, y, "person", function() return V.msel end)
+
+	local remove = ns.NewButton(rule, "Remove Member", 110, ConfirmRemoveMember)
+	remove:SetPoint("BOTTOMLEFT", rule, "BOTTOMLEFT", 10, 4)
+	b.removeButton = remove
+	local addGuild = ns.NewButton(rule, "Add Guild", 90, function()
+		local m = V.msel
+		if m and M.PSS_AddMembersGuild(V.mguild, m.guild) then
+			V.mdirty, V.dirty = true, true
+			MResort()
+			ShowDetail()
+		end
+	end)
+	addGuild:SetPoint("LEFT", remove, "RIGHT", 6, 0)
+	ns.TipOn(addGuild, addGuild, "The player's actual guild is not this rule: adds a rule for it and moves its members there.")
+	b.addGuild = addGuild
+
+	-- Event History: the member's block history, the whole page
+	b.hist = ns.NewHistory(dp.history, -2, { empty = "Nothing blocked from this player yet.", open = function(m)
+		if ns.OpenEvents then ns.OpenEvents(page, M.PSS_MemberEventsSpec(m, V.mguild), {}) end
+	end })
+	local reset = ns.NewButton(dp.history, L["HISTORY_RESET"] or "Reset Block History", 130, function()
+		if V.msel then M.PSS_ResetMemberBlockHistory(V.msel) end
+	end)
+	reset:SetPoint("BOTTOMLEFT", dp.history, "BOTTOMLEFT", 10, 4)
+	b.resetButton = reset
+	return b
+end
+
 local function BuildPane(parent)
 	pane = ns.NewPanel(parent, true)
 	pane:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -8, -TOP_H - 4)
@@ -97,46 +465,126 @@ local function BuildPane(parent)
 	-- deselects it)
 	pane.totals = ns.NewTotals(pane, page, "guilds", "Guild Ignore List", "Select a guild to see its details.",
 		M.PSS_AllGuildsSpec)
-
-	local body = CreateFrame("Frame", nil, pane)
-	body:SetAllPoints()
-	body:Hide()
-	pane.body = body
-	pane.heading = ns.NewHeading(body, "")
-	pane.heading:SetPoint("TOPLEFT", body, "TOPLEFT", 10, -8)
-	pane.heading:SetPoint("RIGHT", body, "RIGHT", -10, 0)
-	pane.soon = ns.NewText(body, 12)
-	pane.soon:SetPoint("CENTER")
-	pane.soon:SetAlpha(0.7)
-	pane.soon:SetText("Its details come in the next 3.4.0 build.")
+	pane.bodies = {}
+	pane.guild = BuildGuildBody(pane)
+	pane.group = BuildGroupBody(pane)
+	pane.info = BuildInfoBody(pane)
+	pane.member = BuildMemberBody(pane)
+	for _, k in ipairs({ "guild", "group", "info", "member" }) do pane.bodies[#pane.bodies + 1] = pane[k] end
 end
 
--- the name of what is selected, or nil
-local function SelectedName()
-	local kind, sel = V.selKind, V.sel
-	if kind == "guild" then
-		local _, g = M.PSS_FindGuildRule(sel)
-		return g and tostring(g.name or sel) or nil
-	elseif kind == "group" or kind == "managed" then
-		return M.PSS_GuildGroupLabel(kind == "managed" and M.PSS_GUILD_MANAGED or sel)
-	elseif kind == "exclHeader" then
-		return "Guild Exclusion List"
-	elseif kind == "excl" then
-		return M.PSS_IsGuildExcluded(sel) and sel or nil
+local function ShowGuild(key, fresh)
+	local _, g = M.PSS_FindGuildRule(key)
+	if not g then return false end
+	local b = pane.guild
+	pane.guildKey = key
+	b:Show()
+	b.heading:SetText(tostring(g.name))
+	b.info:SetText(M.PSS_GuildInfoLine(g))
+	local gb = M.PSS_GuildBlock(g)
+	for cat, c in pairs(b.excl) do c:SetChecked(gb[cat] ~= true) end
+	b.scan:SetText(M.PSS_GuildSweepLabel(key))
+	if not pane.fieldsBox:HasFocus() then pane.fieldsBox:SetText(g.customScan or "") end
+	PaintOverrides(b.overrides, g)
+	local c = M.PSS_GetGuildBlockCounts(key)
+	b.counts:SetText(M.PSS_CountsText(c))
+	b.removeButton:SetEnabled(not M.PSS_IsStaticManagedGuild(key))
+	b.membersButton:SetShown(V.view ~= "members")
+	b.hist:Set(key, c.total or 0, M.PSS_GetGuildBlockHistory, fresh)
+	local s = b.sumSpec
+	s.owner, s.allTime, s.title, s.id = History.GuildKey(key), c.total or 0, tostring(g.name), key
+	b.summary:Set(s)
+	return true
+end
+
+-- A default guild list, or (k = MANAGED) the Managed Communities row
+local function ShowGroup(k)
+	local gv = M.PSS_GuildGroupView(k, V.rows, groupView)
+	if not gv then return false end
+	local b = pane.group
+	pane.groupKey = k
+	b:Show()
+	b.heading:SetText(gv.name)
+	b.info:SetText(gv.info)
+	b.rule:SetText(gv.rule)
+	b.state:SetText(gv.state)
+	b.toggle:SetShown(gv.toggle ~= nil)
+	if gv.toggle then b.toggle:SetText(gv.toggle) end
+	b.open:SetText(gv.open)
+	local item, items = gv.item, gv.items
+	b.counts:SetText(item and M.PSS_CountsText(item.bc) or "")
+	b.charts:SetShown(item and items and true or false)
+	if item and items then
+		-- periods like a guild's Summary and all-time blocks by type
+		b.groupItems = items
+		local s = b.sumSpec
+		s.allTime, s.title, s.id, s.counts = item.bc.total or 0, gv.name, k, item.bc
+		s.recent = M.PSS_GroupRecent(items, b.recent)
+		b.summary:Set(s)
+		b.typePie:Set(item.bc, gv.name, M.PSS_GroupEventsSpec, k)
 	end
+	return true
 end
 
-function ShowDetail()
+local function ShowExcl(name)
+	local heading, text = M.PSS_GuildExclView(name)
+	if not heading then return false end
+	local b = pane.info
+	b.heading:SetText(heading)
+	b.text:SetText(text)
+	pane.exclName = name
+	b.removeButton:SetShown(name ~= nil)
+	b:Show()
+	return true
+end
+
+local function ShowMember(fresh)
+	local m = V.msel
+	local _, gg = M.PSS_FindGuildRule(V.mguild)
+	if not (m and gg) then return false end
+	local b = pane.member
+	b:Show()
+	b.heading:SetText(M.PSS_MemberHeading(m))
+	b.guildLine:SetText(M.PSS_MemberGuildLine(m))
+	b.addedLine:SetText(M.PSS_MemberAddedLine(m))
+	if not pane.noteBox:HasFocus() then pane.noteBox:SetText(m.note or "") end
+	for cat, c in pairs(b.excl) do
+		local on, own = M.PSS_MemberAllowed(gg, m, cat)
+		c:SetChecked(on)
+		c:SetAlpha(own and 1 or 0.45)
+	end
+	PaintOverrides(b.overrides, m)
+	b.addGuild:SetShown(M.PSS_MemberOtherGuild(gg, V.mguild, m))
+	M.PSS_EnsureMemberBlockData(m)
+	local c = M.PSS_GetMemberBlockCounts(m)
+	b.counts:SetText(M.PSS_CountsText(c))
+	b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory, fresh)
+	local s = b.sumSpec
+	s.owner, s.allTime, s.title, s.id = History.MemberKey(m), c.total or 0, tostring(m.name), m
+	b.summary:Set(s)
+	return true
+end
+
+-- Redraw the pane for what is selected (nothing: the list's totals).
+function ShowDetail(fresh)
 	if not pane then return end
-	local name = SelectedName()
-	if not name then V:Select(nil, nil) end
-	pane.body:SetShown(name and true or false)
-	if name then
-		pane.heading:SetText(name)
-		pane.totals:Hide()
-	else
-		pane.totals:Show(V.rows.pool and V.rows or nil)
+	for _, body in ipairs(pane.bodies) do body:Hide() end
+	local shown = false
+	if V.view == "members" then
+		shown = (V.msel and ShowMember(fresh)) or ShowGuild(V.mguild, fresh)
+	elseif V.selKind == "guild" then
+		shown = ShowGuild(V.sel, fresh)
+	elseif V.selKind == "group" then
+		shown = ShowGroup(V.sel)
+	elseif V.selKind == "managed" then
+		shown = ShowGroup(MANAGED)
+	elseif V.selKind == "exclHeader" then
+		shown = ShowExcl(nil)
+	elseif V.selKind == "excl" then
+		shown = ShowExcl(V.sel)
 	end
+	if not shown then V:Select(nil, nil) end
+	if shown then pane.totals:Hide() else pane.totals:Show(V.rows.pool and V.rows or nil) end
 end
 
 ------------------------------------------------------------------------
@@ -146,7 +594,8 @@ local function ClosePicker()
 	if not picker:IsShown() then return end
 	picker:Hide()
 	M.PSS_GuildPickerClose(picker.mode)
-	lf:Show()
+	lf:SetShown(V.view == "guilds")
+	mview:SetShown(V.view == "members")
 end
 
 local function DrawPick(row, i)
@@ -223,6 +672,7 @@ local function ShowSearchResults(found, query, mode)
 	M.PSS_GuildPickerItems(found, mode, picker.items)
 	picker.title:SetText(M.PSS_GuildPickerTitle(#found, query, mode))
 	lf:Hide()
+	mview:Hide()
 	picker:Show()
 	picker.list:SetCount(#picker.items)
 	picker.list:Top()
@@ -232,7 +682,11 @@ end
 -- Tab
 ------------------------------------------------------------------------
 local function Refresh()
-	if V.dirty then Resort() else list:Redraw() end
+	if V.view == "members" then
+		if V.mdirty then MResort() else mlist:Redraw() end
+		if not V.mguild then CloseMembers() return end
+	end
+	if V.dirty then Resort() elseif V.view == "guilds" then list:Redraw() end
 	page.count:SetText(V:CountText())
 	ShowDetail()
 end
@@ -271,9 +725,14 @@ end
 ns.TabBuilders.guilds = function(pg)
 	page = pg
 
-	-- top left: search (guild names) and the count
+	-- top left: search (guild names, or the members shown) and the count
 	local search = ns.NewSearchBox(pg, 200, "Search guild name", function(text)
-		if V:SetFind(text) then
+		if V.view == "members" then
+			if V:SetMFind(text) then
+				MResort()
+				mlist:Top()
+			end
+		elseif V:SetFind(text) then
 			Resort()
 			list:Top()
 		end
@@ -336,22 +795,82 @@ ns.TabBuilders.guilds = function(pg)
 		emptyClick = function() if V.selKind then Select(nil, nil) end end,
 	})
 
+	-- the members of one guild, in place of the guild list
+	mview = CreateFrame("Frame", nil, pg)
+	mview:SetPoint("TOPLEFT", lf, "TOPLEFT", 0, 0)
+	mview:SetPoint("BOTTOMRIGHT", lf, "BOTTOMRIGHT", 0, 0)
+	mview:Hide()
+	local back = ns.NewButton(mview, "All Guilds", 90, CloseMembers)
+	back:SetPoint("TOPLEFT", mview, "TOPLEFT", 0, 0)
+	ns.TipOn(back, back, "Back to the guild list.")
+	mview.back = back
+	mview.heading = ns.NewText(mview, 12)
+	mview.heading:SetPoint("LEFT", back, "RIGHT", 10, 0)
+	local mf = CreateFrame("Frame", nil, mview)
+	mf:SetPoint("TOPLEFT", mview, "TOPLEFT", 0, -26)
+	mf:SetPoint("BOTTOMRIGHT", mview, "BOTTOMRIGHT", 0, 0)
+	mlist = ns.NewRows(mf, {
+		rowH = 20, height = 280,
+		cols = {
+			{ key = "name", text = "Name" },
+			{ key = "guild", text = "Guild", width = 130 },
+			{ key = "note", text = "Note", width = 110 },
+			{ key = "metric:total", text = "Blocked", width = 62, justify = "RIGHT",
+				tip = "Messages and invites blocked from this player." },
+		},
+		sort = function(key)
+			V:MSortBy(key)
+			MResort()
+		end,
+		draw = DrawMember,
+		enter = function(row, i)
+			local m = V.members[i]
+			if m then ns.Tip(row, M.PSS_MemberTip(m)) end
+		end,
+		click = function(_, i)
+			local m = V.members[i]
+			-- the selected member again: back to the guild's own
+			if m then SelectMember(m ~= V.msel and m or nil) end
+		end,
+		emptyClick = function() if V.msel then SelectMember(nil) end end,
+	})
+
 	BuildPicker(pg)
 
-	-- back / forward and Escape (PSS_Window.lua): the Guild Search results
-	-- are an overlay over the list
+	-- back / forward and Escape (PSS_Window.lua): the members of a guild
+	-- are a view of their own, the Guild Search results an overlay
+	pg.navState = function() return V.view == "members" and V.mguild or nil end
+	pg.navTitle = M.PSS_MembersNavTitle
+	pg.navApply = function(key)
+		if key then
+			-- (the rule's first return is the key even when it is gone)
+			if (V.mguild ~= key or V.view ~= "members") and select(2, M.PSS_FindGuildRule(key)) then OpenMembers(key) end
+		elseif V.view == "members" then
+			CloseMembers()
+		end
+	end
 	pg.navClose = function()
 		if not picker:IsShown() then return false end
 		ClosePicker()
 		return true
 	end
-	-- a tab click: nothing selected, the picker closed
+	pg.navUp = function()
+		if pg.navClose() then return true end
+		if V.view == "members" then
+			CloseMembers()
+			return true
+		end
+		return false
+	end
+	-- a tab click: the guild list, nothing selected, the picker closed
 	pg.navReset = function()
 		pg.navClose()
+		if V.view == "members" then CloseMembers() end
 		if V.selKind then Select(nil, nil) end
 	end
 
-	pg.list, pg.pane, pg.picker, pg.state = list, pane, picker, V
+	pg.list, pg.members, pg.membersView, pg.pane, pg.picker, pg.state = list, mlist, mview, pane, picker, V
+	pg.openMembers, pg.selectMember = OpenMembers, SelectMember
 	pg.select = Select
 	V.dirty = true
 	return Refresh
@@ -362,7 +881,7 @@ end
 ------------------------------------------------------------------------
 local queued = false
 local function Changed()
-	V.dirty = true
+	V.dirty, V.mdirty = true, true
 	if queued or not (page and page:IsVisible()) then return end
 	-- one redraw however many changes arrive in a frame (saving Guild
 	-- Search results adds many guilds at once)
@@ -377,6 +896,7 @@ M.Events.Register("GUILD_SCAN_DONE", Changed)
 
 M.Events.Register("GUILD_REMOVED", function(key)
 	if V.selKind == "guild" and V.sel == key then V:Select(nil, nil) end
+	if V.mguild == key then V.mguild, V.msel = nil, nil end
 	Changed()
 end)
 
@@ -384,14 +904,14 @@ end)
 -- list again (a heading's counts are its guilds' added up)
 local redrawCounts = M.PSS_Throttle(function()
 	if page and page:IsVisible() then
-		Resort()
+		if V.view == "members" then mlist:Redraw() else Resort() end
 		ShowDetail()
 	else
-		V.dirty = true
+		V.dirty, V.mdirty = true, true
 	end
 end)
 M.Events.Register("GUILD_BLOCKS_CHANGED", function()
-	if page and page:IsVisible() then redrawCounts() else V.dirty = true end
+	if page and page:IsVisible() then redrawCounts() else V.dirty, V.mdirty = true, true end
 end)
 
 M.Events.Register("WHOIS_COOLDOWN", function(active)

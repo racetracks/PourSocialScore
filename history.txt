@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev009 - New PSS window: Guild Ignore List tab, part 2
+
+- Select a guild to see its details, laid out like the EllesmereUI window. Summary: counts and the period pie. Event History: the guild's block history with each player's name. View/Edit Rule: W I G P C for the whole guild, Scan (its tooltip shows the sweep; shift-click starts it over), Custom Scan with its fields, the Options overrides, Members and Remove Guild (asks first; default-list guilds cannot be removed).
+- A guild's members show in place of the guild list (double-click the guild, or Members): search, sort, and select a member. A member's details: note, W I G P C (dimmed boxes follow the guild; right-click to follow it again), overrides, Remove Member (asks first) and Add Guild when their actual guild is another. All Guilds, Back or Escape return to the guild list.
+- A default guild list or Managed Communities: its guilds, members and counts, the period and type pies, and buttons to turn its rule on or off and to expand or collapse it.
+- The Guild Exclusion List and each excluded guild: what exclusion means, and Remove from Exclusion List.
+
 => 3.4.0-dev008_4 - New PSS window: Modern by default, Classic look
 
 - Modern is now the new window's default look. The Blizzard look is renamed Classic; the Options drop-down lists Modern (Default), Classic and Dark. On clients without the Modern art (Camelot), Modern shows the Classic look.
