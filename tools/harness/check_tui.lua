@@ -1,6 +1,10 @@
 -- The new PSS window (3.4.0), as a run.lua script on a fresh save:
 -- PourSocialScore_UI and PourSocialScore_Libraries are not loaded at login;
--- /pss tui loads them (not the old windows) and toggles the window; Escape
+-- chat, the note popup, the group warning and list changes work without
+-- them (core's popups are StaticPopups); a chat command loads Libraries
+-- only; from 3.4.0.23 (D1, moved from check_gui.lua) the Friends and
+-- Social windows (with the option on), /pss gui, /pss ui, /pss tui and the
+-- Addon Compartment open it, never an old window; it toggles; Escape
 -- closes it; a dragged place is remembered; the look follows the uiSkin
 -- option (Blizzard by default) and repaints the open window; the kit's
 -- controls and tooltips follow the look; the uiFont option picks a Blizzard
@@ -19,20 +23,84 @@ M.Events.Fire("PLAYERS_CHANGED", true)
 M.Events.Fire("OPTION_CHANGED", "uiSkin")
 check(not loaded("PourSocialScore_UI"), "UI loaded by a change")
 
--- /pss lists the command
-local said, realShow = {}, M.ShowMsg
-M.ShowMsg = function(x) said[#said + 1] = tostring(x) end
-SlashCmdList["PSS"]("")
-M.ShowMsg = realShow
-check(table.concat(said, "\n"):find("tui", 1, true) ~= nil, "/pss help does not list tui")
+-- what fires during play, with the window asleep: core's popups
+local shown = {}
+local realPopup = StaticPopup_Show
+StaticPopup_Show = function(which) shown[#shown + 1] = which end
+M.Events.Fire("ASK_NOTE", "Badguy")
+M.Events.Fire("GROUP_WARNING", { "Badguy" })
+StaticPopup_Show = realPopup
+check(shown[1] == "PSS_REASON" and shown[2] == "PSS_PARTYWARN", "note popup and group warning")
+check(not loaded("PourSocialScore_UI") and not loaded("PourSocialScore_Libraries"), "a popup loaded the window")
 
--- /pss tui opens it, loading Libraries and UI only
-SlashCmdList["PSS"]("tui")
+-- chat commands load Libraries, not the window
+local said, realShow, realChat = {}, M.ShowMsg, M.ChatMsg
+M.ShowMsg = function(x) said[#said + 1] = tostring(x) end
+M.ChatMsg = M.ShowMsg
+SlashCmdList["PSS"]("mem")
+SlashCmdList["PSSGUILD"]("")
+check(loaded("PourSocialScore_Libraries"), "/pss did not load Libraries")
+check(not loaded("PourSocialScore_UI"), "/pss mem loaded the window")
+check(table.concat(said, "\n"):find("PSS guild:", 1, true) ~= nil, "/pssguild did not run")
+-- /pss lists gui (and no longer the old tui, eui and gui force)
+said = {}
+SlashCmdList["PSS"]("")
+M.ShowMsg, M.ChatMsg = realShow, realChat
+local help = table.concat(said, "\n")
+check(help:find("|cffffff00gui|r", 1, true) ~= nil or help:find("gui", 1, true) ~= nil, "/pss help does not list gui")
+check(not help:find("tui", 1, true) and not help:find("eui", 1, true) and not help:find("force", 1, true), "/pss help lists a retired command")
+
+-- Friends with the option off: stays asleep
+local opt = PourSocialScoreDB.openWithFriends
+PourSocialScoreDB.openWithFriends = false
+FriendsFrame:Show(); FriendsFrame:Hide()
+check(not loaded("PourSocialScore_UI"), "Friends loaded the window with the option off")
+-- option on: loads it and shows it beside Friends, closes with it
+PourSocialScoreDB.openWithFriends = true
+FriendsFrame:Show()
 local win = _G.PSS_Window
-check(loaded("PourSocialScore_UI") and loaded("PourSocialScore_Libraries"), "/pss tui did not load UI and Libraries")
-check(not loaded("PourSocialScore_GUI"), "/pss tui loaded the old GUI")
-check(not loaded("PourSocialScore_EllesmereUI"), "/pss tui loaded the EllesmereUI window")
-check(win and win:IsShown(), "/pss tui did not show the window")
+check(loaded("PourSocialScore_UI") and win and win:IsShown(), "Friends did not open the window")
+check(win._point and win._point[1] == "TOPLEFT" and win._point[2] == FriendsFrame and win._point[4] == 12, "window not beside Friends")
+FriendsFrame:Hide()
+check(not win:IsShown(), "window not closed with Friends")
+-- Retail 12.1's Social window: beside it, clear of its tabs; Social going
+-- to the Who tab (FriendsFrame) keeps it open and it follows
+SocialUIFrame:Show()
+check(win:IsShown() and win._point[2] == SocialUIFrame and win._point[4] == 55, "window not beside the Social window")
+FriendsFrame:Show(); SocialUIFrame:Hide()
+check(win:IsShown() and win._point[2] == FriendsFrame, "window did not follow Social to the Who tab")
+FriendsFrame:Hide()
+check(not win:IsShown(), "window not closed with the Social window")
+-- opened by command, it is at its own place and stays when a Friends
+-- window it was not opened with closes
+SlashCmdList["PSS"]("gui")
+check(win:IsShown() and not win.byFriends and win._point[2] ~= FriendsFrame, "/pss gui opened it docked")
+SocialUIFrame:Hide()
+check(win:IsShown(), "a Friends window closing closed the window opened by command")
+SlashCmdList["PSS"]("gui")
+check(not win:IsShown(), "/pss gui did not close it")
+PourSocialScoreDB.openWithFriends = opt
+-- /pss ui and /pss tui (until D2) toggle it too; the Addon Compartment opens it
+SlashCmdList["PSS"]("ui")
+check(win:IsShown(), "/pss ui did not open the window")
+SlashCmdList["PSS"]("tui")
+check(not win:IsShown(), "/pss tui did not close the window")
+local entry
+for _, info in ipairs(AddonCompartmentFrame.registered) do
+	if info.text == "Pour Social Score" then entry = info end
+end
+check(entry ~= nil, "no Addon Compartment entry")
+if entry then entry.func() end
+check(win:IsShown(), "the Addon Compartment did not open the window")
+SlashCmdList["PSS"]("gui")
+win._point = nil
+
+-- /pss gui opens it at its own place, loading Libraries and UI only
+SlashCmdList["PSS"]("gui")
+check(loaded("PourSocialScore_UI") and loaded("PourSocialScore_Libraries"), "/pss gui did not load UI and Libraries")
+check(not loaded("PourSocialScore_GUI"), "the window loaded the old GUI")
+check(not loaded("PourSocialScore_EllesmereUI"), "the window loaded the EllesmereUI window")
+check(win and win:IsShown(), "/pss gui did not show the window")
 check(win and win:GetWidth() == 960 and win:GetHeight() == 494, "window is not 960 x 494")
 check(win and win.title and win.title:GetText() == "Pour Social Score", "no title")
 check(win and win._point and win._point[1] == "CENTER", "first open is not centred")
@@ -64,9 +132,9 @@ win:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 120.4, -80.6)
 win._scripts.OnDragStop(win)
 local p = PourSocialScoreDB.windowPoints and PourSocialScoreDB.windowPoints.PSS_Window
 check(p and p[1] == "TOPLEFT" and p[3] == 120 and p[4] == -81, "dragged place not saved")
-SlashCmdList["PSS"]("tui")
-check(not win:IsShown(), "second /pss tui did not close the window")
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
+check(not win:IsShown(), "second /pss gui did not close the window")
+SlashCmdList["PSS"]("gui")
 check(win:IsShown() and win._point[1] == "TOPLEFT" and win._point[4] == 120, "saved place not used")
 
 -- Escape closes it (the helper frame in UISpecialFrames is hidden by Escape)
@@ -80,7 +148,7 @@ check(not win:IsShown(), "Escape did not close the window")
 ------------------------------------------------------------------------
 -- dev006: six tabs, back / forward, the line by the arrows, Escape
 ------------------------------------------------------------------------
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 check(win:IsShown(), "window did not open again")
 local names = {}
 for i, t in ipairs(win.tabs or {}) do names[i] = t:GetText() end
@@ -160,7 +228,7 @@ _G.PSS_WindowEscape:Hide()
 check(not win:IsShown(), "Escape at the top did not close the window")
 pg.navState, pg.navApply, pg.navUp, pg.navTitle = nil, nil, nil, nil
 -- the tab shown last opens next time; the first tab clears the saved one
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 check(win.pages[6]:IsShown() and M.PSS_UITab() == 6, "saved tab not reopened")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(PourSocialScoreDB.windowPoints.PSS_WindowTab == nil, "the first tab was saved")
@@ -223,9 +291,9 @@ check(tab1:GetWidth() == tab1:GetFontString():GetStringWidth() + 32, "tab not si
 local realClass, realColor = UnitClass, C_ClassColor.GetClassColor
 UnitClass = function() return "Druid", "DRUID", 11 end
 C_ClassColor.GetClassColor = function(c) if c == "DRUID" then return { r = 1, g = 0.49, b = 0.04 } end end
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 M.PSS_SetOpt("uiSkin", "global", 1)
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 local lc = tab1.pssLine._color
 check(lc and lc[1] == 1 and lc[2] == 0.49 and lc[3] == 0.04, "Dark underline is not the class colour")
 check(M.PSS_OPTION_REG.uiAccent == nil, "the accent has an option (the class colour is mandatory)")
@@ -281,8 +349,8 @@ local lsm = {
 	Fetch = function(_, kind, name) if kind == "font" and name == "Shared Face" then return "Interface\\AddOns\\Other\\face.ttf" end end,
 }
 _G.LibStub = setmetatable({}, { __call = function(_, name) if name == "LibSharedMedia-3.0" then return lsm end end })
-SlashCmdList["PSS"]("tui")
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
+SlashCmdList["PSS"]("gui")
 local found
 for _, ch in ipairs(M.PSS_OPTION_REG.uiFont.choices) do if ch[2] == "Shared Face" then found = ch[1] end end
 check(found ~= nil, "a shared font not listed once the window opened")
@@ -451,11 +519,11 @@ do
 	local reg, unreg = 0, 0
 	M.Events.Register = function(...) reg = reg + 1 return realReg(...) end
 	M.Events.Unregister = function(...) unreg = unreg + 1 return realUnreg(...) end
-	if not win:IsShown() then SlashCmdList["PSS"]("tui") end
+	if not win:IsShown() then SlashCmdList["PSS"]("gui") end
 	reg, unreg = 0, 0
 	win:Hide()
 	check(unreg >= 15 and reg == 0, ("closing the window removed %d listeners (added %d)"):format(unreg, reg))
-	SlashCmdList["PSS"]("tui")
+	SlashCmdList["PSS"]("gui")
 	check(reg == unreg, ("opening the window added %d listeners, %d were removed"):format(reg, unreg))
 	M.Events.Register, M.Events.Unregister = realReg, realUnreg
 	win:Hide()

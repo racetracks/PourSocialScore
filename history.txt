@@ -1,6 +1,15 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.23 - New PSS window: switch-over
+
+- The new Pour Social Score window is now the window: /pss gui (and /pss ui), the Addon Compartment and, with "Open Pour Social Score UI with Blizzard Friends/Ignore UI" on, your Friends or Social window open it. /pss tui still works until 3.4.0.
+- Opened with Friends or Social it sits beside it and closes with it; opened with /pss gui it is where you last dragged it.
+- The old window and the EllesmereUI window are no longer opened. /pss gui force and /pss eui say so. The EllesmereUI integration option is gone from Options (the window's Dark look replaces it), and EllesmereUI's panel no longer has a Pour Social Score section.
+- The note prompt, the party warning and the reload prompt are always Blizzard's popups (they used EllesmereUI's with the integration on).
+- The look and font options are named "Look of the Pour Social Score window" and "Font of the Pour Social Score window".
+- The /pss command list no longer shows tui, eui and gui force.
+
 => 3.4.0.22 - New PSS window: exceptions per player and guild
 
 - New default for everyone on the Player or Guild Ignore List: no ignore response is sent, no decline messages are shown, and their duels and trades are declined. Show declines is now Off by default (was On); the Options tab still sets the default.

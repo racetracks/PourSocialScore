@@ -79,13 +79,9 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_alerts.lua" 2>&1 | grep -v '^|cf
 echo "$out"
 echo "$out" | grep -q "PASS alerts" || fail=1
 
-# windows and back end on demand (3.0): PourSocialScore_GUI and _Libraries load only when needed
-echo "== GUI on demand"
-out=$(lua5.1 "$here/run.lua" . - - "$here/check_gui.lua" 2>&1 | grep -v '^|cff')
-echo "$out"
-echo "$out" | grep -q "PASS gui" || fail=1
-
-# the new PSS window (3.4.0): PourSocialScore_UI loads only with /pss tui
+# the PSS window (3.4.0) and the back end on demand: PourSocialScore_UI and
+# _Libraries load only when needed; /pss gui, Friends / Social and the Addon
+# Compartment open it (3.4.0.23, D1; was check_gui.lua for the old window)
 echo "== new window on demand"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_tui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"

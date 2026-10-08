@@ -118,7 +118,7 @@ check(string.lower(mem[1].name) > string.lower(mem[2].name), "members Z-A")
 check(select(2, M.PSS_GuildMembers("no such guild", "name", true, nil, {})) == nil, "members of a missing rule")
 
 ------------------------------------------------------------------ window
-SlashCmdList.PSS("gui")
+M.PSS_Need("EllesmereUI"); M.EUI_Toggle()
 local win = _G.PSS_EllesmereUIWindow
 check(win and win:IsShown(), "no window")
 win.tabs[2]:GetScript("OnClick")(win.tabs[2])
@@ -508,7 +508,7 @@ check(page:IsShown() and not win.pages[6]:IsShown(), "Back did not return to the
 -- at the top Escape closes; closed, the mouse buttons are not listened to
 check(E.PressEscape() and not win:IsShown(), "Escape at the top did not close the window")
 check(not win:IsEventRegistered("GLOBAL_MOUSE_UP"), "mouse buttons listened to while closed")
-SlashCmdList.PSS("gui")
+M.PSS_Need("EllesmereUI"); M.EUI_Toggle()
 check(win:IsShown() and page:IsShown() and win:IsEventRegistered("GLOBAL_MOUSE_UP"), "window not back")
 win._mouseOver = nil
 
@@ -743,7 +743,7 @@ check(pane.totals.frame:IsShown(), "pane still shows a removed guild")
 
 -- the PSS window keeps working on the same functions
 check(not loaded("PourSocialScore_GUI"), "PourSocialScore_GUI loaded by the tab")
-SlashCmdList.PSS("gui force")
+M.PSS_GUI()
 check(loaded("PourSocialScore_GUI") and _G.PSS and _G.PSS:IsShown(), "/pss gui force")
 M.PSS_ShowGuildDetail(bigKey)
 local f = M.PSSGuildDetailFrame

@@ -14,7 +14,7 @@ print(("totals: player %d (w %d, pi %d, pr %d, world %d, gi %d)  guild %d (w %d,
 	gc.total, gc.whisper, gc.partyInvite, gc.partyRaid, gc.world, gc.guildInvite,
 	db.filterTotal or 0, db.filterWhisperTotal or 0, db.filterPrivateTotal or 0, db.blockLog and #db.blockLog or 0))
 if M.PSS_Stats or M.PSS_Need then
-	SlashCmdList.PSS("gui")
+	M.PSS_GUI()
 	H.RunTimers()
 	local function plain(s) return (tostring(s or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
 	for _, t in ipairs({ { "PSSTab1", "PSSFrame1" }, { "PSSTabGuild", "PSSGuildTabFrame" }, { "PSSTab2", "PSSFrame2" } }) do

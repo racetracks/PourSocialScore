@@ -36,7 +36,7 @@ local function rclick(list, i)
 	list.spec.click(list.rows[1], i, "RightButton")
 end
 
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
 check(win and win:IsShown(), "/pss tui did not open the window")
 local ui = H.Private("PourSocialScore_UI")

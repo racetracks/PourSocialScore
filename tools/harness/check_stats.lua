@@ -95,7 +95,7 @@ local function matchEUI(label)
 end
 
 local function check(label, rowsWant)
-	SlashCmdList.PSS("gui")
+	M.PSS_GUI()
 	H.RunTimers()
 	matchEUI(label)
 	showTab("PSSTab1")

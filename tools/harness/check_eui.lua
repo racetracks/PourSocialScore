@@ -1,48 +1,44 @@
--- EllesmereUI integration switch (3.1 Step E.1, PSS_EUI.lua):
---   the option defaults off and is not saved while off
---   /pss eui enable | disable switch it and ask for a reload: the PSS popup
---   without EllesmereUI, EllesmereUI's own (reload = true) with it
---   /pss gui opens the PSS windows (no EllesmereUI front end yet), gui force too
+-- The EllesmereUI switch is retired (3.4.0.23, D1; PSS_EUI.lua):
+--   /pss eui (enable | disable) and /pss gui force only say the old windows
+--   are gone; nothing switches, nothing loads
+--   the option is not listed on the Options tab and asks for no reload
+--   /pss gui opens the Pour Social Score window, never an old one
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL eui: " .. msg) fail = true end end
 local loaded = C_AddOns.IsAddOnLoaded
+local L = PourSocialScore_NS.L
 
 local shown = {}
 local oldShow = StaticPopup_Show
 StaticPopup_Show = function(which, a) shown[#shown + 1] = { which, a } end
+local said, realMsg = {}, M.ShowMsg
+M.ShowMsg = function(x) said[#said + 1] = tostring(x) end
 
 check(M.PSS_Opt("euiIntegration") == false, "default not off")
-check(not M.PSS_UseEUI(), "in use without EllesmereUI")
+for _, cmd in ipairs({ "eui enable", "eui", "gui force" }) do
+	said = {}
+	SlashCmdList.PSS(cmd)
+	check(said[1] == L["CMD_GONE"], "/pss " .. cmd .. " did not say the old windows are gone")
+end
+check(M.PSS_Opt("euiIntegration") == false and rawget(PSS_OptionsDB, "euiIntegration") == nil, "/pss eui enable still switches it")
+check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI") and not loaded("PourSocialScore_UI"),
+	"a retired command loaded a window")
 
-SlashCmdList.PSS("eui enable")
-check(M.PSS_Opt("euiIntegration") == true, "enable did not switch it on")
-check(#shown == 1 and shown[1][1] == "PSS_RELOAD" and shown[1][2]:find("now on"), "no PSS reload prompt on enable")
-SlashCmdList.PSS("eui enable")
-check(#shown == 1, "asked again when already on")
-check(not M.PSS_UseEUI(), "in use without EllesmereUI loaded")
-
--- /pss gui: still the PSS windows
-SlashCmdList.PSS("gui")
-check(loaded("PourSocialScore_GUI"), "/pss gui did not open the PSS windows")
-
--- EllesmereUI loaded: its popup, reload = true
-local asked
-EllesmereUI = { ShowConfirmPopup = function(self, o) asked = o end, RegisterPlugin = function() return true end }
-check(M.PSS_UseEUI(), "not in use with EllesmereUI and the option on")
-SlashCmdList.PSS("eui disable")
-check(M.PSS_Opt("euiIntegration") == false, "disable did not switch it off")
-check(rawget(PSS_OptionsDB, "euiIntegration") == nil, "the default is saved")
-check(asked and asked.reload == true and asked.message:find("now off"), "no EllesmereUI reload prompt")
-check(#shown == 1, "PSS popup shown with EllesmereUI loaded")
-
--- the Options tab tickbox goes through the same path
-asked = nil
+-- a save with it on (an older version): no reload prompt, not listed
 M.PSS_SetOpt("euiIntegration", "global", true)
-check(asked and asked.reload == true, "tickbox did not ask for a reload")
-check(rawget(PSS_OptionsDB, "euiIntegration") == true, "on is not saved")
-SlashCmdList.PSS("gui force")
-SlashCmdList.PSS("eui")
+check(#shown == 0, "the retired option asked for a reload")
+M.PSS_Need("Libraries")
+for _, g in ipairs(M.PSS_OptGroups()) do
+	for _, it in ipairs(g.items) do check(it.o.key ~= "euiIntegration", "the retired option is listed") end
+end
+
+-- /pss gui: the Pour Social Score window, even with EllesmereUI loaded
+EllesmereUI = { ShowConfirmPopup = function() end, RegisterPlugin = function() return true end }
+SlashCmdList.PSS("gui")
+check(_G.PSS_Window and _G.PSS_Window:IsShown(), "/pss gui did not open the window")
+check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "/pss gui loaded an old window")
 
 EllesmereUI = nil
+M.ShowMsg = realMsg
 StaticPopup_Show = oldShow
 if not fail then print("PASS eui") end

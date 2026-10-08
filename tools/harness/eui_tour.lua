@@ -146,7 +146,7 @@ local function viewEvents(page, label)
 end
 
 step("add player", function() M.PSS_AddPlayer("Tourplayer-Realm", "a note", 0) end)
-step("open", function() SlashCmdList.PSS("gui") end)
+step("open", function() M.PSS_Need("EllesmereUI"); M.EUI_Toggle() end)
 win = _G.PSS_EllesmereUIWindow
 for i = 1, #(win and win.tabs or {}) do
 	step("tab " .. i, function() click(win.tabs[i]) end)

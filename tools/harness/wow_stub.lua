@@ -294,6 +294,9 @@ FriendsFrame = new("Frame", "FriendsFrame")
 FriendsFrame._shown = false
 SocialUIFrame = new("Frame", "SocialUIFrame")	-- Retail 12.1 Social window
 SocialUIFrame._shown = false
+-- the Addon Compartment (Retail): the entries addons register
+AddonCompartmentFrame = { registered = {} }
+function AddonCompartmentFrame:RegisterAddon(info) self.registered[#self.registered + 1] = info end
 GameTooltip = new("GameTooltip", "GameTooltip")
 ItemRefTooltip = new("GameTooltip", "ItemRefTooltip")
 DEFAULT_CHAT_FRAME = new("ScrollingMessageFrame", "DEFAULT_CHAT_FRAME")

@@ -37,7 +37,7 @@ eq("lines with a rule tag", tagged, 0)
 eq("rule history", #M.PSS_FilterHistory(i), 0)
 
 -- the Chat Filters row reads n/a
-SlashCmdList.PSS("gui")
+M.PSS_GUI()
 H.RunTimers()
 _G.PSSTab2:GetScript("OnClick")(_G.PSSTab2)
 local na = false

@@ -16,7 +16,7 @@ local realShow = M.ShowMsg
 M.ShowMsg = function(x) said[#said + 1] = tostring(x) realShow(x) end
 local function lastSaid() return said[#said] or "" end
 
-SlashCmdList["PSS"]("tui")
+SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
 win.tabs[6]._scripts.OnClick(win.tabs[6])
 local page = win.pages[6]
@@ -33,7 +33,7 @@ for _, g in ipairs(page.groups) do
 	end
 end
 local want = 0
-for _, o in ipairs(M.PSS_OPTIONS) do if not o.inline then want = want + 1 end end
+for _, o in ipairs(M.PSS_OPTIONS) do if not o.inline and not o.retired then want = want + 1 end end
 check(n == want, ("rows %d, options %d"):format(n, want))
 for key, row in pairs(rowOf) do
 	local o = row.option
