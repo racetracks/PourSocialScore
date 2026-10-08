@@ -58,7 +58,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | C2 | next build | Right-click menus | Planned |
 | D1 to D3 | next builds | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
 | Release | 3.4.0 | When Dan says it is done | |
-| Next line | 3.4.1 | Core performance fixes from the review, stored guild members capped at 1500 per rule (Dan, 2026-10-08), `memberCount` no longer saved (review L12) | Planned |
+| Next line | 3.4.1 | Core performance fixes from the review, stored guild members capped at 1500 per rule (Dan, 2026-10-08), `memberCount` no longer saved (review L12; Dan's OK 2026-10-08) | Planned |
 
 ## Code map
 | Where | What |
