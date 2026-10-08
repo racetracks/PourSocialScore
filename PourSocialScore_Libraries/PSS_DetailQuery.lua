@@ -23,6 +23,9 @@
 --   M.PSS_CountsText(c)                   "Blocked 12:  Whispers 3  ..."
 --   M.PSS_OVERRIDE_SHORT, M.PSS_NextOverride(cur), M.PSS_OverrideText(opt, cur)
 --   M.PSS_ClassColor(class)               r, g, b (white if unknown)
+--   M.PSS_HistHidden(type) / M.PSS_SetHistHidden(type, hidden)   the block
+--                                         history lists' type ticks
+--   M.PSS_HistFilter(all, out)            the lines of the ticked types; n
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
 local M = addon.M
@@ -222,4 +225,24 @@ function M.PSS_ClassColor(class)
 	local c = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
 	if c then return c.r, c.g, c.b end
 	return 1, 1, 1
+end
+
+-- The block history lists' type ticks (whisper, invite, ...), shared by
+-- every list while the window is loaded: an unticked type hides its lines.
+local histHidden = {}
+
+function M.PSS_HistHidden(t) return histHidden[t] == true end
+function M.PSS_SetHistHidden(t, hidden) histHidden[t] = hidden and true or nil end
+
+function M.PSS_HistFilter(all, out)
+	local n = 0
+	for i = 1, #all do
+		local h = all[i]
+		if not histHidden[M.PSS_EventType(h)] then
+			n = n + 1
+			out[n] = h
+		end
+	end
+	for i = #out, n + 1, -1 do out[i] = nil end
+	return n
 end

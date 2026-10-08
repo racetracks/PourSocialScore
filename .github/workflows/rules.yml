@@ -30,3 +30,5 @@ jobs:
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_tui.lua | tee /tmp/tui.txt && grep -q "PASS tui" /tmp/tui.txt
       - name: New window maths
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_viewquery.lua | tee /tmp/vq.txt && grep -q "PASS viewquery" /tmp/vq.txt
+      - name: New window Players tab
+        run: lua5.1 tools/harness/run.lua . - - tools/harness/check_players.lua | tee /tmp/pl.txt && grep -q "PASS players" /tmp/pl.txt

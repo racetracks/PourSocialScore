@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev007 - New PSS window: Player Ignore List tab
+
+- The Player Ignore List tab works in /pss tui, laid out like the EllesmereUI window: search, Add Player, sortable columns (Name, Server, Type, Listed, Expires, Blocked) and a detail pane.
+- The detail pane has three pages along its bottom: Summary (counts and the pie of this session, the last 24 hours and all time, with a tick box for each), Event History (the block history, filtered by type, loaded only when you press Show Block History) and View/Edit Rule (expiry, note, W I G P C, the Options overrides, Remove and Add Guild).
+- With nothing selected the pane shows the whole list's totals: the period pie and a pie by type.
+- The close button (the red X) and the window title now show in the Blizzard and Modern looks: they were drawn under the frame's metal border.
+- View Events, clicking a pie slice and double-clicking a history line open the Events tab once it is built (B6); until then they show their counts only.
+
 => 3.4.0-dev006_2 - New PSS window: lighter navigation line
 
 - The line beside the back and forward arrows (the tab and view shown) is lighter and easier to read.

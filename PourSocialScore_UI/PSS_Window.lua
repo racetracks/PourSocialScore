@@ -394,12 +394,27 @@ local function Build()
 
 	local blizz = BlizzardFrame()
 	local dark = DarkFrame()
-	local blizzClose = CreateFrame("Button", nil, win, "UIPanelCloseButton")
+	-- The title and the close buttons sit on a frame above the frame art:
+	-- the Blizzard frame's border (its NineSlice) has a fixed level of about
+	-- 500, so anything lower is drawn under its metal edge and corners.
+	local chrome = CreateFrame("Frame", nil, win)
+	chrome:SetAllPoints(win)
+	local top = win:GetFrameLevel() + 8
+	if blizz and blizz.NineSlice and blizz.NineSlice.GetFrameLevel then
+		top = math.max(top, blizz.NineSlice:GetFrameLevel() + 10)
+	end
+	chrome:SetFrameLevel(top)
+	win.chrome = chrome
+	local blizzClose = CreateFrame("Button", nil, chrome, "UIPanelCloseButton")
 	blizzClose:SetPoint("TOPRIGHT", win, "TOPRIGHT", 0, 0)
-	blizzClose:SetFrameLevel(win:GetFrameLevel() + 8)
+	blizzClose:SetFrameLevel(top + 1)
+	-- (the template's own click hides its parent: ours closes the window)
+	blizzClose:SetScript("OnClick", function() win:Hide() end)
 	local darkClose = DarkClose()
+	darkClose:SetParent(chrome)
+	darkClose:SetFrameLevel(top + 1)
 
-	local title = ns.NewText(win, 13, "GameFontNormal")
+	local title = ns.NewText(chrome, 13, "GameFontNormal")
 	title:SetPoint("TOP", win, "TOP", 0, -6)
 	title:SetText("Pour Social Score")
 	win.title = title

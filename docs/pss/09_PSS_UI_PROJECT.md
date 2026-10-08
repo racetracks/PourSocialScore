@@ -15,7 +15,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 `latest/` (the newest). Real saves: `SavedVariables/<version>/`.
 
 ## Dan's brief and decisions (2026-10-07)
-1. Every element of the EllesmereUI port becomes native. No EllesmereUI dependency and no EllesmereUI names: PSS names only (`check_rules.sh` fails on `EUI` or `Ellesmere` in `PourSocialScore_UI`, `PSS_ViewNav.lua` and `PSS_DetailQuery.lua`).
+1. Every element of the EllesmereUI port becomes native. No EllesmereUI dependency and no EllesmereUI names: PSS names only (`check_rules.sh` fails on `EUI` or `Ellesmere` in `PourSocialScore_UI`, `PSS_ViewNav.lua`, `PSS_DetailQuery.lua` and `PSS_PlayerView.lua`).
 2. **The port is the reference for every visual and layout choice; the old GUI is not authoritative on anything.**
 3. All logic (state, navigation, queries, shaping, validation, flows) in `PourSocialScore_Libraries`; drawing only in the new `PourSocialScore_UI` ("PourSocialScore UI"), split by function. Folder name `PourSocialScore_UI`.
 4. `/pss tui` (temp UI) opens it while it is built; at the cutover it takes over `/pss gui`, the Friends / Social docking and the Addon Compartment.
@@ -43,8 +43,9 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | A2b | dev003 (to dev003_2) | Kit part 2: drop-down and right-click menu, popups (confirm, copy, import), row list, pie | Merged #92 |
 | Modern | dev004 (to dev004_2) | The Modern look across the kit (Dan chose it next, 2026-10-07); dev004_2 redone after the whole Social window, settled at dev004_4 | Merged #93 |
 | A3 | dev005 | Libraries groundwork: navigation, detail maths, shared helpers; numbers equal the core's counts on the real saves (`check_viewquery.lua`); the Events view query moves to B6, with the tab that draws it | Merged #94 |
-| B1 | dev006 (to dev006_2) | Window frame and navigation: six tabs, back / forward, the line by the arrows, Escape, last tab remembered; kit preview out of the window (kept in the harness) | PR open |
-| B2 to B7 | dev007 to dev012 | One tab per PR (Players, Guilds x2, Chat Filters, Events, Options + Import/Export) | Planned |
+| B1 | dev006 (to dev006_2) | Window frame and navigation: six tabs, back / forward, the line by the arrows, Escape, last tab remembered; kit preview out of the window (kept in the harness) | Merged #96 |
+| B2 | dev007 | Player Ignore List tab with the detail pane (three pages), totals and pies; Libraries `PSS_PlayerView.lua`; close button and title above the frame's border | PR open |
+| B3 to B7 | dev008 to dev012 | One tab per PR (Guilds x2, Chat Filters, Events, Options + Import/Export) | Planned |
 | C1, C2 | dev013, dev014 | Player Search, add target, Prune; right-click menus | Planned |
 | D1 to D3 | dev015 to dev017 | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
 | Release | 3.4.0 | When Dan says it is done | |
@@ -59,9 +60,13 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | `PourSocialScore_UI/PSS_Popups.lua` | `ns.Confirm`, `ns.CopyText`, `ns.ImportText` (`PSS_Confirm`, `PSS_TextPopup`) |
 | `PourSocialScore_UI/PSS_Rows.lua`, `PSS_Pie.lua` | The virtual row list and the pie, carried over from our own port and drawn in the look shown |
 | `PourSocialScore_UI/PSS_Window.lua` | The window, `M.PSS_TUI`; six tabs built on first open by `ns.TabBuilders[key](page)` (returns the redraw); back / forward `ns.NavBack` / `ns.NavForward` / `ns.NavUp`, `ns.NavRecord`, `ns.ResetTab`, `ns.ShowEventsTab(prepare)`, `ns.RefreshTab`; a page's `navState` / `navApply` / `navUp` / `navTitle` / `navReset` / `navClose`; Escape helper `PSS_WindowEscape` |
+| `PourSocialScore_UI/PSS_Detail.lua` | The panes' shared parts: `ns.NewDetailPages(body, top, kind)` (Summary, Event History, View/Edit Rule), `ns.NewSummary` (`sm:Set(spec)`), `ns.NewTypePie`, `ns.NewTotals`; a slice or View Events calls `ns.OpenEvents` once the Events tab defines it |
+| `PourSocialScore_UI/PSS_History.lua` | `ns.NewHistory(body, y, opts)`: the block history list with type ticks and the Show Block History gate |
+| `PourSocialScore_UI/PSS_Players.lua` | The Player Ignore List tab (`ns.TabBuilders.players`), `ns.ShowPlayerDetail` |
+| `PourSocialScore_Libraries/PSS_PlayerView.lua` | The tab's logic: `M.PSS_PlayerListNew()` (sort, search), column and pane text, edits (`M.PSS_PlayerCommitNote`, `...CommitExpiry`, `...ToggleAllowed`, `...CycleOverride`, `...AddFromText`, `...AddGuild`), Events specs |
 | `tools/harness/kit_page.lua` | The kit preview (was `PSS_KitPage.lua` until dev005), built by `check_tui.lua` on a frame of its own through `H.Private("PourSocialScore_UI")` |
 | `PourSocialScore_Libraries/PSS_ViewNav.lua` | `M.PSS_UISkin`, `M.PSS_UIPlace` / `M.PSS_SetUIPlace`, `M.PSS_UIFontPath`, `M.PSS_UIFontChoices`, `M.PSS_UIAccent`; tabs `M.PSS_UI_TABS`, `M.PSS_UITab` / `M.PSS_SetUITab` (saved as `windowPoints.PSS_WindowTab`, the first tab not saved); back / forward `M.PSS_NavNew(max)` (`Record`, `Back`, `Forward`, `Replace`, `BackToOther`), `M.PSS_DoubleClick`, `M.PSS_Throttle` |
-| `PourSocialScore_Libraries/PSS_DetailQuery.lua` | Pane maths: `M.PSS_PERIODS`, period and type ticks, `M.PSS_SummaryValues`, `M.PSS_PeriodSlices` / `M.PSS_PeriodTip`, `M.PSS_TypeSlices`, `M.PSS_TotalsView`, `M.PSS_CountsText`, override cycle `M.PSS_NextOverride` / `M.PSS_OverrideText`, `M.PSS_ClassColor` |
+| `PourSocialScore_Libraries/PSS_DetailQuery.lua` | Pane maths: `M.PSS_PERIODS`, period and type ticks, `M.PSS_SummaryValues`, `M.PSS_PeriodSlices` / `M.PSS_PeriodTip`, `M.PSS_TypeSlices`, `M.PSS_TotalsView`, `M.PSS_CountsText`, override cycle `M.PSS_NextOverride` / `M.PSS_OverrideText`, `M.PSS_ClassColor`, history type ticks `M.PSS_HistHidden` / `M.PSS_HistFilter` |
 | Core | `M.PSS_PARTS.UI`, `NEEDS.UI = "Libraries"`, options `uiSkin` and `uiFont`, `HELP_21` |
 
 ## Lessons so far
@@ -70,4 +75,5 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 - **Dimmed labels:** fade with `SetAlpha` (never text colour alpha, baseline 05 known fix 1); Dark's unselected tabs sit at 0.7, readable on the dark plate.
 - **Template art across looks:** fade a template's textures with alpha and restore each one's own alpha, so the template's state changes cannot bring one back and the Blizzard look is exactly as Blizzard drew it.
 - **Rotated art does not stretch along the other axis** (dev004): a tall side-tab atlas turned a quarter on a wide tab showed as thin strips. Keep frame art upright and stretch only its middle with slice margins, and match a look from the whole reference window (frame, background, panels, buttons), not from a few controls.
+- **Frame art has its own levels** (dev007): `ButtonFrameTemplate`'s border (its NineSlice) sits at a fixed frame level of about 500, so our close button and title at the window's level + 8 were drawn under the metal edge. Anything that must show over a Blizzard frame template goes on a frame raised above the template's own parts.
 - **Ask which object a screenshot shows:** `/fstack` names only what is under the mouse; a screenshot of a highlighted region with an unrelated frame stack cannot be identified.
