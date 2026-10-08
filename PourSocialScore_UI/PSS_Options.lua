@@ -149,7 +149,7 @@ ns.TabBuilders.options = function(page)
 	-- the search box sits at the right end of the tab row, over the window,
 	-- and shows and hides with this page
 	local search = ns.NewSearchBox(page, 200, "Search options", Layout)
-	search:SetPoint("TOPRIGHT", page:GetParent(), "TOPRIGHT", -12, -34)
+	search:SetPoint("TOPRIGHT", page:GetParent(), "TOPRIGHT", -12, ns.TAB_ROW_Y - 2)
 	page.search, page.groups, page.none = search, groups, none
 	return function() for i = 1, #rows do rows[i]() end end
 end

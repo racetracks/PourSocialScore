@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.24 - New PSS window: arrows above the tabs
+
+- The window's back / forward arrows and the line naming the view now sit above the tab row, and the tabs sit straight above the page (Dan, 2026-10-08). The same in all three looks.
+- The Options tab's search box moves down with the tab row.
+
 => 3.4.0.23 - New PSS window: switch-over
 
 - The new Pour Social Score window is now the window: /pss gui (and /pss ui), the Addon Compartment and, with "Open Pour Social Score UI with Blizzard Friends/Ignore UI" on, your Friends or Social window open it. /pss tui still works until 3.4.0.
