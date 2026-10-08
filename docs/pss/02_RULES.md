@@ -92,6 +92,7 @@ The baseline's rules are mandatory. These are the only places PSS differs, each 
 | C2 No behaviour change without opt-in | The new window replaces both old windows for everyone at the cutover (D1, D2), in the Modern look by default (09 decisions 4 to 6) | 2026-10-07, Modern default 2026-10-08 |
 | J4 Avoid calling Blizzard Lua that stores state | Newly listed people's lines are purged from the chat frames with `RemoveMessagesByPredicate` (10.3) | 2026-10-08 (code review decision 3) |
 | J2 / J4 Never touch Blizzard state | The guild invite is declined through the API (`DeclineGuild` / `C_GuildInfo.DeclineGuild`) plus `StaticPopup_Hide("GUILD_INVITE")` (10.3) | 2026-10-08 (code review decision 2) |
+| C3 No OnUpdate polling | The new window's pie (`PourSocialScore_UI/PSS_Pie.lua`) runs OnUpdate only while the mouse is over it, so the hovered slice follows the cursor; it is cleared on leave | 2026-10-08 |
 
 Blizzard hooks approved within the J rules (post-hooks, no override): `hooksecurefunc(ChatFrameUtil, "InsertLink")` on Retail 12.x (Dan, 2026-10-08), and the rest of 10.3.
 
@@ -101,4 +102,3 @@ Blizzard hooks approved within the J rules (post-hooks, no override): `hooksecur
 | C15 GC only on request, event-driven | `PSS_Perf.lua`: a 10-minute idle cycle (section 4) | The 3.4.1 line (code review decision 5, Dan, 2026-10-08) |
 | C2 No behaviour change without opt-in | The old window's totals pane (3.3.0-dev004) shows for everyone | Removed with the old window at D2 (3.4.0) |
 | C3 No OnUpdate polling | Old window: `PSS_Pie.lua` while hovered, a UIKit helper while dragging | Removed with the old window at D2 (3.4.0) |
-| C3 No OnUpdate polling | New window: `PourSocialScore_UI/PSS_Pie.lua` runs OnUpdate only while the mouse is over a pie (the hovered slice follows the cursor) | Dan to decide: approve as an override, or replace before 3.4.0 (D3) |
