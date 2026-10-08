@@ -69,7 +69,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | D3 | 3.4.0.26 | Readme and docs for the one window; EllesmereUI as the reference for UI elements (Dan, 2026-10-08, 03 section 0); no issues from testing | Merged #115 |
 | Versions | 3.4.0.27 | `versions.json` and build numbers that never reset; release notes one summary of every change between releases, from the PRs (Dan, 2026-10-08; 06); on the D3 PR. The final pre-release, tested by Dan with a very old save (it worked) | Merged #115 |
 | Commands | 3.4.0.28 | `/pss` on its own opens the window; `gui`, `ui` and `eui` are aliases of it; `tui` removed (Dan, 2026-10-08) | Merged #116 |
-| Release | 3.4.0.29 | The full release (Dan, 2026-10-08); notes one summary of PRs #88 to #116 | PR #117 |
+| Release | 3.4.0.29 | The full release (Dan, 2026-10-08); notes one summary of PRs #88 to #116 | Merged #117, released |
 | Next line | 3.4.1.30 on | Core performance fixes from the review, stored guild members capped at 1500 per rule (Dan, 2026-10-08), `memberCount` no longer saved (review L12; Dan's OK 2026-10-08) | Planned |
 
 ## Code map

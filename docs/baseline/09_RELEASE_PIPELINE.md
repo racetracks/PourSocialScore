@@ -59,8 +59,9 @@ Every folder named `<Addon>` or `<Addon>_*` at the repo root goes into the zip, 
 # A pre-release's notes are its history section. A full release's notes are
 # its history section only: one summary of every change since the previous
 # release, written at release time from the PRs versions.json lists between
-# the two (02 F5). Job "mirror" then publishes the full release, with the
-# same zip and notes, on $MIRROR_REPO (secret MIRROR_TOKEN: contents read and
+# the two (02 F5). Job "mirror" keeps $MIRROR_REPO on the latest full
+# release: the zip's contents committed as its files, and the release with the
+# same zip and notes on that commit (secret MIRROR_TOKEN: contents read and
 # write on that repo); delete the job if there is no mirror. Pre-releases
 # are not mirrored.
 name: Release
@@ -158,43 +159,87 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   mirror:
+    # Keeps $MIRROR_REPO on the latest full release (versions.json
+    # latestRelease): the release zip's contents committed as the repo's files
+    # (every addon folder at the root; files of the mirror's own, such as its
+    # readme.md, are kept), and the release, with the same zip and notes, on
+    # that commit. Runs after every push and does nothing when the mirror is
+    # already there, so a release that went across without its files is
+    # repaired by the next push (or Actions > Release > Run workflow).
     needs: release
-    if: ${{ needs.release.outputs.kind == 'release' }}
+    if: ${{ always() && needs.release.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Check the version and the mirror
+      - uses: actions/checkout@v4
+
+      - name: Check the latest release and the mirror
         id: m
         run: |
-          echo "skip=false" >> "$GITHUB_OUTPUT"
+          VER=$(python3 tools/versions.py latest)
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          if [ -z "$VER" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "No release yet: nothing to mirror"; exit 0; fi
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::Add a MIRROR_TOKEN secret with contents read and write on $MIRROR_REPO"
             exit 1
           fi
-          if gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+          git clone -q "https://x-access-token:${GH_TOKEN}@github.com/${MIRROR_REPO}.git" mirror
+          toc() { sed -n 's/^## Version: *//p' | tr -d '\r'; }
+          files=$( { toc < "mirror/$ADDON/$ADDON.toc"; } 2>/dev/null || true)
+          tagged=$(git -C mirror show "v$VER:$ADDON/$ADDON.toc" 2>/dev/null | toc || true)
+          if [ "$files" = "$VER" ] && [ "$tagged" = "$VER" ] && gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "The mirror is on $VER"
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "The mirror needs $VER (files: ${files:-none}, tagged: ${tagged:-none})"
           fi
         env:
-          VER: ${{ needs.release.outputs.version }}
           GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
 
       - name: Fetch the zip and notes
-        if: steps.m.outputs.skip == 'false' && steps.m.outputs.exists == 'false'
+        if: steps.m.outputs.skip == 'false'
         run: |
           gh release download "v$VER" --repo "$GITHUB_REPOSITORY" --pattern "$ADDON-$VER.zip"
           gh release view "v$VER" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
         env:
-          VER: ${{ needs.release.outputs.version }}
+          VER: ${{ steps.m.outputs.version }}
           GH_TOKEN: ${{ github.token }}
 
-      - name: Publish on the mirror
-        if: steps.m.outputs.skip == 'false' && steps.m.outputs.exists == 'false'
+      - name: Commit the release's files to the mirror
+        id: c
+        if: steps.m.outputs.skip == 'false'
         run: |
-          gh release create "v$VER" "$ADDON-$VER.zip" --repo "$MIRROR_REPO" \
-            --title "$ADDON $VER" --notes-file notes.md --latest
+          cd mirror
+          for d in "$ADDON" "$ADDON"_*/; do
+            if [ -d "$d" ]; then git rm -rq "${d%/}"; fi
+          done
+          unzip -q "../$ADDON-$VER.zip" -d .
+          git add -A
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "$ADDON $VER"
+            git push -q origin HEAD
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
         env:
-          VER: ${{ needs.release.outputs.version }}
+          VER: ${{ steps.m.outputs.version }}
+
+      - name: Publish the release on the mirror
+        if: steps.m.outputs.skip == 'false'
+        run: |
+          # a release whose tag is not on the release's files (made before the
+          # files were copied) is made again on them
+          tagged=$(git -C mirror show "v$VER:$ADDON/$ADDON.toc" 2>/dev/null | sed -n 's/^## Version: *//p' | tr -d '\r' || true)
+          if [ "$tagged" != "$VER" ] && gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
+            gh release delete "v$VER" --repo "$MIRROR_REPO" --cleanup-tag --yes
+          fi
+          if ! gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
+            gh release create "v$VER" "$ADDON-$VER.zip" --repo "$MIRROR_REPO" --target "$SHA" \
+              --title "$ADDON $VER" --notes-file notes.md --latest
+          fi
+        env:
+          VER: ${{ steps.m.outputs.version }}
+          SHA: ${{ steps.c.outputs.sha }}
           GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
 ```
 
@@ -256,7 +301,7 @@ A version line belongs to a feature (or an agreed set of features), not to a dat
 
 ### Full release notes and the mirror
 - **Notes: one summary of every change between releases, decided at release time.** After `bump_version.sh release`, `python3 tools/versions.py prs <version>` lists every pre-release since the previous release with its PR. Claude reads each PR (title, description, diff as needed) and writes **one player-facing summary of all the changes** as the release's history section, in place of the placeholder bullet (the rules check fails while the placeholder is there). The release notes are that summary only, under "Changes since <previous release>": no per-build lists, no PR text. No API key in the pipeline. Pre-releases keep their own history section as notes.
-- **Mirror (optional):** a `mirror` job runs after a **full** release and publishes the same version, zip and notes on `MIRROR_REPO` (set at the top of release.yml). Pre-releases are not mirrored, and neither is `versions.json` (only the zip and the notes go).
+- **Mirror (optional):** the `mirror` job keeps `MIRROR_REPO` (set at the top of release.yml) on the latest full release in `versions.json`: it commits the release zip's contents as the repo's files (every addon folder at the root, replaced whole, so a removed file goes too; the mirror's own files such as its readme stay), then publishes the release, with the same zip and notes, on that commit. It runs after every push and does nothing when the mirror is already there, so a release that went across without its files is repaired by the next push or a manual run. Pre-releases are not mirrored; neither is `versions.json`, `tools` or `.github` (only what the zip holds).
 - **Secret** (Settings > Secrets and variables > Actions on the addon repo): `MIRROR_TOKEN`, a fine-grained personal access token with **Contents: Read and write** on the mirror repo only. The built-in token cannot write to another repo. The job fails with a clear error without it.
 - **The mirror repo needs at least one commit**; the tag is created on its default branch.
 - **Retry:** the mirror skips anything already published, so after fixing a secret, run Actions > Release > Run workflow on main.

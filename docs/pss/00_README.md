@@ -4,7 +4,7 @@ The **PourSocialScore-only layer.** It is written to sit on top of two general p
 
 | Layer | Pack | Holds |
 | --- | --- | --- |
-| 1 | `wow-addon-baseline-2026-10-08-v7.zip` (v6 plus build numbers that never reset, `versions.json`, release notes summarized at release time from the PRs; mandatory) | How any WoW addon is built, released and delivered with Claude: rules, architecture, harness, pipeline, feature design and staged delivery, working with the author |
+| 1 | `wow-addon-baseline-2026-10-08-v8.zip` (v6 plus build numbers that never reset, `versions.json`, release notes summarized at release time from the PRs; v8 the mirror carries the release's files; mandatory) | How any WoW addon is built, released and delivered with Claude: rules, architecture, harness, pipeline, feature design and staged delivery, working with the author |
 | 2 | `scratch-repo-usage-2026-10-07-v4.zip` (in the repo as `docs/scratch/`) | How the scratch repo, `racetracks/Pour-Social-Score_Scratch`, hosts builds, saves, docs and summaries |
 | 3 | **this pack** | Only what is true of PourSocialScore: its purpose, repos, real names, project rules, the EllesmereUI integration, its data, its pipeline details, status and next step, Dan's real saves |
 
