@@ -71,4 +71,4 @@ The native window used to keep its own hourly counts (`PSS_BlockStats.lua`, save
 | 3.0.0 | core (151 B), _Options (365 KB), _Logging (745 KB) | First split; no EUI file. Its upgrade record is dated after the dev011 one. |
 | 3.2.0-dev011 | core (5.8 KB), _Options (372 KB), _Logging (224 KB), _EllesmereUI (137 B) | Grouped log (178 owners) |
 
-Folders are named by the save's `upgrade.version` (the version last run). For the harness, concatenate each 3.x set (core, Options, Logging, EllesmereUI) into `/mnt/project-files/baselines/<version>/PourSocialScore.lua`; 2.0.44 is copied as is. The split check in validate_all.sh only takes 2.0-layout saves (no `PSS_OptionsDB`).
+Folders are named by the save's `upgrade.version` (the version last run). For the harness, `tools/harness/build_saves.sh` concatenates each 3.x set (core, Options, Logging, EllesmereUI) into `/mnt/project-files/baselines/<version>/PourSocialScore.lua`; 2.0.44 is copied as is. The split check in validate_all.sh only takes 2.0-layout saves (no `PSS_OptionsDB`).

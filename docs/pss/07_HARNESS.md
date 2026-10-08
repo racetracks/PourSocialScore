@@ -1,6 +1,6 @@
 # PSS harness (tools/harness)
 
-The general harness is baseline 06. PSS's commands, as of 3.4.0-dev002. Needs `lua5.1` (apt) and `git fetch --depth=2000 origin main` (compares, and `validate_all.sh`'s upgrade checks, which rebuild old versions from history: in a shallow clone its "split" checks fail on 2.0.1 and 2.0.40). Real saves: if `/mnt/project-files/baselines` is missing, copy scratch (`racetracks/Pour-Social-Score_Scratch`) `SavedVariables/<version>/` to `/mnt/project-files/savedvariables/<version>/` and concatenate each set into `/mnt/project-files/baselines/<version>/PourSocialScore.lua`.
+The general harness is baseline 06. PSS's commands, as of 3.4.0-dev002. Needs `lua5.1` (apt) and `git fetch --depth=2000 origin main` (compares, and `validate_all.sh`'s upgrade checks, which rebuild old versions from history: in a shallow clone its "split" checks fail on 2.0.1 and 2.0.40). Real saves: if `/mnt/project-files/baselines` is missing, clone scratch (`racetracks/Pour-Social-Score_Scratch`) and run `sh tools/harness/build_saves.sh <scratch checkout> [out dir]`: it writes `<out dir>/<version>/PourSocialScore.lua` for every `SavedVariables/<version>/` (a 3.x set joined core, Options, Logging, EllesmereUI; out dir defaults to `/mnt/project-files/baselines`).
 
 | Command | Proves |
 | --- | --- |
