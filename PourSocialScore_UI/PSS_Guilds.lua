@@ -19,7 +19,6 @@
 local ADDON_NAME, ns = ...
 local M = ns.M
 local L = PourSocialScore_NS.L
-local History = M.PSS_History
 
 local DETAIL_W = 380
 local TOP_H = 58
@@ -132,19 +131,19 @@ local function DrawMember(row, i)
 	c.name:SetTextColor(M.PSS_ClassColor(m.class))
 	c.guild:SetText(m.guild or "")
 	c.note:SetText(m.note or "")
-	c["metric:total"]:SetText(M.PSS_GetMemberBlockCounts(m).total or 0)
+	c["metric:total"]:SetText(M.PSS_MemberBlockTotal(m))
 	row.sel:SetShown(m == V.msel)
 end
 
 local function SelectMember(m)
 	ClearEdits()
-	V.msel = m
+	V:SelectMember(m)
 	mlist:Redraw()
 	ShowDetail(true)
 end
 
 local function ShowView(view)
-	V.view = view
+	V:SetView(view)
 	page.search:SetText("")
 	page.search.hint:SetText(view == "members" and "Search name, guild or note" or "Search guild name")
 	lf:SetShown(view == "guilds")
@@ -227,27 +226,24 @@ end
 
 -- Overrides of the Options for a guild or member record: Default > On > Off.
 local function Overrides(parent, y, scope, target)
-	local out, n = {}, 0
+	local out = {}
 	local bw = (DETAIL_W - 26) / 2
-	for _, o in ipairs(M.PSS_OPTIONS) do
-		if o.target and o.kind == "bool" then
-			n = n + 1
-			local b = ns.NewButton(parent, "", bw, function(self)
-				M.PSS_CycleOverride(target(), scope, self.opt.key)
-				ShowDetail()
-			end)
-			b.opt = o
-			local col, r = (n - 1) % 2, math.floor((n - 1) / 2)
-			b:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + col * (bw + 6), y - r * 24)
-			ns.TipOn(b, b, o.label .. "\n\nClick to change: Default (the Options tab) > On > Off.")
-			out[#out + 1] = b
-		end
+	for n, o in ipairs(M.PSS_OverrideOptions()) do
+		local b = ns.NewButton(parent, "", bw, function(self)
+			M.PSS_CycleOverride(target(), scope, self.opt.key)
+			ShowDetail()
+		end)
+		b.opt = o
+		local col, r = (n - 1) % 2, math.floor((n - 1) / 2)
+		b:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + col * (bw + 6), y - r * 24)
+		ns.TipOn(b, b, o.label .. "\n\nClick to change: Default (the Options tab) > On > Off.")
+		out[#out + 1] = b
 	end
 	return out
 end
 
 local function PaintOverrides(buttons, t)
-	for _, b in ipairs(buttons) do b:SetText(M.PSS_OverrideText(b.opt, t and t.opts and t.opts[b.opt.key])) end
+	for _, b in ipairs(buttons) do b:SetText(M.PSS_OverrideText(b.opt, M.PSS_OverrideValue(t, b.opt.key))) end
 end
 
 local function OpenGuildEvents(key)
@@ -482,8 +478,7 @@ local function ShowGuild(key, fresh)
 	b:Show()
 	b.heading:SetText(tostring(g.name))
 	b.info:SetText(M.PSS_GuildInfoLine(g))
-	local gb = M.PSS_GuildBlock(g)
-	for cat, c in pairs(b.excl) do c:SetChecked(gb[cat] ~= true) end
+	for cat, c in pairs(b.excl) do c:SetChecked(M.PSS_GuildAllowed(g, cat)) end
 	b.scan:SetText(M.PSS_GuildSweepLabel(key))
 	if not pane.fieldsBox:HasFocus() then pane.fieldsBox:SetText(g.customScan or "") end
 	PaintOverrides(b.overrides, g)
@@ -493,7 +488,7 @@ local function ShowGuild(key, fresh)
 	b.membersButton:SetShown(V.view ~= "members")
 	b.hist:Set(key, c.total or 0, M.PSS_GetGuildBlockHistory, fresh)
 	local s = b.sumSpec
-	s.owner, s.allTime, s.title, s.id = History.GuildKey(key), c.total or 0, tostring(g.name), key
+	s.owner, s.allTime, s.title, s.id = M.PSS_GuildHistoryKey(key), c.total or 0, tostring(g.name), key
 	b.summary:Set(s)
 	return true
 end
@@ -561,7 +556,7 @@ local function ShowMember(fresh)
 	b.counts:SetText(M.PSS_CountsText(c))
 	b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory, fresh)
 	local s = b.sumSpec
-	s.owner, s.allTime, s.title, s.id = History.MemberKey(m), c.total or 0, tostring(m.name), m
+	s.owner, s.allTime, s.title, s.id = M.PSS_MemberHistoryKey(m), c.total or 0, tostring(m.name), m
 	b.summary:Set(s)
 	return true
 end
@@ -635,11 +630,7 @@ local function BuildPicker(parent)
 		},
 		draw = DrawPick,
 		click = function(_, i)
-			local it = picker.items[i]
-			if it and not it.listed then
-				it.ticked = not it.ticked
-				picker.list:Redraw()
-			end
+			if M.PSS_GuildPickerToggle(picker.items[i]) then picker.list:Redraw() end
 		end,
 	})
 	local save = ns.NewButton(picker, "Save", 90, function()
@@ -651,7 +642,7 @@ local function BuildPicker(parent)
 	save:SetPoint("BOTTOMLEFT", picker, "BOTTOMLEFT", 4, 4)
 	picker.saveButton = save
 	local all = ns.NewButton(picker, "Tick All", 90, function()
-		for _, it in ipairs(picker.items) do it.ticked = not it.listed end
+		M.PSS_GuildPickerTickAll(picker.items)
 		picker.list:Redraw()
 	end)
 	all:SetPoint("LEFT", save, "RIGHT", 6, 0)
@@ -872,6 +863,10 @@ ns.TabBuilders.guilds = function(pg)
 
 	pg.list, pg.members, pg.membersView, pg.pane, pg.picker, pg.state = list, mlist, mview, pane, picker, V
 	pg.openMembers, pg.selectMember = OpenMembers, SelectMember
+	pg.stale = function()
+		V.dirty, V.mdirty = true, true
+		for _, b in ipairs(scanButtons) do b:SetEnabled(not M.PSS_ScanCooldownActive()) end
+	end
 	pg.select = Select
 	V.dirty = true
 	return Refresh
@@ -892,12 +887,11 @@ local function Changed()
 		if page and page:IsVisible() then Refresh() end
 	end)
 end
-M.Events.Register("GUILDS_CHANGED", Changed)
-M.Events.Register("GUILD_SCAN_DONE", Changed)
+ns.Listen("GUILDS_CHANGED", Changed)
+ns.Listen("GUILD_SCAN_DONE", Changed)
 
-M.Events.Register("GUILD_REMOVED", function(key)
-	if V.selKind == "guild" and V.sel == key then V:Select(nil, nil) end
-	if V.mguild == key then V.mguild, V.msel = nil, nil end
+ns.Listen("GUILD_REMOVED", function(key)
+	V:GuildRemoved(key)
 	Changed()
 end)
 
@@ -917,16 +911,16 @@ local redrawCounts = M.PSS_Throttle(function()
 		V.dirty, V.mdirty = true, true
 	end
 end)
-M.Events.Register("GUILD_BLOCKS_CHANGED", function()
+ns.Listen("GUILD_BLOCKS_CHANGED", function()
 	if page and page:IsVisible() then redrawCounts() else V.dirty, V.mdirty = true, true end
 end)
 
-M.Events.Register("WHOIS_COOLDOWN", function(active)
+ns.Listen("WHOIS_COOLDOWN", function(active)
 	for _, b in ipairs(scanButtons) do b:SetEnabled(not active) end
 	if not active then Changed() end
 end)
 
-M.Events.Register("GUILD_SEARCH_RESULTS", function(found, query, mode, owner)
+ns.Listen("GUILD_SEARCH_RESULTS", function(found, query, mode, owner)
 	if owner ~= M.PSS_GUILD_SEARCH_OWNER or not picker then return end
 	ShowSearchResults(found, query, mode)
 end)

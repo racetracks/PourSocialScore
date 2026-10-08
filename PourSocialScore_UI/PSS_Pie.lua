@@ -123,7 +123,8 @@ function ns.NewPie(parent, size, onClick)
 	end
 	pie.center = ns.NewText(f, 14)
 	pie.center:SetPoint("CENTER", f, "CENTER", 0, 0)
-	f:SetScript("OnEnter", function() f:SetScript("OnUpdate", function() Hover(pie) end) end)
+	local onUpdate = function() Hover(pie) end		-- one closure per pie, not per hover
+	f:SetScript("OnEnter", function() f:SetScript("OnUpdate", onUpdate) end)
 	f:SetScript("OnLeave", function()
 		f:SetScript("OnUpdate", nil)
 		pie.hot = nil

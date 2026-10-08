@@ -22,6 +22,7 @@
 --   M.PSS_TotalsView(kind, into, guildRows)    a whole list's counts
 --   M.PSS_CountsText(c)                   "Blocked 12:  Whispers 3  ..."
 --   M.PSS_OVERRIDE_SHORT, M.PSS_NextOverride(cur), M.PSS_OverrideText(opt, cur)
+--   M.PSS_OverrideOptions(), M.PSS_OverrideValue(target, key)
 --   M.PSS_ClassColor(class)               r, g, b (white if unknown)
 --   M.PSS_HistHidden(type) / M.PSS_SetHistHidden(type, hidden)   the block
 --                                         history lists' type ticks
@@ -214,6 +215,24 @@ function M.PSS_NextOverride(cur)
 	if cur == nil then return true end
 	if cur == true then return false end
 	return nil
+end
+
+-- The Options a player, guild or member can override (tick boxes marked
+-- target), in M.PSS_OPTIONS order; one list, made on first use
+local overrideOpts
+function M.PSS_OverrideOptions()
+	if not overrideOpts then
+		overrideOpts = {}
+		for _, o in ipairs(M.PSS_OPTIONS) do
+			if o.target and o.kind == "bool" then overrideOpts[#overrideOpts + 1] = o end
+		end
+	end
+	return overrideOpts
+end
+
+-- a record's override of option key (nil: the Options tab's own value)
+function M.PSS_OverrideValue(target, key)
+	return type(target) == "table" and type(target.opts) == "table" and target.opts[key] or nil
 end
 
 function M.PSS_OverrideText(opt, cur)

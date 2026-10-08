@@ -452,8 +452,14 @@ local function Build()
 	EscapeFrame()
 	BuildTabs()
 	nav = M.PSS_NavNew()
-	-- the shown tab is redrawn each time the window opens
+	-- the shown tab is redrawn each time the window opens; core events are
+	-- listened to only while it shows, so each page first marks what may
+	-- have changed while it was closed
 	win:HookScript("OnShow", function(self)
+		ns.ListenStart()
+		for _, page in ipairs(self.pages) do
+			if page.stale then page.stale() end
+		end
 		ns.RefreshTab()
 		-- an unknown event (an older client) is not an error worth showing
 		pcall(self.RegisterEvent, self, "GLOBAL_MOUSE_UP")
@@ -462,6 +468,7 @@ local function Build()
 	-- memory is given back at the next quiet moment
 	win:HookScript("OnHide", function(self)
 		self:UnregisterEvent("GLOBAL_MOUSE_UP")
+		ns.ListenStop()
 		for _, page in ipairs(self.pages) do
 			if page.release then page.release() end
 		end
@@ -471,6 +478,8 @@ local function Build()
 	SelectTab(M.PSS_UITab())
 	ns.NavRecord()
 
+	-- the look and strata: always heard (a rare event, and the kit, popups
+	-- and tooltips repaint with it), unlike the tabs' ns.Listen events
 	M.Events.Register("OPTION_CHANGED", function(key)
 		if key == "frameStrata" then
 			win:SetFrameStrata(M.PSS_FrameStrataName())

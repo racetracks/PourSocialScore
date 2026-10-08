@@ -38,7 +38,7 @@ function M.dateToJulianDate (dateStr)
 	local words		= {}
 
 	for word in dateStr:gmatch("%w+") do
-		table.insert(words, word)
+		words[#words + 1] = word
 	end
 
 	local day	= tonumber(words[1])

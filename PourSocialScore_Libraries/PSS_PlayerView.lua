@@ -30,7 +30,7 @@ local type, tonumber, setmetatable = type, tonumber, setmetatable
 ------------------------------------------------------------------------
 -- The list: sort, search and the order shown (positions in the list)
 ------------------------------------------------------------------------
-local List = {}
+local List = M.PSS_ListMixin({})
 List.__index = List
 
 function M.PSS_PlayerListNew()
@@ -45,22 +45,6 @@ function List:Resort()
 	local countText = self.find ~= "" and ("%d of %d"):format(n, all) or ("%d on the list"):format(all)
 	local empty = all == 0 and "The list is empty. Add a player above." or "Nothing matches the search."
 	return n, all, countText, empty
-end
-
-function List:SortBy(key)
-	if self.key == key then
-		self.asc = not self.asc
-	else
-		self.key, self.asc = key, true
-	end
-end
-
--- the search text changed; true when the list must be sorted again
-function List:SetFind(text)
-	text = text or ""
-	if text == self.find then return false end
-	self.find = text
-	return true
 end
 
 ------------------------------------------------------------------------
@@ -177,6 +161,11 @@ function M.PSS_PlayerCommitNote(entry, text)
 end
 
 -- W I G P C: ticked = allowed; the record stores "blocked"
+-- a W I G P C tick: is it allowed (the record stores false for allowed)
+function M.PSS_PlayerAllowed(p, field)
+	return type(p) == "table" and p[field] == false
+end
+
 function M.PSS_PlayerToggleAllowed(entry, field, allowed)
 	if not entry then return end
 	M.PSS_SetPlayerSetting(entry, field, not allowed)

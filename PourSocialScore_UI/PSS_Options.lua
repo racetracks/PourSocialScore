@@ -198,7 +198,7 @@ ns.TabBuilders.importExport = function(page)
 		label:SetPoint("LEFT", c, "RIGHT", 4, 0)
 		label:SetText(p.text)
 		c:SetScript("OnClick", function(self)
-			io[p.key] = self:GetChecked() == true
+			M.PSS_IOSet(p.key, self:GetChecked())
 			refresh()
 		end)
 		checks[p.key] = { c, label }
@@ -210,7 +210,7 @@ ns.TabBuilders.importExport = function(page)
 	local mode = ns.NewDropdown(page, 220, function(m)
 		for _, md in ipairs(M.PSS_IO_MODES) do
 			m:Radio(md.text, function() return io.mode == md.key end, function()
-				io.mode = md.key
+				M.PSS_IOSetMode(md.key)
 				refresh()
 			end)
 		end
@@ -235,6 +235,6 @@ end
 
 -- an option changed (here, by a command, or by another window): the tab
 -- shown again
-M.Events.Register("OPTION_CHANGED", function()
+ns.Listen("OPTION_CHANGED", function()
 	if (optionsPage and optionsPage:IsVisible()) or (ioPage and ioPage:IsVisible()) then ns.RefreshTab() end
 end)

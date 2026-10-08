@@ -12,13 +12,14 @@
 --   M.PSS_UI_TABS                        the window's tabs, in order
 --   M.PSS_UITab() / M.PSS_SetUITab(id)   the tab shown last (its number)
 --   M.PSS_NavNew(), M.PSS_DoubleClick(), M.PSS_Throttle()   (below)
+--   M.PSS_ListMixin(List)                 SortBy and SetFind for a list view
 -- Places are saved with the other window places (PourSocialScoreDB
 -- windowPoints, held in PSS_OptionsDB).
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
 local M = addon.M
 
-local type, tonumber, ipairs, pcall = type, tonumber, ipairs, pcall
+local type, tonumber, ipairs, pairs, pcall = type, tonumber, ipairs, pairs, pcall
 
 -- saved values: 1 stays "dark" (it was the only other look first, named
 -- Modern); 0 is Classic (Blizzard's classic art, named Blizzard until
@@ -242,4 +243,32 @@ function M.PSS_Throttle(fn, delay)
 			fn()
 		end)
 	end
+end
+
+------------------------------------------------------------------------
+-- The sort and search every list view shares (Players, Guilds, Chat
+-- Filters): copied onto the view's own List table when its file loads
+------------------------------------------------------------------------
+local mixin = {}
+
+-- a header clicked: that column, or the same one the other way round
+function mixin:SortBy(key)
+	if self.key == key then
+		self.asc = not self.asc
+	else
+		self.key, self.asc = key, true
+	end
+end
+
+-- the search text changed; true when the list must be sorted again
+function mixin:SetFind(text)
+	text = text or ""
+	if text == self.find then return false end
+	self.find = text
+	return true
+end
+
+function M.PSS_ListMixin(List)
+	for k, fn in pairs(mixin) do List[k] = fn end
+	return List
 end
