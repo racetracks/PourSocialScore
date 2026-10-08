@@ -25,7 +25,7 @@ git add <folder> && git commit -m "<what, with version>" && git push origin HEAD
 1. Build the zip from the committed branch (`git archive HEAD`), with every addon folder at the zip root.
 2. Store it as `releases/<Name>-<version>-<YYYY-MM-DD-hh-mm>.zip` and, in the same commit, replace the zip in `latest/` with it.
 3. Commit, push, reply with the link and the in-game checks.
-A bugfix is the next dev number and is hosted exactly the same way.
+A bugfix is the next build number (`X.Y.Z.B`) and is hosted exactly the same way.
 
 ## SavedVariables (rules 4, 13)
 The only location is `SavedVariables/<version>/` in `racetracks/Pour-Social-Score_Scratch`. The old `racetracks/scratch` `PourSocialScore/savedvariables/` was ported here on 2026-10-07; don't read from or add to it.

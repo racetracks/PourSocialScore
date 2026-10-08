@@ -46,10 +46,11 @@ So core = the chat filtering engine plus the loader, with what filtering needs (
 - **G10 (15:37Z):** `PourSocialScore_EllesmereUI` is read only during parity work; shared functions serving both UIs are performance-optimized and measured. **Exception (issue #77, option b, 16:09Z):** logic found in the EUI folder moves to Libraries and the EUI file calls it, nothing visible changing (`eui_compare.sh` identical). Done in 3.3.0-dev001.
 
 ## 8. Versions on PSS
-- The 3.3.0 line is the parity feature (Dan chose it on 2026-10-05). Its stages are 3.3.0-devNNN pre-releases; plain `3.3.0` only when Dan says the parity work is complete.
+- **Versions are `X.Y.Z.B` (Dan, 2026-10-08):** `B` is the build number on the line. Every build that gets a test zip, a stage or a fix, merged or not, takes the next one and none is reused; the 3.4.0 line carries on from dev012 at `3.4.0.13`, and a new line starts at build 1 (`3.4.1.1`, `3.5.0.1`). Every TOC, the history section and the zip name carry it. Every build is published as a pre-release; a plain `X.Y.Z` is a full release, set only when Dan says it is a release. No `-dev` and no `_N` from 3.4.0.13 on; older names stay as they were. This overrides the baseline's `X.Y.0-devNNN` (02 F, 09): read "devNNN" there as "the next build". `check_toc.sh` accepts only `X.Y.Z` and `X.Y.Z.B`; `release.yml` publishes any four-part version as a pre-release.
+- History (before 3.4.0.13): the 3.3.0 line is the parity feature (Dan chose it on 2026-10-05). Its stages are 3.3.0-devNNN pre-releases; plain `3.3.0` only when Dan says the parity work is complete.
 - Older builds used `-devN` (3.2.0-dev3). Do not copy that; three digits from 3.3.0 on.
-- A fix for 3.2.0 would be `3.2.1-dev001`; ask Dan if a fix line is needed.
-- **Fixes to a dev build before it merges count up with `_N` (Dan, 2026-10-07):** the first round of fixes on `3.4.0-dev002` is `3.4.0-dev002_2`, then `_3`; every TOC, the history section and the test zip name carry it. The next stage is still the next devNNN (`3.4.0-dev003`).
+- A fix line is the next `X.Y.Z` at build 1 (a fix for 3.3.1 is `3.3.2.1`); ask Dan if a fix line is needed.
+- Until 3.4.0-dev012, **fixes to a dev build before it merged counted up with `_N` (Dan, 2026-10-07):** the first round of fixes on `3.4.0-dev002` is `3.4.0-dev002_2`, then `_3`; every TOC, the history section and the test zip name carry it. The next stage was the next devNNN (`3.4.0-dev003`). Replaced by build numbers on 2026-10-08.
 
 ## 9. Hosting paths on scratch (changed 2026-10-08)
 **Scratch is the project files (Dan, 2026-10-08):** saves, plans, docs, zips and summaries all live there; there is no `/mnt/project-files`. Where a pack says "project files", read scratch.
