@@ -3,11 +3,11 @@
 Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4.1.30 is in `reference/06_status-history-to-3.4.1.30.md`. The addon as it works is in `01_HANDOVER.md`; the current plan is `10_CORE_UPLIFT.md`.
 
 ## Now
-- **Live release: 3.4.0.29** (full, the new PSS window; mirrored to `racetracks/Pour-Social-Score`). **Main: 3.4.1.38** (docs build, PR #127; N3 merged in 3.4.1.37, PR #126).
+- **Live release: 3.4.0.29** (full, the new PSS window; mirrored to `racetracks/Pour-Social-Score`). **Main: 3.4.1.39** (docs build, PR #128; N3 merged in 3.4.1.37, PR #126).
 - **Current project: core uplift** (`10_CORE_UPLIFT.md`, locked by Dan on 2026-10-08). It runs on three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
 - **Done:** N1 (3.4.1.32), N2 (3.4.1.33), plan B (3.4.1.34, docs only), B1 (3.4.1.35: PSS authoritative over Blizzard's ignore list, per-player tick, upgrade step 8), B2 (3.4.1.36: the right-click "PSS" header with Block Player / Block Guild), N3 (3.4.1.37: shipped lists rebuilt, 7634 to 7438 entries).
-- **On its PR: Docs, 3.4.1.39** (PR #128): the code map and changes in train (`12_CODE_MAP.md`, `13_CHANGES_IN_TRAIN.md`, on demand; appendices in `reference/code-map/`), docs only. 3.4.1.38 (PR #127, merged): the harness notes for a shipped list rebuild (07).
-- **Next:** stage Fix (3.4.1.40: the Guilds tab detail pane, a wrapped line runs into the next one; decision 23, 10 section 2.5), then F1 (3.4.1.41).
+- **On its PR: Fix, 3.4.1.40**: the Guilds tab detail pane for a default guild list (`BuildGroupBody`): lines anchor under each other, the charts under the last line. Merged before it: Docs 3.4.1.39 (PR #128, the code map and changes in train, `12_CODE_MAP.md`, `13_CHANGES_IN_TRAIN.md`, on demand) and Docs 3.4.1.38 (PR #127, harness notes).
+- **Next:** F1 (3.4.1.41: N40, N41, N42, N45, N46 to N48), then F2 (3.4.1.42).
 - The closed projects: the PSS window (3.4.0, `09_PSS_UI_PROJECT.md`; its code map and lessons stay the reference for the window) and parity (3.3.1, `08`).
 
 ## Waiting on Dan
