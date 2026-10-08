@@ -23,6 +23,7 @@ local function answerWho(list)
 	answer = {}
 end
 local function lastSent() return sent[#sent] end
+local lineID = 0
 
 SlashCmdList["PSS"]("tui")
 local win = _G.PSS_Window
@@ -35,7 +36,7 @@ check(win.where:GetText() == "Guild Ignore List", "the line by the arrows")
 
 -- nothing selected: the list's totals
 local want = M.PSS_ListTotals("guilds", {}, V.rows)
-check(pane.totals.frame:IsShown() and not pane.body:IsShown(), "totals not shown with nothing selected")
+check(pane.totals.frame:IsShown() and not pane.guild:IsShown() and not pane.group:IsShown(), "totals not shown with nothing selected")
 local tv = pane.totals.summary.values
 check(tv.all == (want.total or 0) and tv.session == (want.session or 0) and tv.day == (want.day or 0),
 	("totals pie %d/%d/%d, want %d/%d/%d"):format(tv.session, tv.day, tv.all, want.session or 0, want.day or 0, want.total or 0))
@@ -69,8 +70,10 @@ if V.rows[1] and V.rows[1].managedHeader then
 	local mh = V.rows[1]
 	check(mh.open, "Managed Communities row starts closed")
 	clickAt(1)
-	check(V.selKind == "managed" and not V.rows[1].open and pane.body:IsShown(), "Managed Communities row click")
-	check(pane.heading:GetText() == "Managed Communities", "Managed Communities heading")
+	check(V.selKind == "managed" and not V.rows[1].open and pane.group:IsShown(), "Managed Communities row click")
+	local gp = pane.group
+	check(gp.heading:GetText() == "Managed Communities" and not gp.toggle:IsShown() and gp.open:GetText() == "Expand", "Managed Communities body")
+	check(gp.summary.values.all == (V.rows[1].bc.total or 0), "Managed Communities totals")
 	clickAt(1)
 	check(V.rows[1].open and PourSocialScoreDB.guildGroupOpen[M.PSS_GUILD_MANAGED_SHUT] == nil, "Managed Communities row did not open again")
 	local hi = indexOf(function(it) return it.header end)
@@ -103,7 +106,7 @@ page.search._scripts.OnTextChanged(page.search, true)
 local key = M.PSS_NormalizeGuild("Tui Guild 010")
 local gi = indexOf(function(it) return it.key == key end)
 clickAt(gi)
-check(V.selKind == "guild" and V.sel == key and pane.body:IsShown() and pane.heading:GetText() == "Tui Guild 010", "guild not selected")
+check(V.selKind == "guild" and V.sel == key and pane.guild:IsShown() and pane.guild.heading:GetText() == "Tui Guild 010", "guild not selected")
 check(rowFor(gi).sel:IsShown(), "selected row not marked")
 clickAt(gi)
 check(V.selKind == nil and pane.totals.frame:IsShown(), "second click did not deselect")
@@ -125,7 +128,7 @@ check(M.PSS_GuildGroupOpen(M.PSS_GUILD_EXCL_OPEN) and V.selKind == "exclHeader",
 local xi = indexOf(function(it) return it.exclItem and it.name == "Friendly Guild" end)
 check(xi ~= nil, "excluded guild not listed")
 clickAt(xi)
-check(V.selKind == "excl" and pane.heading:GetText() == "Friendly Guild", "excluded guild not selected")
+check(V.selKind == "excl" and pane.info:IsShown() and pane.info.heading:GetText() == "Friendly Guild" and pane.info.removeButton:IsShown(), "excluded guild not selected")
 
 -- Scan All: one /who, its status tip, the cooldown disables the scans
 H.Advance(10)
@@ -210,6 +213,186 @@ page.addButton._scripts.OnClick(page.addButton)
 H.RunTimers()
 check(M.PSS_IsGuildListed("Tui Added Guild") and V.selKind == "guild" and V.sel == M.PSS_NormalizeGuild("Tui Added Guild"),
 	"Add Guild did not add and select")
+check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
+
+------------------------------------------------------------------------
+-- B4 (3.4.0-dev009): the detail bodies, the members view, the confirms
+------------------------------------------------------------------------
+local ui = H.Private("PourSocialScore_UI")
+local function reselect(k)
+	V.dirty = true
+	page.refresh()
+	local i = indexOf(function(it) return it.key == k end)
+	check(i ~= nil, "no row for " .. tostring(k))
+	clickAt(i)
+end
+
+-- the exclusion bodies: the heading row's text; Remove from the list
+local ei2 = indexOf(function(it) return it.exclHeader end)
+clickAt(ei2)
+-- (a heading click opens or closes it: open it again when it closed)
+if not M.PSS_GuildGroupOpen(M.PSS_GUILD_EXCL_OPEN) then clickAt(indexOf(function(it) return it.exclHeader end)) end
+check(pane.info:IsShown() and pane.info.heading:GetText() == "Guild Exclusion List" and not pane.info.removeButton:IsShown(), "exclusion heading body")
+local xi2 = indexOf(function(it) return it.exclItem and it.name == "Friendly Guild" end)
+clickAt(xi2)
+pane.info.removeButton._scripts.OnClick(pane.info.removeButton)
+H.RunTimers()
+check(not M.PSS_IsGuildExcluded("Friendly Guild") and V.selKind == nil, "exclusion not removed")
+
+-- a guild: lines, W I G P C, overrides, Scan, Custom Scan
+local gkey = M.PSS_NormalizeGuild("Tui Guild 010")
+reselect(gkey)
+local gb = pane.guild
+local _, g = M.PSS_FindGuildRule(gkey)
+check(gb:IsShown() and gb.info:GetText() == M.PSS_GuildInfoLine(g), "guild body lines")
+check(gb.counts:GetText() == M.PSS_CountsText(M.PSS_GetGuildBlockCounts(gkey)), "guild counts line")
+local gw = gb.excl.whisper
+check(gw:GetChecked() == false, "a new guild allows whispers")
+gw:SetChecked(true)
+gw._scripts.OnClick(gw, "LeftButton")
+check(M.PSS_GuildBlock(g).whisper == false, "guild W not saved as allowed")
+gw:SetChecked(false)
+gw._scripts.OnClick(gw, "LeftButton")
+check(M.PSS_GuildBlock(g).whisper ~= false, "guild W not saved as blocked")
+local go = gb.overrides[1]
+go._scripts.OnClick(go)
+check(g.opts and g.opts[go.opt.key] == true and go:GetText():find("On", 1, true), "guild override not On")
+go._scripts.OnClick(go)
+go._scripts.OnClick(go)
+check(g.opts == nil or g.opts[go.opt.key] == nil, "guild override not back to Default")
+H.Advance(10)
+H.RunTimers()
+local s0 = #sent
+gb.scan._scripts.OnClick(gb.scan)
+check(#sent == s0 + 1 and lastSent():find('g-"Tui Guild 010"', 1, true), "Scan sent " .. tostring(lastSent()))
+answerWho({
+	{ fullName = "Scanned-Realm1", fullGuildName = "Tui Guild 010", level = 80, classStr = "Mage", filename = "MAGE" },
+	{ fullName = "Scanned Two-Realm1", fullGuildName = "Tui Guild 010", level = 80, classStr = "Rogue", filename = "ROGUE" },
+})
+H.RunTimers()
+check(gb.scan:GetText() == M.PSS_GuildSweepLabel(gkey), "Scan label " .. tostring(gb.scan:GetText()))
+H.Advance(10)
+H.RunTimers()
+pane.fieldsBox:SetText("80")
+s0 = #sent
+gb.custom._scripts.OnClick(gb.custom)
+-- (the Options scan level cap may rewrite the level: a real save's does)
+check(#sent == s0 + 1 and lastSent():find('g-"Tui Guild 010" %d') and g.customScan == "80", "Custom Scan sent " .. tostring(lastSent()))
+answerWho({})
+H.RunTimers()
+
+-- Members: the members view in place of the list, a step of its own
+gb.pages:Select("rule")
+gb.membersButton._scripts.OnClick(gb.membersButton)
+local mview, mlist = page.membersView, page.members
+check(V.view == "members" and mview:IsShown() and not list.scroll:IsVisible(), "Members did not open the members view")
+check(mlist.count == 2 and page.count:GetText() == "2 members", "members " .. mlist.count .. " " .. tostring(page.count:GetText()))
+check(mview.heading:GetText():find("Tui Guild 010", 1, true) and win.where:GetText() == "Guild Ignore List  >  Members of <Tui Guild 010>",
+	"members heading or the line by the arrows: " .. tostring(win.where:GetText()))
+check(pane.guild:IsShown() and not gb.membersButton:IsShown(), "the guild's pane not shown in the members view")
+-- search the members
+page.search:SetText("two")
+page.search._scripts.OnTextChanged(page.search, true)
+check(mlist.count == 1 and page.count:GetText() == "1 of 2 members", "member search")
+page.search:SetText("")
+page.search._scripts.OnTextChanged(page.search, true)
+
+-- a member: note, W I G P C (own or following the guild), overrides
+local m = V.members[1]
+page.selectMember(m)
+local mb = pane.member
+check(mb:IsShown() and mb.heading:GetText() == M.PSS_MemberHeading(m) and mb.guildLine:GetText() == M.PSS_MemberGuildLine(m), "member body")
+mb.pages:Select("rule")
+pane.noteBox:SetText("  spammer ")
+pane.noteBox._scripts.OnEnterPressed(pane.noteBox)
+check(m.note == "spammer", "member note not saved: " .. tostring(m.note))
+local mw = mb.excl.whisper
+check(mw:GetAlpha() == 0.45, "a member's box does not follow the guild")
+mw:SetChecked(true)
+mw._scripts.OnClick(mw, "LeftButton")
+check(M.PSS_MemberBlock(m).whisper == false and mw:GetAlpha() == 1, "member W not set as their own")
+mw._scripts.OnClick(mw, "RightButton")
+check(M.PSS_MemberBlock(m).whisper == nil and mw:GetAlpha() == 0.45, "right-click did not follow the guild again")
+local mo = mb.overrides[1]
+mo._scripts.OnClick(mo)
+check(m.opts and m.opts[mo.opt.key] == true, "member override not On")
+mo._scripts.OnClick(mo)
+mo._scripts.OnClick(mo)
+-- a block from the member counts at once (no Logging needed)
+lineID = lineID + 1
+local author = m.name:find("-", 1, true) and m.name or (m.name .. "-Realm1")
+local blocked = M.PSS_CoreFilter(nil, "CHAT_MSG_WHISPER", "cheap gold", author, "", "", "", "", 0, 0, "", 0, lineID, nil) == true
+H.RunTimers()
+check(blocked, "the member's whisper was not blocked (" .. author .. ")")
+check(mb.counts:GetText():find("^Blocked 1") ~= nil, "member counts " .. tostring(mb.counts:GetText()))
+
+-- back to the guild list and forward again; Escape goes up one level
+ui.NavBack()
+check(V.view == "members" and V.msel == nil or V.view == "guilds", "back")
+while V.view == "members" do ui.NavBack() end
+check(list.scroll:IsVisible() and not mview:IsShown(), "back did not return to the guild list")
+ui.NavForward()
+check(V.view == "members" and V.mguild == gkey, "forward did not return to the members")
+_G.PSS_WindowEscape:Hide()
+check(win:IsShown() and V.view == "guilds", "Escape did not go up to the guild list")
+
+-- a double-click on a guild opens its members
+local di = indexOf(function(it) return it.key == gkey end)
+local dr = rowFor(di)
+dr._scripts.OnClick(dr, "LeftButton")
+dr._scripts.OnClick(dr, "LeftButton")
+check(V.view == "members" and V.mguild == gkey, "double-click did not open the members")
+
+-- Remove Member asks first
+page.selectMember(V.members[1])
+local cf2 = _G.PSS_Confirm
+mb.removeButton._scripts.OnClick(mb.removeButton)
+check(cf2:IsShown() and cf2.text:GetText():find("Remove ", 1, true), "no confirm before removing a member")
+cf2.cancel._scripts.OnClick(cf2.cancel)
+check(mlist.count == 2, "cancel removed the member")
+mb.removeButton._scripts.OnClick(mb.removeButton)
+cf2.accept._scripts.OnClick(cf2.accept)
+H.RunTimers()
+check(mlist.count == 1 and V.msel == nil, "accept did not remove the member: " .. mlist.count)
+
+-- Remove Guild asks first; from the members view it goes back to the list
+page.selectMember(nil)
+gb.pages:Select("rule")
+gb.removeButton._scripts.OnClick(gb.removeButton)
+check(cf2:IsShown() and cf2.text:GetText():find("Tui Guild 010", 1, true), "no confirm before removing a guild")
+cf2.accept._scripts.OnClick(cf2.accept)
+H.RunTimers()
+check(select(2, M.PSS_FindGuildRule(gkey)) == nil and V.view == "guilds" and pane.totals.frame:IsShown(), "accept did not remove the guild")
+
+-- a default guild list: its rule on and off, open and closed
+local hk
+for k in pairs(V.rows.heads or {}) do hk = k break end
+if hk then
+	local hi2 = indexOf(function(it) return it.header and it.groupKey == hk end)
+	clickAt(hi2)
+	local gp = pane.group
+	check(V.selKind == "group" and gp:IsShown() and gp.toggle:IsShown(), "default list body")
+	local was = M.PSS_ManagedGroupActive(hk)
+	gp.toggle._scripts.OnClick(gp.toggle)
+	H.RunTimers()
+	check(M.PSS_ManagedGroupActive(hk) ~= was and gp.toggle:GetText() == (was and "Turn Rule On" or "Turn Rule Off"), "rule toggle")
+	gp.toggle._scripts.OnClick(gp.toggle)
+	H.RunTimers()
+	check(M.PSS_ManagedGroupActive(hk) == was, "rule toggle back")
+	local open0 = M.PSS_GuildGroupOpen(hk)
+	gp.open._scripts.OnClick(gp.open)
+	check(M.PSS_GuildGroupOpen(hk) ~= open0, "Expand / Collapse")
+	gp.open._scripts.OnClick(gp.open)
+	-- a static default-list guild cannot be removed
+	local sk = V.rows.groups and V.rows.groups[hk] and V.rows.groups[hk][1] and V.rows.groups[hk][1].key
+	if sk then
+		-- (its list may be collapsed: selected straight away)
+		page.select("guild", sk)
+		check(gb.removeButton:IsEnabled() == not M.PSS_IsStaticManagedGuild(sk), "Remove Guild on a default list guild")
+	end
+end
+win.tabs[2]._scripts.OnClick(win.tabs[2])
+check(V.selKind == nil and V.view == "guilds" and pane.totals.frame:IsShown(), "a tab click did not reset the tab")
 check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
 
 if not fail then print(("PASS guilds (%d rules)"):format(M.PSS_GuildCount())) end
