@@ -39,7 +39,7 @@ for d in PourSocialScore_*/; do
 	sh tools/check_toc.sh "${d%/}" || fail=1
 done
 
-if grep -nE 'EUI|[Ee]llesmere' PourSocialScore_UI/* PourSocialScore_Libraries/PSS_ViewNav.lua PourSocialScore_Libraries/PSS_DetailQuery.lua PourSocialScore_Libraries/PSS_PlayerView.lua PourSocialScore_Libraries/PSS_GuildView.lua; then
+if grep -nE 'EUI|[Ee]llesmere' PourSocialScore_UI/* PourSocialScore_Libraries/PSS_ViewNav.lua PourSocialScore_Libraries/PSS_DetailQuery.lua PourSocialScore_Libraries/PSS_PlayerView.lua PourSocialScore_Libraries/PSS_GuildView.lua PourSocialScore_Libraries/PSS_FilterView.lua; then
 	echo "PSS names only: an EllesmereUI or EUI name found above"
 	fail=1
 fi

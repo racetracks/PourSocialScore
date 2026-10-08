@@ -1,6 +1,18 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev010_2 - New PSS window: list text on one line
+
+- Every list in the new window keeps each cell on one line, cut short with "..." when it does not fit: long filters and descriptions wrapped over the rows below.
+
+=> 3.4.0-dev010 - New PSS window: Chat Filters tab
+
+- The Chat Filters tab works in /pss tui, laid out like the EllesmereUI window: the filters with built-ins first, search, sortable Description, On, Blocked and Filter columns, New Filter and Reset Defaults (asks first).
+- Select a filter for three pages. Summary: its counts and the period pie. Event History: the lines it blocked, with names (loaded only when you press Show Block History). View/Edit Rule: On, description, filter text (it scrolls when long), Save, Copy, Remove (asks first), Reset Count, Test and the link converter.
+- Built-in filters are read only (On only); Copy makes an editable copy. A guild rule shows View/Edit Rule only: its blocks are counted on the Guild Ignore List.
+- Shift-click a link in chat while the filter, Test or Link box is being edited and it goes there (as a filter [tag] in the filter and Link boxes). On Retail 12.x this follows Blizzard's new link insert.
+- With nothing selected, the pane shows every filter's totals.
+
 => 3.4.0-dev009 - New PSS window: Guild Ignore List tab, part 2
 
 - Select a guild to see its details, laid out like the EllesmereUI window. Summary: counts and the period pie. Event History: the guild's block history with each player's name. View/Edit Rule: W I G P C for the whole guild, Scan (its tooltip shows the sweep; shift-click starts it over), Custom Scan with its fields, the Options overrides, Members and Remove Guild (asks first; default-list guilds cannot be removed).

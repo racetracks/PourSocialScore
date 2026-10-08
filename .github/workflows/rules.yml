@@ -34,3 +34,5 @@ jobs:
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_players.lua | tee /tmp/pl.txt && grep -q "PASS players" /tmp/pl.txt
       - name: New window Guilds tab
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_guilds.lua | tee /tmp/gu.txt && grep -q "PASS guilds" /tmp/gu.txt
+      - name: New window Chat Filters tab
+        run: lua5.1 tools/harness/run.lua . - - tools/harness/check_filters.lua | tee /tmp/fi.txt && grep -q "PASS filters" /tmp/fi.txt

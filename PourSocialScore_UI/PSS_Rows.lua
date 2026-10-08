@@ -190,7 +190,14 @@ function List:MakeRow(i)
 
 	row.cells = {}
 	for _, c in ipairs(spec.cols) do
-		row.cells[c.key] = ns.NewText(row, spec.fontSize or 12)
+		-- one line per cell, cut short with "..." (a long filter or
+		-- description must not wrap over the rows below)
+		local fs = ns.NewText(row, spec.fontSize or 12)
+		fs:SetWordWrap(false)
+		fs:SetNonSpaceWrap(false)
+		if fs.SetMaxLines then fs:SetMaxLines(1) end
+		fs:SetHeight(self.rowH)
+		row.cells[c.key] = fs
 	end
 	PlaceCells(row, spec.cols, row.cells, 4)
 
