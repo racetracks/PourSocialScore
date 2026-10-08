@@ -1,6 +1,6 @@
 # PourSocialScore (PSS): the addon as it works (state at release 3.4.0.29)
 
-**The state document (baseline 02 E11, Dan, 2026-10-08):** how the addon works at the last full release. It is re-summarized at every full release from the plan's done stages (next: at 3.4.1.46, from `10_CORE_UPLIFT.md`). Status is in 06; Dan's preferences are in 11.
+**The state document (baseline 02 E11, Dan, 2026-10-08):** how the addon works at the last full release. It is re-summarized at every full release from the plan's done stages (next: at 3.4.1.47, from `10_CORE_UPLIFT.md`). Status is in 06; Dan's preferences are in 11.
 
 ## 1. Purpose
 PourSocialScore is Dan's World of Warcraft chat moderation addon (GitHub `racetracks`, in-game author Boaties). Clients: Retail (Midnight, Interface **120007**) and Camelot (Interface **16001**).
@@ -20,7 +20,7 @@ Goal: "global" moderation through shared lists. Sharing happens through shipped 
 | --- | --- |
 | `racetracks/PourSocialScore` (private) | The addon: six folders (eight until 3.4.0.24), one version, `tools/` (rules checks, harness, managed list builder), readme.txt, history.txt, `.github/workflows` (release.yml, rules.yml) |
 | `racetracks/Pour-Social-Score_Scratch` (private) | Hosting (layer 2 pack, `docs/scratch/`). Paths: `releases/` (test zips, versioned and dated), `latest/` (the newest test zip), `SavedVariables/<version>/` (saves), `docs/` (plans, issue notes, handover packs; newest markdown in `docs/latest/<project>/`), `summary/` (status summaries). Replaces `racetracks/scratch`, no longer used |
-| `racetracks/PourSocialScore-EllesmereUI` | **Retired.** Held the EllesmereUI folder on its own 1.1 version line until 3.2.0-dev008 merged it into the addon repo. Dan is to archive it and close its PR #18. Never write to it |
+| `racetracks/PourSocialScore-EllesmereUI` | **Retired.** Held the EllesmereUI folder on its own 1.1 version line until 3.2.0-dev008 merged it into the addon repo. Archived by Dan (its PR #18 closed, 2026-10-08). Never write to it |
 
 Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference framework for building UI elements, rewritten to our rules and never copied, 03 section 0, Dan, 2026-10-08), `Gethe/wow-ui-source`. References actually used on PSS: an ElvUI zip Dan uploaded (the load-on-demand split), a DBM AddOns list screenshot (Category/Group/coloured titles), a Questie zip (upgrade output idea, issue #45), wago.tools, and the Warcraft Wiki reference set Dan uploaded on 2026-10-07 (`docs/baseline/reference/wow-api/`; rules in baseline 02 J and PSS 02 section 10).
 

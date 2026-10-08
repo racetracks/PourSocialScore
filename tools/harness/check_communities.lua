@@ -27,7 +27,7 @@ for _, entry in ipairs(grp.guilds) do
 		total = total + before[gkey]
 	end
 end
-check(before["olympus"] == 229, "OLYMPUS count without the lists: " .. tostring(before["olympus"]))
+check(before["olympus"] == 197, "OLYMPUS count without the lists: " .. tostring(before["olympus"]))
 
 -- chat with the rule off
 local lineID = 90000
@@ -54,7 +54,7 @@ local first = M.PSS_ShippedNames("olympus")[1]
 M.PSS_ManagedTombstone("olympus", M.PSS_CanonPlayer(first))
 M.PSS_PruneManagedMarks()
 check(db.guildData["olympus"].managedGone and db.guildData["olympus"].managedGone[M.PSS_CanonPlayer(first)] == true, "a needed mark was removed")
-check(M.PSS_GuildMemberCount(db.guildData["olympus"], "olympus") == 228, "a marked member still counted")
+check(M.PSS_GuildMemberCount(db.guildData["olympus"], "olympus") == 196, "a marked member still counted")
 db.guildData["olympus"].managedGone = nil
 local after = 0
 for gkey, n in pairs(before) do
