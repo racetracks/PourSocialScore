@@ -136,6 +136,13 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_secrets.lua" 2>&1 | grep -v '^|c
 echo "$out" | grep -E "PASS|FAIL"
 echo "$out" | grep -q "PASS secrets" || fail=1
 
+# names (core uplift N1, 3.4.1.32): M.PSS_NormName joins every name; keys
+# unchanged, the Camelot surname rule, secrets
+echo "== names"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_names.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -E "names:|PASS|FAIL"
+echo "$out" | grep -q "PASS names" || fail=1
+
 # one window (3.4.0.25, D2): upgrade step 7 prunes euiIntegration (held in
 # PSS_OptionsDB, no longer an option) and the old window's sizes, column
 # widths and places, keeps the window's own; a PourSocialScore_EllesmereUI
@@ -314,6 +321,9 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		lua5.1 "$here/run.lua" . "$work/real-1.lua" "$work/real-2.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
 		lua5.1 "$here/check_real.lua" "$sv" "$work/real-2.lua" || fail=1
 		lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_validate.lua" | grep -v '^|cff' || fail=1
+		out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_names.lua" 2>&1 | grep -v '^|cff')
+		echo "$out" | grep -E "names:|PASS|FAIL"
+		echo "$out" | grep -q "PASS names" || fail=1
 		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_viewquery.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS viewquery" || fail=1

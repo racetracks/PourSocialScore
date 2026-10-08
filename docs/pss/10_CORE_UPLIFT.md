@@ -19,13 +19,17 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - `/dump UnitRealmRelationship("target")`
   - `/dump GetPlayerInfoByGUID(UnitGUID("target"))`
   - `/dump GetNormalizedRealmName()`
-- **`M.PSS_NormName(name, realm)`** in core (`PSS_ChatBlock.lua`). It checks for a secret value first, applies the Camelot surname rule and uses one realm spelling (`GetNormalizedRealmName`). `NormalizePlayer`, `CanonPlayer`, `DisplayPlayer`, `M.PSS_UnitFullName` and every name builder call it (about 14 places today).
+- **Confirmed in game (Dan, Camelot, 2026-10-08)** on "Bynathalador Darkwind": `UnitName` and `UnitFullName` give `"Bynathalador", "Darkwind"`; `GetUnitName("target", true)` gives `"Bynathalador Darkwind"`; `UnitRealmRelationship` gives `1` (same realm); `GetPlayerInfoByGUID` gives name `"Bynathalador Darkwind"` and realm `""`; `GetNormalizedRealmName()` gives `"ClassicBetaPvP"`. So the surname rule is: **a unit API's second value is a surname when `UnitRealmRelationship(unit)` is 1 (`LE_REALM_RELATION_SAME`)**; the name is then `First Last-<own realm>`. A string such as `"First-Last"` carries no unit and is left as it is (the S3 repair handles stored ones).
+- **`M.PSS_NormName(name, realm, unit)`** in core (built in N1: returns display, key, canon; the surname rule needs the unit) (`PSS_ChatBlock.lua`). It checks for a secret value first, applies the Camelot surname rule and uses one realm spelling (`GetNormalizedRealmName`). `NormalizePlayer`, `CanonPlayer`, `DisplayPlayer`, `M.PSS_UnitFullName` and every name builder call it (about 14 places today).
 - **Callers to change:**
   - `scanUnit` (`PSS_GuildIgnoreList.lua:106`) and the unit menu (`PSS_BlizzardUI.lua:233`).
   - The ignore hooks and `M.ignoreFromCmd` (`PSS_PlayerIgnoreList.lua:597`, which passes `exactName` for the target).
   - `M.PSS_SplitNameArg` (`PSS_Globals.lua:145`): multi-word names.
   - Import (`PSS_ImportExport.lua:344`): normalise, and check the shipped lists.
   - `PSS_FlushManaged`: stops saving the runtime fields `_canon`, `_gkey`, `_managed` and `_virtual`.
+- **Left by N1 for N2 (2026-10-08):**
+  - Display still takes the realm spelling from `V.serverName` (`Classicbetapvp`), so nothing visible changed in N1; moving display to `GetNormalizedRealmName` (`ClassicBetaPvP`) is visible and goes with N2.
+  - `M.PSS_CharKey` (per-character options) still joins `UnitName("player")` as before; a character with a surname would get a new key, so it changes only with a migration of that key (N2 asks Dan, or S3).
 - **Shipped lists:** `tools/PSS_BuildManaged.lua` rejects or converts surname-as-realm names. Of its 212 entries, 196 are dropped and 16 converted (decision 6); the data file is rebuilt and re-measured.
 
 ### 2.2 SavedVariables (appendix 03)
@@ -128,9 +132,9 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | Stage | Build | Change | Visible? | Validated by | State |
 | --- | --- | --- | --- | --- | --- |
 | Plan | 3.4.1.31 | This plan; working rules (one stage per session, context updated in every PR, state re-summarized at release, Dan's preferences in `11_PREFERENCES.md`); baseline v9; CLAUDE.md loads less | No | `check_rules.sh` | PR #119 |
-| (Dan) | | Run the six `/dump` lines of 2.1 on Camelot and paste the output | | Confirms the cause before N1 | Waiting on Dan |
-| N1 | 3.4.1.32 | `M.PSS_NormName`; the existing name helpers call it; `check_names.lua` | No | Every key on the four saves unchanged except the Camelot surname case | |
-| N2 | 3.4.1.33 | Every name caller (2.1), multi-word `/pss add/remove/expire`, import with the managed check, runtime fields not flushed | Yes | On Camelot, "First Last" added from the menu, Ignore and `/pss add`; Retail unchanged; the restriction CVars run | |
+| (Dan) | | Run the six `/dump` lines of 2.1 on Camelot and paste the output | | Confirms the cause before N1 | Done 2026-10-08 (2.1) |
+| N1 | 3.4.1.32 | `M.PSS_NormName`; the existing name helpers call it; `check_names.lua` | No (only `PSS_UnitFullName` on a Camelot surname target) | Every key on the four saves unchanged except the Camelot surname case | PR (see 06) |
+| N2 | 3.4.1.33 | Every name caller (2.1), multi-word `/pss add/remove/expire`, import with the managed check, runtime fields not flushed; also the two points N1 left (2.1 notes) | Yes | On Camelot, "First Last" added from the menu, Ignore and `/pss add`; Retail unchanged; the restriction CVars run | |
 | N3 | 3.4.1.34 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | |
 | F1 | 3.4.1.35 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
 | F2 | 3.4.1.36 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |

@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.32 - Core uplift N1: one name normaliser
+
+- Groundwork for the WoW Forever name fixes: every name and realm is now joined in one place.
+- On WoW Forever, a player you target with a surname ("First Last") is now read as "First Last" on your realm, not as "First" on a realm called "Last". This applies where your target fills in the name: /pss add with no name, and Add Player with an empty box.
+- Nothing else changes: every saved name and key stays the same.
+
 => 3.4.1.31 - Core uplift: the plan and working rules
 
 - Nothing changes in game.

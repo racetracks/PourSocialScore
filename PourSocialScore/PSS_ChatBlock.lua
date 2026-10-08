@@ -40,17 +40,6 @@ local function isSecret(v)
 end
 M.PSS_IsSecret = isSecret
 
--- A unit's "Name-Realm" ("Name" on your own realm), or nil when there is no
--- such unit or its name is secret (Retail 12.x, while restricted).
-function M.PSS_UnitFullName(unit)
-	local name, server = UnitName(unit)
-	if type(name) ~= "string" or isSecret(name) or name == "" then return nil end
-	if type(server) == "string" and not isSecret(server) and server ~= "" then
-		return name .. "-" .. server
-	end
-	return name
-end
-
 local trim = M.trim
 
 local realmCache
@@ -67,11 +56,37 @@ local function ownRealm()
 end
 M.PSS_OwnRealm = ownRealm
 
--- "Name" / "Name-Realm" / "Name-Aerie Peak" -> "name-realm" as chat writes it.
-function M.PSS_NormalizePlayer(name)
+-- A unit on your own realm has no realm to give, so a second value from
+-- UnitName is a surname: Camelot's "First Last" characters arrive as
+-- ("First", "Last") with UnitRealmRelationship 1 (confirmed in game,
+-- 2026-10-08). Clients without the API keep the value as a realm.
+local REALM_SAME = LE_REALM_RELATION_SAME or 1
+local function isSurname(unit)
+	if not unit or not UnitRealmRelationship then return false end
+	local rel = UnitRealmRelationship(unit)
+	return not isSecret(rel) and rel == REALM_SAME
+end
+
+-- The one place a name and a realm are joined: "Name" / "Name-Realm" as
+-- given, or name and realm from a unit API (unit given: the surname rule
+-- above, "First Last-<own realm>"). nil when secret or empty.
+local function joinName(name, realm, unit)
 	if type(name) ~= "string" or isSecret(name) then return nil end
 	name = trim(name)
 	if name == "" then return nil end
+	if type(realm) == "string" and not isSecret(realm) then
+		realm = trim(realm)
+		if realm ~= "" then
+			if isSurname(unit) then return name .. " " .. realm .. "-" .. ownRealm() end
+			return name .. "-" .. realm
+		end
+	end
+	return name
+end
+
+-- Storage key: "Name" / "Name-Realm" / "Name-Aerie Peak" -> "name-realm" as
+-- chat writes it.
+local function keyOf(name)
 	local dash = name:find("-", 1, true)
 	if not dash then
 		name = name .. "-" .. ownRealm()
@@ -83,15 +98,43 @@ end
 
 -- Matching key: like the above, but the realm is also stripped of
 -- apostrophes, so "Aman'Thul" / "AmanThul" / "Area 52" / "Area52" all match.
-function M.PSS_CanonPlayer(name)
-	if type(name) ~= "string" or isSecret(name) then return nil end
-	name = trim(name)
-	if name == "" then return nil end
+local function canonOf(name)
 	local base, realm = name:match("^([^%-]+)%-(.+)$")
 	if not base then base, realm = name, ownRealm() end
 	base = trim(base):gsub("%s+", " ")			-- "First  Last" == "First Last"
 	realm = (realm or ""):gsub("[%s%-']", "")
 	return (base .. "-" .. realm):lower()
+end
+
+local function displayOf(name)
+	if M.Proper then return M.Proper(M.addServer and M.addServer(name) or name) end
+	return name
+end
+
+-- M.PSS_NormName(name [, realm [, unit]]) -> display, key, canon, or nil when
+-- secret or empty. Every name builder goes through it (core uplift N1).
+function M.PSS_NormName(name, realm, unit)
+	local full = joinName(name, realm, unit)
+	if not full then return nil end
+	return displayOf(full), keyOf(full), canonOf(full)
+end
+
+-- A unit's "Name-Realm" ("Name" on your own realm, "First Last-Realm" for a
+-- surname), or nil when there is no such unit or its name is secret (Retail
+-- 12.x, while restricted).
+function M.PSS_UnitFullName(unit)
+	local name, server = UnitName(unit)
+	return joinName(name, server, unit)
+end
+
+function M.PSS_NormalizePlayer(name)
+	local full = joinName(name)
+	return full and keyOf(full)
+end
+
+function M.PSS_CanonPlayer(name)
+	local full = joinName(name)
+	return full and canonOf(full)
 end
 local canonPlayer = M.PSS_CanonPlayer
 
@@ -113,9 +156,9 @@ function M.PSS_NowString()
 end
 
 function M.PSS_DisplayPlayer(name)
-	if not name then return "" end
-	if M.Proper then return M.Proper(M.addServer and M.addServer(name) or name) end
-	return name
+	local full = joinName(name)
+	if not full then return "" end
+	return displayOf(full)
 end
 
 ------------------------------------------------------------------------
