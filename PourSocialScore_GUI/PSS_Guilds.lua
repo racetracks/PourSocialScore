@@ -184,13 +184,25 @@ local function Line(parent, y)
 	return fs
 end
 
--- A line under another: a wrapped line pushes the ones below it down
-local function LineBelow(prev, gap)
-	local fs = ns.NewText(prev:GetParent(), 12)
-	fs:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
-	fs:SetPoint("RIGHT", prev:GetParent(), "RIGHT", -10, 0)
+-- A line under another: a wrapped line pushes the ones below it down.
+-- A FontString held by two side anchors stays one line tall when it wraps,
+-- so these get a set width and FitLines gives each its wrapped height.
+local function WrapLine(parent)
+	local fs = ns.NewText(parent, 12)
+	fs:SetWidth(DETAIL_W - 20)
 	fs:SetJustifyH("LEFT")
+	fs:SetWordWrap(true)
 	return fs
+end
+
+local function LineBelow(prev, gap)
+	local fs = WrapLine(prev:GetParent())
+	fs:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
+	return fs
+end
+
+local function FitLines(lines)
+	for _, fs in ipairs(lines) do fs:SetHeight(fs:GetStringHeight()) end
 end
 
 local function Label(parent, text)
@@ -395,10 +407,14 @@ end
 
 local function BuildGroupBody(parent)
 	local b = Body(parent)
-	b.info = Line(b, -28)
+	b.info = WrapLine(b)
+	b.info:SetPoint("TOPLEFT", b, "TOPLEFT", 10, -28)
 	b.rule = LineBelow(b.info, 2)
 	b.state = LineBelow(b.rule, 2)
 	b.counts = LineBelow(b.state, 6)
+	b.lines = { b.info, b.rule, b.state, b.counts }
+	-- a new font wraps differently
+	ns.OnPaint(function() FitLines(b.lines) end)
 	-- the pies hang under the last line, wherever it ends
 	b.charts = CreateFrame("Frame", nil, b)
 	b.charts:SetPoint("TOPLEFT", b.counts, "BOTTOMLEFT", -10, -6)
@@ -566,6 +582,7 @@ local function ShowGroup(k)
 	b.open:SetText(gv.open)
 	local item, items = gv.item, gv.items
 	b.counts:SetText(item and M.PSS_CountsText(item.bc) or "")
+	FitLines(b.lines)
 	b.charts:SetShown(item and items and true or false)
 	if item and items then
 		-- periods like a guild's Summary and all-time blocks by type
