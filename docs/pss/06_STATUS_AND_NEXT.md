@@ -5,7 +5,7 @@ Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4
 ## Now
 - **Live release: 3.4.0.29** (full, the new PSS window; mirrored to `racetracks/Pour-Social-Score`). **Main: 3.4.1.30** (PR #118, the mirror carries the release's files).
 - **Current project: core uplift** (`10_CORE_UPLIFT.md`, locked by Dan on 2026-10-08, all 12 decisions as recommended, with his forward-compatibility addition to decision 10). It runs on three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
-- **In progress: 3.4.1.31 "Plan"** (docs and working rules only).
+- **On its PR: 3.4.1.31 "Plan"** (PR #119; docs and working rules only).
   - The core uplift plan.
   - One stage per session, with context updated in every PR (baseline v9, 02 E9 to E11).
   - Dan's preferences in one file (`11_PREFERENCES.md`).
