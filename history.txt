@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.38 - Docs: harness notes for the shipped list rebuild; N3 marked merged
+
+- Documentation only: notes for rebuilding the shipped guild lists. Nothing in the addon changes.
+
 => 3.4.1.37 - Core uplift N3: shipped lists rebuilt without surname-as-realm names
 
 - Managed Communities: the shipped guild lists held 212 names saved as "First-Last" (on Camelot the surname was read as the realm), which could never match chat. 196 of them were already listed under their full name and are removed; the other 16 are now listed as "First Last" on ClassicBetaPvP. The lists go from 7634 to 7438 entries.

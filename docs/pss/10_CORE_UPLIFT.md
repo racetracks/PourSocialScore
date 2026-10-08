@@ -100,12 +100,12 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
 
   Example (numbers illustrative):
   ```
-  PourSocialScore: updated from 3.4.0.29 to 3.4.1.47. Upgrading your saved data:
+  PourSocialScore: updated from 3.4.0.29 to 3.4.1.48. Upgrading your saved data:
     Chat Filtering: 3 custom filters given an id
     Guild Ignore List: 48 duplicate members merged, 267 names repaired
     Managed Communities: 184 members already on the shipped lists dropped
     SavedVariables performance cleanup: 6 old settings removed, 1208 records tidied (397 KB to 196 KB)
-  PourSocialScore: saved data upgraded to 3.4.1.47 (step 9).
+  PourSocialScore: saved data upgraded to 3.4.1.48 (step 9).
   ```
 - Today's data-move messages stay as they are and print before the report (decision 8). A downgrade prints one line (decision 10). A normal login builds no strings and costs nothing. All output goes through `M.ShowMsg`, in ASCII.
 - **Harness:** `check_upgrade_report.lua`, 10 cases:
@@ -131,7 +131,7 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
 - **G21 and G26:** the Filters tab's redraw is throttled, and the guild rows' rule dim refreshes on `FILTERS_CHANGED`.
 - **G27:** Dark menus grow to their content, capped at the screen height.
 - **G28:** the Modern art check covers every atlas Modern draws.
-- **The detail pane fix (3.4.1.38, decision 23), its text collision's text collision** (Dan's screenshot, 2026-10-08, Dark look): the Managed Communities list's detail lines sit at fixed heights (`BuildGroupBody`, `PourSocialScore_GUI/PSS_Guilds.lua`). "Rule on the Chat Filters tab: Managed Communities - Asmongold (InfluencerGuild=Olympus)" wraps and runs into "Rule is OFF: ...". Present since 3.4.0-dev009. The fix keeps the text: each line anchors under the one above it, so a wrapped line pushes the rest down, and the pies (`ns.NewSummary`, `ns.NewTypePie`) start below the last line. Check every fixed-height `Line()` stack in `PSS_Guilds.lua` (guild and member panes) and `PSS_Players.lua` the same way, in all three looks and with a large `uiFont`.
+- **The detail pane fix (3.4.1.39, decision 23), its text collision's text collision** (Dan's screenshot, 2026-10-08, Dark look): the Managed Communities list's detail lines sit at fixed heights (`BuildGroupBody`, `PourSocialScore_GUI/PSS_Guilds.lua`). "Rule on the Chat Filters tab: Managed Communities - Asmongold (InfluencerGuild=Olympus)" wraps and runs into "Rule is OFF: ...". Present since 3.4.0-dev009. The fix keeps the text: each line anchors under the one above it, so a wrapped line pushes the rest down, and the pies (`ns.NewSummary`, `ns.NewTypePie`) start below the last line. Check every fixed-height `Line()` stack in `PSS_Guilds.lua` (guild and member panes) and `PSS_Players.lua` the same way, in all three looks and with a large `uiFont`.
 
 ### 2.6 Performance and tidy (3.4.2, 3.4.3)
 Listed in section 4. Each stage is invisible and proven with `tui_compare.sh` identical in all three looks, plus measured numbers.
@@ -178,17 +178,18 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | Plan B | 3.4.1.34 | B1 and B2 added to this plan (2.7, decisions 15 to 22); docs only | No | `check_rules.sh` | PR #122 |
 | B1 | 3.4.1.35 | PSS is authoritative over Blizzard's ignore list (2.7): the per-player Blizzard ignore tick, a new Blizzard ignore moves into PSS with its note, the existing Blizzard list is synced across, removal from either removes from both; upgrade step 8 (the global option to per-player ticks) | Yes | In game on Retail and Camelot: Blizzard Ignore, the tick in all three looks, removal both ways; the four real saves | Merged, PR #123 |
 | B2 | 3.4.1.36 | The right-click menu: a "PSS" header with "Block Player" and "Block Guild" (2.7) | Yes | In game on Retail and Camelot, unit and chat-name menus; the restriction CVars run | Merged, PR #124 |
-| N3 | 3.4.1.37 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | PR #126 |
-| Fix | 3.4.1.38 | The Guilds tab detail pane: a line that wraps (the list's "Rule on the Chat Filters tab: ..." line in Dan's screenshot) pushes the lines and pies below it down, instead of running into the next line (section 2.5, decision 23) | Yes | `tui_compare.sh` on a narrow pane and a long rule name: no overlap in all three looks; in-game in all three looks | |
-| F1 | 3.4.1.39 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
-| F2 | 3.4.1.40 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |
-| U1 | 3.4.1.41 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
-| U2 | 3.4.1.42 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | |
-| U3 | 3.4.1.43 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | |
-| S1 | 3.4.1.44 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | |
-| S2 | 3.4.1.45 | Accessors for every field S3 drops; the rules-check grep | No | `tui_compare.sh` identical | |
-| S3 | 3.4.1.46 | Upgrade step 9 (2.2): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
-| R | 3.4.1.47 | Release: version only; one summary of 3.4.1.30 to 3.4.1.46 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
+| N3 | 3.4.1.37 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | Merged, PR #126 |
+| Docs | 3.4.1.38 | `07_HARNESS.md`: checks after a shipped list rebuild (missed N3's merge); N3 marked merged; docs only | No | `check_rules.sh` | PR #127 |
+| Fix | 3.4.1.39 | The Guilds tab detail pane: a line that wraps (the list's "Rule on the Chat Filters tab: ..." line in Dan's screenshot) pushes the lines and pies below it down, instead of running into the next line (section 2.5, decision 23) | Yes | `tui_compare.sh` on a narrow pane and a long rule name: no overlap in all three looks; in-game in all three looks | |
+| F1 | 3.4.1.40 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
+| F2 | 3.4.1.41 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |
+| U1 | 3.4.1.42 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
+| U2 | 3.4.1.43 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | |
+| U3 | 3.4.1.44 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | |
+| S1 | 3.4.1.45 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | |
+| S2 | 3.4.1.46 | Accessors for every field S3 drops; the rules-check grep | No | `tui_compare.sh` identical | |
+| S3 | 3.4.1.47 | Upgrade step 9 (2.2): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
+| R | 3.4.1.48 | Release: version only; one summary of 3.4.1.30 to 3.4.1.47 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
 
 ### Line 3.4.2: core performance and tidy (builds continue)
 | Stage | Change |
@@ -233,7 +234,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 20. Blizzard's ignore chat lines are left alone.
 21. The tick lives in the PSS window only. The right-click menu becomes a "PSS" header with "Block Player" and "Block Guild" (B2, its own stage).
 22. B1 and B2 are their own stages after N2 (builds 3.4.1.35 and .36, after this plan change took 3.4.1.34); the later stages move up three builds and the release is 3.4.1.46.
-23. The detail pane collision is its own fix build, stage Fix (3.4.1.38), after N3 merges; the wrapped line keeps its text and pushes the lines below it down (Dan, 2026-10-08; he chose this over shortening the text). The later stages move up one build and the release is 3.4.1.47.
+23. The detail pane collision is its own fix build, stage Fix (3.4.1.39 after the docs build 3.4.1.38 took .38), after N3 merges; the wrapped line keeps its text and pushes the lines below it down (Dan, 2026-10-08; he chose this over shortening the text). The later stages move up one build each time (the fix, then the docs build) and the release is 3.4.1.48.
 
 ## 6. Risks
 | Risk | Cover |
