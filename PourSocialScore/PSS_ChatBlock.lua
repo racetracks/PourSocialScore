@@ -40,6 +40,17 @@ local function isSecret(v)
 end
 M.PSS_IsSecret = isSecret
 
+-- A unit's "Name-Realm" ("Name" on your own realm), or nil when there is no
+-- such unit or its name is secret (Retail 12.x, while restricted).
+function M.PSS_UnitFullName(unit)
+	local name, server = UnitName(unit)
+	if type(name) ~= "string" or isSecret(name) or name == "" then return nil end
+	if type(server) == "string" and not isSecret(server) and server ~= "" then
+		return name .. "-" .. server
+	end
+	return name
+end
+
 local trim = M.trim
 
 local realmCache
@@ -493,6 +504,10 @@ local function CoreFilter(_, event, msg, author, language, channelString, target
 	if not cat then return false end
 	if isSecret(author) or isSecret(guid) then return false end
 	if isSecret(flag) or type(flag) ~= "string" then flag = nil end
+	-- channel args reach the filter tags ([chname], [channel]): drop secret ones
+	if isSecret(channelString) then channelString = nil end
+	if isSecret(channelIndex) then channelIndex = nil end
+	if isSecret(channelBaseName) then channelBaseName = nil end
 
 	local key
 	if type(lineID) == "number" and not isSecret(lineID) and lineID ~= 0 then
@@ -633,19 +648,15 @@ local function guildInviteVisible()
 end
 
 local function declineGuildInvite()
-	-- press the window's own Decline button when it exists (what a manual
-	-- click does); otherwise use the API
-	local btn = _G.GuildInviteFrameDeclineButton
-	if type(btn) == "table" and btn.IsVisible and btn:IsVisible() and btn.Click then
-		btn:Click()
-	elseif DeclineGuild then
+	-- the API only (PSS 02 10.3): never press or hide Blizzard's invite
+	-- window. Blizzard's GuildInviteFrame closes on GUILD_INVITE_CANCEL or
+	-- after its own 60 s; clients that use a GUILD_INVITE popup close it here.
+	if DeclineGuild then
 		DeclineGuild()
 	elseif C_GuildInfo and C_GuildInfo.DeclineGuild then
 		C_GuildInfo.DeclineGuild()
 	end
 	if StaticPopup_Hide then StaticPopup_Hide("GUILD_INVITE") end
-	local f = _G.GuildInviteFrame
-	if type(f) == "table" and f.IsShown and f:IsShown() then f:Hide() end
 end
 
 local function handleGuildInvite(inviter, guildName)

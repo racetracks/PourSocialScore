@@ -1,6 +1,17 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.14 - Fixes from the code review: hidden values, Escape, small bugs
+
+- Retail hides some names and chat details from addons in instances and encounters (secret values). Pour Social Score now checks them everywhere before use: your target's name (/pss, adding with the box empty, the unit menu toggle, /pssguild test) and a channel's name and number (the [chname] and [channel] filter tags). A hidden value is skipped quietly: nothing is added, nothing is blocked by it, and no error note.
+- A listed player's line is still blocked and counted when only the message text is hidden; the hidden text itself is never kept (your choice, 2026-10-08).
+- Guild invites from a listed player are declined through the game's decline call only. Pour Social Score no longer presses the invite window's Decline button or hides the window itself.
+- New window: Escape on a popup or a drop-down list now closes only that, not the page or the window behind it.
+- New window: removing a chat filter while another row is selected keeps that row selected.
+- New window: clicking a link in a list does nothing in combat (it could open a Blizzard window).
+- The Group Finder tooltip line for a listed leader checks the tooltip may be used first.
+- readme.txt brought up to date.
+
 => 3.4.0.13 - Build numbers in place of dev numbers
 
 - Versions now carry a build number: 3.4.0.13 is build 13 of the 3.4.0 line, following 3.4.0-dev012. Every test build takes the next number; fixes to a build no longer add _2, _3.

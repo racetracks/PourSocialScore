@@ -51,7 +51,8 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | B6 | dev011 (to dev011_3) | Events tab, opened from every pie, View Events and the panes' histories; Libraries `PSS_EventsView.lua` | Merged #102 |
 | B7 | dev012 | Options (search; the look and font) + Import/Export; Libraries `PSS_OptionsView.lua`; all six tabs built | Merged #103 |
 | Versions | 3.4.0.13 | Build numbers replace devNNN and `_N`; no addon change | Merged #104 |
-| R1 to R3 | next builds | The code review's fixes (scratch `docs/latest/code-review/`): R1 secret values and bugs, R2 Logging on demand and memory, R3 window tidy | Planned, before C1 (Dan, 2026-10-08) |
+| R1 | 3.4.0.14 | Code review fixes: secret values, Escape on popups and menus, small bugs, CI runs `validate_all.sh`; `check_secrets.lua` | PR open |
+| R2, R3 | next builds | The code review's fixes (scratch `docs/latest/code-review/`): R2 Logging on demand and memory, R3 window tidy | Planned, before C1 (Dan, 2026-10-08) |
 | C1 | next build | Player Search, add target, Prune | Planned |
 | C2 | next build | Right-click menus | Planned |
 | D1 to D3 | next builds | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
@@ -61,7 +62,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 ## Code map
 | Where | What |
 | --- | --- |
-| `PourSocialScore_UI/PSS_Skin.lua` | `ns.NewFrameArt(parent)` (the window's frame and background in Classic and Modern, used by the window and the popups); looks, Dark colour tokens, accent, shared font objects (`PSS_Font1..n`, repainted in place), pixel border, `ns.NoSnap`, `ns.ShowArt` (fades a template's textures, restores their own alpha) |
+| `PourSocialScore_UI/PSS_Skin.lua` | `ns.NewFrameArt(parent)` (the window's frame and background in Classic and Modern, used by the window and the popups); looks, Dark colour tokens, accent, shared font objects (`PSS_Font1..n`, repainted in place), pixel border, `ns.NoSnap`, `ns.ShowArt` (fades a template's textures, restores their own alpha); Escape for our popups and menu, `ns.EscapeCloses(frame, name)` and `ns.EscapeTaken()` (3.4.0.14) |
 | `PourSocialScore_UI/PSS_Kit.lua` | The controls in each look; each widget keeps its Dark parts in `widget.pssParts` |
 | `PourSocialScore_UI/PSS_Tooltip.lua` | `ns.Tip` / `ns.HideTip` / `ns.TipOn` |
 | `PourSocialScore_UI/PSS_Menu.lua` | `ns.NewDropdown(parent, w, build)` (`dd:SetLabel`), `ns.ContextMenu(owner, build)`; `build(m)` adds `m:Button`, `m:Radio`, `m:Check`, `m:Divider`, `m:Title`; Blizzard's MenuUtil menus or our `PSS_Menu` list |
@@ -83,7 +84,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | `tools/harness/kit_page.lua` | The kit preview (was `PSS_KitPage.lua` until dev005), built by `check_tui.lua` on a frame of its own through `H.Private("PourSocialScore_UI")` |
 | `PourSocialScore_Libraries/PSS_ViewNav.lua` | `M.PSS_UISkin`, `M.PSS_UIPlace` / `M.PSS_SetUIPlace`, `M.PSS_UIFontPath`, `M.PSS_UIFontChoices`, `M.PSS_UIAccent`; tabs `M.PSS_UI_TABS`, `M.PSS_UITab` / `M.PSS_SetUITab` (saved as `windowPoints.PSS_WindowTab`, the first tab not saved); back / forward `M.PSS_NavNew(max)` (`Record`, `Back`, `Forward`, `Replace`, `BackToOther`), `M.PSS_DoubleClick`, `M.PSS_Throttle` |
 | `PourSocialScore_Libraries/PSS_DetailQuery.lua` | Pane maths: `M.PSS_PERIODS`, period and type ticks, `M.PSS_SummaryValues`, `M.PSS_PeriodSlices` / `M.PSS_PeriodTip`, `M.PSS_TypeSlices`, `M.PSS_TotalsView`, `M.PSS_CountsText`, override cycle `M.PSS_NextOverride` / `M.PSS_OverrideText`, `M.PSS_ClassColor`, history type ticks `M.PSS_HistHidden` / `M.PSS_HistFilter` |
-| Core | `M.PSS_PARTS.UI`, `NEEDS.UI = "Libraries"`, options `uiSkin` and `uiFont`, `HELP_21` |
+| Core | `M.PSS_PARTS.UI`, `NEEDS.UI = "Libraries"`, options `uiSkin` and `uiFont`, `HELP_21`; `M.PSS_UnitFullName(unit)` (a unit's readable "Name-Realm" or nil when secret, 3.4.0.14) |
 
 ## Lessons so far
 - **Blizzard tab labels:** `PanelTemplates_SelectTab` / `DeselectTab` re-anchor a top tab's label 4 / 8 px below centre (made for 32 px tabs), and the tab template's `OnShow` resizes the tab to its own padding (it cut "Player Ignore List" short). The kit drops those scripts on our own tabs and sets the label and the active art itself. A centring that those functions override does nothing: check what re-anchors a region before fixing its anchor.
@@ -96,4 +97,6 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 - **Retail 12.x renamed the link insert** (dev010): Blizzard calls `ChatFrameUtil.InsertLink`; `ChatEdit_InsertLink` is only a deprecated copy (`Blizzard_DeprecatedChatInfo`, "removed at the next expansion"), so a post-hook on the old global never fires for Blizzard's own inserts. The EllesmereUI window still hooks the old name (its link converter's shift-click is likely dead on Retail; not changed, it is deleted at the cutover).
 - **List cells are one line** (dev010_2): a font string given only a width wraps and spills over the rows below; row cells set `SetWordWrap(false)`, `SetMaxLines(1)` and the row's height, so long text ends in "...".
 - **Blizzard's dialog backgrounds are see-through** (dev011_2, _3): `DialogBorderTemplate` and the classic dialog backdrop let the window behind show through text. The popups now use the window's own frame art (`ns.NewFrameArt`, shared with the window): the metal frame on its stone, or on black in Modern.
+- **One Escape hides every shown frame in `UISpecialFrames`** (3.4.0.14): the window's Escape helper and a popup both went, so the window stepped back too. The helper now asks `ns.EscapeTaken()` first. And **`SetScript` drops hooks**: a `HookScript` made before a frame's own `SetScript("OnHide")` never runs, so register after the scripts are set.
+- **Blizzard's guild invite window is not a StaticPopup** (3.4.0.14, `Blizzard_FrameXML/GuildInviteFrame`): it opens with `StaticPopupSpecial_Show`, calls `DeclineGuild` itself in its `OnHide`, and hides on `GUILD_INVITE_CANCEL` or after 60 s. `StaticPopup_Hide("GUILD_INVITE")` does not close it.
 - **Ask which object a screenshot shows:** `/fstack` names only what is under the mouse; a screenshot of a highlighted region with an unrelated frame stack cannot be identified.

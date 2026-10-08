@@ -1,6 +1,8 @@
 # Runs tools/check_rules.sh (Lua 5.1, ASCII only, tab indentation; the
-# PourSocialScore_EllesmereUI folder in EllesmereUI's style) and the
-# harness's EllesmereUI and new window checks on every pull request and every push to main.
+# PourSocialScore_EllesmereUI folder in EllesmereUI's style), the harness's
+# EllesmereUI and new window checks, and validate_all.sh (upgrades, data,
+# on demand, growth; no real saves here) on every pull request and every
+# push to main.
 name: Rules
 
 on:
@@ -40,3 +42,16 @@ jobs:
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_events.lua | tee /tmp/ev.txt && grep -q "PASS events" /tmp/ev.txt
       - name: New window Options and Import/Export tabs
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_options.lua | tee /tmp/op.txt && grep -q "PASS options" /tmp/op.txt
+      - name: Secret values
+        run: lua5.1 tools/harness/run.lua . - - tools/harness/check_secrets.lua | tee /tmp/se.txt && grep -q "PASS secrets" /tmp/se.txt
+
+  upgrades:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Lua 5.1
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Upgrades and data checks
+        run: sh tools/harness/validate_all.sh

@@ -586,15 +586,9 @@ function M.ignoreFromCmd (argStr)
 	-- not Proper()-ed here: that would glue the note onto the name. The name
 	-- part is split off and normalised by PSS_AddIgnore.
 	argStr = M.trim(argStr or "")
-	local server
 	if argStr == "" then
-		argStr, server =	UnitName("target")
-
-		if server ~= nil then
-			argStr = argStr .. "-"..server
-		end
-
-		if argStr == nil or not UnitPlayerControlled("target") then
+		argStr = M.PSS_UnitFullName("target") or ""
+		if argStr ~= "" and not UnitPlayerControlled("target") then
 			argStr = ""
 		end
 	end
@@ -628,14 +622,8 @@ M.PSS_AddIgnore = function(name, noNote, exactName)
 	end
 
 	--print("DEBUG: Info sent to C_FriendList.AddIgnore name="..(name or "nil") .. " note="..(noNote or "nil"))
-	local server
 	if (not name or name == "") then
-
-		name, server = UnitName("target")
-
-		if server ~= nil then
-			name = name .. "-"..server
-		end
+		name = M.PSS_UnitFullName("target")
 	end
 
 	if (not name or name == "") then
@@ -830,14 +818,8 @@ end
 M.PSS_AddOrDelIgnore = function(name)
 
 	--print ("DEBUG C_FriendList.AddOrDel called with: "..(name or "nil"))
-	local server
 	if (not name or name == "") then
-
-		name, server = UnitName("target")
-
-		if server ~= nil then
-			name = name .. "-"..server
-		end
+		name = M.PSS_UnitFullName("target")
 	end
 
 	if type(name) ~= "string" or M.PSS_IsSecret(name) or name == "" then return end		-- no name and no target
@@ -1043,7 +1025,8 @@ M.AddOrDelNPC = function (argStr)
 		end
 
 		if argStr == "" then
-			argStr = M.Proper(UnitName("target"), true)
+			local t = M.PSS_UnitFullName("target")
+			argStr = t and M.Proper(t, true)
 
 			if argStr == nil or UnitPlayerControlled("target") then
 				argStr = ""

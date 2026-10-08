@@ -232,7 +232,7 @@ local function BuildMenu()
 		catcher:Hide()
 		owner = nil
 	end)
-	tinsert(UISpecialFrames, "PSS_Menu")
+	ns.EscapeCloses(menu, "PSS_Menu")	-- after its OnHide (SetScript drops hooks)
 	slots = {}
 	menu.slots = slots
 end

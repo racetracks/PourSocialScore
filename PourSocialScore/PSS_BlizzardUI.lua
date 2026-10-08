@@ -206,7 +206,7 @@ function M.PSS_LFG_Tooltip (self)
 	if info ~= nil and type(info.leaderName) == "string" and not M.PSS_IsSecret(info.leaderName) then
 		local idx = M.PSS_ListedPosition(M.PSS_CanonPlayer(info.leaderName)) or 0
 
-		if (idx > 0) then
+		if (idx > 0) and not GameTooltip:IsForbidden() then
 			GameTooltip:AddLine(" ")
 			GameTooltip:AddLine("|c00ff0000" .. L["RCM_8"])
 
