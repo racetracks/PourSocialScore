@@ -38,3 +38,5 @@ jobs:
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_filters.lua | tee /tmp/fi.txt && grep -q "PASS filters" /tmp/fi.txt
       - name: New window Events tab
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_events.lua | tee /tmp/ev.txt && grep -q "PASS events" /tmp/ev.txt
+      - name: New window Options and Import/Export tabs
+        run: lua5.1 tools/harness/run.lua . - - tools/harness/check_options.lua | tee /tmp/op.txt && grep -q "PASS options" /tmp/op.txt

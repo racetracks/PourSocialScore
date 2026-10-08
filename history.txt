@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev012 - New PSS window: Options and Import/Export tabs
+
+- The Options tab works in /pss tui, laid out like the EllesmereUI window: every option under its section heading, with a tick box, a number box, a drop-down, or (the scan level cap) a tick box with its number. A search box at the right of the tab row keeps the options whose name, tip or section holds the text. Options marked * can also be set per guild or per player.
+- The window's look (Modern, Classic, Dark) and font are chosen here too, and the window repaints at once.
+- The Import/Export tab: tick what to include (captured guild members only with the Guild Ignore List), choose Merge or Replace, then Export (a copy box) or Import (paste the string; Replace asks first).
+- All six tabs of the new window are now built.
+
 => 3.4.0-dev011_3 - New PSS window: popups in the window's own frame
 
 - In the Modern and Classic looks the window's popups (the copy box, confirms, import) now use the same frame and background as the window itself: the metal frame on its stone, or on black in Modern. Blizzard's dialog backgrounds stayed see-through.
