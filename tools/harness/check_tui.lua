@@ -5,7 +5,9 @@
 -- only; from 3.4.0.23 (D1, moved from check_gui.lua) the Friends and
 -- Social windows (with the option on), /pss gui, /pss ui and the Addon
 -- Compartment open it; from 3.4.0.25 (D2) it is PourSocialScore_GUI, the
--- loader has no other window part and /pss tui is gone; it toggles; Escape
+-- loader has no other window part and /pss tui is gone; from 3.4.0.28
+-- /pss on its own opens it (gui, ui and eui are the same command) and
+-- /pss help lists the commands; it toggles; Escape
 -- closes it; a dragged place is remembered; the look follows the uiSkin
 -- option (Blizzard by default) and repaints the open window; the kit's
 -- controls and tooltips follow the look; the uiFont option picks a Blizzard
@@ -45,13 +47,15 @@ SlashCmdList["PSSGUILD"]("")
 check(loaded("PourSocialScore_Libraries"), "/pss did not load Libraries")
 check(not loaded("PourSocialScore_GUI"), "/pss mem loaded the window")
 check(table.concat(said, "\n"):find("PSS guild:", 1, true) ~= nil, "/pssguild did not run")
--- /pss lists gui (and no longer the old tui, eui and gui force)
+-- /pss help (or a word /pss does not know) lists the commands, says /pss
+-- opens the window, and no longer lists tui or gui force (3.4.0.28)
 said = {}
-SlashCmdList["PSS"]("")
+SlashCmdList["PSS"]("help")
 M.ShowMsg, M.ChatMsg = realShow, realChat
 local help = table.concat(said, "\n")
-check(help:find("|cffffff00gui|r", 1, true) ~= nil or help:find("gui", 1, true) ~= nil, "/pss help does not list gui")
-check(not help:find("tui", 1, true) and not help:find("eui", 1, true) and not help:find("force", 1, true), "/pss help lists a retired command")
+check(help:find("/pss to open the window", 1, true) ~= nil and help:find("gui", 1, true) ~= nil, "/pss help does not say /pss opens the window")
+check(not help:find("tui", 1, true) and not help:find("force", 1, true), "/pss help lists a retired command")
+check(not loaded("PourSocialScore_GUI"), "/pss help loaded the window")
 
 -- Friends with the option off: stays asleep
 local opt = PourSocialScoreDB.openWithFriends
@@ -83,13 +87,17 @@ check(win:IsShown(), "a Friends window closing closed the window opened by comma
 SlashCmdList["PSS"]("gui")
 check(not win:IsShown(), "/pss gui did not close it")
 PourSocialScoreDB.openWithFriends = opt
--- /pss ui toggles it too, /pss tui is gone (D2); the Addon Compartment opens it
-SlashCmdList["PSS"]("ui")
-check(win:IsShown(), "/pss ui did not open the window")
+-- /pss on its own toggles it, and gui, ui and eui are the same command, with
+-- anything after them (3.4.0.28, Dan); /pss tui is gone (it lists the
+-- commands); the Addon Compartment opens it
+for _, cmd in ipairs({ "", "ui", "eui", "gui force", "  GUI  " }) do
+	SlashCmdList["PSS"](cmd)
+	check(win:IsShown(), "/pss " .. cmd .. " did not open the window")
+	SlashCmdList["PSS"](cmd)
+	check(not win:IsShown(), "/pss " .. cmd .. " did not close the window")
+end
 SlashCmdList["PSS"]("tui")
-check(win:IsShown(), "/pss tui still toggles the window")
-SlashCmdList["PSS"]("ui")
-check(not win:IsShown(), "/pss ui did not close the window")
+check(not win:IsShown(), "/pss tui still opens the window")
 local entry
 for _, info in ipairs(AddonCompartmentFrame.registered) do
 	if info.text == "Pour Social Score" then entry = info end

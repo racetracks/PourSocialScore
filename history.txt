@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.28 - /pss opens the window
+
+- /pss on its own now opens (or closes) the Pour Social Score window. /pss gui, /pss ui and /pss eui do the same.
+- /pss help lists the chat commands (so does any word /pss does not know); every other command works as before.
+- /pss tui is gone, and so is the old "the old windows are gone" message.
+
 => 3.4.0.27 - Versions file, build numbers that never reset
 
 - Nothing changes in game.
