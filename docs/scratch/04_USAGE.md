@@ -19,7 +19,7 @@ git add <folder> && git commit -m "<what, with version>" && git push origin HEAD
 - Pull first; other threads push to scratch too.
 - One commit per delivery, with a message that names the thing and its version.
 - Build zips in a fresh, uniquely named directory; don't `rm -rf` globs (sandboxes block it).
-- Also copy each delivered zip into the project's shared files (for example `/mnt/project-files/builds/` or `/handover/`) so other threads find it without cloning.
+- Scratch is the project files (Dan, 2026-10-08): nothing is copied anywhere else; other threads read it from here.
 
 ## Test builds (rules 9, 12)
 1. Build the zip from the committed branch (`git archive HEAD`), with every addon folder at the zip root.
@@ -32,7 +32,7 @@ The only location is `SavedVariables/<version>/` in `racetracks/Pour-Social-Scor
 
 1. The author uploads the files from `WTF/Account/<account>/SavedVariables/` and names the version.
 2. Commit them to `SavedVariables/<version>/` with a line in `SavedVariables/README.md` (what is in it, the size).
-3. Keep a copy in the project files for the harness (`/mnt/project-files/savedvariables/<version>/`, plus one concatenated file per version under `/mnt/project-files/baselines/<version>/`).
+3. Scratch is the project files: there is no other copy. The harness builds its input from here (`sh tools/harness/build_saves.sh <scratch checkout> <out dir>` in the addon repo).
 4. Never commit real saves to an addon repo.
 
 ## Docs and handover packs (rule 10)

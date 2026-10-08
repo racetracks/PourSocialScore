@@ -1,11 +1,11 @@
 # PSS harness (tools/harness)
 
-The general harness is baseline 06. PSS's commands, as of 3.4.0-dev002. Needs `lua5.1` (apt) and `git fetch --depth=2000 origin main` (compares, and `validate_all.sh`'s upgrade checks, which rebuild old versions from history: in a shallow clone its "split" checks fail on 2.0.1 and 2.0.40). Real saves: if `/mnt/project-files/baselines` is missing, clone scratch (`racetracks/Pour-Social-Score_Scratch`) and run `sh tools/harness/build_saves.sh <scratch checkout> [out dir]`: it writes `<out dir>/<version>/PourSocialScore.lua` for every `SavedVariables/<version>/` (a 3.x set joined core, Options, Logging, EllesmereUI; out dir defaults to `/mnt/project-files/baselines`).
+The general harness is baseline 06. PSS's commands, as of 3.4.0-dev002. Needs `lua5.1` (apt) and `git fetch --depth=2000 origin main` (compares, and `validate_all.sh`'s upgrade checks, which rebuild old versions from history: in a shallow clone its "split" checks fail on 2.0.1 and 2.0.40). Real saves live only on scratch (the project files; there is no `/mnt/project-files`): with a scratch checkout (`racetracks/Pour-Social-Score_Scratch`), run `sh tools/harness/build_saves.sh <scratch checkout> [out dir]`: it writes `<out dir>/<version>/PourSocialScore.lua` for every `SavedVariables/<version>/` (a 3.x set joined core, Options, Logging, EllesmereUI; out dir defaults to `/tmp/pss-baselines`).
 
 | Command | Proves |
 | --- | --- |
 | `sh tools/check_rules.sh` | Lua 5.1, ASCII, tabs, layers; with `tools/check_rules_eui.sh` for the EUI folder |
-| `PSS_REAL_SAVES=/mnt/project-files/baselines sh tools/harness/validate_all.sh` | Upgrades from every old layout and all three real saves; data checks; `check_match.lua` and `check_managed_row.lua` on each real save; must end 0 FAIL |
+| `PSS_REAL_SAVES=<out dir> sh tools/harness/validate_all.sh` | Upgrades from every old layout and all three real saves; data checks; `check_match.lua` and `check_managed_row.lua` on each real save; must end 0 FAIL |
 | `sh tools/harness/check_eui_all.sh` | The EllesmereUI window builds and behaves (players, guilds, filters, popups) against `tools/harness/eui_stub` |
 | `sh tools/harness/ui_compare.sh <ref> <save>` | The native window is unchanged against `<ref>` ("UI identical") |
 | `sh tools/harness/eui_compare.sh <ref> <save>` | The same for the EUI window: a tour (`eui_tour.lua`) clicks tabs, rows, View Events, slices, ticks and searches, about 482 snapshots |

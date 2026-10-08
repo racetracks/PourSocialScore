@@ -30,7 +30,7 @@ Every build is `X.Y.Z.B` (02 section 8): the next build number for every test zi
 Until 3.4.0-dev012 a round of fixes on an unmerged dev build was `devNNN_N` (`3.4.0-dev002_2`, `_3`, ...).
 
 ## Test zips
-- Scratch (`racetracks/Pour-Social-Score_Scratch`, from 2026-10-08): `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`, and the same commit replaces the zip in `latest/` with it. Link `https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/<path>`. Copy to `/mnt/project-files/builds/`.
+- Scratch (`racetracks/Pour-Social-Score_Scratch`, from 2026-10-08): `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`, and the same commit replaces the zip in `latest/` with it. Link `https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/<path>`.
 - Builds up to 3.4.0-dev005 are on the old `racetracks/scratch` (`PourSocialScore/test-builds/`, dev001 to dev003 of 3.3.0 also in `pss-builds/`); those links stay, nothing new goes there.
 
 ## PSS pitfalls seen

@@ -2,12 +2,12 @@
 # Builds the real-save folder validate_all.sh reads (PSS_REAL_SAVES) from the
 # scratch repo's SavedVariables/<version>/ (real saves are never kept here).
 #   sh tools/harness/build_saves.sh <scratch checkout> [out dir]
-# out dir defaults to /mnt/project-files/baselines. Each version becomes
+# out dir defaults to /tmp/pss-baselines. Each version becomes
 # <out>/<version>/PourSocialScore.lua: a 2.0 save is copied as is, a 3.x set
 # is joined core first, then Options, Logging and EllesmereUI.
 # Then: PSS_REAL_SAVES=<out dir> sh tools/harness/validate_all.sh
 src=$1
-out=${2:-/mnt/project-files/baselines}
+out=${2:-/tmp/pss-baselines}
 if [ -z "$src" ] || [ ! -d "$src/SavedVariables" ]; then
 	echo "usage: sh tools/harness/build_saves.sh <scratch checkout> [out dir]"
 	exit 1

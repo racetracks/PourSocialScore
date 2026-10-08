@@ -59,6 +59,7 @@ Measured on Dan's save: 2000 lines went from 633 KB to 203 KB. Earlier, packing 
 `check_keep.lua`, `check_ondemand.lua`, `check_recent.lua`, `check_saveddata.lua`, `check_growth.lua`, `check_savedlog.lua` and `validate_all.sh` against all three real saves (2.0.44, 3.0.0, 3.2.0-dev011).
 
 ## 9. Possible next
+- **Stored guild members: cap 1500 per guild rule** (code review decision 6, Dan, 2026-10-08). `guildData[g].members` grows with every /who and unit capture today. On the 3.4.1 line: the cap, a numbered migration that prunes over-cap rules, validated on the three real saves with the save sizes measured before and after.
 - Pack the in-play chat filter log like the keep (offered, not started).
 
 ## Retired in 3.3.0-dev002: PSS_BlockStats
@@ -71,4 +72,4 @@ The native window used to keep its own hourly counts (`PSS_BlockStats.lua`, save
 | 3.0.0 | core (151 B), _Options (365 KB), _Logging (745 KB) | First split; no EUI file. Its upgrade record is dated after the dev011 one. |
 | 3.2.0-dev011 | core (5.8 KB), _Options (372 KB), _Logging (224 KB), _EllesmereUI (137 B) | Grouped log (178 owners) |
 
-Folders are named by the save's `upgrade.version` (the version last run). For the harness, `tools/harness/build_saves.sh` concatenates each 3.x set (core, Options, Logging, EllesmereUI) into `/mnt/project-files/baselines/<version>/PourSocialScore.lua`; 2.0.44 is copied as is. The split check in validate_all.sh only takes 2.0-layout saves (no `PSS_OptionsDB`).
+Folders are named by the save's `upgrade.version` (the version last run). For the harness, `tools/harness/build_saves.sh` concatenates each 3.x set (core, Options, Logging, EllesmereUI) into `<out dir>/<version>/PourSocialScore.lua` straight from scratch `SavedVariables/<version>/` (`sh tools/harness/build_saves.sh <scratch checkout> <out dir>`); 2.0.44 is copied as is. The split check in validate_all.sh only takes 2.0-layout saves (no `PSS_OptionsDB`).
