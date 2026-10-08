@@ -1,6 +1,23 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.29 - The new Pour Social Score window
+
+- One new Pour Social Score window replaces both old windows (the classic PSS window and the EllesmereUI window). /pss (also /pss gui, ui or eui), the Addon Compartment and your Friends or Social window open it; /pss help lists the chat commands.
+- Three looks, picked on its Options tab: Modern (the default, the art of Blizzard's new Social window), Classic (Blizzard's classic window art) and Dark (flat and dark). Same layout and features in all three; the accent is your class colour. A font option sets the window's font, including fonts other addons share.
+- Six tabs: Player Ignore List, Guild Ignore List, Chat Filters, Events, Options and Import/Export. Select an entry to see it beside the list: Summary (its counts and pies), Event History and View/Edit Rule. With nothing selected you see the whole list's totals for this session, the last 24 hours and all time, and by type.
+- New Events tab: every blocked line in one place, with time, type and source filters (including a custom date range), search and sorting. Pie slices and View Events open it on just those lines.
+- Back and forward arrows (and mouse buttons 4 and 5) step through what you looked at. Escape closes a popup first, then steps back, then closes the window.
+- Right-click any row for its menu. Removing anything now asks first.
+- Player Ignore List: Player Search (a /who for a name, tick who to add), Add Player with an empty box adds your target, and Prune removes entries older than the days you choose.
+- Guild Ignore List: Managed Communities, your guilds and the Guild Exclusion List in one grouped list, with Scan All, Guild Search and a members view per guild.
+- New defaults for everyone on your lists: no ignore response is sent, no decline messages are shown, and their duels and trades are declined. Any player, guild or guild member can be an exception (tick boxes on View/Edit Rule, or in the row's menu).
+- Safer in instances and encounters: names and chat details the game hides from addons are checked first and skipped quietly. A listed player is still blocked when only their message is hidden.
+- Guild invites from listed players are declined through the game's own decline call only.
+- Lighter: the window loads only when opened, listens only while open, and lets go of what it read when closed; busy guild lists update far more cheaply as lines are blocked.
+- Upgrading: your lists, rules, counts and history are kept. The old EllesmereUI integration setting and the old window's sizes and column widths are removed. If PourSocialScore_EllesmereUI or PourSocialScore_UI is still in your AddOns folder you are told once at login; delete them.
+- Version numbers now end in a build number (this release is 3.4.0.29).
+
 => 3.4.0.28 - /pss opens the window
 
 - /pss on its own now opens (or closes) the Pour Social Score window. /pss gui, /pss ui and /pss eui do the same.
