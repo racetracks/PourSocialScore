@@ -287,6 +287,7 @@ mk.confirm._scripts.OnClick(mk.confirm)
 local cf = _G.PSS_Confirm
 check(cf and cf:IsShown(), "confirm popup not shown")
 check(cf.pssParts.art and cf.pssParts.art:IsShown() and not cf.pssParts.dim:IsShown(), "Blizzard confirm not in Blizzard art")
+check(cf.pssParts.under:IsShown() and cf.pssParts.under._color and cf.pssParts.under._color[4] == 1, "Classic popup not solid under its art")
 cf.accept._scripts.OnClick(cf.accept)
 check(not cf:IsShown() and mk.result:GetText() == "Last: Confirmed", "confirm accept did not run")
 mk.confirm._scripts.OnClick(mk.confirm)
@@ -312,6 +313,7 @@ end
 M.PSS_SetOpt("uiSkin", "global", 1)
 check(dd.dark:IsShown() and not dd.blizz:IsShown(), "Dark drop-down not shown")
 check(cf.pssParts.dim:IsShown() and cf.pssParts.fill:IsShown(), "Dark confirm has no dimmed screen")
+check(not cf.pssParts.under:IsShown(), "Dark popup shows the black underlay")
 dd.dark._scripts.OnClick(dd.dark)
 local menu = _G.PSS_Menu
 check(menu and menu:IsShown(), "Dark drop-down did not open our menu")
@@ -400,6 +402,7 @@ check(kit.tabs[1].pssSide.plate._atlas == "common-button-tertiary-normal", "Mode
 check(kit.tabs[1].pssSide.lit:IsShown() and not kit.tabs[2].pssSide.lit:IsShown(), "Modern selected tab not brighter")
 -- popups: newer border, the accept button red, cancel dark
 check(cf.pssParts.modernArt and cf.pssParts.modernArt:IsShown() and not cf.pssParts.art:IsShown() and not cf.pssParts.dim:IsShown(), "Modern popup not in the newer dialog border")
+check(cf.pssParts.under:IsShown() and cf.pssParts.under._point and cf.pssParts.under._point[4] == -6, "Modern popup not solid under its border")
 check(cf.accept.pssParts.red.left:IsShown() and cf.cancel.pssParts.tertiary.texture:IsShown(), "Modern popup buttons not red accept and dark cancel")
 check(cf.accept.pssParts.red.left:GetWidth() == 13.5, "red button end not scaled to the height")
 check(dd.blizz:IsShown() and not dd.dark:IsShown(), "Modern drop-down is not Blizzard's")

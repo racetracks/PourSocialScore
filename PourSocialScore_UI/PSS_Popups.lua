@@ -83,6 +83,11 @@ local function Shell(name, w, h)
 	end
 	local fill = ns.Fill(f, POP_FILL, -6)
 	local edge = ns.PixelBorder(f, POP_EDGE)
+	-- Classic and Modern: solid black under the dialog art, inside its
+	-- border; both dialog backgrounds are see-through and the window behind
+	-- showed through the text (Dan, dev011_2)
+	local under = ns.Own(f:CreateTexture(nil, "BACKGROUND", nil, -8))
+	under:SetColorTexture(0, 0, 0, 1)
 	local dim = CreateFrame("Button", nil, f)
 	dim:SetAllPoints(UIParent)
 	dim:SetFrameLevel(math.max(0, f:GetFrameLevel() - 1))
@@ -90,12 +95,18 @@ local function Shell(name, w, h)
 	dim:SetScript("OnClick", function() f:Hide() end)
 	f.title = ns.NewText(f, 16, "GameFontNormalLarge")
 	f.title:SetPoint("TOP", f, "TOP", 0, -20)
-	f.pssParts = { fill = fill, edge = edge, art = art, modernArt = modernArt, dim = dim }
+	f.pssParts = { fill = fill, edge = edge, art = art, modernArt = modernArt, dim = dim, under = under }
 	ns.OnPaint(function(dark)
 		local modern = ns.IsModern() and modernArt ~= nil
 		local ours = dark or (not art and not modern)
 		fill:SetShown(ours)
 		edge:SetShown(ours)
+		under:SetShown(not ours)
+		-- inside the border: the classic box's insets, or the newer one's
+		local inset = modern and 6 or 11
+		under:ClearAllPoints()
+		under:SetPoint("TOPLEFT", f, "TOPLEFT", inset, -inset)
+		under:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -inset, inset)
 		dim:SetShown(dark)
 		if art then art:SetShown(not ours and not modern) end
 		if modernArt then modernArt:SetShown(modern) end
