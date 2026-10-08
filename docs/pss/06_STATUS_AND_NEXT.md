@@ -6,7 +6,7 @@ Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4
 - **Live release: 3.4.0.29** (full, the new PSS window; mirrored to `racetracks/Pour-Social-Score`). **Main: 3.4.1.36** (B2 merged, PR #124).
 - **Current project: core uplift** (`10_CORE_UPLIFT.md`, locked by Dan on 2026-10-08). It runs on three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
 - **Done:** N1 (3.4.1.32), N2 (3.4.1.33), plan B (3.4.1.34, docs only), B1 (3.4.1.35: PSS authoritative over Blizzard's ignore list, per-player tick, upgrade step 8), B2 (3.4.1.36: the right-click "PSS" header with Block Player / Block Guild).
-- **On its PR: N3, 3.4.1.37** (PR #PRNUM): the builder drops or converts surname-as-realm names, and the shipped lists are rebuilt (7634 to 7438 entries; 10 section 2.1 "Done in N3").
+- **On its PR: N3, 3.4.1.37** (PR #126): the builder drops or converts surname-as-realm names, and the shipped lists are rebuilt (7634 to 7438 entries; 10 section 2.1 "Done in N3").
 - **Next:** F1 (3.4.1.38: N40, N41, N42, N45, N46 to N48), then F2.
 - The closed projects: the PSS window (3.4.0, `09_PSS_UI_PROJECT.md`; its code map and lessons stay the reference for the window) and parity (3.3.1, `08`).
 

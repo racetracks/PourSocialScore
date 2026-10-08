@@ -177,7 +177,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | Plan B | 3.4.1.34 | B1 and B2 added to this plan (2.7, decisions 15 to 22); docs only | No | `check_rules.sh` | PR #122 |
 | B1 | 3.4.1.35 | PSS is authoritative over Blizzard's ignore list (2.7): the per-player Blizzard ignore tick, a new Blizzard ignore moves into PSS with its note, the existing Blizzard list is synced across, removal from either removes from both; upgrade step 8 (the global option to per-player ticks) | Yes | In game on Retail and Camelot: Blizzard Ignore, the tick in all three looks, removal both ways; the four real saves | Merged, PR #123 |
 | B2 | 3.4.1.36 | The right-click menu: a "PSS" header with "Block Player" and "Block Guild" (2.7) | Yes | In game on Retail and Camelot, unit and chat-name menus; the restriction CVars run | Merged, PR #124 |
-| N3 | 3.4.1.37 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | PR #PRNUM |
+| N3 | 3.4.1.37 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | PR #126 |
 | F1 | 3.4.1.38 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
 | F2 | 3.4.1.39 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |
 | U1 | 3.4.1.40 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
