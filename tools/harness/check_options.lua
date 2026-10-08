@@ -167,6 +167,29 @@ H.RunTimers()
 check(lastSaid():find("^Replaced: ") ~= nil and M.PSS_PlayerPosition("Exported-Realm1") > 0, "replace import: " .. lastSaid())
 M.PSS_IO.mode = "merge"
 check(M.PSS_PlayerCount() >= before + 1, "players lost in the import round trip")
+-- (3.4.0.15) imported options go through the setter: a default is not
+-- stored, a number is kept in range, a value not offered is refused, and
+-- the window hears OPTION_CHANGED
+do
+	local heard = {}
+	local id = M.Events.Register("OPTION_CHANGED", function(key) heard[key] = true end)
+	PourSocialScoreDB.frameStrata = 1
+	M.PSS_ApplyImport({ v = 1, options = {
+		frameStrata = 3,			-- the default
+		historyTotal = 999999,		-- over its max
+		floodFilter = 7,			-- not one of its choices
+		uiFont = "arialn",
+		defexpire = "x",			-- not a number
+	} }, "merge", { options = true })
+	check(rawget(PSS_OptionsDB, "frameStrata") == nil, "an imported default was stored")
+	check(M.PSS_Opt("historyTotal") == 20000, "an imported number not kept in range: " .. tostring(M.PSS_Opt("historyTotal")))
+	check(M.PSS_Opt("floodFilter") == 0, "an imported choice not offered was taken")
+	check(M.PSS_Opt("uiFont") == "arialn", "an imported font not taken")
+	check(heard.frameStrata and heard.uiFont, "import did not fire OPTION_CHANGED")
+	M.Events.Unregister("OPTION_CHANGED", id)
+	M.PSS_SetOpt("historyTotal", "global", 2000)
+	M.PSS_SetOpt("uiFont", "global", "")
+end
 check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
 M.ShowMsg = realShow
 

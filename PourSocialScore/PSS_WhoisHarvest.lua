@@ -158,6 +158,7 @@ local function sweepFor(g, restart)
 	if restart or not sw or sw.done then
 		sw = { name = g.name, queue = { {} }, sent = 0, capped = 0, gaveUp = 0, seen = 0, added = 0, moved = 0 }
 		if key then sweeps[key] = sw end
+		M.PSS_ScanAllNextStale()
 	end
 	return sw
 end
@@ -214,7 +215,10 @@ function M.PSS_HarvestAnswered(scan, numWhos, total)
 		for k = #list, 1, -1 do table.insert(sw.queue, 1, list[k]) end
 		parts = #list
 	end
-	if #sw.queue == 0 then sw.done = true end
+	if #sw.queue == 0 then
+		sw.done = true
+		M.PSS_ScanAllNextStale()
+	end
 	return parts
 end
 
@@ -239,15 +243,25 @@ local function targets()
 end
 
 -- The guild row the next Scan All click searches, guilds complete, guilds in all.
-function M.PSS_ScanAllNext()
+-- cached = true (the Scan tooltips): the last answer while no sweep and no
+-- guild changed, so a hover does not list and sort every guild again; the
+-- Scan All click always works it out.
+local nextCache
+function M.PSS_ScanAllNextStale() nextCache = nil end
+
+function M.PSS_ScanAllNext(cached)
+	if cached and nextCache then return nextCache[1], nextCache[2], nextCache[3] end
 	local list, done, nextG = targets(), 0, nil
 	for _, it in ipairs(list) do
 		local sw = sweeps[it.key]
 		if sw and sw.done then done = done + 1
 		elseif not nextG then nextG = it.g end
 	end
+	nextCache = { nextG, done, #list }
 	return nextG, done, #list
 end
+M.Events.Register("GUILDS_CHANGED", M.PSS_ScanAllNextStale)
+M.Events.Register("GUILD_REMOVED", M.PSS_ScanAllNextStale)
 
 -- One Scan All click (must run inside a click or key press).
 function M.PSS_ScanAll()
@@ -258,6 +272,7 @@ function M.PSS_ScanAll()
 		-- every guild swept: the next round starts over (players come and go)
 		sweepRound = sweepRound + 1
 		for _, it in ipairs(targets()) do sweeps[it.key] = nil end
+		M.PSS_ScanAllNextStale()
 		M.ShowMsg(("Scan All: all %d guilds swept (round %d). Starting over."):format(n, sweepRound))
 		g = M.PSS_ScanAllNext()
 		if not g then return false end

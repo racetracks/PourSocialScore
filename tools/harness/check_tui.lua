@@ -164,6 +164,14 @@ SlashCmdList["PSS"]("tui")
 check(win.pages[6]:IsShown() and M.PSS_UITab() == 6, "saved tab not reopened")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(PourSocialScoreDB.windowPoints.PSS_WindowTab == nil, "the first tab was saved")
+-- (3.4.0.15) Events is never the tab the window opens on (it would load
+-- Logging before any click): the tab before it stays saved
+win.tabs[6]._scripts.OnClick(win.tabs[6])
+win.tabs[4]._scripts.OnClick(win.tabs[4])
+check(M.PSS_UITab() == 6, "the Events tab was saved: " .. tostring(M.PSS_UITab()))
+PourSocialScoreDB.windowPoints.PSS_WindowTab = "events"
+check(M.PSS_UITab() == 1, "a saved Events tab was reopened")
+win.tabs[1]._scripts.OnClick(win.tabs[1])
 -- a tab with a builder is built on first open and redrawn when shown
 -- (the Import/Export tab's own builder, counted)
 local built, drawn = 0, 0

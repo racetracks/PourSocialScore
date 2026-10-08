@@ -1,8 +1,8 @@
 # Status and next step (2026-10-08)
 
 ## Where things stand
-- **Now (2026-10-08):** main = **3.4.0.13** (PR #104 merged; B7, all six tabs of the new window, merged as 3.4.0-dev012 in #103). 3.3.1 is the live full release.
-- **Build numbers** (`3.4.0.13`, Dan, 2026-10-08) merged as #104. **R1 (3.4.0.14) is on its PR.**
+- **Now (2026-10-08):** main = **3.4.0.14** (R1, PR #106 merged; B7, all six tabs of the new window, merged as 3.4.0-dev012 in #103). 3.3.1 is the live full release.
+- **Build numbers** (`3.4.0.13`, Dan, 2026-10-08) merged as #104; R1 (3.4.0.14) merged as #106. **R2 (3.4.0.15) is on its PR.**
 - **Code review** (scratch `docs/latest/code-review/01_REVIEW_AND_PLAN.md`, main at dev012): no high findings, 12 medium, about 20 low. It plans R1 to R3 before C1. **Dan answered its six decisions on 2026-10-08, all as recommended:** 1a secret message from a readable listed author still blocked and counted (02 10.1); 2a invite decline through the API only (02 10.3); 3a `RemoveMessagesByPredicate` OK (02 10.3); 4a R1 to R3 before C1; 5a core performance on a 3.4.1 line after 3.4.0; 6a cap stored guild members at **1500** per rule, with a migration (04 section 9).
 - Project files are the scratch repo (Dan, 2026-10-08): saves `SavedVariables/<version>/`, plans `docs/latest/`, zips `releases/` and `latest/`. There is no `/mnt/project-files`.
 
@@ -39,8 +39,8 @@ One window with the EllesmereUI port's layout, features and feel, drawn only wit
 | B6 | 3.4.0-dev011 to dev011_3 | Events tab: Time (custom range), Types and Source drop-downs, search, sorting, links, copy, Reset Block History; opened from every pie, View Events and the panes' histories; Libraries `PSS_EventsView.lua` (the Events view query deferred from A3); `check_events.lua`; popups in the window's own frame and background (dev011_2, _3) | Merged #102 |
 | B7 | 3.4.0-dev012 | Options tab (every option by section, search, the look and font) and Import/Export tab (parts, mode, Export, Import with Replace confirm); Libraries `PSS_OptionsView.lua`; `check_options.lua`; all six tabs built | Merged #103 |
 | Versions | 3.4.0.13 | Build numbers replace `-devNNN` and `_N` (`release.yml`, `check_toc.sh`, `check_rules_eui.sh`, every TOC); no addon change | Merged #104 |
-| R1 | 3.4.0.14 | Code review: secret values checked (target names through `M.PSS_UnitFullName`, channel args in CoreFilter, the link hook; a listed author's secret message blocked and counted, its text never kept), Escape on a popup or menu closes only that (`ns.EscapeCloses` / `ns.EscapeTaken`), Remove keeps the selected filter, no `SetItemRef` in combat, tooltip `IsForbidden`, guild invite declined through the API only; CI job `upgrades` runs `validate_all.sh`; `check_secrets.lua`; readme and docs | PR open |
-| R2 | next build | Code review: Logging stays unloaded on guild and member remove and with Events remembered; options import through `PSS_SetOpt`; the window releases its caches and requests a GC on close; no guild list resort per block | Planned (before C1, Dan 2026-10-08) |
+| R1 | 3.4.0.14 | Code review: secret values checked (target names through `M.PSS_UnitFullName`, channel args in CoreFilter, the link hook; a listed author's secret message blocked and counted, its text never kept), Escape on a popup or menu closes only that (`ns.EscapeCloses` / `ns.EscapeTaken`), Remove keeps the selected filter, no `SetItemRef` in combat, tooltip `IsForbidden`, guild invite declined through the API only; CI job `upgrades` runs `validate_all.sh`; `check_secrets.lua`; readme and docs | Merged #106 |
+| R2 | 3.4.0.15 | Code review: Logging stays unloaded on guild removal and on removing a never-blocked member (the tidy runs when Logging loads), and the window never reopens on Events; options import validated and saved through `PSS_SetOpt`; the Events view drops its lines when its tab hides or the window closes (`View:Release`, a page's `release`), the window requests a GC on close; the members list wiped on close; block events recount only the guild rows on screen (`V:CountsChanged` / `V:FreshCounts`; 194.6 to 16.7 KB garbage per redraw on Dan's 3.2.0-dev011 save); the Scan All tip cached (19.3 to 0.3 KB per hover). L12 (`memberCount` off the saved record) moved to the 3.4.1 member cap migration (a save layout change) | PR open |
 | R3 | next build | Code review: new window tidy (`SetAlpha` fades, events registered while shown, UI logic moved to Libraries, one list mixin); look-compare identical | Planned (before C1, Dan 2026-10-08) |
 | C1 | next build | Player Search (button beside Add Player, results picker like Guild Search's, add anyway), add your target when the box is empty, Prune with a confirm | Planned |
 | C2 | next build | Right-click menus on rows (Menu API in Classic and Modern, our list in Dark) | Planned |
@@ -48,7 +48,7 @@ One window with the EllesmereUI port's layout, features and feel, drawn only wit
 | D2 | next build | The new files move into `PourSocialScore_GUI`; `PourSocialScore_UI`, `PourSocialScore_EllesmereUI` and the bridge deleted; `euiIntegration` pruned | Planned |
 | D3 | next build | Polish from testing, readme, docs | Planned |
 | Release | 3.4.0 | When Dan says it is done | |
-| Next line | 3.4.1.1 on (Dan, 2026-10-08) | Core performance from the review: event-driven GC, `loadWhenQuiet` on events, capture events only when needed, stored guild members capped at 1500 per rule with a migration, core placement moves | Planned |
+| Next line | 3.4.1.1 on (Dan, 2026-10-08) | Core performance from the review: event-driven GC, `loadWhenQuiet` on events, capture events only when needed, stored guild members capped at 1500 per rule with a migration (and `memberCount` no longer saved, review L12), core placement moves | Planned |
 
 Fixes to 3.3.1 meanwhile would be `3.3.2.1`. From 3.4.0.13 every build is `X.Y.Z.B` (the build number), not `-devNNN`.
 

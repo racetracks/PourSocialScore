@@ -2,7 +2,8 @@
 -- save that has already been upgraded (a login after the split):
 --   PSS_PHASE=1 : Logging is not loaded at login. A block is counted at once
 --                 (PSS_CountsDB) and its line waits in the outbox; removing
---                 a player with nothing blocked leaves it unloaded. Logout.
+--                 a player with nothing blocked, a guild member with
+--                 nothing blocked, or a guild leaves it unloaded. Logout.
 --   PSS_PHASE=2 : still not loaded at login, the line still waits. Opening
 --                 the history loads Logging and the waiting line joins the
 --                 log once; a removal loads it too.
@@ -42,6 +43,15 @@ if phase == 1 then
 	M.PSS_RemovePlayerAt(pos)
 	check(M.PSS_PlayerPosition("Quiet-Realm") == 0, "Quiet-Realm not removed")
 	check(not loaded("PourSocialScore_Logging"), "removing a player with no blocks loaded Logging")
+	-- (3.4.0.15) a guild member with nothing blocked, then the guild: neither
+	-- removal loads Logging (the guild's lines are tidied when it loads)
+	M.PSS_AddGuild("Ondemand Guild")
+	check(M.PSS_UpdateGuildMember("Ondemand Guild", "Member-Realm") ~= nil, "member not captured")
+	M.PSS_UpdateGuildMember("Ondemand Guild", "Other-Realm")
+	check(M.PSS_RemoveGuildMember("Ondemand Guild", "Member-Realm"), "member not removed")
+	check(not loaded("PourSocialScore_Logging"), "removing a guild member with no blocks loaded Logging")
+	M.PSS_RemoveGuild("Ondemand Guild")
+	check(not loaded("PourSocialScore_Logging"), "removing a guild loaded Logging")
 elseif phase == 2 then
 	check(History.Waiting() == 1, "waiting line lost over the logout")
 	local n = 0

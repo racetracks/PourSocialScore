@@ -1132,6 +1132,15 @@ function M.PSS_KeepBlockedOnBuiltIn(name, note)
 	return true
 end
 
+-- Could member m own block history lines? A line is only ever added with a
+-- count, so a member never counted has none (older saves: the old fields).
+local function memberMayHaveLines(m)
+	if type(m) ~= "table" then return false end
+	local c = m.blockCounts
+	if type(c) == "table" and (tonumber(c.total) or 0) > 0 then return true end
+	return hasLegacyBlockData(m)
+end
+
 function M.PSS_RemoveGuildMember(guildName, playerName, sourceGuildKey, storedKey)
 	ensureDB()
 	local g = (sourceGuildKey and PourSocialScoreDB.guildData[sourceGuildKey])
@@ -1148,7 +1157,9 @@ function M.PSS_RemoveGuildMember(guildName, playerName, sourceGuildKey, storedKe
 			removed = true
 		end
 	end
+	local mayHaveLines = false
 	if storedKey ~= nil and g.members[storedKey] then
+		mayHaveLines = memberMayHaveLines(g.members[storedKey])
 		g.members[storedKey] = nil
 		removed = true
 	else
@@ -1159,16 +1170,24 @@ function M.PSS_RemoveGuildMember(guildName, playerName, sourceGuildKey, storedKe
 				doomed[#doomed + 1] = k
 			end
 		end
-		for _, k in ipairs(doomed) do g.members[k] = nil; removed = true end
+		for _, k in ipairs(doomed) do
+			mayHaveLines = mayHaveLines or memberMayHaveLines(g.members[k])
+			g.members[k] = nil
+			removed = true
+		end
 	end
 	if removed then
 		g.memberCount = 0
 		for _ in pairs(g.members) do g.memberCount = g.memberCount + 1 end
 		markMemberIndexDirty()
-		-- in no guild rule now: their block lines go too (counts went with the record)
+		-- in no guild rule now: their block lines go too (counts went with the
+		-- record). Never counted: no lines, and the block history (Logging)
+		-- is not loaded for it.
 		if rck and not lookupGuildMemberCanon(rck) then
 			local owner = "g:" .. rck
-			History.Clear(function(h) return h.o == owner end)
+			if History.Loaded() or mayHaveLines then
+				History.Clear(function(h) return h.o == owner end)
+			end
 			History.ForgetRecent(owner)
 		end
 	end
@@ -2277,8 +2296,9 @@ function M.PSS_RemoveGuild(guildNameOrKey)
 		end
 	end
 
-	-- block lines of members who are in no guild rule now go with it
-	if M.PSS_TidyBlockHistory then M.PSS_TidyBlockHistory() end
+	-- block lines of members who are in no guild rule now go with it; not
+	-- loaded yet: the tidy runs when PourSocialScore_Logging loads
+	if M.PSS_TidyBlockHistory and History.Loaded() then M.PSS_TidyBlockHistory() end
 
 	M.Events.Fire("GUILDS_CHANGED")
 	M.Events.Fire("PLAYERS_CHANGED", true)

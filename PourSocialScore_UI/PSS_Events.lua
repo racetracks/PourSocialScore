@@ -228,6 +228,14 @@ ns.TabBuilders.events = function(pg)
 		ui.search:SetText("")
 	end
 	pg.view, pg.list, pg.ui = view, list, ui
+	-- hidden (another tab: its own OnHide; the window closed: pg.release,
+	-- called by the window): the lines read are dropped, and read again
+	-- when the tab shows
+	pg.release = function()
+		view:Release()
+		list:SetCount(0)
+	end
+	pg:HookScript("OnHide", pg.release)
 	return function()
 		Refresh(ui.toTop)
 		ui.toTop = nil

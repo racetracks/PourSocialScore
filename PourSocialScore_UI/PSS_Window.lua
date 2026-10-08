@@ -458,7 +458,15 @@ local function Build()
 		-- an unknown event (an older client) is not an error worth showing
 		pcall(self.RegisterEvent, self, "GLOBAL_MOUSE_UP")
 	end)
-	win:HookScript("OnHide", function(self) self:UnregisterEvent("GLOBAL_MOUSE_UP") end)
+	-- closed: the tabs drop what they read (a page's release), and the
+	-- memory is given back at the next quiet moment
+	win:HookScript("OnHide", function(self)
+		self:UnregisterEvent("GLOBAL_MOUSE_UP")
+		for _, page in ipairs(self.pages) do
+			if page.release then page.release() end
+		end
+		if M.PSS_RequestGC then M.PSS_RequestGC("window closed") end
+	end)
 	win:SetScript("OnEvent", OnMouseButton)
 	SelectTab(M.PSS_UITab())
 	ns.NavRecord()

@@ -49,7 +49,7 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; 03), `Gethe/wow-u
 ## 5. Crucial context
 - Three TOCs per folder; one combined TOC broke Camelot in 3.0.0-dev6.
 - **Measured hot spots:** `PSS_GetGuildBlockCounts`, the shipped member walk and `PSS_GetMemberBlockCounts` make about 200 to 350 KB of garbage per full pass on Dan's save. An estimate of 6 to 8 KB once measured 22 KB.
-- **Known gaps:** removing a guild member still loads Logging. Full parity was not reached; the project closed at 3.3.1 (08).
+- **Known gaps:** removing a guild member who was blocked loads Logging (to clear their lines); removing one never blocked, or a guild, does not (3.4.0.15). Full parity was not reached; the project closed at 3.3.1 (08).
 - **Known deviations from the 2026-10-07 rules** (recorded only; Dan said not to change code for them): `PSS_Perf.lua` still runs a 10-minute idle GC cycle and a heap-growth trigger (the rule is now event-driven, 02 section 4); the dev004 totals pane shows for everyone without an opt-in; `PSS_Pie.lua` and a UIKit helper use OnUpdate while hovered or dragging. Raise them when the related code is next touched.
 
 ## 6. Plans and status

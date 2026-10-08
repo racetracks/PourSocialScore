@@ -1,6 +1,16 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.15 - Fixes from the code review: memory and Logging on demand
+
+- Removing a guild, or a guild member who was never blocked, no longer loads the block history (PourSocialScore_Logging). A removed guild's lines are tidied the next time the history loads.
+- New window: it no longer opens on the Events tab; it opens on the tab you had before Events, so opening the window does not load the block history.
+- New window: closing it (or leaving the Events tab) drops the block history lines it had read, and closing it asks for a memory clean-up at the next quiet moment. On a large save this gives back about 32 KB.
+- New window: while the Guild Ignore List shows, each blocked line now updates only the rows on screen instead of sorting every guild again (on a large save about 17 KB of garbage and 0.2 ms each, was about 195 KB and 6 ms). The order and the group totals catch up on your next click.
+- New window: the guild members list is let go when you leave the members view.
+- The Scan All tooltip no longer lists and sorts every guild on each hover (about 0.3 KB, was about 19 KB).
+- Importing options now saves them the same way the Options tab does: default values are not stored, numbers are kept in range, values the option does not offer are skipped, the open window repaints at once, and an option that needs a reload asks for one.
+
 => 3.4.0.14 - Fixes from the code review: hidden values, Escape, small bugs
 
 - Retail hides some names and chat details from addons in instances and encounters (secret values). Pour Social Score now checks them everywhere before use: your target's name (/pss, adding with the box empty, the unit menu toggle, /pssguild test) and a channel's name and number (the [chname] and [channel] filter tags). A hidden value is skipped quietly: nothing is added, nothing is blocked by it, and no error note.
