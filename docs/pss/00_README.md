@@ -29,7 +29,7 @@ Last state (pack written): main was **3.3.0-dev004**. Since then: 3.3.1 released
 | 06_STATUS_AND_NEXT.md | Merged and open work, the parity project, open issues, items waiting on Dan, the next step |
 | 07_HARNESS.md | PSS harness commands and checks |
 | 08_PARITY_PROJECT.md | The closed 3.3.0 parity project (shipped as 3.3.1): objective, decisions, stage table |
-| 09_PSS_UI_PROJECT.md | The current project (3.4.0): the new PSS window, decisions, three looks, stages, code map, lessons; plan on scratch `docs/latest/ui uplift/` |
+| 09_PSS_UI_PROJECT.md | The current project (3.4.0): the new PSS window, decisions, three looks, stages, code map, lessons; plan on scratch `docs/latest/ui uplift/`. The window's rules are `CLAUDE.md`'s Interface section |
 | PROJECT_INSTRUCTIONS.md | Paste-ready project instructions |
 | savedvariables/<version>/ | Dan's real saves: 2.0.44, 3.0.0, 3.2.0-dev011 (on scratch `SavedVariables/<version>/`) |
 | ci/ | Copies of the live release.yml, rules.yml and check scripts from main |
