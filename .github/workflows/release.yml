@@ -6,6 +6,13 @@
 # Every build is X.Y.Z.B (B = build number) and is published as a pre-release;
 # only a plain X.Y.Z is a full release. Older suffixed versions (3.4.0-dev012)
 # stay pre-releases too.
+# A full release's notes cover every build since the previous full release
+# (tools/collect_notes.sh), summarized for players by Claude
+# (tools/summarize_notes.sh; secret ANTHROPIC_API_KEY, optional: without it
+# the notes are the plain list of changes). Job "mirror" then publishes the
+# full release, with the same zip and notes, on $MIRROR_REPO (secret
+# MIRROR_TOKEN: contents read and write on that repo). Pre-releases are not
+# mirrored.
 name: Release
 
 on:
@@ -16,9 +23,14 @@ on:
 permissions:
   contents: write
 
+env:
+  MIRROR_REPO: racetracks/Pour-Social-Score   # where full releases are mirrored
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,6 +49,8 @@ jobs:
 
       - name: Build zip and notes
         if: steps.v.outputs.exists == 'false'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           ver=${{ steps.v.outputs.version }}
           mkdir -p build
@@ -48,15 +62,24 @@ jobs:
           {
             echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\` so you get \`AddOns/PourSocialScore/PourSocialScore.toc\` (and any \`AddOns/PourSocialScore_*\` folders next to it). Retail (Midnight) and Camelot are supported."
             echo
-            echo "### Changes"
-            awk -v v="$ver" '
-              index($0, "=> " v " ") == 1 { on = 1; next }
-              on && /^=> / { exit }
-              on { print }
-            ' history.txt
+            case "$ver" in
+              *-*|*.*.*.*)
+                echo "### Changes"
+                awk -v v="$ver" '
+                  index($0, "=> " v " ") == 1 { on = 1; next }
+                  on && /^=> / { exit }
+                  on { print }
+                ' history.txt
+                ;;
+              *)
+                sh tools/collect_notes.sh "$ver" > sections.txt
+                sh tools/summarize_notes.sh "$ver" sections.txt
+                ;;
+            esac
             echo
             echo "Full changelog: history.txt"
           } > notes.md
+          cat notes.md
 
       - name: Publish release
         if: steps.v.outputs.exists == 'false'
@@ -76,3 +99,46 @@ jobs:
           while read -r tag; do gh release edit "$tag" --prerelease; done
         env:
           GH_TOKEN: ${{ github.token }}
+
+  mirror:
+    needs: release
+    if: ${{ needs.release.outputs.version != '' && !contains(needs.release.outputs.version, '-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the version and the mirror
+        id: m
+        run: |
+          case "$VER" in
+            *-*|*.*.*.*) echo "skip=true" >> "$GITHUB_OUTPUT"; echo "$VER is a pre-release: not mirrored"; exit 0 ;;
+          esac
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Add a MIRROR_TOKEN secret with contents read and write on $MIRROR_REPO"
+            exit 1
+          fi
+          if gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          VER: ${{ needs.release.outputs.version }}
+          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+
+      - name: Fetch the zip and notes
+        if: steps.m.outputs.skip == 'false' && steps.m.outputs.exists == 'false'
+        run: |
+          gh release download "v$VER" --repo "$GITHUB_REPOSITORY" --pattern "PourSocialScore-$VER.zip"
+          gh release view "v$VER" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
+        env:
+          VER: ${{ needs.release.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Publish on the mirror
+        if: steps.m.outputs.skip == 'false' && steps.m.outputs.exists == 'false'
+        run: |
+          gh release create "v$VER" "PourSocialScore-$VER.zip" --repo "$MIRROR_REPO" \
+            --title "Pour Social Score $VER" --notes-file notes.md --latest
+        env:
+          VER: ${{ needs.release.outputs.version }}
+          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}

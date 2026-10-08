@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.20 - Mandatory baseline, version tools, release notes and mirror
+
+- Nothing changes in game.
+- Full releases (such as 3.4.0) now come with release notes that sum up every test build since the previous release, and are also published on racetracks/Pour-Social-Score.
+- Project tooling: one command sets the next version in every TOC with its history section, another builds and hosts the test zip, and the rules check now fails if history.txt does not start with the current version.
+- Project docs: the shared rules are mandatory; the few places Pour Social Score differs are listed in one table with the author's OK.
+
 => 3.4.0.19 - New PSS window: interface rules
 
 - New window (/pss tui): the looks stay listed Modern (the default) first, then Classic and Dark.

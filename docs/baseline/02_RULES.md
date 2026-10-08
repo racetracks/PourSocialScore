@@ -1,6 +1,8 @@
 # Rules for every addon
 
-These are every rule the author has applied, written so they fit any addon. "Core" means the always-loaded addon folder; "library folder" means the load-on-demand folder that holds shared logic. An addon-specific pack may add rules; it never needs to repeat these.
+These are every rule the author has applied, written so they fit any addon. "Core" means the always-loaded addon folder; "library folder" means the load-on-demand folder that holds shared logic.
+
+**These rules are mandatory.** An addon-specific pack may add rules and never needs to repeat these. It may override one only by listing it in its **Overrides table** (rule, what applies instead, the author's OK with its date); a known breach waiting for a fix is listed there too, with the version line that fixes it. A difference that is not in the table is a bug to fix, not a local rule.
 
 ## A. Code
 1. **Lua 5.1 only.** No goto/labels, table.unpack, table.pack, bit32, utf8, _ENV, rawlen or 4-arg load.
@@ -14,7 +16,7 @@ These are every rule the author has applied, written so they fit any addon. "Cor
 9. **No UI code in backend logic.** Core owns a small event bus (subscribe, unsubscribe, fire) on the root table. When data changes, core fires a named event saying what changed; it never calls a window. UIs subscribe while they are open, unsubscribe on close, redraw from the event, and write saved data only through core setters. A check in the rules script (06) fails the build if a core logic file creates frames, tooltips, popups or calls UI code.
 10. **No libraries** (Ace, LibStub) unless the author agrees. WoW API only.
 11. **No test-only globals** in addon code; the harness reaches the addon through its namespace and frames.
-12. Enforce A1 to A4 (and A5's no-new-globals) with `sh tools/check_rules.sh`, locally and as the "Rules" CI check.
+12. Enforce A1 to A4 (and A5's no-new-globals) with `sh tools/check_rules.sh`, locally and as the "Rules" CI check. It also fails a version that is not `X.Y.Z` or `X.Y.Z.B`, TOCs that disagree, and a history.txt whose top section is another version (F).
 
 ## B. TOCs
 1. Three TOCs per addon folder when supporting several clients (01_PURPOSE_AND_LANGUAGES.md).
@@ -60,8 +62,8 @@ These are every rule the author has applied, written so they fit any addon. "Cor
 
 ## E. Process
 1. Branch from the latest `origin/main`. **One step per PR per repo, based on main.** Avoid stacked PRs (09_RELEASE_PIPELINE.md). Features are designed, staged and delivered in small validated PRs (10_FEATURE_DESIGN_AND_DELIVERY.md).
-2. Every change: bump the version in every TOC; add a history.txt section at the top (`=> X.Y.Z - Title`, plain bullets); update the readme when features change.
-3. Every step ships an installable test zip, hosted with a link, and an exact list of what to check in game.
+2. Every change: bump the version in every TOC and add a history.txt section at the top (`=> X.Y.Z.B - Title`, plain bullets), both with `sh tools/bump_version.sh build "Title"`; update the readme when features change.
+3. Every step ships an installable test zip, hosted with a link (`sh tools/host_build.sh`), and an exact list of what to check in game.
 4. Before pushing: the rules check, the harness against the author's real saves, and the look-compare for any window that may change (06_HARNESS.md).
 5. **The author merges.** "Branch, PR and release" is approval to merge and verify the release. Claude cannot delete branches; the author does.
 6. When `gh pr create` is blocked (GraphQL), create PRs through REST: `gh api repos/<owner>/<repo>/pulls -f title=... -f head=... -f base=main -f body=...`.
@@ -70,11 +72,11 @@ These are every rule the author has applied, written so they fit any addon. "Cor
 
 ## F. Versions and releases (09_RELEASE_PIPELINE.md)
 1. **Releases are defined by feature.** A feature, or an agreed set of features, owns one version line `X.Y.0`. Its design names the line before work starts (10_FEATURE_DESIGN_AND_DELIVERY.md).
-2. **Every build on that line before the feature is complete is `X.Y.0-devNNN`**: three digits, starting at dev001, incrementing, never reused. One merged PR = one devNNN. Example: `1.4.0-dev001` (first stage) to `1.4.0-dev006` (last stage).
-3. **Every pre-release must carry the suffix, so the pipeline tags it as a GitHub pre-release.** The release workflow marks any version containing `-` as a pre-release and keeps older suffixed releases marked as pre-releases. A build without a suffix is published as a full release, so never drop the suffix early.
-4. **Bugfixes** during a line ship as the next devNNN on that line: bump the TOCs, add a history section, build the zip, host it and give the author the link. After a production release, fixes start `X.Y.1-dev001` and ship as `X.Y.1`.
-5. **The production release is the completed feature.** Only when the author confirms the feature is done does a PR set the plain `X.Y.0` in every TOC, with a history section summing up the feature; merging it publishes the full release.
-6. The next feature starts the next line (`X.Y+1.0-dev001`), or `X+1.0.0-dev001` for a breaking change the author agrees to.
+2. **Every build is `X.Y.Z.B`**: `B` is the build number on the line. Every build that gets a test zip, a stage or a fix, merged or not, takes the next number and none is reused; a new line starts at build 1. Example: `1.4.0.1` (first stage), `1.4.0.2` (a fix to it), `1.4.0.3` (the next stage). Every TOC, the history section, the tag, the release and the zip name carry it. `sh tools/bump_version.sh build "Title"` works out the next number; the rules check fails any other shape.
+3. **Every build is published as a pre-release.** The release workflow marks any four-part version (and any older `-` suffixed one) as a pre-release and keeps older builds marked so. A plain `X.Y.Z` is published as a full release, so never set it early.
+4. **Fixes** during a line are the next build: bump the TOCs, add a history section, build the zip, host it and give the author the link. After a full release, fixes start the next line at build 1 (`X.Y.1.1`) and ship as `X.Y.1`.
+5. **The full release is the completed feature.** Only when the author confirms the feature is done does a PR set the plain `X.Y.0` in every TOC (`sh tools/bump_version.sh release "Title"`), with a history section summing up the feature; merging it publishes the full release, with notes covering every build since the last full release, summarized for players (09 section 6), and mirrors it where a mirror repo is set.
+6. The next feature starts the next line (`X.Y+1.0.1`), or `X+1.0.0.1` for a breaking change the author agrees to.
 
 ## G. Separation of logic and UI
 1. **No application or service logic in a UI folder.** A UI folder only draws and calls core setters. Counting, queries, totals, event lists, import parsing and scans live in core or the library folder.

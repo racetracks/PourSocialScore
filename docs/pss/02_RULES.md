@@ -1,6 +1,6 @@
 # PourSocialScore: project rules (only what PSS adds to the baseline)
 
-The baseline's 02_RULES applies in full. This file holds what is specific to PSS: the concrete values, Dan's PSS decisions, and where PSS overrides the baseline. Dates are when Dan set them. If the claude.ai project instructions differ, they win.
+**The baseline's rules are mandatory** (Dan, 2026-10-08). This file holds what is specific to PSS: the concrete values and Dan's PSS decisions. PSS overrides a baseline rule **only** where section 12 (the Overrides table) lists it; any other difference is a bug to fix. Dates are when Dan set them.
 
 ## 1. Code and style
 1. Core and native folders indent with tabs. **`PourSocialScore_EllesmereUI` uses EllesmereUI's 4-space style**, enforced by `tools/check_rules_eui.sh` (which also checks that folder's Version equals core's).
@@ -46,7 +46,7 @@ So core = the chat filtering engine plus the loader, with what filtering needs (
 - **G10 (15:37Z):** `PourSocialScore_EllesmereUI` is read only during parity work; shared functions serving both UIs are performance-optimized and measured. **Exception (issue #77, option b, 16:09Z):** logic found in the EUI folder moves to Libraries and the EUI file calls it, nothing visible changing (`eui_compare.sh` identical). Done in 3.3.0-dev001.
 
 ## 8. Versions on PSS
-- **Versions are `X.Y.Z.B` (Dan, 2026-10-08):** `B` is the build number on the line. Every build that gets a test zip, a stage or a fix, merged or not, takes the next one and none is reused; the 3.4.0 line carries on from dev012 at `3.4.0.13`, and a new line starts at build 1 (`3.4.1.1`, `3.5.0.1`). Every TOC, the history section and the zip name carry it. Every build is published as a pre-release; a plain `X.Y.Z` is a full release, set only when Dan says it is a release. No `-dev` and no `_N` from 3.4.0.13 on; older names stay as they were. This overrides the baseline's `X.Y.0-devNNN` (02 F, 09): read "devNNN" there as "the next build". `check_toc.sh` accepts only `X.Y.Z` and `X.Y.Z.B`; `release.yml` publishes any four-part version as a pre-release.
+- **Versions are `X.Y.Z.B` (Dan, 2026-10-08):** `B` is the build number on the line. Every build that gets a test zip, a stage or a fix, merged or not, takes the next one and none is reused; the 3.4.0 line carries on from dev012 at `3.4.0.13`, and a new line starts at build 1 (`3.4.1.1`, `3.5.0.1`). Every TOC, the history section and the zip name carry it. Every build is published as a pre-release; a plain `X.Y.Z` is a full release, set only when Dan says it is a release. No `-dev` and no `_N` from 3.4.0.13 on; older names stay as they were. The baseline uses the same scheme from v6 (02 F, 09; Dan, 2026-10-08), so this is no longer an override. `sh tools/bump_version.sh build "Title"` sets the next build in every TOC and adds the history section (`release` for a full release, `line X.Y.Z` for a new line). `check_toc.sh` accepts only `X.Y.Z` and `X.Y.Z.B`, and `check_rules.sh` fails a history.txt whose top section is not the TOC version; `release.yml` publishes any four-part version as a pre-release.
 - History (before 3.4.0.13): the 3.3.0 line is the parity feature (Dan chose it on 2026-10-05). Its stages are 3.3.0-devNNN pre-releases; plain `3.3.0` only when Dan says the parity work is complete.
 - Older builds used `-devN` (3.2.0-dev3). Do not copy that; three digits from 3.3.0 on.
 - A fix line is the next `X.Y.Z` at build 1 (a fix for 3.3.1 is `3.3.2.1`); ask Dan if a fix line is needed.
@@ -55,7 +55,7 @@ So core = the chat filtering engine plus the loader, with what filtering needs (
 ## 9. Hosting paths on scratch (changed 2026-10-08)
 **Scratch is the project files (Dan, 2026-10-08):** saves, plans, docs, zips and summaries all live there; there is no `/mnt/project-files`. Where a pack says "project files", read scratch.
 Scratch is **`racetracks/Pour-Social-Score_Scratch`**; its rules and procedures are the scratch pack (`docs/scratch/`, rules in 05). The old `racetracks/scratch` and its paths (`PourSocialScore/test-builds/`, `pss-builds/`, `pss-projects/`, `pss-issues/`, `latest/`, `handover-packs/`) are no longer used; links already given there stay valid.
-- Test zips: `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`; the same commit replaces the zip in `latest/` with it.
+- Test zips: `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`; the same commit replaces the zip in `latest/` with it and updates the index rows. `sh tools/host_build.sh <scratch checkout>` does all of it from HEAD (`--no-commit` stages it so docs can join the same commit).
 - Docs: the newest markdown in `docs/latest/<project>/` (current plan `docs/latest/ui uplift/`; these docs `docs/latest/pss-docs/`). Always read it first; refresh it whenever a plan or these docs change. Each docs release is zipped in the root of `docs/` (`<name>-<date>-vN.zip`); a project or feature release keeps a history folder `docs/<project>/`. Issue notes are docs too.
 - Saves: `SavedVariables/<version>/`, with a line in `SavedVariables/README.md`.
 - Packs: zipped in `docs/` (this pack is `pss-handover-<date>-vN`), listed in `docs/README.md`.
@@ -82,3 +82,23 @@ PSS is a chat filter: on Retail 12.x its inputs are the values most likely to be
 5. PSS creates no secure frames and calls no protected functions. The decline calls (`DeclineGroup`, `DeclineGuild` / `C_GuildInfo.DeclineGuild`, `CancelDuel`) run from their invite events and stay feature-detected; `C_FriendList.SendWho` runs only straight from a click or keybind (it needs a hardware event). Keep it that way; a feature that would need a secure frame or a protected call is a design question for Dan.
 6. **In-game checks for any change on a chat, unit or hook path** include a run with `/console addonChatRestrictionsForced 1` and `/console addonCombatRestrictionsForced 1`: no Lua errors, no blocked-action message, and lines that cannot be read pass through unfiltered.
 
+## 12. Overrides of the baseline (Dan, 2026-10-08)
+The baseline's rules are mandatory. These are the only places PSS differs, each with Dan's OK; a breach waiting for a fix is listed with the line that fixes it. Add a row (with Dan's OK and the date) before shipping anything else that differs; a difference not listed here is a bug.
+
+### Approved overrides
+| Baseline rule | PSS instead | Dan's OK |
+| --- | --- | --- |
+| A10 No libraries | LibSharedMedia fonts are **read** for `uiFont`, only when another addon has loaded it; PSS ships no library and never creates `LibStub` (09 decision 8) | 2026-10-07 |
+| C2 No behaviour change without opt-in | The new window replaces both old windows for everyone at the cutover (D1, D2), in the Modern look by default (09 decisions 4 to 6) | 2026-10-07, Modern default 2026-10-08 |
+| J4 Avoid calling Blizzard Lua that stores state | Newly listed people's lines are purged from the chat frames with `RemoveMessagesByPredicate` (10.3) | 2026-10-08 (code review decision 3) |
+| J2 / J4 Never touch Blizzard state | The guild invite is declined through the API (`DeclineGuild` / `C_GuildInfo.DeclineGuild`) plus `StaticPopup_Hide("GUILD_INVITE")` (10.3) | 2026-10-08 (code review decision 2) |
+
+Blizzard hooks approved within the J rules (post-hooks, no override): `hooksecurefunc(ChatFrameUtil, "InsertLink")` on Retail 12.x (Dan, 2026-10-08), and the rest of 10.3.
+
+### Known breaches, with their fix
+| Baseline rule | Where | Fixed by |
+| --- | --- | --- |
+| C15 GC only on request, event-driven | `PSS_Perf.lua`: a 10-minute idle cycle (section 4) | The 3.4.1 line (code review decision 5, Dan, 2026-10-08) |
+| C2 No behaviour change without opt-in | The old window's totals pane (3.3.0-dev004) shows for everyone | Removed with the old window at D2 (3.4.0) |
+| C3 No OnUpdate polling | Old window: `PSS_Pie.lua` while hovered, a UIKit helper while dragging | Removed with the old window at D2 (3.4.0) |
+| C3 No OnUpdate polling | New window: `PourSocialScore_UI/PSS_Pie.lua` runs OnUpdate only while the mouse is over a pie (the hovered slice follows the cursor) | Dan to decide: approve as an override, or replace before 3.4.0 (D3) |

@@ -4,12 +4,12 @@ You are working on <Addon>, <Author>'s World of Warcraft addon: <one-line purpos
 
 Repos: <owner>/<addon repo> (the addon, private) and <hosting repo>. Read-only references: <suite repos, documented API only, copy nothing>; Gethe/wow-ui-source.
 
-Read the WoW addon baseline pack (README, 02_RULES, 07_WORKING_WITH_THE_AUTHOR, 10_FEATURE_DESIGN_AND_DELIVERY) and the addon pack before the first step. Key rules:
+Read the WoW addon baseline pack (README, 02_RULES, 07_WORKING_WITH_THE_AUTHOR, 10_FEATURE_DESIGN_AND_DELIVERY) and the addon pack before the first step. The baseline's rules are mandatory; the addon pack overrides one only in its Overrides table. Key rules:
 - Lua 5.1, ASCII only, tabs, match the surrounding code, one namespace table, no UI code in core logic.
 - No application or service logic in any UI folder. Minimal functions in the always-loaded core (the always-on engine and the launchpad); anything not regularly active goes in the load-on-demand library folder, with a measured resident cost.
 - Front ends are independent: a UI never reads another UI's folder; UI resources both need live in the library folder. One config table, assets in each UI's own folder.
 - One step per PR, based on main. Every change bumps all TOCs, adds a history.txt section and ships a test zip.
-- Non-production versions are X.Y.Z-devNNN (three digits, incrementing, never reused) and publish as GitHub pre-releases. Only production (the completed feature, when the author says so) has no suffix. Bugfixes are the next devNNN, zipped and hosted like any dev build.
+- Every build is X.Y.Z.B (B = the build number on the line: every test zip, stage or fix takes the next one, never reused; a new line starts at 1) and publishes as a GitHub pre-release. Only the completed feature, when the author says so, is a plain X.Y.Z full release, with notes covering every build since the last one. `sh tools/bump_version.sh build|release "Title"` (or `line X.Y.Z`) sets it; `sh tools/host_build.sh <hosting checkout>` hosts the test zip; the rules check rejects any other shape.
 - Host test zips, handovers and saves as the hosting pack describes; always reply with links.
 - Before pushing: the rules check, the harness against the author's real saves, the look-compare for any window that changes.
 - SavedVariables must not grow; layout changes need a validated migration and the author's OK first.

@@ -1,11 +1,11 @@
 # Release: what PSS does on top of the baseline pipeline
 
-The pipeline is the baseline's (baseline 09). Live copies of PSS's files are in `ci/`. PSS-specific details:
+The pipeline is the baseline's (baseline 09). The live files are `.github/workflows/release.yml`, `.github/workflows/rules.yml` and `tools/`. PSS-specific details:
 
 ## Names and paths
 - Main TOC (version source): `PourSocialScore/PourSocialScore.toc`. Zip: `PourSocialScore-<version>.zip` holding every `PourSocialScore*` folder (eight from 3.4.0-dev001 with `PourSocialScore_UI`), readme.txt and history.txt copied into the core folder.
 - Release title: `Pour Social Score <version>`. Tags `v<version>`.
-- history.txt opens with "POUR SOCIAL SCORE - VERSION HISTORY" and "(newest first)"; a release section ends with the bullet "- Version X.Y.Z.".
+- history.txt opens with "POUR SOCIAL SCORE - VERSION HISTORY" and "(newest first)"; each section is `=> X.Y.Z.B - Title`, a blank line, then plain bullets (`tools/bump_version.sh` writes it).
 
 ## CI jobs (rules.yml)
 - `check`: `sh tools/check_rules.sh` (Lua 5.1 syntax, ASCII, tabs, layers) plus `tools/check_rules_eui.sh` (the EUI folder's 4-space style and Version = core's).
@@ -24,6 +24,15 @@ The pipeline is the baseline's (baseline 09). Live copies of PSS's files are in 
 | 3.4.0-dev001 to dev012 | Pre-releases | The new PSS window (09) |
 | 3.4.0.13 on | Pre-releases | Build numbers replace `-devNNN` and `_N` (Dan, 2026-10-08) |
 | 3.3.0-dev004 | **Not published** | PR #82 merged 2026-10-05 20:45Z, but the Release and Rules runs on main (5c39f62) were **cancelled**, so no release or tag exists. Fix: run the Release workflow by hand (`workflow_dispatch`) on main while 3.3.0-dev004 is still the version, or let the next stage (dev005) publish and leave dev004 as test-zip only. **Dan chose skip (2026-10-07)**: dev004 is test-zip only |
+
+## Tools (3.4.0.20, Dan, 2026-10-08)
+- `sh tools/bump_version.sh build "Title"`: every TOC to the next build, a history section on top (fill in the bullets). `release "Title"` sets the plain `X.Y.Z` (only when Dan says it is a release); `line X.Y.Z "Title"` starts a line at build 1.
+- `sh tools/host_build.sh <scratch checkout>`: builds the test zip from HEAD the way `release.yml` does, puts it in scratch `releases/` and `latest/` (replacing the old one), updates the index rows, commits and pushes, and prints the links. `--no-commit` stages only, so docs join the same commit; `--no-push` commits without pushing.
+- `check_rules.sh` fails a history.txt whose top section is not the TOC version.
+
+## Full releases: notes and the mirror (3.4.0.20, Dan, 2026-10-08)
+- A full release's notes cover every build since the previous full release (`tools/collect_notes.sh`), summarized for players by Claude (`tools/summarize_notes.sh`, `claude-opus-5-5`, effort low, server-side fallback on a refusal). Without the `ANTHROPIC_API_KEY` secret, or if the call fails, they are the plain list of changes. Builds keep their own history section as notes.
+- Job `mirror` publishes each full release, with the same zip and notes, on **`racetracks/Pour-Social-Score`** (`MIRROR_REPO` in release.yml). It needs the secret `MIRROR_TOKEN` (a fine-grained token with Contents: Read and write on that repo only) and a first commit in that repo. Builds are not mirrored. After fixing a secret, run Actions > Release > Run workflow on main.
 
 ## Build numbers (Dan, 2026-10-08)
 Every build is `X.Y.Z.B` (02 section 8): the next build number for every test zip, a stage or a fix, merged or not (`3.4.0.13`, `3.4.0.14`, ...); every TOC, a history section and the zip name carry it. `check_toc.sh` and `check_rules_eui.sh` accept only `X.Y.Z` and `X.Y.Z.B`. `release.yml` publishes a four-part version, or an older one with `-`, as a pre-release, and turns any such release that is not one back into a pre-release; a plain `X.Y.Z` is a full release, set only when Dan says so.
