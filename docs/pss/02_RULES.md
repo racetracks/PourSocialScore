@@ -95,6 +95,7 @@ The baseline's rules are mandatory. These are the only places PSS differs, each 
 | C2 No behaviour change without opt-in | The new window replaces both old windows for everyone at the cutover (D1, D2), in the Modern look by default (09 decisions 4 to 6) | 2026-10-07, Modern default 2026-10-08 |
 | J4 Avoid calling Blizzard Lua that stores state | Newly listed people's lines are purged from the chat frames with `RemoveMessagesByPredicate` (10.3) | 2026-10-08 (code review decision 3) |
 | J2 / J4 Never touch Blizzard state | The guild invite is declined through the API (`DeclineGuild` / `C_GuildInfo.DeclineGuild`) plus `StaticPopup_Hide("GUILD_INVITE")` (10.3) | 2026-10-08 (code review decision 2) |
+| C2 No behaviour change without opt-in | From 3.4.1.34 a player ignored through Blizzard is moved into PSS (taken off Blizzard's list once confirmed, with a note) for everyone; PSS is authoritative over Blizzard's list (10_CORE_UPLIFT 2.7) | 2026-10-08 |
 | C3 No OnUpdate polling | The new window's pie (`PourSocialScore_GUI/PSS_Pie.lua`) runs OnUpdate only while the mouse is over it, so the hovered slice follows the cursor; it is cleared on leave | 2026-10-08 |
 
 Blizzard hooks approved within the J rules (post-hooks, no override): `hooksecurefunc(ChatFrameUtil, "InsertLink")` on Retail 12.x (Dan, 2026-10-08), and the rest of 10.3.

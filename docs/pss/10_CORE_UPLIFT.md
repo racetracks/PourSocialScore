@@ -37,7 +37,7 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - Your own name (`M.PSS_PlayerDisplayName`) replaces `UnitName("player")` in the self checks (`isSelf`, adding yourself).
   - `M.PSS_SplitNameArg`: two words are the name off Retail, or when "First Last" is listed; quotes still work.
   - Import normalises the member key and merges a shipped member into its shipped record (`M.PSS_MergeIntoShipped`).
-  - `PSS_FlushManaged` no longer writes `_canon`, `_gkey` and `_virtual`. **`_managed` is still written:** the member count reads it while the lists are not loaded; it goes with the accessors in S2 and step 8 in S3.
+  - `PSS_FlushManaged` no longer writes `_canon`, `_gkey` and `_virtual`. **`_managed` is still written:** the member count reads it while the lists are not loaded; it goes with the accessors in S2 and step 9 in S3.
   - The roster warning already uses `GetUnitName(unit, true)`, which gives "First Last" (confirmed in game); unchanged.
 - **Shipped lists:** `tools/PSS_BuildManaged.lua` rejects or converts surname-as-realm names. Of its 212 entries, 196 are dropped and 16 converted (decision 6); the data file is rebuilt and re-measured.
 
@@ -54,7 +54,7 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - Every read of a dropped field goes through one accessor (`M.PSS_MemberGuildName`, `M.PSS_MemberCanon`, `History.EnsureCounts`), and a rules-check grep keeps raw reads out.
   - Expected on 3.4.0.28: Options file 397.7 KB to about 196 KB, always-loaded memory down 380 to 440 KB.
 - **Purge by owner:** `History.ClearOwner(o)` replaces the six copies of the history clear (N16): 5.6 ms and 750 KB of garbage become about 70 us with none. When Logging is not loaded, a capped tombstone `PourSocialScoreDB.purge[o]` is applied when Logging next loads, so removing anyone never loads Logging.
-- **Upgrade step 8, "SavedVariables performance cleanup"** (decision 4; Dan's OK given, D9): one run-once step for everything below, then one validation on all four saves with identical counters.
+- **Upgrade step 9, "SavedVariables performance cleanup"** (step 8 is B1's, 2.7) (decision 4; Dan's OK given, D9): one run-once step for everything below, then one validation on all four saves with identical counters.
   - Sparse records, and the runtime fields dropped.
   - The 1500 member cap per rule, and `memberCount` no longer saved (L12, L16).
   - The Camelot name repair (decision 5), on Camelot saves only, and only for records with `faction` and no `_playerKey`:
@@ -90,12 +90,12 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
 
   Example (numbers illustrative):
   ```
-  PourSocialScore: updated from 3.4.0.29 to 3.4.1.43. Upgrading your saved data:
+  PourSocialScore: updated from 3.4.0.29 to 3.4.1.45. Upgrading your saved data:
     Chat Filtering: 3 custom filters given an id
     Guild Ignore List: 48 duplicate members merged, 267 names repaired
     Managed Communities: 184 members already on the shipped lists dropped
     SavedVariables performance cleanup: 6 old settings removed, 1208 records tidied (397 KB to 196 KB)
-  PourSocialScore: saved data upgraded to 3.4.1.43 (step 8).
+  PourSocialScore: saved data upgraded to 3.4.1.45 (step 9).
   ```
 - Today's data-move messages stay as they are and print before the report (decision 8). A downgrade prints one line (decision 10). A normal login builds no strings and costs nothing. All output goes through `M.ShowMsg`, in ASCII.
 - **Harness:** `check_upgrade_report.lua`, 10 cases:
@@ -125,6 +125,17 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
 ### 2.6 Performance and tidy (3.4.2, 3.4.3)
 Listed in section 4. Each stage is invisible and proven with `tui_compare.sh` identical in all three looks, plus measured numbers.
 
+### 2.7 Blizzard's ignore list and the right-click menu (B1, B2; Dan, 2026-10-08, decisions 15 to 21)
+**PSS is authoritative.** PSS never puts anyone on Blizzard's ignore list unless the player asked for it for that person.
+- **B1, per-player Blizzard ignore** (decision 15). The global option `blizzardSync` ("Also put listed players on Blizzard's ignore list") becomes a tick box per listed player, off by default, in the player's detail pane in the PSS window (all three looks; not in the right-click menu, decision 21). Ticked: PSS adds them to Blizzard's list (when it has room). Unticked: PSS takes them off it. Stored as a non-default field on the player's prefs record (`PSS_PlayersDB.playerData`), true only.
+- **A new Blizzard ignore moves into PSS** (decision 16). Ignoring someone through Blizzard (its Ignore menu entry or `/ignore`) lists them in PSS as today. On the next `IGNORELIST_UPDATE` that shows them on Blizzard's list, PSS removes them from Blizzard's list (guarded so its own hooks do not see it) and adds the note `Synced from Blizzard ignore list on <date>` (`%d %b %Y`). Someone PSS already lists comes off Blizzard's list too, and keeps their note (decision 18). Everyone gets this, without an option: an approved override of C2 (02 section 12).
+- **Your existing Blizzard list is synced across, not managed** (decision 17). At login (after the first `IGNORELIST_UPDATE`), anyone on Blizzard's list whom PSS does not list is added to PSS with the note and their per-player tick on, and stays on Blizzard's list. Players are never removed from Blizzard's list by this sync.
+- **Removing from either removes from both** (decision 19, "user systems must be intuitive"). Removing a player in PSS removes their Blizzard ignore if they have one (as today), and Unignore in Blizzard's window removes them from PSS (as today).
+- **Blizzard's chat lines** ("X is now being ignored", "X is no longer being ignored") are left alone; PSS never filters them (decision 20).
+- **Upgrade step 8 (Dan's OK, decision 15, D9):** a save with the global `blizzardSync` on gives every PSS-listed player who is on Blizzard's list the per-player tick, then the global key is retired. Validated on the four real saves; counters identical.
+- J rules: `C_FriendList.AddIgnore` / `DelIgnore` are called only from a user action or `IGNORELIST_UPDATE` (as today), with the hook guard; no Blizzard frame or chat line is touched (J2, J3).
+- **B2, the right-click menu** (decision 21). The unit and chat-name menus get one "PSS" header (`root:CreateTitle`) with two entries, "Block Player" and "Block Guild", in place of today's single toggle. Each says "Unblock Player" / "Unblock Guild" when that player or guild is already listed (the recommended option; Dan did not pick this one). "Block Guild" adds the player's guild as a guild rule (`GetGuildInfo(unit)`); it is hidden when the menu has no unit or the player has no guild, and never offered for your own guild (`M.PSS_IsOwnGuild`).
+
 ## 3. Constraints
 - Baseline 02 and PSS 02 in full.
 - J rules on every name and hook path: `M.PSS_IsSecret` before any compare, plus a restriction-CVar run (02 10.6).
@@ -144,16 +155,18 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | (Dan) | | Run the six `/dump` lines of 2.1 on Camelot and paste the output | | Confirms the cause before N1 | Done 2026-10-08 (2.1) |
 | N1 | 3.4.1.32 | `M.PSS_NormName`; the existing name helpers call it; `check_names.lua` | No (only `PSS_UnitFullName` on a Camelot surname target) | Every key on the four saves unchanged except the Camelot surname case | PR #120 |
 | N2 | 3.4.1.33 | Every name caller (2.1), multi-word `/pss add/remove/expire`, import with the managed check, runtime fields not flushed; `M.PSS_CharKey` (decision 14; decision 13 reversed) | Yes | On Camelot, "First Last" added from the menu, Ignore and `/pss add`; Retail unchanged; the restriction CVars run | PR #121 |
-| N3 | 3.4.1.34 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | |
-| F1 | 3.4.1.35 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
-| F2 | 3.4.1.36 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |
-| U1 | 3.4.1.37 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
-| U2 | 3.4.1.38 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | |
-| U3 | 3.4.1.39 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | |
-| S1 | 3.4.1.40 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | |
-| S2 | 3.4.1.41 | Accessors for every field S3 drops; the rules-check grep | No | `tui_compare.sh` identical | |
-| S3 | 3.4.1.42 | Upgrade step 8 (2.2): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
-| R | 3.4.1.43 | Release: version only; one summary of 3.4.1.30 to 3.4.1.42 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
+| B1 | 3.4.1.34 | PSS is authoritative over Blizzard's ignore list (2.7): the per-player Blizzard ignore tick, a new Blizzard ignore moves into PSS with its note, the existing Blizzard list is synced across, removal from either removes from both; upgrade step 8 (the global option to per-player ticks) | Yes | In game on Retail and Camelot: Blizzard Ignore, the tick in all three looks, removal both ways; the four real saves | |
+| B2 | 3.4.1.35 | The right-click menu: a "PSS" header with "Block Player" and "Block Guild" (2.7) | Yes | In game on Retail and Camelot, unit and chat-name menus; the restriction CVars run | |
+| N3 | 3.4.1.36 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | |
+| F1 | 3.4.1.37 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
+| F2 | 3.4.1.38 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |
+| U1 | 3.4.1.39 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
+| U2 | 3.4.1.40 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | |
+| U3 | 3.4.1.41 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | |
+| S1 | 3.4.1.42 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | |
+| S2 | 3.4.1.43 | Accessors for every field S3 drops; the rules-check grep | No | `tui_compare.sh` identical | |
+| S3 | 3.4.1.44 | Upgrade step 9 (2.2): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
+| R | 3.4.1.45 | Release: version only; one summary of 3.4.1.30 to 3.4.1.44 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
 
 ### Line 3.4.2: core performance and tidy (builds continue)
 | Stage | Change |
@@ -179,7 +192,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 1. Three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
 2. No ID generator for players and guilds; keep the `name-realm` key and make records sparse.
 3. Custom filters get a never-reused integer id.
-4. One upgrade step 8 for the whole data change, with one validation (D9 OK given).
+4. One upgrade step for the whole data change, with one validation (D9 OK given). It is step 9: B1 takes step 8 (2026-10-08).
 5. The Camelot name repair runs on Camelot saves only; first-name-only entries are listed once in chat.
 6. The shipped lists are rebuilt: 196 entries dropped, 16 converted.
 7. Report lines only for features that changed, plus the cleanup line always.
@@ -190,6 +203,14 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 12. The name cause is confirmed in game with `/dump` before N1.
 13. ~~Names show the realm as the game spells it (`GetNormalizedRealmName`, `ClassicBetaPvP`), in N2.~~ **Reversed (Dan, 2026-10-08): do not change realm names.**
 14. Dan's own character has a surname: N2 fixes `M.PSS_CharKey` and moves its per-character settings to the new key (Dan, 2026-10-08).
+15. "Also put listed players on Blizzard's ignore list" becomes a per-player tick (PSS is authoritative; never ignore through Blizzard unless the player asks). The global setting's value moves to the ticks in upgrade step 8 (Dan's OK for the save change, 2026-10-08).
+16. A new Blizzard ignore moves into PSS: listed, taken off Blizzard's list once confirmed, note "Synced from Blizzard ignore list on <date>". For everyone (02 section 12 override).
+17. People already on Blizzard's list are synced into PSS (ticked, noted) and left on Blizzard's list.
+18. Someone PSS already lists still comes off Blizzard's list and keeps their note (the recommended option).
+19. Removing from either list removes from both.
+20. Blizzard's ignore chat lines are left alone.
+21. The tick lives in the PSS window only. The right-click menu becomes a "PSS" header with "Block Player" and "Block Guild" (B2, its own stage).
+22. B1 and B2 are their own stages after N2 (builds 3.4.1.34 and .35); the later stages move up two builds and the release is 3.4.1.45.
 
 ## 6. Risks
 | Risk | Cover |

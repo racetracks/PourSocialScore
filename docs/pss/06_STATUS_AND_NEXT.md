@@ -11,7 +11,7 @@ Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4
   - import merges shipped members; the managed flush drops `_canon`, `_gkey`, `_virtual` (`_managed` kept until S2/S3).
   - Decision 13 reversed by Dan (2026-10-08): realm names stay as they are. Decision 14 needed no save change (nothing is keyed by `M.PSS_CharKey`).
   - `check_names.lua` section 4 covers each caller; validate_all green on the four real saves; `tui_compare.sh` identical.
-- **Next:** N3 (3.4.1.34), the builder fix and the shipped lists rebuilt (10 section 2.1, decision 6).
+- **Next:** B1 (3.4.1.34), PSS authoritative over Blizzard's ignore list (10 section 2.7, decisions 15 to 20), then B2 (3.4.1.35, the right-click "PSS" header), then N3 (3.4.1.36, the shipped lists rebuilt). Added by Dan on 2026-10-08; the later stages moved up two builds.
 - The closed projects: the PSS window (3.4.0, `09_PSS_UI_PROJECT.md`; its code map and lessons stay the reference for the window) and parity (3.3.1, `08`).
 
 ## Waiting on Dan
