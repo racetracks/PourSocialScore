@@ -244,20 +244,32 @@ function M.PSS_UnitMenuPlayer (owner, root, contextData)
 	target = M.PSS_NormName(target, server, unit)
 	if not target then return end
 
-	local text = ""
-
-	if (M.hasGlobalIgnored(M.addServer(target)) > 0) then
-		text = L["RCM_4"]
-	else
-		text = L["RCM_6"]
+	-- the player's guild comes only from a unit; a name clicked in chat has none
+	local guild
+	if unit and GetGuildInfo then
+		guild = GetGuildInfo(unit)
+		if type(guild) ~= "string" or M.PSS_IsSecret(guild) or guild == "" or M.PSS_IsOwnGuild(guild) then guild = nil end
 	end
 
 	root:CreateDivider()
-	root:CreateButton(text,
+	root:CreateTitle(L["RCM_16"])
+	root:CreateButton(M.hasGlobalIgnored(M.addServer(target)) > 0 and L["RCM_18"] or L["RCM_17"],
 		function(owner, root, contextData)
 			M.PSS_AddOrDelIgnore(M.addServer(target))
 			M.PSS_PlayersChanged(true)
 		end)
+
+	if guild then
+		local listed = M.PSS_IsGuildListed(guild)
+		root:CreateButton(listed and L["RCM_20"] or L["RCM_19"],
+			function(owner, root, contextData)
+				if listed then
+					M.PSS_RemoveGuildNow(M.PSS_NormalizeGuild(guild))
+				else
+					M.PSS_AddGuild(guild)
+				end
+			end)
+	end
 end
 
 -----------------------

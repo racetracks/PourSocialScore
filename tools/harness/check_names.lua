@@ -169,7 +169,7 @@ check(select(2, M.PSS_NormName("Dan", "Surname", "player")) == "dan surname-" ..
 -- the unit menu (PSS entry) on a Camelot surname target
 unitName, unitRealm, rel = "Erlirrin", "Softgale", 1
 local btn
-local root = { CreateDivider = function() end, CreateButton = function(_, _, fn) btn = fn end }
+local root = { CreateDivider = function() end, CreateTitle = function() end, CreateButton = function(_, text, fn) if text == "Block Player" or text == "Unblock Player" then btn = fn end end }
 M.PSS_UnitMenuPlayer(nil, root, { unit = "target" })
 check(btn ~= nil, "the unit menu made no entry")
 if btn then btn() end

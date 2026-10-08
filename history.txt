@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.36 - Core uplift B2, the right-click PSS menu
+
+- The right-click menu on a player (in the world, in a group or a chat name) now has one "PSS" heading with two entries: "Block Player" and "Block Guild". Each reads "Unblock Player" or "Unblock Guild" when that player or guild is already listed.
+- "Block Guild" adds the player's guild as a guild rule. It is not shown when the menu has no player in view (a name clicked in chat), when the player has no guild, or for your own guild.
+
 => 3.4.1.35 - B1: PSS is authoritative over Blizzard's ignore list
 
 - Pour Social Score is now in charge of its own ignore list. "Also put listed players on Blizzard's ignore list" is no longer one setting for everyone: it is a tick box for each player (View/Edit Rule, "Also on Blizzard's ignore list"), off by default. Ticked, the player is also put on Blizzard's list (up to 50); unticked, taken off it.
