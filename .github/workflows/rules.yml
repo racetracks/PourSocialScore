@@ -28,3 +28,5 @@ jobs:
         run: PSS_EUI_REQUIRED=1 sh tools/harness/check_eui_all.sh
       - name: New window checks
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_tui.lua | tee /tmp/tui.txt && grep -q "PASS tui" /tmp/tui.txt
+      - name: New window maths
+        run: lua5.1 tools/harness/run.lua . - - tools/harness/check_viewquery.lua | tee /tmp/vq.txt && grep -q "PASS viewquery" /tmp/vq.txt
