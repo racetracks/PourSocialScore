@@ -184,6 +184,15 @@ local function Line(parent, y)
 	return fs
 end
 
+-- A line under another: a wrapped line pushes the ones below it down
+local function LineBelow(prev, gap)
+	local fs = ns.NewText(prev:GetParent(), 12)
+	fs:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
+	fs:SetPoint("RIGHT", prev:GetParent(), "RIGHT", -10, 0)
+	fs:SetJustifyH("LEFT")
+	return fs
+end
+
 local function Label(parent, text)
 	local fs = ns.NewText(parent, 12)
 	fs:SetPoint("LEFT", parent, "LEFT", 0, 0)
@@ -386,16 +395,16 @@ end
 
 local function BuildGroupBody(parent)
 	local b = Body(parent)
-	local y = -28
-	b.info = Line(b, y); y = y - LINE_H
-	b.rule = Line(b, y); y = y - LINE_H
-	b.state = Line(b, y); y = y - LINE_H - 4
-	b.counts = Line(b, y)
-	local top = y - LINE_H - 6
+	b.info = Line(b, -28)
+	b.rule = LineBelow(b.info, 2)
+	b.state = LineBelow(b.rule, 2)
+	b.counts = LineBelow(b.state, 6)
+	-- the pies hang under the last line, wherever it ends
 	b.charts = CreateFrame("Frame", nil, b)
-	b.charts:SetAllPoints()
-	b.summary = ns.NewSummary(b.charts, page, top, PIE_SMALL)
-	b.typePie = ns.NewTypePie(b.charts, top - PIE_SMALL - 10, PIE_SMALL, page)
+	b.charts:SetPoint("TOPLEFT", b.counts, "BOTTOMLEFT", -10, -6)
+	b.charts:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
+	b.summary = ns.NewSummary(b.charts, page, 0, PIE_SMALL)
+	b.typePie = ns.NewTypePie(b.charts, -PIE_SMALL - 10, PIE_SMALL, page)
 	b.recent = {}
 	-- the list's guilds' session and 24 hour counts by type, added up
 	local one = {}

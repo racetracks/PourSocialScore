@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.40 - Guilds tab detail pane: a wrapped line pushes the lines below it down
+
+- Fixed the Guilds tab detail pane for a default guild list (for example Managed Communities): a long line that wrapped, such as "Rule on the Chat Filters tab: ...", ran into the line below it. Each line now sits under the one above, so a wrapped line pushes the rest down, and the charts start below the last line. The text is unchanged.
+
 => 3.4.1.39 - Docs, code map and changes in train
 
 - Documentation only: a code map of the addon and a list of the changes in train, for use as context. Nothing in the addon changes.
