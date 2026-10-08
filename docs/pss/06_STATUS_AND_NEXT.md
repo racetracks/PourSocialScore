@@ -11,7 +11,7 @@ Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4
   - `M.PSS_NormalizePlayer`, `M.PSS_CanonPlayer`, `M.PSS_DisplayPlayer` and `M.PSS_UnitFullName` go through it.
   - The surname rule applies only with a unit (`UnitRealmRelationship` 1).
   - `tools/harness/check_names.lua` proves every string of the four real saves keeps its key, match key and display. It also covers the surname rule, `/pss add` on a Camelot target, and secrets.
-- **Next:** N2 (3.4.1.33), every name caller (10 section 2.1, with the two points N1 left).
+- **Next:** N2 (3.4.1.33), every name caller (10 section 2.1), plus decisions 13 (display realm spelling `ClassicBetaPvP`) and 14 (Dan's character has a surname: fix `M.PSS_CharKey` and move its settings), both answered yes on 2026-10-08.
 - The closed projects: the PSS window (3.4.0, `09_PSS_UI_PROJECT.md`; its code map and lessons stay the reference for the window) and parity (3.3.1, `08`).
 
 ## Waiting on Dan

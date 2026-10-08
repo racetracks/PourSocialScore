@@ -27,9 +27,9 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - `M.PSS_SplitNameArg` (`PSS_Globals.lua:145`): multi-word names.
   - Import (`PSS_ImportExport.lua:344`): normalise, and check the shipped lists.
   - `PSS_FlushManaged`: stops saving the runtime fields `_canon`, `_gkey`, `_managed` and `_virtual`.
-- **Left by N1 for N2 (2026-10-08):**
-  - Display still takes the realm spelling from `V.serverName` (`Classicbetapvp`), so nothing visible changed in N1; moving display to `GetNormalizedRealmName` (`ClassicBetaPvP`) is visible and goes with N2.
-  - `M.PSS_CharKey` (per-character options) still joins `UnitName("player")` as before; a character with a surname would get a new key, so it changes only with a migration of that key (N2 asks Dan, or S3).
+- **Left by N1 for N2 (2026-10-08; Dan answered both, decisions 13 and 14):**
+  - Display still takes the realm spelling from `V.serverName` (`Classicbetapvp`). **N2 moves display to `GetNormalizedRealmName` (`ClassicBetaPvP`)** (decision 13).
+  - `M.PSS_CharKey` (per-character options) still joins `UnitName("player")` as before. **Dan's own character has a surname** (decision 14), so N2 builds the key through `M.PSS_NormName(name, realm, "player")` and moves the old `first-last` key's settings to the new key once (run-once, keeps the old values, validated on the 3.4.0.28 save; Dan's OK given for this save change).
 - **Shipped lists:** `tools/PSS_BuildManaged.lua` rejects or converts surname-as-realm names. Of its 212 entries, 196 are dropped and 16 converted (decision 6); the data file is rebuilt and re-measured.
 
 ### 2.2 SavedVariables (appendix 03)
@@ -179,6 +179,8 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 10. A downgrade prints one line and keeps the newer record. **Dan's addition:** check every saved field and rule against the code that uses it, tell the player which rules are incompatible, offer to export them, and make the layout as forward compatible as possible so the saves are not readdressed again (2.3).
 11. Expiry is applied at login and when a list opens (a bug fix).
 12. The name cause is confirmed in game with `/dump` before N1.
+13. Names show the realm as the game spells it (`GetNormalizedRealmName`, `ClassicBetaPvP`), in N2 (Dan, 2026-10-08).
+14. Dan's own character has a surname: N2 fixes `M.PSS_CharKey` and moves its per-character settings to the new key (Dan, 2026-10-08).
 
 ## 6. Risks
 | Risk | Cover |
