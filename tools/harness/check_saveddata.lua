@@ -33,7 +33,7 @@ check(type(PSS_RulesDB.filterList) == "table", "PSS_RulesDB.filterList")
 for _, o in ipairs(M.PSS_OPTIONS) do
 	check(PSS_OptionsDB[o.key] == nil or PSS_OptionsDB[o.key] ~= o.default, o.key .. " saved at its default")
 end
-for _, k in ipairs({ "optionsV2012", "charOptions" }) do check(PSS_OptionsDB[k] == nil, k .. " not removed") end
+for _, k in ipairs({ "optionsV2012", "charOptions", "euiIntegration", "windowSizes", "columnWidths" }) do check(PSS_OptionsDB[k] == nil, k .. " not removed") end
 check(rawget(PourSocialScoreDB, "historySize") == nil, "historySize not removed")
 local was = PSS_OptionsDB.chatmsg
 M.PSS_SetOpt("chatmsg", "global", false)

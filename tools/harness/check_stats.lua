@@ -1,11 +1,14 @@
--- Checks the three block count lines on the Player Ignore List, Guild
--- Ignore List and Chat Filters tabs against PSS_EXPECT (from make_data.lua).
--- From 3.3.0-dev002 this session and the last 24 hours are the EllesmereUI
--- window's numbers (History.Recent*, M.PSS_ListTotals): each line must equal
--- them, type by type, and the old hourly blockStats table is gone.
+-- Checks the block counts the window shows for the Player Ignore List, Guild
+-- Ignore List and Chat Filters against PSS_EXPECT (from make_data.lua). With
+-- nothing selected each tab's pane shows its list's totals: this session,
+-- the last 24 hours and all time (the period pie), and all time by type
+-- (the type pie). From 3.4.0.25 (D2) these are read from the window
+-- (PourSocialScore_GUI); this session and the last 24 hours by type, which
+-- the window shows only through its pies' ticks, are read from the same
+-- counters (History.RecentByCat). The old hourly blockStats table is gone.
 --   PSS_PHASE=2 : first login after the upgrade. Session 0, Total = what the
 --                 old version showed. Then blocks one more line per tab and
---                 checks that all three lines go up by one.
+--                 checks that all three periods go up by one.
 --   PSS_PHASE=3 : a login more than 24 hours after the old blocks. Session 0,
 --                 last 24 hours = only the phase 2 lines, Total unchanged.
 local expect = dofile(assert(os.getenv("PSS_EXPECT")))
@@ -19,29 +22,9 @@ local function chat(event, msg, author)
 		event == "CHAT_MSG_CHANNEL" and 2 or 0, event == "CHAT_MSG_CHANNEL" and "Trade" or "", 0, lineID, nil)
 end
 
-local function plain(s) return (tostring(s or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
-
-local function readRow(stats, i)
-	local r = stats.rows[i]
-	local out = { total = tonumber(plain(r.total:GetText())) }
-	for _, fs in ipairs(r.cats) do
-		local label, n = plain(fs:GetText()):match("^(.-):%s*([%d%-]+)$")
-		out[label] = tonumber(n) or n
-	end
-	return out
-end
-
-local LABEL = { whisper = "Whispers", partyInvite = "Party Invites", partyRaid = "Party/Raid", world = "World Chat",
-	guildInvite = "Guild Invites", private = "Private messages" }
-
-local function compare(what, got, want)
-	for k, v in pairs(want) do
-		local g = (k == "total") and got.total or got[LABEL[k]]
-		if g ~= (tonumber(v) or 0) then
-			print(("  FAIL %s %s: shows %s, expected %s"):format(what, k, tostring(g), tostring(v)))
-			fails = fails + 1
-		end
-	end
+local function fail(msg)
+	print("  FAIL " .. msg)
+	fails = fails + 1
 end
 
 local function add(a, b)
@@ -52,75 +35,77 @@ local function add(a, b)
 end
 local ZERO = { total = 0 }
 
--- the same lines as the EllesmereUI window reads them (its list totals)
+-- the window's tab for each list, and the counters' owner prefix
+local TAB = { player = 1, guild = 2, filter = 3 }
 local KIND = { player = "players", guild = "guilds", filter = "filters" }
-local function eui(src)
-	M.PSS_Need("Libraries")
-	local t = M.PSS_ListTotals(KIND[src], {})
-	local s, d = { total = t.session }, { total = t.day }
-	local by = M.PSS_History.RecentByCat(nil, {}, ({ player = "p:", guild = "G:", filter = "f:" })[src])
+local PREFIX = { player = "p:", guild = "G:", filter = "f:" }
+
+-- this session and the last 24 hours by type, from the counters
+local function recent(src)
+	local s, d = { total = 0 }, { total = 0 }
+	s.total, d.total = M.PSS_History.RecentTotals(PREFIX[src])
+	local by = M.PSS_History.RecentByCat(nil, {}, PREFIX[src])
 	for cat, n in pairs(by.session) do s[cat] = n end
 	for cat, n in pairs(by.day) do d[cat] = n end
 	return s, d
 end
 
-local function showTab(name) _G[name]:GetScript("OnClick")(_G[name]) end
+-- what a tab's pane shows with nothing selected: { session, day, all } and
+-- all time by type
+local function shown(src)
+	local win = _G.PSS_Window
+	local tab = win.tabs[TAB[src]]
+	tab._scripts.OnClick(tab)
+	local tt = win.pages[TAB[src]].pane.totals
+	if not tt.frame:IsShown() then fail(src .. ": the totals are not shown") end
+	local v = tt.summary.values
+	local byType = {}
+	for _, k in ipairs(tt.typePie.keys or {}) do
+		if k.cat and k.check:IsShown() then byType[k.cat] = tonumber(k.count:GetText()) end
+	end
+	return { total = v.session }, { total = v.day }, { total = v.all }, byType
+end
 
-local FRAMES = { player = { "PSSTab1", "PSSFrame1" }, guild = { "PSSTabGuild", "PSSGuildTabFrame" }, filter = { "PSSTab2", "PSSFrame2" } }
-local function matchEUI(label)
-	for src, f in pairs(FRAMES) do
-		showTab(f[1])
-		local s, d = eui(src)
-		local want = { s, d }
-		for row = 1, 2 do
-			local got = readRow(_G[f[2]].stats, row)
-			if got.total ~= want[row].total then
-				print(("  FAIL %s %s line %d total: shows %s, the EllesmereUI window %s"):format(label, src, row, tostring(got.total), tostring(want[row].total)))
-				fails = fails + 1
-			end
-			for k, v in pairs(want[row]) do
-				local g = LABEL[k] and got[LABEL[k]]
-				if g ~= nil and k ~= "private" and g ~= v then
-					print(("  FAIL %s %s line %d %s: shows %s, the EllesmereUI window %s"):format(label, src, row, k, tostring(g), tostring(v)))
-					fails = fails + 1
-				end
-			end
-			if src == "filter" and got[LABEL.private] ~= "-" then
-				print(("  FAIL %s filter line %d Private messages: %s, expected -"):format(label, row, tostring(got[LABEL.private])))
-				fails = fails + 1
-			end
+-- want: total and, for "all", per type ("private" is not one of them)
+local function compare(what, got, want, byType)
+	for k, n in pairs(want) do
+		local g
+		if k == "total" then g = got.total
+		elseif byType then g = byType[k] or 0
+		else g = got[k] or 0 end
+		if k ~= "private" and g ~= (tonumber(n) or 0) then
+			fail(("%s %s: shows %s, expected %s"):format(what, k, tostring(g), tostring(n)))
 		end
 	end
-	showTab("PSSTab1")
 end
 
 local function check(label, rowsWant)
-	M.PSS_GUI()
+	-- opened afresh, as a player would see it
+	if _G.PSS_Window and _G.PSS_Window:IsShown() then SlashCmdList["PSS"]("gui") end
+	SlashCmdList["PSS"]("gui")
 	H.RunTimers()
-	matchEUI(label)
-	showTab("PSSTab1")
-	compare(label .. " player session", readRow(PSSFrame1.stats, 1), rowsWant.player[1])
-	compare(label .. " player 24h", readRow(PSSFrame1.stats, 2), rowsWant.player[2])
-	compare(label .. " player total", readRow(PSSFrame1.stats, 3), rowsWant.player[3])
-	showTab("PSSTabGuild")
-	compare(label .. " guild session", readRow(PSSGuildTabFrame.stats, 1), rowsWant.guild[1])
-	compare(label .. " guild 24h", readRow(PSSGuildTabFrame.stats, 2), rowsWant.guild[2])
-	compare(label .. " guild total", readRow(PSSGuildTabFrame.stats, 3), rowsWant.guild[3])
-	showTab("PSSTab2")
-	compare(label .. " filter session", readRow(PSSFrame2.stats, 1), rowsWant.filter[1])
-	compare(label .. " filter 24h", readRow(PSSFrame2.stats, 2), rowsWant.filter[2])
-	compare(label .. " filter total", readRow(PSSFrame2.stats, 3), rowsWant.filter[3])
-	showTab("PSSTab1")
+	for src in pairs(TAB) do
+		local s, d, all, byType = shown(src)
+		local rs, rd = recent(src)
+		local want = rowsWant[src]
+		compare(label .. " " .. src .. " session", s, { total = want[1].total })
+		compare(label .. " " .. src .. " 24h", d, { total = want[2].total })
+		-- (filters: all time by type is the counters' own, checked below;
+		-- the old filterWhisperTotal / filterPrivateTotal count differently)
+		compare(label .. " " .. src .. " total", all, src == "filter" and { total = want[3].total } or want[3], byType)
+		compare(label .. " " .. src .. " session (counters)", rs, want[1])
+		compare(label .. " " .. src .. " 24h (counters)", rd, want[2])
+		-- every type the pie lists is the list's own all-time count
+		local lt = M.PSS_ListTotals(KIND[src], {})
+		for cat, n in pairs(byType) do
+			if n ~= (lt[cat] or 0) then fail(("%s %s type pie %s: %d, the counter %s"):format(label, src, cat, n, tostring(lt[cat]))) end
+		end
+	end
+	SlashCmdList["PSS"]("gui")
 end
 
 local db = PourSocialScoreDB
 assert(db.blockStats == nil, "blockStats not pruned by the upgrade")
--- the titles are gone in list view
-for _, f in ipairs({ "PSSFrame1", "PSSGuildTabFrame", "PSSFrame2" }) do
-	if _G[f] and _G[f].title and _G[f].title:GetText():match("Ignore List") then
-		print("  FAIL " .. f .. " still shows a title"); fails = fails + 1
-	end
-end
 
 local newP = { total = 1, whisper = 1 }
 local newG = { total = 1, whisper = 1 }
@@ -132,9 +117,10 @@ local function only(t, keys)
 end
 
 if phase == 2 then
-	-- the last 24 hours as the EllesmereUI window counts them
+	-- the last 24 hours as the counters hold them after the upgrade
+	M.PSS_Need("Libraries")
 	local seed = {}
-	for src in pairs(FRAMES) do seed[src] = only(select(2, eui(src)), { "total", "whisper" }) end
+	for src in pairs(TAB) do seed[src] = only(select(2, recent(src)), { "total", "whisper" }) end
 	check("after upgrade", {
 		player = { ZERO, seed.player, expect.player },
 		guild = { ZERO, seed.guild, expect.guild },

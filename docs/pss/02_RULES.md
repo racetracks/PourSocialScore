@@ -3,7 +3,7 @@
 **The baseline's rules are mandatory** (Dan, 2026-10-08). This file holds what is specific to PSS: the concrete values and Dan's PSS decisions. PSS overrides a baseline rule **only** where section 12 (the Overrides table) lists it; any other difference is a bug to fix. Dates are when Dan set them.
 
 ## 1. Code and style
-1. Core and native folders indent with tabs. **`PourSocialScore_EllesmereUI` uses EllesmereUI's 4-space style**, enforced by `tools/check_rules_eui.sh` (which also checks that folder's Version equals core's).
+1. Every folder indents with tabs. (Until 3.4.0.24 `PourSocialScore_EllesmereUI` used EllesmereUI's 4-space style, checked by `tools/check_rules_eui.sh`; both are gone from 3.4.0.25.)
 2. Everything shared hangs on `M` via `PourSocialScore_NS` (the project's root table); use `M.ShowMsg`, `M.Trim` and the UIKit builders.
 3. Core fires `M.Events`; UIs listen and write only through core setters (`tools/check_layers.lua` enforces it).
 4. The 8 StaticPopup dialogs stay as they are in the native mode.
@@ -20,8 +20,8 @@
 - **Removal** deletes all of a player's saved data. A player on a shipped guild list stays blocked with a member note.
 - **W I G P C:** ticked = allowed; a new entry blocks everything; built-in filters start off.
 - **What happens to anyone listed (Dan, 2026-10-08):** by default no ignore response is sent, no decline messages are shown, and their duels and trades are declined (the Options tab sets the default; Show declines Off from 3.4.0.22). Any player, guild or guild member can be an exception; the window shows each as a tick box (ticked = it happens) marked "(exception)" where it differs from the default, and a member's default is its guild's. Stored as before: `opts[key]` holds an exception, nil the default.
-- **Every number the EllesmereUI window shows must equal the native window's**, with the same definitions ("this session" = since login or /reload). `check_match.lua` gates it.
-- Every window closes on Escape. Native Blizzard look in our GUI, EllesmereUI's look under EllesmereUI.
+- **Every number the window shows comes from the core's counters**, with the same definitions as before ("this session" = since login or /reload). `check_viewquery.lua`, `check_stats.lua` and each tab's check gate it. (Until 3.4.0.24 the EllesmereUI window's numbers had to equal the native window's, gated by `check_match.lua`.)
+- Every window closes on Escape. The window's looks are Blizzard's (Modern, Classic) or our flat Dark (section 11).
 - No guild discovery from mouseover or nameplates in combat.
 
 ## 4. Garbage collection (changed 2026-10-07)
@@ -34,6 +34,7 @@
 So core = the chat filtering engine plus the loader, with what filtering needs (counting, outbox, setters, events). Anything not regularly active goes in `PourSocialScore_Libraries`, including code shared by both UIs. Core functions such as `PSS_PlayerQuery` stay only if they sit on a regularly active path; flag others as move candidates with a measured cost.
 
 ## 6. Front-end separation (2026-10-05)
+From 3.4.0.25 there is one front end, `PourSocialScore_GUI`; 1 and 3 to 5 still hold for it, 2 and 4's EUI state are history.
 1. No application or service logic in `PourSocialScore_GUI` or `PourSocialScore_EllesmereUI`.
 2. The native GUI never reads or loads a file from the EllesmereUI folder, and the reverse; a user never needs both (decision 5, Dan: "I dont want the native gui reading any files from the ellesmereui port. We need to consider them independent so the user doesnt have to load multiple addons when we can accomodte it for them and just use shard functions for calls.").
 3. UI resources both need go in `PourSocialScore_Libraries`, or core if always-loaded code needs them.
@@ -66,13 +67,13 @@ Scratch is **`racetracks/Pour-Social-Score_Scratch`**; its rules and procedures 
 ## 11. The new PSS window (3.4.0, Dan, 2026-10-07; details in 09)
 The full rule set is the **Interface** section of `CLAUDE.md` (one section, Dan, 2026-10-08); this list is its short form.
 1. The EllesmereUI port is the reference for every visual and layout choice; the old GUI is not authoritative on anything.
-2. Logic in `PourSocialScore_Libraries`; drawing only in `PourSocialScore_UI` (later `PourSocialScore_GUI`). No `EUI` or `Ellesmere` names in new code (checked by `check_rules.sh`); never copy EllesmereUI's code or media.
+2. Logic in `PourSocialScore_Libraries`; drawing only in `PourSocialScore_GUI` (`PourSocialScore_UI` until 3.4.0.24). No `EUI` or `Ellesmere` names in new code (checked by `check_rules.sh`); never copy EllesmereUI's code or media.
 3. Three looks with the same layout, features and feel, **listed in this order: Modern** (value 2, the default from 3.4.0-dev008_4; Blizzard's new Social window art), then the options **Classic** (0, Blizzard's classic art; named Blizzard (Default) before) and **Dark** (1, the port's style in full). Every element works in all three (`CLAUDE.md` Interface, the first rule). Dark draws the window's own popups, menus and tooltips from our kit.
 4. **The accent is always the player's class colour**, in every look; no option.
 5. Fonts: the look's own, a Blizzard font, or a LibSharedMedia font read only when another addon loaded it. PSS ships no library.
 6. Window state and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` keys); no new SavedVariables.
 7. **Only the main window's title carries the addon's name.** Popup and dialog titles say what they ask ("Remove Player?"), never the addon name (Dan, 2026-10-08).
-8. **Core's note, party warning and reload popups stay Blizzard StaticPopups in every look** (Dan, 2026-10-08; core never loads the UI folder for a popup). Section 1.4 still holds.
+8. **Core's note, party warning and reload popups stay Blizzard StaticPopups in every look** (Dan, 2026-10-08; core never loads the GUI folder for a popup). Section 1.4 still holds.
 
 ## 10. Taint and secret values on PSS (baseline 02 J, added 2026-10-07)
 PSS is a chat filter: on Retail 12.x its inputs are the values most likely to be secret (chat event arguments under chat messaging lockdown, `UnitName` and GUIDs while restricted).
@@ -93,7 +94,7 @@ The baseline's rules are mandatory. These are the only places PSS differs, each 
 | C2 No behaviour change without opt-in | The new window replaces both old windows for everyone at the cutover (D1, D2), in the Modern look by default (09 decisions 4 to 6) | 2026-10-07, Modern default 2026-10-08 |
 | J4 Avoid calling Blizzard Lua that stores state | Newly listed people's lines are purged from the chat frames with `RemoveMessagesByPredicate` (10.3) | 2026-10-08 (code review decision 3) |
 | J2 / J4 Never touch Blizzard state | The guild invite is declined through the API (`DeclineGuild` / `C_GuildInfo.DeclineGuild`) plus `StaticPopup_Hide("GUILD_INVITE")` (10.3) | 2026-10-08 (code review decision 2) |
-| C3 No OnUpdate polling | The new window's pie (`PourSocialScore_UI/PSS_Pie.lua`) runs OnUpdate only while the mouse is over it, so the hovered slice follows the cursor; it is cleared on leave | 2026-10-08 |
+| C3 No OnUpdate polling | The new window's pie (`PourSocialScore_GUI/PSS_Pie.lua`) runs OnUpdate only while the mouse is over it, so the hovered slice follows the cursor; it is cleared on leave | 2026-10-08 |
 
 Blizzard hooks approved within the J rules (post-hooks, no override): `hooksecurefunc(ChatFrameUtil, "InsertLink")` on Retail 12.x (Dan, 2026-10-08), and the rest of 10.3.
 
@@ -101,5 +102,3 @@ Blizzard hooks approved within the J rules (post-hooks, no override): `hooksecur
 | Baseline rule | Where | Fixed by |
 | --- | --- | --- |
 | C15 GC only on request, event-driven | `PSS_Perf.lua`: a 10-minute idle cycle (section 4) | The 3.4.1 line (code review decision 5, Dan, 2026-10-08) |
-| C2 No behaviour change without opt-in | The old window's totals pane (3.3.0-dev004) shows for everyone | Removed with the old window at D2 (3.4.0) |
-| C3 No OnUpdate polling | Old window: `PSS_Pie.lua` while hovered, a UIKit helper while dragging | Removed with the old window at D2 (3.4.0) |

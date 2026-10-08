@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- POUR SOCIAL SCORE - EVENTS VIEW (for PourSocialScore_UI)
+-- POUR SOCIAL SCORE - EVENTS VIEW (for PourSocialScore_GUI)
 --
 -- What the window's Events tab shows, worked out here so the tab only
 -- draws: the blocked lines of the lists (or one entry of them), filtered by

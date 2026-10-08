@@ -57,8 +57,12 @@ local ON_DEMAND = { PourSocialScore_Logging = "Logging" }
 
 -- group -> the PourSocialScoreDB keys it holds. The options in
 -- M.PSS_OPTIONS (PSS_Options.lua) are added to "options".
+-- Retired keys stay listed so an upgrade step can still clear them in
+-- PSS_OptionsDB (charOptions, optionsV2012; euiIntegration, no longer an
+-- option from 3.4.0.25).
 local LAYOUT = {
-	options	= { "showIgnoreDebug", "windowSizes", "windowPoints", "columnWidths", "charOptions", "optionsV2012" },
+	options	= { "showIgnoreDebug", "windowSizes", "windowPoints", "columnWidths", "charOptions", "optionsV2012",
+				"euiIntegration" },
 	players	= { "ignoreList", "typeList", "factionList", "dateList", "notes", "expList", "delList",
 				"syncInfo", "playerData" },
 	guilds	= { "guildData", "guildExclusions", "guildGroupOpen", "scanFieldsDefaultV1", "guildPlayerCleanupV3" },

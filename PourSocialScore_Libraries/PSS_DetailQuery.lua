@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- POUR SOCIAL SCORE - DETAIL AND PIE MATHS (for PourSocialScore_UI)
+-- POUR SOCIAL SCORE - DETAIL AND PIE MATHS (for PourSocialScore_GUI)
 --
 -- What the window's pies and detail panes show, worked out here so the
 -- window only draws (moved from the port's pane code; the numbers come from

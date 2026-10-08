@@ -13,9 +13,9 @@ for the chat command list.
 
 == INSTALLING AND UPDATING
 
-Pour Social Score is six folders, plus two optional ones (below). Extract
-the zip into World of Warcraft/_retail_/Interface/AddOns/ (or your Camelot
-client's AddOns folder) so the folders sit side by side:
+Pour Social Score is six folders. Extract the zip into World of Warcraft/
+_retail_/Interface/AddOns/ (or your Camelot client's AddOns folder) so the
+folders sit side by side:
 
   PourSocialScore              always loaded: chat filtering, warnings,
                                declines, guild member capture
@@ -33,15 +33,11 @@ client's AddOns folder) so the folders sit side by side:
 The AddOns list shows them under one Pour Social Score heading. Keep all
 six enabled; PourSocialScore and PourSocialScore_Options are required.
 
-An eighth folder, PourSocialScore_UI, holds the new Pour Social Score window
-(from 3.4.0). From 3.4.0.23 it is the window: /pss gui, your Friends window
-and the Addon Compartment open it, and it is loaded only then (see THE POUR
-SOCIAL SCORE WINDOW below). Before the 3.4.0 release its files move into
-PourSocialScore_GUI and the folder goes away.
-
-A seventh folder, PourSocialScore_EllesmereUI, still comes in the zip but is
-no longer loaded (from 3.4.0.23): the window's Dark look replaces it. It is
-removed before the 3.4.0 release; you can delete it.
+From 3.4.0.25 PourSocialScore_GUI holds the new Pour Social Score window
+(see THE POUR SOCIAL SCORE WINDOW below). The PourSocialScore_UI and
+PourSocialScore_EllesmereUI folders of earlier builds are no longer used:
+delete them if they are still in your AddOns folder (Pour Social Score says
+so once at login).
 
 When updating, replace every folder (delete the old ones first so no stale
 file is left behind).
@@ -68,7 +64,7 @@ Player Ignore List
 * For everyone listed, by default: no ignore response, no decline messages,
   duels and trades declined (set on the Options tab). Any player, guild or
   guild member can be an exception (ticks on its View/Edit Rule page, or
-  its right-click menu, in the new window: /pss tui)
+  its right-click menu, in the window: /pss gui)
 * Player detail window: double-click an entry (see THE WINDOWS below)
 * Warnings when you invite, or are grouped with, someone on your list
 * Group warning covers every list: the Player Ignore List and guild rules
@@ -526,8 +522,7 @@ filter that mixes them without brackets may now behave differently.)
 
 /pss                      Show the command list
 /pss gui                  Open or close the Pour Social Score window (also
-                          /pss ui; /pss tui until 3.4.0). Its look and font
-                          are on its Options tab
+                          /pss ui). Its look and font are on its Options tab
 /pss list [days|server]   List entries; optionally only those listed for
                           [days] or more, or from one server
 /pss add name [days] [note]

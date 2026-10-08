@@ -3,6 +3,7 @@
 -----------------------------------
 local addonName, addon	= ...
 local M = addon.M -- shared methods
+local L = addon.L -- localization entries
 
 -- Saved data upgrades as numbered steps (the Questie model):
 --   * STEPS[1..N] run first to last. Append new steps at the end; never
@@ -178,6 +179,33 @@ local STEPS = {
 	{
 		fields = function()
 			if db.showDeclines == true then db.showDeclines = nil end
+		end,
+	},
+	-- 7 (3.4.0.25, D2): one window. The EllesmereUI integration option and
+	-- the old window's sizes, column widths and places are gone (the new
+	-- window keeps only its own place and tab in windowPoints). Says once if
+	-- a folder the window no longer uses is still in the AddOns folder.
+	{
+		fields = function()
+			db.euiIntegration = nil
+			db.windowSizes = nil
+			db.columnWidths = nil
+			local points = db.windowPoints
+			if type(points) == "table" then
+				for key in pairs(points) do
+					if key ~= "PSS_Window" and key ~= "PSS_WindowTab" then points[key] = nil end
+				end
+				if next(points) == nil then db.windowPoints = nil end
+			end
+		end,
+		data = function()
+			local exists = C_AddOns and C_AddOns.DoesAddOnExist
+			if not exists then return end
+			local left = {}
+			for _, name in ipairs({ "PourSocialScore_EllesmereUI", "PourSocialScore_UI" }) do
+				if exists(name) then left[#left + 1] = name end
+			end
+			if #left > 0 then M.ShowMsg(L["OLD_FOLDERS"]:format(table.concat(left, ", "))) end
 		end,
 	},
 }

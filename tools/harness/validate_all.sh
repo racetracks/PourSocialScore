@@ -79,9 +79,9 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_alerts.lua" 2>&1 | grep -v '^|cf
 echo "$out"
 echo "$out" | grep -q "PASS alerts" || fail=1
 
-# the PSS window (3.4.0) and the back end on demand: PourSocialScore_UI and
+# the PSS window (3.4.0) and the back end on demand: PourSocialScore_GUI and
 # _Libraries load only when needed; /pss gui, Friends / Social and the Addon
-# Compartment open it (3.4.0.23, D1; was check_gui.lua for the old window)
+# Compartment open it (3.4.0.23, D1; the window's folder from 3.4.0.25, D2)
 echo "== new window on demand"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_tui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
@@ -136,15 +136,35 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_secrets.lua" 2>&1 | grep -v '^|c
 echo "$out" | grep -E "PASS|FAIL"
 echo "$out" | grep -q "PASS secrets" || fail=1
 
-# the PSS window's Managed Communities row (3.3.0-dev003)
-echo "== Managed Communities row"
-out=$(lua5.1 "$here/run.lua" . - - "$here/check_managed_row.lua" 2>&1 | grep -v '^|cff')
-echo "$out"
-echo "$out" | grep -q "PASS managed row" || fail=1
-
-# EllesmereUI: the switch, and with PourSocialScore_EllesmereUI (this
-# repository's folder) the window, panel and tabs (check_eui_all.sh)
-sh "$here/check_eui_all.sh" || fail=1
+# one window (3.4.0.25, D2): upgrade step 7 prunes euiIntegration (held in
+# PSS_OptionsDB, no longer an option) and the old window's sizes, column
+# widths and places, keeps the window's own; a PourSocialScore_EllesmereUI
+# folder left on disk is named once, at the first login after the upgrade
+echo "== cutover"
+lua5.1 "$here/run.lua" . - "$work/co-0.lua" > /dev/null 2>&1
+cat >> "$work/co-0.lua" <<'SV'
+PourSocialScoreDB.upgrade.step = 6
+PSS_OptionsDB.euiIntegration = true
+PSS_OptionsDB.windowSizes = { main = { 900, 600 }, guildDetail = { 400, 300 } }
+PSS_OptionsDB.columnWidths = { players = { 120, 80 } }
+PSS_OptionsDB.windowPoints = { PSS = { "CENTER", "CENTER", 0, 0 }, PSSGuildDetail = { "LEFT", "LEFT", 5, 5 },
+	PSS_Window = { "TOPLEFT", "TOPLEFT", 300, -200 }, PSS_WindowTab = "guilds" }
+SV
+mkdir -p "$work/old/PourSocialScore_EllesmereUI"
+printf '## Interface: 120007\n## LoadOnDemand: 1\n' > "$work/old/PourSocialScore_EllesmereUI/PourSocialScore_EllesmereUI.toc"
+co1=$(PSS_EXTRA_ADDONS="$work/old/PourSocialScore_EllesmereUI" PSS_PHASE=1 lua5.1 "$here/run.lua" . "$work/co-0.lua" "$work/co-1.lua" "$here/check_cutover.lua" 2>&1)
+co2=$(PSS_EXTRA_ADDONS="$work/old/PourSocialScore_EllesmereUI" PSS_PHASE=2 lua5.1 "$here/run.lua" . "$work/co-1.lua" "$work/co-2.lua" "$here/check_cutover.lua" 2>&1)
+printf "%s\n%s\n" "$co1" "$co2" | grep -E "PASS|FAIL"
+note="safe to delete from Interface"
+if echo "$co1" | grep -q "PASS cutover 1" && echo "$co2" | grep -q "PASS cutover 2" &&
+	[ "$(echo "$co1" | grep -c "$note.*PourSocialScore_EllesmereUI")" = 1 ] && ! echo "$co2" | grep -q "$note"; then
+	echo "PASS cutover (old folder named once)"
+else
+	echo "$co1"; echo "$co2"; echo "FAIL cutover"; fail=1
+fi
+# no folder left: no note
+co3=$(lua5.1 "$here/run.lua" . "$work/co-0.lua" - 2>&1)
+echo "$co3" | grep -q "$note" && { echo "FAIL cutover: the note without an old folder"; fail=1; }
 
 # shipped guild lists on demand (3.0): PourSocialScore_Communities loads
 # only when the rule is on or members are needed
@@ -286,7 +306,7 @@ echo "== multi-addon harness"
 sh "$here/check_multi.sh" || fail=1
 
 # real saves: load, log in twice, keep every rule, player and member, and
-# show the same numbers in both windows
+# the window's tabs on each (their numbers equal the core's counts)
 if [ -n "$PSS_REAL_SAVES" ]; then
 	for sv in $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua'); do
 		echo "== real save $sv"
@@ -294,13 +314,6 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		lua5.1 "$here/run.lua" . "$work/real-1.lua" "$work/real-2.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
 		lua5.1 "$here/check_real.lua" "$sv" "$work/real-2.lua" || fail=1
 		lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_validate.lua" | grep -v '^|cff' || fail=1
-		# both windows show the same numbers (3.3.0-dev002)
-		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_match.lua" 2>&1 | grep -v '^|cff')
-		echo "$out"
-		echo "$out" | grep -q "^PASS match" || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_managed_row.lua" 2>&1 | grep -v '^|cff')
-		echo "$out"
-		echo "$out" | grep -q "PASS managed row" || fail=1
 		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_viewquery.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS viewquery" || fail=1

@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- POUR SOCIAL SCORE - CHAT FILTERS VIEW (for PourSocialScore_UI)
+-- POUR SOCIAL SCORE - CHAT FILTERS VIEW (for PourSocialScore_GUI)
 --
 -- What the window's Chat Filters tab shows and does, worked out here so the
 -- tab only draws: the list's sort and search, each row's text, the editor

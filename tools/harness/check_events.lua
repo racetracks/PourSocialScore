@@ -4,14 +4,14 @@
 -- the Time (custom range), Types and Source drop-downs, the search, sorting,
 -- link hover (never a profession link's tooltip), a double-click copy,
 -- Reset Block History, back / forward and Escape back to the tab that
--- opened it, and new blocks shown while it is open. Neither old window loads.
+-- opened it, and new blocks shown while it is open.
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL events: " .. msg) fail = true end end
 local loaded = C_AddOns.IsAddOnLoaded
 
 SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
-local ui = H.Private("PourSocialScore_UI")
+local ui = H.Private("PourSocialScore_GUI")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 local players = win.pages[1]
 local pane = players.pane
@@ -178,7 +178,6 @@ check(list.count == 0 or (list.rows[1].cells.message:GetText() or ""):find("expi
 -- a tab click: every list, every time and type
 win.tabs[4]._scripts.OnClick(win.tabs[4])
 check(view.q.scope == nil and view.q.period == nil and view.q.cats == nil and view.q.sources.guilds, "a tab click did not reset the query")
-check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
 local shownLines = #view.all
 
 -- (3.4.0.15) the lines read are dropped when the tab hides (another tab, or

@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- POUR SOCIAL SCORE - WINDOW STATE (for PourSocialScore_UI)
+-- POUR SOCIAL SCORE - WINDOW STATE (for PourSocialScore_GUI)
 --
 -- What the new window remembers and which look it draws. The window only
 -- draws; it reads and saves through these.

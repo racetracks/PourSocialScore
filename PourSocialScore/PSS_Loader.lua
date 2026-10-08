@@ -17,8 +17,6 @@ M.PSS_PARTS = {
 	Libraries = "PourSocialScore_Libraries",
 	Logging = "PourSocialScore_Logging",
 	Communities = "PourSocialScore_Communities",
-	EllesmereUI = "PourSocialScore_EllesmereUI",
-	UI = "PourSocialScore_UI",
 }
 
 -- C_AddOns on current clients, the old globals where it is missing
@@ -32,7 +30,7 @@ local function version(name)
 end
 
 -- parts that need another part first (the windows call the back end)
-local NEEDS = { GUI = "Libraries", EllesmereUI = "Libraries", UI = "Libraries" }
+local NEEDS = { GUI = "Libraries" }
 
 local warned = {}
 

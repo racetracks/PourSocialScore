@@ -38,8 +38,8 @@ end
 
 SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
-check(win and win:IsShown(), "/pss tui did not open the window")
-local ui = H.Private("PourSocialScore_UI")
+check(win and win:IsShown(), "/pss gui did not open the window")
+local ui = H.Private("PourSocialScore_GUI")
 
 ------------------------------------------------------------------------
 -- Player Ignore List

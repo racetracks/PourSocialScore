@@ -1599,7 +1599,7 @@ Whois.Listen({
 -- treated as a complete /who filter and sent untouched.
 -- mode "exclude" (the Guild Exclusion List search): the text is always a
 -- guild name, and the results picker adds to the exclusion list instead.
--- owner: who shows the results (nil = the PSS window, "eui" = EllesmereUI).
+-- owner: who shows the results (the window: M.PSS_GUILD_SEARCH_OWNER).
 function M.PSS_GuildSearch(text, mode, owner)
 	text = trim(text or "")
 	if text == "" then return false end

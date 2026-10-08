@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- POUR SOCIAL SCORE - PLAYER IGNORE LIST VIEW (for PourSocialScore_UI)
+-- POUR SOCIAL SCORE - PLAYER IGNORE LIST VIEW (for PourSocialScore_GUI)
 --
 -- What the window's Player Ignore List tab shows and does, worked out here
 -- so the tab only draws: the list's sort and search, each column's text,

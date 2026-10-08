@@ -2,9 +2,7 @@
 -- POUR SOCIAL SCORE - PLAYER IGNORE LIST QUERIES (3.1)
 --
 -- What a front end needs to show and change the Player Ignore List, so the
--- PSS window (PourSocialScore_GUI) and the EllesmereUI window
--- (PourSocialScore_EllesmereUI) read the list the same way and neither
--- reads the saved tables itself.
+-- PSS window (PourSocialScore_GUI) never reads the saved tables itself.
 --   M.PSS_PlayerCount()                   entries on the list
 --   M.PSS_PlayerRow(i, out)               entry i as display values, written
 --                                         into out (the caller's own table,

@@ -97,8 +97,7 @@ for _, base in ipairs(bases) do
 	end
 end
 
--- other addons (PSS_EXTRA_ADDONS="dir,dir"): e.g. the EllesmereUI stand-in
--- (a PourSocialScore_EllesmereUI elsewhere: PSS_EUI_ADDON)
+-- other addons (PSS_EXTRA_ADDONS="dir,dir"), for a stand-in of another addon
 for dir in (os.getenv("PSS_EXTRA_ADDONS") or ""):gmatch("[^,]+") do
 	dir = dir:gsub("/$", "")
 	local name = dir:match("([^/]+)$")
@@ -160,6 +159,8 @@ C_AddOns.LoadAddOn = function(name)
 	return false, why
 end
 C_AddOns.EnableAddOn = function() end
+-- a folder is in the AddOns folder when the harness found its TOC
+C_AddOns.DoesAddOnExist = function(name) return addons[name] ~= nil end
 C_AddOns.GetAddOnMetadata = function(name, field)
 	local a = addons[name]
 	if a and a.meta[field] then return a.meta[field] end

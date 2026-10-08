@@ -1,10 +1,11 @@
 -- The new PSS window (3.4.0), as a run.lua script on a fresh save:
--- PourSocialScore_UI and PourSocialScore_Libraries are not loaded at login;
+-- PourSocialScore_GUI and PourSocialScore_Libraries are not loaded at login;
 -- chat, the note popup, the group warning and list changes work without
 -- them (core's popups are StaticPopups); a chat command loads Libraries
 -- only; from 3.4.0.23 (D1, moved from check_gui.lua) the Friends and
--- Social windows (with the option on), /pss gui, /pss ui, /pss tui and the
--- Addon Compartment open it, never an old window; it toggles; Escape
+-- Social windows (with the option on), /pss gui, /pss ui and the Addon
+-- Compartment open it; from 3.4.0.25 (D2) it is PourSocialScore_GUI, the
+-- loader has no other window part and /pss tui is gone; it toggles; Escape
 -- closes it; a dragged place is remembered; the look follows the uiSkin
 -- option (Blizzard by default) and repaints the open window; the kit's
 -- controls and tooltips follow the look; the uiFont option picks a Blizzard
@@ -13,15 +14,17 @@ local fail = false
 local function check(ok, msg) if not ok then print("FAIL tui: " .. msg) fail = true end end
 local loaded = function(name) return C_AddOns.IsAddOnLoaded(name) end
 
-check(not loaded("PourSocialScore_UI"), "UI loaded at login")
+check(not loaded("PourSocialScore_GUI"), "GUI loaded at login")
 check(not loaded("PourSocialScore_Libraries"), "Libraries loaded at login")
-check(M.PSS_PARTS.UI == "PourSocialScore_UI", "loader has no UI part")
+check(M.PSS_PARTS.GUI == "PourSocialScore_GUI" and M.PSS_PARTS.UI == nil and M.PSS_PARTS.EllesmereUI == nil,
+	"loader parts: the window is GUI, no UI or EllesmereUI part")
+check(M.PSS_TUI == nil and M.PSS_GUI == nil and M.PSS_OpenUI and M.PSS_AskReload, "core's window entry points")
 
 -- a list change with the window asleep loads nothing
 M.PSS_AddPlayer("Badguy")
 M.Events.Fire("PLAYERS_CHANGED", true)
 M.Events.Fire("OPTION_CHANGED", "uiSkin")
-check(not loaded("PourSocialScore_UI"), "UI loaded by a change")
+check(not loaded("PourSocialScore_GUI"), "GUI loaded by a change")
 
 -- what fires during play, with the window asleep: core's popups
 local shown = {}
@@ -31,7 +34,7 @@ M.Events.Fire("ASK_NOTE", "Badguy")
 M.Events.Fire("GROUP_WARNING", { "Badguy" })
 StaticPopup_Show = realPopup
 check(shown[1] == "PSS_REASON" and shown[2] == "PSS_PARTYWARN", "note popup and group warning")
-check(not loaded("PourSocialScore_UI") and not loaded("PourSocialScore_Libraries"), "a popup loaded the window")
+check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_Libraries"), "a popup loaded the window")
 
 -- chat commands load Libraries, not the window
 local said, realShow, realChat = {}, M.ShowMsg, M.ChatMsg
@@ -40,7 +43,7 @@ M.ChatMsg = M.ShowMsg
 SlashCmdList["PSS"]("mem")
 SlashCmdList["PSSGUILD"]("")
 check(loaded("PourSocialScore_Libraries"), "/pss did not load Libraries")
-check(not loaded("PourSocialScore_UI"), "/pss mem loaded the window")
+check(not loaded("PourSocialScore_GUI"), "/pss mem loaded the window")
 check(table.concat(said, "\n"):find("PSS guild:", 1, true) ~= nil, "/pssguild did not run")
 -- /pss lists gui (and no longer the old tui, eui and gui force)
 said = {}
@@ -54,12 +57,12 @@ check(not help:find("tui", 1, true) and not help:find("eui", 1, true) and not he
 local opt = PourSocialScoreDB.openWithFriends
 PourSocialScoreDB.openWithFriends = false
 FriendsFrame:Show(); FriendsFrame:Hide()
-check(not loaded("PourSocialScore_UI"), "Friends loaded the window with the option off")
+check(not loaded("PourSocialScore_GUI"), "Friends loaded the window with the option off")
 -- option on: loads it and shows it beside Friends, closes with it
 PourSocialScoreDB.openWithFriends = true
 FriendsFrame:Show()
 local win = _G.PSS_Window
-check(loaded("PourSocialScore_UI") and win and win:IsShown(), "Friends did not open the window")
+check(loaded("PourSocialScore_GUI") and win and win:IsShown(), "Friends did not open the window")
 check(win._point and win._point[1] == "TOPLEFT" and win._point[2] == FriendsFrame and win._point[4] == 12, "window not beside Friends")
 FriendsFrame:Hide()
 check(not win:IsShown(), "window not closed with Friends")
@@ -80,11 +83,13 @@ check(win:IsShown(), "a Friends window closing closed the window opened by comma
 SlashCmdList["PSS"]("gui")
 check(not win:IsShown(), "/pss gui did not close it")
 PourSocialScoreDB.openWithFriends = opt
--- /pss ui and /pss tui (until D2) toggle it too; the Addon Compartment opens it
+-- /pss ui toggles it too, /pss tui is gone (D2); the Addon Compartment opens it
 SlashCmdList["PSS"]("ui")
 check(win:IsShown(), "/pss ui did not open the window")
 SlashCmdList["PSS"]("tui")
-check(not win:IsShown(), "/pss tui did not close the window")
+check(win:IsShown(), "/pss tui still toggles the window")
+SlashCmdList["PSS"]("ui")
+check(not win:IsShown(), "/pss ui did not close the window")
 local entry
 for _, info in ipairs(AddonCompartmentFrame.registered) do
 	if info.text == "Pour Social Score" then entry = info end
@@ -95,11 +100,9 @@ check(win:IsShown(), "the Addon Compartment did not open the window")
 SlashCmdList["PSS"]("gui")
 win._point = nil
 
--- /pss gui opens it at its own place, loading Libraries and UI only
+-- /pss gui opens it at its own place, loading Libraries and GUI only
 SlashCmdList["PSS"]("gui")
-check(loaded("PourSocialScore_UI") and loaded("PourSocialScore_Libraries"), "/pss gui did not load UI and Libraries")
-check(not loaded("PourSocialScore_GUI"), "the window loaded the old GUI")
-check(not loaded("PourSocialScore_EllesmereUI"), "the window loaded the EllesmereUI window")
+check(loaded("PourSocialScore_GUI") and loaded("PourSocialScore_Libraries"), "/pss gui did not load GUI and Libraries")
 check(win and win:IsShown(), "/pss gui did not show the window")
 check(win and win:GetWidth() == 960 and win:GetHeight() == 494, "window is not 960 x 494")
 check(win and win.title and win.title:GetText() == "Pour Social Score", "no title")
@@ -174,7 +177,7 @@ pg.navUp = function() if sub then sub = nil return true end return false end
 pg.navTitle = function(v) return "Members of " .. v end
 win.tabs[6]._scripts.OnClick(win.tabs[6])
 sub = "Badguild"
-local ui = H.Private("PourSocialScore_UI")
+local ui = H.Private("PourSocialScore_GUI")
 ui.NavRecord()
 check(win.where:GetText() == "Options  >  Members of Badguild", "the line does not name the sub-view")
 check(win.crumbs[1] and win.crumbs[1]:IsShown() and win.crumbs[1].tipText == "Back to Options.", "no link back to the tab")
@@ -265,7 +268,7 @@ win:Hide()
 
 -- the kit preview (tools/harness/kit_page.lua, on a frame of its own), in every look
 local dir = debug.getinfo(1, "S").source:match("^@(.*)/[^/]*$") or "."
-assert(loadfile(dir .. "/kit_page.lua"))("PourSocialScore_UI", ui)
+assert(loadfile(dir .. "/kit_page.lua"))("PourSocialScore_GUI", ui)
 local host = CreateFrame("Frame", nil, UIParent)
 host:SetSize(960, 494)
 ui.BuildKitPage(host)
@@ -482,7 +485,7 @@ check(win.art.black and win.art.black:IsShown() and art.blizzard:IsShown(), "Mod
 do
 	local bz = art.blizzard
 	bz.Bg, bz.TopTileStreaks = bz:CreateTexture(), bz:CreateTexture()
-	H.Private("PourSocialScore_UI").Repaint()
+	H.Private("PourSocialScore_GUI").Repaint()
 	local band, streaks = win.art.band, win.art.streaks
 	check(band and band:IsShown() and band._texture == "Interface\\FrameGeneral\\UI-Background-Rock" and band:GetHeight() == 63,
 		"Modern has no stone band behind the tabs")

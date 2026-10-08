@@ -1,5 +1,5 @@
 -- The new window's tour (3.4.0.16; run.lua script, any save): in each look
--- (Modern, Classic, Dark) opens /pss tui, clicks every tab, the first rows
+-- (Modern, Classic, Dark) opens /pss gui, clicks every tab, the first rows
 -- of the Players, Guilds and Chat Filters lists, a confirm, the copy popup
 -- and a drop-down, and after every step writes what is shown to
 -- PSS_UI_DUMP: path, type, size, text, colour, the alpha the eye sees (text
@@ -130,7 +130,7 @@ step("add player", function() M.PSS_AddPlayer("Tourplayer-Realm", "a note", 0) e
 for _, skin in ipairs({ 2, 0, 1 }) do
 	local look = ({ [0] = "classic", [1] = "dark", [2] = "modern" })[skin]
 	step(look .. " look", function() M.PSS_SetOpt("uiSkin", "global", skin) end)
-	step(look .. " open", function() if not (_G.PSS_Window and _G.PSS_Window:IsShown()) then SlashCmdList.PSS("tui") end end)
+	step(look .. " open", function() if not (_G.PSS_Window and _G.PSS_Window:IsShown()) then SlashCmdList.PSS("gui") end end)
 	local win = _G.PSS_Window
 	for i = 1, #(win and win.tabs or {}) do
 		step(look .. " tab " .. i, function() click(win.tabs[i]) end)
@@ -150,7 +150,10 @@ for _, skin in ipairs({ 2, 0, 1 }) do
 			end
 		end
 	end
-	local ui = H.Private("PourSocialScore_UI")
+	-- the window's folder: PourSocialScore_GUI from 3.4.0.25 (D2),
+	-- PourSocialScore_UI before (so a compare reaches back past D2)
+	local ui = H.Private("PourSocialScore_GUI")
+	if not (ui and ui.Confirm) then ui = H.Private("PourSocialScore_UI") end
 	step(look .. " confirm", function() ui.Confirm({ text = "Tour confirm", accept = "Remove" }) end)
 	step(look .. " confirm closed", function() _G.PSS_Confirm:Hide() end)
 	step(look .. " copy", function() ui.CopyText({ title = "Tour copy", text = "line one\nline two" }) end)

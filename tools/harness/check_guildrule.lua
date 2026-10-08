@@ -36,18 +36,25 @@ M.PSS_History.Each(function(h) if h.r ~= nil then tagged = tagged + 1 end end)
 eq("lines with a rule tag", tagged, 0)
 eq("rule history", #M.PSS_FilterHistory(i), 0)
 
--- the Chat Filters row reads n/a
-M.PSS_GUI()
+-- the rule's row on the window's Chat Filters tab reads n/a
+SlashCmdList["PSS"]("gui")
 H.RunTimers()
-_G.PSSTab2:GetScript("OnClick")(_G.PSSTab2)
+local win = _G.PSS_Window
+win.tabs[3]._scripts.OnClick(win.tabs[3])
+local page = win.pages[3]
+local list, V = page.list, page.state
+list.scroll:SetHeight(300)
+list:Layout()
 local na = false
-local realOffset = FauxScrollFrame_GetOffset
-for off = 0, #db.filterList do
-	FauxScrollFrame_GetOffset = function() return off end
-	M.FilterListDrawUpdate(nil)
-	for _, f in ipairs(H.frames) do if f._text == "n/a" and f:IsVisible() then na = true end end
+for row = 1, V.count do
+	if V.index[row] == i then
+		list.scroll:SetVerticalScroll((row - 1) * list.rowH)
+		for _, r in ipairs(list.rows) do
+			if r.index == row and r:IsVisible() and r.cells.blocked:GetText() == "n/a" then na = true end
+		end
+	end
 end
-FauxScrollFrame_GetOffset = realOffset
+SlashCmdList["PSS"]("gui")
 eq("Chat Filters row shows n/a", na, true)
 
 -- a shipped member and the found member: counted on the guild only

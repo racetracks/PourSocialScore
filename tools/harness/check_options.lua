@@ -7,10 +7,8 @@
 -- matching options and its box shows with the tab only; Import/Export:
 -- the parts (members only with guilds), the mode, Export round-tripping
 -- through Import (merge, and replace after a confirm), a bad string.
--- Neither old window loads.
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL options: " .. msg) fail = true end end
-local loaded = C_AddOns.IsAddOnLoaded
 local said = {}
 local realShow = M.ShowMsg
 M.ShowMsg = function(x) said[#said + 1] = tostring(x) realShow(x) end
@@ -190,7 +188,6 @@ do
 	M.PSS_SetOpt("historyTotal", "global", 2000)
 	M.PSS_SetOpt("uiFont", "global", "")
 end
-check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
 M.ShowMsg = realShow
 
 if not fail then print(("PASS options (%d options)"):format(n)) end
