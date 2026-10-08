@@ -3,13 +3,13 @@
 The pipeline is the baseline's (baseline 09). The live files are `.github/workflows/release.yml`, `.github/workflows/rules.yml` and `tools/`. PSS-specific details:
 
 ## Names and paths
-- Main TOC (version source): `PourSocialScore/PourSocialScore.toc`. Zip: `PourSocialScore-<version>.zip` holding every `PourSocialScore*` folder (eight from 3.4.0-dev001 with `PourSocialScore_UI`), readme.txt and history.txt copied into the core folder.
+- Main TOC (version source): `PourSocialScore/PourSocialScore.toc`. Zip: `PourSocialScore-<version>.zip` holding every `PourSocialScore*` folder (eight from 3.4.0-dev001 with `PourSocialScore_UI`, six from 3.4.0.25), readme.txt and history.txt copied into the core folder.
 - Release title: `Pour Social Score <version>`. Tags `v<version>`.
 - history.txt opens with "POUR SOCIAL SCORE - VERSION HISTORY" and "(newest first)"; each section is `=> X.Y.Z.B - Title`, a blank line, then plain bullets (`tools/bump_version.sh` writes it).
 
 ## CI jobs (rules.yml)
-- `check`: `sh tools/check_rules.sh` (Lua 5.1 syntax, ASCII, tabs, layers) plus `tools/check_rules_eui.sh` (the EUI folder's 4-space style and Version = core's).
-- `harness`: `PSS_EUI_REQUIRED=1 sh tools/harness/check_eui_all.sh`, then the new window's checks (`check_tui`, `check_viewquery`, `check_players`, `check_guilds`, `check_filters`, `check_events`, `check_options`, `check_menus` (3.4.0.21)) and `check_secrets.lua` (3.4.0.14).
+- `check`: `sh tools/check_rules.sh` (Lua 5.1 syntax, ASCII, tabs, layers, TOCs, the history check; `tools/check_rules_eui.sh` is gone with the EUI folder, 3.4.0.25).
+- `harness`: the window's checks (the EllesmereUI checks went at 3.4.0.25) (`check_tui`, `check_viewquery`, `check_players`, `check_guilds`, `check_filters`, `check_events`, `check_options`, `check_menus` (3.4.0.21)) and `check_secrets.lua` (3.4.0.14).
 - `upgrades` (3.4.0.14): `sh tools/harness/validate_all.sh` on a full clone (`fetch-depth: 0`), without real saves: upgrades from every old layout, data, on demand, growth, the window checks. The real-save run stays local (saves built from scratch).
 - `check` also runs `tools/check_toc.sh` on every `PourSocialScore_*` folder (three TOCs agree, files exist, Version = core's) and the PSS-names check.
 
@@ -35,7 +35,7 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 - Job `mirror` publishes each full release, with the same zip and notes, on **`racetracks/Pour-Social-Score`** (`MIRROR_REPO` in release.yml). It needs the secret `MIRROR_TOKEN` (a fine-grained token with Contents: Read and write on that repo only) on the addon repo; the mirror repo already has a commit, which it needs. Builds are not mirrored. After fixing a secret, run Actions > Release > Run workflow on main.
 
 ## Build numbers (Dan, 2026-10-08)
-Every build is `X.Y.Z.B` (02 section 8): the next build number for every test zip, a stage or a fix, merged or not (`3.4.0.13`, `3.4.0.14`, ...); every TOC, a history section and the zip name carry it. `check_toc.sh` and `check_rules_eui.sh` accept only `X.Y.Z` and `X.Y.Z.B`. `release.yml` publishes a four-part version, or an older one with `-`, as a pre-release, and turns any such release that is not one back into a pre-release; a plain `X.Y.Z` is a full release, set only when Dan says so.
+Every build is `X.Y.Z.B` (02 section 8): the next build number for every test zip, a stage or a fix, merged or not (`3.4.0.13`, `3.4.0.14`, ...); every TOC, a history section and the zip name carry it. `check_toc.sh` accepts only `X.Y.Z` and `X.Y.Z.B`. `release.yml` publishes a four-part version, or an older one with `-`, as a pre-release, and turns any such release that is not one back into a pre-release; a plain `X.Y.Z` is a full release, set only when Dan says so.
 
 Until 3.4.0-dev012 a round of fixes on an unmerged dev build was `devNNN_N` (`3.4.0-dev002_2`, `_3`, ...).
 
