@@ -1,6 +1,6 @@
 # PourSocialScore (PSS): the addon as it works (state at release 3.4.0.29)
 
-**The state document (baseline 02 E11, Dan, 2026-10-08):** how the addon works at the last full release. It is re-summarized at every full release from the plan's done stages (next: at 3.4.1.45, from `10_CORE_UPLIFT.md`). Status is in 06; Dan's preferences are in 11.
+**The state document (baseline 02 E11, Dan, 2026-10-08):** how the addon works at the last full release. It is re-summarized at every full release from the plan's done stages (next: at 3.4.1.46, from `10_CORE_UPLIFT.md`). Status is in 06; Dan's preferences are in 11.
 
 ## 1. Purpose
 PourSocialScore is Dan's World of Warcraft chat moderation addon (GitHub `racetracks`, in-game author Boaties). Clients: Retail (Midnight, Interface **120007**) and Camelot (Interface **16001**).

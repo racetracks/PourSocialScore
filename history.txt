@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.34 - Core uplift: B1 and B2 planned
+
+- No change in game: the plan now includes PSS taking over Blizzard's ignore list and a PSS section in the right-click menu.
+
 => 3.4.1.33 - Core uplift N2: every name caller
 
 - On WoW Forever, a player with a surname ("First Last") is now listed by their whole name from every place you can add them: the PSS entry of the right-click menu, Blizzard's own Ignore, /pss add on your target, and players seen around you for guild rules. Before, they were saved as "First" on a realm called "Last" and never blocked.
