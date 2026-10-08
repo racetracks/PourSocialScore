@@ -71,7 +71,7 @@ local function Click(_, i, button)
 		local h = view.shown[i]
 		if h then
 			local subtitle, text = M.PSS_EventCopy(h)
-			ns.CopyText({ title = "Events", subtitle = subtitle, text = text })
+			ns.CopyText({ title = "Copy Event", subtitle = subtitle, text = text })
 		end
 	end
 end
@@ -83,7 +83,7 @@ local function ResetHistory()
 		Refresh(true)
 		return
 	end
-	ns.Confirm({ text = text, accept = "Reset", onAccept = function()
+	ns.Confirm({ title = "Reset Block History?", text = text, accept = "Reset", onAccept = function()
 		view:DoReset()
 		Refresh(true)
 	end })

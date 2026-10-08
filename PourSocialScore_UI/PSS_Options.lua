@@ -159,11 +159,11 @@ end
 ------------------------------------------------------------------------
 local function Export()
 	local text = M.PSS_ExportText()
-	ns.CopyText({ title = "Pour Social Score Export", subtitle = ("Copy the string below (%d characters)"):format(#text), text = text })
+	ns.CopyText({ title = "Export", subtitle = ("Copy the string below (%d characters)"):format(#text), text = text })
 end
 
 local function Import()
-	ns.ImportText({ title = "Pour Social Score Import", subtitle = "Paste a Pour Social Score export string below",
+	ns.ImportText({ title = "Import", subtitle = "Paste a Pour Social Score export string below",
 		accept = "Import", onAccept = function(str)
 			local data, err = M.PSS_ImportCheck(str)
 			if not data then
@@ -175,7 +175,7 @@ local function Import()
 				M.ShowMsg(M.PSS_ImportApply(data))
 				return
 			end
-			ns.Confirm({ text = ask, accept = "Replace", onAccept = function() M.ShowMsg(M.PSS_ImportApply(data)) end })
+			ns.Confirm({ title = "Replace on Import?", text = ask, accept = "Replace", onAccept = function() M.ShowMsg(M.PSS_ImportApply(data)) end })
 		end })
 end
 

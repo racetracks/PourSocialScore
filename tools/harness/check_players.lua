@@ -252,6 +252,7 @@ do
 	H.RunTimers()
 	local cf = _G.PSS_Confirm
 	check(cf and cf:IsShown() and cf.text:GetText():find("Nobodyhere", 1, true), "no add anyway question")
+	check(cf.title:GetText() == "Add Player?", "add anyway title: " .. tostring(cf.title:GetText()))
 	cf.accept._scripts.OnClick(cf.accept)
 	check(M.PSS_IsPlayerListed("Nobodyhere"), "add anyway did not add")
 	-- the picker closes on Escape (the window stays)
@@ -280,6 +281,13 @@ do
 	page.pruneButton._scripts.OnClick(page.pruneButton)
 	local cf = _G.PSS_Confirm
 	check(cf:IsShown() and cf.number:IsShown() and cf.number:GetText() == "365", "Prune confirm without its days box")
+	-- (3.4.0.18) the title says what it asks, no addon name; it sits above
+	-- the frame art (raised over the Blizzard border)
+	check(cf.title:GetText() == "Prune Players?", "Prune title: " .. tostring(cf.title:GetText()))
+	local art = cf.pssParts and cf.pssParts.art
+	if art and art.NineSlice and art.NineSlice.GetFrameLevel then
+		check(cf.title:GetParent():GetFrameLevel() > art.NineSlice:GetFrameLevel(), "the popup title is under the frame border")
+	end
 	check(cf.note:GetText():find("^1 entry listed for 365 days or more") ~= nil, "Prune note: " .. tostring(cf.note:GetText()))
 	cf.accept._scripts.OnClick(cf.accept)
 	check(M.PSS_PlayerPosition("Oldentry-Realm") == 0 and M.PSS_PlayerCount() == before - 1, "Prune did not remove only the old entry")

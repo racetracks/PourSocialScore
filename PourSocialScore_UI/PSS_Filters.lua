@@ -84,7 +84,7 @@ local function ConfirmRemove()
 	local i = sel
 	local text, desc = M.PSS_FilterRemoveText(i)
 	if not text then return end
-	ns.Confirm({ text = text, accept = "Remove", onAccept = function()
+	ns.Confirm({ title = "Remove Rule?", text = text, accept = "Remove", onAccept = function()
 		local _, after = M.PSS_FilterRemove(i, desc, sel)
 		sel = after
 	end })
@@ -388,7 +388,7 @@ ns.TabBuilders.filters = function(pg)
 	ns.TipOn(new, new, "A new custom filter (starts Off): give it a description and filter, Save, then tick On.")
 	pg.newButton = new
 	local reset = ns.NewButton(pg, L["BUT_7"] or "Reset Defaults", 120, function()
-		ns.Confirm({ text = L["BOX_2"], accept = "Reset", onAccept = function()
+		ns.Confirm({ title = "Reset Chat Filters?", text = L["BOX_2"], accept = "Reset", onAccept = function()
 			sel = nil
 			M.ResetSpamFilters()
 		end })

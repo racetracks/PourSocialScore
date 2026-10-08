@@ -69,8 +69,19 @@ local function Shell(name, w, h)
 	dim:SetFrameLevel(math.max(0, f:GetFrameLevel() - 1))
 	ns.Fill(dim, DIM, -8)
 	dim:SetScript("OnClick", function() f:Hide() end)
-	f.title = ns.NewText(f, 16, "GameFontNormalLarge")
-	f.title:SetPoint("TOP", f, "TOP", 0, -20)
+	-- The title says what the popup asks (no addon name). It sits on a frame
+	-- above the frame art: the Blizzard frame's border (its NineSlice) has a
+	-- fixed level of about 500 and hid it (as the window's own title,
+	-- PSS_Window.lua). Classic and Modern: in the title bar, as the window's;
+	-- Dark: larger, lower on the flat panel.
+	local chrome = CreateFrame("Frame", nil, f)
+	chrome:SetAllPoints(f)
+	local top = f:GetFrameLevel() + 8
+	if art and art.NineSlice and art.NineSlice.GetFrameLevel then
+		top = math.max(top, art.NineSlice:GetFrameLevel() + 10)
+	end
+	chrome:SetFrameLevel(top)
+	f.title = ns.NewText(chrome, 16, "GameFontNormalLarge")
 	f.pssParts = { fill = fill, edge = edge, art = art, dim = dim }
 	ns.OnPaint(function(dark)
 		local ours = dark or not art
@@ -78,6 +89,9 @@ local function Shell(name, w, h)
 		edge:SetShown(ours)
 		dim:SetShown(dark)
 		if art then art:SetShown(not ours) end
+		f.title:SetFontObject(ours and ns.Font(16, "GameFontNormalLarge") or ns.Font(13, "GameFontNormal"))
+		f.title:ClearAllPoints()
+		f.title:SetPoint("TOP", f, "TOP", 0, ours and -20 or -6)
 	end)
 	return f
 end
@@ -90,7 +104,7 @@ local confirm, confirmOpts
 local function BuildConfirm()
 	confirm = Shell("PSS_Confirm", 390, 176)
 	confirm.text = ns.NewText(confirm, 12)
-	confirm.text:SetPoint("TOP", confirm.title, "BOTTOM", 0, -10)
+	confirm.text:SetPoint("TOP", confirm, "TOP", 0, -46)
 	confirm.text:SetWidth(330)
 	confirm.text:SetJustifyH("CENTER")
 	confirm.text:SetSpacing(4)
@@ -140,7 +154,7 @@ function ns.Confirm(opts)
 	if not confirm then BuildConfirm() end
 	if confirm:IsShown() then confirm:Hide() end
 	confirmOpts = opts
-	confirm.title:SetText(opts.title or "Pour Social Score")
+	confirm.title:SetText(opts.title or "")
 	confirm.text:SetText(opts.text or "")
 	confirm.accept:SetText(opts.accept or OKAY or "Okay")
 	confirm.cancel:SetText(opts.cancel or CANCEL or "Cancel")
@@ -168,9 +182,8 @@ local textPop, textOpts
 local function BuildText()
 	local f = Shell("PSS_TextPopup", 520, 310)
 	textPop = f
-	f.title:SetPoint("TOP", f, "TOP", 0, -20)
 	f.subtitle = ns.NewText(f, 11)
-	f.subtitle:SetPoint("TOP", f.title, "BOTTOM", 0, -4)
+	f.subtitle:SetPoint("TOP", f, "TOP", 0, -40)
 	f.subtitle:SetTextColor(1, 1, 1)
 	f.subtitle:SetAlpha(0.45)
 	local box = ns.NewPanel(f, true)
@@ -224,7 +237,7 @@ local function ShowText(opts, readOnly)
 	opts.readOnly = readOnly
 	textOpts = opts
 	local f = textPop
-	f.title:SetText(opts.title or "Pour Social Score")
+	f.title:SetText(opts.title or "")
 	f.subtitle:SetText(opts.subtitle or "")
 	f.edit:SetText(opts.text or "")
 	f.accept:ClearAllPoints()

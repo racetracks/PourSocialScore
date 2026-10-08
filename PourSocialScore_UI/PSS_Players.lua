@@ -90,6 +90,7 @@ local function ConfirmRemove()
 	local entry = sel
 	if not entry then return end
 	ns.Confirm({
+		title = "Remove Player?",
 		text = M.PSS_PlayerRemoveText(entry),
 		accept = "Remove",
 		onAccept = function()
@@ -397,7 +398,7 @@ local function ShowSearchResults(found, query)
 	if not found or #found == 0 then
 		local text, name = M.PSS_PlayerNoneFound(query)
 		if text then
-			ns.Confirm({ text = text, accept = "Add Anyway", onAccept = function() M.PSS_PlayerAddAnyway(name) end })
+			ns.Confirm({ title = "Add Player?", text = text, accept = "Add Anyway", onAccept = function() M.PSS_PlayerAddAnyway(name) end })
 		end
 		return
 	end
@@ -410,7 +411,7 @@ local function ShowSearchResults(found, query)
 end
 
 local function ConfirmPrune()
-	ns.Confirm({ text = M.PSS_PruneText(), accept = "Prune", number = M.PSS_PRUNE_DAYS,
+	ns.Confirm({ title = "Prune Players?", text = M.PSS_PruneText(), accept = "Prune", number = M.PSS_PRUNE_DAYS,
 		numberNote = M.PSS_PruneNote, onAccept = function(days) M.PSS_PruneApply(days) end })
 end
 

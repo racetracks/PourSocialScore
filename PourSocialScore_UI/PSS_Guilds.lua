@@ -254,7 +254,7 @@ local function ConfirmRemoveGuild()
 	local key = V.selKind == "guild" and V.sel or (V.view == "members" and V.mguild)
 	local text = M.PSS_GuildRemoveText(key)
 	if not text then return end
-	ns.Confirm({ text = text, accept = "Remove", onAccept = function()
+	ns.Confirm({ title = "Remove Guild?", text = text, accept = "Remove", onAccept = function()
 		if V.view == "members" then CloseMembers() end
 		M.PSS_GuildRemove(key)
 	end })
@@ -263,7 +263,7 @@ end
 local function ConfirmRemoveMember()
 	local m = V.msel
 	if not m then return end
-	ns.Confirm({ text = M.PSS_MemberRemoveText(m), accept = "Remove", onAccept = function()
+	ns.Confirm({ title = "Remove Member?", text = M.PSS_MemberRemoveText(m), accept = "Remove", onAccept = function()
 		if V:RemoveMember() and page:IsVisible() then
 			MResort()
 			ShowDetail(true)
@@ -656,7 +656,7 @@ local function ShowSearchResults(found, query, mode)
 	if not found or #found == 0 then
 		local text, name = M.PSS_GuildNoneFound(query, mode)
 		if text then
-			ns.Confirm({ text = text, accept = "Add Anyway", onAccept = function() M.PSS_GuildExcludeAnyway(name) end })
+			ns.Confirm({ title = "Exclude Guild?", text = text, accept = "Add Anyway", onAccept = function() M.PSS_GuildExcludeAnyway(name) end })
 		end
 		return
 	end
