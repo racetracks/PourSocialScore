@@ -44,5 +44,7 @@ Everything about how Dan works and what he wants from Claude lives here (Dan, 20
 - **Copy logic, never code or media,** from other addons, and respect licences.
 - **TOC Title and Notes are Dan's;** never change them unless asked.
 - **Hover never opens a window.**
+- **User systems must be intuitive (2026-10-08):** one action does the obvious whole thing; removing someone from one list removes them from every list they are on.
+- **PSS is authoritative (2026-10-08):** PSS never acts through Blizzard's systems (its ignore list) unless the player asked for it for that person.
 - **One plain merge flow:** one PR per step, based on main, never stacked.
 - **Ask before anything hard to undo:** save layout, deleting data, production releases.

@@ -3,15 +3,11 @@
 Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4.1.30 is in `reference/06_status-history-to-3.4.1.30.md`. The addon as it works is in `01_HANDOVER.md`; the current plan is `10_CORE_UPLIFT.md`.
 
 ## Now
-- **Live release: 3.4.0.29** (full, the new PSS window; mirrored to `racetracks/Pour-Social-Score`). **Main: 3.4.1.32** (PR #120, core uplift N1: `M.PSS_NormName`).
+- **Live release: 3.4.0.29** (full, the new PSS window; mirrored to `racetracks/Pour-Social-Score`). **Main: 3.4.1.33** (PR #121, core uplift N2, every name caller; merged 2026-10-08).
 - **Current project: core uplift** (`10_CORE_UPLIFT.md`, locked by Dan on 2026-10-08). It runs on three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
-- **On its PR: N2, 3.4.1.33** (PR #121, every name caller; 10 section 2.1 "Done in N2"):
-  - unit menu, guild unit scan, `/pss add` on a target, Blizzard's Ignore hooks (`M.PSS_FixUnitName`), your own name (`M.PSS_PlayerDisplayName`, `M.PSS_CharKey`);
-  - two-word names in `/pss add/remove/expire` off Retail;
-  - import merges shipped members; the managed flush drops `_canon`, `_gkey`, `_virtual` (`_managed` kept until S2/S3).
-  - Decision 13 reversed by Dan (2026-10-08): realm names stay as they are. Decision 14 needed no save change (nothing is keyed by `M.PSS_CharKey`).
-  - `check_names.lua` section 4 covers each caller; validate_all green on the four real saves; `tui_compare.sh` identical.
-- **Next:** N3 (3.4.1.34), the builder fix and the shipped lists rebuilt (10 section 2.1, decision 6).
+- **Done:** N1 (3.4.1.32, `M.PSS_NormName`) and N2 (3.4.1.33, every caller; decision 13 reversed, realm names unchanged; `_managed` still saved until S2/S3).
+- **On its PR: 3.4.1.34** (PR #122, docs only): B1 and B2 added to the plan (10 section 2.7, decisions 15 to 22, Dan, 2026-10-08); the later stages moved up three builds, release 3.4.1.46.
+- **Next:** B1 (3.4.1.35), PSS authoritative over Blizzard's ignore list: the per-player Blizzard ignore tick, a new Blizzard ignore moved into PSS with its note, the existing Blizzard list synced across, removal both ways, upgrade step 8. Then B2 (3.4.1.36, the right-click "PSS" header with Block Player and Block Guild), then N3 (3.4.1.37, the shipped lists rebuilt).
 - The closed projects: the PSS window (3.4.0, `09_PSS_UI_PROJECT.md`; its code map and lessons stay the reference for the window) and parity (3.3.1, `08`).
 
 ## Waiting on Dan
