@@ -52,8 +52,8 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | B7 | dev012 | Options (search; the look and font) + Import/Export; Libraries `PSS_OptionsView.lua`; all six tabs built | Merged #103 |
 | Versions | 3.4.0.13 | Build numbers replace devNNN and `_N`; no addon change | Merged #104 |
 | R1 | 3.4.0.14 | Code review fixes: secret values, Escape on popups and menus, small bugs, CI runs `validate_all.sh`; `check_secrets.lua` | Merged #106 |
-| R2 | 3.4.0.15 | Code review fixes: Logging on demand (guild and member removal, no Events tab at open), memory (Events lines and the members list dropped, GC on close, no full resort per block, Scan All tip cached), options import through the setter | PR open |
-| R3 | next build | The code review's window tidy (scratch `docs/latest/code-review/`) | Planned, before C1 (Dan, 2026-10-08) |
+| R2 | 3.4.0.15 | Code review fixes: Logging on demand (guild and member removal, no Events tab at open), memory (Events lines and the members list dropped, GC on close, no full resort per block, Scan All tip cached), options import through the setter | Merged #107 |
+| R3 | 3.4.0.16 | The code review's window tidy: `SetAlpha` fades, events only while shown (`ns.Listen`), logic to Libraries, one list mixin; `tui_compare.sh` identical in all three looks | PR open |
 | C1 | next build | Player Search, add target, Prune | Planned |
 | C2 | next build | Right-click menus | Planned |
 | D1 to D3 | next builds | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
@@ -63,7 +63,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 ## Code map
 | Where | What |
 | --- | --- |
-| `PourSocialScore_UI/PSS_Skin.lua` | `ns.NewFrameArt(parent)` (the window's frame and background in Classic and Modern, used by the window and the popups); looks, Dark colour tokens, accent, shared font objects (`PSS_Font1..n`, repainted in place), pixel border, `ns.NoSnap`, `ns.ShowArt` (fades a template's textures, restores their own alpha); Escape for our popups and menu, `ns.EscapeCloses(frame, name)` and `ns.EscapeTaken()` (3.4.0.14) |
+| `PourSocialScore_UI/PSS_Skin.lua` | `ns.NewFrameArt(parent)` (the window's frame and background in Classic and Modern, used by the window and the popups); looks, Dark colour tokens, accent, shared font objects (`PSS_Font1..n`, repainted in place), pixel border, `ns.NoSnap`, `ns.ShowArt` (fades a template's textures, restores their own alpha); Escape for our popups and menu, `ns.EscapeCloses(frame, name)` and `ns.EscapeTaken()` (3.4.0.14); core events heard only while the window shows, `ns.Listen(event, fn)` / `ns.ListenStart` / `ns.ListenStop`, a page's `stale()` on open (3.4.0.16) |
 | `PourSocialScore_UI/PSS_Kit.lua` | The controls in each look; each widget keeps its Dark parts in `widget.pssParts` |
 | `PourSocialScore_UI/PSS_Tooltip.lua` | `ns.Tip` / `ns.HideTip` / `ns.TipOn` |
 | `PourSocialScore_UI/PSS_Menu.lua` | `ns.NewDropdown(parent, w, build)` (`dd:SetLabel`), `ns.ContextMenu(owner, build)`; `build(m)` adds `m:Button`, `m:Radio`, `m:Check`, `m:Divider`, `m:Title`; Blizzard's MenuUtil menus or our `PSS_Menu` list |
@@ -83,7 +83,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | `PourSocialScore_Libraries/PSS_OptionsView.lua` | Options text and writes (`M.PSS_OptLabel` / `...Tip` / `...ChoiceText`, `M.PSS_OptGroups`, `M.PSS_OptMatches`, `M.PSS_OptSetNumber`, the scan level cap pair `M.PSS_OptSetFieldOn` / `...SetField`); Import/Export (`M.PSS_IO`, `M.PSS_IO_PARTS`, `M.PSS_IO_MODES`, `M.PSS_ExportText`, `M.PSS_ImportCheck`, `...ReplaceText`, `...Apply`) |
 | `PourSocialScore_Libraries/PSS_PlayerView.lua` | The tab's logic: `M.PSS_PlayerListNew()` (sort, search), column and pane text, edits (`M.PSS_PlayerCommitNote`, `...CommitExpiry`, `...ToggleAllowed`, `...CycleOverride`, `...AddFromText`, `...AddGuild`), Events specs |
 | `tools/harness/kit_page.lua` | The kit preview (was `PSS_KitPage.lua` until dev005), built by `check_tui.lua` on a frame of its own through `H.Private("PourSocialScore_UI")` |
-| `PourSocialScore_Libraries/PSS_ViewNav.lua` | `M.PSS_UISkin`, `M.PSS_UIPlace` / `M.PSS_SetUIPlace`, `M.PSS_UIFontPath`, `M.PSS_UIFontChoices`, `M.PSS_UIAccent`; tabs `M.PSS_UI_TABS`, `M.PSS_UITab` / `M.PSS_SetUITab` (saved as `windowPoints.PSS_WindowTab`, the first tab and Events not saved); back / forward `M.PSS_NavNew(max)` (`Record`, `Back`, `Forward`, `Replace`, `BackToOther`), `M.PSS_DoubleClick`, `M.PSS_Throttle` |
+| `PourSocialScore_Libraries/PSS_ViewNav.lua` | `M.PSS_UISkin`, `M.PSS_UIPlace` / `M.PSS_SetUIPlace`, `M.PSS_UIFontPath`, `M.PSS_UIFontChoices`, `M.PSS_UIAccent`; tabs `M.PSS_UI_TABS`, `M.PSS_UITab` / `M.PSS_SetUITab` (saved as `windowPoints.PSS_WindowTab`, the first tab and Events not saved); back / forward `M.PSS_NavNew(max)` (`Record`, `Back`, `Forward`, `Replace`, `BackToOther`), `M.PSS_DoubleClick`, `M.PSS_Throttle`; `M.PSS_ListMixin(List)` (SortBy, SetFind for the list views; the file loads before them, 3.4.0.16) |
 | `PourSocialScore_Libraries/PSS_DetailQuery.lua` | Pane maths: `M.PSS_PERIODS`, period and type ticks, `M.PSS_SummaryValues`, `M.PSS_PeriodSlices` / `M.PSS_PeriodTip`, `M.PSS_TypeSlices`, `M.PSS_TotalsView`, `M.PSS_CountsText`, override cycle `M.PSS_NextOverride` / `M.PSS_OverrideText`, `M.PSS_ClassColor`, history type ticks `M.PSS_HistHidden` / `M.PSS_HistFilter` |
 | Core | `M.PSS_PARTS.UI`, `NEEDS.UI = "Libraries"`, options `uiSkin` and `uiFont`, `HELP_21`; `M.PSS_UnitFullName(unit)` (a unit's readable "Name-Realm" or nil when secret, 3.4.0.14) |
 

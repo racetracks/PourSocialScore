@@ -307,3 +307,33 @@ function ns.EscapeTaken()
 	end
 	return escClosedAt == GetTime()
 end
+
+-- Core events (M.Events) the window listens to only while it is shown: each
+-- file adds its listeners with ns.Listen; the window registers them all when
+-- it shows (ns.ListenStart, after which each page's stale() marks what may
+-- have changed while it was closed) and removes them when it hides.
+local listeners, listening = {}, false
+function ns.Listen(event, fn)
+	local l = { event = event, fn = fn }
+	listeners[#listeners + 1] = l
+	if listening then l.id = M.Events.Register(event, fn) end
+end
+
+function ns.ListenStart()
+	if listening then return end
+	listening = true
+	for i = 1, #listeners do
+		local l = listeners[i]
+		l.id = M.Events.Register(l.event, l.fn)
+	end
+end
+
+function ns.ListenStop()
+	if not listening then return end
+	listening = false
+	for i = 1, #listeners do
+		local l = listeners[i]
+		if l.id then M.Events.Unregister(l.event, l.id) end
+		l.id = nil
+	end
+end

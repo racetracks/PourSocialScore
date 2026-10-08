@@ -261,8 +261,8 @@ end)
 local function OnChange()
 	if page and page:IsVisible() then redraw() end
 end
-M.Events.Register("PLAYER_BLOCKED", OnChange)
-M.Events.Register("GUILD_BLOCKS_CHANGED", OnChange)
-M.Events.Register("FILTER_HISTORY_CHANGED", OnChange)
-M.Events.Register("PLAYERS_CHANGED", OnChange)
-M.Events.Register("GUILDS_CHANGED", OnChange)
+ns.Listen("PLAYER_BLOCKED", OnChange)
+ns.Listen("GUILD_BLOCKS_CHANGED", OnChange)
+ns.Listen("FILTER_HISTORY_CHANGED", OnChange)
+ns.Listen("PLAYERS_CHANGED", OnChange)
+ns.Listen("GUILDS_CHANGED", OnChange)

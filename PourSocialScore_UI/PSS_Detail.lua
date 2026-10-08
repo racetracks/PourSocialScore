@@ -302,7 +302,11 @@ function TP:Set(counts, title, specFn, id)
 			k.text:SetText(sl.text)
 			k.count:SetText(tostring(sl.value))
 		end
-		for _, r in ipairs({ k.check, k.sq, k.text, k.count, k.check.hit }) do r:SetShown(on) end
+		k.check:SetShown(on)
+		k.sq:SetShown(on)
+		k.text:SetShown(on)
+		k.count:SetShown(on)
+		k.check.hit:SetShown(on)
 	end
 	self.count = n
 	self.pie:Set(self.slices)

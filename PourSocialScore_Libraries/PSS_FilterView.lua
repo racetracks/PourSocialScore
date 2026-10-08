@@ -29,7 +29,7 @@ local setmetatable = setmetatable
 ------------------------------------------------------------------------
 -- The list: sort and search (index: filter numbers in the order shown)
 ------------------------------------------------------------------------
-local List = {}
+local List = M.PSS_ListMixin({})
 List.__index = List
 
 function M.PSS_FilterListNew()
@@ -43,21 +43,6 @@ function List:Resort()
 	local countText = (self.find ~= "" and ("%d of %d   "):format(n, total) or "")
 		.. ("|cffaaaaaaBuilt-in|r %d   |cffaaaaaaCustom|r %d   |cffaaaaaaOn|r |cff33ff99%d|r"):format(builtin, custom, on)
 	return n, countText, total == 0 and "No chat filters." or "Nothing matches the search."
-end
-
-function List:SortBy(key)
-	if self.key == key then
-		self.asc = not self.asc
-	else
-		self.key, self.asc = key, true
-	end
-end
-
-function List:SetFind(text)
-	text = text or ""
-	if text == self.find then return false end
-	self.find = text
-	return true
 end
 
 ------------------------------------------------------------------------

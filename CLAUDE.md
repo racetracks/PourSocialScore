@@ -48,7 +48,7 @@ Read when the task touches the topic:
 - Taint and secrets (baseline 02 J, PSS 02 section 10): never write or replace Blizzard state; post-hooks and `Menu.ModifyMenu` only; every chat, unit and hook value goes through `M.PSS_IsSecret` before any compare or index; a secret line is neither filtered nor counted.
 - Never change TOC Title or Notes. SavedVariables layout changes need Dan's OK and a migration validated on the three real saves.
 - Never write to `racetracks/PourSocialScore-EllesmereUI` (retired). Read only: `EllesmereGaming/EllesmereUI` (all rights reserved), `Gethe/wow-ui-source`.
-- Before pushing: `sh tools/check_rules.sh` (it also runs `check_toc.sh` on every folder, the PSS-names check and `check_rules_eui.sh`), `sh tools/harness/check_eui_all.sh`, `PSS_REAL_SAVES=<out dir> sh tools/harness/validate_all.sh` on the saves built from scratch (below; includes `check_tui.lua`), and `ui_compare.sh` / `eui_compare.sh` for any window that should not change.
+- Before pushing: `sh tools/check_rules.sh` (it also runs `check_toc.sh` on every folder, the PSS-names check and `check_rules_eui.sh`), `sh tools/harness/check_eui_all.sh`, `PSS_REAL_SAVES=<out dir> sh tools/harness/validate_all.sh` on the saves built from scratch (below; includes `check_tui.lua`), and `ui_compare.sh` / `eui_compare.sh` / `tui_compare.sh` (the new window, all three looks) for any window that should not change.
 
 ## Working in a Claude Code session
 - Develop on the session's `claude/...` branch from the latest `origin/main`; one step per PR, based on main; never stack.

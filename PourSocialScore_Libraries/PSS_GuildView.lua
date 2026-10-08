@@ -56,7 +56,7 @@ M.PSS_GUILD_SEARCH_OWNER = "window"
 ------------------------------------------------------------------------
 -- The list: sort, search, selection
 ------------------------------------------------------------------------
-local List = {}
+local List = M.PSS_ListMixin({})
 List.__index = List
 
 -- selKind: "guild" (sel = key), "group" (key), "managed", "exclHeader",
@@ -89,21 +89,6 @@ function List:FreshCounts(item)
 		item.bc = M.PSS_GetGuildBlockCounts(item.key)
 		item.counted = self.gen
 	end
-end
-
-function List:SortBy(key)
-	if self.key == key then
-		self.asc = not self.asc
-	else
-		self.key, self.asc = key, true
-	end
-end
-
-function List:SetFind(text)
-	text = text or ""
-	if text == self.find then return false end
-	self.find = text
-	return true
 end
 
 function List:CountText()
@@ -334,6 +319,18 @@ function M.PSS_GuildPickerTitle(n, query, mode)
 		.. (exclude and "exclude." or "add.")
 end
 
+-- A click on a picker entry ticks or unticks it (one already listed stays as
+-- it is); Tick All ticks every one not listed. true when something changed.
+function M.PSS_GuildPickerToggle(it)
+	if not it or it.listed then return false end
+	it.ticked = not it.ticked
+	return true
+end
+
+function M.PSS_GuildPickerTickAll(items)
+	for _, it in ipairs(items) do it.ticked = not it.listed end
+end
+
 -- Save the ticked entries; the count saved
 function M.PSS_GuildPickerSave(items, mode)
 	local names = {}
@@ -376,6 +373,15 @@ function List:OpenMembers(key)
 	if not key then return false end
 	self.view, self.mguild, self.msel, self.mfind, self.mdirty = "members", key, nil, "", true
 	return true
+end
+
+function List:SelectMember(m) self.msel = m end
+function List:SetView(view) self.view = view end
+
+-- a guild rule removed: forget it where it was selected or open
+function List:GuildRemoved(key)
+	if self.selKind == "guild" and self.sel == key then self:Select(nil, nil) end
+	if self.mguild == key then self.mguild, self.msel = nil, nil end
 end
 
 -- the member list is dropped (thousands of rows for a shipped guild); the
@@ -542,6 +548,27 @@ end
 -- The pane's edits (through the core's setters)
 ------------------------------------------------------------------------
 -- W I G P C for the whole guild: ticked = allowed
+-- the block history owners of a guild rule and of a member (the Summary's
+-- session and day counts)
+function M.PSS_GuildHistoryKey(key) return History.GuildKey(key) end
+function M.PSS_MemberHistoryKey(m) return History.MemberKey(m) end
+
+-- a member's blocks in all, as M.PSS_GetMemberBlockCounts(m).total, without a
+-- table per call (the members list draws it on every row)
+function M.PSS_MemberBlockTotal(m)
+	if type(m) ~= "table" then return 0 end
+	M.PSS_EnsureMemberBlockData(m)
+	local bc, total = m.blockCounts, 0
+	if not bc then return 0 end
+	for _, c in ipairs(History.ALL_CATS) do total = total + (bc[c] or 0) end
+	return total
+end
+
+-- a guild's W I G P C tick: allowed unless the rule blocks it
+function M.PSS_GuildAllowed(g, cat)
+	return M.PSS_GuildBlock(g)[cat] ~= true
+end
+
 function M.PSS_GuildToggleAllowed(key, cat, allowed)
 	if key then M.PSS_SetGuildBlock(key, cat, not allowed) end
 end

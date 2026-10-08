@@ -145,7 +145,8 @@ function ns.NewRows(parent, spec)
 	end
 	list.empty = ns.NewText(parent, 12)
 	list.empty:SetPoint("TOP", scroll, "TOP", 0, -20)
-	list.empty:SetTextColor(1, 1, 1, 0.5)
+	list.empty:SetTextColor(1, 1, 1)
+	list.empty:SetAlpha(0.5)
 	list.empty:Hide()
 	list:Layout()
 	return list
@@ -289,9 +290,11 @@ function List:SetSort(key, asc)
 		if key ~= nil and h.key == key then
 			h.label:SetText(h.text .. (asc and " ^" or " v"))
 			h.label:SetTextColor(r, g, b)
+			h.label:SetAlpha(1)
 		else
 			h.label:SetText(h.text)
-			if dark then h.label:SetTextColor(1, 1, 1, 0.85) else h.label:SetTextColor(1, 0.82, 0, 1) end
+			if dark then h.label:SetTextColor(1, 1, 1) else h.label:SetTextColor(1, 0.82, 0) end
+			h.label:SetAlpha(dark and 0.85 or 1)
 		end
 	end
 end

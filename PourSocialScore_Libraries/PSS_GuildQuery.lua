@@ -94,8 +94,9 @@ local function collectGuilds(into)
 			item.key, item.g, item.bc = key, g, M.PSS_GetGuildBlockCounts(key)
 			item.inGroup, item.groupOn, item.sv, item.nv = nil, nil, nil, nil
 			if g.managed then
-				groups[g.managed] = groups[g.managed] or {}
-				table.insert(groups[g.managed], item)
+				local items = groups[g.managed] or {}
+				groups[g.managed] = items
+				items[#items + 1] = item
 			else
 				list[#list + 1] = item
 			end

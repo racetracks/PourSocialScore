@@ -15,6 +15,7 @@
 --                                      level cap); false: refused (said why)
 --   M.PSS_OptSetField(o, text)         false: refused
 --   M.PSS_IO, M.PSS_IO_PARTS, M.PSS_IO_MODES   what to include, the mode
+--   M.PSS_IOSet(key, on), M.PSS_IOSetMode(key) set them
 --   M.PSS_IOPartOff(key)               a part that cannot be ticked now
 --   M.PSS_ExportText()                 the export string
 --   M.PSS_ImportCheck(str)             data, or nil and the error text
@@ -136,6 +137,10 @@ end
 -- Import/Export: what to include lives for the session only
 ------------------------------------------------------------------------
 M.PSS_IO = { players = true, guilds = true, members = false, filters = true, builtins = true, options = false, mode = "merge" }
+
+-- the tab's ticks and mode (kept for the session)
+function M.PSS_IOSet(key, on) M.PSS_IO[key] = on == true end
+function M.PSS_IOSetMode(key) M.PSS_IO.mode = key end
 M.PSS_IO_PARTS = {
 	{ key = "players", text = "Player Ignore List" },
 	{ key = "guilds", text = "Guild Ignore List" },

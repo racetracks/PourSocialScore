@@ -197,22 +197,18 @@ local function BuildPane(parent)
 
 	-- overrides of the Options for this player: Default > On > Off
 	pane.overrides = {}
-	local n = 0
 	local bw = (DETAIL_W - 26) / 2
-	for _, o in ipairs(M.PSS_OPTIONS) do
-		if o.target and o.kind == "bool" then
-			n = n + 1
-			local b = ns.NewButton(rule, "", bw, function(self)
-				M.PSS_PlayerCycleOverride(pane.record, self.opt.key)
-				ns.ShowPlayerDetail()
-			end)
-			b.opt = o
-			local col, r = (n - 1) % 2, math.floor((n - 1) / 2)
-			b:SetPoint("TOPLEFT", rule, "TOPLEFT", 10 + col * (bw + 6), y - r * 24)
-			ns.TipOn(b, b, o.label .. "\n\nClick to change: Default (the Options tab) > On > Off.")
-			pane.overrides[#pane.overrides + 1] = b
-			pane.player[#pane.player + 1] = b
-		end
+	for n, o in ipairs(M.PSS_OverrideOptions()) do
+		local b = ns.NewButton(rule, "", bw, function(self)
+			M.PSS_PlayerCycleOverride(pane.record, self.opt.key)
+			ns.ShowPlayerDetail()
+		end)
+		b.opt = o
+		local col, r = (n - 1) % 2, math.floor((n - 1) / 2)
+		b:SetPoint("TOPLEFT", rule, "TOPLEFT", 10 + col * (bw + 6), y - r * 24)
+		ns.TipOn(b, b, o.label .. "\n\nClick to change: Default (the Options tab) > On > Off.")
+		pane.overrides[#pane.overrides + 1] = b
+		pane.player[#pane.player + 1] = b
 	end
 
 	-- the rule's actions: Remove, Add Guild
@@ -283,9 +279,9 @@ function ns.ShowPlayerDetail(newEntry)
 		pane.addGuild:Show()
 	end
 
-	for _, e in ipairs(M.EXCL) do pane.excl[e.cat]:SetChecked(p[e.field] == false) end
+	for _, e in ipairs(M.EXCL) do pane.excl[e.cat]:SetChecked(M.PSS_PlayerAllowed(p, e.field)) end
 	for _, b in ipairs(pane.overrides) do
-		b:SetText(M.PSS_OverrideText(b.opt, p.opts and p.opts[b.opt.key]))
+		b:SetText(M.PSS_OverrideText(b.opt, M.PSS_OverrideValue(p, b.opt.key)))
 	end
 
 	local c = M.PSS_GetPlayerBlockCounts(p)
@@ -391,6 +387,7 @@ ns.TabBuilders.players = function(pg)
 	-- a tab click (PSS_Window.lua): nothing selected
 	pg.navReset = function() if sel then SelectEntry(nil) end end
 	pg.list, pg.pane = list, pane
+	pg.stale = function() V.dirty = true end
 	pg.select = SelectEntry
 	V.dirty = true
 	return Refresh
@@ -398,7 +395,7 @@ end
 
 -- The core says the list changed: redraw now if the tab shows, else when it
 -- next shows. Blocked lines only change counts: at most 4 redraws a second.
-M.Events.Register("PLAYERS_CHANGED", function()
+ns.Listen("PLAYERS_CHANGED", function()
 	V.dirty = true
 	if page and page:IsVisible() then Refresh() end
 end)
@@ -409,6 +406,6 @@ local redrawCounts = M.PSS_Throttle(function()
 		ns.ShowPlayerDetail()
 	end
 end)
-M.Events.Register("PLAYER_BLOCKED", function()
+ns.Listen("PLAYER_BLOCKED", function()
 	if page and page:IsVisible() then redrawCounts() end
 end)

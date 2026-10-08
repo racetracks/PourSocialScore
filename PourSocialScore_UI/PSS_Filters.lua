@@ -425,6 +425,7 @@ ns.TabBuilders.filters = function(pg)
 	-- a tab click (PSS_Window.lua): nothing selected
 	pg.navReset = function() if sel then Select(nil) end end
 	pg.list, pg.pane, pg.state = list, pane, V
+	pg.stale = function() V.dirty = true end
 	pg.select = Select
 	pg.selected = function() return sel end
 	pg.linkHook = function() return hooked end
@@ -436,7 +437,7 @@ end
 -- Core events: redraw now if the tab shows, else when it next shows.
 ------------------------------------------------------------------------
 local queued
-M.Events.Register("FILTERS_CHANGED", function()
+ns.Listen("FILTERS_CHANGED", function()
 	V.dirty = true
 	if queued or not (page and page:IsVisible()) then return end
 	-- one redraw however many changes arrive in a frame (an import adds
@@ -455,6 +456,6 @@ local redrawCounts = M.PSS_Throttle(function()
 		ns.ShowFilterDetail()
 	end
 end)
-M.Events.Register("FILTER_HISTORY_CHANGED", function()
+ns.Listen("FILTER_HISTORY_CHANGED", function()
 	if page and page:IsVisible() then redrawCounts() end
 end)

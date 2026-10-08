@@ -445,4 +445,20 @@ check(not tert.texture:IsShown() and not c1.pssParts.modernBox:IsShown() and not
 kit.tabs[1]._scripts.OnClick(kit.tabs[1])
 M.PSS_SetOpt("uiSkin", "global", 0)
 
+-- (3.4.0.16) the tabs hear core events only while the window shows
+do
+	local realReg, realUnreg = M.Events.Register, M.Events.Unregister
+	local reg, unreg = 0, 0
+	M.Events.Register = function(...) reg = reg + 1 return realReg(...) end
+	M.Events.Unregister = function(...) unreg = unreg + 1 return realUnreg(...) end
+	if not win:IsShown() then SlashCmdList["PSS"]("tui") end
+	reg, unreg = 0, 0
+	win:Hide()
+	check(unreg >= 15 and reg == 0, ("closing the window removed %d listeners (added %d)"):format(unreg, reg))
+	SlashCmdList["PSS"]("tui")
+	check(reg == unreg, ("opening the window added %d listeners, %d were removed"):format(reg, unreg))
+	M.Events.Register, M.Events.Unregister = realReg, realUnreg
+	win:Hide()
+end
+
 if not fail then print("PASS tui") end
