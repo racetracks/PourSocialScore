@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev008_3 - New PSS window: Modern tab row background, drawn
+
+- Modern: the band behind the tabs and the line under them is now the Blizzard frame's stone with its streaks over it, as the AddOns list draws its top. In dev008_2 only the streaks were kept, and they are a dark overlay that shows nothing on black. The pages below stay black.
+
 => 3.4.0-dev008_2 - New PSS window: Modern tab row background
 
 - Modern: the strip behind the tabs is the Blizzard frame's streaked top band (as in the AddOns list) instead of plain black; the rest of the window stays black.

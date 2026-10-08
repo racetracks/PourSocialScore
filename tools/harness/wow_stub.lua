@@ -188,6 +188,7 @@ function W:IsDragging() return false end
 function W:GetTexture() return nil end
 function W:GetAtlas() return self._atlas end
 function W:SetAtlas(a) self._atlas = a end
+function W:SetTexture(t) self._texture = t end
 function W:SetTextureSliceMargins(l, t, r, b) self._slice = { l, t, r, b } end
 function W:IsProtected() return false end
 function W:IsForbidden() return false end

@@ -431,12 +431,28 @@ local function Build()
 		black:SetColorTexture(0, 0, 0, 1)
 	end
 	win.art.black = black
+	-- Modern: the band behind the tabs and the line under them is the
+	-- frame's stone with its streaks over it, as the AddOns list draws its
+	-- top (Dan, 2026-10-08); the streaks alone are a dark overlay and show
+	-- nothing on black. The black starts where the pages do.
+	local band
+	if blizz then
+		band = ns.Own(blizz:CreateTexture(nil, "BACKGROUND", nil, -4))
+		band:SetPoint("TOPLEFT", blizz, "TOPLEFT", 2, -21)
+		band:SetPoint("TOPRIGHT", blizz, "TOPRIGHT", -2, -21)
+		band:SetHeight(-TOP + TAB_H + NAV_H + 8 - 21)
+		band:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock", "REPEAT", "REPEAT")
+		band:SetHorizTile(true)
+		band:SetVertTile(true)
+	end
+	win.art.band = band
 	ns.OnPaint(function(isDark)
 		if black then
 			local modern = ns.IsModern()
 			black:SetShown(modern)
-			-- the stone background goes; the frame's streak strip stays behind
-			-- the tab row (Dan, 2026-10-08: as the AddOns list draws it)
+			band:SetShown(modern)
+			-- the template's own stone goes (ours is only the band); its
+			-- streak strip stays over the band
 			if blizz.Bg and blizz.Bg.SetAlpha then blizz.Bg:SetAlpha(modern and 0 or 1) end
 		end
 		-- a client without any Blizzard frame template falls back to Dark art

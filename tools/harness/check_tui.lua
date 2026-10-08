@@ -380,8 +380,11 @@ do
 	bz.Bg, bz.TopTileStreaks = bz:CreateTexture(), bz:CreateTexture()
 	H.Private("PourSocialScore_UI").Repaint()
 	check(bz.Bg:GetAlpha() == 0 and bz.TopTileStreaks:GetAlpha() == 1, "Modern does not keep the streaks behind the tabs")
+	local band = win.art.band
+	check(band and band:IsShown() and band._texture == "Interface\\FrameGeneral\\UI-Background-Rock" and band:GetHeight() == 63,
+		"Modern has no stone band behind the tabs")
 	M.PSS_SetOpt("uiSkin", "global", 0)
-	check(bz.Bg:GetAlpha() == 1 and bz.TopTileStreaks:GetAlpha() == 1, "Blizzard look lost its background")
+	check(bz.Bg:GetAlpha() == 1 and bz.TopTileStreaks:GetAlpha() == 1 and not win.art.band:IsShown(), "Blizzard look lost its background")
 	M.PSS_SetOpt("uiSkin", "global", 2)
 end
 local pg = kit.pages[1]
