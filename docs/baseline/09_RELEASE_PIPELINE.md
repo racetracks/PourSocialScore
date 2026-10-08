@@ -1,37 +1,37 @@
 # Tag and release pipeline: full setup
 
-Every new project struggles with this. The whole pipeline is **two workflow files, one rules script and one rule: the version in the main TOC is the release.** Nobody tags by hand; merging a version bump to main publishes the release: a pre-release for every build (`X.Y.Z.B`), a full release for a plain `X.Y.Z`.
+Every new project struggles with this. The whole pipeline is **two workflow files, one rules script and one rule: the version in the main TOC is the release.** Nobody tags by hand; merging a version bump to main publishes the release: a pre-release for every build, a full release for the build `versions.json` names the latest release. Every version is `X.Y.Z.B` and the build number `B` never resets (v7).
 
 ## 1. What you end up with
 - Every PR runs the **Rules** check (`.github/workflows/rules.yml` running `tools/check_rules.sh`).
-- Every push to main runs **Release** (`.github/workflows/release.yml`). If the main TOC's version has no release yet, it builds `<Addon>-<version>.zip`, creates the tag `v<version>` and the GitHub release with that version's history section as notes, and marks it a pre-release when the version is a build (`X.Y.Z.B`, four parts). A full release's notes cover every build since the previous full release, summarized for players by Claude (section 6), and a `mirror` job can publish it on a second repo.
+- Every push to main runs **Release** (`.github/workflows/release.yml`). If the main TOC's version has no release yet, it builds `<Addon>-<version>.zip`, creates the tag `v<version>` and the GitHub release with that version's history section as notes, and marks it a pre-release unless `versions.json` names that version the latest release. A full release's notes are one summary of every change since the previous release, written by Claude at release time from the PRs `versions.json` lists (section 6), and a `mirror` job can publish it on a second repo.
 - Merges that don't change the version publish nothing.
 
 ## 2. Repo layout the workflows expect
 ```
 <Addon>/                    main addon folder (its name = the TOC name = ADDON in release.yml)
-  <Addon>.toc               base TOC: "## Version: X.Y.Z[.B]" (the version is read from here)
+  <Addon>.toc               base TOC: "## Version: X.Y.Z.B" (the version is read from here)
   <Addon>_Mainline.toc      flavour TOCs, same version
   <Addon>_Camelot.toc
   *.lua
 <Addon>_<Part>/             any other addon folders (all zipped; each with its own three TOCs)
 tools/check_rules.sh        the rules check (plus check_style.lua, check_layers.lua if used)
-tools/bump_version.sh       sets the next version in every TOC and adds the history section
+tools/bump_version.sh       sets the next version in every TOC, records it and adds the history section
+tools/versions.py           the versions file's tool: next version, record, PRs between releases, check
 tools/host_build.sh         builds the test zip from HEAD and hosts it (hosting pack)
-tools/collect_notes.sh      the history sections of a full release (every build since the last one)
-tools/summarize_notes.sh    Claude's player-facing summary of them (plain list without the API key)
+versions.json               latest release, pre-releases in order with their PRs, past releases (never shipped)
 .github/workflows/rules.yml
 .github/workflows/release.yml
 readme.txt                  copied into <Addon>/ inside the zip
 history.txt                 copied into <Addon>/ inside the zip; release notes come from it
 ```
-Every folder named `<Addon>` or `<Addon>_*` at the repo root goes into the zip, at the zip's root, so it extracts straight into `Interface/AddOns`. `.github`, `tools` and anything else stay out.
+Every folder named `<Addon>` or `<Addon>_*` at the repo root goes into the zip, at the zip's root, so it extracts straight into `Interface/AddOns`. `.github`, `tools`, `versions.json` and anything else stay out (never put `versions.json` in an addon folder; the check fails if one does).
 
 ## 3. Step by step, from an empty repo
 1. **Create the repo** (private is fine) with a default branch named `main`.
 2. **Workflow permissions.** The release job writes tags and releases with the built-in `GITHUB_TOKEN`. `release.yml` asks for `permissions: contents: write`, which is enough on a personal repo. In an organisation, or if the run fails with "Resource not accessible by integration", open **Settings > Actions > General > Workflow permissions** and choose **Read and write permissions**. No personal token or secret is needed.
 3. **Actions enabled.** Settings > Actions > General > "Allow all actions" (or at least GitHub-authored ones: the workflows use `actions/checkout@v4`, `gh` and apt).
-4. **Copy the templates** from `templates/`: `.github/workflows/release.yml`, `.github/workflows/rules.yml`, `tools/check_rules.sh`, `tools/bump_version.sh`, `tools/host_build.sh`, `tools/collect_notes.sh`, `tools/summarize_notes.sh`, the TOC set, history.txt. Copy `examples/check_style.lua`, `examples/check_layers.lua` and `examples/lua_segments.lua` into `tools/`, or delete their lines from `check_rules.sh`.
+4. **Copy the templates** from `templates/`: `.github/workflows/release.yml`, `.github/workflows/rules.yml`, `tools/check_rules.sh`, `tools/bump_version.sh`, `tools/versions.py`, `tools/host_build.sh`, the TOC set, history.txt. Start `versions.json` at the repo root as `{ "latestRelease": null, "preReleases": [], "releases": [] }`, then `sh tools/bump_version.sh line 1.0.0 "First build"`. Copy `examples/check_style.lua`, `examples/check_layers.lua` and `examples/lua_segments.lua` into `tools/`, or delete their lines from `check_rules.sh`.
 5. **Rename.** Set `ADDON:` in release.yml to the main folder name. Replace `MyAddon` in `check_rules.sh` (the file globs), in the TOCs and in check_layers' file list.
 6. **Make check_rules.sh pass locally:** `sudo apt-get install -y lua5.1` then `sh tools/check_rules.sh` from the repo root.
 7. **First version:** set `## Version: 0.1.0.1` in every TOC and write the first history section (or run `sh tools/bump_version.sh line 0.1.0 "First build"` once the TOCs exist):
@@ -51,9 +51,18 @@ Every folder named `<Addon>` or `<Addon>_*` at the repo root goes into the zip, 
 # Publishes a GitHub release whenever the version in $ADDON/$ADDON.toc changes
 # on main: tags v<version> and attaches $ADDON-<version>.zip (every addon folder
 # $ADDON and $ADDON_*, readme.txt and history.txt inside $ADDON; no .github or
-# tools), with that version's section of history.txt as the notes. Does nothing
-# if the release exists. Builds (X.Y.Z.B) are pre-releases; a plain X.Y.Z is a
-# full release (section 6 adds its summarized notes and the mirror job).
+# tools). Does nothing if the release exists.
+# Every version is X.Y.Z.B (B = the build number, which never resets; a
+# release is a build too, 02 F). versions.json (tools/versions.py, never
+# shipped) says what each one is: the latest release, or a pre-release
+# recorded with its PR; a version it does not record is not published.
+# A pre-release's notes are its history section. A full release's notes are
+# its history section only: one summary of every change since the previous
+# release, written at release time from the PRs versions.json lists between
+# the two (02 F5). Job "mirror" then publishes the full release, with the
+# same zip and notes, on $MIRROR_REPO (secret MIRROR_TOKEN: contents read and
+# write on that repo); delete the job if there is no mirror. Pre-releases
+# are not mirrored.
 name: Release
 
 on:
@@ -65,11 +74,15 @@ permissions:
   contents: write
 
 env:
-  ADDON: MyAddon   # main folder / TOC name
+  ADDON: MyAddon                     # main folder / TOC name
+  MIRROR_REPO: <owner>/<mirror repo>  # where full releases are mirrored
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      kind: ${{ steps.v.outputs.kind }}
     steps:
       - uses: actions/checkout@v4
 
@@ -77,7 +90,13 @@ jobs:
         id: v
         run: |
           ver=$(sed -n 's/^## Version: *//p' "$ADDON/$ADDON.toc" | tr -d '\r')
+          kind=$(python3 tools/versions.py kind "$ver")
+          if [ "$kind" = unknown ]; then
+            echo "::error::$ver is not in versions.json (sh tools/bump_version.sh records it)"
+            exit 1
+          fi
           echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "kind=$kind" >> "$GITHUB_OUTPUT"
           if gh release view "v$ver" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
@@ -99,7 +118,12 @@ jobs:
           {
             echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\`."
             echo
-            echo "### Changes"
+            if [ "${{ steps.v.outputs.kind }}" = release ]; then
+              prev=$(python3 -c 'import json; print(json.load(open("versions.json"))["releases"][0]["previous"])')
+              echo "### Changes since $prev"
+            else
+              echo "### Changes"
+            fi
             awk -v v="$ver" '
               index($0, "=> " v " ") == 1 { on = 1; next }
               on && /^=> / { exit }
@@ -108,25 +132,70 @@ jobs:
             echo
             echo "Full changelog: history.txt"
           } > notes.md
+          cat notes.md
 
       - name: Publish release
         if: steps.v.outputs.exists == 'false'
         run: |
           ver=${{ steps.v.outputs.version }}
-          pre=""
-          case "$ver" in *-*|*.*.*.*) pre="--prerelease" ;; esac
+          pre="--latest"
+          [ "${{ steps.v.outputs.kind }}" = release ] || pre="--prerelease"
           gh release create "v$ver" "$ADDON-$ver.zip" $pre \
             --target "$GITHUB_SHA" --title "$ADDON $ver" --notes-file notes.md
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Mark build and suffixed releases as pre-releases
+      - name: Keep pre-releases marked as pre-releases
         run: |
           gh release list --limit 100 --json tagName,isPrerelease \
-            --jq '.[] | select(.isPrerelease | not) | .tagName | select(contains("-") or (split(".") | length > 3))' |
-          while read -r tag; do gh release edit "$tag" --prerelease; done
+            --jq '.[] | select(.isPrerelease | not) | .tagName' |
+          while read -r tag; do
+            v=${tag#v}
+            case "$v" in *-*) gh release edit "$tag" --prerelease; continue ;; esac
+            if [ "$(python3 tools/versions.py kind "$v")" = pre-release ]; then gh release edit "$tag" --prerelease; fi
+          done
         env:
           GH_TOKEN: ${{ github.token }}
+
+  mirror:
+    needs: release
+    if: ${{ needs.release.outputs.kind == 'release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the version and the mirror
+        id: m
+        run: |
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Add a MIRROR_TOKEN secret with contents read and write on $MIRROR_REPO"
+            exit 1
+          fi
+          if gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          VER: ${{ needs.release.outputs.version }}
+          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+
+      - name: Fetch the zip and notes
+        if: steps.m.outputs.skip == 'false' && steps.m.outputs.exists == 'false'
+        run: |
+          gh release download "v$VER" --repo "$GITHUB_REPOSITORY" --pattern "$ADDON-$VER.zip"
+          gh release view "v$VER" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
+        env:
+          VER: ${{ needs.release.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Publish on the mirror
+        if: steps.m.outputs.skip == 'false' && steps.m.outputs.exists == 'false'
+        run: |
+          gh release create "v$VER" "$ADDON-$VER.zip" --repo "$MIRROR_REPO" \
+            --title "$ADDON $VER" --notes-file notes.md --latest
+        env:
+          VER: ${{ needs.release.outputs.version }}
+          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
 ```
 
 | Part | Why |
@@ -138,9 +207,10 @@ jobs:
 | `gh release view "v$ver"` | Skips everything if that release already exists |
 | The copy loop over `"$ADDON" "$ADDON"_*/` | Puts every addon folder at the zip root; nothing else |
 | The awk block | Copies that version's history section into the release notes |
-| `case "$ver" in *-*\|*.*.*.*) pre="--prerelease"` | A build (`X.Y.Z.B`, four parts) or an older suffixed version (`-dev004`) makes a pre-release; plain `X.Y.Z` is a full release |
+| `python3 tools/versions.py kind "$ver"` | `release` (the latest release in `versions.json`: published `--latest` and mirrored), `pre-release` (`--prerelease`), or `unknown`: the run fails and nothing is published |
+| The notes block | A pre-release's notes are its history section; a release's are its history section under "Changes since <previous release>": the summary written at release time |
 | `gh release create "v$ver" ... --target "$GITHUB_SHA"` | **Creates the tag and the release together** at the merged commit. Never push tags by hand |
-| The last step | Turns any build or older suffixed release that someone marked as full back into a pre-release |
+| The last step | Turns any recorded pre-release (or an older `-` suffixed one) that someone marked as full back into a pre-release |
 
 ## 5. rules.yml and check_rules.sh
 ```yaml
@@ -166,32 +236,31 @@ jobs:
 `tools/check_rules.sh` compiles every `.lua` with `luac5.1 -p` (Lua 5.1 syntax), runs `check_style.lua` (no Lua 5.2+ features, tabs, no trailing whitespace; `--fix` repairs), checks that TOCs, XML, readme.txt and history.txt are ASCII, that every TOC carries one version shaped `X.Y.Z` or `X.Y.Z.B` and that history.txt starts with that version's section, and runs `check_layers.lua` (no UI calls in core logic files). It exits non-zero on any failure, which fails the PR check. Add more jobs to rules.yml (for example a harness job) as the project grows.
 
 ## 6. Versions: releases are defined by feature
-A version line belongs to a feature (or an agreed set of features), not to a date or a pile of changes.
+A version line belongs to a feature (or an agreed set of features), not to a date or a pile of changes. Every version is `X.Y.Z.B`, and the build number `B` never resets (v7).
 
 | Kind | Example | Published as |
 | --- | --- | --- |
 | A stage of the feature | `1.4.0.1`, `1.4.0.2`, ... | **Pre-release** (a build); the same zip is the stage's hosted test build |
-| A fix while the feature is in progress | the next build on the line (`1.4.0.5` after `1.4.0.4`) | **Pre-release**, like any build |
-| The feature complete | `1.4.0` | **Full release**, only when the author confirms the feature is done |
-| A fix after the release | `1.4.1.1`, then `1.4.1` | Pre-release, then a full release |
-| The next feature | `1.5.0.1` | Pre-release |
+| A fix while the feature is in progress | the next build (`1.4.0.5` after `1.4.0.4`) | **Pre-release**, like any build |
+| The feature complete | the next build, `1.4.0.8`, recorded as the release | **Full release**, only when the author confirms the feature is done |
+| A fix after the release | `1.4.1.9`, ... then its release `1.4.1.11` | Pre-releases, then a full release |
+| The next feature | `1.5.0.12` | Pre-release |
 
-- **Versions are `X.Y.Z.B`:** `B` is the build number on the line. Every build that gets a test zip, a stage or a fix, merged or not, takes the next number and none is reused; a new line starts at build 1. Every TOC, the history section, the tag, the release and the zip name carry it. `sh tools/bump_version.sh build "Title"` works out the next number; the rules check fails any other shape.
-- **Every build is a pre-release.** The pipeline decides only from the version: four parts (or an older `-` suffix) makes it `--prerelease`, and the "mark" step keeps every earlier build flagged (so "Latest" always points at a real full release). A plain `X.Y.Z` publishes a full release, so set it only when the author says the feature is done.
-- The feature design (10_FEATURE_DESIGN_AND_DELIVERY.md) names the line and maps each stage to a build before work starts.
-- **Going to production:** a PR that sets the plain `X.Y.0` in every TOC (`sh tools/bump_version.sh release "Title"`) with a history section that sums up the whole feature. Merging it publishes the full release; the stage pre-releases stay as history.
+- **Versions are `X.Y.Z.B` and `B` never resets:** every build that gets a test zip, a stage or a fix, merged or not, takes the next build number and none is reused; so does the full release, and a new line counts on from there. Every TOC, the history section, the tag, the release and the zip name carry it. `sh tools/bump_version.sh build "Title"` works out the next number; the rules check fails any other shape.
+- **`versions.json`** (repo root, `tools/versions.py`) is the record the pipeline trusts: `latestRelease`, `preReleases` (every build since it, in order, each `{ "version", "pr" }`) and `releases` (each past release with its `previous` release and its own `preReleases`). References only: no text. It is never in an addon folder, so never in a release zip, a test zip or the mirror. `bump_version.sh` writes it; `sh tools/bump_version.sh pr <number>` records the PR once it is open; `check_rules.sh` runs `versions.py check` (in CI every entry needs its PR and a pull request's newest entry its own number, `PR_NUMBER` in rules.yml).
+- **Every build is a pre-release.** `release.yml` asks `versions.py kind`: the latest release is published as a full release (`--latest`), a recorded pre-release as a pre-release, an unrecorded version not at all; the "keep" step re-flags any recorded pre-release marked full by hand (so "Latest" always points at a real full release).
+- The feature design (10_FEATURE_DESIGN_AND_DELIVERY.md) names the line before work starts.
+- **Going to production:** `sh tools/bump_version.sh release "Title"` makes the next build the release: `versions.json` moves the pending pre-releases under it and names it `latestRelease`. Then Claude writes the release's history section (below); merging the PR publishes the full release and the pre-releases stay as history.
 - Ask the author which line the next piece of work belongs to when it is not obvious (a new feature line or a fix line).
 - One repo, one version for every folder. A second repo means a second version line and a cross-repo token.
 
 ### Full release notes and the mirror
-- **Notes:** for a full release, `tools/collect_notes.sh <version>` takes that version's history section and every section below it, down to the previous full release, so `1.5.0` covers every `1.5.0.B` build since `1.4.x`. `tools/summarize_notes.sh` sends them to the Claude API (`claude-opus-5-5`, effort low, server-side fallback on a refusal) for a short player-facing changelog under New / Changed / Fixed. Without the API key, or if the call fails, the notes are the plain bullet list with duplicates removed; the release is never held up. Builds keep their own history section as notes.
-- **Mirror (optional):** a `mirror` job runs after a **full** release and publishes the same version, zip and notes on `MIRROR_REPO` (set at the top of release.yml). Builds are not mirrored.
-- **Secrets** (Settings > Secrets and variables > Actions on the addon repo):
-  - `MIRROR_TOKEN`: a fine-grained personal access token with **Contents: Read and write** on the mirror repo only. The built-in token cannot write to another repo. The job fails with a clear error without it.
-  - `ANTHROPIC_API_KEY`: optional, for the summary. Costs a few cents per full release.
+- **Notes: one summary of every change between releases, decided at release time.** After `bump_version.sh release`, `python3 tools/versions.py prs <version>` lists every pre-release since the previous release with its PR. Claude reads each PR (title, description, diff as needed) and writes **one player-facing summary of all the changes** as the release's history section, in place of the placeholder bullet (the rules check fails while the placeholder is there). The release notes are that summary only, under "Changes since <previous release>": no per-build lists, no PR text. No API key in the pipeline. Pre-releases keep their own history section as notes.
+- **Mirror (optional):** a `mirror` job runs after a **full** release and publishes the same version, zip and notes on `MIRROR_REPO` (set at the top of release.yml). Pre-releases are not mirrored, and neither is `versions.json` (only the zip and the notes go).
+- **Secret** (Settings > Secrets and variables > Actions on the addon repo): `MIRROR_TOKEN`, a fine-grained personal access token with **Contents: Read and write** on the mirror repo only. The built-in token cannot write to another repo. The job fails with a clear error without it.
 - **The mirror repo needs at least one commit**; the tag is created on its default branch.
 - **Retry:** the mirror skips anything already published, so after fixing a secret, run Actions > Release > Run workflow on main.
-- Try the notes locally: `sh tools/collect_notes.sh 1.5.0 > s.txt && sh tools/summarize_notes.sh 1.5.0 s.txt`.
+- Look up the changes between any two releases: `python3 tools/versions.py prs <release>` (that release's pre-releases and PRs), or with no version the pending ones.
 
 ## 7. Test zips before merge
 The release only happens on merge, so each PR also gets a **test zip** built the same way from the PR's commit and hosted with a link: `sh tools/host_build.sh <hosting checkout>` does it in one step (see the hosting pack). By hand:

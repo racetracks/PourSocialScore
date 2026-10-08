@@ -6,8 +6,10 @@
 #   4. Tabs, not spaces: indentation, mid-line alignment and no trailing
 #      whitespace (tools/check_style.lua; --fix there repairs these)
 #   6. Core logic files hold no UI code (tools/check_layers.lua)
-#   7. Versions: every TOC carries the same version, shaped X.Y.Z (a full
-#      release) or X.Y.Z.B (a build), and history.txt starts with its section
+#   7. Versions: every TOC carries the same version, shaped X.Y.Z.B (a build
+#      or a release; B never resets), history.txt starts with its section and
+#      its bullets are written, and versions.json agrees (tools/versions.py
+#      check; in CI every entry has its PR, PR_NUMBER: this pull request's)
 # Usage: sh tools/check_rules.sh   (from the repo root, needs luac5.1/lua5.1)
 
 fail=0
@@ -40,8 +42,8 @@ for toc in MyAddon*/*.toc; do
 		fail=1
 	fi
 done
-if ! echo "$ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(\.[1-9][0-9]*)?$'; then
-	echo "Version '$ver' must be X.Y.Z (a full release) or X.Y.Z.B (a build, from 1)"
+if ! echo "$ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[1-9][0-9]*$'; then
+	echo "Version '$ver' must be X.Y.Z.B"
 	fail=1
 fi
 top=$(sed -n 's/^=> \([^ ]*\) .*/\1/p' history.txt | head -n 1)
@@ -49,6 +51,13 @@ if [ "$top" != "$ver" ]; then
 	echo "history.txt: the top section is '$top', the TOCs say '$ver'"
 	fail=1
 fi
+if awk 'NR > 1 && /^=> / { n++ } n == 1' history.txt | grep -qE '^- (What changed, in plain words\.|Summary of every change since .*written at release time)'; then
+	echo "history.txt: the top section still holds the placeholder bullet"
+	fail=1
+fi
+strict=""
+[ -n "$CI" ] && strict="--strict"
+python3 tools/versions.py check --toc "$ver" $strict ${PR_NUMBER:+--pr "$PR_NUMBER"} || fail=1
 
 [ $fail -eq 0 ] && echo "All rule checks passed"
 exit $fail

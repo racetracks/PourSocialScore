@@ -17,6 +17,8 @@ jobs:
         run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
       - name: Check rules
         run: sh tools/check_rules.sh
+        env:
+          PSS_PR: ${{ github.event.pull_request.number }}
 
   harness:
     runs-on: ubuntu-latest

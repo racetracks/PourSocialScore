@@ -1,4 +1,4 @@
-# WoW addon baseline (2026-10-08, v6)
+# WoW addon baseline (2026-10-08, v7)
 
 The baseline for creating and maintaining any World of Warcraft addon with Claude: the author's frameworks, rules, styles, preferences, release pipeline and references. **It names no addon and no repository of ours.** Attach it to a fresh Claude project together with:
 - an **addon-specific pack** (that addon's purpose, repos, data layout, plans and status), and
@@ -25,9 +25,15 @@ The baseline for creating and maintaining any World of Warcraft addon with Claud
 | 10_FEATURE_DESIGN_AND_DELIVERY.md | Feature design, implementation stages, one small testable PR per stage, validation between PRs |
 | PROJECT_INSTRUCTIONS_TEMPLATE.md | Paste-ready project instructions to fill in |
 | HANDOVER_TEMPLATE.md | Layout for the addon-specific pack when a thread gets long |
-| templates/ | release.yml (with full-release notes and the mirror job), rules.yml, check_rules.sh, bump_version.sh, host_build.sh, collect_notes.sh, summarize_notes.sh, a TOC set, history.txt layout |
+| templates/ | release.yml (versions.json decides release or pre-release; the mirror job), rules.yml, check_rules.sh, bump_version.sh, versions.py, host_build.sh, a TOC set, history.txt layout |
 | examples/ | Harness tooling to adapt (stub, runner, style and layer checks, UI compare) |
 | reference/wow-api/ | WoW API reference set from the Warcraft Wiki: load order, TOC format and interface numbers, object security, taint, secure templates and handlers, Retail 12.x secret values. Reference only; its README lists where it differs from 02 |
+
+## Changes in v7
+- **The build number never resets** (02 F, 08, 09, 10, the instructions template): every version is `X.Y.Z.B`, the full release is a build too, and a new line counts on from the last build. No plain `X.Y.Z` any more.
+- **`versions.json`** (repo root, `templates/tools/versions.py`): the latest release, every pre-release since it in order with its PR, and each past release with its pre-releases; references only, never shipped or mirrored. `release.yml` asks it whether a version is a release, a pre-release, or not recorded (then nothing is published). `bump_version.sh` writes it; `bump_version.sh pr <number>` records the PR; the rules check fails a missing or wrong PR in CI and a placeholder history bullet (02 A12).
+- **Full release notes are one summary of every change since the previous release**, written by Claude at release time from the PRs `versions.py prs` lists (02 F5, 09 section 6). `collect_notes.sh`, `summarize_notes.sh` and the `ANTHROPIC_API_KEY` secret are gone.
+- `templates/history.txt` has the header `bump_version.sh` expects.
 
 ## Changes in v6
 - **Mandatory rules:** an addon pack overrides a rule only through its Overrides table (README step 4, 02 intro).
