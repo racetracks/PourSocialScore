@@ -180,7 +180,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | B2 | 3.4.1.36 | The right-click menu: a "PSS" header with "Block Player" and "Block Guild" (2.7) | Yes | In game on Retail and Camelot, unit and chat-name menus; the restriction CVars run | Merged, PR #124 |
 | N3 | 3.4.1.37 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | Merged, PR #126 |
 | Docs | 3.4.1.38 | `07_HARNESS.md`: checks after a shipped list rebuild (missed N3's merge); N3 marked merged; docs only | No | `check_rules.sh` | PR #127 |
-| Docs | 3.4.1.39 | The code map and changes in train (`12_CODE_MAP.md`, `13_CHANGES_IN_TRAIN.md`; appendices in `reference/code-map/`), loaded on demand; the later stages move up one build; docs only | No | `check_rules.sh` | PR (see 06) |
+| Docs | 3.4.1.39 | The code map and changes in train (`12_CODE_MAP.md`, `13_CHANGES_IN_TRAIN.md`; appendices in `reference/code-map/`), loaded on demand; the later stages move up one build; docs only | No | `check_rules.sh` | PR #128 |
 | Fix | 3.4.1.40 | The Guilds tab detail pane: a line that wraps (the list's "Rule on the Chat Filters tab: ..." line in Dan's screenshot) pushes the lines and pies below it down, instead of running into the next line (section 2.5, decision 23) | Yes | `tui_compare.sh` on a narrow pane and a long rule name: no overlap in all three looks; in-game in all three looks | |
 | F1 | 3.4.1.41 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
 | F2 | 3.4.1.42 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |

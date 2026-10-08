@@ -29,7 +29,7 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | B2 | 3.4.1.36 | Right-click "PSS" header: Block Player / Block Guild | Yes | Merged (#124) |
 | N3 | 3.4.1.37 | Builder fix, shipped lists rebuilt (7634 to 7438 entries) | Lists | Merged (#126) |
 | Docs | 3.4.1.38 | Harness notes for a list rebuild; docs only | No | PR #127 |
-| Docs | 3.4.1.39 | This code map and changes in train; docs only | No | On its PR |
+| Docs | 3.4.1.39 | This code map and changes in train; docs only | No | PR #128 |
 | **Fix** | 3.4.1.40 | Guilds tab detail pane: a wrapped line pushes the lines and pies below it down (decision 23) | Yes | **Next** |
 | F1 | 3.4.1.41 | N40 expiry applied, N41 hooks gated by option, N42 talent links, N45 Import Replace keeps shipped rules, N46 listener errors reported, N47 group warning list, N48 `/pss list` nil note | Yes | |
 | F2 | 3.4.1.42 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | |
