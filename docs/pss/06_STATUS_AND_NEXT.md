@@ -6,7 +6,7 @@ Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4
 - **Live release: 3.4.0.29** (full, the new PSS window; mirrored to `racetracks/Pour-Social-Score`). **Main: 3.4.1.31** (PR #119, the core uplift plan).
 - **Current project: core uplift** (`10_CORE_UPLIFT.md`, locked by Dan on 2026-10-08, all 12 decisions as recommended, with his forward-compatibility addition to decision 10). It runs on three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
 - **Camelot name cause confirmed** (decision 12, Dan's `/dump` output, 2026-10-08; 10 section 2.1): on a same-realm unit, `UnitName`'s second value is the surname.
-- **On its PR: N1, 3.4.1.32** (one name normaliser):
+- **On its PR: N1, 3.4.1.32** (PR #120, one name normaliser):
   - `M.PSS_NormName(name, realm, unit)` in `PSS_ChatBlock.lua`.
   - `M.PSS_NormalizePlayer`, `M.PSS_CanonPlayer`, `M.PSS_DisplayPlayer` and `M.PSS_UnitFullName` go through it.
   - The surname rule applies only with a unit (`UnitRealmRelationship` 1).

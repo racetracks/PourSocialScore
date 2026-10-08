@@ -133,7 +133,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | --- | --- | --- | --- | --- | --- |
 | Plan | 3.4.1.31 | This plan; working rules (one stage per session, context updated in every PR, state re-summarized at release, Dan's preferences in `11_PREFERENCES.md`); baseline v9; CLAUDE.md loads less | No | `check_rules.sh` | PR #119 |
 | (Dan) | | Run the six `/dump` lines of 2.1 on Camelot and paste the output | | Confirms the cause before N1 | Done 2026-10-08 (2.1) |
-| N1 | 3.4.1.32 | `M.PSS_NormName`; the existing name helpers call it; `check_names.lua` | No (only `PSS_UnitFullName` on a Camelot surname target) | Every key on the four saves unchanged except the Camelot surname case | PR (see 06) |
+| N1 | 3.4.1.32 | `M.PSS_NormName`; the existing name helpers call it; `check_names.lua` | No (only `PSS_UnitFullName` on a Camelot surname target) | Every key on the four saves unchanged except the Camelot surname case | PR #120 |
 | N2 | 3.4.1.33 | Every name caller (2.1), multi-word `/pss add/remove/expire`, import with the managed check, runtime fields not flushed; also the two points N1 left (2.1 notes) | Yes | On Camelot, "First Last" added from the menu, Ignore and `/pss add`; Retail unchanged; the restriction CVars run | |
 | N3 | 3.4.1.34 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | |
 | F1 | 3.4.1.35 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
