@@ -29,6 +29,7 @@ local WIN_W, WIN_H = 960, 494
 local PLACE = "PSS_Window"
 local TAB_H, NAV_H = 24, 20
 local TOP = -32
+local STREAKS = "_UI-Frame-TopTileStreaks"
 local SEP = "  >  "
 local TABS = M.PSS_UI_TABS
 local EVENTS = M.PSS_UI_EVENTS_TAB
@@ -435,22 +436,37 @@ local function Build()
 	-- frame's stone with its streaks over it, as the AddOns list draws its
 	-- top (Dan, 2026-10-08); the streaks alone are a dark overlay and show
 	-- nothing on black. The black starts where the pages do.
-	local band
+	-- Classic and Modern: the streaks reach down past the arrows' line to
+	-- the pages (the template's own stop 43 px down, inside that line).
+	local band, streaks
+	local BAND_H = -TOP + TAB_H + NAV_H + 8 - 21
 	if blizz then
+		streaks = ns.Own(blizz:CreateTexture(nil, "BORDER", nil, 1))
+		streaks:SetPoint("TOPLEFT", blizz, "TOPLEFT", 6, -21)
+		streaks:SetPoint("TOPRIGHT", blizz, "TOPRIGHT", -2, -21)
+		streaks:SetHeight(BAND_H)
 		band = ns.Own(blizz:CreateTexture(nil, "BACKGROUND", nil, -4))
 		band:SetPoint("TOPLEFT", blizz, "TOPLEFT", 2, -21)
 		band:SetPoint("TOPRIGHT", blizz, "TOPRIGHT", -2, -21)
-		band:SetHeight(-TOP + TAB_H + NAV_H + 8 - 21)
+		band:SetHeight(BAND_H)
 		band:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock", "REPEAT", "REPEAT")
 		band:SetHorizTile(true)
 		band:SetVertTile(true)
 	end
-	win.art.band = band
+	win.art.band, win.art.streaks = band, streaks
 	ns.OnPaint(function(isDark)
 		if black then
 			local modern = ns.IsModern()
 			black:SetShown(modern)
 			band:SetShown(modern)
+			-- ours where the client has the art, else the template's own
+			local own = ns.HasAtlas(STREAKS)
+			streaks:SetShown(own)
+			if own then
+				streaks:SetAtlas(STREAKS)
+				streaks:SetHorizTile(true)
+			end
+			if blizz.TopTileStreaks and blizz.TopTileStreaks.SetAlpha then blizz.TopTileStreaks:SetAlpha(own and 0 or 1) end
 			-- the template's own stone goes (ours is only the band); its
 			-- streak strip stays over the band
 			if blizz.Bg and blizz.Bg.SetAlpha then blizz.Bg:SetAlpha(modern and 0 or 1) end

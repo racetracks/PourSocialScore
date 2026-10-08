@@ -58,9 +58,9 @@ local OPTIONS = {
 	{ key = "frameStrata",		kind = "choice", default = 3,		section = 4, label = L["OPT_25"],
 		choices = { { 0, "LOW" }, { 1, "MEDIUM" }, { 2, "HIGH" }, { 3, "DIALOG" } } },
 	-- The new window (PourSocialScore_UI, /pss tui while it is built): its look
-	{ key = "uiSkin",			kind = "choice", default = 0,		section = 4, label = "Look of the new PSS window (/pss tui, in testing)",
-		choices = { { 0, "Blizzard (Default)" }, { 2, "Modern" }, { 1, "Dark" } },
-		tip = "Blizzard: Blizzard's own window art and fonts. Modern: the art of Blizzard's new Social window (Retail; other clients show the Blizzard look). Dark: flat and dark. All have the same layout." },
+	{ key = "uiSkin",			kind = "choice", default = 2,		section = 4, label = "Look of the new PSS window (/pss tui, in testing)",
+		choices = { { 2, "Modern (Default)" }, { 0, "Classic" }, { 1, "Dark" } },
+		tip = "Modern: the art of Blizzard's new Social window (Retail; other clients show the Classic look). Classic: Blizzard's classic window art and fonts. Dark: flat and dark. All have the same layout." },
 	{ key = "uiFont",			kind = "choice", default = "",		section = 4, label = "Font of the new PSS window (/pss tui, in testing)",
 		choices = {
 			{ "", "Default for the look" }, { "game", "Game text" }, { "names", "Unit names" }, { "damage", "Damage numbers" },

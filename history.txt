@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev008_4 - New PSS window: Modern by default, Classic look
+
+- Modern is now the new window's default look. The Blizzard look is renamed Classic; the Options drop-down lists Modern (Default), Classic and Dark. On clients without the Modern art (Camelot), Modern shows the Classic look.
+- If you never picked a look, the window now opens in Modern; a look you picked is kept.
+- Classic and Modern: the streaks behind the tabs now reach down past the line with the arrows, to the top of the page.
+
 => 3.4.0-dev008_3 - New PSS window: Modern tab row background, drawn
 
 - Modern: the band behind the tabs and the line under them is now the Blizzard frame's stone with its streaks over it, as the AddOns list draws its top. In dev008_2 only the streaks were kept, and they are a dark overlay that shows nothing on black. The pages below stay black.

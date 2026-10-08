@@ -37,10 +37,11 @@ check(win and win:GetWidth() == 960 and win:GetHeight() == 494, "window is not 9
 check(win and win.title and win.title:GetText() == "Pour Social Score", "no title")
 check(win and win._point and win._point[1] == "CENTER", "first open is not centred")
 
--- Blizzard look by default
+-- Modern by default (Dan, dev008_4); without its art (here) it paints the
+-- Classic look
 local art = win and win.art or {}
-check(M.PSS_UISkin() == "blizzard", "default look is not Blizzard")
-check(art.blizzard and art.blizzard:IsShown() and not art.dark:IsShown(), "Blizzard look not shown")
+check(M.PSS_UISkin() == "modern", "default look is not Modern")
+check(art.blizzard and art.blizzard:IsShown() and not art.dark:IsShown(), "Blizzard frame not shown")
 check(art.blizzardClose:IsShown() and not art.darkClose:IsShown(), "Blizzard close button not shown")
 
 -- Dark: the open window repaints, and only a non-default value is saved
@@ -48,16 +49,15 @@ M.PSS_SetOpt("uiSkin", "global", 1)
 check(M.PSS_UISkin() == "dark", "option did not switch to Dark")
 check(art.dark:IsShown() and not art.blizzard:IsShown(), "window did not repaint Dark")
 check(art.darkClose:IsShown() and not art.blizzardClose:IsShown(), "Dark close button not shown")
-M.PSS_SetOpt("uiSkin", "global", 0)
-check(art.blizzard:IsShown() and not art.dark:IsShown(), "window did not repaint Blizzard")
+M.PSS_SetOpt("uiSkin", "global", 2)
+check(art.blizzard:IsShown() and not art.dark:IsShown(), "window did not repaint Modern")
 check(PourSocialScoreDB.uiSkin == nil, "the default look was saved")
--- the three choices; Modern paints as Blizzard until it is built
+-- the three choices: Modern (Default), Classic, Dark
 local labels = {}
 for _, ch in ipairs(M.PSS_OPTION_REG.uiSkin.choices) do labels[#labels + 1] = ch[2] end
-check(table.concat(labels, ",") == "Blizzard (Default),Modern,Dark", "look choices are not Blizzard (Default), Modern, Dark")
-M.PSS_SetOpt("uiSkin", "global", 2)
-check(M.PSS_UISkin() == "modern" and art.blizzard:IsShown() and not art.dark:IsShown(), "Modern does not paint as Blizzard yet")
+check(table.concat(labels, ",") == "Modern (Default),Classic,Dark", "look choices are not Modern (Default), Classic, Dark")
 M.PSS_SetOpt("uiSkin", "global", 0)
+check(M.PSS_UISkin() == "blizzard" and PourSocialScoreDB.uiSkin == 0 and art.blizzard:IsShown() and not art.dark:IsShown(), "Classic not chosen and saved")
 
 -- a dragged place is saved and used next time
 win:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 120.4, -80.6)
@@ -373,18 +373,22 @@ c2:SetChecked(false)
 check(e1.pssParts.modernBox:IsShown() and not e1.pssParts.fill:IsShown(), "Modern box art not shown")
 -- the window on black, pages under a divider, boxes as cards
 check(win.art.black and win.art.black:IsShown() and art.blizzard:IsShown(), "Modern window not the metal frame on black")
--- the template's stone background fades; its streak strip stays behind the
--- tabs (the stub's template has neither: stand-ins)
+-- the template's stone fades; behind the tabs and the arrows' line our stone
+-- band with our streaks over it (the stub's template has neither stone nor
+-- streaks: stand-ins)
 do
 	local bz = art.blizzard
 	bz.Bg, bz.TopTileStreaks = bz:CreateTexture(), bz:CreateTexture()
 	H.Private("PourSocialScore_UI").Repaint()
-	check(bz.Bg:GetAlpha() == 0 and bz.TopTileStreaks:GetAlpha() == 1, "Modern does not keep the streaks behind the tabs")
-	local band = win.art.band
+	local band, streaks = win.art.band, win.art.streaks
 	check(band and band:IsShown() and band._texture == "Interface\\FrameGeneral\\UI-Background-Rock" and band:GetHeight() == 63,
 		"Modern has no stone band behind the tabs")
+	-- the streaks reach the pages (past the arrows' line), ours over the template's
+	check(streaks and streaks:IsShown() and streaks._atlas == "_UI-Frame-TopTileStreaks" and streaks:GetHeight() == 63
+		and bz.TopTileStreaks:GetAlpha() == 0, "Modern streaks do not reach under the arrows")
 	M.PSS_SetOpt("uiSkin", "global", 0)
-	check(bz.Bg:GetAlpha() == 1 and bz.TopTileStreaks:GetAlpha() == 1 and not win.art.band:IsShown(), "Blizzard look lost its background")
+	check(bz.Bg:GetAlpha() == 1 and not win.art.band:IsShown(), "Classic lost its background or shows the band")
+	check(streaks:IsShown() and streaks:GetHeight() == 63 and bz.TopTileStreaks:GetAlpha() == 0, "Classic streaks do not reach under the arrows")
 	M.PSS_SetOpt("uiSkin", "global", 2)
 end
 local pg = kit.pages[1]
@@ -401,6 +405,7 @@ check(dd.blizz:IsShown() and not dd.dark:IsShown(), "Modern drop-down is not Bli
 -- without the art (Camelot) Modern is the Blizzard look
 C_Texture.GetAtlasInfo = realAtlas
 M.PSS_SetOpt("uiSkin", "global", 2)
+check(not win.art.streaks:IsShown() and art.blizzard.TopTileStreaks:GetAlpha() == 1, "without the art the template's own streaks are not shown")
 check(not tert.texture:IsShown() and not c1.pssParts.modernBox:IsShown() and not win.art.black:IsShown() and kit.pages[1].pssParts.art:IsShown() and not kit.tabs[1].pssSide.plate:IsShown(), "Modern without the art is not the Blizzard look")
 kit.tabs[1]._scripts.OnClick(kit.tabs[1])
 M.PSS_SetOpt("uiSkin", "global", 0)
