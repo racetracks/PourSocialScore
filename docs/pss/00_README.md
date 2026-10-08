@@ -16,7 +16,7 @@ Last state (pack written): main was **3.3.0-dev004**. Since then: 3.3.1 released
 1. New Claude project. Attach `racetracks/PourSocialScore` (the addon) and `racetracks/Pour-Social-Score_Scratch` (hosting; the old `racetracks/scratch` is no longer used). Never attach `racetracks/PourSocialScore-EllesmereUI` (retired).
 2. Paste `PROJECT_INSTRUCTIONS.md` (this pack) as the project instructions. It already folds in the baseline's key lines.
 3. Upload the three zips in layer order and say: "Read the baseline README, 02_RULES, 07 and 10; then the scratch pack README; then this pack's 00_README, 06_STATUS_AND_NEXT and 01 to 05; confirm the next step."
-4. Copy each scratch `SavedVariables/<version>/` to `/mnt/project-files/savedvariables/<version>/` and concatenate each set into `/mnt/project-files/baselines/<version>/PourSocialScore.lua` (see 04 section 8). Never commit real saves to the addon repo.
+4. The project files are the scratch repo (Dan, 2026-10-08); there is no `/mnt/project-files`. For the harness, run `sh tools/harness/build_saves.sh <scratch checkout> <out dir>`: it joins each scratch `SavedVariables/<version>/` set into `<out dir>/<version>/PourSocialScore.lua` (see 04 section 8). Never commit real saves to the addon repo.
 
 ## Files
 | File | What it holds |

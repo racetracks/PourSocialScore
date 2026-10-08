@@ -49,10 +49,14 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | B4 | dev009 | Guild Ignore List part 2: guild, group, exclusion and member detail bodies, members view, confirms | Merged #100 |
 | B5 | dev010 (to dev010_2) | Chat Filters tab: list, editor, Test, link converter, Summary, Event History, totals; Libraries `PSS_FilterView.lua` | Merged #101 |
 | B6 | dev011 (to dev011_3) | Events tab, opened from every pie, View Events and the panes' histories; Libraries `PSS_EventsView.lua` | Merged #102 |
-| B7 | dev012 | Options (search; the look and font) + Import/Export; Libraries `PSS_OptionsView.lua`; all six tabs built | PR open |
-| C1, C2 | dev013, dev014 | Player Search, add target, Prune; right-click menus | Planned |
-| D1 to D3 | dev015 to dev017 | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
+| B7 | dev012 | Options (search; the look and font) + Import/Export; Libraries `PSS_OptionsView.lua`; all six tabs built | Merged #103 |
+| Versions | 3.4.0.13 | Build numbers replace devNNN and `_N`; no addon change | Branch `claude/sweet-fermi-f6nykb`; PR not opened yet |
+| R1 to R3 | next builds | The code review's fixes (scratch `docs/latest/code-review/`): R1 secret values and bugs, R2 Logging on demand and memory, R3 window tidy | Planned, before C1 if Dan agrees (review decision 4) |
+| C1 | next build | Player Search, add target, Prune | Planned |
+| C2 | next build | Right-click menus | Planned |
+| D1 to D3 | next builds | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
 | Release | 3.4.0 | When Dan says it is done | |
+| Next line | 3.4.1 | Core performance fixes from the review (review decision 5) | Planned |
 
 ## Code map
 | Where | What |

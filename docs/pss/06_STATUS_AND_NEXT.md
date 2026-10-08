@@ -1,6 +1,12 @@
-# Status and next step (2026-10-07)
+# Status and next step (2026-10-08)
 
 ## Where things stand
+- **Now (2026-10-08):** main = **3.4.0-dev012** (`7fff1a8`, PR #103 merged): B7, all six tabs of the new window built. 3.3.1 is the live full release.
+- **Build numbers** (`3.4.0.13`, Dan, 2026-10-08) are on branch `claude/sweet-fermi-f6nykb` with a test zip on scratch, but **no PR is open yet**; it goes first.
+- **Code review** (scratch `docs/latest/code-review/01_REVIEW_AND_PLAN.md`, main at dev012): no high findings, 12 medium, about 20 low. It plans R1 to R3 before C1 and asks Dan six questions (below); the order further down is built on its recommendations until Dan answers.
+- Project files are the scratch repo (Dan, 2026-10-08): saves `SavedVariables/<version>/`, plans `docs/latest/`, zips `releases/` and `latest/`. There is no `/mnt/project-files`.
+
+History:
 - `racetracks/PourSocialScore` main = **3.3.0-dev004** (`5c39f62`, PR #82 merged 2026-10-05 20:45Z). v3.2.0 is the last full release.
 - 3.3.0-dev004 has **no GitHub release**: the Release run on main was cancelled (05). Dan chose 2026-10-07: skip it; dev004 stays test-zip only and dev005 publishes next.
 - No addon work since 2026-10-05. 2026-10-07 was spent writing the general packs (baseline v4, scratch v2) and this pack; Dan said no code changes for that.
@@ -31,12 +37,23 @@ One window with the EllesmereUI port's layout, features and feel, drawn only wit
 | B4 | 3.4.0-dev009 | Guild Ignore List part 2: the guild, default list, exclusion and member detail bodies, the members view (double-click or Members; Back and Escape return), Remove Guild and Remove Member confirms; `check_guilds.lua` extended | Merged #100 |
 | B5 | 3.4.0-dev010 to dev010_2 | Chat Filters tab: list, editor (On, description, filter, Save / Copy / Remove / Reset Count), Test, link converter, Summary, Event History, totals; Libraries `PSS_FilterView.lua`; the link insert post-hook follows Retail 12.x's `ChatFrameUtil.InsertLink` (`ChatEdit_InsertLink` elsewhere; Dan's OK 2026-10-08, PSS 02 section 10.3); `check_filters.lua`; list cells kept to one line (dev010_2) | Merged #101 |
 | B6 | 3.4.0-dev011 to dev011_3 | Events tab: Time (custom range), Types and Source drop-downs, search, sorting, links, copy, Reset Block History; opened from every pie, View Events and the panes' histories; Libraries `PSS_EventsView.lua` (the Events view query deferred from A3); `check_events.lua`; popups in the window's own frame and background (dev011_2, _3) | Merged #102 |
-| B7 | 3.4.0-dev012 | Options tab (every option by section, search, the look and font) and Import/Export tab (parts, mode, Export, Import with Replace confirm); Libraries `PSS_OptionsView.lua`; `check_options.lua`; all six tabs built | PR open |
-| C1 to D3 | dev013 to dev017 | The six tabs' contents, old-GUI-only features, cutover (the new files move into `PourSocialScore_GUI`), removal | Planned |
+| B7 | 3.4.0-dev012 | Options tab (every option by section, search, the look and font) and Import/Export tab (parts, mode, Export, Import with Replace confirm); Libraries `PSS_OptionsView.lua`; `check_options.lua`; all six tabs built | Merged #103 |
+| Versions | 3.4.0.13 | Build numbers replace `-devNNN` and `_N` (`release.yml`, `check_toc.sh`, `check_rules_eui.sh`, every TOC); no addon change | Branch `claude/sweet-fermi-f6nykb`, test zip on scratch; PR not opened yet |
+| R1 | next build (3.4.0.14) | Code review: secret values (target name, channel args, link hook, secret message per decision 1), Escape closing a popup steps the window too, Remove re-selects by key, `SetItemRef` combat guard, tooltip `IsForbidden`, invite decline per decision 2; CI runs `validate_all.sh`; readme and stale docs; `check_secrets.lua` | Planned (decision 4) |
+| R2 | next build | Code review: Logging stays unloaded on guild and member remove and with Events remembered; options import through `PSS_SetOpt`; the window releases its caches and requests a GC on close; no guild list resort per block | Planned (decision 4) |
+| R3 | next build | Code review: new window tidy (`SetAlpha` fades, events registered while shown, UI logic moved to Libraries, one list mixin); look-compare identical | Planned (decision 4) |
+| C1 | next build | Player Search (button beside Add Player, results picker like Guild Search's, add anyway), add your target when the box is empty, Prune with a confirm | Planned |
+| C2 | next build | Right-click menus on rows (Menu API in Classic and Modern, our list in Dark) | Planned |
+| D1 | next build | Switch-over: `/pss gui`, the Addon Compartment and Friends / Social docking open the new window | Planned |
+| D2 | next build | The new files move into `PourSocialScore_GUI`; `PourSocialScore_UI`, `PourSocialScore_EllesmereUI` and the bridge deleted; `euiIntegration` pruned | Planned |
+| D3 | next build | Polish from testing, readme, docs | Planned |
+| Release | 3.4.0 | When Dan says it is done | |
+| Next line | 3.4.1.1 on (decision 5) | Core performance from the review: event-driven GC, `loadWhenQuiet` on events, capture events only when needed, member cap with migration (decision 6), core placement moves | Planned |
 
 Fixes to 3.3.1 meanwhile would be `3.3.2-dev001`.
 
 ## Waiting on Dan
+0. The code review's six decisions (scratch `docs/latest/code-review/01_REVIEW_AND_PLAN.md` section 4); above all **4: R1 to R3 before C1** (recommended) or after the cutover. And whether to open the PR for 3.4.0.13.
 1. Archive `racetracks/PourSocialScore-EllesmereUI` and close its PR #18.
 2. Delete merged `claude/*` branches (Claude gets 403).
 3. Whether the known rule deviations (01 section 5: idle GC timer, totals pane without opt-in, OnUpdate on hover) get fixed in a later line.
