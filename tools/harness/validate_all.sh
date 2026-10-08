@@ -221,6 +221,7 @@ done
 echo "== split"
 rm -rf "$work/src-prev"; mkdir -p "$work/src-prev"
 git archive c5c8296 | tar -x -C "$work/src-prev"
+git show 3cf8ed6:PourSocialScore_Communities/PSS_GuildIgnore_Managed.lua > "$work/managed-pre-n3.lua"
 splitsaves="$work/sv-2.0.1.lua $work/sv-2.0.40.lua $work/sv-2.0.44.lua $work/sv-gr-2.0.44.lua"
 # (2.0-layout saves only: a 3.x save already has PSS_OptionsDB, and the
 # old build cannot read it)
@@ -233,7 +234,12 @@ for sv in $splitsaves; do
 	# (log and keep sizes change at 3.2: people's lines leave the log, their
 	# world chat is no longer kept; stats24h: the hourly blockStats table
 	# the old build reports is pruned from 3.3.0-dev002)
-	lua5.1 "$here/run.lua" "$work/src-prev" "$sv" - "$here/dump_counts.lua" 2>&1 | grep '^N ' | grep -v "^N optionsSet=\|^N kept\|^N logLines\|^N stats24h" > "$work/split-a.txt"
+	# (membersShown: the 3.4.1.37 rebuild (N3) dropped 196 surname-as-realm
+	# names the old build still ships; a stored member under one of those
+	# names now counts on its own, surname_stored.lua)
+	drop=$((196 - $(lua5.1 "$here/surname_stored.lua" "$work/managed-pre-n3.lua" "$sv")))
+	lua5.1 "$here/run.lua" "$work/src-prev" "$sv" - "$here/dump_counts.lua" 2>&1 | grep '^N ' | grep -v "^N optionsSet=\|^N kept\|^N logLines\|^N stats24h" |
+		awk -F= -v drop=$drop '$1 == "N membersShown" { print $1 "=" $2 - drop; next } { print }' > "$work/split-a.txt"
 	lua5.1 "$here/run.lua" . "$sv" "$work/split-1.lua" "$here/dump_counts.lua" > "$work/split-b.txt" 2>&1
 	lua5.1 "$here/run.lua" . "$work/split-1.lua" - "$here/dump_counts.lua" > "$work/split-c.txt" 2>&1
 	if [ -s "$work/split-a.txt" ] && grep '^N ' "$work/split-b.txt" | grep -v '^N leftMarks=\|^N kept\|^N logLines' | diff "$work/split-a.txt" - > /dev/null &&

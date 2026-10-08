@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.37 - Core uplift N3: shipped lists rebuilt without surname-as-realm names
+
+- Managed Communities: the shipped guild lists held 212 names saved as "First-Last" (on Camelot the surname was read as the realm), which could never match chat. 196 of them were already listed under their full name and are removed; the other 16 are now listed as "First Last" on ClassicBetaPvP. The lists go from 7634 to 7438 entries.
+- The list builder now checks every name against the realms the lists come from, so these names cannot ship again.
+
 => 3.4.1.36 - Core uplift B2, the right-click PSS menu
 
 - The right-click menu on a player (in the world, in a group or a chat name) now has one "PSS" heading with two entries: "Block Player" and "Block Guild". Each reads "Unblock Player" or "Unblock Guild" when that player or guild is already listed.

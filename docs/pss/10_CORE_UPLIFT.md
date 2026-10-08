@@ -40,6 +40,16 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - `PSS_FlushManaged` no longer writes `_canon`, `_gkey` and `_virtual`. **`_managed` is still written:** the member count reads it while the lists are not loaded; it goes with the accessors in S2 and step 9 in S3.
   - The roster warning already uses `GetUnitName(unit, true)`, which gives "First Last" (confirmed in game); unchanged.
 - **Shipped lists:** `tools/PSS_BuildManaged.lua` rejects or converts surname-as-realm names. Of its 212 entries, 196 are dropped and 16 converted (decision 6); the data file is rebuilt and re-measured.
+- **Done in N3 (3.4.1.37):**
+  - The builder has `REALMS` (per group key; `olympus` = `ClassicBetaPvP`, `ClassicBetaPvP2`, the first being where a unit-found name belongs). `fixSurnames`, run by `write` on both paths (OlympusDB and `--reindex`), reads any other "realm" as a surname. `First-Last` is dropped when `First Last` is listed on one of the realms, otherwise it becomes `First Last-ClassicBetaPvP`. It adds a `-- Fixed <date>` header note, which `--reindex` keeps. A second reindex changes nothing.
+  - The lists were rebuilt with `--reindex`: 212 names, 196 dropped, 16 converted; 7634 to 7438 entries; realms 210 to 2.
+  - Measured: the data file went from 349138 to 334806 bytes (`luac -s` 339094 to 318603) and from 459.8 to 386.3 KB resident while the lists are loaded. The core manifest is unchanged in size (27.4 KB resident).
+  - Harness:
+    - `check_packed.lua` expects each surname-as-realm name of the dev16 list to be gone or converted.
+    - `check_communities.lua`: OLYMPUS now has 197 members.
+    - The split check in `validate_all.sh` expects `membersShown` to be 196 lower, plus one for each stored member under a dropped name (`surname_stored.lua`; Dan's 2.0.44 save has one, `georgette-foid`, which S3's repair merges).
+  - `tui_compare.sh` shows only the member counts changing, the same in all three looks.
+  - Saved records under the old `First-Last` keys are left as they are; S3's repair handles them.
 
 ### 2.2 SavedVariables (appendix 03)
 - **Identity stays the lowercase `name-realm` key.** There is no ID generator for players or guilds (decision 2): IDs measured 11% smaller on disk and larger in memory. Player GUIDs are not available from /who or the shipped lists, are secret under chat lockdown, and are long.
@@ -166,8 +176,8 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | N2 | 3.4.1.33 | Every name caller (2.1), multi-word `/pss add/remove/expire`, import with the managed check, runtime fields not flushed; `M.PSS_CharKey` (decision 14; decision 13 reversed) | Yes | On Camelot, "First Last" added from the menu, Ignore and `/pss add`; Retail unchanged; the restriction CVars run | PR #121 |
 | Plan B | 3.4.1.34 | B1 and B2 added to this plan (2.7, decisions 15 to 22); docs only | No | `check_rules.sh` | PR #122 |
 | B1 | 3.4.1.35 | PSS is authoritative over Blizzard's ignore list (2.7): the per-player Blizzard ignore tick, a new Blizzard ignore moves into PSS with its note, the existing Blizzard list is synced across, removal from either removes from both; upgrade step 8 (the global option to per-player ticks) | Yes | In game on Retail and Camelot: Blizzard Ignore, the tick in all three looks, removal both ways; the four real saves | Merged, PR #123 |
-| B2 | 3.4.1.36 | The right-click menu: a "PSS" header with "Block Player" and "Block Guild" (2.7) | Yes | In game on Retail and Camelot, unit and chat-name menus; the restriction CVars run | PR #124 |
-| N3 | 3.4.1.37 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | |
+| B2 | 3.4.1.36 | The right-click menu: a "PSS" header with "Block Player" and "Block Guild" (2.7) | Yes | In game on Retail and Camelot, unit and chat-name menus; the restriction CVars run | Merged, PR #124 |
+| N3 | 3.4.1.37 | Builder fix and the shipped lists rebuilt | Yes (lists) | `check_packed`, `check_communities_seen`; size measured | PR #PRNUM |
 | F1 | 3.4.1.38 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
 | F2 | 3.4.1.39 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |
 | U1 | 3.4.1.40 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
