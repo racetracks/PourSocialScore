@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.26 - Readme and docs for the one window
+
+- Nothing changes in game.
+- readme.txt: one section describes the Pour Social Score window (its looks, tabs, lists, the detail pane, exceptions, Player Search, Prune, the guild members view, Chat Filters, Events, Options and Import/Export), replacing the description of the old windows. Resizable columns, which the old window had, are no longer listed.
+- Project docs: brought up to date for the one window; EllesmereUI is named as the reference for building window parts, to be rewritten to the project's rules and never copied.
+
 => 3.4.0.25 - New PSS window: one window (cutover)
 
 - The Pour Social Score window now lives in the PourSocialScore_GUI folder, in place of the old window. Nothing about the window changes: same look, layout and features.

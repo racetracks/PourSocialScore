@@ -74,6 +74,7 @@ The full rule set is the **Interface** section of `CLAUDE.md` (one section, Dan,
 6. Window state and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` keys); no new SavedVariables.
 7. **Only the main window's title carries the addon's name.** Popup and dialog titles say what they ask ("Remove Player?"), never the addon name (Dan, 2026-10-08).
 8. **Core's note, party warning and reload popups stay Blizzard StaticPopups in every look** (Dan, 2026-10-08; core never loads the GUI folder for a popup). Section 1.4 still holds.
+9. **EllesmereUI is the reference framework for UI elements (Dan, 2026-10-08):** when more information is needed to build a UI element, check out `EllesmereGaming/EllesmereUI` (read only) and reference it wherever possible, as a mature framework for UI porting. Ported code is rewritten to suit our rules and uses it as a reference, never copied verbatim (03 section 0).
 
 ## 10. Taint and secret values on PSS (baseline 02 J, added 2026-10-07)
 PSS is a chat filter: on Retail 12.x its inputs are the values most likely to be secret (chat event arguments under chat messaging lockdown, `UnitName` and GUIDs while restricted).

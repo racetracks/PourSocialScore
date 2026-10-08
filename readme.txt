@@ -65,7 +65,8 @@ Player Ignore List
   duels and trades declined (set on the Options tab). Any player, guild or
   guild member can be an exception (ticks on its View/Edit Rule page, or
   its right-click menu, in the window: /pss gui)
-* Player detail window: double-click an entry (see THE WINDOWS below)
+* Player details: select an entry and its details show beside the list
+  (see THE POUR SOCIAL SCORE WINDOW below)
 * Warnings when you invite, or are grouped with, someone on your list
 * Group warning covers every list: the Player Ignore List and guild rules
   that are on (once per player per group, checked after combat)
@@ -112,10 +113,8 @@ Chat Filters
   filter has blocked
 
 Also
-* Every list can be sorted by any column, and every column can be resized:
-  drag the right edge of a column header (right-click the edge to reset).
-  Widths are remembered.
-* Links in Block History messages (items, recipes, professions, spells,
+* Every list can be sorted by any column, and searched
+* Links in blocked messages (items, recipes, professions, spells,
   achievements...) work like in chat: hover for the tooltip, click to open,
   shift-click to paste into chat
 * Import/Export of your lists, filters and options as a text string
@@ -147,7 +146,8 @@ Also
 == EXCLUSIONS: W I G P C
 
 The same five tickboxes appear on the Player Ignore List, on each guild of
-the Guild Ignore List, and on each member in a guild's members window.
+the Guild Ignore List, and on each member in a guild's members view (on
+each entry's View/Edit Rule page).
 Ticked = ALLOWED from that player / guild / member; unticked = blocked.
 Adding a player or a guild to a list opts them IN to blocking: everything
 from them is blocked. The boxes are per-player / per-guild EXCLUSIONS from
@@ -178,106 +178,102 @@ Upgrading from 2.0.3 or earlier keeps existing behaviour: C starts unticked
 Inv boxes and the members' Allow boxes are converted automatically.
 
 
-== THE WINDOWS
-
-Block metrics - the blocked counts per type (Whispers, Party Invites,
-Party/Raid, World Chat, Guild Invites) - look the same wherever a player or
-guild is reported on: as columns on the Player Ignore List, the Guild Ignore
-List and the guild members window, and as a small table (plus Total) at the
-top right of the player detail, guild members and Block History windows.
-Every metrics column sorts.
-
-Every page and window shares one design (the Player Ignore List's): a
-summary at the top (title, total, per-type breakdown), Blizzard-style column
-headers, 20-pixel rows that highlight on hover and stay highlighted when
-selected, and the buttons on the bar under the panel. Wherever W I G P C
-appears it is the same header and the same tickboxes.
-
-All windows can be moved by dragging and resized with the grip in their
-bottom-right corner. Right-click the grip to reset a window to its default
-size. Sizes are remembered.
-
-Main window tabs: Player Ignore List, Guild Ignore List, Chat Filters,
-Import/Export, Options.
-
-Sorting works the same on every list: click a column header to sort by it,
-click it again to reverse the order. An arrow shows the sorted column. Ties
-are ordered by name, A-Z.
-
-Player Ignore List
-  Opens sorted by name, A-Z; any column can be sorted, including each of
-  W I G P C. Click a player then Block History to see their history (with
-  no player selected you see every player's history, newest first).
-  Double-click an entry (or right-click > Details and note) to open the
-  player detail window: details, guild info, expiry, note, exclusions,
-  overrides, block counts and history, Add Guild for their current guild,
-  and Remove.
-
-Guild Ignore List
-  Opens sorted by guild name, A-Z. The Whispers / Party Invites /
-  Party/Raid / World Chat / Guild Invites columns are the guild's block
-  metrics; W I G P C are the guild's exclusions. Click a guild, then Remove Guild or Block History on the bar;
-  double-click a guild to open its members window. Right-click a guild for
-  more options. Removing a guild rule removes its captured members only;
-  your Player Ignore List is never changed by it.
-
-Guild members window
-  Each member has their own W I G P C (dimmed = following the guild). Click
-  a member, then Remove Member or Block History on the bar (no member
-  selected = the whole guild's history); double-click a member for their
-  history; right-click for per-player overrides.
-
-Chat Filters
-  Built-in filters always stay at the top; each group is sorted by the
-  chosen column (Description A-Z by default). Double-click a filter to edit
-  it (built-in filters open read only). Click a filter then Block History
-  to see what it blocked. Right-click for on/off, copy, remove, block
-  history and reset counts.
-
-Block History (the same on every list)
-  Players, guilds (per member) and chat filters all keep the same history:
-  time, player, type (W I G P C category), channel and message, newest
-  first, the last 100 lines each, plus counts per type. Block History
-  shows it in place of the list: with something selected you see only
-  that player / guild / filter, otherwise everything. On the bar: Close,
-  Reset Block History (clearing everything asks first), All Players /
-  All Guilds / All Filters, and Player Details / Show Members / Edit
-  Filter. Every column sorts; hover a line for the full message and where
-  it came from; right-click a line to add the sender to (or remove them
-  from) the Player Ignore List.
-
-Removing
-  Removing a player, guild, guild member or NPC/server entry happens
-  straight away - there is no confirmation. Prune asks only how many days.
-
-
 == THE POUR SOCIAL SCORE WINDOW
 
-From 3.4.0.23, /pss gui (or /pss ui), the Addon Compartment and, with
-"Open Pour Social Score UI with Blizzard Friends/Ignore UI" on, your Friends
-or Social window open one window. (THE WINDOWS above describes the window it replaces.)
+/pss gui (or /pss ui), the Addon Compartment and, with "Open Pour Social
+Score UI with Blizzard Friends/Ignore UI" on, your Friends or Social window
+open the window. Opened with Friends it sits beside it and closes with it;
+opened with /pss gui it is where you last dragged it, on the tab you last
+used. It is loaded only when first opened, and lets go of what it read when
+closed.
 
+Looks
 * Three looks, chosen on its Options tab ("Look of the Pour Social Score
   window"): Modern (the default, the art of Blizzard's Social window),
   Classic (Blizzard's classic window art) and Dark (flat and dark). The
   layout and every feature are the same in all three; the accent is your
   class colour. "Font of the Pour Social Score window" picks its font.
+
+Getting around
 * Six tabs: Player Ignore List, Guild Ignore List, Chat Filters, Events,
-  Options and Import/Export. The lists show the selected entry's details on
-  the right (Summary with its pies, Event History, View/Edit Rule); with
-  nothing selected, the list's totals.
-* Right-click a row for its menu. Removing anything asks first.
-* For everyone listed, by default: no ignore response, no decline messages,
-  duels and trades declined. Each player, guild or guild member can be an
-  exception: the ticks under "For this player" on View/Edit Rule, or in the
-  row's menu (ticked = it happens).
+  Options and Import/Export. Each tab is built the first time you open it.
 * The back and forward arrows above the tabs (and mouse buttons 4 and 5)
-  step through the views you opened. Escape closes a popup or menu first,
-  then goes up one level, and closes the window from the top.
-* Opened with Friends it sits beside it and closes with it; opened with
-  /pss gui it is where you last dragged it.
-* The note prompt, the party warning and the reload prompt are Blizzard's
-  popups.
+  step through the views you opened; the line beside them says where you
+  are and links back up. Clicking a tab takes it back to its start.
+* Escape closes a popup or menu first, then goes up one level, and closes
+  the window from the top.
+* Right-click a row for its menu (the row is selected first). Removing
+  anything asks first.
+
+The lists (Player Ignore List, Guild Ignore List, Chat Filters)
+* Click a column header to sort by it, click it again to reverse; type in
+  the search box to narrow the list.
+* With nothing selected, the pane on the right shows the whole list's
+  totals: blocks this session, in the last 24 hours and in all time (a
+  pie), and all time by type (a second pie; untick a type to leave it out
+  of the pies). Click a slice to see those lines on the Events tab.
+* Select an entry and the pane shows it, on three pages picked along the
+  bottom: Summary (its own pies and counts, View Events), Event History
+  (its blocked lines; the history loads only when you ask for it with Show
+  Block History) and View/Edit Rule (note, expiry, W I G P C, and the
+  exceptions below).
+* For everyone listed, by default: no ignore response, no decline messages,
+  duels and trades declined (the Options tab sets the default). Each
+  player, guild or guild member can be an exception: the ticks under "For
+  this player" (or guild, or member) on View/Edit Rule, or in the row's
+  menu. Ticked = it happens; "(exception)" marks one that differs from the
+  default. A member follows its guild unless it has its own.
+
+Player Ignore List
+* Add Player adds the name in the box, or your target when the box is
+  empty (another player of your faction). Player Search runs a /who for the
+  name and lists who it found: tick the ones to add (players already listed
+  are greyed), then Save. Nobody found: you are asked whether to add the
+  name anyway. Back or Escape closes the results.
+* Prune: choose a number of days and see how many entries were added that
+  long ago or more; Prune removes them with their notes, settings and
+  history.
+
+Guild Ignore List
+* Grouped: Managed Communities (the shipped lists, each with its rule on or
+  off), your guilds and the Guild Exclusion List. Click a heading to open
+  or close it.
+* Scan All sweeps every guild (hover it for the sweep's status); a guild's
+  own page has Scan and Custom Scan. Guild Search finds guilds by part of
+  their name: tick and Save. Exclude adds a guild to the Guild Exclusion
+  List.
+* Double-click a guild (or Members) for its members view: each member has
+  its own note, W I G P C and exceptions. Back or Escape returns to the
+  guilds.
+
+Chat Filters
+* Built-in filters stay at the top; they are read only (turn them on or off,
+  or Copy one to make your own). Click a filter to edit it: On,
+  description, the filter itself, then Save. Test runs the filter on sample
+  text; shift-click a link in chat to put it into the box being edited (the
+  link converter turns it into a filter tag). Reset Count keeps the
+  history. A guild rule (a shipped list) shows n/a: its blocks are counted
+  on the Guild Ignore List.
+
+Events
+* Every blocked line in one list, newest first: time, sender, type, where
+  and the message. Pick the time (or a custom range), the types and the
+  source, search, and sort by any column. Hover a link for its tooltip;
+  double-click a line to copy it; right-click a line to add its sender to,
+  or remove them from, the Player Ignore List. Reset Block History clears
+  the block history and counts of what the tab is showing (it asks first).
+* Every pie slice, View Events and a double-click in an Event History opens
+  this tab on those lines; Back returns to where you were.
+
+Options and Import/Export
+* Options: every option by section, with a search box. Changes save at once.
+* Import/Export: pick the parts (Player Ignore List, Guild Ignore List and
+  its captured members, custom chat filters, built-in filters on or off,
+  options) and the mode, then Export to get a text string, or paste one and
+  Import (Replace asks first).
+
+Core's own popups (the note prompt, the party warning, the reload prompt)
+are Blizzard's popups.
 
 
 == NOTES AND KNOWN LIMITATIONS
@@ -330,7 +326,7 @@ PSS ships with built-in filters that are updated as new spam turns up, and
 lets you create your own. Every built-in filter starts off - tick the
 ones you want on the Chat Filters tab. They include "Filter Asmon"
 ([contains=asmon]) and "Filter Olympus" ([word=olympus]). Create, copy and remove filters with the buttons
-on the Chat Filters tab; double-click one to edit it.
+on the Chat Filters tab; click one to edit it.
 
 A filter is made of tags in square brackets that describe what to look for
 in a chat message. When the filter as a whole is TRUE, the message is
