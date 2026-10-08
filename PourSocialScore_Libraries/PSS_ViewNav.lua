@@ -8,6 +8,8 @@
 --   M.PSS_SetUIPlace(key, point, relPoint, x, y)
 --   M.PSS_UIFontPath(), M.PSS_UIFontChoices()   (below)
 --   M.PSS_UIAccent()                     r, g, b of your class colour, or nil
+--   M.PSS_UI_TABS                        the window's tabs, in order
+--   M.PSS_UITab() / M.PSS_SetUITab(id)   the tab shown last (its number)
 --   M.PSS_NavNew(), M.PSS_DoubleClick(), M.PSS_Throttle()   (below)
 -- Places are saved with the other window places (PourSocialScoreDB
 -- windowPoints, held in PSS_OptionsDB).
@@ -36,6 +38,43 @@ function M.PSS_SetUIPlace(key, point, relPoint, x, y)
 	if type(db) ~= "table" or type(point) ~= "string" then return end
 	if type(db.windowPoints) ~= "table" then db.windowPoints = {} end
 	db.windowPoints[key] = { point, relPoint or point, tonumber(x) or 0, tonumber(y) or 0 }
+end
+
+-- The window's tabs: key (saved), the tab's text, and the Events tab's
+-- number (pies and View Events open it).
+M.PSS_UI_TABS = {
+	{ key = "players", text = "Player Ignore List" },
+	{ key = "guilds", text = "Guild Ignore List" },
+	{ key = "filters", text = "Chat Filters" },
+	{ key = "events", text = "Events" },
+	{ key = "importExport", text = "Import/Export" },
+	{ key = "options", text = "Options" },
+}
+M.PSS_UI_EVENTS_TAB = 4
+
+-- The tab shown last, saved by its key beside the window's place
+-- (windowPoints.PSS_WindowTab); the first tab is the default and is not saved.
+local TAB_KEY = "PSS_WindowTab"
+
+function M.PSS_UITab()
+	local db = PourSocialScoreDB
+	local key = type(db) == "table" and type(db.windowPoints) == "table" and db.windowPoints[TAB_KEY]
+	for i, t in ipairs(M.PSS_UI_TABS) do
+		if t.key == key then return i end
+	end
+	return 1
+end
+
+function M.PSS_SetUITab(id)
+	local db = PourSocialScoreDB
+	local t = M.PSS_UI_TABS[id]
+	if type(db) ~= "table" or not t then return end
+	if id == 1 then
+		if type(db.windowPoints) == "table" then db.windowPoints[TAB_KEY] = nil end
+		return
+	end
+	if type(db.windowPoints) ~= "table" then db.windowPoints = {} end
+	db.windowPoints[TAB_KEY] = t.key
 end
 
 -- The window's accent is always your class colour (Dan, 2026-10-07): your

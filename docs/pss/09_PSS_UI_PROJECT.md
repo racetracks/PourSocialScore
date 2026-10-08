@@ -42,8 +42,9 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | A2 | dev002 (to dev002_4) | Kit part 1 in Blizzard and Dark: shared fonts, heading, button, tick box, edit / number / search box, panel, scroll frame, tab row, tooltip; option `uiFont`; three looks; class colour accent; temporary kit preview page | Merged #89 (at dev002) and #90 (dev002_2 to _4, docs) |
 | A2b | dev003 (to dev003_2) | Kit part 2: drop-down and right-click menu, popups (confirm, copy, import), row list, pie | Merged #92 |
 | Modern | dev004 (to dev004_2) | The Modern look across the kit (Dan chose it next, 2026-10-07); dev004_2 redone after the whole Social window, settled at dev004_4 | Merged #93 |
-| A3 | dev005 | Libraries groundwork: navigation, detail maths, shared helpers; numbers equal the core's counts on the real saves (`check_viewquery.lua`); the Events view query moves to B6, with the tab that draws it | PR open |
-| B1 to B7 | dev006 to dev012 | Window frame and navigation, then one tab per PR (Players, Guilds x2, Chat Filters, Events, Options + Import/Export) | Planned |
+| A3 | dev005 | Libraries groundwork: navigation, detail maths, shared helpers; numbers equal the core's counts on the real saves (`check_viewquery.lua`); the Events view query moves to B6, with the tab that draws it | Merged #94 |
+| B1 | dev006 | Window frame and navigation: six tabs, back / forward, the line by the arrows, Escape, last tab remembered; kit preview out of the window (kept in the harness) | PR open |
+| B2 to B7 | dev007 to dev012 | One tab per PR (Players, Guilds x2, Chat Filters, Events, Options + Import/Export) | Planned |
 | C1, C2 | dev013, dev014 | Player Search, add target, Prune; right-click menus | Planned |
 | D1 to D3 | dev015 to dev017 | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
 | Release | 3.4.0 | When Dan says it is done | |
@@ -57,9 +58,9 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | `PourSocialScore_UI/PSS_Menu.lua` | `ns.NewDropdown(parent, w, build)` (`dd:SetLabel`), `ns.ContextMenu(owner, build)`; `build(m)` adds `m:Button`, `m:Radio`, `m:Check`, `m:Divider`, `m:Title`; Blizzard's MenuUtil menus or our `PSS_Menu` list |
 | `PourSocialScore_UI/PSS_Popups.lua` | `ns.Confirm`, `ns.CopyText`, `ns.ImportText` (`PSS_Confirm`, `PSS_TextPopup`) |
 | `PourSocialScore_UI/PSS_Rows.lua`, `PSS_Pie.lua` | The virtual row list and the pie, carried over from our own port and drawn in the look shown |
-| `PourSocialScore_UI/PSS_KitPage.lua` | Temporary kit preview (three tabs), removed in B1 |
-| `PourSocialScore_UI/PSS_Window.lua` | The window, Escape helper `PSS_WindowEscape`, `M.PSS_TUI` |
-| `PourSocialScore_Libraries/PSS_ViewNav.lua` | `M.PSS_UISkin`, `M.PSS_UIPlace` / `M.PSS_SetUIPlace`, `M.PSS_UIFontPath`, `M.PSS_UIFontChoices`, `M.PSS_UIAccent`; back / forward `M.PSS_NavNew(max)` (`Record`, `Back`, `Forward`, `Replace`, `BackToOther`), `M.PSS_DoubleClick`, `M.PSS_Throttle` |
+| `PourSocialScore_UI/PSS_Window.lua` | The window, `M.PSS_TUI`; six tabs built on first open by `ns.TabBuilders[key](page)` (returns the redraw); back / forward `ns.NavBack` / `ns.NavForward` / `ns.NavUp`, `ns.NavRecord`, `ns.ResetTab`, `ns.ShowEventsTab(prepare)`, `ns.RefreshTab`; a page's `navState` / `navApply` / `navUp` / `navTitle` / `navReset` / `navClose`; Escape helper `PSS_WindowEscape` |
+| `tools/harness/kit_page.lua` | The kit preview (was `PSS_KitPage.lua` until dev005), built by `check_tui.lua` on a frame of its own through `H.Private("PourSocialScore_UI")` |
+| `PourSocialScore_Libraries/PSS_ViewNav.lua` | `M.PSS_UISkin`, `M.PSS_UIPlace` / `M.PSS_SetUIPlace`, `M.PSS_UIFontPath`, `M.PSS_UIFontChoices`, `M.PSS_UIAccent`; tabs `M.PSS_UI_TABS`, `M.PSS_UITab` / `M.PSS_SetUITab` (saved as `windowPoints.PSS_WindowTab`, the first tab not saved); back / forward `M.PSS_NavNew(max)` (`Record`, `Back`, `Forward`, `Replace`, `BackToOther`), `M.PSS_DoubleClick`, `M.PSS_Throttle` |
 | `PourSocialScore_Libraries/PSS_DetailQuery.lua` | Pane maths: `M.PSS_PERIODS`, period and type ticks, `M.PSS_SummaryValues`, `M.PSS_PeriodSlices` / `M.PSS_PeriodTip`, `M.PSS_TypeSlices`, `M.PSS_TotalsView`, `M.PSS_CountsText`, override cycle `M.PSS_NextOverride` / `M.PSS_OverrideText`, `M.PSS_ClassColor` |
 | Core | `M.PSS_PARTS.UI`, `NEEDS.UI = "Libraries"`, options `uiSkin` and `uiFont`, `HELP_21` |
 

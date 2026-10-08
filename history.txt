@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev006 - New PSS window: tabs and navigation
+
+- /pss tui now opens the window with the EllesmereUI window's six tabs: Player Ignore List, Guild Ignore List, Chat Filters, Events, Import/Export and Options. Each tab is built the first time it is opened; until its own build arrives it shows a note.
+- Back and forward arrows under the tabs (and mouse buttons 4 and 5 over the window) step through what you looked at. The line beside them names the tab and view shown; each part before the last is a link back to it, underlined in your class colour.
+- Escape goes up one level first, and closes the window from the top. Events opened from another tab goes back to that tab.
+- Clicking a tab, even the one shown, puts it back to how it opens. The window reopens on the tab shown last.
+- The temporary kit preview has left the window; the harness keeps it to check every look.
+
 => 3.4.0-dev005 - New PSS window: Libraries groundwork
 
 - Nothing you can see changes yet: this stage adds the maths the new window's tabs will draw, in PourSocialScore_Libraries (new file PSS_DetailQuery.lua, and more in PSS_ViewNav.lua).
