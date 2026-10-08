@@ -59,6 +59,7 @@ Measured on Dan's save: 2000 lines went from 633 KB to 203 KB. Earlier, packing 
 `check_keep.lua`, `check_ondemand.lua`, `check_recent.lua`, `check_saveddata.lua`, `check_growth.lua`, `check_savedlog.lua` and `validate_all.sh` against all three real saves (2.0.44, 3.0.0, 3.2.0-dev011).
 
 ## 9. Possible next
+- **Stored guild members: cap 1500 per guild rule** (code review decision 6, Dan, 2026-10-08). `guildData[g].members` grows with every /who and unit capture today. On the 3.4.1 line: the cap, a numbered migration that prunes over-cap rules, validated on the three real saves with the save sizes measured before and after.
 - Pack the in-play chat filter log like the keep (offered, not started).
 
 ## Retired in 3.3.0-dev002: PSS_BlockStats
