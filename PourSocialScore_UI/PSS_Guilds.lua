@@ -64,6 +64,7 @@ local function DrawRow(row, i)
 		row.sel:Hide()
 		return
 	end
+	V:FreshCounts(item)
 	M.PSS_GuildRowCells(item, V.find, V.rows.managedHead and true or false, cells)
 	c.guild:SetText(cells.guild)
 	c.members:SetText(cells.members)
@@ -900,11 +901,17 @@ M.Events.Register("GUILD_REMOVED", function(key)
 	Changed()
 end)
 
--- Blocked lines only change counts: at most 4 redraws a second, the whole
--- list again (a heading's counts are its guilds' added up)
+-- Blocked lines only change counts: at most 4 redraws a second, the rows on
+-- screen counted again (V:CountsChanged); the order and a heading's totals
+-- follow at the next Resort
 local redrawCounts = M.PSS_Throttle(function()
 	if page and page:IsVisible() then
-		if V.view == "members" then mlist:Redraw() else Resort() end
+		if V.view == "members" then
+			mlist:Redraw()
+		else
+			V:CountsChanged()
+			list:Redraw()
+		end
 		ShowDetail()
 	else
 		V.dirty, V.mdirty = true, true

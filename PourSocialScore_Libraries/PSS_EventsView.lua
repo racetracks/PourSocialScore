@@ -227,6 +227,16 @@ function View:Refresh()
 	self.all = all
 end
 
+-- Drop the lines read (the whole block log and the unpacked kept lines)
+-- while the tab is not shown; Refresh reads them again.
+function View:Release()
+	self.all = {}
+	wipe(self.shown)
+	wipe(self.vals)
+	wipe(self.order)
+	wipe(self.srcOf)
+end
+
 -- Filter by the query and the search text, sort into self.shown; n
 function View:Apply(find)
 	local q = self.q

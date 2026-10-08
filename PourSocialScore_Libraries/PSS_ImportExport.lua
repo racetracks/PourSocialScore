@@ -183,6 +183,30 @@ local function copyOpts(o)
 	return next(t) and t or nil
 end
 
+-- An imported option value checked against its definition: a tick box takes
+-- true / false, a number is whole and kept in its range, a drop-down takes
+-- one of its choices (a font name too: LibSharedMedia fonts are not listed).
+-- ok, value
+local function importedOption(def, v)
+	if type(def) ~= "table" then return false end
+	if def.kind == "bool" then return type(v) == "boolean", v end
+	if def.kind == "number" then
+		v = tonumber(v)
+		if not v then return false end
+		v = math.floor(v)
+		if def.min and v < def.min then v = def.min end
+		if def.max and v > def.max then v = def.max end
+		return true, v
+	end
+	if def.kind == "choice" then
+		for _, c in ipairs(def.choices or {}) do
+			if c[1] == v then return true, v end
+		end
+		return type(v) == "string" and type(def.default) == "string", v
+	end
+	return false
+end
+
 -- sections: { players, guilds, members, filters, builtins, options }
 function M.PSS_BuildExport(sections)
 	local db = PourSocialScoreDB
@@ -382,9 +406,12 @@ function M.PSS_ApplyImport(data, mode, sections)
 		local n = 0
 		for key, v in pairs(data.options) do
 			local def = M.PSS_OPTION_REG and M.PSS_OPTION_REG[key]
-			if def then
-				local ok = (def.kind == "bool" and type(v) == "boolean") or ((def.kind == "number" or def.kind == "choice") and type(v) == "number")
-				if ok then db[key] = v; n = n + 1 end
+			local ok, value = importedOption(def, v)
+			if ok then
+				-- through the setter: defaults are not stored, the windows
+				-- repaint (OPTION_CHANGED), a login-only option asks to reload
+				M.PSS_SetOpt(key, "global", value)
+				n = n + 1
 			end
 		end
 		report[#report + 1] = n .. " options set"

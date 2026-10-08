@@ -57,13 +57,16 @@ M.PSS_UI_EVENTS_TAB = 4
 
 -- The tab shown last, saved by its key beside the window's place
 -- (windowPoints.PSS_WindowTab); the first tab is the default and is not saved.
+-- Events is never the tab the window opens on: it reads the block history,
+-- which would load PourSocialScore_Logging before any click (the tab shown
+-- before it stays saved).
 local TAB_KEY = "PSS_WindowTab"
 
 function M.PSS_UITab()
 	local db = PourSocialScoreDB
 	local key = type(db) == "table" and type(db.windowPoints) == "table" and db.windowPoints[TAB_KEY]
 	for i, t in ipairs(M.PSS_UI_TABS) do
-		if t.key == key then return i end
+		if t.key == key and i ~= M.PSS_UI_EVENTS_TAB then return i end
 	end
 	return 1
 end
@@ -71,7 +74,7 @@ end
 function M.PSS_SetUITab(id)
 	local db = PourSocialScoreDB
 	local t = M.PSS_UI_TABS[id]
-	if type(db) ~= "table" or not t then return end
+	if type(db) ~= "table" or not t or id == M.PSS_UI_EVENTS_TAB then return end
 	if id == 1 then
 		if type(db.windowPoints) == "table" then db.windowPoints[TAB_KEY] = nil end
 		return

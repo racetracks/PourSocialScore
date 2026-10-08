@@ -391,6 +391,43 @@ if hk then
 		check(gb.removeButton:IsEnabled() == not M.PSS_IsStaticManagedGuild(sk), "Remove Guild on a default list guild")
 	end
 end
+-- (3.4.0.15) a blocked line while the tab shows: the rows on screen count
+-- again without re-sorting the whole list; the next Resort catches up
+do
+	M.PSS_AddGuild("Countcheck Guild")
+	local m = M.PSS_UpdateGuildMember("Countcheck Guild", "Counted-Realm")
+	if m then m.guild = "Countcheck Guild" end
+	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
+	H.RunTimers()
+	page.search:SetText("countcheck")
+	page.search._scripts.OnTextChanged(page.search, true)
+	check(list.count == 1, "count check guild not found: " .. list.count)
+	local row = rowFor(1)
+	local before = tonumber(row and row.cells["metric:total"]:GetText() or "") or -1
+	local resorts, real = 0, M.PSS_GuildRows
+	M.PSS_GuildRows = function(...) resorts = resorts + 1 return real(...) end
+	lineID = lineID + 1
+	local hit = M.PSS_CoreFilter(nil, "CHAT_MSG_WHISPER", "spam", "Counted-Realm", "", "", "", "", 0, 0, "", 0, 900000 + lineID, nil)
+	H.RunTimers()
+	H.Advance(1)
+	H.RunTimers()
+	M.PSS_GuildRows = real
+	check(hit == true, "the guild member's whisper was not blocked")
+	check(tonumber(row.cells["metric:total"]:GetText() or "") == before + 1, ("row total %s, was %d"):format(tostring(row.cells["metric:total"]:GetText()), before))
+	check(resorts == 0, "a blocked line re-sorted the whole list " .. resorts .. " times")
+	check(V.dirty, "the list not marked for the next Resort")
+	page.search:SetText("")
+	page.search._scripts.OnTextChanged(page.search, true)
+	-- the members view: its list dropped when it closes
+	local key = M.PSS_CanonGuild("Countcheck Guild")
+	V:OpenMembers(key)
+	V:MResort()
+	check(#V.members >= 1, "members view empty")
+	V:CloseMembers()
+	check(#V.members == 0 and V.mn == 0, "the members list kept after closing")
+	M.PSS_RemoveGuild("Countcheck Guild")
+	H.RunTimers()
+end
 win.tabs[2]._scripts.OnClick(win.tabs[2])
 check(V.selKind == nil and V.view == "guilds" and pane.totals.frame:IsShown(), "a tab click did not reset the tab")
 check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")

@@ -41,7 +41,7 @@ local addon = PourSocialScore_NS
 local M = addon.M
 local History = M.PSS_History
 
-local type, tostring, pairs, ipairs, next, setmetatable, concat = type, tostring, pairs, ipairs, next, setmetatable, table.concat
+local type, tostring, pairs, ipairs, next, setmetatable, concat, wipe = type, tostring, pairs, ipairs, next, setmetatable, table.concat, wipe
 
 -- the Managed Communities row is selected as "managed"
 local MANAGED = "__managed"
@@ -62,14 +62,33 @@ List.__index = List
 -- selKind: "guild" (sel = key), "group" (key), "managed", "exclHeader",
 -- "excl" (name), or nil
 function M.PSS_GuildListNew()
-	return setmetatable({ key = "guild", asc = true, find = "", rows = { nest = true }, n = 0, dirty = true,
+	return setmetatable({ key = "guild", asc = true, find = "", rows = { nest = true }, n = 0, dirty = true, gen = 0,
 		view = "guilds", mkey = "name", masc = true, mfind = "", members = {}, mn = 0, mtotal = 0, mdirty = true }, List)
 end
 
 function List:Resort()
 	local _, n = M.PSS_GuildRows(self.key, self.asc, self.find, self.rows)
 	self.n, self.dirty = n, false
+	local gen = self.gen
+	for i = 1, n do self.rows[i].counted = gen end
 	return n
+end
+
+-- Blocked lines changed counts. Re-sorting the whole list on each one cost
+-- about 180 KB of garbage and 5 ms on a large save (3.4.0.15); instead a guild
+-- row counts again when it is drawn (FreshCounts: only the rows on screen),
+-- and the next Resort (a click, a sort, the tab shown again) brings the
+-- order and the group totals up to date.
+function List:CountsChanged()
+	self.gen = (self.gen or 0) + 1
+	self.dirty = true
+end
+
+function List:FreshCounts(item)
+	if item.g and item.key and item.counted ~= self.gen then
+		item.bc = M.PSS_GetGuildBlockCounts(item.key)
+		item.counted = self.gen
+	end
 end
 
 function List:SortBy(key)
@@ -227,7 +246,7 @@ function M.PSS_GuildScanTip(g)
 	else
 		add("Scan All")
 		add("|cffccccccOne /who per click across every guild, A-Z: each guild is swept to the end before the next.|r")
-		local nextG, done, n = M.PSS_ScanAllNext()
+		local nextG, done, n = M.PSS_ScanAllNext(true)
 		add(("Guilds swept %d / %d."):format(done, n))
 		if nextG then add("Now: " .. tostring(nextG.name)) end
 	end
@@ -359,9 +378,13 @@ function List:OpenMembers(key)
 	return true
 end
 
+-- the member list is dropped (thousands of rows for a shipped guild); the
+-- next OpenMembers builds it again
 function List:CloseMembers()
 	self.view, self.msel, self.find = "guilds", nil, ""
 	self.dirty = true
+	wipe(self.members)
+	self.mn, self.mtotal, self.mdirty = 0, 0, true
 end
 
 -- n shown, total; the rule gone: n 0 and mguild nil
