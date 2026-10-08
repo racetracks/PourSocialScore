@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.13 - Build numbers in place of dev numbers
+
+- Versions now carry a build number: 3.4.0.13 is build 13 of the 3.4.0 line, following 3.4.0-dev012. Every test build takes the next number; fixes to a build no longer add _2, _3.
+- Every build is published as a pre-release. Only a plain version such as 3.4.0 is a full release, made when the work is done.
+- Nothing in the addon changes.
+
 => 3.4.0-dev012 - New PSS window: Options and Import/Export tabs
 
 - The Options tab works in /pss tui, laid out like the EllesmereUI window: every option under its section heading, with a tick box, a number box, a drop-down, or (the scan level cap) a tick box with its number. A search box at the right of the tab row keeps the options whose name, tip or section holds the text. Options marked * can also be set per guild or per player.

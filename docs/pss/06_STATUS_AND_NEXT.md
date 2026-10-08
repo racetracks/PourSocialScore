@@ -31,10 +31,11 @@ One window with the EllesmereUI port's layout, features and feel, drawn only wit
 | B4 | 3.4.0-dev009 | Guild Ignore List part 2: the guild, default list, exclusion and member detail bodies, the members view (double-click or Members; Back and Escape return), Remove Guild and Remove Member confirms; `check_guilds.lua` extended | Merged #100 |
 | B5 | 3.4.0-dev010 to dev010_2 | Chat Filters tab: list, editor (On, description, filter, Save / Copy / Remove / Reset Count), Test, link converter, Summary, Event History, totals; Libraries `PSS_FilterView.lua`; the link insert post-hook follows Retail 12.x's `ChatFrameUtil.InsertLink` (`ChatEdit_InsertLink` elsewhere; Dan's OK 2026-10-08, PSS 02 section 10.3); `check_filters.lua`; list cells kept to one line (dev010_2) | Merged #101 |
 | B6 | 3.4.0-dev011 to dev011_3 | Events tab: Time (custom range), Types and Source drop-downs, search, sorting, links, copy, Reset Block History; opened from every pie, View Events and the panes' histories; Libraries `PSS_EventsView.lua` (the Events view query deferred from A3); `check_events.lua`; popups in the window's own frame and background (dev011_2, _3) | Merged #102 |
-| B7 | 3.4.0-dev012 | Options tab (every option by section, search, the look and font) and Import/Export tab (parts, mode, Export, Import with Replace confirm); Libraries `PSS_OptionsView.lua`; `check_options.lua`; all six tabs built | PR open |
-| C1 to D3 | dev013 to dev017 | The six tabs' contents, old-GUI-only features, cutover (the new files move into `PourSocialScore_GUI`), removal | Planned |
+| B7 | 3.4.0-dev012 | Options tab (every option by section, search, the look and font) and Import/Export tab (parts, mode, Export, Import with Replace confirm); Libraries `PSS_OptionsView.lua`; `check_options.lua`; all six tabs built | Merged #103 |
+| Versions | 3.4.0.13 | Build numbers replace `-devNNN` and `_N` (02 section 8): every build `3.4.0.B` and a pre-release, a plain `X.Y.Z` only when Dan says it is a release; `release.yml`, `check_toc.sh`, `check_rules_eui.sh` | PR open |
+| C1 to D3 | 3.4.0.14 on | The six tabs' contents, old-GUI-only features, cutover (the new files move into `PourSocialScore_GUI`), removal | Planned |
 
-Fixes to 3.3.1 meanwhile would be `3.3.2-dev001`.
+Fixes to 3.3.1 meanwhile would be `3.3.2.1`. From 3.4.0.13 every build is `X.Y.Z.B` (the build number), not `-devNNN`.
 
 ## Waiting on Dan
 1. Archive `racetracks/PourSocialScore-EllesmereUI` and close its PR #18.
