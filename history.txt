@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.39 - Docs, code map and changes in train
+
+- Documentation only: a code map of the addon and a list of the changes in train, for use as context. Nothing in the addon changes.
+
 => 3.4.1.38 - Docs: harness notes for the shipped list rebuild; N3 marked merged
 
 - Documentation only: notes for rebuilding the shipped guild lists. Nothing in the addon changes.
