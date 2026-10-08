@@ -2,7 +2,7 @@
 # TOC checks for one addon folder (run by tools/check_rules.sh):
 #   its three TOCs (base, _Mainline, _Camelot) agree on every field but
 #   Interface, list the same files and every listed file exists; Version
-#   equals the core's and is X.Y.Z, X.Y.Z-suffix or X.Y.Z-suffix_N.
+#   equals the core's and is X.Y.Z (a release) or X.Y.Z.B (a build).
 # Usage: sh tools/check_toc.sh <folder>   (from the repo root)
 
 dir=$1
@@ -27,5 +27,5 @@ done
 ver=$(sed -n 's/^## Version: *//p' "$base" | tr -d '\r')
 core=$(sed -n 's/^## Version: *//p' PourSocialScore/PourSocialScore.toc | tr -d '\r')
 [ "$ver" = "$core" ] || { echo "$base: Version $ver differs from the core's $core"; fail=1; }
-echo "$ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9]+(_[0-9]+)?)?$' || { echo "$base: Version '$ver' is not X.Y.Z, X.Y.Z-suffix or X.Y.Z-suffix_N"; fail=1; }
+echo "$ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$' || { echo "$base: Version '$ver' is not X.Y.Z (a release) or X.Y.Z.B (a build)"; fail=1; }
 exit $fail

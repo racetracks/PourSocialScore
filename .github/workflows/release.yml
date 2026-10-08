@@ -1,9 +1,11 @@
 # Publishes a GitHub release whenever the version in PourSocialScore/PourSocialScore.toc
-# changes on main: tags vX.Y.Z and attaches PourSocialScore-X.Y.Z.zip
+# changes on main: tags v<version> and attaches PourSocialScore-<version>.zip
 # (every addon folder, PourSocialScore and PourSocialScore_*, with readme.txt and
 # history.txt in the core folder; no .github / tools), with that version's section
 # of history.txt as the release notes. Does nothing if the release exists.
-# Versions with a suffix (3.0.0-dev1) are published as, or turned into, pre-releases.
+# Every build is X.Y.Z.B (B = build number) and is published as a pre-release;
+# only a plain X.Y.Z is a full release. Older suffixed versions (3.4.0-dev012)
+# stay pre-releases too.
 name: Release
 
 on:
@@ -61,16 +63,16 @@ jobs:
         run: |
           ver=${{ steps.v.outputs.version }}
           pre=""
-          case "$ver" in *-*) pre="--prerelease" ;; esac
+          case "$ver" in *-*|*.*.*.*) pre="--prerelease" ;; esac
           gh release create "v$ver" "PourSocialScore-$ver.zip" $pre \
             --target "$GITHUB_SHA" --title "Pour Social Score $ver" --notes-file notes.md
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Mark suffixed releases as pre-releases
+      - name: Mark build and suffixed releases as pre-releases
         run: |
           gh release list --limit 100 --json tagName,isPrerelease \
-            --jq '.[] | select(.isPrerelease | not) | .tagName | select(contains("-"))' |
+            --jq '.[] | select(.isPrerelease | not) | .tagName | select(contains("-") or (split(".") | length > 3))' |
           while read -r tag; do gh release edit "$tag" --prerelease; done
         env:
           GH_TOKEN: ${{ github.token }}

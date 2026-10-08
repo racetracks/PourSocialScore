@@ -20,11 +20,14 @@ The pipeline is the baseline's (baseline 09). Live copies of PSS's files are in 
 | 3.2.0 | Full, 2026-10-05 | **Last full release** |
 | 3.3.0-dev001 to dev003 | Pre-releases | Parity stages, published on merge |
 | 3.3.1 | Full, 2026-10-07 | Parity project closed (dev001 to dev005) |
-| 3.4.0-dev001 on | Pre-releases | The new PSS window (09) |
+| 3.4.0-dev001 to dev012 | Pre-releases | The new PSS window (09) |
+| 3.4.0.13 on | Pre-releases | Build numbers replace `-devNNN` and `_N` (Dan, 2026-10-08) |
 | 3.3.0-dev004 | **Not published** | PR #82 merged 2026-10-05 20:45Z, but the Release and Rules runs on main (5c39f62) were **cancelled**, so no release or tag exists. Fix: run the Release workflow by hand (`workflow_dispatch`) on main while 3.3.0-dev004 is still the version, or let the next stage (dev005) publish and leave dev004 as test-zip only. **Dan chose skip (2026-10-07)**: dev004 is test-zip only |
 
-## Fix builds before merge (Dan, 2026-10-07)
-A round of fixes on a dev build that has not merged yet is `devNNN_N` (`3.4.0-dev002_2`, `_3`, ...): every TOC, a history section and the zip name. `check_toc.sh` and `check_rules_eui.sh` accept the form; the workflow publishes it as a pre-release (it contains `-`). The next stage is the next devNNN.
+## Build numbers (Dan, 2026-10-08)
+Every build is `X.Y.Z.B` (02 section 8): the next build number for every test zip, a stage or a fix, merged or not (`3.4.0.13`, `3.4.0.14`, ...); every TOC, a history section and the zip name carry it. `check_toc.sh` and `check_rules_eui.sh` accept only `X.Y.Z` and `X.Y.Z.B`. `release.yml` publishes a four-part version, or an older one with `-`, as a pre-release, and turns any such release that is not one back into a pre-release; a plain `X.Y.Z` is a full release, set only when Dan says so.
+
+Until 3.4.0-dev012 a round of fixes on an unmerged dev build was `devNNN_N` (`3.4.0-dev002_2`, `_3`, ...).
 
 ## Test zips
 - Scratch (`racetracks/Pour-Social-Score_Scratch`, from 2026-10-08): `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`, and the same commit replaces the zip in `latest/` with it. Link `https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/<path>`. Copy to `/mnt/project-files/builds/`.

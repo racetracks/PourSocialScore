@@ -12,7 +12,7 @@
 9. **Addon test zips are stored in the releases folder**: everything we create before the release workflow occurs is stored in a zip in the releases folder.  The latest zip is stored in the latest folder, and at the same time a version and dated copy is stored in the root of the releases folder
 10. **Addon project documentation zips is stored in the docs folder**: When we create project documentation as markdown, we store the latest version in the docs folder.  When identified as a project or feature release, we will name a child folder in latest and in the root of docs to store history.  The latest is stored in a folder in the folder named "latest" in the root of docs and every docs release is zipped and stored in the root of the docs folder.  Where possible we put the files in folders to organise them
 11. **A description README** in each top folder the author may come back to "when confused".
-12. **Bugfix builds are hosted** like any dev build: the next dev number, zipped, on scratch, with a link.
+12. **Bugfix builds are hosted** like any build: the next build number, zipped, on scratch, with a link.
 13. **Real saves live here and in the project files, never in an addon repo.**  All saves can be checked in the SavedVariables folder: `racetracks/Pour-Social-Score_Scratch` `SavedVariables/<version>/`, which replaces `racetracks/scratch` `PourSocialScore/savedvariables/`
 14. **Always reply with links**, never only a path.
 ## Rules to add

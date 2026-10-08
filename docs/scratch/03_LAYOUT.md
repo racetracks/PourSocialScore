@@ -17,5 +17,5 @@ summary/                                <project>-<YYYY-MM-DD-hh-mm>.md  status 
 ## Naming
 - Folder names are plain words, not codes.
 - Timestamps are `YYYY-MM-DD-hh-mm`; pack versions are `<date>-v1`, `-v2`, ...
-- Zip names carry the version: `<Name>-1.4.0-dev004-2026-10-07-21-44.zip`, `<pack>-2026-10-07-v3.zip`.
+- Zip names carry the version: `<Name>-1.4.0.4-2026-10-07-21-44.zip`, `<pack>-2026-10-07-v3.zip`.
 - Saves are filed by the version the author names ("this is a 1.2.0 save"), not by the date.

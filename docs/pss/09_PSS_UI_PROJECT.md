@@ -33,10 +33,10 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 9. Old-GUI-only features are ported in the port's style before the cutover: Player Search, add your target, Prune, right-click menus. Resizable columns and windows are dropped.
 10. Popups: in Dark everything comes from our kit (window popups, tooltips, menus, and core's note, party warning and reload popups); Blizzard uses GameTooltip and the Menu API, and the window's popups are our own frames in the window's own frame and background (`ns.NewFrameArt`; Dan, dev011_3: Blizzard's dialog backgrounds were see-through; dev003: copy and import need a multi-line box, which StaticPopup lacks, and no `StaticPopupDialogs` entry is written). Core's StaticPopups stay as they are.
 11. Window place, last tab and new settings live in the Options addon's SavedVariables (`PSS_OptionsDB`, through the routed `PourSocialScoreDB` UI keys). No new SavedVariables.
-12. Version line **3.4.0**. Fixes to an unmerged dev build count up with `_N` (`3.4.0-dev002_2`, `_3`, ...); the next stage is the next devNNN.
+12. Version line **3.4.0**. Until dev012 the stages were `3.4.0-devNNN` with fixes as `_N`; from 2026-10-08 every build is `3.4.0.B`, the next build number for each test zip, a stage or a fix (02 section 8), starting at `3.4.0.13`. All are pre-releases; plain `3.4.0` when Dan says it is done.
 
 ## Stages
-| Stage | Dev | What | State |
+| Stage | Build | What | State |
 | --- | --- | --- | --- |
 | A1 | dev001 | `PourSocialScore_UI` folder, loader part `UI`, option `uiSkin`, `/pss tui` empty window; `check_tui.lua`, `check_toc.sh`, PSS-names check | Merged #88 |
 | A2 | dev002 (to dev002_4) | Kit part 1 in Blizzard and Dark: shared fonts, heading, button, tick box, edit / number / search box, panel, scroll frame, tab row, tooltip; option `uiFont`; three looks; class colour accent; temporary kit preview page | Merged #89 (at dev002) and #90 (dev002_2 to _4, docs) |
@@ -49,9 +49,10 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | B4 | dev009 | Guild Ignore List part 2: guild, group, exclusion and member detail bodies, members view, confirms | Merged #100 |
 | B5 | dev010 (to dev010_2) | Chat Filters tab: list, editor, Test, link converter, Summary, Event History, totals; Libraries `PSS_FilterView.lua` | Merged #101 |
 | B6 | dev011 (to dev011_3) | Events tab, opened from every pie, View Events and the panes' histories; Libraries `PSS_EventsView.lua` | Merged #102 |
-| B7 | dev012 | Options (search; the look and font) + Import/Export; Libraries `PSS_OptionsView.lua`; all six tabs built | PR open |
-| C1, C2 | dev013, dev014 | Player Search, add target, Prune; right-click menus | Planned |
-| D1 to D3 | dev015 to dev017 | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
+| B7 | dev012 | Options (search; the look and font) + Import/Export; Libraries `PSS_OptionsView.lua`; all six tabs built | Merged #103 |
+| Versions | 3.4.0.13 | Build numbers replace devNNN and `_N`; no addon change | PR open |
+| C1, C2 | 3.4.0.14 on | Player Search, add target, Prune; right-click menus | Planned |
+| D1 to D3 | next builds | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
 | Release | 3.4.0 | When Dan says it is done | |
 
 ## Code map
