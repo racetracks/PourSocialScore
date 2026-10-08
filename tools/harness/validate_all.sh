@@ -104,6 +104,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_players.lua" 2>&1 | grep -v '^|c
 echo "$out"
 echo "$out" | grep -q "PASS players" || fail=1
 
+# the new window's Player Search, add target and Prune (3.4.0.17)
+echo "== new window Players tools"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_playertools.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS playertools" || fail=1
+
 # the new window's Guild Ignore List tab, part 1 (3.4.0-dev008)
 echo "== new window Guilds tab"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_guilds.lua" 2>&1 | grep -v '^|cff')
@@ -305,6 +311,9 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_players.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS players" || fail=1
+		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_playertools.lua" 2>&1 | grep -v '^|cff')
+		echo "$out"
+		echo "$out" | grep -q "PASS playertools" || fail=1
 		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_guilds.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS guilds" || fail=1

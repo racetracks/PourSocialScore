@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.17 - New PSS window: Player Search, add your target, Prune
+
+- Player Search sits beside Add Player on the Player Ignore List tab of /pss tui: it runs a /who for the name in the box and lists the players found (name, level, class, guild) in place of the list. Click the players to tick them (players already listed are greyed), then Save, Tick All or Cancel; Back and Escape close the list. If nobody is found you can add the name anyway. The button waits out the /who cooldown.
+- Add Player with the box empty adds your target, when it is another player of your faction.
+- Prune removes every entry listed for at least the number of days you choose (365 to start); the popup counts what it will remove as you type, and nothing is removed until you press Prune.
+
 => 3.4.0.16 - Tidying the new window (no visible change)
 
 - New window: faded text is dimmed as a whole (its shadow with it) instead of through its colour, as the rest of Pour Social Score does. It looks the same.

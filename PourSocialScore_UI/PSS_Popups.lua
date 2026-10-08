@@ -3,7 +3,10 @@
 --
 -- The window's own popups, in the look shown, built on first use. One of
 -- each; showing one again replaces what it showed.
---   ns.Confirm({ title, text, accept, cancel, onAccept, onCancel })
+--   ns.Confirm({ title, text, accept, cancel, onAccept, onCancel,
+--                number, onNumber })    number: a number box under the text
+--                (its first value); onNumber(text) gives the text and whether
+--                accepting is allowed as you type; onAccept(boxText)
 --   ns.CopyText({ title, subtitle, text })          read only, selected
 --   ns.ImportText({ title, subtitle, accept, onAccept(text) })
 -- Classic and Modern: the window's own frame and background
@@ -97,12 +100,30 @@ local function BuildConfirm()
 	confirm.cancel = PopupButton(confirm, 125, 27, false)
 	confirm.accept:SetPoint("BOTTOMRIGHT", confirm, "BOTTOM", -8, 13)
 	confirm.cancel:SetPoint("BOTTOMLEFT", confirm, "BOTTOM", 8, 13)
+	-- the number Prune asks for
+	local box = ns.NewNumberBox(confirm, 70)
+	box:SetMaxLetters(5)
+	box:SetPoint("TOP", confirm.text, "BOTTOM", 0, -12)
+	box:Hide()
+	confirm.box = box
 	confirm.accept:SetScript("OnClick", function()
 		local o = confirmOpts
+		local text = box:IsShown() and box:GetText() or nil
 		confirmOpts = nil
 		confirm:Hide()
-		if o and o.onAccept then o.onAccept() end
+		if o and o.onAccept then o.onAccept(text) end
 	end)
+	box:SetScript("OnTextChanged", function(self)
+		local o = confirmOpts
+		if not (o and o.onNumber) then return end
+		local text, ok = o.onNumber(self:GetText() or "")
+		confirm.text:SetText(text or "")
+		confirm.accept:SetEnabled(ok and true or false)
+	end)
+	box:SetScript("OnEnterPressed", function()
+		if confirm.accept:IsEnabled() then confirm.accept:GetScript("OnClick")(confirm.accept) end
+	end)
+	box:SetScript("OnEscapePressed", function() confirm:Hide() end)
 	confirm.cancel:SetScript("OnClick", function() confirm:Hide() end)
 	-- hidden any other way (Cancel, Escape, a click on the dimmed screen,
 	-- another popup) is a cancel
@@ -126,11 +147,23 @@ function ns.Confirm(opts)
 	confirm.text:SetText(opts.text or "")
 	confirm.accept:SetText(opts.accept or OKAY or "Okay")
 	confirm.cancel:SetText(opts.cancel or CANCEL or "Cancel")
-	-- grows with a long message
+	confirm.accept:SetEnabled(true)
+	local box = confirm.box
+	box:SetShown(opts.number ~= nil)
+	if opts.number ~= nil then
+		-- sets the text and the accept button through onNumber
+		box:SetText(tostring(opts.number))
+		box:GetScript("OnTextChanged")(box)
+	end
+	-- grows with a long message (and the number box)
 	local over = math.max(0, confirm.text:GetStringHeight() - 44)
-	confirm:SetHeight(176 + over)
+	confirm:SetHeight(176 + over + (opts.number ~= nil and 34 or 0))
 	confirm:Show()
 	confirm:Raise()
+	if opts.number ~= nil then
+		box:SetFocus()
+		box:HighlightText()
+	end
 	return confirm
 end
 

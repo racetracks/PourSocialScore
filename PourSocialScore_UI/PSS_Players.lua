@@ -1,11 +1,13 @@
 ------------------------------------------------------------------------
 -- POUR SOCIAL SCORE UI - PLAYER IGNORE LIST TAB
 --
--- The list (search, sortable columns, Add Player) and a detail pane for the
--- selected entry with three pages (PSS_Detail.lua): Summary (counts and the
--- period pie), Event History and View/Edit Rule (note, expiry, W I G P C,
--- overrides, Remove, Add Guild). With nothing selected the pane shows the
--- whole list's totals. Libraries (PSS_PlayerView.lua) works out every text
+-- The list (search, sortable columns, Prune, Add Player with Player Search;
+-- an empty box adds your target) and a detail pane for the selected entry
+-- with three pages (PSS_Detail.lua): Summary (counts and the period pie),
+-- Event History and View/Edit Rule (note, expiry, W I G P C, overrides,
+-- Remove, Add Guild). With nothing selected the pane shows the whole list's
+-- totals. Player Search lists the players a /who found in place of the
+-- list (Save, Tick All, Cancel; Back and Escape close it). Libraries (PSS_PlayerView.lua) works out every text
 -- and does every edit; the core says when the list changed
 -- (PLAYERS_CHANGED, PLAYER_BLOCKED) and the tab redraws if it shows.
 ------------------------------------------------------------------------
@@ -22,7 +24,8 @@ local LINE_H = 16
 local V = M.PSS_PlayerListNew()
 local sel
 local rowBuf = {}
-local page, list, pane
+local page, list, lf, pane, picker
+local searchButton
 
 ns.TabBuilders = ns.TabBuilders or {}
 
@@ -296,6 +299,108 @@ function ns.ShowPlayerDetail(newEntry)
 end
 
 ------------------------------------------------------------------------
+-- Player Search results (in place of the list)
+------------------------------------------------------------------------
+local function ClosePicker()
+	if not picker:IsShown() then return end
+	picker:Hide()
+	lf:Show()
+end
+
+local function DrawPick(row, i)
+	local it = picker.items[i]
+	local c = row.cells
+	if not it then
+		for _, fs in pairs(c) do fs:SetText("") end
+		row.sel:Hide()
+		return
+	end
+	c.tick:SetText(it.listed and "|cff808080[x]|r" or (it.ticked and "|cff00ff00[x]|r" or "[  ]"))
+	c.name:SetText(it.name)
+	c.level:SetText(it.level)
+	c.class:SetText(it.class)
+	c.guild:SetText(it.guild)
+	c.state:SetText(it.listed and "|cff808080listed|r" or "")
+	row.sel:SetShown(it.ticked and not it.listed)
+end
+
+local function BuildPicker(parent)
+	picker = CreateFrame("Frame", nil, parent)
+	picker:SetPoint("TOPLEFT", lf, "TOPLEFT", 0, 0)
+	picker:SetPoint("BOTTOMRIGHT", lf, "BOTTOMRIGHT", 0, 0)
+	picker:Hide()
+	picker.items = {}
+	picker.title = ns.NewText(picker, 12)
+	picker.title:SetPoint("TOPLEFT", picker, "TOPLEFT", 4, -4)
+	picker.title:SetPoint("RIGHT", picker, "RIGHT", -4, 0)
+	picker.title:SetJustifyH("LEFT")
+	local rf = CreateFrame("Frame", nil, picker)
+	rf:SetPoint("TOPLEFT", picker, "TOPLEFT", 0, -24)
+	rf:SetPoint("BOTTOMRIGHT", picker, "BOTTOMRIGHT", 0, 34)
+	picker.list = ns.NewRows(rf, {
+		rowH = 20, height = 240,
+		cols = {
+			{ key = "tick", text = "", width = 36, justify = "CENTER" },
+			{ key = "name", text = "Name" },
+			{ key = "level", text = "Level", width = 50, justify = "RIGHT" },
+			{ key = "class", text = "Class", width = 100 },
+			{ key = "guild", text = "Guild", width = 150 },
+			{ key = "state", text = "", width = 60 },
+		},
+		draw = DrawPick,
+		click = function(_, i)
+			if M.PSS_GuildPickerToggle(picker.items[i]) then picker.list:Redraw() end
+		end,
+	})
+	local save = ns.NewButton(picker, "Save", 90, function()
+		M.PSS_PlayerPickerSave(picker.items)
+		ClosePicker()
+	end)
+	save.pssPrimary = true
+	save.pssPaint()
+	save:SetPoint("BOTTOMLEFT", picker, "BOTTOMLEFT", 4, 4)
+	picker.saveButton = save
+	local all = ns.NewButton(picker, "Tick All", 90, function()
+		M.PSS_GuildPickerTickAll(picker.items)
+		picker.list:Redraw()
+	end)
+	all:SetPoint("LEFT", save, "RIGHT", 6, 0)
+	picker.allButton = all
+	local cancel = ns.NewButton(picker, "Cancel", 90, ClosePicker)
+	cancel:SetPoint("LEFT", all, "RIGHT", 6, 0)
+	picker.cancelButton = cancel
+end
+
+-- the /who answer (the window may have closed meanwhile: shown when it opens)
+local function ShowSearchResults(found, query)
+	if not picker then return end
+	if not found or #found == 0 then
+		local text, name = M.PSS_PlayerNoneFound(query)
+		if text then
+			ns.Confirm({ text = text, accept = "Add Anyway", onAccept = function() M.PSS_PlayerAddAnyway(name) end })
+		end
+		return
+	end
+	M.PSS_PlayerPickerItems(found, picker.items)
+	picker.title:SetText(M.PSS_PlayerPickerTitle(#found, query))
+	lf:Hide()
+	picker:Show()
+	picker.list:SetCount(#picker.items)
+	picker.list:Top()
+end
+
+-- Prune: the days asked for, the entries it removes counted as you type
+local function Prune()
+	ns.Confirm({
+		title = "Prune",
+		number = M.PSS_PRUNE_DAYS,
+		onNumber = M.PSS_PruneText,
+		accept = "Prune",
+		onAccept = function(text) M.PSS_PruneApply(text) end,
+	})
+end
+
+------------------------------------------------------------------------
 -- Tab
 ------------------------------------------------------------------------
 local function Refresh()
@@ -332,30 +437,48 @@ ns.TabBuilders.players = function(pg)
 	pg.count:SetPoint("LEFT", search, "RIGHT", 12, 0)
 	pg.count:SetAlpha(0.7)
 
+	-- top right: [Prune] [Add a Player] [Player Search] [Add Player]
 	local add = ns.NewEditBox(pg, 170, 64)
 	local addHint = ns.NewText(add, 12)
 	addHint:SetPoint("LEFT", add, "LEFT", 2, 0)
 	addHint:SetAlpha(0.4)
-	addHint:SetText("Name-Realm")
+	addHint:SetText("Add a Player")
 	local function AddPlayer()
 		local text = add:GetText()
 		add:SetText("")
 		add:ClearFocus()
-		local entry = M.PSS_PlayerAddFromText(text)
+		-- an empty box: your target
+		local entry
+		if (M.trim(text or "") or "") == "" then
+			entry = M.PSS_PlayerAddTarget()
+		else
+			entry = M.PSS_PlayerAddFromText(text)
+		end
 		if entry then SelectEntry(entry) end
+	end
+	-- /who must go out straight from the click (hardware event)
+	local function PlayerSearch()
+		if M.PSS_PlayerSearchFromText(add:GetText(), ShowSearchResults) then add:SetText("") end
 	end
 	local addButton = ns.NewButton(pg, "Add Player", 100, AddPlayer)
 	addButton:SetPoint("TOPRIGHT", pg, "TOPRIGHT", -8, -5)
-	add:SetPoint("RIGHT", addButton, "LEFT", -8, 0)
+	searchButton = ns.NewButton(pg, "Player Search", 110, PlayerSearch)
+	searchButton:SetPoint("RIGHT", addButton, "LEFT", -6, 0)
+	searchButton:SetEnabled(not M.PSS_ScanCooldownActive())
+	add:SetPoint("RIGHT", searchButton, "LEFT", -8, 0)
 	add:SetScript("OnTextChanged", function(self) addHint:SetShown((self:GetText() or "") == "") end)
 	add:SetScript("OnEnterPressed", AddPlayer)
 	add:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-	ns.TipOn(addButton, addButton, "Adds the player typed in the box (Name or Name-Realm). Everything from them is blocked until you tick what to allow.")
-	pg.add, pg.addButton = add, addButton
+	ns.TipOn(addButton, addButton, "Add Player\n\nAdds the player typed in the box (Name or Name-Realm). With the box empty, adds your target if it is a player of your faction. Everything from them is blocked until you tick what to allow.")
+	ns.TipOn(searchButton, searchButton, "Player Search\n\nRuns a /who for the name in the box and lists the players found, so you can tick which to add. If nobody is found you can add the name anyway. /who can't search by realm, so only the name is searched for.")
+	local prune = ns.NewButton(pg, "Prune", 80, Prune)
+	prune:SetPoint("RIGHT", add, "LEFT", -10, 0)
+	ns.TipOn(prune, prune, "Prune\n\nRemoves every entry listed for at least the number of days you choose (you see how many first).")
+	pg.add, pg.addButton, pg.searchButton, pg.pruneButton = add, addButton, searchButton, prune
 
 	BuildPane(pg)
 
-	local lf = CreateFrame("Frame", nil, pg)
+	lf = CreateFrame("Frame", nil, pg)
 	lf:SetPoint("TOPLEFT", pg, "TOPLEFT", 8, -TOP_H - 4)
 	lf:SetPoint("BOTTOMRIGHT", pane, "BOTTOMLEFT", -8, 0)
 	list = ns.NewRows(lf, {
@@ -384,10 +507,26 @@ ns.TabBuilders.players = function(pg)
 		end,
 		emptyClick = function() if sel then SelectEntry(nil) end end,
 	})
-	-- a tab click (PSS_Window.lua): nothing selected
-	pg.navReset = function() if sel then SelectEntry(nil) end end
-	pg.list, pg.pane = list, pane
-	pg.stale = function() V.dirty = true end
+	BuildPicker(pg)
+
+	-- back / Escape (PSS_Window.lua) close the Player Search results first;
+	-- a tab click: the list, nothing selected
+	pg.navClose = function()
+		if not picker:IsShown() then return false end
+		ClosePicker()
+		return true
+	end
+	pg.navUp = pg.navClose
+	pg.navReset = function()
+		pg.navClose()
+		if sel then SelectEntry(nil) end
+	end
+	pg.list, pg.pane, pg.picker = list, pane, picker
+	-- the window opens again: events were not heard while it was shut
+	pg.stale = function()
+		V.dirty = true
+		searchButton:SetEnabled(not M.PSS_ScanCooldownActive())
+	end
 	pg.select = SelectEntry
 	V.dirty = true
 	return Refresh
@@ -408,4 +547,8 @@ local redrawCounts = M.PSS_Throttle(function()
 end)
 ns.Listen("PLAYER_BLOCKED", function()
 	if page and page:IsVisible() then redrawCounts() end
+end)
+
+ns.Listen("WHOIS_COOLDOWN", function(active)
+	if searchButton then searchButton:SetEnabled(not active) end
 end)

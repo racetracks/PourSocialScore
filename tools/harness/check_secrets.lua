@@ -27,8 +27,13 @@ local function holds(t, s, seen)
 	seen[t] = true
 	for k, v in pairs(t) do
 		if k == s or v == s then return true end
-		if type(k) == "string" and k:find(s, 1, true) then return true end
-		if type(v) == "string" and v:find(s, 1, true) then return true end
+		-- text is searched only for a secret string (find would turn the
+		-- secret channel number 7 into "7" and match a version such as
+		-- 3.4.0.17)
+		if type(s) == "string" then
+			if type(k) == "string" and k:find(s, 1, true) then return true end
+			if type(v) == "string" and v:find(s, 1, true) then return true end
+		end
 		if holds(k, s, seen) or holds(v, s, seen) then return true end
 	end
 	return false

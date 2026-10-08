@@ -20,12 +20,25 @@
 --   M.PSS_PlayerAddGuild(guild)           the player's guild onto the guild list
 --   M.PSS_PlayerGuildState(p)             guild, listed (Add Guild button)
 --   M.PSS_PlayerEventsSpec(entry), M.PSS_AllPlayersSpec()
+--   M.PSS_PlayerTarget()                  your target's Name-Realm (another
+--                                         player of your faction) or nil
+--   M.PSS_PlayerAddTarget()               adds it; its entry or nil (says why)
+--   M.PSS_PlayerSearchFromText(text, onDone)  Player Search: a /who straight
+--                                         from the click; true when it went out
+--   M.PSS_PlayerPickerItems(found, into), M.PSS_PlayerPickerTitle(n, query)
+--   M.PSS_PlayerPickerSave(items)         adds the ticked; the count added
+--   M.PSS_PlayerNoneFound(query)          the Add Anyway text and name, or nil
+--   M.PSS_PlayerAddAnyway(name)
+--   M.PSS_PRUNE_DAYS, M.PSS_PruneText(text)   Prune's text for the days
+--                                         typed, and whether it can run
+--   M.PSS_PruneApply(text)                removes them; the count
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
 local M = addon.M
 local L = addon.L
 
-local type, tonumber, setmetatable = type, tonumber, setmetatable
+local type, tonumber, setmetatable, ipairs = type, tonumber, setmetatable, ipairs
+local floor = math.floor
 
 ------------------------------------------------------------------------
 -- The list: sort, search and the order shown (positions in the list)
@@ -209,4 +222,113 @@ function M.PSS_PlayerEventsSpec(entry)
 		reset = M.PSS_ResetPlayerBlockHistory,
 		owner = M.PSS_PlayerHistoryKey, counts = M.PSS_GetPlayerBlockCounts,
 	}
+end
+
+------------------------------------------------------------------------
+-- Add your target, Player Search and Prune (the old window's features in
+-- the port's style)
+------------------------------------------------------------------------
+local LIST_NAME = "Player Ignore List"
+
+-- your target, when it is another player of your faction (a secret name
+-- while restricted: nothing)
+function M.PSS_PlayerTarget()
+	if not (UnitExists("target") and UnitIsPlayer("target")) or UnitIsUnit("target", "player") then return nil end
+	if UnitFactionGroup("target") ~= UnitFactionGroup("player") then return nil end
+	return M.PSS_UnitFullName("target")
+end
+
+-- Add Player with the box empty: your target; its entry, or nil (said why)
+function M.PSS_PlayerAddTarget()
+	local name = M.PSS_PlayerTarget()
+	if not name then
+		M.PSS_Say("Type a player name in the box first, or target a player of your faction.")
+		return nil
+	end
+	M.PSS_AddPlayer(name, "", 0, "target")
+	local pos = M.PSS_PlayerPosition(M.Proper(M.addServer(name)))
+	if pos > 0 then return (M.PSS_PlayerEntry(pos)) end
+end
+
+-- Player Search: true when the /who went out (the box is then cleared);
+-- onDone(players, query) gets the players found, A-Z
+function M.PSS_PlayerSearchFromText(text, onDone)
+	if M.PSS_ScanBlockedMsg() then return false end
+	text = M.trim(text or "") or ""
+	if text == "" then
+		M.PSS_Say("Type a player name in the box first.")
+		return false
+	end
+	return M.PSS_PlayerSearch(text, onDone) and true or false
+end
+
+-- The results picker's entries: { name, level, class, guild, listed, ticked }
+function M.PSS_PlayerPickerItems(found, into)
+	into = into or {}
+	for i = #into, 1, -1 do into[i] = nil end
+	for _, p in ipairs(found or {}) do
+		into[#into + 1] = {
+			name = p.name, level = p.level and tostring(p.level) or "", class = p.class or "", guild = p.guild or "",
+			listed = M.PSS_IsPlayerListed(p.name) and true or false,
+		}
+	end
+	return into
+end
+
+function M.PSS_PlayerPickerTitle(n, query)
+	return ("Player Search: %d player(s) found for \"%s\". Click the players to add."):format(n, query or "")
+end
+
+-- Save the ticked entries; the count added
+function M.PSS_PlayerPickerSave(items)
+	local n = 0
+	for _, it in ipairs(items) do
+		if it.ticked and not it.listed then
+			M.PSS_AddPlayer(it.name, "", 0)
+			n = n + 1
+		end
+	end
+	if n > 0 then M.PSS_Say(("%d player(s) added to the %s."):format(n, LIST_NAME)) end
+	return n
+end
+
+-- No results: the text offering to add the name anyway, and the name
+function M.PSS_PlayerNoneFound(query)
+	local name = M.trim(((query or ""):gsub('"', ""))) or ""
+	if name == "" then return nil end
+	return ("Nobody named %s was found online.\n\nAdd %s to the %s anyway?"):format(name, name, LIST_NAME), name
+end
+
+function M.PSS_PlayerAddAnyway(name)
+	M.PSS_AddPlayer(name, "", 0)
+	M.PSS_Say(("%s added to the %s."):format(name, LIST_NAME))
+end
+
+-- Prune: every entry listed for at least the days typed
+M.PSS_PRUNE_DAYS = 365
+
+local function PruneDays(text)
+	local d = tonumber(text)
+	if not d then return nil end
+	d = floor(d)
+	return d > 0 and d or nil
+end
+
+-- the popup's text for the days typed, and whether Prune can run
+function M.PSS_PruneText(text)
+	local d = PruneDays(text)
+	if not d then return "Remove every entry listed for at least how many days?\n\nType a number of days.", false end
+	local n = M.PruneIgnoreList(d)
+	if n == 0 then
+		return ("Remove every entry listed for at least how many days?\n\nNo entry is listed for %d or more %s."):format(d, M.dayString(d)), false
+	end
+	return ("Remove every entry listed for at least how many days?\n\n%d entr%s listed for %d or more %s will be removed with their notes and block history."):format(
+		n, n == 1 and "y" or "ies", d, M.dayString(d)), true
+end
+
+-- removes them (the core says how many and fires PLAYERS_CHANGED)
+function M.PSS_PruneApply(text)
+	local d = PruneDays(text)
+	if not d then return 0 end
+	return M.PruneIgnoreList(d, true)
 end

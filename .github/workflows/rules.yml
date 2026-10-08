@@ -34,6 +34,8 @@ jobs:
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_viewquery.lua | tee /tmp/vq.txt && grep -q "PASS viewquery" /tmp/vq.txt
       - name: New window Players tab
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_players.lua | tee /tmp/pl.txt && grep -q "PASS players" /tmp/pl.txt
+      - name: New window Players tools
+        run: lua5.1 tools/harness/run.lua . - - tools/harness/check_playertools.lua | tee /tmp/pt.txt && grep -q "PASS playertools" /tmp/pt.txt
       - name: New window Guilds tab
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_guilds.lua | tee /tmp/gu.txt && grep -q "PASS guilds" /tmp/gu.txt
       - name: New window Chat Filters tab
