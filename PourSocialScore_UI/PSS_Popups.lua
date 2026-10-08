@@ -57,7 +57,6 @@ local function Shell(name, w, h)
 	f:SetToplevel(true)
 	f:EnableMouse(true)
 	f:Hide()
-	tinsert(UISpecialFrames, name)
 	-- Classic and Modern: the same frame and background as the window
 	-- (Dan, dev011_3: Blizzard's dialog backgrounds were see-through)
 	local art = ns.NewFrameArt(f)
@@ -112,6 +111,7 @@ local function BuildConfirm()
 		confirmOpts = nil
 		if o and o.onCancel then o.onCancel() end
 	end)
+	ns.EscapeCloses(confirm, "PSS_Confirm")	-- after its OnHide (SetScript drops hooks)
 	ns.OnPaint(function(dark)
 		confirm.text:SetTextColor(1, 1, 1, dark and 0.53 or 1)
 	end)
@@ -187,6 +187,7 @@ local function BuildText()
 		eb:SetText("")
 		eb:ClearFocus()
 	end)
+	ns.EscapeCloses(f, "PSS_TextPopup")
 end
 
 local function ShowText(opts, readOnly)

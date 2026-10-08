@@ -207,6 +207,8 @@ function List:MakeRow(i)
 		row:SetHyperlinksEnabled(true)
 		row:SetScript("OnHyperlinkClick", function(btn, link, text, button)
 			btn.linkClickAt = GetTime()
+			-- SetItemRef can open Blizzard panels: never from our code in combat
+			if InCombatLockdown() then return end
 			if SetItemRef then pcall(SetItemRef, link, text, button, DEFAULT_CHAT_FRAME) end
 		end)
 		row:SetScript("OnHyperlinkEnter", function(btn, link)

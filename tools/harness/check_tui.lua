@@ -134,6 +134,23 @@ sub = "Badguild"
 ui.NavRecord()
 _G.PSS_WindowEscape:Hide()
 check(win:IsShown() and sub == nil and _G.PSS_WindowEscape:IsShown(), "Escape did not step up one level")
+-- (3.4.0.14) a popup open at an Escape takes it: the window stays where it
+-- is, whichever of the two the Escape hides first
+sub = "Badguild"
+ui.NavRecord()
+H.Advance(1)
+ui.Confirm({ text = "Escape test" })
+_G.PSS_WindowEscape:Hide()
+_G.PSS_Confirm:Hide()
+check(sub == "Badguild" and win:IsShown() and _G.PSS_WindowEscape:IsShown(), "Escape on a popup also stepped the window (helper hidden first)")
+H.Advance(1)
+ui.Confirm({ text = "Escape test" })
+_G.PSS_Confirm:Hide()
+_G.PSS_WindowEscape:Hide()
+check(sub == "Badguild" and win:IsShown() and _G.PSS_WindowEscape:IsShown(), "Escape on a popup also stepped the window (popup hidden first)")
+H.Advance(1)
+_G.PSS_WindowEscape:Hide()
+check(sub == nil and win:IsShown(), "the next Escape did not step up one level")
 -- Events opened from another tab: Escape goes back there
 win.tabs[4]._scripts.OnClick(win.tabs[4])
 check(win.pages[4]:IsShown(), "Events tab not shown")

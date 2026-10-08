@@ -1,5 +1,5 @@
 POUR SOCIAL SCORE AND CHAT SPAM FILTER
-Version 3.2.0 - by Boaties
+Version 3.4.0.14 - by Boaties
 
 Pour Social Score is a quality-of-life addon with an unlimited, account-wide
 ignore list, a guild ignore list, and a chat/spam filter engine. It removes
@@ -13,9 +13,9 @@ for the chat command list.
 
 == INSTALLING AND UPDATING
 
-Pour Social Score is six folders. Extract the zip into
-World of Warcraft/_retail_/Interface/AddOns/ (or your Camelot client's
-AddOns folder) so the six folders sit side by side:
+Pour Social Score is six folders, plus two optional ones (below). Extract
+the zip into World of Warcraft/_retail_/Interface/AddOns/ (or your Camelot
+client's AddOns folder) so the folders sit side by side:
 
   PourSocialScore              always loaded: chat filtering, warnings,
                                declines, guild member capture
@@ -37,6 +37,11 @@ A seventh folder, PourSocialScore_EllesmereUI, comes in the same zip (from
 3.2.0-dev008). It is only loaded with EllesmereUI installed and "Enable
 EllesmereUI integration" on, so without EllesmereUI it takes no memory; see
 ELLESMEREUI below.
+
+An eighth folder, PourSocialScore_UI, holds the new Pour Social Score window
+while it is being built (from 3.4.0). It is only loaded when you type
+/pss tui; at the end of the 3.4.0 work it replaces the window in
+PourSocialScore_GUI and the folder goes away.
 
 When updating, replace every folder (delete the old ones first so no stale
 file is left behind).

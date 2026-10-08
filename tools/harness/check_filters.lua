@@ -210,6 +210,18 @@ cf.accept._scripts.OnClick(cf.accept)
 H.RunTimers()
 local _, builtin, custom = M.PSS_FilterCount()
 check(custom == 0 and list.count == builtin, "Reset Defaults left custom filters: " .. tostring(custom))
+-- (3.4.0.14) Remove while another row is selected: that row stays selected
+do
+	local a = M.PSS_AddCustomFilter("Remove A", "[word=removea]", false)
+	local b = M.PSS_AddCustomFilter("Remove B", "[word=removeb]", false)
+	local ok, after = M.PSS_FilterRemove(a, "Remove A", b)
+	local r = {}
+	check(ok and after == b - 1 and M.PSS_FilterRow(after, r) and r.desc == "Remove B", "Remove moved the selection off the row picked")
+	ok, after = M.PSS_FilterRemove(after, "Remove B", after)
+	check(ok and after == nil, "Remove kept the removed row selected")
+	ok = M.PSS_FilterRemove(1, "no such filter", 1)
+	check(not ok, "Remove took a row whose description changed")
+end
 check(not loaded("PourSocialScore_GUI") and not loaded("PourSocialScore_EllesmereUI"), "an old window loaded")
 
 if not fail then print(("PASS filters (%d filters)"):format(M.PSS_FilterCount())) end

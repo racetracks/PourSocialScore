@@ -1,4 +1,4 @@
-# PourSocialScore (PSS): handover (2026-10-07, main at 3.3.0-dev004)
+# PourSocialScore (PSS): handover (2026-10-07, main at 3.3.0-dev004; folders and names kept current; status in 06)
 
 ## 1. Purpose
 PourSocialScore is Dan's World of Warcraft chat moderation addon (GitHub `racetracks`, in-game author Boaties). Clients: Retail (Midnight, Interface **120007**) and Camelot (Interface **16001**).
@@ -16,13 +16,13 @@ Goal: "global" moderation through shared lists. Sharing happens through shipped 
 ## 2. Repos
 | Repo | Role |
 | --- | --- |
-| `racetracks/PourSocialScore` (private) | The addon: seven folders, one version, `tools/` (rules checks, harness, managed list builder), readme.txt, history.txt, `.github/workflows` (release.yml, rules.yml) |
+| `racetracks/PourSocialScore` (private) | The addon: eight folders, one version, `tools/` (rules checks, harness, managed list builder), readme.txt, history.txt, `.github/workflows` (release.yml, rules.yml) |
 | `racetracks/Pour-Social-Score_Scratch` (private) | Hosting (layer 2 pack, `docs/scratch/`). Paths: `releases/` (test zips, versioned and dated), `latest/` (the newest test zip), `SavedVariables/<version>/` (saves), `docs/` (plans, issue notes, handover packs; newest markdown in `docs/latest/<project>/`), `summary/` (status summaries). Replaces `racetracks/scratch`, no longer used |
 | `racetracks/PourSocialScore-EllesmereUI` | **Retired.** Held the EllesmereUI folder on its own 1.1 version line until 3.2.0-dev008 merged it into the addon repo. Dan is to archive it and close its PR #18. Never write to it |
 
 Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; 03), `Gethe/wow-ui-source`. References actually used on PSS: an ElvUI zip Dan uploaded (the load-on-demand split), a DBM AddOns list screenshot (Category/Group/coloured titles), a Questie zip (upgrade output idea, issue #45), wago.tools, and the Warcraft Wiki reference set Dan uploaded on 2026-10-07 (`docs/baseline/reference/wow-api/`; rules in baseline 02 J and PSS 02 section 10).
 
-## 3. Folders (one release zip holds all seven)
+## 3. Folders (one release zip holds all eight)
 | Folder | Loads | Holds |
 | --- | --- | --- |
 | `PourSocialScore` (core) | Always | Chat filtering engine, block counting, outbox, setters, events, loader, options definitions, the EUI bridge, upgrades, GC helper. SavedVariables `PourSocialScoreDB` (upgrade record, outbox, recent counts, sessionStart) |

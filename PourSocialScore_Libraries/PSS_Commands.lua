@@ -354,8 +354,7 @@ function M.PSS_SlashGuild (msg)
 		-- Dry run across EVERY list (player + guild). Nothing is recorded.
 		local name = rest
 		if name == "" and UnitExists and UnitExists("target") and UnitIsPlayer and UnitIsPlayer("target") then
-			local n, r = UnitName("target")
-			name = (r and r ~= "") and (n .. "-" .. r) or n
+			name = M.PSS_UnitFullName("target")
 		end
 		if not name or name == "" then gp("usage: /pssguild test Name-Realm   (or target the player and type /pssguild test)") return end
 		local ex = M.PSS_ExplainPerson(name)

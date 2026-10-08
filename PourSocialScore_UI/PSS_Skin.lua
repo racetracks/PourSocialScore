@@ -288,3 +288,22 @@ end
 function ns.Round(v)
 	return floor((v or 0) + 0.5)
 end
+
+-- Escape: our popups and the Dark menu close on Escape (UISpecialFrames)
+-- with the window's own Escape helper. One Escape runs every one of them,
+-- so the helper asks first: a popup or menu shown, or closed by this same
+-- Escape (the same frame time), takes the key and the window stays as is.
+-- Call it after the frame's own OnHide is set: SetScript drops hooks.
+local escFrames, escClosedAt = {}, nil
+function ns.EscapeCloses(f, name)
+	escFrames[#escFrames + 1] = f
+	UISpecialFrames[#UISpecialFrames + 1] = name
+	f:HookScript("OnHide", function() escClosedAt = GetTime() end)
+end
+
+function ns.EscapeTaken()
+	for i = 1, #escFrames do
+		if escFrames[i]:IsShown() then return true end
+	end
+	return escClosedAt == GetTime()
+end

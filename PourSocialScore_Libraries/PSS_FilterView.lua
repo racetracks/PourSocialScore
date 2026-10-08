@@ -15,7 +15,7 @@
 --   M.PSS_FilterHistoryLine(r)          "History n lines: ..."
 --   M.PSS_FilterSave(i, desc, text)     true when saved
 --   M.PSS_FilterCopy(i)                 the copy's number, or nil
---   M.PSS_FilterRemoveText(i), M.PSS_FilterRemove(i, desc)
+--   M.PSS_FilterRemoveText(i), M.PSS_FilterRemove(i, desc, sel) -> removed, sel after
 --   M.PSS_FilterNew()                   a new custom filter's number
 --   M.PSS_FilterTestText(filter, line)  BLOCKED / PASSED / FILTER ERROR
 --   M.PSS_AllFiltersSpec(), M.PSS_FilterEventsSpec(i)
@@ -134,12 +134,16 @@ function M.PSS_FilterRemoveText(i)
 end
 
 -- remove filter i if it is still the one asked about (desc); true if removed
-function M.PSS_FilterRemove(i, desc)
+-- sel: the row selected now (another may have been clicked while the
+-- confirm was open); returned as it is after the rows below i move up
+function M.PSS_FilterRemove(i, desc, sel)
 	if M.PSS_FilterRow(i, prow) and prow.desc == desc then
 		M.RemoveChatFilter(i)
-		return true
+		if sel == i then return true, nil end
+		if sel and sel > i then return true, sel - 1 end
+		return true, sel
 	end
-	return false
+	return false, sel
 end
 
 function M.PSS_FilterNew()

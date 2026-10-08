@@ -85,7 +85,8 @@ local function ConfirmRemove()
 	local text, desc = M.PSS_FilterRemoveText(i)
 	if not text then return end
 	ns.Confirm({ text = text, accept = "Remove", onAccept = function()
-		if M.PSS_FilterRemove(i, desc) and sel == i then sel = nil end
+		local _, after = M.PSS_FilterRemove(i, desc, sel)
+		sel = after
 	end })
 end
 
@@ -265,7 +266,7 @@ end
 -- unless the pane shows (C1).
 local hooked
 local function OnInsertLink(text)
-	if not (pane and pane:IsVisible()) or type(text) ~= "string" then return end
+	if not (pane and pane:IsVisible()) or type(text) ~= "string" or M.PSS_IsSecret(text) then return end
 	if pane.filterBox:HasFocus() then
 		pane.filterBox:Insert(M.PSS_ConvertChatLink(text))
 	elseif pane.testBox:HasFocus() then

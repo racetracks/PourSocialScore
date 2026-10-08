@@ -285,15 +285,18 @@ end
 
 -- Escape: a helper frame in UISpecialFrames shown with the window; Escape
 -- hides it, and that steps up one level (shown again) or closes the window.
+-- A popup or menu open at that Escape takes it instead (ns.EscapeTaken).
 local function EscapeFrame()
 	local esc = CreateFrame("Frame", "PSS_WindowEscape", UIParent)
 	esc:Hide()
-	tinsert(UISpecialFrames, "PSS_WindowEscape")
+	UISpecialFrames[#UISpecialFrames + 1] = "PSS_WindowEscape"
 	win:HookScript("OnShow", function() esc:Show() end)
 	win:HookScript("OnHide", function() esc:Hide() end)
 	esc:SetScript("OnHide", function(self)
 		if not win:IsShown() then return end
-		if ns.NavUp() then
+		if ns.EscapeTaken() then
+			self:Show()
+		elseif ns.NavUp() then
 			self:Show()
 		else
 			win:Hide()

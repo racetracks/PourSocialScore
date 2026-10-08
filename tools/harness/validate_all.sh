@@ -128,6 +128,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_options.lua" 2>&1 | grep -v '^|c
 echo "$out" | grep -E "PASS|FAIL"
 echo "$out" | grep -q "PASS options" || fail=1
 
+# secret values: chat, unit and hook values checked, never kept (3.4.0.14)
+echo "== secret values"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_secrets.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -E "PASS|FAIL"
+echo "$out" | grep -q "PASS secrets" || fail=1
+
 # the PSS window's Managed Communities row (3.3.0-dev003)
 echo "== Managed Communities row"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_managed_row.lua" 2>&1 | grep -v '^|cff')
