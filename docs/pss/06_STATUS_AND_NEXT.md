@@ -16,7 +16,7 @@
 | 3.3.0-dev005 | #85 | Bugfix: Retail 12.1 opens `SocialUIFrame` for the Friends key; core hooks it and FriendsFrame (Who tab), the window anchors to whichever opened (55 px clear of the Social side tabs) | Merged |
 
 ## Current project: the new PSS window (3.4.0)
-One window with the EllesmereUI port's layout, features and feel, drawn only with Blizzard's and our own resources, in three looks (option `uiSkin`: Blizzard (Default), Modern, Dark), the accent always the class colour. It replaces both `PourSocialScore_GUI` and `PourSocialScore_EllesmereUI`. Logic goes in `PourSocialScore_Libraries`, drawing in the new `PourSocialScore_UI`; `/pss tui` opens it until the cutover. Details: `09_PSS_UI_PROJECT.md`. Plan, decisions and look spec: scratch `latest/pss-ui/` (working copy `pss-projects/pss-ui/`).
+One window with the EllesmereUI port's layout, features and feel, drawn only with Blizzard's and our own resources, in three looks (option `uiSkin`: Blizzard (Default), Modern, Dark), the accent always the class colour. It replaces both `PourSocialScore_GUI` and `PourSocialScore_EllesmereUI`. Logic goes in `PourSocialScore_Libraries`, drawing in the new `PourSocialScore_UI`; `/pss tui` opens it until the cutover. Details: `09_PSS_UI_PROJECT.md`. Plan, decisions and look spec: scratch `docs/latest/ui uplift/` (history `docs/ui uplift/`).
 
 | Stage | Dev | What | State |
 | --- | --- | --- | --- |
