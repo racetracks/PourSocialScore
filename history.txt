@@ -1,6 +1,17 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.18 - New PSS window: popup titles
+
+- The window's popups no longer carry the addon's name: each title says what it asks, such as "Remove Player?", "Remove Guild?", "Remove Member?", "Remove Rule?", "Prune Players?", "Add Player?", "Reset Block History?", "Export" and "Import".
+- In the Classic and Modern looks the popup title now sits in the frame's title bar, as the window's does; it was partly hidden under the frame's top edge.
+
+=> 3.4.0.17 - New PSS window: Player Search, add your target, Prune
+
+- Player Ignore List tab (/pss tui): a Player Search button beside Add Player. It runs a /who for the name in the box and lists the players found (name, level, class, guild) in place of the list: click the ones to add (players already listed are greyed), Tick All, then Save. If nobody is found you are asked whether to add the name anyway. Back or Escape closes the results. It waits for the /who cooldown like the guild scans.
+- Add Player with the box empty adds your target, when it is another player of your faction.
+- A Prune button: choose a number of days (365 to start) and see how many entries were added that long ago or more, then Prune removes them, with their notes, settings and block history.
+
 => 3.4.0.16 - Tidying the new window (no visible change)
 
 - New window: faded text is dimmed as a whole (its shadow with it) instead of through its colour, as the rest of Pour Social Score does. It looks the same.

@@ -13,7 +13,12 @@
 --   M.PSS_PlayerHeading(r), M.PSS_PlayerTypeLine(r), M.PSS_PlayerAddedLine(r)
 --   M.PSS_PlayerExpireNote(r), M.PSS_PlayerGuildLine(p), M.PSS_PlayerInviteLine(p)
 --   M.PSS_PlayerTip(r), M.PSS_PlayerRemoveText(entry)
---   M.PSS_PlayerAddFromText(text)         adds a typed name; its entry or nil
+--   M.PSS_PlayerAddFromText(text)         adds a typed name (empty: your target); its entry or nil
+--   M.PSS_PlayerTargetName()              your target's Name-Realm when it can be added
+--   M.PSS_PlayerSearchFromText(text, onDone)   Player Search (/who) from the click
+--   M.PSS_PlayerPickerItems(found, into), ...Title(n, query), ...Save(items)
+--   M.PSS_PlayerNoneFound(query), M.PSS_PlayerAddAnyway(name)
+--   M.PSS_PruneText(), M.PSS_PruneNote(days), M.PSS_PruneApply(days)
 --   M.PSS_PlayerCommitExpiry(entry, text) / M.PSS_PlayerCommitNote(entry, text)
 --   M.PSS_PlayerToggleAllowed(entry, field, allowed)
 --   M.PSS_PlayerCycleOverride(p, key)
@@ -25,7 +30,7 @@ local addon = PourSocialScore_NS
 local M = addon.M
 local L = addon.L
 
-local type, tonumber, setmetatable = type, tonumber, setmetatable
+local type, tonumber, tostring, ipairs, setmetatable = type, tonumber, tostring, ipairs, setmetatable
 
 ------------------------------------------------------------------------
 -- The list: sort, search and the order shown (positions in the list)
@@ -129,13 +134,121 @@ end
 ------------------------------------------------------------------------
 -- Edits (each through the core's setters; the core fires PLAYERS_CHANGED)
 ------------------------------------------------------------------------
--- A typed Name or Name-Realm: added; its entry as stored, or nil.
+-- Your target, when it is another player of your faction whose name can be
+-- read (not secret): "Name-Realm" ("Name" on your realm), or nil.
+function M.PSS_PlayerTargetName()
+	local t = "target"
+	if not (UnitExists(t) and UnitIsPlayer(t)) or UnitIsUnit(t, "player") then return nil end
+	local mine, theirs = UnitFactionGroup("player"), UnitFactionGroup(t)
+	if type(theirs) ~= "string" or M.PSS_IsSecret(theirs) or theirs ~= mine then return nil end
+	return M.PSS_UnitFullName(t)
+end
+
+-- A typed Name or Name-Realm, or with the box empty your target: added; its
+-- entry as stored, or nil.
 function M.PSS_PlayerAddFromText(text)
 	text = M.trim(text or "") or ""
-	if text == "" then return nil end
-	M.PSS_AddPlayer(text)
+	if text == "" then
+		local target = M.PSS_PlayerTargetName()
+		if not target then
+			M.PSS_Say("Type a player name in the box (Name or Name-Realm), or target a player of your faction.")
+			return nil
+		end
+		M.PSS_AddPlayer(target, "", 0, "target")
+		text = target
+	else
+		M.PSS_AddPlayer(text)
+	end
 	local pos = M.PSS_PlayerPosition(M.Proper(M.addServer(text)))
 	if pos > 0 then return (M.PSS_PlayerEntry(pos)) end
+end
+
+------------------------------------------------------------------------
+-- Player Search: a /who for the name in the box, straight from the click
+-- (it needs a hardware event); the players found come back to onDone(found,
+-- query) for the results picker. true when it went out.
+------------------------------------------------------------------------
+function M.PSS_PlayerSearchFromText(text, onDone)
+	if M.PSS_ScanBlockedMsg() then return false end
+	text = M.trim(text or "") or ""
+	if text == "" then
+		M.PSS_Say("Type a player name in the box first.")
+		return false
+	end
+	return M.PSS_PlayerSearch(text, onDone) and true or false
+end
+
+-- The picker's entries: { name, level, class, guild, listed, ticked }
+function M.PSS_PlayerPickerItems(found, into)
+	into = into or {}
+	for i = #into, 1, -1 do into[i] = nil end
+	for _, p in ipairs(found or {}) do
+		into[#into + 1] = { name = p.name, level = p.level, class = p.class, guild = p.guild,
+			listed = M.PSS_IsPlayerListed(p.name) and true or false }
+	end
+	return into
+end
+
+function M.PSS_PlayerPickerTitle(n, query)
+	return ("Player Search: %d player(s) found for \"%s\". Click the players to add."):format(n, query or "")
+end
+
+-- one cell's text for a picker entry (level, class, guild)
+function M.PSS_PlayerPickerCells(it, into)
+	into.name = it.name or ""
+	into.level = it.level and tostring(it.level) or ""
+	into.class = it.class or ""
+	into.guild = it.guild or ""
+	return into
+end
+
+-- Add the ticked players; the number added
+function M.PSS_PlayerPickerSave(items)
+	local n = 0
+	for _, it in ipairs(items) do
+		if it.ticked and not it.listed then
+			M.PSS_AddPlayer(it.name, "", 0)
+			n = n + 1
+		end
+	end
+	if n > 0 then M.PSS_Say(("%d player(s) added to the Player Ignore List."):format(n)) end
+	return n
+end
+
+-- Nobody found: the question to ask and the name to add anyway (nil: none)
+function M.PSS_PlayerNoneFound(query)
+	local name = M.trim(((query or ""):gsub('"', ""))) or ""
+	if name == "" then return nil end
+	return ("No player named <%s> was found online.\n\nAdd them to the Player Ignore List anyway?"):format(name), name
+end
+
+function M.PSS_PlayerAddAnyway(name)
+	M.PSS_AddPlayer(name, "", 0)
+	M.PSS_Say(("<%s> added to the Player Ignore List."):format(name))
+end
+
+------------------------------------------------------------------------
+-- Prune: remove the entries listed for a number of days or more
+------------------------------------------------------------------------
+M.PSS_PRUNE_DAYS = 365
+
+function M.PSS_PruneText()
+	return "Remove every entry on the Player Ignore List that was added this many days ago or more?\n\nThey go at once, with their notes, settings and block history."
+end
+
+-- the line under the days box: how many entries that would remove
+function M.PSS_PruneNote(days)
+	days = tonumber(days)
+	if not days or days < 1 then return "Type a number of days (1 or more)." end
+	local n = M.PruneIgnoreList(math.floor(days), false)
+	return ("%d entr%s listed for %d day%s or more."):format(n, n == 1 and "y" or "ies", math.floor(days), math.floor(days) == 1 and "" or "s")
+end
+
+-- the number removed (the core prints how many)
+function M.PSS_PruneApply(days)
+	days = tonumber(days)
+	if not days or days < 1 then return 0 end
+	return M.PruneIgnoreList(math.floor(days), true)
 end
 
 -- the expiry box of entry (days, 0 = never); true if it changed

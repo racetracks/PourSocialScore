@@ -4,6 +4,8 @@
 -- The window's own popups, in the look shown, built on first use. One of
 -- each; showing one again replaces what it showed.
 --   ns.Confirm({ title, text, accept, cancel, onAccept, onCancel })
+--     number = a starting number: a number box under the text (onAccept(n));
+--     numberNote(n) = the line under it, again as it is typed
 --   ns.CopyText({ title, subtitle, text })          read only, selected
 --   ns.ImportText({ title, subtitle, accept, onAccept(text) })
 -- Classic and Modern: the window's own frame and background
@@ -67,8 +69,19 @@ local function Shell(name, w, h)
 	dim:SetFrameLevel(math.max(0, f:GetFrameLevel() - 1))
 	ns.Fill(dim, DIM, -8)
 	dim:SetScript("OnClick", function() f:Hide() end)
-	f.title = ns.NewText(f, 16, "GameFontNormalLarge")
-	f.title:SetPoint("TOP", f, "TOP", 0, -20)
+	-- The title says what the popup asks (no addon name). It sits on a frame
+	-- above the frame art: the Blizzard frame's border (its NineSlice) has a
+	-- fixed level of about 500 and hid it (as the window's own title,
+	-- PSS_Window.lua). Classic and Modern: in the title bar, as the window's;
+	-- Dark: larger, lower on the flat panel.
+	local chrome = CreateFrame("Frame", nil, f)
+	chrome:SetAllPoints(f)
+	local top = f:GetFrameLevel() + 8
+	if art and art.NineSlice and art.NineSlice.GetFrameLevel then
+		top = math.max(top, art.NineSlice:GetFrameLevel() + 10)
+	end
+	chrome:SetFrameLevel(top)
+	f.title = ns.NewText(chrome, 16, "GameFontNormalLarge")
 	f.pssParts = { fill = fill, edge = edge, art = art, dim = dim }
 	ns.OnPaint(function(dark)
 		local ours = dark or not art
@@ -76,6 +89,9 @@ local function Shell(name, w, h)
 		edge:SetShown(ours)
 		dim:SetShown(dark)
 		if art then art:SetShown(not ours) end
+		f.title:SetFontObject(ours and ns.Font(16, "GameFontNormalLarge") or ns.Font(13, "GameFontNormal"))
+		f.title:ClearAllPoints()
+		f.title:SetPoint("TOP", f, "TOP", 0, ours and -20 or -6)
 	end)
 	return f
 end
@@ -88,21 +104,37 @@ local confirm, confirmOpts
 local function BuildConfirm()
 	confirm = Shell("PSS_Confirm", 390, 176)
 	confirm.text = ns.NewText(confirm, 12)
-	confirm.text:SetPoint("TOP", confirm.title, "BOTTOM", 0, -10)
+	confirm.text:SetPoint("TOP", confirm, "TOP", 0, -46)
 	confirm.text:SetWidth(330)
 	confirm.text:SetJustifyH("CENTER")
 	confirm.text:SetSpacing(4)
 	confirm.text:SetWordWrap(true)
+	-- the number box (opts.number) and its note
+	confirm.number = ns.NewNumberBox(confirm, 70)
+	confirm.number:SetPoint("TOP", confirm.text, "BOTTOM", 0, -10)
+	confirm.number:Hide()
+	confirm.note = ns.NewText(confirm, 11)
+	confirm.note:SetPoint("TOP", confirm.number, "BOTTOM", 0, -6)
+	confirm.note:SetAlpha(0.7)
+	confirm.note:Hide()
+	confirm.number:SetScript("OnTextChanged", function(self)
+		local o = confirmOpts
+		if o and o.numberNote then confirm.note:SetText(o.numberNote(tonumber(self:GetText()))) end
+	end)
+	confirm.number:SetScript("OnEscapePressed", function() confirm:Hide() end)
 	confirm.accept = PopupButton(confirm, 125, 27, true)
 	confirm.cancel = PopupButton(confirm, 125, 27, false)
 	confirm.accept:SetPoint("BOTTOMRIGHT", confirm, "BOTTOM", -8, 13)
 	confirm.cancel:SetPoint("BOTTOMLEFT", confirm, "BOTTOM", 8, 13)
-	confirm.accept:SetScript("OnClick", function()
+	local function Accept()
 		local o = confirmOpts
 		confirmOpts = nil
+		local n = o and o.number ~= nil and tonumber(confirm.number:GetText()) or nil
 		confirm:Hide()
-		if o and o.onAccept then o.onAccept() end
-	end)
+		if o and o.onAccept then o.onAccept(n) end
+	end
+	confirm.accept:SetScript("OnClick", Accept)
+	confirm.number:SetScript("OnEnterPressed", Accept)
 	confirm.cancel:SetScript("OnClick", function() confirm:Hide() end)
 	-- hidden any other way (Cancel, Escape, a click on the dimmed screen,
 	-- another popup) is a cancel
@@ -122,15 +154,23 @@ function ns.Confirm(opts)
 	if not confirm then BuildConfirm() end
 	if confirm:IsShown() then confirm:Hide() end
 	confirmOpts = opts
-	confirm.title:SetText(opts.title or "Pour Social Score")
+	confirm.title:SetText(opts.title or "")
 	confirm.text:SetText(opts.text or "")
 	confirm.accept:SetText(opts.accept or OKAY or "Okay")
 	confirm.cancel:SetText(opts.cancel or CANCEL or "Cancel")
-	-- grows with a long message
+	local withNumber = opts.number ~= nil
+	confirm.number:SetShown(withNumber)
+	confirm.note:SetShown(withNumber)
+	if withNumber then
+		confirm.number:SetText(tostring(opts.number))
+		confirm.note:SetText(opts.numberNote and opts.numberNote(tonumber(opts.number)) or "")
+	end
+	-- grows with a long message (and the number box)
 	local over = math.max(0, confirm.text:GetStringHeight() - 44)
-	confirm:SetHeight(176 + over)
+	confirm:SetHeight(176 + over + (withNumber and 52 or 0))
 	confirm:Show()
 	confirm:Raise()
+	if withNumber then confirm.number:SetFocus() end
 	return confirm
 end
 
@@ -142,9 +182,8 @@ local textPop, textOpts
 local function BuildText()
 	local f = Shell("PSS_TextPopup", 520, 310)
 	textPop = f
-	f.title:SetPoint("TOP", f, "TOP", 0, -20)
 	f.subtitle = ns.NewText(f, 11)
-	f.subtitle:SetPoint("TOP", f.title, "BOTTOM", 0, -4)
+	f.subtitle:SetPoint("TOP", f, "TOP", 0, -40)
 	f.subtitle:SetTextColor(1, 1, 1)
 	f.subtitle:SetAlpha(0.45)
 	local box = ns.NewPanel(f, true)
@@ -198,7 +237,7 @@ local function ShowText(opts, readOnly)
 	opts.readOnly = readOnly
 	textOpts = opts
 	local f = textPop
-	f.title:SetText(opts.title or "Pour Social Score")
+	f.title:SetText(opts.title or "")
 	f.subtitle:SetText(opts.subtitle or "")
 	f.edit:SetText(opts.text or "")
 	f.accept:ClearAllPoints()
