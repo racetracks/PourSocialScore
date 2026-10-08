@@ -17,7 +17,7 @@ Goal: "global" moderation through shared lists. Sharing happens through shipped 
 | Repo | Role |
 | --- | --- |
 | `racetracks/PourSocialScore` (private) | The addon: seven folders, one version, `tools/` (rules checks, harness, managed list builder), readme.txt, history.txt, `.github/workflows` (release.yml, rules.yml) |
-| `racetracks/scratch` (private) | Hosting (layer 2 pack). PSS paths: `PourSocialScore/test-builds/`, `pss-projects/<project>/` (plans), `pss-projects/savedvariables/<version>/` (saves), `pss-issues/` (issue notes), `handover-packs/` |
+| `racetracks/Pour-Social-Score_Scratch` (private) | Hosting (layer 2 pack, `docs/scratch/`). Paths: `releases/` (test zips, versioned and dated), `latest/` (the newest test zip), `SavedVariables/<version>/` (saves), `docs/` (plans, issue notes, handover packs; newest markdown in `docs/latest/<project>/`), `summary/` (status summaries). Replaces `racetracks/scratch`, no longer used |
 | `racetracks/PourSocialScore-EllesmereUI` | **Retired.** Held the EllesmereUI folder on its own 1.1 version line until 3.2.0-dev008 merged it into the addon repo. Dan is to archive it and close its PR #18. Never write to it |
 
 Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; 03), `Gethe/wow-ui-source`. References actually used on PSS: an ElvUI zip Dan uploaded (the load-on-demand split), a DBM AddOns list screenshot (Category/Group/coloured titles), a Questie zip (upgrade output idea, issue #45), wago.tools, and the Warcraft Wiki reference set Dan uploaded on 2026-10-07 (`docs/baseline/reference/wow-api/`; rules in baseline 02 J and PSS 02 section 10).
@@ -62,7 +62,7 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; 03), `Gethe/wow-u
 | EllesmereUI integration E.1 to E.7 | Done, v3.1.0 |
 | Detail pane redesign, log every line, grouped save, EUI merged into the repo, EUI navigation, Events tab | Done, **v3.2.0 (last full release, 2026-10-05)** |
 | Native GUI parity with the EllesmereUI window (3.3.0, issue #78) | Closed at **v3.3.1** (2026-10-07): dev001 to dev005 shipped, the rest dropped. 08 and 06 |
-| **The new PSS window (3.4.0)**: one window in the port's layout, three looks, replaces both old windows | **Current**, started 2026-10-07. 09 and 06; plan on scratch `latest/pss-ui/` |
+| **The new PSS window (3.4.0)**: one window in the port's layout, three looks, replaces both old windows | **Current**, started 2026-10-07. 09 and 06; plan on scratch `docs/latest/ui uplift/` |
 
 ## 7. Observations about Dan on this project
 Beyond baseline 07:

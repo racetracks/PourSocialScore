@@ -6,12 +6,13 @@ with Blizzard's and our own resources, in three looks. It replaces both
 (the port). Started 2026-10-07. The live 3.3.1 release still ships both old
 windows; their docs (01, 03, 08) stay true for it until the cutover.
 
-**Project data on scratch, always read the newest:** `latest/` (the index,
-`latest/README.md`) holds copies of the newest markdown: the project plan
-(`latest/pss-ui/`) and these docs (`latest/pss-docs/`). The working copies
-are `pss-projects/pss-ui/` (01_ANALYSIS, 02_PLAN, 03_CODE_CHANGES,
-04_LOOK_SPEC). Test zips: `PourSocialScore/test-builds/`. Real saves:
-`pss-projects/savedvariables/<version>/`.
+**Project data on scratch (`racetracks/Pour-Social-Score_Scratch`), always
+read the newest:** `docs/latest/` (the index, `docs/README.md`) holds the
+newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
+02_PLAN, 03_CODE_CHANGES, 04_LOOK_SPEC) and these docs
+(`docs/latest/pss-docs/`); history in `docs/ui uplift/`, zips
+`docs/ui-uplift-<date>-vN.zip`. Test zips: `releases/` (dated) and
+`latest/` (the newest). Real saves: `SavedVariables/<version>/`.
 
 ## Dan's brief and decisions (2026-10-07)
 1. Every element of the EllesmereUI port becomes native. No EllesmereUI dependency and no EllesmereUI names: PSS names only (`check_rules.sh` fails on `EUI` or `Ellesmere` in `PourSocialScore_UI` and `PSS_ViewNav.lua`).

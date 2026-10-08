@@ -7,8 +7,8 @@ PourSocialScore**; everything it does not mention follows the baseline.
 | Layer | Folder | Holds |
 | --- | --- | --- |
 | 1 | `docs/baseline/` | WoW addon baseline v5 (2026-10-07): how any addon is built, released and delivered; v5 adds 02 J (taint, secret values) and `reference/wow-api/` |
-| 2 | (not in repo) | Scratch repo usage pack v2: how `racetracks/scratch` hosts builds, saves and packs |
-| 3 | `docs/pss/` | PSS handover pack v4 (2026-10-07), kept current since: only what is true of PourSocialScore (09 is the current project). Newest copies on scratch `latest/pss-docs/` |
+| 2 | `docs/scratch/` | Scratch repo usage pack v4 (2026-10-07; the v2 pack adapted to `racetracks/Pour-Social-Score_Scratch`): how scratch hosts builds, saves, docs and summaries. Live copy on scratch `docs/latest/scratch-repo-usage/`, criteria in its `CLAUDE.md` |
+| 3 | `docs/pss/` | PSS handover pack v4 (2026-10-07), kept current since: only what is true of PourSocialScore (09 is the current project). Newest copies on scratch `docs/latest/pss-docs/` |
 
 Loaded in every session:
 
@@ -16,6 +16,8 @@ Loaded in every session:
 @docs/baseline/02_RULES.md
 @docs/baseline/07_WORKING_WITH_THE_AUTHOR.md
 @docs/baseline/10_FEATURE_DESIGN_AND_DELIVERY.md
+@docs/scratch/04_USAGE.md
+@docs/scratch/05_RULES.md
 @docs/pss/00_README.md
 @docs/pss/01_HANDOVER.md
 @docs/pss/02_RULES.md
@@ -51,9 +53,10 @@ Read when the task touches the topic:
 ## Working in a Claude Code session
 - Develop on the session's `claude/...` branch from the latest `origin/main`; one step per PR, based on main; never stack.
 - If `gh` is not available, use the GitHub tools the session provides instead of the `gh` commands in the packs.
-- **Real saves are never committed here** (baseline 02 D10). They live on scratch at `pss-projects/savedvariables/<version>/` (2.0.44, 3.0.0, 3.2.0-dev011). If `/mnt/project-files` is missing, build it from there as `docs/pss/04_DATA_AND_LOGGING.md` describes, or say the real-save run did not happen; never claim it did.
-- Test zips go to scratch `PourSocialScore/test-builds/PourSocialScore-<version>.zip`, linked as `https://github.com/racetracks/scratch/raw/main/<path>`. The scratch repo must be added to the session to write there; if it cannot be, say so and ask.
+- **Scratch is `racetracks/Pour-Social-Score_Scratch`** (branch `main`; scratch rules 1 to 14 in `docs/scratch/05_RULES.md`). Every "scratch" in these docs means it; the old `racetracks/scratch` is no longer used. Add it to the session to read or write there (`add_repo`); if it cannot be added, say so and ask. Pull before every change, one commit per delivery, update its `readme.md` index when a folder's newest file changes, and always reply with links (`https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/<path>`, `/blob/` to read, `/tree/` for a folder).
+- **Real saves are never committed here** (baseline 02 D10). They live on scratch at `SavedVariables/<version>/` (2.0.44, 3.2.0-dev011; 3.0.0 is not ported yet). If `/mnt/project-files` is missing, build it from there as `docs/pss/04_DATA_AND_LOGGING.md` describes, or say the real-save run did not happen; never claim it did.
+- Test zips go to scratch `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`, and the same commit replaces the zip in `latest/` with it (scratch rule 9); link it as `https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/<path>`.
 - Update `docs/pss/06_STATUS_AND_NEXT.md` and the stage table of the current project (`docs/pss/09_PSS_UI_PROJECT.md`) when a stage merges.
-- **Project data on scratch: always read `latest/` first** (`latest/README.md` is the index). It holds copies of the newest markdown: the current project's plan (`latest/pss-ui/`) and these PSS docs (`latest/pss-docs/`). Working copies: `pss-projects/<project>/` (current `pss-projects/pss-ui/`). When a plan or these docs change, refresh `latest/` in the same scratch commit.
+- **Project data on scratch: always read `docs/latest/` first** (`docs/README.md` is the docs index, `readme.md` the repo index). It holds the newest markdown: the current project's plan (`docs/latest/ui uplift/`, the pss-ui project) and these PSS docs (`docs/latest/pss-docs/`). Each docs release is also zipped in the root of `docs/` (`<name>-<date>-vN.zip`) and a project or feature release keeps a history folder `docs/<project>/` (scratch rule 10). When a plan or these docs change, refresh `docs/latest/` in the same scratch commit. Status summaries go in `summary/<project>-<YYYY-MM-DD-hh-mm>.md`.
 - The clone is shallow: before `validate_all.sh`, run `git fetch --depth=2000 origin main` (its upgrade checks rebuild old versions from history; without it the "split" checks fail on 2.0.1 and 2.0.40).
 - Blizzard's UI source for a template or atlas question: a sparse clone of `Gethe/wow-ui-source` (for example `Interface/AddOns/Blizzard_SharedXML`, `Blizzard_SocialUI`); read only.

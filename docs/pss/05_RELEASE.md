@@ -27,7 +27,8 @@ The pipeline is the baseline's (baseline 09). Live copies of PSS's files are in 
 A round of fixes on a dev build that has not merged yet is `devNNN_N` (`3.4.0-dev002_2`, `_3`, ...): every TOC, a history section and the zip name. `check_toc.sh` and `check_rules_eui.sh` accept the form; the workflow publishes it as a pre-release (it contains `-`). The next stage is the next devNNN.
 
 ## Test zips
-- Scratch: `PourSocialScore/test-builds/PourSocialScore-<version>.zip`; dev001 to dev003 are also in the old `pss-builds/`. Link `https://github.com/racetracks/scratch/raw/main/<path>`. Copy to `/mnt/project-files/builds/`.
+- Scratch (`racetracks/Pour-Social-Score_Scratch`, from 2026-10-08): `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`, and the same commit replaces the zip in `latest/` with it. Link `https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/<path>`. Copy to `/mnt/project-files/builds/`.
+- Builds up to 3.4.0-dev004_4 are on the old `racetracks/scratch` (`PourSocialScore/test-builds/`, dev001 to dev003 of 3.3.0 also in `pss-builds/`); those links stay, nothing new goes there.
 
 ## PSS pitfalls seen
 - 3.2.0: PRs #71 to #74 were stacked and merged into stale branches; PR #75 carried them to main. Never stack.

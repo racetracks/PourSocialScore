@@ -51,12 +51,14 @@ So core = the chat filtering engine plus the loader, with what filtering needs (
 - A fix for 3.2.0 would be `3.2.1-dev001`; ask Dan if a fix line is needed.
 - **Fixes to a dev build before it merges count up with `_N` (Dan, 2026-10-07):** the first round of fixes on `3.4.0-dev002` is `3.4.0-dev002_2`, then `_3`; every TOC, the history section and the test zip name carry it. The next stage is still the next devNNN (`3.4.0-dev003`).
 
-## 9. Hosting paths on scratch
-- Test zips: `PourSocialScore/test-builds/PourSocialScore-<version>.zip` (old `pss-builds/` kept for links). Also copy to `/mnt/project-files/builds/`.
-- Plans: `pss-projects/<project>/` (current: `pss-ui/`; closed: `pss-native-gui-port/`). Issue notes: `pss-issues/`.
-- **`latest/`** (from 2026-10-07): copies of the newest markdown, the current plan (`latest/pss-ui/`) and these docs (`latest/pss-docs/`), with an index `latest/README.md`. Always read it first; refresh it whenever a plan or these docs change.
-- Saves: `pss-projects/savedvariables/<version>/` (the `PourSocialScore/savedvariables/` copies stay for old links).
-- Packs: `handover-packs/` (this pack is `pss-handover-<date>-vN`).
+## 9. Hosting paths on scratch (changed 2026-10-08)
+Scratch is **`racetracks/Pour-Social-Score_Scratch`**; its rules and procedures are the scratch pack (`docs/scratch/`, rules in 05). The old `racetracks/scratch` and its paths (`PourSocialScore/test-builds/`, `pss-builds/`, `pss-projects/`, `pss-issues/`, `latest/`, `handover-packs/`) are no longer used; links already given there stay valid.
+- Test zips: `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`; the same commit replaces the zip in `latest/` with it. Also copy to `/mnt/project-files/builds/`.
+- Docs: the newest markdown in `docs/latest/<project>/` (current plan `docs/latest/ui uplift/`; these docs `docs/latest/pss-docs/`). Always read it first; refresh it whenever a plan or these docs change. Each docs release is zipped in the root of `docs/` (`<name>-<date>-vN.zip`); a project or feature release keeps a history folder `docs/<project>/`. Issue notes are docs too.
+- Saves: `SavedVariables/<version>/`, with a line in `SavedVariables/README.md`.
+- Packs: zipped in `docs/` (this pack is `pss-handover-<date>-vN`), listed in `docs/README.md`.
+- Summaries: `summary/<project>-<YYYY-MM-DD-hh-mm>.md`.
+- Update the root `readme.md` index whenever a folder's newest file changes; always reply with links.
 
 ## 11. The new PSS window (3.4.0, Dan, 2026-10-07; details in 09)
 1. The EllesmereUI port is the reference for every visual and layout choice; the old GUI is not authoritative on anything.

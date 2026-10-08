@@ -16,7 +16,7 @@
 | 3.3.0-dev005 | #85 | Bugfix: Retail 12.1 opens `SocialUIFrame` for the Friends key; core hooks it and FriendsFrame (Who tab), the window anchors to whichever opened (55 px clear of the Social side tabs) | Merged |
 
 ## Current project: the new PSS window (3.4.0)
-One window with the EllesmereUI port's layout, features and feel, drawn only with Blizzard's and our own resources, in three looks (option `uiSkin`: Blizzard (Default), Modern, Dark), the accent always the class colour. It replaces both `PourSocialScore_GUI` and `PourSocialScore_EllesmereUI`. Logic goes in `PourSocialScore_Libraries`, drawing in the new `PourSocialScore_UI`; `/pss tui` opens it until the cutover. Details: `09_PSS_UI_PROJECT.md`. Plan, decisions and look spec: scratch `latest/pss-ui/` (working copy `pss-projects/pss-ui/`).
+One window with the EllesmereUI port's layout, features and feel, drawn only with Blizzard's and our own resources, in three looks (option `uiSkin`: Blizzard (Default), Modern, Dark), the accent always the class colour. It replaces both `PourSocialScore_GUI` and `PourSocialScore_EllesmereUI`. Logic goes in `PourSocialScore_Libraries`, drawing in the new `PourSocialScore_UI`; `/pss tui` opens it until the cutover. Details: `09_PSS_UI_PROJECT.md`. Plan, decisions and look spec: scratch `docs/latest/ui uplift/` (history `docs/ui uplift/`).
 
 | Stage | Dev | What | State |
 | --- | --- | --- | --- |
@@ -33,6 +33,7 @@ Fixes to 3.3.1 meanwhile would be `3.3.2-dev001`.
 2. Delete merged `claude/*` branches (Claude gets 403).
 3. Whether the known rule deviations (01 section 5: idle GC timer, totals pane without opt-in, OnUpdate on hover) get fixed in a later line.
 4. Close issue #78 (parity), now that the project is closed at 3.3.1.
+5. The 3.0.0 real save is not on `racetracks/Pour-Social-Score_Scratch` yet (2.0.44 and 3.2.0-dev011 are); port it to `SavedVariables/3.0.0/` so `validate_all.sh` can run on all three.
 
 ## Open issues (addon repo)
 #78 parity project (closed at 3.3.1; issue still open); #37 guild exclusion list is not saved (define its intent); #38 seeing a shipped-guild member loads the lists; #39 unload the GUI on close; #40 research whether a LoadOnDemand addon can unload; #44 clean up console output; #45 Questie-style upgrade output. #77 decided (option b) and done.

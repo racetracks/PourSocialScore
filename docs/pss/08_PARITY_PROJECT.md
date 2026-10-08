@@ -2,7 +2,7 @@
 
 **Closed 2026-10-07 by Dan at 3.3.1:** "we're just going to merge whatever its at now and call that done, ive got other plans, scrap those features and just stamp this at 3.3.1". Stages 1 to 5 shipped in 3.3.1; the rest are dropped, not parked.
 
-This is the feature that owns the 3.3.0 line. It follows baseline 10 (design, stages, one PR per stage, validation between PRs). The original analysis and plan are in `reference/plans-3.3-parity/` (live on scratch `pss-projects/pss-native-gui-port/`); the plan's step table predates the decisions, so use the table below.
+This is the feature that owns the 3.3.0 line. It follows baseline 10 (design, stages, one PR per stage, validation between PRs). The original analysis and plan are in `reference/plans-3.3-parity/` (on the old `racetracks/scratch` `pss-projects/pss-native-gui-port/`); the plan's step table predates the decisions, so use the table below.
 
 ## Objective
 The native window (`PourSocialScore_GUI`) and the EllesmereUI window (`PourSocialScore_EllesmereUI`) offer the same features and show the same numbers, each in its own look, with the folders independent (02 sections 6 and 7). Parity is not shared UI code.
