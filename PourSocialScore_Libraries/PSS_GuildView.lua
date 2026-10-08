@@ -9,7 +9,7 @@
 --   local v = M.PSS_GuildListNew()     the list's state
 --   v:Resort()                          n shown (v.rows filled by M.PSS_GuildRows)
 --   v:SortBy(key), v:SetFind(text), v:CountText()
---   v:IsSel(item), v:Select(kind, value), v:Click(item, now)
+--   v:IsSel(item), v:Select(kind, value), v:ItemSel(item), v:Click(item, now)
 --   M.PSS_GuildRowCells(item, find, nested, into)   guild / members / total / scan text, dim
 --   M.PSS_GuildRowTip(item)
 --   M.PSS_GuildScanTip(g)               a guild's sweep (g) or Scan All (nil)
@@ -24,7 +24,8 @@
 --   M.PSS_GuildCommitFields, M.PSS_CycleOverride(target, scope, key),
 --   M.PSS_GuildRemoveText / M.PSS_GuildRemove, M.PSS_MemberRemoveText /
 --   v:RemoveMember(), M.PSS_MemberCommitNote, M.PSS_MemberToggleAllowed,
---   M.PSS_GroupToggleRule(k), M.PSS_GroupToggleOpen(k), M.PSS_ExclRemove(name)
+--   M.PSS_GroupToggleRule(k), M.PSS_GroupToggleOpen(k) (k: a default list,
+--   M.PSS_GUILD_MANAGED or M.PSS_GUILD_EXCL_OPEN), M.PSS_ExclRemove(name)
 --   M.PSS_GuildAddFromText(text), M.PSS_GuildExcludeFromText(text)
 --   M.PSS_GuildSearchFromText(text, mode)
 --   M.PSS_GuildPickerItems(found, mode, into), M.PSS_GuildPickerTitle(n, query, mode)
@@ -111,6 +112,16 @@ end
 
 function List:Select(kind, value)
 	self.selKind, self.sel = kind, value
+end
+
+-- what selecting a row would select (kind, value), without opening it (a
+-- right-click selects the row before its menu opens)
+function List:ItemSel(item)
+	if item.managedHeader then return "managed", MANAGED end
+	if item.header then return "group", item.groupKey end
+	if item.exclHeader then return "exclHeader", true end
+	if item.exclItem then return "excl", item.name end
+	return "guild", item.key
 end
 
 -- A click on a row. A heading opens or closes (and is selected); a guild is

@@ -1,6 +1,15 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0.21 - New PSS window: right-click menus
+
+- New window (/pss tui): right-click a row for its menu, in every look (Blizzard's menus in Modern and Classic, the window's own in Dark). The row is selected first.
+- Player Ignore List: Block History, Add Guild (when the player's guild is not listed), Reset Expiration (when one is set), Reset Block History, the player's option overrides, Remove Player.
+- Guild Ignore List: a guild has Show Members, Block History, Reset Block History, its overrides and Remove Guild; a member has Block History, Reset Block History, overrides and Remove Member; Managed Communities and the default lists turn their rules on or off and expand or collapse; an excluded guild can be taken off the Guild Exclusion List.
+- Chat Filters: turn a filter on or off, Copy, Block History, Reset block count, Reset block history, Remove (not for built-ins).
+- Events tab and the panes' Event History: right-click a blocked line to add its sender to the Player Ignore List, or remove them.
+- Removing anything still asks first. Opening a menu never loads the block history.
+
 => 3.4.0.20 - Mandatory baseline, version tools, release notes and mirror
 
 - Nothing changes in game.

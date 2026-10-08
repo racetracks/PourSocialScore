@@ -15,6 +15,9 @@
 -- items, a slim title and divider, as wide as its longest entry).
 --   ns.NewDropdown(parent, w, build)   dd:SetLabel(text)
 --   ns.ContextMenu(owner, build)       at the cursor
+--   ns.RowMenu(owner, entries, run)    a row's right-click menu from the
+--                                      entries Libraries describes
+--                                      (PSS_RowMenus.lua); run(act, arg)
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 
@@ -335,4 +338,21 @@ function ns.ContextMenu(by, build)
 		if sl:IsShown() then widest = max(widest, sl.text:GetStringWidth()) end
 	end
 	menu:SetWidth(max(width, widest + 28))
+end
+
+-- A row's right-click menu: entries from Libraries (PSS_RowMenus.lua), each
+-- a title, a divider or a button whose act run(act, arg) carries out.
+function ns.RowMenu(by, entries, run)
+	if not entries then return end
+	ns.ContextMenu(by, function(m)
+		for _, e in ipairs(entries) do
+			if e.kind == "title" then
+				m:Title(e.text)
+			elseif e.kind == "divider" then
+				m:Divider()
+			else
+				m:Button(e.text, function() run(e.act, e.arg) end)
+			end
+		end
+	end)
 end

@@ -1,7 +1,8 @@
 ------------------------------------------------------------------------
 -- POUR SOCIAL SCORE UI - PLAYER IGNORE LIST TAB
 --
--- The list (search, sortable columns, Add Player) and a detail pane for the
+-- The list (search, sortable columns, Add Player; a right-click on a row
+-- for its menu, Libraries M.PSS_PlayerMenu) and a detail pane for the
 -- selected entry with three pages (PSS_Detail.lua): Summary (counts and the
 -- period pie), Event History and View/Edit Rule (note, expiry, W I G P C,
 -- overrides, Remove, Add Guild). With nothing selected the pane shows the
@@ -317,6 +318,32 @@ local function SelectEntry(entry)
 	ns.ShowPlayerDetail(true)
 end
 
+-- A row's right-click menu (Libraries M.PSS_PlayerMenu): the row is
+-- selected first, so each entry acts on the pane's entry as its buttons do.
+local function RowAct(entry, act, arg)
+	if entry ~= sel then SelectEntry(entry) end
+	if act == "history" then
+		OpenPlayerEvents(entry)
+	elseif act == "addGuild" then
+		M.PSS_PlayerAddGuild(arg)
+		ns.ShowPlayerDetail()
+	elseif act == "noExpiry" then
+		M.PSS_PlayerCommitExpiry(entry, "0")
+	elseif act == "resetHistory" then
+		M.PSS_ResetPlayerBlockHistory(entry)
+	elseif act == "override" then
+		M.PSS_PlayerCycleOverride(pane.record, arg)
+		ns.ShowPlayerDetail()
+	elseif act == "remove" then
+		ConfirmRemove()
+	end
+end
+
+local function RowMenu(row, entry)
+	if entry ~= sel then SelectEntry(entry) end
+	ns.RowMenu(row, M.PSS_PlayerMenu(entry), function(act, arg) RowAct(entry, act, arg) end)
+end
+
 ------------------------------------------------------------------------
 -- Player Search results (in place of the list), as Guild Search's
 ------------------------------------------------------------------------
@@ -489,10 +516,15 @@ ns.TabBuilders.players = function(pg)
 		end,
 		draw = DrawRow,
 		enter = RowTip,
-		click = function(_, i)
+		click = function(row, i, button)
 			local pos = V.index[i]
 			local entry = pos and M.PSS_PlayerEntry(pos)
-			if entry then SelectEntry(entry ~= sel and entry or nil) end
+			if not entry then return end
+			if button == "RightButton" then
+				RowMenu(row, entry)
+			else
+				SelectEntry(entry ~= sel and entry or nil)
+			end
 		end,
 		emptyClick = function() if sel then SelectEntry(nil) end end,
 	})

@@ -6,7 +6,8 @@
 -- by itself only once something else loaded it, otherwise it offers a Show
 -- Block History button. Types show as one word with a tick box each to
 -- filter them (the ticks are shared, Libraries M.PSS_HistHidden); the guild
--- view adds the player's name.
+-- view adds the player's name. A right-click on a line puts its sender on
+-- or off the Player Ignore List (ns.SenderMenu, also used by the Events tab).
 --   local hv = ns.NewHistory(body, y, { names =, empty =, open = })
 --   hv:Set(id, total, read [, fresh])   hv:Clear()
 ------------------------------------------------------------------------
@@ -88,7 +89,29 @@ local function Tip(hv, row, i)
 end
 
 -- a second left click on the same line opens the Events tab
+-- A blocked line's sender, on or off the Player Ignore List (a right-click
+-- on a line here or on the Events tab).
+local function SenderAct(act, full)
+	if act == "senderAdd" then
+		M.PSS_SenderAdd(full)
+	elseif act == "senderRemove" then
+		local text = M.PSS_SenderRemoveText(full)
+		if text then
+			ns.Confirm({ title = "Remove Player?", text = text, accept = "Remove", onAccept = function() M.PSS_SenderRemove(full) end })
+		end
+	end
+end
+
+function ns.SenderMenu(row, name)
+	ns.RowMenu(row, M.PSS_SenderMenu(name), SenderAct)
+end
+
 local function Click(hv, row, i, button)
+	if button == "RightButton" then
+		local h = hv.shown[i]
+		if h then ns.SenderMenu(row, h.member) end
+		return
+	end
 	if not (hv.open and ns.OpenEvents) or button ~= "LeftButton" then return end
 	if M.PSS_DoubleClick(hv.clicks, i) then hv.open(hv.id) end
 end
