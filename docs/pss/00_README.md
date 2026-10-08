@@ -31,6 +31,6 @@ Last state (pack written): main was **3.3.0-dev004**. Since then: 3.3.1 released
 | 08_PARITY_PROJECT.md | The closed 3.3.0 parity project (shipped as 3.3.1): objective, decisions, stage table |
 | 09_PSS_UI_PROJECT.md | The current project (3.4.0): the new PSS window, decisions, three looks, stages, code map, lessons; plan on scratch `docs/latest/ui uplift/` |
 | PROJECT_INSTRUCTIONS.md | Paste-ready project instructions |
-| savedvariables/<version>/ | Dan's real saves: 2.0.44, 3.0.0, 3.2.0-dev011 (on scratch `SavedVariables/<version>/`; 3.0.0 not ported yet) |
+| savedvariables/<version>/ | Dan's real saves: 2.0.44, 3.0.0, 3.2.0-dev011 (on scratch `SavedVariables/<version>/`) |
 | ci/ | Copies of the live release.yml, rules.yml and check scripts from main |
 | reference/ | The 3.3 parity analysis and plan, issue notes, a memory snapshot |
