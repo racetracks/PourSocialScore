@@ -149,7 +149,7 @@ sm.boxes.all._scripts.OnClick(sm.boxes.all)
 check(#sm.slices == 3 and sm.slices[3].draw == 0, "all time slice not nested")
 sm.boxes.all:SetChecked(false)
 sm.boxes.all._scripts.OnClick(sm.boxes.all)
-check(not sm.viewButton:IsShown(), "View Events shown before the Events tab exists")
+check(sm.viewButton:IsShown(), "no View Events on the Summary")
 dp:Select("history")
 if not hadLogging then
 	check(hv.gate:IsShown() and hv.gate:GetText() == "Show Block History (1)", "no Show Block History button")

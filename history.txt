@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.0-dev011 - New PSS window: Events tab
+
+- The Events tab works in /pss tui, laid out like the EllesmereUI window: the blocked lines of the Player and Guild Ignore Lists and the Chat Filters, newest first, with Time, Source, Player, Type, Channel and Message columns (click a header to sort).
+- Three drop-downs: Time (this session, the last 24 hours, all time, or a custom range of dates), Types, and Source (the lists, or the one entry opened). A search box goes over player, channel and message.
+- Links in a message work as in chat; a double-click on a line copies the message. Reset Block History clears the entry shown.
+- View Events, a click on a pie slice and a double-click on a pane's Event History now open it, on that entry, period and the types ticked. Escape goes back to the tab that opened it; back and forward step through what you looked at.
+- Opening it loads the block history (PourSocialScore_Logging).
+
 => 3.4.0-dev010_2 - New PSS window: list text on one line
 
 - Every list in the new window keeps each cell on one line, cut short with "..." when it does not fit: long filters and descriptions wrapped over the rows below.

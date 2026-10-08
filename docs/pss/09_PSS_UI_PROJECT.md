@@ -15,7 +15,7 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 `latest/` (the newest). Real saves: `SavedVariables/<version>/`.
 
 ## Dan's brief and decisions (2026-10-07)
-1. Every element of the EllesmereUI port becomes native. No EllesmereUI dependency and no EllesmereUI names: PSS names only (`check_rules.sh` fails on `EUI` or `Ellesmere` in `PourSocialScore_UI` and the Libraries view files `PSS_ViewNav`, `PSS_DetailQuery`, `PSS_PlayerView`, `PSS_GuildView`, `PSS_FilterView`).
+1. Every element of the EllesmereUI port becomes native. No EllesmereUI dependency and no EllesmereUI names: PSS names only (`check_rules.sh` fails on `EUI` or `Ellesmere` in `PourSocialScore_UI` and the Libraries view files `PSS_ViewNav`, `PSS_DetailQuery`, `PSS_PlayerView`, `PSS_GuildView`, `PSS_FilterView`, `PSS_EventsView`).
 2. **The port is the reference for every visual and layout choice; the old GUI is not authoritative on anything.**
 3. All logic (state, navigation, queries, shaping, validation, flows) in `PourSocialScore_Libraries`; drawing only in the new `PourSocialScore_UI` ("PourSocialScore UI"), split by function. Folder name `PourSocialScore_UI`.
 4. `/pss tui` (temp UI) opens it while it is built; at the cutover it takes over `/pss gui`, the Friends / Social docking and the Addon Compartment.
@@ -47,8 +47,9 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | B2 | dev007 | Player Ignore List tab with the detail pane (three pages), totals and pies; Libraries `PSS_PlayerView.lua`; close button and title above the frame's border | Merged #97 |
 | B3 | dev008 (to dev008_4) | Guild Ignore List part 1: grouped list, entry rows, Guild Search picker, Scan All with status tip, totals; Libraries `PSS_GuildView.lua` | Merged #98 |
 | B4 | dev009 | Guild Ignore List part 2: guild, group, exclusion and member detail bodies, members view, confirms | Merged #100 |
-| B5 | dev010 (to dev010_2) | Chat Filters tab: list, editor, Test, link converter, Summary, Event History, totals; Libraries `PSS_FilterView.lua` | PR open |
-| B6, B7 | dev011, dev012 | Events; Options + Import/Export | Planned |
+| B5 | dev010 (to dev010_2) | Chat Filters tab: list, editor, Test, link converter, Summary, Event History, totals; Libraries `PSS_FilterView.lua` | Merged #101 |
+| B6 | dev011 | Events tab, opened from every pie, View Events and the panes' histories; Libraries `PSS_EventsView.lua` | PR open |
+| B7 | dev012 | Options + Import/Export | Planned |
 | C1, C2 | dev013, dev014 | Player Search, add target, Prune; right-click menus | Planned |
 | D1 to D3 | dev015 to dev017 | Switch-over; files move into `PourSocialScore_GUI`, EUI folder and bridge deleted; polish | Planned |
 | Release | 3.4.0 | When Dan says it is done | |
@@ -70,6 +71,8 @@ newest markdown: the project plan (`docs/latest/ui uplift/`: 01_ANALYSIS,
 | `PourSocialScore_Libraries/PSS_GuildView.lua` | The tab's logic: `M.PSS_GuildListNew()` (sort, search, selection, `v:Click`), `M.PSS_GuildRowCells` / `M.PSS_GuildRowTip`, `M.PSS_GuildScanTip`, the entry rows (`M.PSS_GuildAddFromText`, `...ExcludeFromText`, `...SearchFromText`), the picker (`M.PSS_GuildPickerItems`, `...Title`, `...Save`, `...Close`, `M.PSS_GuildNoneFound`), the members view (`v:OpenMembers`, `v:MResort`, `v:RemoveMember`), the pane's text (`M.PSS_GuildInfoLine`, `M.PSS_GuildGroupView`, `M.PSS_GuildExclView`, `M.PSS_Member*`) and edits (`M.PSS_GuildToggleAllowed`, `M.PSS_GuildScanNow`, `M.PSS_GuildCustomScan`, `M.PSS_CycleOverride`, `M.PSS_MemberToggleAllowed`, `M.PSS_GroupToggleRule`, `M.PSS_ExclRemove`), Events specs; Guild Search results are tagged `M.PSS_GUILD_SEARCH_OWNER` ("window"; the old window takes only untagged ones) |
 | `PourSocialScore_UI/PSS_Filters.lua` | The Chat Filters tab (`ns.TabBuilders.filters`), `ns.ShowFilterDetail`; the link insert post-hook (`ChatFrameUtil.InsertLink` on Retail 12.x, else `ChatEdit_InsertLink`), made when the tab first opens and acting only while the pane shows |
 | `PourSocialScore_Libraries/PSS_FilterView.lua` | The tab's logic: `M.PSS_FilterListNew()` (sort, search, count line), `M.PSS_FilterRowCells` / `...RowTip`, `M.PSS_FilterHeading` / `...Info` / `...HistoryLine`, edits (`M.PSS_FilterSave`, `...Copy`, `...RemoveText` / `...Remove`, `...New`, `...TestText`), Events specs |
+| `PourSocialScore_UI/PSS_Events.lua` | The Events tab (`ns.TabBuilders.events`) and `ns.OpenEvents(page, spec, opts)`, which every pie, View Events and the panes' history double-clicks call |
+| `PourSocialScore_Libraries/PSS_EventsView.lua` | The Events query: `M.PSS_EVENT_SOURCES`, `M.PSS_EVENT_TIMES`, `M.PSS_EventsViewNew()` (`v:Open`, `v:Refresh`, `v:Apply`, `v:SortBy`, `v:SetPeriod`, `v:ApplyRange`, the type and source ticks, labels, back / forward keys, `v:ResetText` / `v:DoReset`), `M.PSS_EventCells`, `M.PSS_EventTip`, `M.PSS_EventCopy` |
 | `PourSocialScore_Libraries/PSS_PlayerView.lua` | The tab's logic: `M.PSS_PlayerListNew()` (sort, search), column and pane text, edits (`M.PSS_PlayerCommitNote`, `...CommitExpiry`, `...ToggleAllowed`, `...CycleOverride`, `...AddFromText`, `...AddGuild`), Events specs |
 | `tools/harness/kit_page.lua` | The kit preview (was `PSS_KitPage.lua` until dev005), built by `check_tui.lua` on a frame of its own through `H.Private("PourSocialScore_UI")` |
 | `PourSocialScore_Libraries/PSS_ViewNav.lua` | `M.PSS_UISkin`, `M.PSS_UIPlace` / `M.PSS_SetUIPlace`, `M.PSS_UIFontPath`, `M.PSS_UIFontChoices`, `M.PSS_UIAccent`; tabs `M.PSS_UI_TABS`, `M.PSS_UITab` / `M.PSS_SetUITab` (saved as `windowPoints.PSS_WindowTab`, the first tab not saved); back / forward `M.PSS_NavNew(max)` (`Record`, `Back`, `Forward`, `Replace`, `BackToOther`), `M.PSS_DoubleClick`, `M.PSS_Throttle` |

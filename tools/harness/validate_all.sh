@@ -116,6 +116,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_filters.lua" 2>&1 | grep -v '^|c
 echo "$out"
 echo "$out" | grep -q "PASS filters" || fail=1
 
+# the new window's Events tab (3.4.0-dev011)
+echo "== new window Events tab"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_events.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS events" || fail=1
+
 # the PSS window's Managed Communities row (3.3.0-dev003)
 echo "== Managed Communities row"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_managed_row.lua" 2>&1 | grep -v '^|cff')
@@ -293,6 +299,9 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_filters.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS filters" || fail=1
+		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_events.lua" 2>&1 | grep -v '^|cff')
+		echo "$out"
+		echo "$out" | grep -q "PASS events" || fail=1
 	done
 fi
 
