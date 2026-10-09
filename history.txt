@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.70 - Docs: reference framework rule
+
+- Docs only: CLAUDE.md gains the reference framework rule (one key schema for every document, issue #184). Nothing changes in the addon.
+
 => 3.6.0.69 - Addon Profiles: ACP-style save, side menus, menus open down
 
 - Addon Profiles can be saved again, the way Addon Control Panel does it: the Profiles drop-down lists every place (Core Addon Profiles 1 to 5, a line, Layered Addon Profiles 6 to 25 and your class), a free one as "Profile N (empty)". Choose a place and its side menu offers Select or Deselect, Save (one question, "Save the current addon list to [name]?"), Load, Add to current selection, Remove from current selection, Rename and Delete; a free place offers Save and Rename. A selected place is marked with *, and any number can be selected together. This also fixes the places' menu closing at once, which hid Save and Rename.
