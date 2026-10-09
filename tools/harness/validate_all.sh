@@ -334,6 +334,15 @@ else
 	echo "FAIL upgrade record"; fail=1
 fi
 
+# upgrade step registry (core uplift U1, 3.4.1.45): its shape, the version
+# order, counts per feature only on a login that reports, retired keys gone
+echo "== upgrade steps"
+for sv in - "$work/sv-gr-2.0.44.lua"; do
+	out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_upgrade_steps.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS upgrade steps" || fail=1
+done
+
 # /pss check (3.0): no problems on a fresh save and on every upgraded 2.0.44
 # test save; planted faults are reported
 echo "== saved data check"
@@ -380,7 +389,19 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | grep -E "PASS|FAIL"
 		echo "$out" | grep -q "PASS options" || fail=1
+		out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_upgrade_steps.lua" 2>&1 | grep -v '^|cff')
+		echo "$out"
+		echo "$out" | grep -q "PASS upgrade steps" || fail=1
 	done
+fi
+
+# saves byte-identical with another ref (PSS_SAME_AS=origin/main, for a
+# stage that must not change the saved data; same_saves.sh)
+if [ -n "$PSS_SAME_AS" ]; then
+	echo "== same saves as $PSS_SAME_AS"
+	out=$(TMPDIR=${TMPDIR:-/tmp} sh "$here/same_saves.sh" "$PSS_SAME_AS" 2>&1)
+	echo "$out" | grep -v '^same:'
+	echo "$out" | grep -q "^PASS same saves" || fail=1
 fi
 
 [ $fail -eq 0 ] && echo "All upgrade checks passed" || echo "Upgrade checks FAILED"

@@ -900,10 +900,14 @@ function M.PSS_GuildMemberCount(g, gkey)
 	return n
 end
 
--- Create / tag the shipped guild rules (startup).
+-- Create / tag the shipped guild rules (startup). Returns the number of
+-- rules created (the upgrade report).
 local function ensureManagedRules()
 	local m = buildManaged()
+	local made = 0
 	for gkey, groupKey in pairs(m.groupOf) do
+		local key = normalizeGuild(m.guildName[gkey])
+		if key and PourSocialScoreDB.guildData[key] == nil then made = made + 1 end
 		local g = ensureGuild(m.guildName[gkey])
 		if g then
 			g.managed = groupKey
@@ -912,6 +916,7 @@ local function ensureManagedRules()
 			if type(g.managedGone) ~= "table" or next(g.managedGone) == nil then g.managedGone = nil end
 		end
 	end
+	return made
 end
 M.PSS_EnsureManagedRules = ensureManagedRules
 
@@ -1735,7 +1740,11 @@ end)
 -- (Chat lines and invites are decided by PSS_ChatBlock.lua; this file
 -- registers the "guild" person source further down.)
 
-function M.PSS_UpgradeLegacyData()
+-- tally(feature, key, n), when given, counts what this pass changed (the
+-- upgrade report, PSS_Upgrade.lua); without it nothing is counted.
+local function noTally() end
+function M.PSS_UpgradeLegacyData(tally)
+	tally = tally or noTally
 	ensureDB()
 	for i, name in ipairs(PourSocialScoreDB.ignoreList or {}) do
 		local p = ((PourSocialScoreDB.typeList or {})[i] or "player") == "player" and M.PSS_GetPlayerPrefs and M.PSS_GetPlayerPrefs(name)
@@ -1747,8 +1756,8 @@ function M.PSS_UpgradeLegacyData()
 		if (p.faction or "") == "" and type(fac) == "string" and fac ~= "" then p.faction = fac end
 		end
 	end
-	cleanupLegacyGuildPlayers()
-	ensureManagedRules()
+	tally("players", "toGuilds", cleanupLegacyGuildPlayers())
+	tally("managed", "rules", ensureManagedRules())
 	-- 2.0.6: one block-history format for every list (PSS_ChatHistory.lua).
 	-- Bring stored player and member history lines up to date once; fields
 	-- that were never recorded become "Unknown". (Chat filter history is
@@ -1782,6 +1791,7 @@ function M.PSS_UpgradeLegacyData()
 			end
 		end
 		PourSocialScoreDB.historyFormat = 2
+		tally("history", "formats", 1)
 	end
 
 	-- 2.0.17: ONE shared block log with a total cap instead of a list per
@@ -1812,6 +1822,7 @@ function M.PSS_UpgradeLegacyData()
 		end
 		if #sources > 0 then History.Absorb(sources) end
 		PourSocialScoreDB.historyFormat = 3
+		tally("history", "formats", 1)
 	end
 	-- 2.0.37: every person keeps their newest 10 chat lines, 5 emotes,
 	-- 5 party and 5 guild invites (PourSocialScoreDB.blockKeep) when lines
@@ -1819,6 +1830,7 @@ function M.PSS_UpgradeLegacyData()
 	if (tonumber(PourSocialScoreDB.historyFormat) or 0) < 4 then
 		History.Keep()
 		PourSocialScoreDB.historyFormat = 4
+		tally("history", "formats", 1)
 	end
 	-- keep the log within the setting (it may have been lowered); lines that
 	-- leave it go to the per-player keep. (Not loaded yet: done when
@@ -1842,6 +1854,7 @@ function M.PSS_UpgradeLegacyData()
 		for _, g in pairs(PourSocialScoreDB.guildData or {}) do
 			if type(g) == "table" and (g.customScan == nil or trim(tostring(g.customScan)) == "") then
 				g.customScan = M.PSS_DEFAULT_SCAN_FIELDS
+				tally("guilds", "scanFields", 1)
 			end
 		end
 		PourSocialScoreDB.scanFieldsDefaultV1 = true
@@ -2323,7 +2336,8 @@ end
 
 cleanupLegacyGuildPlayers = function()
 	ensureDB()
-	if PourSocialScoreDB.guildPlayerCleanupV3 then return end
+	if PourSocialScoreDB.guildPlayerCleanupV3 then return 0 end
+	local removed = 0
 	local guildMembers = {}
 	for _, g in pairs(PourSocialScoreDB.guildData or {}) do
 		for key, m in pairs(g.members or {}) do
@@ -2345,9 +2359,11 @@ cleanupLegacyGuildPlayers = function()
 			table.remove(PourSocialScoreDB.typeList, i)
 			table.remove(PourSocialScoreDB.syncInfo, i)
 			PourSocialScoreDB.playerData[key] = nil
+			removed = removed + 1
 		end
 	end
 	PourSocialScoreDB.guildPlayerCleanupV3 = true
+	return removed
 end
 
 -- Import with Replace (N45): every guild rule goes except the shipped

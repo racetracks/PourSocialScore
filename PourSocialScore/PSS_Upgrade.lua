@@ -7,225 +7,324 @@ local L = addon.L -- localization entries
 local V = addon.V -- runtime state
 
 -- Saved data upgrades as numbered steps (the Questie model):
---   * STEPS[1..N] run first to last. Append new steps at the end; never
---     reorder, renumber or change a step once it has been released.
+--   * STEPS[1..N] run first to last; each has its id (its place, the number
+--     recorded) and its parts. Append new steps at the end; never reorder,
+--     renumber or change a step once it has been released.
 --   * PourSocialScoreDB.upgrade = { step = N, version = "3.0.0", at = time }
 --     records how many steps this save has had, the addon version that last
 --     upgraded it and when (server time). Older versions ignore it.
 --   * At login a step runs when the save has not had it yet. A step marked
---     "always" also runs at every login: step 1 is the 2.0 login pass, which
---     still mixes one-time conversions with per-login work (index rebuild,
---     log trim, block-count prune, tidy-ups); those are separated when the
---     upgrade code moves out of the core.
+--     "always" also runs at every login: step 1 is the 2.0 login pass (its
+--     one-time conversions are guarded by a nil check or a format marker).
 --   * Every step must be safe to run twice.
--- A step has up to two parts: "fields" runs before the built-in chat filters
--- are rebuilt from code (M.PSS_ExpandFilters), "data" runs after it.
+-- A step's parts run in the order listed (step 1's order is 2.0's). A part
+-- has a feature (FEATURES, the upgrade report's groups) and up to two
+-- functions: "fields" runs before the built-in chat filters are rebuilt from
+-- code (M.PSS_ExpandFilters), "data" after it. A function returning false
+-- pauses its step and every later one for this login (not recorded).
+-- Keys nothing reads any more are named once in RETIRED and dropped at every
+-- login, after the data parts (a step may still read one first).
 
 local db	-- PourSocialScoreDB while a pass runs
 local blocked	-- first step whose part returned false this login (not recorded)
+local out	-- counts per feature, only on a login that reports (see tally)
+
+-- The report's groups, in print order (U2 prints them).
+local FEATURES = { "filters", "players", "guilds", "managed", "history", "options", "cleanup" }
+M.PSS_UPGRADE_FEATURES = FEATURES
+
+-- Adds n to out[feature][key]. Nothing is counted (or built) on a login
+-- that does not report.
+local function tally(feature, key, n)
+	if not out or not n or n == 0 then return end
+	local f = out[feature]
+	if not f then
+		f = {}
+		out[feature] = f
+	end
+	f[key] = (f[key] or 0) + n
+end
+
+-- Keys nothing reads any more, dropped at every login (step 1 dropped the
+-- first seven, steps 1, 5, 7 and 8 the rest, each in its own place). Only
+-- keys named here are ever deleted, so a newer version's fields are kept.
+local RETIRED = {
+	"autoIgnore", "autoUpdate", "autoCount", "autoTime", "attachFriends",	-- never used (2.0)
+	"syncList", "filterHistory",	-- 2.0 alpha data
+	"blockStats",		-- the hourly session / 24 hour counts (3.3.0-dev002: History.Recent*)
+	"optionsV2012", "charOptions",	-- 2.0.12 marker, per-character overrides (step 5)
+	"historySize",		-- never read (historyTotal is the setting)
+	"euiIntegration", "windowSizes", "columnWidths",	-- the old windows (3.4.0.25, step 7)
+	"blizzardSync",		-- a per-player tick from 3.4.1.35 (step 8 reads it first)
+}
+M.PSS_UPGRADE_RETIRED = RETIRED
+
+local function dropRetired()
+	for i = 1, #RETIRED do
+		local k = RETIRED[i]
+		if db[k] ~= nil then
+			db[k] = nil
+			tally("cleanup", "retired", 1)
+		end
+	end
+end
+
+-- a parallel list of n entries: each one value, or each a new table
+local function fill(n, value)
+	local t = {}
+	for i = 1, n do t[i] = value end
+	return t
+end
+
+local function fillTables(n)
+	local t = {}
+	for i = 1, n do t[i] = {} end
+	return t
+end
 
 local STEPS = {
-	-- 1: everything 2.0 did at login, moved here unchanged.
+	-- 1: everything 2.0 did at login, split by feature.
 	{
+		id = 1,
 		always = true,
-		fields = function()
-			if db.showIgnoreDebug == nil then
-				db.showIgnoreDebug = false
-			end
+		parts = {
+			{
+				feature = "options",
+				fields = function()
+					if db.showIgnoreDebug == nil then
+						db.showIgnoreDebug = false
+					end
+				end,
+			},
+			{
+				feature = "players",
+				fields = function()
+					local n = #db.ignoreList
+					if db.delList == nil then
+						db.delList = {}
+						tally("players", "lists", 1)
+					end
+					if db.expList == nil then
+						db.expList = fill(n, 0)
+						tally("players", "lists", 1)
+					end
+					if db.syncInfo == nil then
+						db.syncInfo = fillTables(n)
+						tally("players", "lists", 1)
+					end
+					if db.typeList == nil then
+						db.typeList = fill(n, "player")
+						tally("players", "lists", 1)
+					end
+					if db.revision == nil then
+						db.revision = 1
+						for count = 1, n do
+							db.ignoreList[count] = M.Proper(db.ignoreList[count])
+						end
+						tally("players", "renamed", n)
+					end
+				end,
+			},
+			{
+				feature = "filters",
+				fields = function()
+					if db.filterTotal == nil then
+						db.filterTotal = 0
+					end
 
-			if db.filterTotal == nil then
-				db.filterTotal = 0
-			end
+					if db.filterList == nil or db.filterDesc == nil or db.filterCount == nil then
+						M.ResetSpamFilters()
+						tally("filters", "reset", 1)
+					end
 
-			-- (autoIgnore / autoUpdate / autoCount / autoTime / attachFriends were
-			-- never used; they are dropped from saved settings.)
-			db.autoIgnore, db.autoUpdate = nil, nil
-			db.autoCount, db.autoTime = nil, nil
-			db.attachFriends = nil
+					local n = #db.filterDesc
+					if db.filterActive == nil then
+						db.filterActive = fill(n, true)
+						tally("filters", "lists", 1)
+					end
 
-			if db.filterList == nil or db.filterDesc == nil or db.filterCount == nil then
-				M.ResetSpamFilters()
-			end
+					if db.filterID == nil then
+						M.PSS_AssignLegacyFilterIDs()
+						tally("filters", "ids", n)
+					end
 
-			if db.delList == nil then
-				db.delList = {}
-			end
+					if db.filterBlocked == nil then
+						db.filterBlocked = fillTables(n)
+						tally("filters", "lists", 1)
+					end
 
-			if db.expList == nil then
-				db.expList = {}
+					if db.filterBlockedLast == nil then
+						db.filterBlockedLast = fill(n, 0)
+						tally("filters", "lists", 1)
+					end
 
-				for count = 1, #db.ignoreList do
-					db.expList[count] = 0
-				end
-			end
-
-			if db.syncList then
-				db.syncList = nil
-			end
-
-			if db.syncInfo == nil then
-				db.syncInfo = {}
-
-				for count = 1, #db.ignoreList do
-					db.syncInfo[count] = {}
-				end
-			end
-
-			if db.typeList == nil then
-				db.typeList = {}
-
-				for count = 1, #db.ignoreList do
-					db.typeList[count] = "player"
-				end
-			end
-
-			if db.revision == nil then
-				db.revision = 1
-
-				for count = 1, #db.ignoreList do
-					db.ignoreList[count] = M.Proper(db.ignoreList[count])
-				end
-			end
-
-			if db.filterActive == nil then
-				db.filterActive = {}
-
-				for count = 1, #db.filterDesc do
-					db.filterActive[count] = true
-				end
-			end
-
-			if db.filterID == nil then
-				M.PSS_AssignLegacyFilterIDs()
-			end
-
-			-- Erase some old alpha data that could be out there
-			if db.filterHistory ~= nil then
-				db.filterHistory = nil
-			end
-
-			if db.filterBlocked == nil then
-				db.filterBlocked = {}
-
-				for count = 1, #db.filterDesc do
-					db.filterBlocked[count] = {}
-				end
-			end
-
-			if db.filterBlockedLast == nil then
-				db.filterBlockedLast = {}
-
-				for count = 1, #db.filterDesc do
-					db.filterBlockedLast[count] = 0
-				end
-			end
-
-			db.filterWhisperTotal = tonumber(db.filterWhisperTotal) or 0
-			db.filterPrivateTotal = tonumber(db.filterPrivateTotal) or 0
-		end,
-		data = function()
-			-- Player/guild data upgrade (guild module), now that the core lists exist.
-			if M.PSS_UpgradeLegacyData then M.PSS_UpgradeLegacyData() end
-			-- guild rule blocks are guild blocks only (2.0.39): undo the second count
-			if M.PSS_UnlinkGuildRuleCounts then M.PSS_UnlinkGuildRuleCounts() end
-			-- the old hourly session / last 24 hours counts (PSS_BlockStats.lua,
-			-- retired in 3.3.0-dev002: both windows read History.Recent*)
-			if PourSocialScoreDB.blockStats ~= nil then PourSocialScoreDB.blockStats = nil end
-			-- records of players no longer listed, and fields records no longer keep
-			if M.PSS_TidyPlayerData then M.PSS_TidyPlayerData() end
-			-- then tidy the block history (lines of things that are gone); not
-			-- loaded yet: done when PourSocialScore_Logging loads
-			if M.PSS_LoggingReady and M.PSS_LoggingReady() then
-				local tidied = M.PSS_TidyBlockHistory()
-				if tidied > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history tidied") end
-			end
-		end,
+					db.filterWhisperTotal = tonumber(db.filterWhisperTotal) or 0
+					db.filterPrivateTotal = tonumber(db.filterPrivateTotal) or 0
+				end,
+			},
+			{
+				-- player records, guild rules and members, shipped rules and
+				-- the block history format (guild module), now that the core
+				-- lists exist; it counts into each feature itself
+				feature = "guilds",
+				data = function()
+					if M.PSS_UpgradeLegacyData then M.PSS_UpgradeLegacyData(tally) end
+				end,
+			},
+			{
+				feature = "filters",
+				data = function()
+					-- guild rule blocks are guild blocks only (2.0.39): undo the second count
+					if M.PSS_UnlinkGuildRuleCounts then tally("filters", "unlinked", M.PSS_UnlinkGuildRuleCounts()) end
+				end,
+			},
+			{
+				feature = "players",
+				data = function()
+					-- records of players no longer listed, and fields records no longer keep
+					if M.PSS_TidyPlayerData then tally("players", "tidied", M.PSS_TidyPlayerData()) end
+				end,
+			},
+			{
+				feature = "history",
+				data = function()
+					-- then tidy the block history (lines of things that are gone); not
+					-- loaded yet: done when PourSocialScore_Logging loads
+					if M.PSS_LoggingReady and M.PSS_LoggingReady() then
+						local tidied = M.PSS_TidyBlockHistory()
+						tally("history", "tidied", tidied)
+						if tidied > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history tidied") end
+					end
+				end,
+			},
+		},
 	},
 	-- 2: options, players, guilds and rules live in PourSocialScore_Options.
 	-- The move itself runs before any other startup code reads the data
 	-- (M.PSS_PrepareSavedData, PSS_SavedData.lua); this records it, and
 	-- returns false (step not recorded) when it did not happen.
 	{
-		fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Options") end,
+		id = 2,
+		parts = {
+			{ feature = "options", fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Options") end },
+		},
 	},
 	-- 3: the block history, kept lines, hourly stats, totals and chat rule
 	-- counts live in PourSocialScore_Logging (moved the same way)
 	{
-		fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Logging") end,
+		id = 3,
+		parts = {
+			{ feature = "history", fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Logging") end },
+		},
 	},
 	-- 4: PourSocialScore_Logging loads on demand: the counts and format
 	-- markers live in PSS_CountsDB (PourSocialScore_Options) and only the
 	-- lines in PSS_LoggingDB. M.PSS_PrepareSavedData moves them at login.
 	{
-		fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Options") end,
+		id = 4,
+		parts = {
+			{ feature = "options", fields = function() return M.PSS_SavedDataSplit("PourSocialScore_Options") end },
+		},
 	},
 	-- 5: minimal settings. Options equal to their default are not saved
-	-- (M.PSS_ApplyOptionDefaults drops them at every login); this drops the
-	-- keys nothing reads any more. A 2.0 save from before 2.0.12 (no
-	-- optionsV2012) gets the 2.0.12 switch-off of ignoreResponse and
-	-- blizzardSync first, as 2.0 did at login.
+	-- (M.PSS_ApplyOptionDefaults drops them at every login). A 2.0 save from
+	-- before 2.0.12 (no optionsV2012) gets the 2.0.12 switch-off of
+	-- ignoreResponse and blizzardSync, as 2.0 did at login. (optionsV2012,
+	-- charOptions and historySize are in RETIRED.)
 	{
-		fields = function()
-			if type(db.upgrade) ~= "table" and not db.optionsV2012 then
-				db.ignoreResponse, db.blizzardSync = nil, nil
-			end
-			db.optionsV2012 = nil
-			db.charOptions = nil		-- per-character overrides, gone since 2.0.12
-			db.historySize = nil		-- not read by any code (historyTotal is the setting)
-		end,
+		id = 5,
+		parts = {
+			{
+				feature = "options",
+				fields = function()
+					if type(db.upgrade) ~= "table" and not db.optionsV2012 then
+						if db.ignoreResponse ~= nil or db.blizzardSync ~= nil then tally("options", "switchedOff", 1) end
+						db.ignoreResponse, db.blizzardSync = nil, nil
+					end
+				end,
+			},
+		},
 	},
 	-- 6 (3.4.0.22): decline messages are Off by default for listed players
 	-- and guilds (Dan). Show declines was On by default, so a saved On is
 	-- a leftover (2.0 saved every option), never a choice: drop it.
 	{
-		fields = function()
-			if db.showDeclines == true then db.showDeclines = nil end
-		end,
+		id = 6,
+		parts = {
+			{
+				feature = "players",
+				fields = function()
+					if db.showDeclines == true then
+						db.showDeclines = nil
+						tally("players", "declines", 1)
+					end
+				end,
+			},
+		},
 	},
-	-- 7 (3.4.0.25, D2): one window. The EllesmereUI integration option and
-	-- the old window's sizes, column widths and places are gone (the new
-	-- window keeps only its own place and tab in windowPoints). Says once if
-	-- a folder the window no longer uses is still in the AddOns folder.
+	-- 7 (3.4.0.25, D2): one window. The old window's places are gone (the
+	-- new window keeps only its own place and tab in windowPoints; the EUI
+	-- option, sizes and widths are in RETIRED). Says once if a folder the
+	-- window no longer uses is still in the AddOns folder.
 	{
-		fields = function()
-			db.euiIntegration = nil
-			db.windowSizes = nil
-			db.columnWidths = nil
-			local points = db.windowPoints
-			if type(points) == "table" then
-				for key in pairs(points) do
-					if key ~= "PSS_Window" and key ~= "PSS_WindowTab" then points[key] = nil end
-				end
-				if next(points) == nil then db.windowPoints = nil end
-			end
-		end,
-		data = function()
-			local exists = C_AddOns and C_AddOns.DoesAddOnExist
-			if not exists then return end
-			local left = {}
-			for _, name in ipairs({ "PourSocialScore_EllesmereUI", "PourSocialScore_UI" }) do
-				if exists(name) then left[#left + 1] = name end
-			end
-			if #left > 0 then M.ShowMsg(L["OLD_FOLDERS"]:format(table.concat(left, ", "))) end
-		end,
+		id = 7,
+		parts = {
+			{
+				feature = "options",
+				fields = function()
+					local points = db.windowPoints
+					if type(points) == "table" then
+						for key in pairs(points) do
+							if key ~= "PSS_Window" and key ~= "PSS_WindowTab" then
+								points[key] = nil
+								tally("options", "places", 1)
+							end
+						end
+						if next(points) == nil then db.windowPoints = nil end
+					end
+				end,
+			},
+			{
+				feature = "cleanup",
+				data = function()
+					local exists = C_AddOns and C_AddOns.DoesAddOnExist
+					if not exists then return end
+					local left = {}
+					for _, name in ipairs({ "PourSocialScore_EllesmereUI", "PourSocialScore_UI" }) do
+						if exists(name) then left[#left + 1] = name end
+					end
+					if #left > 0 then
+						M.ShowMsg(L["OLD_FOLDERS"]:format(table.concat(left, ", ")))
+						tally("cleanup", "oldFolders", #left)
+					end
+				end,
+			},
+		},
 	},
 	-- 8 (3.4.1.35, B1): "Also put listed players on Blizzard's ignore list"
 	-- is a tick for each player now (PSS is authoritative). A save with the
 	-- global option on ticks every listed player Blizzard's list has, then
-	-- the global key goes. Blizzard's list may not have arrived yet at
-	-- login, so the first list update ticks again (V.PSS_TickOnSync).
+	-- the global key goes (RETIRED). Blizzard's list may not have arrived
+	-- yet at login, so the first list update ticks again (V.PSS_TickOnSync).
 	{
-		data = function()
-			if db.blizzardSync == true then
-				if M.PSS_TickBlizzardIgnored then M.PSS_TickBlizzardIgnored() end
-				V.PSS_TickOnSync = true
-			end
-			db.blizzardSync = nil
-		end,
+		id = 8,
+		parts = {
+			{
+				feature = "players",
+				data = function()
+					if db.blizzardSync == true then
+						if M.PSS_TickBlizzardIgnored then M.PSS_TickBlizzardIgnored() end
+						V.PSS_TickOnSync = true
+						tally("players", "blizzardTicks", 1)
+					end
+				end,
+			},
+		},
 	},
 }
 
 M.PSS_UPGRADE_STEPS = #STEPS
+M.PSS_UPGRADE_REGISTRY = STEPS	-- read only (the harness checks its shape)
 
 local function addonVersion()
 	local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
@@ -239,6 +338,40 @@ local function stepsDone()
 	return type(rec) == "table" and tonumber(rec.step) or 0
 end
 
+-- Orders two versions: -1 when a is older than b, 0 the same, 1 newer; nil
+-- when either is not a version. X.Y.Z.B orders by its numbers (build
+-- numbers never reset); any older name (2.0.44, 3.3.1, 3.4.0-dev008_4) is
+-- older than every X.Y.Z.B, and among them X.Y.Z-devN is older than X.Y.Z.
+local function numbers(v)
+	local t = {}
+	for d in v:gmatch("%d+") do t[#t + 1] = tonumber(d) end
+	return t
+end
+
+local function compareLists(a, b, n)
+	for i = 1, n do
+		local x, y = a[i] or 0, b[i] or 0
+		if x ~= y then return x < y and -1 or 1 end
+	end
+	return 0
+end
+
+function M.PSS_VersionOrder(a, b)
+	if type(a) ~= "string" or type(b) ~= "string" then return nil end
+	if not a:match("^%d+%.%d+") or not b:match("^%d+%.%d+") then return nil end
+	if a == b then return 0 end
+	local fa = a:match("^%d+%.%d+%.%d+%.%d+$") ~= nil
+	local fb = b:match("^%d+%.%d+%.%d+%.%d+$") ~= nil
+	local na, nb = numbers(a), numbers(b)
+	if fa and fb then return compareLists(na, nb, 4) end
+	if fa ~= fb then return fa and 1 or -1 end
+	local o = compareLists(na, nb, 3)
+	if o ~= 0 then return o end
+	local devA, devB = a:find("dev", 1, true) ~= nil, b:find("dev", 1, true) ~= nil
+	if devA ~= devB then return devA and -1 or 1 end
+	return compareLists(na, nb, math.max(#na, #nb))
+end
+
 local function runPart(part)
 	db = PourSocialScoreDB
 	if type(db) ~= "table" then return end
@@ -246,21 +379,54 @@ local function runPart(part)
 	for i = 1, #STEPS do
 		local step = STEPS[i]
 		if blocked and i >= blocked then break end
-		if step[part] and (i > done or step.always) and step[part]() == false then blocked = i end
+		if i > done or step.always then
+			local parts = step.parts
+			for j = 1, #parts do
+				local f = parts[j][part]
+				if f and f() == false then
+					blocked = i
+					break
+				end
+			end
+		end
 	end
 	db = nil
 end
 
-function M.PSS_RunUpgradeFields() runPart("fields") end
+-- The "fields" parts. fresh: a new save built this login (nothing to
+-- report); defaults: options M.PSS_ApplyOptionDefaults dropped just before.
+-- A login reports when the save is not new and a step is due or the
+-- version changed; only then are the counts kept (out).
+function M.PSS_RunUpgradeFields(fresh, defaults)
+	local sv = PourSocialScoreDB
+	out = nil
+	if not fresh and type(sv) == "table" then
+		local rec = type(sv.upgrade) == "table" and sv.upgrade or nil
+		local from = rec and rec.version
+		if stepsDone() < #STEPS or from ~= addonVersion() then
+			out = { from = type(from) == "string" and from or nil, done = stepsDone() }
+			tally("cleanup", "defaults", defaults)
+		end
+	end
+	runPart("fields")
+end
 
--- The "data" parts, then the record. fresh: a new save built this login
--- (nothing to report).
+-- The "data" parts, the retired keys, then the record. fresh: a new save
+-- built this login (nothing to report). Returns the counts of a login that
+-- reports (out: from, to, done, step, and a table per feature), else nil.
 function M.PSS_RunUpgradeData(fresh)
 	runPart("data")
 	local sv = PourSocialScoreDB
-	if type(sv) ~= "table" then return end
+	if type(sv) ~= "table" then
+		out = nil
+		return
+	end
+	db = sv
+	dropRetired()
+	db = nil
 	local done = stepsDone()
 	local reached = blocked and blocked - 1 or #STEPS
+	local paused = blocked
 	blocked = nil
 	local rec = type(sv.upgrade) == "table" and sv.upgrade or {}
 	sv.upgrade = rec
@@ -273,6 +439,12 @@ function M.PSS_RunUpgradeData(fresh)
 	if done < reached and not fresh then
 		M.ShowMsg(("Saved data upgraded to %s (step %d)."):format(version, reached))
 	end
+	local counts = out
+	out = nil
+	if counts then
+		counts.to, counts.step, counts.paused = version, math.max(done, reached), paused
+	end
+	return counts
 end
 
 -- For /pss mem: "step 1, version 3.0.0-dev4, 04 Oct 2026 07:40".
