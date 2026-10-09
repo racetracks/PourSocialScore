@@ -198,7 +198,7 @@ function M.PSS_GuildRowCells(item, find, nested, into)
 		local indent = ""
 		if item.inGroup and (find or "") == "" then indent = nested and "         " or "      " end
 		into.guild = indent .. tostring(g.name)
-		into.members, into.total = g.memberCount or 0, item.bc.total or 0
+		into.members, into.total = item.count or 0, item.bc.total or 0
 		into.scan = M.PSS_GuildSweepLabel(item.key)
 		into.dim = item.inGroup and not item.groupOn or false
 	end
@@ -442,7 +442,8 @@ function M.PSS_MembersNavTitle(key)
 end
 
 function M.PSS_MemberTip(m)
-	return tostring(m.name) .. ((m.guild or "") ~= "" and ("  <" .. m.guild .. ">") or "")
+	local guild = M.PSS_MemberGuildName(m) or ""
+	return tostring(M.PSS_MemberName(m)) .. (guild ~= "" and ("  <" .. guild .. ">") or "")
 		.. ((m.note or "") ~= "" and ("\n\n" .. m.note) or "") .. "\n\nClick for the details."
 end
 
@@ -450,7 +451,8 @@ end
 function List:RemoveMember()
 	local m, gkey = self.msel, self.mguild
 	if not (m and gkey) then return false end
-	M.PSS_RemoveGuildMember(gkey, m.name, gkey, self.members.stored and self.members.stored[m] or nil)
+	local mk = self.members.stored and self.members.stored[m] or nil
+	M.PSS_RemoveGuildMember(gkey, M.PSS_MemberName(m, mk), gkey, mk)
 	self.msel = nil
 	self.mdirty, self.dirty = true, true
 	return true
@@ -459,8 +461,8 @@ end
 ------------------------------------------------------------------------
 -- The pane's text
 ------------------------------------------------------------------------
-function M.PSS_GuildInfoLine(g)
-	local n = g.memberCount or 0
+function M.PSS_GuildInfoLine(g, key)
+	local n = M.PSS_GuildMemberCount(g, key)
 	local info = ("%d member%s"):format(n, n == 1 and "" or "s")
 	if g.managed then
 		local grp = M.PSS_ManagedGroups()[g.managed] or {}
@@ -522,16 +524,17 @@ end
 
 function M.PSS_MemberHeading(m)
 	local cr, cg, cb = M.PSS_ClassColor(m.class)
-	return ("|cff%02x%02x%02x"):format(cr * 255, cg * 255, cb * 255) .. tostring(m.name) .. "|r"
+	return ("|cff%02x%02x%02x"):format(cr * 255, cg * 255, cb * 255) .. tostring(M.PSS_MemberName(m)) .. "|r"
 end
 
 function M.PSS_MemberGuildLine(m)
-	local actual = m.guild or ""
+	local actual = M.PSS_MemberGuildName(m) or ""
 	return "Guild " .. (actual ~= "" and ("<" .. actual .. ">") or "|cff808080unknown|r")
 end
 
 function M.PSS_MemberAddedLine(m)
-	return "Added " .. ((m.whenBlocked or "") ~= "" and m.whenBlocked or "|cff808080unknown|r")
+	local when = M.PSS_MemberWhenBlocked(m) or ""
+	return "Added " .. (when ~= "" and when or "|cff808080unknown|r")
 end
 
 -- ticked (allowed), and own (the member's own setting; false: follows the guild)
@@ -542,7 +545,7 @@ end
 -- true when the member's actual guild is another than this rule (Add Guild)
 function M.PSS_MemberOtherGuild(gg, gkey, m)
 	local base = M.PSS_NormalizeGuild(gg.name or gkey)
-	local ag = M.PSS_NormalizeGuild(m.guild or "")
+	local ag = M.PSS_NormalizeGuild(M.PSS_MemberGuildName(m, gg) or "")
 	return ag ~= nil and ag ~= "" and ag ~= base
 end
 
@@ -606,7 +609,7 @@ function M.PSS_GuildRemove(key)
 end
 
 function M.PSS_MemberRemoveText(m)
-	return ("Remove %s from this guild rule?\n\nThey stay on the Player Ignore List if they are on it."):format(tostring(m.name))
+	return ("Remove %s from this guild rule?\n\nThey stay on the Player Ignore List if they are on it."):format(tostring(M.PSS_MemberName(m)))
 end
 
 -- a member's note (25 letters); true if it changed
@@ -705,8 +708,8 @@ function M.PSS_MemberEventsSpec(m, gkey)
 		label = function(rec)
 			local _, g = M.PSS_FindGuildRule(gkey)
 			if not (g and type(g.members) == "table") then return nil end
-			for _, x in pairs(g.members) do
-				if x == rec then return tostring(rec.name or "?") end
+			for k, x in pairs(g.members) do
+				if x == rec then return tostring(M.PSS_MemberName(rec, k) or "?") end
 			end
 			return nil
 		end,

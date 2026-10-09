@@ -9,6 +9,8 @@
 #   Every top-level key the code saves is in the schema map
 #   (PourSocialScore/PSS_Schema.lua, tools/check_schema.lua)
 #   Every addon file that uses M declares a local M (tools/check_locals.lua)
+#   The member fields S3 stops saving are read only through their accessors
+#   (tools/check_fields.lua)
 #   Every PourSocialScore_* folder's three TOCs agree (tools/check_toc.sh)
 #   history.txt starts with the section of the version every TOC carries
 #   versions.json (tools/versions.py check): well formed, build numbers never
@@ -43,6 +45,8 @@ lua5.1 tools/check_layers.lua || fail=1
 lua5.1 tools/check_schema.lua > /dev/null || { lua5.1 tools/check_schema.lua; fail=1; }
 
 lua5.1 tools/check_locals.lua || fail=1
+
+lua5.1 tools/check_fields.lua || fail=1
 
 for d in PourSocialScore_*/; do
 	sh tools/check_toc.sh "${d%/}" || fail=1

@@ -27,7 +27,7 @@ local PREFIX = { players = "p:", guilds = "G:", filters = "f:" }
 
 local function add(into, c)
 	if type(c) ~= "table" then return end
-	into.total = into.total + (tonumber(c.total) or 0)
+	into.total = into.total + History.CountTotal(c)
 	for _, cat in ipairs(History.ALL_CATS) do
 		into[cat] = into[cat] + (tonumber(c[cat]) or 0)
 	end

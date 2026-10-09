@@ -262,6 +262,8 @@ local function guildEntry(key, g, members)
 		for mk, m in pairs(g.members or {}) do
 			if type(m) == "table" then
 				local me = copyFields(m, MEMBER_FIELDS)
+				-- every field, filled through the accessors (S3 stops saving some)
+				me.name, me.guild, me.whenBlocked = M.PSS_MemberName(m, mk), M.PSS_MemberGuildName(m, g), M.PSS_MemberWhenBlocked(m)
 				me.block = copyBlock(M.PSS_MemberBlock and M.PSS_MemberBlock(m) or m.block)
 				me.key = mk
 				me.opts = copyOpts(m.opts)
@@ -400,7 +402,6 @@ function M.PSS_ApplyImport(data, mode, sections)
 									local m = copyFields(me, MEMBER_FIELDS)
 									m.opts = copyOpts(me.opts)
 									m.block = copyBlock(me.block)
-									m._playerKey, m.guild, m.whenBlocked = nil, nil, nil
 									shipped = M.PSS_MergeIntoShipped(key, ck, m)
 								end
 								if mk and not shipped and not g.members[mk] then
@@ -421,8 +422,7 @@ function M.PSS_ApplyImport(data, mode, sections)
 							end
 						end
 					end
-					g.memberCount = 0
-					for _ in pairs(g.members) do g.memberCount = g.memberCount + 1 end
+					M.PSS_StoreMemberCount(g)
 					if M.PSS_RefreshGuildActive then M.PSS_RefreshGuildActive(g) end
 				end
 			end

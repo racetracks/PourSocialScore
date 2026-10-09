@@ -132,9 +132,9 @@ local function DrawMember(row, i)
 		row.sel:Hide()
 		return
 	end
-	c.name:SetText(m.name or "")
+	c.name:SetText(M.PSS_MemberName(m) or "")
 	c.name:SetTextColor(M.PSS_ClassColor(m.class))
-	c.guild:SetText(m.guild or "")
+	c.guild:SetText(M.PSS_MemberGuildName(m) or "")
 	c.note:SetText(m.note or "")
 	c["metric:total"]:SetText(M.PSS_MemberBlockTotal(m))
 	row.sel:SetShown(m == V.msel)
@@ -501,7 +501,7 @@ local function BuildMemberBody(parent)
 	b.removeButton = remove
 	local addGuild = ns.NewButton(rule, "Add Guild", 90, function()
 		local m = V.msel
-		if m and M.PSS_AddMembersGuild(V.mguild, m.guild) then
+		if m and M.PSS_AddMembersGuild(V.mguild, M.PSS_MemberGuildName(m)) then
 			V.mdirty, V.dirty = true, true
 			MResort()
 			ShowDetail()
@@ -547,7 +547,7 @@ local function ShowGuild(key, fresh)
 	pane.guildKey = key
 	b:Show()
 	b.heading:SetText(tostring(g.name))
-	b.info:SetText(M.PSS_GuildInfoLine(g))
+	b.info:SetText(M.PSS_GuildInfoLine(g, key))
 	for cat, c in pairs(b.excl) do c:SetChecked(M.PSS_GuildAllowed(g, cat)) end
 	b.scan:SetText(M.PSS_GuildSweepLabel(key))
 	if not pane.fieldsBox:HasFocus() then pane.fieldsBox:SetText(g.customScan or "") end
@@ -627,7 +627,7 @@ local function ShowMember(fresh)
 	b.counts:SetText(M.PSS_CountsText(c))
 	b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory, fresh)
 	local s = b.sumSpec
-	s.owner, s.allTime, s.title, s.id = M.PSS_MemberHistoryKey(m), c.total or 0, tostring(m.name), m
+	s.owner, s.allTime, s.title, s.id = M.PSS_MemberHistoryKey(m), c.total or 0, tostring(M.PSS_MemberName(m)), m
 	b.summary:Set(s)
 	return true
 end

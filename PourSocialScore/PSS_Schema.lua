@@ -32,20 +32,23 @@ M.PSS_SCHEMA = {
 		.. " blockedPrivateMessages blockedChatMessages",
 	-- PSS_GuildsDB.guildData[key]
 	guild = "name enabled=true declineGuild=true declineGroup=true partyRaid=true block@PSS_GuildBlock"
-		.. " customScan@PSS_MigrateCustomScan members memberCount=0 managed managedGone ruleOrigin opts@PSS_Opt",
+		.. " customScan@PSS_MigrateCustomScan members memberCount@PSS_GuildMemberCount managed managedGone ruleOrigin opts@PSS_Opt",
 	guildOld = "levelStart levelEnd levelBrackets scan scanTotal scanBrackets blockHistory blockedWhispers"
 		.. " blockedPrivateMessages blockedChatMessages blockedInvites",
 	-- PSS_GuildsDB.guildData[key].members[key] (_ fields are runtime fields
-	-- older builds saved; S3 stops saving them)
-	member = "name guild whenBlocked note class faction level lastBlockedInvite block@PSS_MemberBlock"
+	-- older builds saved; S3 stops saving them; every reader goes through
+	-- the M.PSS_Member* accessors, S2)
+	member = "name@PSS_MemberName guild@PSS_MemberGuildName whenBlocked@PSS_MemberWhenBlocked note class faction level lastBlockedInvite block@PSS_MemberBlock"
 		.. " blockCounts@PSS_EnsureMemberBlockData opts@PSS_Opt excludedGroup=false excludedGuildInvite=false"
-		.. " excludedWhispers=false excludedChat=false _playerKey _canon _gkey _managed _virtual _blockV2",
+		.. " excludedWhispers=false excludedChat=false _playerKey@PSS_MemberPlayerKey _canon@PSS_MemberCanon _gkey"
+		.. " _managed@PSS_MemberShipped _virtual _blockV2",
 	memberOld = "online race className blockHistory blockedWhispers blockedPrivateMessages privateMessagesBlocked"
 		.. " blockedChatMessages chatMessagesBlocked blockedInvites partyInvitesBlocked partyRaidMessagesBlocked",
 	-- W I G P C (guild and member .block; true = blocked, a member's nil = its guild's)
 	block = "whisper=true partyInvite=true guildInvite=true partyRaid=true world=true",
-	-- every .blockCounts / .counts (History.EnsureCounts: a missing type is 0)
-	counts = "total=0 whisper=0 partyInvite=0 guildInvite=0 partyRaid=0 world=0 guildChat=0 unknown=0",
+	-- every .blockCounts / .counts (History.EnsureCounts: a missing type is
+	-- 0; History.CountTotal: total is never less than the types added up)
+	counts = "total@CountTotal whisper=0 partyInvite=0 guildInvite=0 partyRaid=0 world=0 guildChat=0 unknown=0",
 	-- PSS_CountsDB.filterBlocked[i] and builtinStats[id]
 	filterStat = "counts@PSS_FilterCounts",
 	builtinStat = "count=0 blocked blockedLast=0",

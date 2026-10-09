@@ -7,6 +7,7 @@
 2. Everything shared hangs on `M` via `PourSocialScore_NS` (the project's root table); use `M.ShowMsg`, `M.Trim` and the UIKit builders. Every file that uses `M` declares it as a local first (`local M = ns.M` or `addon.M`); there is no global `M` (`check_locals.lua`, 3.4.1.48).
 3. Core fires `M.Events`; UIs listen and write only through core setters (`tools/check_layers.lua` enforces it).
 4. The 8 StaticPopup dialogs stay as they are in the native mode.
+5. **Guild member fields are read through their accessors (core uplift S2, 3.4.1.50):** `M.PSS_MemberCanon`, `M.PSS_MemberName`, `M.PSS_MemberGuildName`, `M.PSS_MemberWhenBlocked`, `M.PSS_MemberShipped`, `M.PSS_MemberPlayerKey`, and `History.CountTotal` (or `History.EnsureCounts`) for a saved counts table's total; a rule's member count from `M.PSS_GuildMemberCount`, never the saved `memberCount`. `tools/check_fields.lua` (rules check) fails the runtime fields or `memberCount` outside the accessor block.
 
 ## 2. TOCs
 - Title `|cff69ccf0PourSocialScore|r <Part>`.

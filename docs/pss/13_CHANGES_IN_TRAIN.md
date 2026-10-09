@@ -7,11 +7,11 @@
 | Item | State on 2026-10-08 |
 | --- | --- |
 | Live release | **3.4.0.29** (full; the new PSS window in three looks; mirrored to `racetracks/Pour-Social-Score`) |
-| Main | 3.4.1.48 (U3 and its fix, PR #138); S1 3.4.1.49 open (PR #139); next S2 3.4.1.50 |
+| Main | 3.4.1.49 (S1, PR #139); S2 3.4.1.50 open (PR #140); next S2b 3.4.1.51 |
 | Current project | **Core uplift**, locked 2026-10-08, three version lines |
 | Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done), window fixes F2 (done), the upgrade registry U1 (done); next the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
-| Line 3.4.2 | Builds 3.4.2.53 to 3.4.2.59 (release). Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
-| Line 3.4.3 | Builds 3.4.3.60 to 3.4.3.64 (release). Window tidy: dead GUI names, logic moved from GUI to Libraries, kit functions, redraw cost |
+| Line 3.4.2 | Builds 3.4.2.54 to 3.4.2.60 (release). Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
+| Line 3.4.3 | Builds 3.4.3.61 to 3.4.3.65 (release). Window tidy: dead GUI names, logic moved from GUI to Libraries, kit functions, redraw cost |
 | Build numbers | `X.Y.Z.B`; B never resets; every build (stage, fix, release) takes the next one |
 | How work is delivered | One stage per PR, one stage per session, based on main, test zip on scratch, Dan tests in game and merges |
 
@@ -39,12 +39,13 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | U2 | 3.4.1.46 | Upgrade report printed once per update (issue #45) | Once per update | Merged, PR #137 |
 | U3 | 3.4.1.47 | Forward compatibility: `M.PSS_SCHEMA`, tolerant readers, downgrade line, unusable rules kept and reported, `/pss export unused`, export format version | Only when a rule cannot be used | Merged, PR #138 |
 | U3 fix | 3.4.1.48 | The missing `local M` in `PSS_Popups.lua` (export unused and the Export button); harness without a global `M`; `check_locals.lua` | Yes | Merged, PR #138 |
-| S1 | 3.4.1.49 | `History.ClearOwner` and the purge tombstone (N16) | No | PR #139 |
-| S2 | 3.4.1.50 | Accessors for every field S3 drops; rules-check grep | No | |
-| S3 | 3.4.1.51 | Upgrade step 9 "SavedVariables performance cleanup" | Report, smaller save | |
-| R | 3.4.1.52 | Release; one summary of every change since 3.4.0.29; `01_HANDOVER.md` re-summarized | | |
+| S1 | 3.4.1.49 | `History.ClearOwner` and the purge tombstone (N16) | No | Merged, PR #139 |
+| S2 | 3.4.1.50 | Accessors for the guild member fields, counts totals and `memberCount`; `check_fields.lua` | No | PR #140 |
+| S2b | 3.4.1.51 | Player W I G P C accessors, the player list arrays' layout, the log group's `m` (decision 26) | No | |
+| S3 | 3.4.1.52 | Upgrade step 9 "SavedVariables performance cleanup" | Report, smaller save | |
+| R | 3.4.1.53 | Release; one summary of every change since 3.4.0.29; `01_HANDOVER.md` re-summarized | | |
 
-Lines 3.4.2 (P1 to P6 3.4.2.53 to 3.4.2.58, R 3.4.2.59) and 3.4.3 (W1 to W4 3.4.3.60 to 3.4.3.63, R 3.4.3.64) take the build numbers after 3.4.1.52 in order (decisions 24, 25).
+Lines 3.4.2 (P1 to P6 3.4.2.54 to 3.4.2.59, R 3.4.2.60) and 3.4.3 (W1 to W4 3.4.3.61 to 3.4.3.64, R 3.4.3.65) take the build numbers after 3.4.1.53 in order (decisions 24 to 26).
 
 ## 2. What each planned change touches in the code
 
@@ -164,7 +165,7 @@ N27 (Import Replace half), N29 (via N19 in P5), N30, N32, N33, N34, N36, N44 (wi
 
 ## 4. SavedVariables changes planned (appendix 03; plan 2.2, 2.3)
 
-Upgrade step 9, "SavedVariables performance cleanup", stage S3 (3.4.1.51), one run-once step, Dan's OK given (decision 4, D9). Step 8 belongs to B1 (blizzardSync to per-player ticks, shipped 3.4.1.35). The appendices call this "step 8"; the plan renumbered it to 9.
+Upgrade step 9, "SavedVariables performance cleanup", stage S3 (3.4.1.52), one run-once step, Dan's OK given (decision 4, D9). Step 8 belongs to B1 (blizzardSync to per-player ticks, shipped 3.4.1.35). The appendices call this "step 8"; the plan renumbered it to 9.
 
 | Store | Change | Measured (3.4.0.28 save unless noted) |
 | --- | --- | --- |
@@ -192,7 +193,7 @@ Totals and rationale:
 | Integer IDs for players / guilds | Rejected (decision 2): A0 saves 70 KB disk (11%) but needs an 81 KB name-to-ID index, memory goes up |
 | Nested log under members (B) | Rejected: +116 KB always-loaded memory, breaks the Logging split |
 | Optional later | C1t (`whenBlocked` as integer time, -11 KB disk, -58 KB memory); C2 packed member strings (guildData 383 KB memory). Not in the plan's stages |
-| Accessors (S2, 3.4.1.50) | `M.PSS_MemberGuildName(m, gkey)`, `M.PSS_MemberCanon(k)`, `History.EnsureCounts`; rules-check grep for `_playerKey` / `_canon` / `_gkey` outside accessors |
+| Accessors (S2, 3.4.1.50; S2b, 3.4.1.51) | S2: `M.PSS_MemberCanon(m, k)`, `M.PSS_MemberName(m, k)`, `M.PSS_MemberGuildName(m, g)`, `M.PSS_MemberWhenBlocked(m)`, `M.PSS_MemberShipped(m)`, `M.PSS_MemberPlayerKey(m)`, `History.CountTotal(c)`; `check_fields.lua` fails `_playerKey` / `_canon` / `_gkey` / `_managed` / `_virtual` / `memberCount` outside the accessor block. S2b: the player flags, list arrays and log `m` |
 | Validation | All four real saves (2.0.44, 3.0.0, 3.2.0-dev011, 3.4.0.28): counters identical, sizes before and after; 3.4.0.29 run once on a migrated save |
 
 Forward compatibility (U3, 3.4.1.47; plan 2.3): `M.PSS_SCHEMA` (core, data only: every saved field, its reader and default; a rules check fails an unlisted field); tolerant readers (missing = default, unknown kept); deletion only of keys in `RETIRED`; step numbers only grow and are idempotent; the record keeps the highest version that wrote the save; a downgrade prints one line and runs nothing backwards; unusable rules (filter fails `M.PSS_CompileFilter`, guild rule kind or field not in the schema, option not in `M.PSS_OPTIONS`) are not applied, kept, reported, and exportable with `/pss export unused`; exports carry a format version and every field.

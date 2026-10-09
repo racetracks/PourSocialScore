@@ -162,6 +162,17 @@ function History.EnsureCounts(c)
 	return c
 end
 
+-- A counts table's total, read without changing or copying it: never less
+-- than the categories added up, so a total that is not saved (S3: saved
+-- only when it differs from the sum) reads right. Every read of a saved
+-- counts table's total goes through this or History.EnsureCounts.
+function History.CountTotal(c)
+	if type(c) ~= "table" then return 0 end
+	local sum = 0
+	for _, k in ipairs(ALL_CATS) do sum = sum + (tonumber(c[k]) or 0) end
+	return math.max(tonumber(c.total) or 0, sum)
+end
+
 ------------------------------------------------------------------------
 -- THE SHARED BLOCK LOG
 --
@@ -641,8 +652,9 @@ function History.Add(owner, counts, entry, ruleTag)
 	entry.o = owner
 	if ruleTag then entry.r = ruleTag end
 	if counts then
+		local total = History.CountTotal(counts)
 		counts[entry.cat] = (tonumber(counts[entry.cat]) or 0) + 1
-		counts.total = (tonumber(counts.total) or 0) + 1
+		counts.total = total + 1
 	end
 	History.CountRecent(owner, entry.ts, entry.cat)
 	if not ready then
@@ -1075,7 +1087,7 @@ function History.PlayerKey(name)
 end
 function History.MemberKey(m)
 	if type(m) ~= "table" then return nil end
-	local c = M.PSS_CanonPlayer and (M.PSS_CanonPlayer(m._playerKey) or M.PSS_CanonPlayer(m.name))
+	local c = M.PSS_MemberCanon and M.PSS_MemberCanon(m)
 	return c and ("g:" .. c) or nil
 end
 function History.FilterKey(id, text)

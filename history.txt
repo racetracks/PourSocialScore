@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.50 - Core uplift S2: member field accessors
+
+- Nothing you can see changes. Every place that reads a guild member's name, guild, added date, shipped-list mark or a block total now asks one function, so the next build can save these records smaller without anything reading a missing field.
+- A guild member's block total is now never read lower than its counts added up.
+
 => 3.4.1.49 - Core uplift S1: purge by owner
 
 - Removing a player, a guild member or a chat filter, or resetting their block history, no longer loads the block history in the background. Their lines are marked and taken out the next time the history opens, so someone you remove and list again shows only their new lines.

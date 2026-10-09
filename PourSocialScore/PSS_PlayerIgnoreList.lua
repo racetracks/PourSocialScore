@@ -1303,8 +1303,7 @@ end
 local OLD_COUNTERS = { "blockedWhispers", "blockedWhisperMessages", "blockedPrivateMessages", "blockedChatMessages", "blockedInvites" }
 local function mayHaveLines(p)
 	if type(p) ~= "table" then return false end
-	local c = p.blockCounts
-	if type(c) == "table" and (tonumber(c.total) or 0) > 0 then return true end
+	if History.CountTotal(p.blockCounts) > 0 then return true end
 	if type(p.blockHistory) == "table" and next(p.blockHistory) ~= nil then return true end
 	for _, f in ipairs(OLD_COUNTERS) do
 		if (tonumber(p[f]) or 0) > 0 then return true end

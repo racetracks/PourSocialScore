@@ -87,9 +87,9 @@ local function collectGuilds(into)
 	end
 	for key, g in pairs(PourSocialScoreDB.guildData or {}) do
 		if type(g) == "table" then
-			g.memberCount = M.PSS_GuildMemberCount(g, key)
 			local item = pool[key] or {}
 			pool[key] = item
+			item.count = M.PSS_StoreMemberCount(g, M.PSS_GuildMemberCount(g, key))
 			item.key, item.g, item.bc = key, g, M.PSS_GetGuildBlockCounts(key)
 			item.inGroup, item.groupOn, item.sv, item.nv = nil, nil, nil, nil
 			if g.managed then
@@ -116,7 +116,7 @@ local function sortGuildItems(items, sortKey, asc)
 		if group == "metric" then v = bc[cat] or 0
 		elseif group == "excl" then v = (guildBlock(g)[cat] == true) and 0 or 1	-- by tick (allowed)
 		elseif sortKey == "guild" then v = lower(g.name or item.key or "")
-		elseif sortKey == "members" then v = g.memberCount or 0
+		elseif sortKey == "members" then v = item.count or 0
 		elseif sortKey == "scan" then v = M.PSS_GuildSweepSent(item.key)
 		elseif sortKey == "fields" then v = lower(g.customScan or "")
 		elseif sortKey == "custom" then v = ((g.customScan or "") ~= "") and 1 or 0
@@ -202,7 +202,7 @@ function M.PSS_GuildRows(sortKey, asc, findText, into)
 		for _, k in ipairs(gkeys) do
 			for _, it in ipairs(into.groups[k]) do
 				guilds = guilds + 1
-				members = members + (it.g.memberCount or 0)
+				members = members + (it.count or 0)
 				for c, v in pairs(it.bc) do bc[c] = (bc[c] or 0) + (tonumber(v) or 0) end
 			end
 		end
@@ -222,7 +222,7 @@ function M.PSS_GuildRows(sortKey, asc, findText, into)
 		end
 		local total, bc = 0, h.bc
 		for _, it in ipairs(items) do
-			total = total + (it.g.memberCount or 0)
+			total = total + (it.count or 0)
 			for c, v in pairs(it.bc) do bc[c] = (bc[c] or 0) + (tonumber(v) or 0) end
 		end
 		local open = M.PSS_GuildGroupOpen(k)
@@ -265,19 +265,19 @@ end
 ------------------------------------------------------------------------
 -- A guild rule's members
 ------------------------------------------------------------------------
-local function memberSortValue(gg, baseGuild, m, key)
+local function memberSortValue(gg, baseGuild, m, key, mk)
 	local mcat = key:match("^metric:(.+)$")
 	if mcat then return tonumber(M.PSS_GetMemberBlockCounts(m)[mcat]) or 0 end
 	local cat = key:match("^excl:(.+)$")
 	if cat then
 		return (gg and M.PSS_MemberBlocks(gg, m, cat)) and 0 or 1		-- by tick (allowed)
-	elseif key == "name" then return lower(m.name or "")
-	elseif key == "guild" then return lower(m.guild or "")
+	elseif key == "name" then return lower(M.PSS_MemberName(m, mk) or "")
+	elseif key == "guild" then return lower(M.PSS_MemberGuildName(m, gg) or "")
 	elseif key == "note" then return lower(m.note or "")
-	elseif key == "added" then return History.ParseTime(m.whenBlocked) or 0
+	elseif key == "added" then return History.ParseTime(M.PSS_MemberWhenBlocked(m)) or 0
 	elseif key == "addGuild" then
 		-- members whose actual guild differs from this rule (Add Guild shown)
-		local ag = M.PSS_NormalizeGuild(m.guild or "")
+		local ag = M.PSS_NormalizeGuild(M.PSS_MemberGuildName(m, gg) or "")
 		return (ag and ag ~= "" and ag ~= baseGuild) and 1 or 0
 	end
 	return 0
@@ -312,7 +312,7 @@ function M.PSS_GuildMembers(gkey, sortKey, asc, findText, into)
 	M.PSS_ForEachGuildMember(gg, gkey, function(m, key)
 		total = total + 1
 		if not all then
-			local hay = lower((m.name or "") .. " " .. (m.guild or "") .. " " .. (m.note or ""))
+			local hay = lower((M.PSS_MemberName(m, key) or "") .. " " .. (M.PSS_MemberGuildName(m, gg) or "") .. " " .. (m.note or ""))
 			if not find(hay, findText, 1, true) then return end
 		end
 		n = n + 1
@@ -323,8 +323,9 @@ function M.PSS_GuildMembers(gkey, sortKey, asc, findText, into)
 	local baseGuild = M.PSS_NormalizeGuild(gg.name or gkey)
 	for i = 1, n do
 		local m = into[i]
-		sv[m] = memberSortValue(gg, baseGuild, m, sortKey)
-		nv[m] = lower(m.name or "")
+		local mk = stored[m] or nil
+		sv[m] = memberSortValue(gg, baseGuild, m, sortKey, mk)
+		nv[m] = lower(M.PSS_MemberName(m, mk) or "")
 	end
 	table.sort(into, function(a, b)
 		if sv[a] ~= sv[b] then
