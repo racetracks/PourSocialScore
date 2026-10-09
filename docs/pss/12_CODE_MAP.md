@@ -230,7 +230,7 @@ The core uplift's findings are done or recorded as left in `13_CHANGES_IN_TRAIN.
 - **GUI calls some core setters directly** (the reset functions, `PSS_SetFilterActive`, `PSS_ResetFilterCount`, `M.ResetSpamFilters`, `PSS_SetOpt`): allowed, uneven.
 - **Only the Events tab drops what it read on close**; the other tabs keep list state and their History panes' last lines for the session.
 - **Left from the plan:** `M.debugMsg` is a no-op with 16 call sites (N7); `/pss mem` stays in core (P6 skipped it); `M.PSS_AddCapturedGuild`, `M.PSS_ReconcileGuildMembers`, `M.SyncIgnoreList`, `M.PSS_ExplainPerson` and `History.MigrateFilterList` stay in core (P6, reasons in `reference/combined-3.4.1.52/`).
-- **Older versions on a 3.4.1.52+ save:** 3.4.0.29 drops custom filters with number ids, and 3.4.1.50 and older show an empty Player Ignore List (the data stays in the save).
+- **Older versions on a 3.4.1.52+ save:** issue #147.
 
 ## 11. Where to look (task -> file)
 

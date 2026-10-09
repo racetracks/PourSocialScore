@@ -20,8 +20,8 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 | Version | Kind | Notes |
 | --- | --- | --- |
 | 3.0.0 | Full | Load-on-demand split |
-| 3.1.0 | Full | EllesmereUI integration |
-| 3.2.0 | Full, 2026-10-05 | |
+| 3.1.0 | Full until 2026-10-09, now a pre-release of 3.3.1 | EllesmereUI integration |
+| 3.2.0 | Published full 2026-10-05; a pre-release of 3.3.1 from 2026-10-09 | |
 | 3.3.0-dev001 to dev003 | Pre-releases | Parity stages, published on merge |
 | 3.3.1 | Full, 2026-10-07 | Parity project closed (dev001 to dev005) |
 | 3.4.0-dev001 to dev012 | Pre-releases | The new PSS window (09) |
@@ -35,6 +35,10 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 - `sh tools/bump_version.sh build "Title"`: every TOC to the next build, the build recorded in `versions.json`, a history section on top (fill in the bullets). `release "Title"` makes the next build the release (only when Dan says it is a release; the pre-releases move under it in `versions.json`); `line X.Y.Z "Title"` starts a line with the next build number (3.4.0.27). `pr <number>` records the PR that carries the new builds. `python3 tools/versions.py prs [<version>]` lists the versions and PRs between the previous release and a version.
 - `sh tools/host_build.sh <scratch checkout>`: builds the test zip from HEAD the way `release.yml` does, puts it in scratch `releases/` and `latest/` (replacing the old one), updates the index rows, commits and pushes, and prints the links. `--no-commit` stages only, so docs join the same commit; `--no-push` commits without pushing.
 - `check_rules.sh` fails a history.txt whose top section is not the TOC version or still holds a placeholder bullet, and runs `versions.py check` (CI: every entry has its PR; a pull request's newest entry is its own number, `PSS_PR` in rules.yml).
+
+## Release records on scratch (Dan, 2026-10-09)
+- Every release in `versions.json` has `docs/latest/release-notes/<version>.md` on scratch (the summary, every change in shipping order with build and PR, technical note links) and its rows in `docs/latest/summary-of-changes/SUMMARY_OF_CHANGES.md`. The release PR writes both, in the same scratch delivery as the docs.
+- `versions.json` records every release from the start (3.4.1.53): 2.0.17 and the versions before it from history.txt only (`"history": true`), 2.0.18 by its commit (`"commit"`), the rest by PR. 3.1.0 and 3.2.0 are pre-releases of 3.3.1, and the 2.0.x builds between releases are pre-releases; `release.yml`'s relabel step marks their GitHub releases as pre-releases on its next run.
 
 ## Full releases: notes and the mirror (3.4.0.20, Dan, 2026-10-08)
 - A full release's notes are its history section only, under "Changes since <previous release>": one summary of every change since the previous release, written by Claude at release time from the PRs `versions.json` lists between the two (Dan, 2026-10-08, 3.4.0.27; `CLAUDE.md`, Full releases). No API key in the pipeline; `tools/collect_notes.sh` is gone. Builds keep their own history section as notes. `release.yml` reads `versions.py kind`: a version not recorded is not published, and only the recorded release is published as a full release (`--latest`).

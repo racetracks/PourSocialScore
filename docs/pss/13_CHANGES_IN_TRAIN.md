@@ -129,7 +129,7 @@ Use with `12_CODE_MAP.md` to find the file.
 
 | Id | What (one line) | State |
 | --- | --- | --- |
-| G1 | History rows and tips copy Events formatting | Done 3.4.1.52 (W2: `M.PSS_HistCells`, `M.PSS_HistTip`); the Events view keeps its own `TimeText` (could share later) |
+| G1 | History rows and tips copy Events formatting | Done 3.4.1.52 (W2: `M.PSS_HistCells`, `M.PSS_HistTip`); the Events view's own copy: issue #145 |
 | G2 | Picker tick / "listed" strings in two tabs | Done 3.4.1.52 (W2, `M.PSS_PickerCells`) |
 | G3 | Guilds tab reads rules and records directly | Done 3.4.1.52 (W2 pane views; the record is still passed as a handle) |
 | G4 | Remove Guild target decided in the GUI | Done 3.4.1.52 (W2, `v:RemoveTarget()`) |
@@ -180,7 +180,7 @@ Upgrade step 10, "SavedVariables performance cleanup" (S3, in 3.4.1.52). Step 8 
 
 Measured (3.4.0.28 save, harness, 3.4.1.51 / 3.4.1.52): `PSS_GuildsDB` 460922 to 227885 bytes (-50.6%); whole file 730451 to 483745 bytes; resident after login 3022.5 to 2731.6 KB (-290.9 KB). The first login that migrates loads Logging once for custom filters with counts. `homeKey` costs +80.9 KB once a window reads every record without its key.
 
-Downgrade after step 10 (accepted, history 3.4.1.52): 3.4.0.29 does not show the Player Ignore List (S2b) and drops custom filters that have a number id; 3.4.1.50 and older may count up to 254 extra guild members until the shipped lists load. A downgrade past U3 was never supported (plan 2.3 item 8).
+Downgrade after step 10: issue #147.
 
 Not built (optional, never in a stage): `whenBlocked` as integer time (C1t), packed member strings (C2).
 
@@ -217,7 +217,7 @@ Forward compatibility (U3, 3.4.1.47): built as plan 2.3 says. Any field a later 
 | M1 to M9, M11, M12, L1 to L11, L13, L17 (window part), L18, L19, L21, L22 | Done in R1 to R3 (3.4.0.14 to 3.4.0.16) |
 | L12 (`memberCount` saved), L16 (no member cap) | Done 3.4.1.52 (S3) |
 | M10 / L14 (idle GC timer, ticker, `loadWhenQuiet` poll) | Done 3.4.1.52 (P2); the known breach in 02 section 12 is closed |
-| L15 (capture events for everyone) | Done 3.4.1.52 (P3); a small behaviour change for inactive shipped lists (decision 28) |
+| L15 (capture events for everyone) | Done 3.4.1.52 (P3); its behaviour change: issue #148 |
 | L17 (core per-line allocations) | Done 3.4.1.52 (P4 as N35) |
 | L20 (core placement) | Partly done 3.4.1.52 (P6; the rest is N39) |
 | L4 (`RemoveMessagesByPredicate`) | An approved override (decision 3) |
@@ -276,11 +276,11 @@ Resolved earlier: the GC breach line in 02 and 01 (fixed at 3.4.1.52, re-summari
 | #133 the party warning names only who is in the group now (F1 check 7) | Open; in-game check deferred |
 | Open findings | Section 3.3 and section 9 |
 | P6 moves not made (combined notes) | `/pss mem` (now possible after P2), `M.PSS_AddCapturedGuild` / `M.PSS_ReconcileGuildMembers` (now possible after S3), `M.PSS_ExplainPerson`, `History.MigrateFilterList` (needs an upgrade-record guard), upgrade steps, `M.PSS_VersionOrder`, unusable-rules code and the schema map; `M.SyncIgnoreList` stays in core (hook guard, J rules) |
-| P1 leftovers | N7 (`M.debugMsg`), N15, `stats` in Libraries `PSS_WhoisHarvest.lua` written and never read |
-| P4 | No option value cache (on purpose: imports and upgrades write options without the event); N34, N36 not taken |
-| W2 to W4 leftovers | The Events view's own `TimeText` (G1); the Chat Filters pane redraw (G23); a hinted edit box must not `SetScript` `OnTextChanged` (W3 hooks it) |
-| S3 points | The cap applies at the upgrade and logout only; first-name-only detection is a guess; downgrade limits (section 4) |
-| P3 behaviour change | Inactive shipped guild rules no longer see units or hand-typed /who results while nothing is listed and no shipped list is on (decision 28) |
+| P1 leftovers | N7 (`M.debugMsg`), N15; the unused `stats`: issue #145 |
+| P4 | N34, N36 not taken; the option cache: issue #145 |
+| W2 to W4 leftovers | Issue #145 (Events `TimeText`, Chat Filters pane redraw); a hinted edit box must not `SetScript` `OnTextChanged` (W3 hooks it) |
+| S3 points | Issue #146 (member cap timing, first-name-only names); downgrade limits: issue #147 |
+| P3 behaviour change | Issue #148 (needs Dan's OK or a revert) |
 | Waiting on Dan | Nothing here; setup jobs are GitHub issues (#144, the CI real-save token) |
 | #37 guild exclusion list not saved | Open (intent to define) |
 | #38 seeing a shipped-guild member loads the lists | Open (N36 is related) |

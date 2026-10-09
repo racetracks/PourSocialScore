@@ -24,6 +24,10 @@ In 02 section 12, each with its fix line. None: the idle GC cycle was fixed by P
 - #132: test later, the Group Finder option without a /reload (F1 check 4; needs a character that can use the Group Finder).
 - #133: test later, the party warning names only who is in the group now (F1 check 7).
 - #144: CI real-save tests need the `SCRATCH_TOKEN` secret (setup steps in the issue).
+- #145: leftovers from the combined build (dead `stats`, option cache, Events `TimeText`, Chat Filters pane redraw).
+- #146: the guild member cap only at logout; Camelot first-name-only names guessed.
+- #147: going back from 3.4.1.53 loses custom filters (3.4.0.29) and later list entries.
+- #148: P3, inactive shipped lists no longer capture units or /who; needs Dan's OK or a revert.
 
 ## Parked
 - Pack the in-play chat filter log (offered, not started).

@@ -57,7 +57,7 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 ## 5. Crucial context
 - Three TOCs per folder; one combined TOC broke Camelot in 3.0.0-dev6.
 - **Measured hot spots:** `PSS_GetGuildBlockCounts`, the shipped member walk and `PSS_GetMemberBlockCounts` make about 200 to 350 KB of garbage per full pass on Dan's save. An estimate of 6 to 8 KB once measured 22 KB.
-- **Known gaps:** none from removal (it never loads Logging from 3.4.1.49). Full parity was not reached; the project closed at 3.3.1 (08). Downgrades: 3.4.0.29 shows an empty Player Ignore List and drops custom filters with an id over a 3.4.1.53 save; 3.4.1.50 and older show about 254 more guild members until the shipped lists load; the data stays in the save.
+- **Known gaps:** none from removal (it never loads Logging from 3.4.1.49). Full parity was not reached; the project closed at 3.3.1 (08). Downgrades: issue #147.
 - **Known breaches of the baseline:** none (02 section 12; the idle GC cycle was fixed at 3.4.1.52). The window's pie hover OnUpdate and the other rows there are approved overrides.
 
 ## 6. Plans and status
