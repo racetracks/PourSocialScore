@@ -287,11 +287,9 @@ end
 local function RowAct(item, act, arg)
 	if act == "allRules" then
 		M.PSS_GuildSetAllRules(arg)
-		V.dirty = true
 		page.refresh()
 	elseif act == "rule" then
 		M.PSS_GroupToggleRule(arg)
-		V.dirty = true
 		page.refresh()
 	elseif act == "open" then
 		M.PSS_GroupToggleOpen(arg)
@@ -428,7 +426,6 @@ local function BuildGroupBody(parent)
 		recentByCat = function(into) M.PSS_GroupRecentByCat(b.groupItems, into, one) end }
 	local toggle = ns.NewButton(b, "", 130, function()
 		M.PSS_GroupToggleRule(pane.groupKey)
-		V.dirty = true
 		page.refresh()
 	end)
 	toggle:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 10, 8)
@@ -968,6 +965,9 @@ local function Changed()
 end
 ns.Listen("GUILDS_CHANGED", Changed)
 ns.Listen("GUILD_SCAN_DONE", Changed)
+-- a default guild list's rule is a chat filter: its on or off (the rows'
+-- dim) changes on the Chat Filters tab too
+ns.Listen("FILTERS_CHANGED", Changed)
 
 ns.Listen("GUILD_REMOVED", function(key)
 	V:GuildRemoved(key)

@@ -155,7 +155,13 @@ local function trade(author, msg)
 	lineID = lineID + 1
 	return M.PSS_CoreFilter(nil, "CHAT_MSG_CHANNEL", msg, author, "", "2. Trade", "", "", 2, 2, "Trade", 0, lineID, nil) == true
 end
+-- (3.4.1.44, G21) a blocked line fires FILTER_HISTORY_CHANGED only, so the
+-- tab redraws at most 4 times a second, not once per frame
+local changed = 0
+local cid = M.Events.Register("FILTERS_CHANGED", function() changed = changed + 1 end)
 check(trade("Seller-Realm1", "goldsale cheap"), "Trade line not blocked by the new filter")
+M.Events.Unregister("FILTERS_CHANGED", cid)
+check(changed == 0, "a blocked line fired FILTERS_CHANGED")
 H.Advance(1)
 H.RunTimers()
 check(tonumber(db.filterCount[nf]) == 1, "filter count " .. tostring(db.filterCount[nf]))
