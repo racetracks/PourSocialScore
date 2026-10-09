@@ -50,6 +50,8 @@ function ns.BuildKitPage(win)
 	local b2 = ns.NewButton(page, "Disabled", 100)
 	b2:SetPoint("LEFT", b1, "RIGHT", 6, 0)
 	b2:Disable()
+	local b3 = ns.NewButton(page, "Primary", 100, function() end, true)
+	b3:SetPoint("LEFT", b2, "RIGHT", 6, 0)
 
 	y = y - 32
 	Label("Tick boxes")
@@ -69,6 +71,8 @@ function ns.BuildKitPage(win)
 	n1:SetText("30")
 	local s1 = ns.NewSearchBox(page, 200, "Search name, server or note")
 	s1:SetPoint("LEFT", n1, "RIGHT", 16, 0)
+	local h1 = ns.NewEditBox(page, 150, 64, "Name-Realm")
+	h1:SetPoint("LEFT", s1, "RIGHT", 12, 0)
 
 	y = y - 32
 	Label("Tooltip")
@@ -97,11 +101,29 @@ function ns.BuildKitPage(win)
 		fs:SetText("Line " .. i .. " of the scroll frame")
 	end
 
+	-- a scrolling multi-line box (the filter text, the copy and import popups)
+	local ta = ns.NewTextArea(page, 11, 1000)
+	ta:SetPoint("TOPLEFT", page, "TOPLEFT", 500, y)
+	ta:SetSize(400, 120)
+	ta.edit:SetText("A text area: several lines,\nthat scroll inside the box.")
+
+	-- the pane parts: a line, a label and the W I G P C row
+	y = y - 130
+	Label("Pane parts")
+	local allowed, allowedRow = ns.NewAllowedBoxes(page, y, 360, "Ticked = allowed.", function() end, true)
+	allowedRow:ClearAllPoints()
+	allowedRow:SetPoint("TOPLEFT", page, "TOPLEFT", 120, y)
+	local line = ns.NewLine(page, y - 4)
+	line:ClearAllPoints()
+	line:SetPoint("TOPLEFT", page, "TOPLEFT", 500, y - 4)
+	line:SetText("A pane line")
+	local lbl = ns.NewLabel(page, "A dim label", 640, y - 4)
+
 	local lists = ns.BuildKitLists(pages[2])
 	local menus = ns.BuildKitMenus(pages[3])
 	Select(1)
 
-	win.kit = { tabs = tabs, pages = pages, page = page, lists = lists, menus = menus, buttons = { b1, b2 }, checks = { c1, c2 }, boxes = { e1, n1, s1 }, scroll = sf, tipOwner = hit }
+	win.kit = { tabs = tabs, pages = pages, page = page, lists = lists, menus = menus, buttons = { b1, b2, b3 }, checks = { c1, c2 }, boxes = { e1, n1, s1, h1 }, textArea = ta, allowed = allowed, line = line, label = lbl, scroll = sf, tipOwner = hit }
 end
 
 -- Page 2: a sortable list of 200 sample entries and a pie
@@ -257,5 +279,24 @@ function ns.BuildKitMenus(page)
 	end)
 	b3:SetPoint("LEFT", b2, "RIGHT", 8, 0)
 
-	return { pick = dd1, ticks = dd2, long = dd3, area = area, confirm = b1, copy = b2, import = b3, result = result, types = on }
+	-- the results picker (Player Search, Guild Search) over a frame of its own
+	Label("Results picker", -212)
+	local over = CreateFrame("Frame", nil, page)
+	over:SetPoint("TOPLEFT", page, "TOPLEFT", 520, -40)
+	over:SetSize(400, 200)
+	local picker = ns.NewPicker(page, over, {
+		cols = { { key = "name", text = "Name" } },
+		fill = function(c, it) c.name:SetText(it.name) end,
+		toggle = function(it) if it.listed then return false end it.ticked = not it.ticked return true end,
+		tickAll = function(items) for _, it in ipairs(items) do if not it.listed then it.ticked = true end end end,
+		save = function() Say("Picker saved") end,
+		close = function() page.picker:Hide() end,
+	})
+	picker.items[1] = { name = "Badguy-Area52", ticked = true }
+	picker.items[2] = { name = "Spammer-Area52" }
+	picker.items[3] = { name = "Known-Area52", listed = true }
+	picker:ShowItems("3 players found")
+	page.picker = picker
+
+	return { picker = picker, pick = dd1, ticks = dd2, long = dd3, area = area, confirm = b1, copy = b2, import = b3, result = result, types = on }
 end

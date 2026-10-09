@@ -3,6 +3,11 @@
 --
 -- The parts the Players, Guilds and Chat Filters panes share, drawn in the
 -- look shown; the numbers come from Libraries (PSS_DetailQuery.lua).
+--   ns.NewLine(parent, y)                a 12 pt text line, 10 in from each side
+--   ns.NewLabel(parent, text [, x, y])   a dim 12 pt label (left centre, or at x, y)
+--   ns.NewStrip(parent, y, h, w)         a plain frame to put a row of controls on
+--   ns.NewAllowedBoxes(parent, y, w, tip, onClick, rightClicks)   the W I G P C
+--       tick row: boxes (by category), row; onClick(cat, box, button, e)
 --   ns.NewDetailPages(body, top, kind)   three pages picked along the bottom:
 --       Summary, Event History, View/Edit Rule; dp:Select(key), dp:Limit(only)
 --   ns.NewSummary(page, tabPage, top, size)   the period pie with a tick box
@@ -97,6 +102,57 @@ function ns.NewDetailPages(body, top, kind)
 	Lay()
 	dp:Select(picked[kind] or "summary")
 	return dp
+end
+
+------------------------------------------------------------------------
+-- Small parts every pane is built from
+------------------------------------------------------------------------
+function ns.NewLine(parent, y)
+	local fs = ns.NewText(parent, 12)
+	fs:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, y)
+	fs:SetPoint("RIGHT", parent, "RIGHT", -10, 0)
+	fs:SetJustifyH("LEFT")
+	return fs
+end
+
+function ns.NewLabel(parent, text, x, y)
+	local fs = ns.NewText(parent, 12)
+	if x then
+		fs:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
+	else
+		fs:SetPoint("LEFT", parent, "LEFT", 0, 0)
+	end
+	fs:SetText(text)
+	fs:SetAlpha(0.7)
+	return fs
+end
+
+function ns.NewStrip(parent, y, h, w)
+	local f = CreateFrame("Frame", nil, parent)
+	f:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, y)
+	f:SetSize(w, h or 22)
+	return f
+end
+
+-- W I G P C tick boxes (ticked = allowed), a letter after each. The tip is
+-- "<what it is>\n\n<tip>". rightClicks: the boxes also answer a right click.
+function ns.NewAllowedBoxes(parent, y, w, tip, onClick, rightClicks)
+	local row = ns.NewStrip(parent, y, 24, w)
+	ns.NewLabel(row, "Allowed")
+	local boxes, prev = {}, nil
+	for _, e in ipairs(M.EXCL) do
+		local c = ns.NewCheck(row)
+		if prev then c:SetPoint("LEFT", prev, "RIGHT", 22, 0) else c:SetPoint("LEFT", row, "LEFT", 90, 0) end
+		if rightClicks then c:RegisterForClicks("LeftButtonUp", "RightButtonUp") end
+		local letter = ns.NewText(row, 12)
+		letter:SetPoint("LEFT", c, "RIGHT", 0, 0)
+		letter:SetText(e.letter)
+		ns.TipOn(c, c, e.label .. "\n\n" .. tip)
+		c:SetScript("OnClick", function(self, button) onClick(e.cat, self, button, e) end)
+		boxes[e.cat] = c
+		prev = letter
+	end
+	return boxes, row
 end
 
 ------------------------------------------------------------------------
