@@ -60,7 +60,7 @@ From 3.4.0.25 there is one front end, `PourSocialScore_GUI`; 1 and 3 to 5 still 
 ## 9. Hosting paths on scratch (changed 2026-10-08)
 **Scratch is the project files (Dan, 2026-10-08):** saves, plans, docs, zips and summaries all live there; there is no `/mnt/project-files`. Where a pack says "project files", read scratch.
 Scratch is **`racetracks/Pour-Social-Score_Scratch`**; its rules and procedures are the scratch pack (`docs/scratch/`, rules in 05). The old `racetracks/scratch` and its paths (`PourSocialScore/test-builds/`, `pss-builds/`, `pss-projects/`, `pss-issues/`, `latest/`, `handover-packs/`) are no longer used; links already given there stay valid.
-- Test zips: `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`; the same commit replaces the zip in `latest/` with it and updates the index rows. `sh tools/host_build.sh <scratch checkout>` does all of it from HEAD (`--no-commit` stages it so docs can join the same commit).
+- Test zips: `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`; the same commit replaces the zip in `latest/` with it and updates the index rows. `sh tools/host_build.sh <scratch checkout>` does all of it from HEAD (`--no-commit` stages it so docs can join the same commit). `sh tools/host_tests.sh <scratch checkout> --log <validation log>` hosts the matching tests bundle (`PourSocialScore-<version>-tests-<date>.zip`: `tools/`, the CI rules, a how-to-run file and the log) beside it; the test zip itself never holds `tools/`.
 - Docs: the newest markdown in `docs/latest/<project>/` (current plan `docs/latest/ui uplift/`; these docs `docs/latest/pss-docs/`). Always read it first; refresh it whenever a plan or these docs change. Each docs release is zipped in the root of `docs/` (`<name>-<date>-vN.zip`); a project or feature release keeps a history folder `docs/<project>/`. Issue notes are docs too.
 - Saves: `SavedVariables/<version>/`, with a line in `SavedVariables/README.md`.
 - Packs: zipped in `docs/` (this pack is `pss-handover-<date>-vN`), listed in `docs/README.md`.
@@ -100,6 +100,7 @@ The baseline's rules are mandatory. These are the only places PSS differs, each 
 | J2 / J4 Never touch Blizzard state | The guild invite is declined through the API (`DeclineGuild` / `C_GuildInfo.DeclineGuild`) plus `StaticPopup_Hide("GUILD_INVITE")` (10.3) | 2026-10-08 (code review decision 2) |
 | C2 No behaviour change without opt-in | From 3.4.1.35 a player ignored through Blizzard is moved into PSS (taken off Blizzard's list once confirmed, with a note) for everyone; PSS is authoritative over Blizzard's list (10_CORE_UPLIFT 2.7) | 2026-10-08 |
 | C3 No OnUpdate polling | The new window's pie (`PourSocialScore_GUI/PSS_Pie.lua`) runs OnUpdate only while the mouse is over it, so the hovered slice follows the cursor; it is cleared on leave | 2026-10-08 |
+| E1 / E9 One step per PR and per session | The rest of the core uplift (S3, P1 to P6, W1 to W4) is one PR and one squashed build, 3.4.1.52, built by parallel threads; each stage was proven on its own and the merged result passed the full validation. This delivery only | 2026-10-09 (Dan: "do all of the remainder of the core uplift in one merge") |
 
 Blizzard hooks approved within the J rules (post-hooks, no override): `hooksecurefunc(ChatFrameUtil, "InsertLink")` on Retail 12.x (Dan, 2026-10-08), and the rest of 10.3.
 
