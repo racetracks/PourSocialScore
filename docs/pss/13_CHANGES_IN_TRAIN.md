@@ -7,7 +7,7 @@
 | Item | State |
 | --- | --- |
 | Release | **3.4.1.53**, live (PR #143, 2026-10-09); closes the core uplift. Previous release 3.4.0.29 |
-| Project | None. Line 3.4.2 started with the docs build 3.4.2.54; the next build is 3.4.2.55 |
+| Project | None. Release 3.4.2.54 (PR #150) is docs only, no change in game; a fix starts line 3.4.3 at build 3.4.3.55 |
 | Lines 3.4.2, 3.4.3 | Not used: their stages (P1 to P6, W1 to W4) shipped inside 3.4.1.52 (decision 28, a one-time override, 02 section 12) |
 
 Decided not to change: identity stays the lowercase `name-realm` key (no ID generator, decision 2); realm display spelling stays (decision 13 reversed); no new SavedVariables files; the three looks and the window's layout stay.
@@ -46,7 +46,7 @@ Docs-only builds (3.4.1.31, .34, .38, .39, .43) are left out.
 | S1 | core `PSS_ChatHistory.lua` (`History.ClearOwner`, `History.ApplyPurge`), the six owner clears | `PourSocialScoreDB.purge` (cap 200) |
 | S2 | core `PSS_GuildIgnoreList.lua` (`-- (member fields)` block), `History.CountTotal`; `tools/check_fields.lua` | No |
 | S2b | core `PSS_PlayerIgnoreList.lua` (`-- (list entries)` block), step 9 | **Yes** (`PourSocialScoreDB.list`) |
-| S3 | step 10; member block (`homeKey`, `compactMember`, `M.PSS_CapMembers`); `PSS_PlayerIgnoreList.lua` (W I G P C only when false); `M.PSS_NewFilterId`; `History.CompactCounts`, `History.RenameOwner`; Logging `PSS_SavedLog.lua` (log `m`); Libraries `PSS_Camelot.lua` | **Yes** (Dan's OK, D9) |
+| S3 | step 10; member block (`homeKey`, `compactMember`, `M.PSS_CapMembers`); `PSS_PlayerIgnoreList.lua` (W I G P C only when false); `M.PSS_NewFilterId`; `History.CompactCounts`, `History.RenameOwner`; Logging `PSS_SavedLog.lua` (log `m`); Libraries `PSS_Camelot.lua` | **Yes** (the author's OK, D9) |
 | P1 | Dead code (N1 to N6, N9, N11 to N14); `PSS_MainlineCompat.lua` deleted | No |
 | P2 | `PSS_Perf.lua` (no timer), `History.LoadWhenQuiet` | No |
 | P3 | `PSS_Whois.lua`, `M.PSS_CaptureNeeded` / `M.PSS_ApplyCapture` | No |
@@ -67,7 +67,7 @@ Docs-only builds (3.4.1.31, .34, .38, .39, .43) are left out.
 | --- | --- | --- |
 | N1 | 61 unused English localization keys | Done .52 (P1) |
 | N2 | `V.needSorted` written, never read | Done .52 (P1) |
-| N3 | Dead reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `before` in `PSS_SetOpt`) | Done .52 (P1; Dan: "remove in p1") |
+| N3 | Dead reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `before` in `PSS_SetOpt`) | Done .52 (P1; the author: "remove in p1") |
 | N4 | `gotUpdate` / `gotGroup` and their `IGNORELIST_UPDATE` registration | Done .52 (P1) |
 | N5 | `PSS_MainlineCompat.lua` globals | Done .52 (P1, file deleted) |
 | N6 | `V.wowIsERA` .. `V.wowName` never read | Done .52 (P1) |
@@ -158,7 +158,7 @@ Upgrade steps: 8 (B1), 9 (S2b), 10 "SavedVariables performance cleanup" (S3).
 | `PSS_GuildsDB.guildData[g].members` | Not saved: `_playerKey` (when equal to the key), `_canon`, `_gkey`, `_managed`, `_virtual`, derivable `name`, `guild` equal to the rule's name, the "Managed list" date; accessors find the key through a weak `homeKey` map | S2, S3 |
 | same | Counts without zero fields; `total` only when not the sum (`History.CompactCounts`) | S3 |
 | same | Cap 1500 stored members per rule (L16), at the upgrade and every logout flush; `memberCount` not saved (L12) | S3 |
-| same | Camelot name repair (decision 5), Camelot saves only (`PSS_Camelot.lua`): Dan's 3.4.0.28 save on a Camelot stub, 498 members repaired, 3 `delList` names | S3 |
+| same | Camelot name repair (decision 5), Camelot saves only (`PSS_Camelot.lua`): the author's 3.4.0.28 save on a Camelot stub, 498 members repaired, 3 `delList` names | S3 |
 | `PSS_PlayersDB` | W I G P C saved only when false; sparse counts | S3 |
 | `PourSocialScoreDB.list` | Seven parallel list arrays become one array of sparse records | S2b |
 | Player keys, log owners `p:` / `g:` | Same Camelot conversion; lines and recent counts follow (`History.RenameOwner`) | S3 |
@@ -194,7 +194,7 @@ Forward compatibility (U3, plan 2.3): any field a later change saves goes in `M.
 | Shipped lists rebuilt (196 dropped, 16 converted) | Done (N3) |
 | Runtime member fields (`_managed` ...) | Done: accessors (S2), not saved (S3) |
 | Stored `First-Last` records, list keys, log owners, `delList` | Done (S3 repair, Camelot saves only) |
-| First-name-only entries | Partly: step 10 names entries spelled `Name-Classicbetapvp` with a faction as "may have lost their surname"; it cannot be sure. Dan's saves have none. #146 |
+| First-name-only entries | Partly: step 10 names entries spelled `Name-Classicbetapvp` with a faction as "may have lost their surname"; it cannot be sure. The author's saves have none. #146 |
 | Realm display spelling | Not changing (decision 13 reversed) |
 
 ## 7. Older code review (scratch `docs/latest/code-review/01_REVIEW_AND_PLAN.md`)
@@ -212,7 +212,7 @@ Forward compatibility (U3, plan 2.3): any field a later change saves goes in `M.
 ## 8. Rules every later change must keep
 
 - Baseline rules are mandatory; PSS differs only where `02_RULES.md` section 12 lists it.
-- Counters never come from log lines and stay identical across every data step (checked on Dan's real saves on scratch `SavedVariables/`).
+- Counters never come from log lines and stay identical across every data step (checked on the author's real saves on scratch `SavedVariables/`).
 - Zero cost when nothing upgrades; Logging loads only when called; no new SavedVariables files; no timers as logic gates.
 - Every chat, unit and hook value goes through `M.PSS_IsSecret` before any compare (baseline 02 J, PSS 02 section 10).
 - Window changes work in all three looks, proven with `tui_compare.sh`.
@@ -221,12 +221,12 @@ Forward compatibility (U3, plan 2.3): any field a later change saves goes in `M.
 
 ## 9. Found while mapping, not in the plan (R1 to R17)
 
-Checked in the code at 3.4.1.53: 4 done, 1 partly, 12 open (each needs Dan's call before it joins a stage).
+Checked in the code at 3.4.1.53: 4 done, 1 partly, 12 open (each needs the author's call before it joins a stage).
 
 | # | Finding | State |
 | --- | --- | --- |
 | R1 | `/pss check` always prints "Last 24 hours: players 0, guilds 0, filters 0" (`stats24h.*` never set; now in Libraries `PSS_Validate.lua`) | **Open** |
-| R2 | Flood filter hides a duplicate line with no count; `invertSpam` does not change that | **Open** (ask Dan: by design?) |
+| R2 | Flood filter hides a duplicate line with no count; `invertSpam` does not change that | **Open** (ask the author: by design?) |
 | R3 | `M.PSS_KeepBlockedOnBuiltIn` does nothing when the shipped lists are not loaded | **Open** (not checked in game) |
 | R4 | `inviteByGuild` stores your own guild's inviter as a member | **Open** |
 | R5 | `M.PSS_ResetBlizzardIgnore` calls `DelIgnoreByIndex` without the hook guard | **Open** (harmless today) |
@@ -257,7 +257,7 @@ Every open GitHub issue on the addon repo, and the open items not yet in an issu
 | #38 | Seeing a shipped-guild member loads the lists (N36 related) |
 | #39, #40 | Unload the GUI on close / can an LOD addon unload: WoW cannot unload an addon; the window drops caches and requests GC on close |
 | #44 | Console output cleanup (R8's `print`) |
-| #45 | Questie-style upgrade output: built by U2, shipped in 3.4.1.53; Dan can close it |
+| #45 | Questie-style upgrade output: built by U2, shipped in 3.4.1.53; the author can close it |
 | #78 | The 3.3.0 parity project issue; the project closed at 3.3.1 (08), still open on GitHub |
 | #125 | Right-click "Unblock Guild" on a shipped guild: turn the group's rule off instead of refusing |
 | #132 | Group Finder option without a /reload (F1 check 4); needs a character that can use the Group Finder |
@@ -266,7 +266,7 @@ Every open GitHub issue on the addon repo, and the open items not yet in an issu
 | #145 | Combined-build leftovers: unused `stats`, option cache, Events `TimeText`, Chat Filters pane redraw (G1, G23) |
 | #146 | Member cap only at logout; Camelot first-name-only names guessed |
 | #147 | Going back from 3.4.1.53 loses custom filters (3.4.0.29) and later list entries |
-| #148 | P3: inactive shipped lists no longer capture units or /who; needs Dan's OK or a revert |
+| #148 | P3: inactive shipped lists no longer capture units or /who; needs the author's OK or a revert |
 | Open findings, no issue | Section 3.3 and section 9 |
 | P6 moves not made (N39 rest) | `/pss mem`, `M.PSS_AddCapturedGuild` / `M.PSS_ReconcileGuildMembers`, `M.PSS_ExplainPerson`, `History.MigrateFilterList` (needs an upgrade-record guard), upgrade steps, `M.PSS_VersionOrder`, unusable-rules code, the schema map. `M.SyncIgnoreList` stays in core (hook guard, J rules) |
 | Kit note | A hinted edit box must not `SetScript` `OnTextChanged` (W3 hooks it) |

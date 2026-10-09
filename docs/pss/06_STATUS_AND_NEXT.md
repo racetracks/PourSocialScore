@@ -3,15 +3,15 @@
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. History: `reference/06_status-history-to-3.4.1.30.md` (to 3.4.1.30) and `reference/combined-3.4.1.52/` (the 3.4.1.52 stages).
 
 ## Now
-- **Live release: 3.4.1.53** (PR #143, published 2026-10-09 and mirrored to `racetracks/Pour-Social-Score`). It closes the core uplift.
-- **3.4.2.54** (PR pending): docs only, the baseline, scratch and PSS packs trimmed to the current state; no change in game.
-- **No current project.** The next step is whatever Dan names; open items are below and in `13_CHANGES_IN_TRAIN.md`. The next build is 3.4.2.55 (`sh tools/bump_version.sh build "Title"`).
+- **Release 3.4.2.54** (PR #150, the author's call, 2026-10-09): no change in game since 3.4.1.53; the baseline, scratch and PSS packs trimmed to the current state, and the docs call the user "the author". Merging publishes it and mirrors it to `racetracks/Pour-Social-Score`; until then the live release is **3.4.1.53** (PR #143), which closed the core uplift.
+- **No current project.** The next step is whatever the author names; open items are below and in `13_CHANGES_IN_TRAIN.md`. A fix starts line 3.4.3 at build 3.4.3.55 (`sh tools/bump_version.sh line 3.4.3 "Title"`).
 
-## Waiting on Dan
+## Waiting on the author
+- Merge the 3.4.2.54 release PR (#150).
 - Name the next project or fix.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: OK or revert P3 (inactive shipped lists no longer capture units or /who).
-- #45: built in U2 and shipped in 3.4.1.53; Dan can close it.
+- #45: built in U2 and shipped in 3.4.1.53; the author can close it.
 
 ## Known breaches
 None (02 section 12).
@@ -31,7 +31,7 @@ None (02 section 12).
 - #145: leftovers from the combined build (dead `stats`, option cache, Events `TimeText`, Chat Filters pane redraw).
 - #146: the guild member cap only at logout; Camelot first-name-only names guessed.
 - #147: going back from 3.4.1.53 loses custom filters (3.4.0.29) and later list entries.
-- #148: P3, inactive shipped lists no longer capture units or /who; needs Dan's OK or a revert.
+- #148: P3, inactive shipped lists no longer capture units or /who; needs the author's OK or a revert.
 
 Context for each open item: scratch `docs/latest/issues/` and `docs/latest/setup/`.
 

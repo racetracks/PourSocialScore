@@ -22,10 +22,10 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 - Job `mirror` keeps **`racetracks/Pour-Social-Score`** (`MIRROR_REPO`) on the latest full release: the release zip's contents committed as the repo's files (the addon folders at the root; the mirror's own readme.md stays), then the release, with the same zip and notes, on that commit; a release whose tag is not on its files is made again. It runs after every push and does nothing when the mirror is up to date. It needs the secret `MIRROR_TOKEN` (fine-grained, Contents: Read and write on that repo only) on the addon repo; the mirror repo needs an existing commit. Pre-releases are not mirrored. After fixing a secret, run Actions > Release > Run workflow on main.
 
 ## Tools
-- `sh tools/bump_version.sh build "Title"`: every TOC to the next build, the build recorded in `versions.json`, a history section on top (fill in the bullets). `release "Title"` makes the next build the release (only when Dan says it is one; the pre-releases move under it in `versions.json`); `line X.Y.Z "Title"` starts a line with the next build number. `pr <number>` records the PR that carries the new builds.
+- `sh tools/bump_version.sh build "Title"`: every TOC to the next build, the build recorded in `versions.json`, a history section on top (fill in the bullets). `release "Title"` makes the next build the release (only when the author says it is one; the pre-releases move under it in `versions.json`); `line X.Y.Z "Title"` starts a line with the next build number. `pr <number>` records the PR that carries the new builds.
 - `python3 tools/versions.py prs [<version>]` lists the versions and PRs between the previous release and a version; `kind`, `latest`, `check` serve the workflows and the rules check.
 - `sh tools/host_build.sh <scratch checkout> [--no-commit | --no-push]`: builds the test zip from HEAD the way `release.yml` does, puts it in scratch `releases/` and `latest/` (replacing the old one), updates the index rows, commits and pushes, and prints the links. `--no-commit` stages only, so docs join the same commit.
-- `sh tools/host_tests.sh` builds a tests bundle; not hosted unless Dan asks (11_PREFERENCES).
+- `sh tools/host_tests.sh` builds a tests bundle; not hosted unless the author asks (11_PREFERENCES).
 
 ## Full releases
 - The notes are the release's history section only: one player-facing summary of every change since the previous release, written by Claude at release time from the PRs `versions.json` lists between the two (`CLAUDE.md`, Full releases). No API key in the pipeline. Pre-releases keep their own history section as notes.
@@ -34,9 +34,9 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 ## Release history
 `versions.json` `releases` is the source of truth; each release's notes are on scratch: https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/docs/latest/release-notes
 
-Full releases, newest first: **3.4.1.53** (2026-10-09, the core uplift; live), 3.4.0.29 (2026-10-08, the PSS window), 3.3.1 (2026-10-07, the parity project), 3.0.0 (the load-on-demand split), 2.0.44, 2.0.40, 2.0.22, 2.0.19, 2.0.18 (recorded by commit), 2.0.17 (and the versions before it, from history.txt only).
+Full releases, newest first: **3.4.2.54** (2026-10-09, docs only, no change in game), 3.4.1.53 (2026-10-09, the core uplift), 3.4.0.29 (2026-10-08, the PSS window), 3.3.1 (2026-10-07, the parity project), 3.0.0 (the load-on-demand split), 2.0.44, 2.0.40, 2.0.22, 2.0.19, 2.0.18 (recorded by commit), 2.0.17 (and the versions before it, from history.txt only).
 
-Everything else is a pre-release of the next release, including 3.1.0 and 3.2.0 (pre-releases of 3.3.1). 3.3.0-dev004 was never published (its runs were cancelled; Dan chose test zip only, 2026-10-07). Older version names (`-devN`, `-devNNN`, `_N`, plain `X.Y.Z`) stay as they were.
+Everything else is a pre-release of the next release, including 3.1.0 and 3.2.0 (pre-releases of 3.3.1). 3.3.0-dev004 was never published (its runs were cancelled; the author chose test zip only, 2026-10-07). Older version names (`-devN`, `-devNNN`, `_N`, plain `X.Y.Z`) stay as they were.
 
 ## Test zips
 - Scratch `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`; the same commit replaces the zip in `latest/`. Link `https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/<path>`.

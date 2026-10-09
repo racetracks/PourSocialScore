@@ -1,9 +1,9 @@
-# PourSocialScore (PSS): the addon as it works (state at release 3.4.1.53)
+# PourSocialScore (PSS): the addon as it works (state at release 3.4.2.54)
 
-**The state document (baseline 02 E11, Dan, 2026-10-08):** how the addon works at the last full release. It is re-summarized at every full release from the plan's done stages. Status is in 06; Dan's preferences are in 11.
+**The state document (baseline 02 E11, the author, 2026-10-08):** how the addon works at the last full release. It is re-summarized at every full release from the plan's done stages. 3.4.2.54 changed only the docs, so the addon is as it was at 3.4.1.53. Status is in 06; the author's preferences are in 11.
 
 ## 1. Purpose
-PourSocialScore is Dan's World of Warcraft chat moderation addon (GitHub `racetracks`, in-game author Boaties). Clients: Retail (Midnight, Interface **120007**) and Camelot (Interface **16001**).
+PourSocialScore is the author's World of Warcraft chat moderation addon (GitHub `racetracks`, in-game author Boaties). Clients: Retail (Midnight, Interface **120007**) and Camelot (Interface **16001**).
 
 What it does:
 - **Player Ignore List.** Unlimited and account-wide (players, NPCs, whole servers), with notes, expiry (applied by itself at login, after combat once a day and when a list opens), per-player **W I G P C** flags (whisper, invite, guild, party, chat; ticked = allowed), exceptions to the defaults for listed people, a detail pane, auto-decline of duels/trades/invites, and Player Search via /who.
@@ -28,7 +28,7 @@ Goal: "global" moderation through shared lists. Sharing happens through shipped 
 | `racetracks/Pour-Social-Score` (public) | The mirror: each full release's zip contents and release (05) |
 | `racetracks/PourSocialScore-EllesmereUI` | **Retired and archived.** Never write to it |
 
-Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference framework for building UI elements, rewritten to our rules and never copied, 03 section 0, Dan, 2026-10-08), `Gethe/wow-ui-source`. References actually used on PSS: an ElvUI zip Dan uploaded (the load-on-demand split), a DBM AddOns list screenshot (Category/Group/coloured titles), a Questie zip (upgrade output idea, issue #45), wago.tools, and the Warcraft Wiki reference set Dan uploaded on 2026-10-07 (`docs/baseline/reference/wow-api/`; rules in baseline 02 J and PSS 02 section 10).
+Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference framework for building UI elements, rewritten to our rules and never copied, 03 section 0, the author, 2026-10-08), `Gethe/wow-ui-source`. References actually used on PSS: an ElvUI zip the author uploaded (the load-on-demand split), a DBM AddOns list screenshot (Category/Group/coloured titles), a Questie zip (upgrade output idea, issue #45), wago.tools, and the Warcraft Wiki reference set the author uploaded on 2026-10-07 (`docs/baseline/reference/wow-api/`; rules in baseline 02 J and PSS 02 section 10).
 
 ## 3. Folders (one release zip holds all six)
 | Folder | Loads | Holds |
@@ -51,12 +51,12 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 - **Accessors (02 section 1.5):** guild member fields through `M.PSS_MemberCanon`, `M.PSS_MemberName`, `M.PSS_MemberGuildName`, `M.PSS_MemberWhenBlocked`, `M.PSS_MemberShipped`, `M.PSS_MemberPlayerKey` (one block in `PSS_GuildIgnoreList.lua`; `check_fields.lua`); counts totals through `History.CountTotal`; player list entries through `M.PSS_List`, `M.PSS_EntryName`, `M.PSS_EntryKind`, `M.PSS_NewEntry` and the `M.PSS_SetEntry*` setters (`PSS_PlayerIgnoreList.lua`).
 - **Upgrades and schema:** `M.PSS_UPGRADE_REGISTRY`, `M.PSS_UPGRADE_RETIRED`, `M.PSS_RunUpgradeFields` / `M.PSS_RunUpgradeData`, `M.PSS_VersionOrder`; `M.PSS_SCHEMA`, `M.PSS_SchemaKnows`, `M.PSS_UnusableRules`.
 - **GC helper:** `PSS_Perf.lua` (stepped collection; option `gcEnabled`). Event-driven only (P2): `M.PSS_RequestGC` runs out of combat and outside instances, waiting on events, never on a timer (02 section 4).
-- **Commands:** `/pss` on its own opens or closes the window, and `/pss gui`, `ui` and `eui` are the same command (one alias table, `OPEN` in `PSS_Commands.lua`; Dan, 2026-10-08); every other word is its own command and `/pss help` (or any word it does not know) lists them; `/pss export unused`. On Camelot `/pss add`, `remove` and `expire` take two words as the name.
+- **Commands:** `/pss` on its own opens or closes the window, and `/pss gui`, `ui` and `eui` are the same command (one alias table, `OPEN` in `PSS_Commands.lua`; the author, 2026-10-08); every other word is its own command and `/pss help` (or any word it does not know) lists them; `/pss export unused`. On Camelot `/pss add`, `remove` and `expire` take two words as the name.
 - **Window (09):** looks `M.PSS_UISkin()` (option `uiSkin`), accent `M.PSS_UIAccent()` (class colour), font `M.PSS_UIFontPath()` / `M.PSS_UIFontChoices()` (option `uiFont`), place `M.PSS_UIPlace` / `M.PSS_SetUIPlace` (Libraries `PSS_ViewNav.lua`); window `PSS_Window`, entry `M.PSS_OpenUI` (core) -> `M.PSS_OpenWindow`.
 
 ## 5. Crucial context
 - Three TOCs per folder; one combined TOC broke Camelot.
-- **Measured hot spots:** `PSS_GetGuildBlockCounts`, the shipped member walk and `PSS_GetMemberBlockCounts` make about 200 to 350 KB of garbage per full pass on Dan's save. An estimate of 6 to 8 KB once measured 22 KB.
+- **Measured hot spots:** `PSS_GetGuildBlockCounts`, the shipped member walk and `PSS_GetMemberBlockCounts` make about 200 to 350 KB of garbage per full pass on the author's save. An estimate of 6 to 8 KB once measured 22 KB.
 - **Known gaps:** downgrades lose data (issue #147); other open items in 06.
 - **Known breaches of the baseline:** none (02 section 12, which also lists the approved overrides).
 
@@ -73,5 +73,5 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 
 Status history: `reference/06_status-history-to-3.4.1.30.md`; the 2026-10-07 memory snapshot: `reference/memory-2026-10-07/`.
 
-## 7. Dan's preferences
-All in `11_PREFERENCES.md` (the one file, Dan, 2026-10-08).
+## 7. The author's preferences
+All in `11_PREFERENCES.md` (the one file, the author, 2026-10-08).

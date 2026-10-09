@@ -79,7 +79,7 @@ a SavedVariables change and needs your approval first. See decision 1.
 
 **B. The read-only rule and the logic in the EllesmereUI folder (issue
 #77): decided, option b.** Rule G10 makes `PourSocialScore_EllesmereUI` read
-only, while some logic in it breaks rule G1. Dan chose option b (2026-10-05
+only, while some logic in it breaks rule G1. The author chose option b (2026-10-05
 16:09Z): each piece moves to Libraries once and the EllesmereUI file calls
 it, the only kind of edit allowed in that folder, with `ui_compare.sh` saying
 "UI identical" and `check_eui_all.sh` passing.
@@ -146,7 +146,7 @@ windows need (`History.RecentCounts`, `RecentTotals`, `RecentByCatData`,
 
 ## 6. Decisions needed
 
-> **Dan's answers, 2026-10-05 16:32Z:** 1 yes (retire `PSS_BlockStats`, native reads `History.Recent*`; the SavedVariables change is approved). 2 yes (the native window gets the breadcrumb and back / forward navigation, against the recommendation). 3 yes (an Events tab). 4 port it (the three-page Summary / Event History / View-Edit Rule pane, not pies on the pop-ups). 5 the native GUI must never read files from or depend on PourSocialScore_EllesmereUI: the two front ends are independent, so a user never has to load both; anything both need is a shared function in PourSocialScore_Libraries. The native-only features stay native-only for now.
+> **The author's answers, 2026-10-05 16:32Z:** 1 yes (retire `PSS_BlockStats`, native reads `History.Recent*`; the SavedVariables change is approved). 2 yes (the native window gets the breadcrumb and back / forward navigation, against the recommendation). 3 yes (an Events tab). 4 port it (the three-page Summary / Event History / View-Edit Rule pane, not pies on the pop-ups). 5 the native GUI must never read files from or depend on PourSocialScore_EllesmereUI: the two front ends are independent, so a user never has to load both; anything both need is a shared function in PourSocialScore_Libraries. The native-only features stay native-only for now.
 
 1. **Retire `PSS_BlockStats.lua` and have the native window read
    `History.Recent*`, the same as the EllesmereUI window?** (Recommended:

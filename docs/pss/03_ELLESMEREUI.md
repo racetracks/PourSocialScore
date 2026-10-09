@@ -2,7 +2,7 @@
 
 PSS has one window (`PourSocialScore_GUI`, 09) and no EllesmereUI integration. EllesmereUI stays useful: it is a mature UI framework, and the window was ported from our own EllesmereUI window. Section 0 is how to use it; section 1 keeps the lessons of the old integration.
 
-## 0. EllesmereUI as the reference for building UI elements (Dan, 2026-10-08)
+## 0. EllesmereUI as the reference for building UI elements (the author, 2026-10-08)
 When building or changing a UI element needs more information than our own code and Blizzard's give (how a control behaves, lays out, skins, scrolls, pools or handles a corner case), **check out the EllesmereUI repo and reference it wherever possible, as a mature framework for UI porting.**
 1. **Where to look, in this order:** our window as it is (`PourSocialScore_GUI`, the kit, CLAUDE.md Interface, 09 code map); our own EllesmereUI window, the port's reference, in git history (`git fetch origin tag v3.4.0.24` then `git show v3.4.0.24:PourSocialScore_EllesmereUI/<file>`; or the tag `v3.3.1`); then EllesmereUI itself, `EllesmereGaming/EllesmereUI`.
 2. **Getting EllesmereUI into a session:** add it with `add_repo` (read access; never push), then a shallow or sparse clone outside the addon repo (for example the session scratchpad). If it cannot be added, say so and ask; never guess its behaviour.
@@ -14,7 +14,7 @@ When building or changing a UI element needs more information than our own code 
 PSS had a second front end, `PourSocialScore_EllesmereUI` (EUI), drawn with EllesmereUI's plugin and skinning APIs, beside the native window; both rendered from `M.PSS_OPTIONS`, read the same counters and wrote through core setters. It was deleted at 3.4.0.25 with its bridge (`PSS_EUI.lua`), `check_rules_eui.sh` and the EUI harness. The full code, the bridge, the plugin and skinning API use and EUI's house rules are in git history: `git show v3.4.0.24:PourSocialScore_EllesmereUI/<file>`; the full write-up of the integration (bridge, APIs, house rules, the tab fix) is `git show v3.4.1.53:docs/pss/03_ELLESMEREUI.md`.
 
 Lessons that still apply to the window:
-- **Read the screenshot first.** The tab "double shade" bug (2026-10-04) cost two wrong guesses before the screenshot showed Dan was on the plain fallback look, not the skin. Ask which look and which object a screenshot shows.
+- **Read the screenshot first.** The tab "double shade" bug (2026-10-04) cost two wrong guesses before the screenshot showed the author was on the plain fallback look, not the skin. Ask which look and which object a screenshot shows.
 - **Fade text with the FontString's `SetAlpha`, never `SetTextColor` alpha:** colour alpha leaves the font shadow at full strength, which reads as a second, offset label (baseline 05 known fix 1, H7).
 - **Every look must be checked** (then skin on and off; now Modern, Classic and Dark).
 - **Link hover:** call `GameTooltip:SetHyperlink` only for link kinds with a tooltip (an allow list); a `trade:` link opens the profession window on hover otherwise (baseline 05 known fix 2, H8).

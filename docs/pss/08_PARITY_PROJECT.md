@@ -1,13 +1,13 @@
 # Closed project: native GUI parity with the EllesmereUI window (3.3.0, issue #78)
 
-**Closed 2026-10-07 by Dan, shipped as 3.3.1:** "we're just going to merge whatever its at now and call that done, ive got other plans, scrap those features and just stamp this at 3.3.1". Stages 1 to 5 shipped; the rest were dropped, not parked. Both windows it covered were replaced by the one PSS window (09) at 3.4.0.25.
+**Closed 2026-10-07 by the author, shipped as 3.3.1:** "we're just going to merge whatever its at now and call that done, ive got other plans, scrap those features and just stamp this at 3.3.1". Stages 1 to 5 shipped; the rest were dropped, not parked. Both windows it covered were replaced by the one PSS window (09) at 3.4.0.25.
 
 The original analysis and plan: `reference/plans-3.3-parity/` (the plan's step table predates the decisions; the outcome below wins). Issue #77 note: `reference/issues/eui-read-only-vs-logic-move.md`.
 
 ## Objective
 The native window (`PourSocialScore_GUI`) and the EllesmereUI window (`PourSocialScore_EllesmereUI`) offer the same features and show the same numbers, each in its own look, with the folders independent (02 sections 6 and 7). Parity is not shared UI code.
 
-## Decisions (Dan, 2026-10-05 16:32Z)
+## Decisions (the author, 2026-10-05 16:32Z)
 1. **Yes:** retire `PSS_BlockStats`; native reads `History.Recent*`; the `blockStats` prune is approved (shipped, stage 2).
 2. **Yes:** native gets the breadcrumb and back / forward navigation (Claude had recommended no).
 3. **Yes:** native gets an Events tab.

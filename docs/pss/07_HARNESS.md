@@ -1,6 +1,6 @@
 # PSS harness (tools/harness)
 
-**The harness is the simulated client Claude codes against (required, Dan, 2026-10-09; 11_PREFERENCES).** The general harness is baseline 06; this file lists PSS's commands and checks.
+**The harness is the simulated client Claude codes against (required, the author, 2026-10-09; 11_PREFERENCES).** The general harness is baseline 06; this file lists PSS's commands and checks.
 
 - **Client:** `wow_stub.lua` is the client (`PSS_CAMELOT=1` makes it Camelot). `run.lua <addon dir> <save|-> <out|-> [script]` loads the addon folders, logs in, runs the script with `H` (the stub: `H.Fire` for events, `H.chat` for chat output, `H.Private` for a folder's private table) and `M` (the script's own; addon code sees no global `M`, as in game), logs out and writes the save. Slash commands and frame clicks are driven from the script; `tui_tour.lua` writes the window's frame dump to `PSS_UI_DUMP`.
 - **Use it while writing a change:** a one-off script that drives the changed path and prints what happened is the first test; the lasting check that fails on `origin/main` is the second. What it cannot show (wrapped text, combat and chat lockdown timing, taint, real art) goes to the in-game checks.
@@ -45,4 +45,4 @@ Other checks in `validate_all.sh`: `check_forget` (removals), `check_guildrule`,
 
 **PSS habits:** a check that needs Libraries calls `M.PSS_Need("Libraries")` first; read every diff line on a real save before claiming "intended only".
 
-**Tests bundle** (not hosted unless Dan asks; 11_PREFERENCES): `sh tools/host_tests.sh <scratch checkout> [--no-commit | --no-push] [--log <file>]` builds `PourSocialScore-<version>-tests-<YYYY-MM-DD-hh-mm>.zip` from HEAD (`tools/`, `versions.json`, `.github/workflows`, `README_TESTS.txt`, and the validation log with `--log`; never real saves) into scratch `releases/`, adding its name to the index's releases row only (not `latest/`; the addon zip never holds `tools/`).
+**Tests bundle** (not hosted unless the author asks; 11_PREFERENCES): `sh tools/host_tests.sh <scratch checkout> [--no-commit | --no-push] [--log <file>]` builds `PourSocialScore-<version>-tests-<YYYY-MM-DD-hh-mm>.zip` from HEAD (`tools/`, `versions.json`, `.github/workflows`, `README_TESTS.txt`, and the validation log with `--log`; never real saves) into scratch `releases/`, adding its name to the index's releases row only (not `latest/`; the addon zip never holds `tools/`).
