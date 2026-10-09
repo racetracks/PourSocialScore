@@ -17,8 +17,8 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 ## Waiting on the author
 - Merge the 3.5.0.56 docs PR.
 - Test 3.5.0.61 (the Macro Helper) on Camelot (design section 9) and merge its PR (#158).
-- **Next step: the macros themselves, umbrella issue #159** (https://github.com/racetracks/PourSocialScore/issues/159): post the macros of each set in its issue (#160 global, #161 Warrior, #162 Druid, #163 Hunter, #164 Mage, #165 Paladin, #166 Priest, #167 Rogue, #168 Shaman, #169 Warlock); one polish build adds them (3.5.0.62). Context: scratch `docs/latest/issues/macro-sets/`.
-- Call the release of line 3.5.0 when its features are done (graphics settings is ready; the Macro Helper waits on its macros and test).
+- **The macros themselves are drip-fed after the release (the author, 2026-10-09): umbrella issue #159** (https://github.com/racetracks/PourSocialScore/issues/159, one issue per set, #160 global, #161 Warrior, #162 Druid, #163 Hunter, #164 Mage, #165 Paladin, #166 Priest, #167 Rogue, #168 Shaman, #169 Warlock). The author posts macros as comments on a set's issue (first line the name, the rest the body; optional `store:` / `icon:` lines) and asks for them ("add the macros from #165"); each ask is one build (3.5.0.62 first). The Paladin's first four (Cleanse, Purify, DS, HS) are already on #165. How: the umbrella's steps; context on scratch `docs/latest/issues/macro-sets/`.
+- Test the Macro Helper (3.5.0.61), merge #158, then call the release of line 3.5.0: **the release ships the framework (the author, 2026-10-09); macros come after it.**
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: OK or revert P3 (inactive shipped lists no longer capture units or /who).
 
