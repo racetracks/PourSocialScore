@@ -281,7 +281,7 @@ Resolved earlier: the GC breach line in 02 and 01 (fixed at 3.4.1.52, re-summari
 | W2 to W4 leftovers | The Events view's own `TimeText` (G1); the Chat Filters pane redraw (G23); a hinted edit box must not `SetScript` `OnTextChanged` (W3 hooks it) |
 | S3 points | The cap applies at the upgrade and logout only; first-name-only detection is a guess; downgrade limits (section 4) |
 | P3 behaviour change | Inactive shipped guild rules no longer see units or hand-typed /who results while nothing is listed and no shipped list is on (decision 28) |
-| Waiting on Dan | The `SCRATCH_TOKEN` secret for the CI real-save job (decision 29). The 2 custom rules his 3.4.1.50 login reported need nothing more (Dan, 2026-10-09: issue resolved, no export needed) |
+| Waiting on Dan | Nothing here; setup jobs are GitHub issues (#144, the CI real-save token) |
 | #37 guild exclusion list not saved | Open (intent to define) |
 | #38 seeing a shipped-guild member loads the lists | Open (N36 is related) |
 | #39, #40 unload the GUI / can an LOD addon unload | WoW cannot unload an addon; the window drops caches and requests GC on close |

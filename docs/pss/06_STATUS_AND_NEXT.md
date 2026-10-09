@@ -9,7 +9,6 @@ Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4
 - **Next:** Dan merges the release PR and checks the GitHub Release and the mirror; then names the next project or fix.
 
 ## Waiting on Dan
-- Optional: add the repository secret `SCRATCH_TOKEN` (fine-grained token, Contents: read on `racetracks/Pour-Social-Score_Scratch`) so CI runs the real saves (`real-saves` job, 10_CORE_UPLIFT decision 29).
 - Merge the 3.4.1.53 release PR (#143). (Your habit is to test a very old save on the final pre-release before a full release: 3.4.1.52's test zip is the one; the harness ran it on the 2.0.44, 3.0.0, 3.2.0-dev011, 3.4.0.28 and 3.4.1.50 saves.)
 
 ## Known breaches
@@ -24,6 +23,7 @@ In 02 section 12, each with its fix line. None: the idle GC cycle was fixed by P
 - #45: Questie-style upgrade output: built in U2 (3.4.1.46), ships in 3.4.1.53; Dan can close it.
 - #132: test later, the Group Finder option without a /reload (F1 check 4; needs a character that can use the Group Finder).
 - #133: test later, the party warning names only who is in the group now (F1 check 7).
+- #144: CI real-save tests need the `SCRATCH_TOKEN` secret (setup steps in the issue).
 
 ## Parked
 - Pack the in-play chat filter log (offered, not started).
