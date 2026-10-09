@@ -1630,13 +1630,30 @@ end
 ------------------------------------------------------------------------
 -- "player" person source for the core
 ------------------------------------------------------------------------
+-- reused (P4, N35): the entry of each listed person, at most LOOKUP_KEEP
+-- of them, and the option context (used at once, never kept)
+local LOOKUP_KEEP = 300
+local lookupKept, lookupKeptCount = {}, 0
+local optCtx = {}
+
 if M.PSS_RegisterBlockSource then
 	M.PSS_RegisterBlockSource({
 		id = "player", order = 10, label = "Player Ignore List",
 		lookup = function(canon)
 			local name = listedName(canon)
 			if not name then return nil end
-			return { name = name, p = ensurePlayer(name) }
+			local p = ensurePlayer(name)
+			-- the entry of a listed person is kept for their next line
+			-- (P4, N35); checked against the current name and record
+			local e = lookupKept[canon]
+			if e and e.name == name and e.p == p then return e end
+			if lookupKept[canon] == nil then
+				if lookupKeptCount >= LOOKUP_KEEP then lookupKept, lookupKeptCount = {}, 0 end
+				lookupKeptCount = lookupKeptCount + 1
+			end
+			e = { name = name, p = p }
+			lookupKept[canon] = e
+			return e
 		end,
 		decide = function(e, cat, ctx)
 			local p = e.p
@@ -1655,7 +1672,7 @@ if M.PSS_RegisterBlockSource then
 			local inviteKind = (cat == "partyInvite" and "group") or (cat == "guildInvite" and "guild") or nil
 			M.PSS_RecordPlayerBlock(e.name, ctx.event, ctx.msg, inviteKind, cat)
 		end,
-		optionContext = function(e) return { person = e.p.opts } end,
+		optionContext = function(e) optCtx.person = e.p.opts; return optCtx end,
 		describe = function(e) return "Player Ignore List (" .. tostring(e.name) .. ")" end,
 	})
 end
