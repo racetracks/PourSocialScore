@@ -1,5 +1,7 @@
 # PourSocialScore: rules and context for Claude
 
+**Highest priority, above every rule below (the author, 2026-10-09; full text in `docs/pss/11_PREFERENCES.md`):** spend tokens strictly and sparsely; recycle tokens, threads and tools aggressively; write as few messages as possible; when one is required put it in the scratch repo at `temp/<workspace>/<output>/` (never in the session), with a summary and a reference in that output's own `README.md`, and tell the author in one line to review it in the markdowns; memory holds only the folder's link.
+
 Three packs, read in layer order. **The baseline's rules are mandatory**
 (the author, 2026-10-08): PSS overrides one only where `docs/pss/02_RULES.md`
 section 12 (the Overrides table) lists it, with the author's OK; any other difference

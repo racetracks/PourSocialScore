@@ -2,6 +2,14 @@
 
 Everything about how the author works and what the author wants from Claude lives here (the author, 2026-10-08). `CLAUDE.md` loads it in every session. Other docs stay technical and close to the addon. Add new preferences here, dated, and never spread them across other files. Baseline 07 is the generic version; where they differ, this file wins.
 
+## Highest priority: tokens and messages (the author, 2026-10-09)
+These outrank every other rule in every pack; where one conflicts, this wins.
+- **Be as strict and lean as possible with tokens; spend must be sparse.** Read only what the step needs, delegate wide reading, keep conclusions only.
+- **Aggressively recycle tokens and tools:** reuse a running thread (subagent or session) that already holds the tools and context, never start a new one for it.
+- **Generate as few messages as possible.** When a message is required, do not put it in the session: put it in the scratch repo under `temp/<workspace>/` (one subfolder per workspace), as markdown.
+- **Tell the author where to look, in one line,** and tell the author to review it in the markdowns.
+- **Every output has its own subfolder with a summary and a reference** (`temp/<workspace>/<output>/README.md`: what it is, the summary, the reference links). The memory context holds only that folder's link, never the content.
+
 ## Sessions and context
 - **One step per session (2026-10-08).** The author resets the session after each step of every implementation plan. Build only the named step, then stop.
 - **Context is updated in every PR (2026-10-08).** Before a step's PR is final, update everything a fresh session needs to carry on:
