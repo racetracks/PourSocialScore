@@ -9,6 +9,14 @@
 # 2.0.17, 2.0.8, 2.0.1: their code is not in git, so the 2.0.18 save is
 # rewritten into their shape (tools/harness/downgrade.lua).
 here=$(dirname "$0")
+# PSS_VALIDATION_LOG=<file> keeps the whole output in that file too (for
+# tools/host_tests.sh --log); the exit status is the run's own
+if [ -n "$PSS_VALIDATION_LOG" ] && [ -z "$PSS_VALIDATION_TEE" ]; then
+	rcfile=$(mktemp)
+	{ PSS_VALIDATION_TEE=1 sh "$0" "$@"; echo $? > "$rcfile"; } 2>&1 | tee "$PSS_VALIDATION_LOG"
+	rc=$(cat "$rcfile"); rm -f "$rcfile"
+	exit "$rc"
+fi
 work=${TMPDIR:-/tmp}/pss-validate
 rm -rf "$work"; mkdir -p "$work"
 t0=1790000000
