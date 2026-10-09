@@ -9,10 +9,21 @@
 # 2.0.17, 2.0.8, 2.0.1: their code is not in git, so the 2.0.18 save is
 # rewritten into their shape (tools/harness/downgrade.lua).
 here=$(dirname "$0")
+# PSS_VALIDATION_LOG=<file> keeps the whole output in that file too (for
+# tools/host_tests.sh --log); the exit status is the run's own
+if [ -n "$PSS_VALIDATION_LOG" ] && [ -z "$PSS_VALIDATION_TEE" ]; then
+	rcfile=$(mktemp)
+	{ PSS_VALIDATION_TEE=1 sh "$0" "$@"; echo $? > "$rcfile"; } 2>&1 | tee "$PSS_VALIDATION_LOG"
+	rc=$(cat "$rcfile"); rm -f "$rcfile"
+	exit "$rc"
+fi
 work=${TMPDIR:-/tmp}/pss-validate
 rm -rf "$work"; mkdir -p "$work"
 t0=1790000000
 fail=0
+# a check that could not run is listed and fails the run unless PSS_ALLOW_SKIP=1
+# (a NOTE and exit 0 once hid a skipped comparison)
+skipped=""
 # the upgrade checks rebuild old versions from git history: a shallow clone
 # (a Claude Code session) lacks it and the split checks then fail
 if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = "true" ] && ! git cat-file -e 767c49c 2>/dev/null; then
@@ -112,6 +123,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_guilds.lua" 2>&1 | grep -v '^|cf
 echo "$out"
 echo "$out" | grep -q "PASS guilds" || fail=1
 
+# the view functions moved out of the window's drawing files (W2)
+echo "== view functions"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_viewfns.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS viewfns" || fail=1
+
 # the new window's Chat Filters tab (3.4.0-dev010)
 echo "== new window Chat Filters tab"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_filters.lua" 2>&1 | grep -v '^|cff')
@@ -129,6 +146,12 @@ echo "== new window Options and Import/Export tabs"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -E "PASS|FAIL"
 echo "$out" | grep -q "PASS options" || fail=1
+
+# window tidy W2: logic of the Events, Options and Chat Filters tabs in Libraries
+echo "== window tidy W2 (Events, Options, Filters)"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_w2b.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS w2b" || fail=1
 
 # secret values: chat, unit and hook values checked, never kept (3.4.0.14)
 echo "== secret values"
@@ -275,6 +298,18 @@ for sv in - "$work/sv-2.0.44.lua"; do
 	done
 done
 
+# memory cleanup and the Logging quiet load without timers (3.4.1.52)
+echo "== gc"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_gc.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS gc" || fail=1
+
+# capture events only while they can be used (P3, 3.4.1.52)
+echo "== capture"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_capture.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS capture" || fail=1
+
 # purge by owner (core uplift S1, 3.4.1.49): a removal never loads Logging;
 # the owner is marked and their saved lines go when it loads, a person
 # listed again keeps only their new lines, full marks load it at once
@@ -320,6 +355,65 @@ for sv in $lrsaves; do
 	lua5.1 tools/check_schema.lua --saves "$work/lr-1.lua" "$work/lr-2.lua" || lrfail=1
 done
 [ $lrfail -eq 0 ] && echo "PASS list records ($(echo $lrsaves | wc -w) saves)" || { echo "FAIL list records"; fail=1; }
+
+# Sparse records and the SavedVariables performance cleanup (core uplift S3,
+# 3.4.1.52, upgrade step 10): a 3.4.1.51 save with a rule over the 1500 cap,
+# every kind of member record, players, custom chat filters with no id and
+# history under their texts migrates in one login (cap, sparse records,
+# switches, ids and their history), the next login changes nothing, the
+# saved file is sparse; the Camelot name repair on a Camelot stub (and not on
+# Retail); then every save the harness has (a new one, the 2.0 test saves,
+# every real save) shows the same through the accessors as the previous
+# build, in the migrating login and when the sparse file is read back, and
+# the previous build and 3.4.0.29 read it without an error
+echo "== sparse records"
+lua5.1 "$here/run.lua" . - "$work/sp-base.lua" > /dev/null 2>&1
+lua5.1 "$here/check_sparse.lua" --plant "$work/sp-base.lua" "$work/sp-plant.lua" > /dev/null || fail=1
+lua5.1 "$here/check_sparse.lua" --plant "$work/sp-base.lua" "$work/sp-plant-unique.lua" unique > /dev/null || fail=1
+lua5.1 "$here/run.lua" . "$work/sp-plant.lua" "$work/sp-1.lua" > "$work/sp-1.out" 2>&1
+for ph in login again; do
+	if [ $ph = login ]; then from="$work/sp-plant.lua"; else from="$work/sp-1.lua"; fi
+	out=$(PSS_PHASE=$ph PSS_LOGIN_OUT="$work/sp-1.out" lua5.1 "$here/run.lua" . "$from" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | grep -E "PASS|FAIL"
+	echo "$out" | grep -q "PASS sparse $ph" || fail=1
+done
+lua5.1 "$here/run.lua" . "$work/sp-1.lua" "$work/sp-2.lua" > "$work/sp-2.out" 2>&1
+cmp -s "$work/sp-1.lua" "$work/sp-2.lua" && ! grep -q "Upgrading your saved data" "$work/sp-2.out" || { echo "FAIL sparse: a second login changed the save or reported"; fail=1; }
+lua5.1 "$here/check_sparse.lua" --after "$work/sp-1.lua" ids || fail=1
+lua5.1 tools/check_schema.lua --saves "$work/sp-1.lua" "$work/sp-2.lua" || fail=1
+# Camelot
+PSS_CAMELOT=1 PSS_PHASE=names PSS_NOTE="$work/cam-names.txt" lua5.1 "$here/run.lua" . - - "$here/check_sparse.lua" > /dev/null 2>&1
+lua5.1 "$here/check_sparse.lua" --plant-camelot "$work/sp-base.lua" "$work/cam-names.txt" "$work/cam-plant.lua" > /dev/null || fail=1
+ship=$(head -1 "$work/cam-names.txt")
+PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/cam-plant.lua" "$work/cam-1.lua" > "$work/cam-1.out" 2>&1
+out=$(PSS_SHIPPED="$ship" PSS_FIRST=1 PSS_LOGIN_OUT="$work/cam-1.out" PSS_CAMELOT=1 PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-plant.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -E "PASS|FAIL"
+echo "$out" | grep -q "PASS sparse camelot" || fail=1
+PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/cam-1.lua" "$work/cam-2.lua" > /dev/null 2>&1
+cmp -s "$work/cam-1.lua" "$work/cam-2.lua" || { echo "FAIL camelot: a second login changed the save"; fail=1; }
+out=$(PSS_SHIPPED="$ship" PSS_CAMELOT=1 PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-1.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -q "PASS sparse camelot" || { echo "$out"; echo "FAIL camelot: the repaired save"; fail=1; }
+out=$(PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-plant.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -q "PASS sparse camelot" || { echo "$out"; echo "FAIL camelot: a Retail save was repaired"; fail=1; }
+# every save: the same through the accessors as another build (core uplift S3).
+# Opt-in (PSS_SPARSE_AS=<git ref>, for a change to the saved layout): it asserts
+# that nothing the addon shows changed, which a feature stage legitimately breaks.
+sparse_ref=${PSS_SPARSE_AS:-}
+if [ -z "$sparse_ref" ]; then
+	echo "== sparse saves: not requested (PSS_SPARSE_AS=<ref> compares every save with that build)"
+elif git rev-parse --verify -q "$sparse_ref" > /dev/null; then
+	sparsesaves="- $work/sp-plant-unique.lua $work/cam-plant.lua"
+	[ -n "$PSS_REAL_SAVES" ] && sparsesaves="$sparsesaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua' | sort)"
+	for sv in "$work"/sv-*.lua; do
+		case "$sv" in *-after.lua) ;; *) sparsesaves="$sparsesaves $sv" ;; esac
+	done
+	out=$(TMPDIR="$work" sh "$here/sparse_saves.sh" "$sparse_ref" $sparsesaves 2>&1)
+	echo "$out" | grep -E "^PASS|^FAIL"
+	echo "$out" | grep -q "^PASS sparse saves" || { echo "$out" | grep -v '^same' | head -20; fail=1; }
+else
+	echo "SKIPPED: sparse saves: $sparse_ref is not known here (git fetch origin main:refs/remotes/origin/main)"
+	skipped="$skipped sparse-saves"
+fi
 
 # recent counts (3.2): session and last-24-hour counts per owner without
 # Logging; a login or /reload starts a new session (3.2.0-dev006), which
@@ -501,12 +595,19 @@ lua5.1 tools/check_schema.lua --saves $(ls "$work"/*.lua | grep -v '/steps\.lua$
 
 # saves byte-identical with another ref (PSS_SAME_AS=origin/main, for a
 # stage that must not change the saved data; same_saves.sh)
-if [ -n "$PSS_SAME_AS" ]; then
+if [ -n "$PSS_SAME_AS" ] && ! git rev-parse --verify -q "$PSS_SAME_AS" > /dev/null; then
+	echo "SKIPPED: same saves: $PSS_SAME_AS is not known here (git fetch origin main:refs/remotes/origin/main)"
+	skipped="$skipped same-saves"
+elif [ -n "$PSS_SAME_AS" ]; then
 	echo "== same saves as $PSS_SAME_AS"
 	out=$(TMPDIR=${TMPDIR:-/tmp} sh "$here/same_saves.sh" "$PSS_SAME_AS" 2>&1)
 	echo "$out" | grep -v '^same:'
 	echo "$out" | grep -q "^PASS same saves" || fail=1
 fi
 
+if [ -n "$skipped" ] && [ "$PSS_ALLOW_SKIP" != 1 ]; then
+	echo "Upgrade checks INCOMPLETE: skipped$skipped (set PSS_ALLOW_SKIP=1 to accept)"
+	fail=1
+fi
 [ $fail -eq 0 ] && echo "All upgrade checks passed" || echo "Upgrade checks FAILED"
 exit $fail

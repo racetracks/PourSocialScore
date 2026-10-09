@@ -177,6 +177,10 @@ local function filterMayHaveLines(index)
 	return #t > 0
 end
 
+-- The parallel arrays of the custom filters, kept in step by position.
+local FILTER_ARRAYS = { "filterList", "filterDesc", "filterActive", "filterID", "filterCount", "filterBlocked", "filterBlockedLast" }
+M.PSS_FILTER_ARRAYS = FILTER_ARRAYS
+
 function M.RemoveChatFilter (index)
 	if PourSocialScoreDB.filterList[index] then
 		-- with nothing counted there are no saved lines; the block history
@@ -184,26 +188,9 @@ function M.RemoveChatFilter (index)
 		local key = M.PSS_FilterOwnerKey(index)
 		History.ClearOwner(key, filterMayHaveLines(index))
 		History.ForgetRecent(key)
-		table.remove(PourSocialScoreDB.filterList, index)
-		table.remove(PourSocialScoreDB.filterDesc, index)
-		table.remove(PourSocialScoreDB.filterCount, index)
-		table.remove(PourSocialScoreDB.filterActive, index)
-		table.remove(PourSocialScoreDB.filterID, index)
-		table.remove(PourSocialScoreDB.filterBlocked, index)
-		table.remove(PourSocialScoreDB.filterBlockedLast, index)
+		for _, k in ipairs(FILTER_ARRAYS) do table.remove(PourSocialScoreDB[k], index) end
 		M.Events.Fire("FILTERS_CHANGED")
 	end
-end
-
-local function hasFilterID (id)
-
-	for count = 1, #PourSocialScoreDB.filterDesc do
-		if PourSocialScoreDB.filterID[count] == id then
-			return count
-		end
-	end
-
-	return 0
 end
 
 local function isDefFilterID (id)
@@ -264,7 +251,6 @@ end
 local FILTER_FORMAT = 2
 local filtersExpanded = false
 
-local FILTER_ARRAYS = { "filterList", "filterDesc", "filterActive", "filterID", "filterCount", "filterBlocked", "filterBlockedLast" }
 
 function M.PSS_IsBuiltinFilterID(id)
 	if type(id) ~= "string" or id == "" then return false end
@@ -296,14 +282,18 @@ function M.PSS_IsGuildRuleFilter(index)
 end
 
 local groupIndexCache = {}
+local groupIds = {}		-- group key -> its filter id (P4, N28: not a walk per line)
 local function groupFilterIndex(groupKey)
 	local db = PourSocialScoreDB
 	if not db or not db.filterID then return nil end
-	local id
-	for _, grp in ipairs((addon.MANAGED and addon.MANAGED.groups) or {}) do
-		if grp.key == groupKey then id = grp.id break end
+	local id = groupIds[groupKey]
+	if not id then
+		for _, grp in ipairs((addon.MANAGED and addon.MANAGED.groups) or {}) do
+			if grp.key == groupKey then id = grp.id break end
+		end
+		if not id then return nil end
+		groupIds[groupKey] = id
 	end
-	if not id then return nil end
 	local i = groupIndexCache[id]
 	if i and db.filterID[i] == id then return i end
 	for n = 1, #db.filterID do
@@ -426,6 +416,12 @@ function M.PSS_ExpandFilters()
 	if #sources > 0 then History.Absorb(sources) end
 end
 
+-- a rule's counts as saved (S3): no zero types, no total the types give
+local function sparseStat(b)
+	if type(b) == "table" and type(b.counts) == "table" and not History.CompactCounts(b.counts) then b.counts = nil end
+	return b
+end
+
 -- runtime arrays -> SavedVariables (custom rules only + built-in states).
 function M.PSS_CollapseFilters()
 	if not filtersExpanded or type(PourSocialScoreDB) ~= "table" then return end
@@ -446,10 +442,10 @@ function M.PSS_CollapseFilters()
 		if M.PSS_IsBuiltinFilterID(id) then
 			rules[id] = db.filterActive[i] == true
 			-- a guild rule counts nothing itself: no statistics to save
-			if not M.PSS_IsGuildRuleText(db.filterList[i]) then stats[id] = { count = tonumber(db.filterCount[i]) or 0, blocked = db.filterBlocked[i] or {}, blockedLast = tonumber(db.filterBlockedLast[i]) or 0 } end
+			if not M.PSS_IsGuildRuleText(db.filterList[i]) then stats[id] = { count = tonumber(db.filterCount[i]) or 0, blocked = sparseStat(db.filterBlocked[i]) or {}, blockedLast = tonumber(db.filterBlockedLast[i]) or 0 } end
 		else
 			appendFilter(custom, db.filterDesc[i], db.filterList[i], db.filterActive[i], type(id) == "number" and id or "",
-				db.filterCount[i], db.filterBlocked[i], db.filterBlockedLast[i])
+				db.filterCount[i], sparseStat(db.filterBlocked[i]), db.filterBlockedLast[i])
 		end
 	end
 	for _, k in ipairs(FILTER_ARRAYS) do db[k] = custom[k] end
@@ -490,6 +486,54 @@ function M.PSS_UnlinkGuildRuleCounts()
 	return rules
 end
 
+-- A custom filter's id (core uplift S3): a number that is never used twice.
+-- nextFilterId only goes up (saved with the chat rules); it also stays above
+-- any number id a newer version made. History and recent counts key on
+-- "f:<id>", so editing a filter keeps its history and a copy starts its own.
+function M.PSS_NewFilterId()
+	local db = PourSocialScoreDB
+	local n = math.floor(tonumber(db.nextFilterId) or 0)
+	for _, id in ipairs(db.filterID or {}) do
+		if type(id) == "number" and id > n then n = math.floor(id) end
+	end
+	n = n + 1
+	db.nextFilterId = n
+	return n
+end
+
+-- Upgrade step 10: every custom filter without an id gets one, and its lines
+-- and recent counts move from the filter's text ("f:t:<text>") to "f:<id>".
+-- Two filters with the same text shared one owner: the first one takes it.
+-- Logging is loaded first when a filter may have lines (they are in its
+-- file); returns false when it cannot load (the step tries again at the next
+-- login). Returns how many filters were given an id.
+function M.PSS_AssignCustomFilterIds()
+	local db = PourSocialScoreDB
+	if type(db) ~= "table" or type(db.filterID) ~= "table" then return 0 end
+	local todo, needLog = {}, false
+	for i = 1, #db.filterList do
+		local id = db.filterID[i]
+		if (id == nil or id == "") and type(db.filterList[i]) == "string" and not M.PSS_IsGuildRuleText(db.filterList[i]) then
+			todo[#todo + 1] = i
+			if filterMayHaveLines(i) then needLog = true end
+		end
+	end
+	if #todo == 0 then return 0 end
+	if needLog and not History.Loaded() and not (M.PSS_LoadLogging and M.PSS_LoadLogging()) then return false end
+	local moved = {}
+	for _, i in ipairs(todo) do
+		local text = db.filterList[i]
+		local from = History.FilterKey("", text)
+		local id = M.PSS_NewFilterId()
+		db.filterID[i] = id
+		if not moved[from] then
+			moved[from] = true
+			History.RenameOwner(from, History.FilterKey(id, text))
+		end
+	end
+	return #todo
+end
+
 -- Copy any rule (built-in or custom) into a new, editable custom rule.
 -- The copy starts disabled so it doesn't double-block alongside the original.
 function M.PSS_CopyChatFilter(index)
@@ -497,7 +541,7 @@ function M.PSS_CopyChatFilter(index)
 	if not db or not db.filterList or not db.filterList[index] then return nil end
 	if M.PSS_IsGuildRuleText(db.filterList[index]) then return nil end		-- guild rules can't be copied
 	local desc = db.filterDesc[index] or "Chat Filter"
-	local i = appendFilter(db, "Copy of " .. desc, db.filterList[index], false, "", 0, {}, 0)
+	local i = appendFilter(db, "Copy of " .. desc, db.filterList[index], false, M.PSS_NewFilterId(), 0, {}, 0)
 	M.Events.Fire("FILTERS_CHANGED")
 	return i
 end
@@ -505,7 +549,7 @@ end
 function M.PSS_AddCustomFilter(desc, filter, active)
 	local db = PourSocialScoreDB
 	if not db or type(filter) ~= "string" or filter == "" then return nil end
-	local i = appendFilter(db, desc or "Chat Filter", filter, active == true, "", 0, {}, 0)
+	local i = appendFilter(db, desc or "Chat Filter", filter, active == true, M.PSS_NewFilterId(), 0, {}, 0)
 	M.Events.Fire("FILTERS_CHANGED")
 	return i
 end
@@ -875,6 +919,16 @@ buildNode = function(node)
 	end
 end
 
+-- the filter list and its switches, read from PSS_RulesDB without the
+-- router (P4, N26; a table PourSocialScoreDB still holds wins, as through it)
+local function ruleLists()
+	local db = PourSocialScoreDB
+	local r = PSS_RulesDB
+	local list, active = rawget(db, "filterList"), rawget(db, "filterActive")
+	if r then list, active = list or r.filterList, active or r.filterActive end
+	return list or db.filterList, active or db.filterActive
+end
+
 local runnable, runnableCount = {}, 0
 -- filter text -> function(F), or false when the filter has an error
 local function filterFn(text)
@@ -903,8 +957,7 @@ function M.filterComplex (filterStr, chatStr, chNumber, chName)
 		if fn(F) then return true, 0 end
 		return false
 	end
-	local db = PourSocialScoreDB
-	local list, active = db.filterList, db.filterActive
+	local list, active = ruleLists()
 	for i = 1, #list do
 		if active[i] == true then
 			local text = list[i]
@@ -922,8 +975,7 @@ end
 
 -- any text filter switched on? (cheap: no tables, no strings)
 local function anyTextFilterOn()
-	local db = PourSocialScoreDB
-	local list, active = db.filterList, db.filterActive
+	local list, active = ruleLists()
 	for i = 1, #list do
 		if active[i] == true and not M.PSS_IsGuildRuleText(list[i]) then return true end
 	end

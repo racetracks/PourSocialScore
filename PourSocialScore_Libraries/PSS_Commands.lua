@@ -114,9 +114,6 @@ local function ShowIgnoreList (param)
 	M.ShowMsg("|cffffff00" .. format(L["LIST_5"], count))
 end
 
-local function PSSTest()
-end
-
 -- /pss on its own opens (or closes) the window; these words are the same
 -- command (Dan, 2026-10-08). Every other word is a command of its own, and
 -- one /pss does not know (/pss help) lists them.
@@ -138,10 +135,6 @@ function M.PSS_SlashPSS (msg)
 	if not args[1] or OPEN[args[1]] then
 
 		M.PSS_OpenUI()
-
-	elseif args[1] == "test" then
-
-		PSSTest()
 
 	elseif args[1] == "clear" then
 
@@ -371,7 +364,7 @@ function M.PSS_SlashGuild (msg)
 		end
 		local labels = { whisper = "Whispers", partyRaid = "Party/Raid", world = "World chat", guildChat = "Guild chat",
 						partyInvite = "Party invite", guildInvite = "Guild invite", duel = "Duel", trade = "Trade" }
-		local order = { "whisper", "partyRaid", "world", "guildChat", "partyInvite", "guildInvite", "duel", "trade" }
+		local order = ex.order
 		local any = {}
 		for _, row in ipairs(ex.sources) do
 			gp("listed: " .. tostring(row.describe or row.src.label))

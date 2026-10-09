@@ -6,7 +6,8 @@
 -- group per owner, so a person's name, guild rule and Chat Filters rule
 -- are stored once however many lines they have:
 --   blockLog = { v = 2, [owner] = {
---       m = name, n = { other names } (a chat filter's other senders),
+--       m = name (a person's group: only when it is not the owner key's form,
+--           false for none, core uplift S3), n = { other names } (a chat filter's other senders),
 --       gk = guild rule key, r = rule tag, c = the group's usual channel,
 --       k = how many of the lines are kept lines (they come first),
 --       [1..] = "<type><time>\t<event>\t<channel>\t<who>\t<message>" } }
@@ -68,6 +69,15 @@ local function saveLine(h, g, prevTs, prevMsg)
 end
 
 local newerLog, newerKeep	-- a newer version's saved log, put back at logout
+
+-- A person's name as the owner key gives it ("p:<canon>", "g:<canon>"): a
+-- group whose m is that is saved without m (S3).
+local function ownerName(o)
+	local a, b = o:byte(1, 2)
+	if b ~= 58 or (a ~= 112 and a ~= 103) then return nil end
+	local d = M.PSS_DisplayPlayer(o:sub(3))
+	return d ~= "" and d or nil
+end
 
 -- the log and the keep -> blockLog v2 (at logout, only if Logging loaded)
 function History.PackForSave()
@@ -146,7 +156,17 @@ function History.PackForSave()
 			add(h.o, h)
 		end
 	end
-	for _, g in pairs(out) do if type(g) == "table" and g.k == 0 then g.k = nil end end
+	for o, g in pairs(out) do
+		if type(g) == "table" then
+			if g.k == 0 then g.k = nil end
+			-- a person's group: m is saved only when it is not the key's own form
+			-- (false: the lines have no name at all)
+			local own = ownerName(o)
+			if own then
+				if g.m == own then g.m = nil elseif g.m == nil then g.m = false end
+			end
+		end
+	end
 	db.blockLog = out
 	db.blockKeep = nil
 end
@@ -169,6 +189,8 @@ function History.UnpackSaved()
 		if type(o) == "string" and type(g) == "table" then
 			local ts, msg = nil, ""
 			local k = tonumber(g.k) or 0
+			local gm = g.m
+			if gm == nil then gm = ownerName(o) elseif gm == false then gm = nil end
 			local list
 			for i = 1, #g do
 				local s = g[i]
@@ -180,7 +202,7 @@ function History.UnpackSaved()
 					local cat = LOG_CAT[code] or "unknown"
 					ev = LETTER_EVENT[ev] or ev
 					local h = { ts = ts, cat = cat, event = ev ~= "" and ev or nil, message = msg, o = o,
-						member = g.m, gk = g.gk, r = g.r }
+						member = gm, gk = g.gk, r = g.r }
 					if ch == "~" then h.channel = g.c elseif ch ~= "" then h.channel = ch
 					else h.channel = usualChannel(cat, h.event) end
 					if who ~= "" then

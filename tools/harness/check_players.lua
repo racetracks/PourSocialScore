@@ -38,7 +38,7 @@ win.tabs[1]._scripts.OnClick(win.tabs[1])
 local page = win.pages[1]
 local list, pane = page.list, page.pane
 check(page:IsShown() and list and pane, "Players tab not built")
-check(not page.note:IsShown(), "the built tab still shows its note")
+check(page.note == nil, "the placeholder note is gone")
 
 -- the close button and the title above the frame art (its border is drawn
 -- at a fixed level of about 500)
@@ -127,7 +127,7 @@ w._scripts.OnClick(w)
 check(M.PSS_GetPlayerRecord(entry).whispersBlocked == false, "W not saved as allowed")
 w:SetChecked(false)
 w._scripts.OnClick(w)
-check(M.PSS_GetPlayerRecord(entry).whispersBlocked == true, "W not saved as blocked")
+check(M.PSS_GetPlayerRecord(entry).whispersBlocked == nil, "W not saved as blocked (a switch that blocks is not stored)")
 
 CheckExceptions(pane.exceptions, M.PSS_GetPlayerRecord(entry), nil, "player")
 

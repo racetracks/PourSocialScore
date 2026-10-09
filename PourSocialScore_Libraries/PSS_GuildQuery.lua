@@ -41,23 +41,11 @@ function M.PSS_SetGuildGroupOpen(k, on)
 	PourSocialScoreDB.guildGroupOpen[k] = on and true or nil
 end
 
--- The guild rule for a key or (older callers) a display name: key, record.
+-- The guild rule for a key or (older callers) a display name: key, record
+-- (core's M.PSS_FindGuildRecord, which returns record, key).
 function M.PSS_FindGuildRule(guildNameOrKey)
-	-- Prefer the exact persisted guild key. This avoids accidentally creating a
-	-- new empty guild object when a UI row is opened after a scan.
-	local normalizeGuild = M.PSS_NormalizeGuild
-	local requestedKey = normalizeGuild(guildNameOrKey)
-	local g = requestedKey and PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[requestedKey]
-	if not g then
-		-- Compatibility: callers may still pass the display name.
-		for key, candidate in pairs(PourSocialScoreDB.guildData or {}) do
-			if normalizeGuild(candidate.name) == requestedKey then
-				requestedKey, g = key, candidate
-				break
-			end
-		end
-	end
-	return requestedKey, g
+	local g, key = M.PSS_FindGuildRecord(guildNameOrKey)
+	return key, g
 end
 
 ------------------------------------------------------------------------

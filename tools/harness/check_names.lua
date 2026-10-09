@@ -231,7 +231,11 @@ if gk then
 		for _, mm in pairs(g.members or {}) do if mm == r or (type(mm) == "table" and mm.note == "n2 flush") then saved = mm end end
 		check(saved ~= nil, "the changed shipped member was not saved")
 		check(saved and saved._canon == nil and saved._gkey == nil and saved._virtual == nil, "runtime fields saved")
-		check(saved and saved._managed == true, "the shipped mark was not saved")
+		-- (S3) saved sparse: the shipped mark, the name, the guild and the date are given back
+		check(saved and saved._managed == nil and saved.whenBlocked == nil and saved.guild == nil, "the shipped member was saved with fields the rule gives")
+		check(saved and M.PSS_MemberShipped(saved) == true, "the shipped member is not read as shipped")
+		check(saved and M.PSS_MemberWhenBlocked(saved) == "Managed list", "the shipped member's date")
+		check(saved and M.PSS_MemberGuildName(saved) == g.name, "the shipped member's guild")
 	end
 	-- import: a shipped member is merged into the shipped record, not stored twice
 	local second = (M.PSS_ShippedNames(gk) or {})[2]

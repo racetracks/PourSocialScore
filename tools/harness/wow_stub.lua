@@ -277,6 +277,15 @@ function stub.Fire(event, ...)
 	return #list
 end
 
+-- how many frames are registered for an event (nothing is fired)
+function stub.Listeners(event)
+	local n = 0
+	for f in pairs(eventFrames) do
+		if f._events[event] then n = n + 1 end
+	end
+	return n
+end
+
 -- run every queued C_Timer callback (and the ones they queue), and OnUpdate once
 function stub.RunTimers(maxRounds)
 	for _ = 1, maxRounds or 20 do
@@ -353,10 +362,12 @@ function UnitFactionGroup() return "Alliance", "Alliance" end
 function UnitLevel() return 80 end
 function UnitClass() return "Mage", "MAGE", 8 end
 function UnitRace() return "Human", "Human" end
-function GetRealmName() return "Realm" end
-function GetNormalizedRealmName() return "Realm" end
+-- PSS_CAMELOT=1: the Camelot client (interface 16001, realm ClassicBetaPvP)
+local camelot = os.getenv("PSS_CAMELOT") == "1"
+function GetRealmName() return camelot and "ClassicBetaPvP" or "Realm" end
+function GetNormalizedRealmName() return camelot and "ClassicBetaPvP" or "Realm" end
 function GetLocale() return "enUS" end
-function GetBuildInfo() return "12.0.7", "1", "Oct 1 2026", 120007 end
+function GetBuildInfo() return camelot and "1.0.0" or "12.0.7", "1", "Oct 1 2026", camelot and 16001 or 120007 end
 function GetCVar() return "0" end
 function GetCVarBool() return false end
 function IsInGroup() return false end

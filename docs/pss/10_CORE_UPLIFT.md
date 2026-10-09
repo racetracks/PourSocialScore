@@ -229,6 +229,7 @@ Listed in section 4. Each stage is invisible and proven with `tui_compare.sh` id
 - No new SavedVariables. The `purge` tombstone and `nextFilterId` live in existing tables.
 
 ## 4. Stages
+**Combined build 3.4.1.52 (decision 28):** S3, P1 to P6 and W1 to W4 are done in one build; what each did, its measured numbers and open points are in `docs/pss/reference/combined-3.4.1.52/`. Rows below say "Done in 3.4.1.52".
 Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working rules only). One stage per PR, per session.
 
 ### Line 3.4.1: fixes and data
@@ -255,21 +256,21 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | U3 fix | 3.4.1.48 | `PSS_Popups.lua` used `M` with no `local M`: the GUI folder stopped loading at its last line, so `/pss export unused` did nothing and the Import/Export tab gave no string (Dan, in game, 2026-10-09). `local M = ns.M`; the harness no longer has a global `M` for addon code (`run.lua`), and `tools/check_locals.lua` (rules check) fails a file that uses `M` without a local | Yes | `check_forward.lua` and `check_options.lua` fail without the fix; in game checks 3 and 6 again | Merged, PR #138 |
 | S1 | 3.4.1.49 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | Merged, PR #139 |
 | S2 | 3.4.1.50 | Accessors for the guild member fields, counts totals and `memberCount` S3 drops; `check_fields.lua` in the rules check (decision 26) | No | `tui_compare.sh` identical; 50 saves byte-identical with main | PR #140 (in-game checks 1 to 7 pass, Dan, 2026-10-09) |
-| S2b | 3.4.1.51 | The player list arrays become one array of sparse records, `list` (decision 27); upgrade step 9; the W I G P C accessors and the log group's `m` move to S3 | No (the report line once) | `check_listrecords.lua`; counters identical on every save; `same_saves.sh` normalised | PR #141 |
+| S2b | 3.4.1.51 | The player list arrays become one array of sparse records, `list` (decision 27); upgrade step 9; the W I G P C accessors and the log group's `m` move to S3 | No (the report line once) | `check_listrecords.lua`; counters identical on every save; `same_saves.sh` normalised | Merged, PR #141 |
 | S3 | 3.4.1.52 | Upgrade step 10 (2.2; step 9 is S2b's); also the player W I G P C accessors and the log group's `m` (from S2b): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
-| R | 3.4.1.53 | Release: version only; one summary of 3.4.1.30 to 3.4.1.52 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
+| R | 3.4.1.53 | Release: version only; one summary of 3.4.1.30 to 3.4.1.52 (the combined build holds S3, P1 to P6 and W1 to W4; decision 28) from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
 
 ### Line 3.4.2: core performance and tidy (builds continue)
 Expected builds, if nothing is added before them (decision 24).
 
 | Stage | Build | Change |
 | --- | --- | --- |
-| P1 | 3.4.2.54 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `def.reload` and the `before` read in `M.PSS_SetOpt`; Dan, 2026-10-09), the compat globals, `/pss test` |
-| P2 | 3.4.2.55 | Event-driven GC and `loadWhenQuiet` without timers (L14; closes the known breach in 02 section 12) |
-| P3 | 3.4.2.56 | Capture events only when needed (L15) |
-| P4 | 3.4.2.57 | Chat path: N26 (option reads without the router), N28 (guild path), N35 (per-line tables), N31 (outbox trim), benchmarked |
-| P5 | 3.4.2.58 | Duplicated logic into functions: N17 to N25 |
-| P6 | 3.4.2.59 | Core placement: L20 plus N37 to N39, measured before and after |
+| P1 | 3.4.2.54 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `def.reload` and the `before` read in `M.PSS_SetOpt`; Dan, 2026-10-09), the compat globals, `/pss test` | Done in 3.4.1.52 (decision 28) |
+| P2 | 3.4.2.55 | Event-driven GC and `loadWhenQuiet` without timers (L14; closes the known breach in 02 section 12) | Done in 3.4.1.52 (decision 28) |
+| P3 | 3.4.2.56 | Capture events only when needed (L15) | Done in 3.4.1.52 (decision 28) |
+| P4 | 3.4.2.57 | Chat path: N26 (option reads without the router), N28 (guild path), N35 (per-line tables), N31 (outbox trim), benchmarked | Done in 3.4.1.52 (decision 28) |
+| P5 | 3.4.2.58 | Duplicated logic into functions: N17 to N25 | Done in 3.4.1.52 (decision 28) |
+| P6 | 3.4.2.59 | Core placement: L20 plus N37 to N39, measured before and after | Done in 3.4.1.52 (decision 28) |
 | R | 3.4.2.60 | Release; `01_HANDOVER.md` re-summarized |
 
 ### Line 3.4.3: window tidy
@@ -277,10 +278,10 @@ Expected builds, if nothing is added before them (decision 24).
 
 | Stage | Build | Change |
 | --- | --- | --- |
-| W1 | 3.4.3.61 | G11 to G14, G24, G25, G29 |
-| W2 | 3.4.3.62 | Logic to Libraries: G1 to G10 |
-| W3 | 3.4.3.63 | Kit functions in all three looks, plus the kit preview: G15 to G20 |
-| W4 | 3.4.3.64 | Redraw cost: G22, G23, measured on the 3.4.0.28 save |
+| W1 | 3.4.3.61 | G11 to G14, G24, G25, G29 | Done in 3.4.1.52 (decision 28) |
+| W2 | 3.4.3.62 | Logic to Libraries: G1 to G10 | Done in 3.4.1.52 (decision 28) |
+| W3 | 3.4.3.63 | Kit functions in all three looks, plus the kit preview: G15 to G20 | Done in 3.4.1.52 (decision 28) |
+| W4 | 3.4.3.64 | Redraw cost: G22, G23, measured on the 3.4.0.28 save | Done in 3.4.1.52 (decision 28) |
 | R | 3.4.3.65 | Release; `01_HANDOVER.md` re-summarized |
 
 ## 5. Decisions (Dan, 2026-10-08; all as recommended)
@@ -322,3 +323,6 @@ Expected builds, if nothing is added before them (decision 24).
 | The Camelot repair touches a Retail save | It runs only on a Camelot realm and client, and only for unit-discovered records |
 | An older version strips newer data | Only `RETIRED` keys are deleted; unknown fields are kept (2.3) |
 | Imports between versions | The export format version; every field filled; import keeps unknown fields |
+
+28. **The rest of the core uplift ships as one build (Dan, 2026-10-09).** S3, P1 to P6 and W1 to W4 were built in parallel by separate threads and merged into one PR as one squashed build, **3.4.1.52**, instead of one PR per stage (an override of the one-step-per-PR and one-step-per-session rules for this delivery only; 02 section 12). No release stage ran: the 3.4.1 release stays Dan's call and takes the next build (3.4.1.53); the 3.4.2 and 3.4.3 lines are not used, because their stages are inside 3.4.1.52. Per-stage notes, numbers and the open points are in `reference/combined-3.4.1.52/`. Merge findings: P1 had removed exports and a local that S3 and P5 still used (`PSS_FindGuildRecord`, `PSS_CompactAllMembers`, `PSS_PlayerBlocksAnything`, `parseTimeString`); the full validation found each and all are restored. P3 is a small behaviour change (inactive shipped guild rules no longer see units or hand-typed /who results while nothing is listed and no shipped list is on).
+29. **CI and the release gate (Dan, 2026-10-09, "all 5"; in 3.4.1.52, no addon change):** a skipped check fails `validate_all.sh`; the every-save comparison with another build is opt-in (`PSS_SPARSE_AS`); `release.yml` runs the rules check and the full harness before it publishes; CI gets an informational `window-compare` job and a `real-saves` job that runs when a `SCRATCH_TOKEN` secret exists. **Waiting on Dan:** create the secret (a fine-grained token with Contents: read on `racetracks/Pour-Social-Score_Scratch`, added as the repository secret `SCRATCH_TOKEN`) to turn the real-save job on.

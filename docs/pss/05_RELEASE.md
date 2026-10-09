@@ -10,7 +10,10 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 ## CI jobs (rules.yml)
 - `check`: `sh tools/check_rules.sh` (Lua 5.1 syntax, ASCII, tabs, layers, TOCs, the history check; `tools/check_rules_eui.sh` is gone with the EUI folder, 3.4.0.25).
 - `harness`: the window's checks (the EllesmereUI checks went at 3.4.0.25) (`check_tui`, `check_viewquery`, `check_players`, `check_guilds`, `check_filters`, `check_events`, `check_options`, `check_menus` (3.4.0.21)) and `check_secrets.lua` (3.4.0.14).
-- `upgrades` (3.4.0.14): `sh tools/harness/validate_all.sh` on a full clone (`fetch-depth: 0`), without real saves: upgrades from every old layout, data, on demand, growth, the window checks. The real-save run stays local (saves built from scratch).
+- `upgrades` (3.4.0.14): `sh tools/harness/validate_all.sh` on a full clone (`fetch-depth: 0`), without real saves: upgrades from every old layout, data, on demand, growth, the window checks. A check that cannot run prints `SKIPPED` and fails the run (`PSS_ALLOW_SKIP=1` accepts it). The repository variable `PSS_SPARSE_AS` (a git ref, unset by default) turns on the every-save comparison with another build (`sparse_saves.sh`, for a stage that changes the saved layout; 3.4.1.52).
+- `window-compare` (3.4.1.52): informational, always passes: `tui_compare.sh` against the base branch in all three looks, the output in the job summary and a warning annotation when the window differs; frame numbers are not a difference.
+- `real-saves` (3.4.1.52): with a `SCRATCH_TOKEN` secret (contents read on `racetracks/Pour-Social-Score_Scratch`) it builds the real saves from scratch and runs the full harness on them; without the secret it prints a notice and passes. The saves are never committed and not uploaded.
+- `release.yml` runs `check_rules.sh` and `validate_all.sh` before it publishes (3.4.1.52): a red `main` publishes nothing; retry with Run workflow once fixed.
 - `check` also runs `tools/check_toc.sh` on every `PourSocialScore_*` folder (three TOCs agree, files exist, Version = core's) and the PSS-names check.
 
 ## Release history

@@ -2,14 +2,14 @@
 -- POUR SOCIAL SCORE UI - SKINS
 --
 -- The window has one layout and three looks (option uiSkin, Libraries
--- M.PSS_UISkin): "blizzard" (the default: Blizzard frames, templates and
--- fonts), "modern" (Blizzard's new Social window art; until it is built it
--- paints as Blizzard) and "dark" (flat dark fills and one-pixel borders,
--- drawn here).
--- Every widget is built once with the parts of both looks and registers a
--- painter with ns.OnPaint; switching the look or the font (option uiFont)
--- repaints the window in place. Only the paint differs: sizes, places and
--- behaviour are the same in both looks.
+-- M.PSS_UISkin), in this order: "modern" (the default: Blizzard's 12.x
+-- Social window art, falling back to Classic where the client lacks it),
+-- "blizzard" (named Classic: Blizzard frames, templates and fonts) and
+-- "dark" (flat dark fills and one-pixel borders, drawn here).
+-- Every widget is built once with the parts of all three looks and
+-- registers a painter with ns.OnPaint; switching the look or the font
+-- (option uiFont) repaints the window in place. Only the paint differs:
+-- sizes, places and behaviour are the same in every look.
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = PourSocialScore_NS.M
@@ -52,7 +52,7 @@ ns.TITLE_H = 25
 local skin, modernArt
 local painters = {}
 
--- "blizzard" or "dark"
+-- "modern", "blizzard" (Classic) or "dark"
 function ns.Skin()
 	if not skin then skin = M.PSS_UISkin() end
 	return skin

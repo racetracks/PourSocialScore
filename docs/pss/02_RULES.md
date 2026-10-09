@@ -8,6 +8,7 @@
 3. Core fires `M.Events`; UIs listen and write only through core setters (`tools/check_layers.lua` enforces it).
 4. The 8 StaticPopup dialogs stay as they are in the native mode.
 5. **Guild member fields are read through their accessors (core uplift S2, 3.4.1.50):** `M.PSS_MemberCanon`, `M.PSS_MemberName`, `M.PSS_MemberGuildName`, `M.PSS_MemberWhenBlocked`, `M.PSS_MemberShipped`, `M.PSS_MemberPlayerKey`, and `History.CountTotal` (or `History.EnsureCounts`) for a saved counts table's total; a rule's member count from `M.PSS_GuildMemberCount`, never the saved `memberCount`. `tools/check_fields.lua` (rules check) fails the runtime fields or `memberCount` outside the accessor block.
+6. **Simulate the client while coding (Dan, 2026-10-09):** every change is driven through the harness's simulated WoW client as it is written, its real output read, changed behaviour gets a check that fails on `origin/main`, and the PR names what a simulation cannot show (11_PREFERENCES has the full text).
 
 ## 2. TOCs
 - Title `|cff69ccf0PourSocialScore|r <Part>`.
@@ -26,9 +27,9 @@
 - No guild discovery from mouseover or nameplates in combat.
 - **Forward compatible saves (core uplift U3, plan 2.3, Dan, 2026-10-08):** every field PSS saves is listed in `M.PSS_SCHEMA` (`PSS_Schema.lua`) in the PR that first saves it (`check_schema.lua` fails an unlisted one). Nothing is deleted by guesswork: only keys in `RETIRED` (`PSS_Upgrade.lua`) are dropped; a field, owner form, rule tag or built-in id this version does not know is kept and read as absent; a new layout of a whole store takes a higher `v` and an older version leaves a higher `v` untouched. A per-filter field goes in `filterID` or a table keyed by id, never a new parallel array. A rule this version cannot use is not applied, stays unchanged, is named after a version change and is exportable (`/pss export unused`). Exports carry `v` (format 2 from 3.4.1.47) and a record's unknown fields in `more`; the `PSS1` tag stays so older versions read them.
 
-## 4. Garbage collection (changed 2026-10-07)
-- Old PSS rule: GC on request (login, /who scan, import, window close) **plus a 10-minute idle cycle**; never in combat, within 5 minutes of combat, or in an instance.
-- **Dan chose event-driven on 2026-10-07:** no idle timer and no 5-minute combat wait. GC runs only on request, deferred to out of combat and not in an instance, detected from events. The code (`PSS_Perf.lua`) has not been changed yet (Dan: templates only for now). **It changes on the 3.4.1 line**, straight after the 3.4.0 release (code review decision 5, Dan, 2026-10-08).
+## 4. Garbage collection (changed 2026-10-07; done in 3.4.1.52, core uplift P2)
+- Old PSS rule: GC on request plus a 10-minute idle cycle and a 5-minute combat wait. Gone.
+- **Event-driven (Dan, 2026-10-07):** no ticker, no idle timer, no wall-clock gate. GC runs only on request (`M.PSS_RequestGC`: login, /who scan, import, window close), and only out of combat, not dead, not in an encounter and not in a dungeon, raid, battleground or arena (`IsInInstance`). A request made at a bad moment waits for `PLAYER_REGEN_ENABLED`, `PLAYER_ENTERING_WORLD`, `ZONE_CHANGED_NEW_AREA`, `PLAYER_ALIVE` or `PLAYER_UNGHOST`, registered only while a request waits. A running cycle stops itself at the first frame that is busy. `PSS_Perf.lua` has no `C_Timer`; `loadWhenQuiet` (Logging) waits the same way (`History.LoadWhenQuiet`). `check_gc.lua` and `check_ondemand.lua` phase 3 gate it.
 
 ## 5. Core placement (G2, confirmed 2026-10-05 15:30Z)
 > "minimal functions are stored in the poursocialscore core addon. it must only service as the core framework to handle the chat filtering and a launchpad for the addon. Functions that wont run in active memory or be considered as regularly active (chat filters etc) should be in the libraries folder."
@@ -60,7 +61,7 @@ From 3.4.0.25 there is one front end, `PourSocialScore_GUI`; 1 and 3 to 5 still 
 ## 9. Hosting paths on scratch (changed 2026-10-08)
 **Scratch is the project files (Dan, 2026-10-08):** saves, plans, docs, zips and summaries all live there; there is no `/mnt/project-files`. Where a pack says "project files", read scratch.
 Scratch is **`racetracks/Pour-Social-Score_Scratch`**; its rules and procedures are the scratch pack (`docs/scratch/`, rules in 05). The old `racetracks/scratch` and its paths (`PourSocialScore/test-builds/`, `pss-builds/`, `pss-projects/`, `pss-issues/`, `latest/`, `handover-packs/`) are no longer used; links already given there stay valid.
-- Test zips: `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`; the same commit replaces the zip in `latest/` with it and updates the index rows. `sh tools/host_build.sh <scratch checkout>` does all of it from HEAD (`--no-commit` stages it so docs can join the same commit).
+- Test zips: `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`; the same commit replaces the zip in `latest/` with it and updates the index rows. `sh tools/host_build.sh <scratch checkout>` does all of it from HEAD (`--no-commit` stages it so docs can join the same commit). `sh tools/host_tests.sh <scratch checkout> --log <validation log>` can build a tests bundle (`PourSocialScore-<version>-tests-<date>.zip`), but it is not hosted by default: Dan does not run tests and does not want one (11_PREFERENCES); the test zip never holds `tools/`.
 - Docs: the newest markdown in `docs/latest/<project>/` (current plan `docs/latest/ui uplift/`; these docs `docs/latest/pss-docs/`). Always read it first; refresh it whenever a plan or these docs change. Each docs release is zipped in the root of `docs/` (`<name>-<date>-vN.zip`); a project or feature release keeps a history folder `docs/<project>/`. Issue notes are docs too.
 - Saves: `SavedVariables/<version>/`, with a line in `SavedVariables/README.md`.
 - Packs: zipped in `docs/` (this pack is `pss-handover-<date>-vN`), listed in `docs/README.md`.
@@ -100,10 +101,9 @@ The baseline's rules are mandatory. These are the only places PSS differs, each 
 | J2 / J4 Never touch Blizzard state | The guild invite is declined through the API (`DeclineGuild` / `C_GuildInfo.DeclineGuild`) plus `StaticPopup_Hide("GUILD_INVITE")` (10.3) | 2026-10-08 (code review decision 2) |
 | C2 No behaviour change without opt-in | From 3.4.1.35 a player ignored through Blizzard is moved into PSS (taken off Blizzard's list once confirmed, with a note) for everyone; PSS is authoritative over Blizzard's list (10_CORE_UPLIFT 2.7) | 2026-10-08 |
 | C3 No OnUpdate polling | The new window's pie (`PourSocialScore_GUI/PSS_Pie.lua`) runs OnUpdate only while the mouse is over it, so the hovered slice follows the cursor; it is cleared on leave | 2026-10-08 |
+| E1 / E9 One step per PR and per session | The rest of the core uplift (S3, P1 to P6, W1 to W4) is one PR and one squashed build, 3.4.1.52, built by parallel threads; each stage was proven on its own and the merged result passed the full validation. This delivery only | 2026-10-09 (Dan: "do all of the remainder of the core uplift in one merge") |
 
 Blizzard hooks approved within the J rules (post-hooks, no override): `hooksecurefunc(ChatFrameUtil, "InsertLink")` on Retail 12.x (Dan, 2026-10-08), and the rest of 10.3.
 
 ### Known breaches, with their fix
-| Baseline rule | Where | Fixed by |
-| --- | --- | --- |
-| C15 GC only on request, event-driven | `PSS_Perf.lua`: a 10-minute idle cycle (section 4) | The 3.4.1 line (code review decision 5, Dan, 2026-10-08) |
+None. (The idle GC cycle in `PSS_Perf.lua`, the last one, was fixed in 3.4.1.52, core uplift P2.)

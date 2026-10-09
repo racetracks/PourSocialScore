@@ -181,11 +181,19 @@ function M.PSS_CanonRealm(realm)
 	return realm ~= "" and realm or nil
 end
 
+-- guild name -> canon, for the names seen on chat lines (P4, N28): a small
+-- table that starts over when it fills
+local guildCanons, guildCanonCount = {}, 0
 function M.PSS_CanonGuild(name)
 	if type(name) ~= "string" or isSecret(name) then return nil end
-	name = trim(name):gsub("%s+", " ")
-	if name == "" then return nil end
-	return name:lower()
+	local c = guildCanons[name]
+	if c ~= nil then return c or nil end
+	local n = trim(name):gsub("%s+", " ")
+	c = n ~= "" and n:lower() or false
+	if guildCanonCount >= 500 then guildCanons, guildCanonCount = {}, 0 end
+	guildCanons[name] = c
+	guildCanonCount = guildCanonCount + 1
+	return c or nil
 end
 
 function M.PSS_NowString()
@@ -228,19 +236,16 @@ local EVENT_CATEGORY = {
 	CHAT_MSG_MONSTER_WHISPER = "npc", CHAT_MSG_MONSTER_YELL = "npc",
 	CHAT_MSG_SYSTEM = "system",
 }
-M.PSS_EVENT_CATEGORY = EVENT_CATEGORY
 function M.PSS_EventCategory(event) return EVENT_CATEGORY[event] end
 
 -- Categories chat filters (custom text logic) may act on.
 local TEXT_CATEGORIES = { whisper = true, partyRaid = true, world = true, guildChat = true }
 
--- Labels for history/UI.
-M.PSS_BLOCK_CATEGORIES = { "whisper", "partyInvite", "partyRaid", "world", "guildInvite" }
-M.PSS_BLOCK_LABELS = {
-	whisper = "Whisper", partyInvite = "Party Invite", partyRaid = "Party/Raid",
-	world = "World Chat", guildInvite = "Guild Invite", guildChat = "Guild Chat",
-	other = "Other", duel = "Duel", trade = "Trade",
-}
+-- Labels for history/UI: History's categories and words, plus the extra kinds.
+M.PSS_BLOCK_LABELS = { other = "Other", duel = "Duel", trade = "Trade" }
+for cat, label in pairs(M.PSS_History.CAT_LABEL) do
+	if cat ~= "unknown" then M.PSS_BLOCK_LABELS[cat] = label end
+end
 
 local EVENT_CHANNEL = {
 	CHAT_MSG_WHISPER = "Whisper", CHAT_MSG_BN_WHISPER = "Battle.net Whisper",
@@ -305,7 +310,6 @@ function M.PSS_RegisterBlockSource(def)
 	table.sort(sources, function(a, b) return (a.order or 50) < (b.order or 50) end)
 end
 
-function M.PSS_GetBlockSources() return sources end
 
 -- kind: "system", "npc", "realm", "text"; fn(ctx) -> blocked[, info]
 function M.PSS_RegisterBlockHandler(kind, id, fn)
@@ -618,14 +622,15 @@ end
 M.PSS_CoreFilter = CoreFilter
 
 -- Dry-run explanation for diagnostics: { {source=, listed=true, blocked={cat=bool}} }
+local EXPLAIN_ORDER = { "whisper", "partyRaid", "world", "guildChat", "partyInvite", "guildInvite", "duel", "trade" }
 function M.PSS_ExplainPerson(name)
 	local canon = canonPlayer(name)
-	local out = { canon = canon, sources = {} }
+	local out = { canon = canon, sources = {}, order = EXPLAIN_ORDER }
 	if not canon then return out end
 	local found = lookupPeople(canon, {})
 	for _, f in ipairs(found or {}) do
 		local row = { src = f.src, entry = f.entry, blocked = {} }
-		for _, cat in ipairs({ "whisper", "partyRaid", "world", "guildChat", "partyInvite", "guildInvite", "duel", "trade" }) do
+		for _, cat in ipairs(EXPLAIN_ORDER) do
 			local ok, b = pcall(f.src.decide, f.entry, cat, {})
 			row.blocked[cat] = ok and b == true
 		end
@@ -658,7 +663,6 @@ local function chatFrames()
 	end
 	return list
 end
-M.PSS_ChatFrames = chatFrames
 
 function M.PSS_PurgeChatFrom(keys)
 	if type(keys) ~= "table" or not next(keys) then return end
@@ -845,7 +849,6 @@ M.PSS_FilterAvailable = type(AddFilter) == "function"
 if M.PSS_FilterAvailable then
 	for event in pairs(EVENT_CATEGORY) do AddFilter(event, CoreFilter) end
 end
-M.PSS_CoreEvents = EVENT_CATEGORY
 
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("PARTY_INVITE_REQUEST")
@@ -880,7 +883,7 @@ ev:SetScript("OnEvent", function(_, event, arg1, ...)
 	if not ok then noteError(err) end
 end)
 
--- Test hooks for an offline test harness (not shipped with the addon).
+-- Test hooks for an offline test harness (used only by tools/harness).
 M.PSS__CoreTest = {
 	handlePartyInvite = handlePartyInvite, handleGuildInvite = handleGuildInvite,
 	handleDuel = handleDuel, handleTrade = handleTrade, handleWhisperSent = handleWhisperSent,

@@ -17,10 +17,8 @@ V.lastFilterError		= false
 -- PSS_GuildIgnoreList.lua and PSS_ChatFilters.lua.
 local PSSFRAME			= nil
 local gotLoaded			= false
-local gotUpdate			= false
 local gotEntering		= false
 local safeToLoad		= false
-local gotGroup			= IsInGroup()
 V.groupWarning			= {}
 
 ----------------------------------
@@ -65,11 +63,16 @@ function M.PSS_TidyBlockHistory()
 		for i = 1, #db.filterList do
 			keys[M.PSS_FilterOwnerKey(i)] = true
 			local id = db.filterID[i]
-			if id and id ~= "" then ids[id] = true end
+			if id and id ~= "" then
+				ids[id] = true
+				-- lines still under the filter's text (S3: a filter saved by an older
+				-- version after it was given its id) are kept
+				keys[M.PSS_History.FilterKey("", db.filterList[i])] = true
+			end
 		end
 		-- an owner or rule tag of a form this version does not make (a newer
-		-- version's filter id) is kept (U3)
-		alive.f = function(o) return keys[o] == true or not (o:find("^f:t:") or o:find("^f:PSS%d+$")) end
+		-- version's) is kept (U3); a number id is this version's (S3)
+		alive.f = function(o) return keys[o] == true or not (o:find("^f:t:") or o:find("^f:PSS%d+$") or o:find("^f:%d+$")) end
 		alive.rule = function(id) return ids[id] == true or not tostring(id):find("^PSS%d+$") end
 	end
 	return History.Tidy(alive)
@@ -132,6 +135,8 @@ local function ApplicationStartup(self)
 	M.PSS_RunUpgradeData(fresh)
 	-- entries past their expiry go now (N40), then once a day after combat
 	M.PSS_ExpireEntries()
+	-- the lists are in their final form: hear unit and /who captures only if they can be used (P3)
+	if M.PSS_ApplyCapture then M.PSS_ApplyCapture() end
 	-- PourSocialScore_Logging was loaded for the upgrade: add the waiting
 	-- lines, trim and tidy the history now
 	local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
@@ -139,7 +144,6 @@ local function ApplicationStartup(self)
 
 	M.PSS_HookFunctions()
 
-	self:UnregisterEvent("IGNORELIST_UPDATE")
 	self:UnregisterEvent("PLAYER_ENTERING_WORLD")
 	self:UnregisterEvent("ADDON_LOADED")
 
@@ -201,7 +205,6 @@ local function CheckGroupForIgnored()
 	if not IsInGroup() or not PourSocialScoreDB then return end
 	if M.PSS_Opt("listWarnings") == false then return end
 	if InCombatLockdown and InCombatLockdown() then rosterCheckDeferred = true return end
-	gotGroup = true
 	local prefix	= IsInRaid() and "raid" or "party"
 	local doWarn	= false
 	local inGroup = {}
@@ -233,6 +236,8 @@ local function EventHandler (self, event, sender, ...)
 	if event == "PLAYER_LOGOUT" then
 		-- Fires on logout and /reload, before SavedVariables are written.
 		M.PSS_CollapseFilters()
+		-- the player records are saved sparse (S3)
+		if M.PSS_CompactPlayers then pcall(M.PSS_CompactPlayers) end
 		-- managed guild lists: write only the delta
 		if M.PSS_FlushManaged then pcall(M.PSS_FlushManaged) end
 		-- this session's counts are not kept past it
@@ -247,10 +252,6 @@ local function EventHandler (self, event, sender, ...)
 		gotLoaded = true
 	end
 
-	if event == "IGNORELIST_UPDATE" then
-		gotUpdate = true
-	end
-
 	if event == "PLAYER_ENTERING_WORLD" then
 		gotEntering = true
 		-- sender = isInitialLogin, then isReloadingUi: a login or /reload starts
@@ -262,7 +263,6 @@ local function EventHandler (self, event, sender, ...)
 		-- Raids fire this many times in a row: check once, 1 s after the
 		-- last one, and never while in combat (checked when combat ends).
 		if not IsInGroup() then
-			gotGroup		= false
 			V.groupWarning = {}
 		elseif V.PSS_Loaded and PourSocialScoreDB and not rosterCheckQueued then
 			rosterCheckQueued = true
@@ -297,7 +297,6 @@ PSSFRAME = CreateFrame("FRAME")
 
 PSSFRAME:RegisterEvent("PLAYER_ENTERING_WORLD")
 PSSFRAME:RegisterEvent("ADDON_LOADED")
-PSSFRAME:RegisterEvent("IGNORELIST_UPDATE")
 PSSFRAME:RegisterEvent("GROUP_ROSTER_UPDATE")
 PSSFRAME:RegisterEvent("PLAYER_LOGOUT")
 PSSFRAME:RegisterEvent("PLAYER_REGEN_ENABLED")

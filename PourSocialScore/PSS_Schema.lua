@@ -28,7 +28,8 @@ M.PSS_SCHEMA = {
 	-- (S2b; the arrays ignoreList, typeList, factionList, dateList, notes,
 	-- expList and syncInfo are read once by the upgrade and dropped)
 	entry = "name date kind=player faction note exp=0 sync",
-	-- PSS_PlayersDB.playerData[key]
+	-- PSS_PlayersDB.playerData[key] (a W I G P C switch is saved only when it is
+	-- false; a missing one blocks, 3.4.1.52)
 	player = "name nickname faction class className whenBlocked currentGuild guildWhenBlocked lastBlockedInvite"
 		.. " whispersBlocked=true partyInvitesBlocked=true guildInvitesBlocked=true partyRaidBlocked=true channelsBlocked=true"
 		.. " blizzardIgnore=false blockCounts@PSS_GetPlayerBlockCounts opts@PSS_Opt",
@@ -36,17 +37,18 @@ M.PSS_SCHEMA = {
 		.. " blockedPrivateMessages blockedChatMessages",
 	-- PSS_GuildsDB.guildData[key]
 	guild = "name enabled=true declineGuild=true declineGroup=true partyRaid=true block@PSS_GuildBlock"
-		.. " customScan@PSS_MigrateCustomScan members memberCount@PSS_GuildMemberCount managed managedGone ruleOrigin opts@PSS_Opt",
-	guildOld = "levelStart levelEnd levelBrackets scan scanTotal scanBrackets blockHistory blockedWhispers"
+		.. " customScan@PSS_MigrateCustomScan members managed managedGone ruleOrigin opts@PSS_Opt",
+	-- (memberCount: worked out by M.PSS_GuildMemberCount since 3.4.1.52, no longer saved)
+	guildOld = "memberCount levelStart levelEnd levelBrackets scan scanTotal scanBrackets blockHistory blockedWhispers"
 		.. " blockedPrivateMessages blockedChatMessages blockedInvites",
-	-- PSS_GuildsDB.guildData[key].members[key] (_ fields are runtime fields
-	-- older builds saved; S3 stops saving them; every reader goes through
-	-- the M.PSS_Member* accessors, S2)
+	-- PSS_GuildsDB.guildData[key].members[key] (saved sparse since 3.4.1.52:
+	-- name, guild and whenBlocked only when the key, the rule and the shipped
+	-- list do not give them; every reader goes through the M.PSS_Member*
+	-- accessors, S2; the _ fields are runtime fields older builds saved)
 	member = "name@PSS_MemberName guild@PSS_MemberGuildName whenBlocked@PSS_MemberWhenBlocked note class faction level lastBlockedInvite block@PSS_MemberBlock"
 		.. " blockCounts@PSS_EnsureMemberBlockData opts@PSS_Opt excludedGroup=false excludedGuildInvite=false"
-		.. " excludedWhispers=false excludedChat=false _playerKey@PSS_MemberPlayerKey _canon@PSS_MemberCanon _gkey"
-		.. " _managed@PSS_MemberShipped _virtual _blockV2",
-	memberOld = "online race className blockHistory blockedWhispers blockedPrivateMessages privateMessagesBlocked"
+		.. " excludedWhispers=false excludedChat=false _blockV2",
+	memberOld = "_playerKey _canon _gkey _managed _virtual online race className blockHistory blockedWhispers blockedPrivateMessages privateMessagesBlocked"
 		.. " blockedChatMessages chatMessagesBlocked blockedInvites partyInvitesBlocked partyRaidMessagesBlocked",
 	-- W I G P C (guild and member .block; true = blocked, a member's nil = its guild's)
 	block = "whisper=true partyInvite=true guildInvite=true partyRaid=true world=true",
@@ -59,6 +61,7 @@ M.PSS_SCHEMA = {
 	-- a block history line (PSS_LoggingDB.blockLog[i], blockKeep[o][i], outbox[i])
 	line = "o ts cat event channel member message gk r",
 	lineOld = "time kind",
-	-- a saved log group (blockLog[o] from 3.2.0-dev007; lines in its array part)
+	-- a saved log group (blockLog[o] from 3.2.0-dev007; lines in its array part;
+	-- m only when it is not the owner key's own form, 3.4.1.52)
 	logGroup = "c gk m n k r",
 }

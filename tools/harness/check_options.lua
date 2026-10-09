@@ -19,7 +19,7 @@ local win = _G.PSS_Window
 win.tabs[6]._scripts.OnClick(win.tabs[6])
 local page = win.pages[6]
 check(page:IsShown() and page.groups and page.search, "Options tab not built")
-check(not page.note:IsShown(), "the built tab still shows its note")
+check(page.note == nil, "the placeholder note is gone")
 
 -- every option once, under its section, showing the saved value
 local rowOf, n = {}, 0
@@ -46,7 +46,7 @@ end
 
 -- a tick box
 local boolKey
-for _, o in ipairs(M.PSS_OPTIONS) do if o.kind == "bool" and not o.field and not o.reload and rowOf[o.key] then boolKey = o.key break end end
+for _, o in ipairs(M.PSS_OPTIONS) do if o.kind == "bool" and not o.field and rowOf[o.key] then boolKey = o.key break end end
 local bc = rowOf[boolKey].check
 local was = M.PSS_Opt(boolKey) == true
 bc:SetChecked(not was)

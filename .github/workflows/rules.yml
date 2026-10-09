@@ -1,6 +1,7 @@
 # Runs tools/check_rules.sh (Lua 5.1, ASCII only, tab indentation), the
 # harness's window checks, and validate_all.sh (upgrades, data, on demand,
-# growth; no real saves here) on every pull request and every push to main.
+# growth; no real saves here) on every pull request and every push to main,
+# plus an informational window compare and, with a scratch token, the real saves.
 name: Rules
 
 on:
@@ -54,4 +55,56 @@ jobs:
       - name: Install Lua 5.1
         run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
       - name: Upgrades and data checks
-        run: sh tools/harness/validate_all.sh
+        run: PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh
+
+  # Informational: the window against the branch it merges into, in all three
+  # looks. A change that should not show must read "identical"; an intended
+  # change lists its lines. The job always passes (a failing job would show a
+  # red cross on a PR whose difference is intended): a difference is a warning
+  # annotation and the full text is in the job summary.
+  window-compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Lua 5.1
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Window against the base branch
+        run: |
+          base=origin/${{ github.base_ref || 'main' }}
+          rc=0
+          sh tools/harness/tui_compare.sh "$base" > "$RUNNER_TEMP/tui.txt" 2>&1 || rc=$?
+          { echo '### Window against '"$base"; echo '```'; tail -45 "$RUNNER_TEMP/tui.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          tail -3 "$RUNNER_TEMP/tui.txt"
+          if [ "$rc" != 0 ]; then echo "::warning::The window differs from $base (intended? see the job summary)"; fi
+
+  # The real saves live on the private scratch repo and are never committed
+  # here (baseline 02 D10). With a SCRATCH_TOKEN secret (contents: read on
+  # racetracks/Pour-Social-Score_Scratch) the full harness runs on them; without
+  # one (forks, or no secret yet) the job says so and passes.
+  real-saves:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Lua 5.1
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Check for the scratch token
+        id: t
+        env:
+          T: ${{ secrets.SCRATCH_TOKEN }}
+        run: |
+          if [ -n "$T" ]; then echo "have=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::No SCRATCH_TOKEN secret: the real-save run is local only"; fi
+      - name: Build the real saves from scratch
+        if: steps.t.outputs.have == 'true'
+        env:
+          T: ${{ secrets.SCRATCH_TOKEN }}
+        run: |
+          git clone -q --depth 1 "https://x-access-token:${T}@github.com/racetracks/Pour-Social-Score_Scratch" "$RUNNER_TEMP/scratch"
+          sh tools/harness/build_saves.sh "$RUNNER_TEMP/scratch" "$RUNNER_TEMP/saves"
+      - name: Full harness on the real saves
+        if: steps.t.outputs.have == 'true'
+        run: PSS_REAL_SAVES="$RUNNER_TEMP/saves" PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh
