@@ -57,28 +57,6 @@ end
 -- POPUPS AND ALERTS (fire during play) --
 -----------------------------------------
 
--- The reload prompt: Blizzard's StaticPopup in every look (Dan,
--- 2026-10-08). Camelot (interface 16001) blocks ReloadUI() from addon code.
-local camelot = GetBuildInfo and (select(4, GetBuildInfo()) or 0) < 20000
-
-StaticPopupDialogs["PSS_RELOAD"] = {
-	preferredIndex	= STATICPOPUPS_NUMDIALOGS,
-	text			= "%s",
-	button1			= RELOADUI or "Reload UI",
-	button2			= LATER or "Later",
-	whileDead		= 1,
-	hideOnEscape	= 1,
-	OnAccept		= function() ReloadUI() end,
-}
-
-function M.PSS_AskReload(text)
-	if camelot then
-		M.ShowMsg(text .. " Type /reload.")
-	else
-		StaticPopup_Show("PSS_RELOAD", text)
-	end
-end
-
 StaticPopupDialogs["PSS_REASON"] = {
 
 	preferredIndex = STATICPOPUPS_NUMDIALOGS,

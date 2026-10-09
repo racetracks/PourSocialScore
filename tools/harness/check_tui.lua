@@ -20,7 +20,7 @@ check(not loaded("PourSocialScore_GUI"), "GUI loaded at login")
 check(not loaded("PourSocialScore_Libraries"), "Libraries loaded at login")
 check(M.PSS_PARTS.GUI == "PourSocialScore_GUI" and M.PSS_PARTS.UI == nil and M.PSS_PARTS.EllesmereUI == nil,
 	"loader parts: the window is GUI, no UI or EllesmereUI part")
-check(M.PSS_TUI == nil and M.PSS_GUI == nil and M.PSS_OpenUI and M.PSS_AskReload, "core's window entry points")
+check(M.PSS_TUI == nil and M.PSS_GUI == nil and M.PSS_OpenUI and M.PSS_AskReload == nil, "core's window entry points")
 
 -- a list change with the window asleep loads nothing
 M.PSS_AddPlayer("Badguy")

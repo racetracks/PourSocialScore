@@ -400,15 +400,6 @@ function M.PSS_GetGuild(name)
 	return ensureGuild(name)
 end
 
-local function findGuildForPlayer(name)
-	local key = memberKey(name)
-	if not key then return nil end
-	for guildKey, g in pairs(PourSocialScoreDB.guildData or {}) do
-		if g.members and g.members[key] then return g, guildKey, g.members[key] end
-	end
-	return nil
-end
-
 function M.PSS_UpdatePlayerUnit(name, unit, guild)
 	local p = setPlayerMeta(name, unit, guild)
 	if guild and guild ~= "" then
@@ -497,18 +488,10 @@ end
 
 -- Entries, categories, counts and the history UI: PSS_ChatHistory.lua
 local History = M.PSS_History
-local CAT_ORDER, CAT_LABEL, CAT_COLOR = History.CAT_ORDER, History.CAT_LABEL, History.CAT_COLOR
-M.PSS_GUILD_BLOCK_CATEGORIES = CAT_ORDER
-M.PSS_GUILD_BLOCK_LABELS = CAT_LABEL
+local CAT_LABEL = History.CAT_LABEL
 
 -- Event categories and channel labels are shared with the core.
-local eventCategory = M.PSS_EventCategory
-M.PSS_GuildEventCategory = eventCategory
 local channelLabel = M.PSS_ChannelLabel
-local parseTimeString = History.ParseTime
-local normalizeEntry = History.Normalize
-
-local entrySig = History.Sig
 
 -- Bring a member record to the current block-data format. Older counter
 -- fields are folded in once (flag _blockV2). Old per-member history lists
@@ -598,21 +581,12 @@ local function compactAllMembers()
 	end
 	return n
 end
-M.PSS_CompactAllMembers = compactAllMembers
 
 -- forget a member's counts (Reset): no counts stored = all zero
 local function clearMemberBlockData(m)
 	m.blockHistory, m.blockCounts, m.lastBlockedInvite, m._blockV2 = nil, nil, nil, nil
 	for _, f in ipairs(LEGACY_COUNT_FIELDS) do m[f] = nil end
 end
-
--- Fields that must never be copied by reference between member records.
-local BLOCK_FIELDS = {
-	blockCounts = true, blockHistory = true, _blockV2 = true,
-	blockedWhispers = true, blockedPrivateMessages = true, blockedChatMessages = true, blockedInvites = true,
-	privateMessagesBlocked = true, chatMessagesBlocked = true, partyInvitesBlocked = true,
-	partyRaidMessagesBlocked = true,
-}
 
 -- Merge src's blocked counts INTO dst (used whenever a player moves between
 -- guild rules). Counts are summed (only one record is ever hit for a given
@@ -784,7 +758,6 @@ function M.PSS_ManagedStats()
 end
 
 function M.PSS_ManagedGroups() return buildManaged().groups end
-function M.PSS_ManagedGroupOfGuild(gkey) return buildManaged().groupOf[gkey] end
 
 -- shipped (static) guild rule? (those can't be removed)
 local function isStaticGuild(gkey) return buildManaged().groupOf[gkey] ~= nil end
@@ -1146,7 +1119,6 @@ local function requestGuildUIRefresh()
 	end
 	if C_Timer and C_Timer.After then C_Timer.After(0.25, run) else run() end
 end
-M.PSS_RequestGuildUIRefresh = requestGuildUIRefresh
 
 local function recordGuildBlock(g, m, cat, event, message, channel, gkey)
 	keepManaged(m)
@@ -1311,7 +1283,6 @@ local function findGuildRecord(guildNameOrKey)
 	end
 	return nil
 end
-M.PSS_FindGuildRecord = findGuildRecord
 
 -- Returns a counts table { whisper=, partyInvite=, partyRaid=, world=, guildInvite=, total= }.
 -- With no argument, sums every guild rule.
@@ -1722,7 +1693,7 @@ end
 -- How long Guild Search results are kept for Save (seconds).
 local GUILD_SEARCH_CACHE_TTL = 600
 
--- Saving Guild Search results (the picker is in PSS_GuildUI.lua):
+-- Saving Guild Search results (the picker is in the window, PSS_Guilds.lua):
 --   M.PSS_SaveGuildSearch     : ticked guilds become guild rules, with the
 --                               players the search saw in them as members
 --   M.PSS_SaveGuildExclusions : ticked guilds go on the Guild Exclusion List
