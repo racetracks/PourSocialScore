@@ -22,7 +22,7 @@ In 02 section 12, each with its fix line. None: the idle GC cycle was fixed by P
 - #39: unload the GUI on close.
 - #40: research whether a LoadOnDemand addon can unload.
 - #44: clean up console output.
-- #45: Questie-style upgrade output (core uplift U2).
+- #45: Questie-style upgrade output: built in U2 (3.4.1.46), ships in 3.4.1.53; Dan can close it.
 - #132: test later, the Group Finder option without a /reload (F1 check 4; needs a character that can use the Group Finder).
 - #133: test later, the party warning names only who is in the group now (F1 check 7).
 
