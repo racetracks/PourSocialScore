@@ -112,11 +112,11 @@ local function ApplicationStartup(self)
 	if PourSocialScoreDB.defexpire ~= nil and not tonumber(PourSocialScoreDB.defexpire) then
 		PourSocialScoreDB.defexpire = nil
 	end
-	M.PSS_ApplyOptionDefaults()
+	local defaults = M.PSS_ApplyOptionDefaults()
 
 	-- saved data upgrades that run before the built-in filters are rebuilt
 	-- (PSS_Upgrade.lua)
-	M.PSS_RunUpgradeFields()
+	M.PSS_RunUpgradeFields(fresh, defaults)
 
 	-- Built-in rules come from code; SavedVariables only hold their on/off state.
 	M.PSS_ExpandFilters()

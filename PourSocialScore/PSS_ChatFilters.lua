@@ -451,11 +451,14 @@ end
 -- 24 hour counts, zero the rule's own counts and clear the rule tag (h.r)
 -- from the block history lines. Runs after the block history upgrade and
 -- before the block stats upgrade (which would otherwise seed from h.r).
+-- Returns the number of guild rules whose counts were taken back.
 function M.PSS_UnlinkGuildRuleCounts()
 	local db = PourSocialScoreDB
-	if type(db) ~= "table" or db.guildRuleCountsV1 then return end
+	if type(db) ~= "table" or db.guildRuleCountsV1 then return 0 end
+	local rules = 0
 	for i = 1, #(db.filterList or {}) do
 		if M.PSS_IsGuildRuleText(db.filterList[i]) then
+			rules = rules + 1
 			local n = tonumber(db.filterCount[i]) or 0
 			db.filterTotal = math.max(0, (tonumber(db.filterTotal) or 0) - n)
 			db.filterCount[i] = 0
@@ -469,6 +472,7 @@ function M.PSS_UnlinkGuildRuleCounts()
 		end
 	end)
 	db.guildRuleCountsV1 = true
+	return rules
 end
 
 -- Copy any rule (built-in or custom) into a new, editable custom rule.

@@ -142,11 +142,16 @@ end
 -- saved; M.PSS_Opt returns the default for a missing value). Every login.
 -- (The 2.0.12 switch-off of ignoreResponse and blizzardSync is upgrade
 -- step 5 now, PSS_Upgrade.lua. blizzardSync is a per-player tick from
--- 3.4.1.35: step 8.)
+-- 3.4.1.35: step 8.) Returns the number of values dropped.
 function M.PSS_ApplyOptionDefaults()
 	local db = PourSocialScoreDB
-	if not db then return end
+	if not db then return 0 end
+	local n = 0
 	for _, o in ipairs(OPTIONS) do
-		if db[o.key] ~= nil and db[o.key] == o.default then db[o.key] = nil end
+		if db[o.key] ~= nil and db[o.key] == o.default then
+			db[o.key] = nil
+			n = n + 1
+		end
 	end
+	return n
 end

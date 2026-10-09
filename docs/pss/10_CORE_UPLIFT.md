@@ -121,6 +121,14 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - a memory bound when nothing upgrades.
 
   Plus a "== upgrade report" section in `validate_all.sh`.
+- **Done in U1 (3.4.1.45, merged, PR #136; invisible; Dan, 2026-10-09: 1 the retired loop runs after the data parts, 2 steps 5 and 7's keys join it, 3 a byte-identical check against main):**
+  - `STEPS` rows are `{ id, always, parts }`; each part is `{ feature, fields, data }` (`M.PSS_UPGRADE_REGISTRY`, `M.PSS_UPGRADE_FEATURES`). Parts take no arguments and count through the file's `tally(feature, key, n)`. Step 1 is six parts in 2.0's order: fields options, players, filters; data legacy (guilds), unlink (filters), tidy players, tidy history. Steps 2 to 8 have one part each (step 7 two).
+  - `RETIRED` (`M.PSS_UPGRADE_RETIRED`): `autoIgnore`, `autoUpdate`, `autoCount`, `autoTime`, `attachFriends`, `syncList`, `filterHistory`, `blockStats`, `optionsV2012`, `charOptions`, `historySize`, `euiIntegration`, `windowSizes`, `columnWidths`, `blizzardSync`. Dropped at every login after the data parts (step 8 reads `blizzardSync` first), counted as `cleanup.retired`. Step 5 keeps only the 2.0.12 switch-off, step 7 only the `windowPoints` prune, step 8 only the ticks.
+  - `M.PSS_RunUpgradeFields(fresh, defaults)` decides whether the login reports (not fresh, and a step due or `upgrade.version` differs); only then is `out` built. `M.PSS_RunUpgradeData(fresh)` returns it: `from`, `to`, `done`, `step`, `paused` and a table per feature (keys today: `players` lists / renamed / tidied / toGuilds / declines / blizzardTicks; `filters` reset / lists / ids / unlinked; `guilds` scanFields; `managed` rules; `history` formats / tidied; `options` switchedOff / places; `cleanup` defaults / retired / oldFolders). Nothing prints from it yet (U2).
+  - Count returns: `M.PSS_ApplyOptionDefaults`, `M.PSS_UnlinkGuildRuleCounts`, `ensureManagedRules` (rules created), `cleanupLegacyGuildPlayers`; `M.PSS_UpgradeLegacyData(tally)` counts formats, scan fields, managed rules and players moved to guilds.
+  - `M.PSS_VersionOrder(a, b)`: -1, 0, 1, or nil when either is not a version. X.Y.Z.B by its numbers; any older name is older than an X.Y.Z.B; `X.Y.Z-devN` is older than `X.Y.Z`.
+  - Harness: `check_upgrade_steps.lua` ("== upgrade steps", fresh, the 2.0.44 test save and every real save) and `same_saves.sh <ref>` (`PSS_SAME_AS=origin/main` in `validate_all.sh`): 50 saves byte-identical with main, chat too. Use it again for U2 (only the report lines may differ in chat) and S1, S2.
+  - Measured: `PSS_Upgrade.lua` 15173 to 18900 bytes compiled; resident after login +9.6 KB (3.4.0.28 save, harness). The one-time steps and `M.PSS_VersionOrder` are P6 candidates for Libraries. `tui_compare.sh` identical.
 
 ### 2.5 Fixes (appendices 01 and 02)
 - **N40, expiry (decision 11):** applied at login, on a quiet event and when a list opens, as the readme says. This is a bug fix, so it needs no opt-in.
@@ -201,7 +209,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | F1 | 3.4.1.42 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | Merged, PR #131 (in-game checks 4 and 7 later: #132, #133) |
 | Docs | 3.4.1.43 | F1 marked merged; every later stage moves up one build and the 3.4.2 and 3.4.3 stages get their expected builds (decision 24); docs only | No | `check_rules.sh` | Merged, PR #134 |
 | F2 | 3.4.1.44 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | Merged, PR #135 (in-game checks pass, Dan, 2026-10-09) |
-| U1 | 3.4.1.45 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
+| U1 | 3.4.1.45 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | Merged, PR #136 |
 | U2 | 3.4.1.46 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | |
 | U3 | 3.4.1.47 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | |
 | S1 | 3.4.1.48 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | |
