@@ -1,7 +1,8 @@
 -- Blizzard's ignore list and PSS (core uplift B1, 3.4.1.35): PSS is
 -- authoritative; a player goes on Blizzard's list only when ticked.
 --   flow:  lua5.1 tools/harness/run.lua . - - tools/harness/check_blizzard.lua
---   make:  PSS_PHASE=make  ... run.lua . - <save> check_blizzard.lua   writes a 3.4.1.34-style save:
+--   make:  PSS_PHASE=make  ... run.lua . - <save> check_blizzard.lua   writes a 3.4.1.34-style save
+--          (the list in the 3.4.1.51 layout, M.PSS_List; the migration to it is check_listrecords.lua):
 --          two listed players, the global option on, upgrade step 7
 --   login: PSS_PHASE=login PSS_BLIZZ_IGNORES="Alpha;Stranger" [PSS_BLIZZ_LATE=1] ... run.lua . <save> - check_blizzard.lua
 --          the upgrade (step 8) and the login sync
@@ -11,7 +12,7 @@ local function check(ok, msg) if not ok then print("FAIL blizzard: " .. msg); fa
 local V = PourSocialScore_NS.V
 local function full(n) return M.Proper(M.addServer(n)) end
 local function idx(n) return M.hasGlobalIgnored(full(n)) end
-local function note(n) local i = idx(n); return i > 0 and PourSocialScoreDB.notes[i] or nil end
+local function note(n) local i = idx(n); return i > 0 and M.PSS_List()[i].note or nil end
 local function rec(n) return M.PSS_GetPlayerRecord(full(n)) end
 local function ticked(n) local p = rec(n); return p ~= nil and p.blizzardIgnore == true end
 local function onBlizz(n)
@@ -35,7 +36,7 @@ end
 if phase == "login" then
 	-- upgrade step 8: Alpha is on Blizzard's list, so it is ticked; Beta is not
 	check(PourSocialScoreDB.blizzardSync == nil, "the global option is still saved")
-	check(PourSocialScoreDB.upgrade.step == 8, "step " .. tostring(PourSocialScoreDB.upgrade.step) .. ", not 8")
+	check(PourSocialScoreDB.upgrade.step >= 8, "step " .. tostring(PourSocialScoreDB.upgrade.step) .. ", not past 8")
 	check(ticked("Alpha"), "Alpha (listed, on Blizzard's list) was not ticked")
 	check(not ticked("Beta"), "Beta (listed, not on Blizzard's list) was ticked")
 	check(onBlizz("Alpha"), "Alpha was taken off Blizzard's list")
@@ -47,9 +48,9 @@ if phase == "login" then
 	check(C_FriendList.GetNumIgnores() == 2, "Blizzard's list has " .. C_FriendList.GetNumIgnores() .. " names")
 	check(not onBlizz("Beta"), "Beta was put on Blizzard's list")
 	-- a second list update changes nothing
-	local before = #PourSocialScoreDB.ignoreList
+	local before = M.PSS_PlayerCount()
 	update()
-	check(#PourSocialScoreDB.ignoreList == before and C_FriendList.GetNumIgnores() == 2, "a later update changed the lists")
+	check(M.PSS_PlayerCount() == before and C_FriendList.GetNumIgnores() == 2, "a later update changed the lists")
 	print(fail == 0 and "PASS blizzard login" or ("FAIL blizzard login: " .. fail))
 	return
 end

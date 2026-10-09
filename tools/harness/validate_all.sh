@@ -296,6 +296,31 @@ lua5.1 "$here/run.lua" . - "$work/ac-0.lua" > /dev/null 2>&1
 out=$(lua5.1 "$here/run.lua" . "$work/ac-0.lua" "$work/ac-1.lua" "$here/check_accessors.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -q "PASS accessors" && echo "PASS accessors" || { echo "$out"; echo "FAIL accessors"; fail=1; }
 
+# Player Ignore List records (core uplift S2b, 3.4.1.51): every save the
+# harness uses (a new one, the planted 3.4.1.50 save with four listed players
+# in the old layout, the 2.0 test saves, every real save) moves to one record
+# per entry on one login with the same counters; a second login changes
+# nothing and keeps unknown fields; entries added and removed in the middle
+# never drift; removing a player still clears their record and history
+echo "== list records"
+lua5.1 "$here/check_listrecords.lua" --plant "$work/lr-plant.lua" > /dev/null || fail=1
+lrsaves="- $work/lr-plant.lua $work/sv-2.0.1.lua $work/sv-2.0.40.lua $work/sv-2.0.44.lua $work/sv-gr-2.0.44.lua"
+[ -n "$PSS_REAL_SAVES" ] && lrsaves="$lrsaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua')"
+lrfail=0
+for sv in $lrsaves; do
+	for ph in login again drift; do
+		case $ph in
+			login) from=$sv; to="$work/lr-1.lua"; raw=$sv ;;
+			again) from="$work/lr-1.lua"; to="$work/lr-2.lua"; raw="$work/lr-1.lua" ;;
+			drift) from=$sv; to=-; raw=$sv ;;
+		esac
+		out=$(PSS_PHASE=$ph PSS_SV_IN="$raw" lua5.1 "$here/run.lua" . "$from" "$to" "$here/check_listrecords.lua" 2>&1 | grep -v '^|cff')
+		echo "$out" | grep -q "PASS list records $ph" || { echo "$out"; echo "FAIL list records $ph ($sv)"; lrfail=1; }
+	done
+	lua5.1 tools/check_schema.lua --saves "$work/lr-1.lua" "$work/lr-2.lua" || lrfail=1
+done
+[ $lrfail -eq 0 ] && echo "PASS list records ($(echo $lrsaves | wc -w) saves)" || { echo "FAIL list records"; fail=1; }
+
 # recent counts (3.2): session and last-24-hour counts per owner without
 # Logging; a login or /reload starts a new session (3.2.0-dev006), which
 # is not saved at logout

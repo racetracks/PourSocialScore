@@ -32,12 +32,20 @@ H.RunTimers()
 -- what this version shows as totals
 local function totals()
 	local sum = { total = 0, whisper = 0, partyInvite = 0, guildInvite = 0, partyRaid = 0, world = 0 }
-	for idx, name in ipairs(db.ignoreList or {}) do
-		if db.typeList[idx] == "player" and M.PSS_GetPlayerRecord(name) then
+	-- (any version: the list's records from 3.4.1.51, the parallel arrays before)
+	local function eachPlayer(fn)
+		if M.PSS_List then
+			for _, e in ipairs(M.PSS_List()) do if (e.kind or "player") == "player" then fn(e.name) end end
+		else
+			for idx, name in ipairs(db.ignoreList or {}) do if db.typeList[idx] == "player" then fn(name) end end
+		end
+	end
+	eachPlayer(function(name)
+		if M.PSS_GetPlayerRecord(name) then
 			local c = M.PSS_GetPlayerBlockCounts(name)
 			for k in pairs(sum) do sum[k] = sum[k] + (c[k] or 0) end
 		end
-	end
+	end)
 	local gc = M.PSS_GetGuildBlockCounts()
 	return {
 		player = sum,

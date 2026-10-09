@@ -28,10 +28,10 @@ local function printedHas(pat)
 end
 local function listFor(name, daysAgo, exp, kind)
 	if kind == "npc" then M.PSS_ImportListEntry(name, "", "", "npc") else M.PSS_AddPlayer(name) end
-	local i = #db.ignoreList
-	check(db.ignoreList[i] ~= nil, "could not list " .. name)
-	db.dateList[i] = date("%d %b %Y", time() - daysAgo * DAY)
-	db.expList[i] = exp
+	local i = M.PSS_PlayerCount()
+	check(M.PSS_EntryName(i) ~= nil, "could not list " .. name)
+	M.PSS_SetEntryDate(i, date("%d %b %Y", time() - daysAgo * DAY))
+	M.PSS_SetEntryExp(i, exp)
 end
 listFor("Oldtimer", 10, 5)
 listFor("Freshone", 2, 5)
@@ -53,16 +53,16 @@ check(not listed("Combatexp"), "N40: combat end on a new day did not expire")
 -- /pss list (Libraries) and an NPC entry
 M.PSS_Need("Libraries")
 listFor("Old Npc", 30, 7, "npc")
-local before = #db.ignoreList
+local before = M.PSS_PlayerCount()
 M.PSS_SlashPSS("list")
-check(#db.ignoreList == before - 1, "N40: /pss list did not expire an NPC entry")
+check(M.PSS_PlayerCount() == before - 1, "N40: /pss list did not expire an NPC entry")
 print = realPrint
 
 ------------------------------------------------------------------------
 -- N48: /pss list with no note
 ------------------------------------------------------------------------
 M.PSS_AddPlayer("Nonote")
-db.notes[#db.ignoreList] = nil
+M.PSS_SetEntryNote(M.PSS_PlayerCount(), nil)
 local ok, err = pcall(M.PSS_SlashPSS, "list")
 check(ok, "N48: /pss list errors on a missing note: " .. tostring(err))
 

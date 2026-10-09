@@ -59,7 +59,7 @@ check(not line("CHAT_MSG_CHANNEL", "buy gold", "Someone-Realm", secret("6. hidde
 check(not line("CHAT_MSG_CHANNEL", "buy gold", "Someone-Realm", "7. Trade", secret(7), "Trade"), "a secret channel number broke the line")
 
 -- 4. a secret target name: nothing added, no error
-local before = #PourSocialScoreDB.ignoreList
+local before = M.PSS_PlayerCount()
 local ST = secret("Target")
 local realUnitName = _G.UnitName
 _G.UnitName = function(u)
@@ -74,7 +74,7 @@ ok, err = pcall(M.PSS_AddIgnore, "")
 check(ok, "PSS_AddIgnore: " .. tostring(err))
 ok, err = pcall(M.PSS_AddOrDelIgnore, "")
 check(ok, "PSS_AddOrDelIgnore: " .. tostring(err))
-check(#PourSocialScoreDB.ignoreList == before, "a secret target was added")
+check(M.PSS_PlayerCount() == before, "a secret target was added")
 _G.UnitName = function(u)
 	if u == "target" then return "Readable", "Realm" end
 	return realUnitName(u)

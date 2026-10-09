@@ -32,8 +32,23 @@ local function load(path)
 	local s = { rules = {}, players = {}, filters = {}, total = 0 }
 	for k, g in pairs(db.guildData or {}) do s.rules[k] = count(g.members) end
 	local listed = {}
-	for i, name in ipairs(db.ignoreList or {}) do
-		if ((db.typeList or {})[i] or "player") == "player" then listed[name:lower()] = true end
+	-- (a save of either layout: the list's records from 3.4.1.51, the arrays before)
+	-- (a legacy duplicate of one kind and name is merged by the migration: counted once)
+	local entries, nlist, seen = db.list, 0, {}
+	local function once(kind, name)
+		local key = kind .. ":" .. tostring(name):lower()
+		if not seen[key] then seen[key] = true; nlist = nlist + 1 end
+	end
+	if type(entries) == "table" then
+		for _, e in ipairs(entries) do
+			once(e.kind or "player", e.name)
+			if (e.kind or "player") == "player" then listed[tostring(e.name):lower()] = true end
+		end
+	else
+		for i, name in ipairs(db.ignoreList or {}) do
+			once((db.typeList or {})[i] or "player", name)
+			if ((db.typeList or {})[i] or "player") == "player" then listed[name:lower()] = true end
+		end
 	end
 	s.records = db.playerData or {}
 	for k, p in pairs(s.records) do
@@ -41,7 +56,7 @@ local function load(path)
 		s.players[k] = listed[tostring(p.name):lower()] == true
 	end
 	for i, f in ipairs(db.filterList or {}) do s.filters[i] = f end
-	s.list = #(db.ignoreList or {})
+	s.list = nlist
 	s.filterTotal = db.filterTotal
 	s.countsV1 = db.guildRuleCountsV1	-- 2.0.39 moves guild rule blocks out of the filter total once
 	return s
