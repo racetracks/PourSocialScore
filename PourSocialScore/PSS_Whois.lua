@@ -304,3 +304,18 @@ M.PSS_ScanCooldownRemaining = Whois.CooldownRemaining
 M.PSS_StartScanCooldown		= Whois.StartCooldown
 M.PSS_ScanBlockedMsg		= Whois.BlockedMsg
 function M.PSS_WhoPending() return pending ~= nil end
+
+------------------------------------------------------------------------
+-- The scan planner (PSS_WhoisHarvest.lua) is in Libraries (3.4.1 P6): a
+-- scan starts from the window, a command or the key binding, and loads it
+-- by its first call.
+------------------------------------------------------------------------
+M.PSS_WHO_CAP = 50
+for _, fname in ipairs({ "PSS_HarvestNext", "PSS_HarvestSent", "PSS_HarvestAnswered", "PSS_CapWhoFilter", "PSS_ScanAll" }) do
+	M.PSS_Stub(fname, "Libraries")
+end
+
+-- Key binding (Bindings.xml): Key Bindings > AddOns > Pour Social Score.
+BINDING_HEADER_POURSOCIALSCORE = "Pour Social Score"
+BINDING_NAME_PSS_SCAN_ALL = "Scan All: next guild /who"
+function PSS_ScanAllBinding() M.PSS_ScanAll() end

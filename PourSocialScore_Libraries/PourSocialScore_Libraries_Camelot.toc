@@ -12,6 +12,7 @@
 PSS_ImportExport.lua
 PSS_PlayerRows.lua
 PSS_Validate.lua
+PSS_WhoisHarvest.lua
 PSS_GuildQuery.lua
 PSS_FilterQuery.lua
 PSS_TotalsQuery.lua
