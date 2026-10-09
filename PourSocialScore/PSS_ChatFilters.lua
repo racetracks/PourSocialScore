@@ -879,6 +879,16 @@ buildNode = function(node)
 	end
 end
 
+-- the filter list and its switches, read from PSS_RulesDB without the
+-- router (P4, N26; a table PourSocialScoreDB still holds wins, as through it)
+local function ruleLists()
+	local db = PourSocialScoreDB
+	local r = PSS_RulesDB
+	local list, active = rawget(db, "filterList"), rawget(db, "filterActive")
+	if r then list, active = list or r.filterList, active or r.filterActive end
+	return list or db.filterList, active or db.filterActive
+end
+
 local runnable, runnableCount = {}, 0
 -- filter text -> function(F), or false when the filter has an error
 local function filterFn(text)
@@ -907,8 +917,7 @@ function M.filterComplex (filterStr, chatStr, chNumber, chName)
 		if fn(F) then return true, 0 end
 		return false
 	end
-	local db = PourSocialScoreDB
-	local list, active = db.filterList, db.filterActive
+	local list, active = ruleLists()
 	for i = 1, #list do
 		if active[i] == true then
 			local text = list[i]
@@ -926,8 +935,7 @@ end
 
 -- any text filter switched on? (cheap: no tables, no strings)
 local function anyTextFilterOn()
-	local db = PourSocialScoreDB
-	local list, active = db.filterList, db.filterActive
+	local list, active = ruleLists()
 	for i = 1, #list do
 		if active[i] == true and not M.PSS_IsGuildRuleText(list[i]) then return true end
 	end

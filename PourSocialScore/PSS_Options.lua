@@ -101,7 +101,22 @@ function M.PSS_Opt(key, ctx)
 		if type(guild) == "table" and guild[key] ~= nil then return guild[key] end
 	end
 	local db = PourSocialScoreDB
-	if db and db[key] ~= nil then return db[key] end
+	if db then
+		local v
+		if def then
+			-- an option is saved in PSS_OptionsDB: read it there, without the
+			-- router's __index (P4, N26); a value PourSocialScoreDB still holds
+			-- (before the split moved it) wins, as through the router
+			v = rawget(db, key)
+			if v == nil then
+				local o = PSS_OptionsDB
+				if o then v = o[key] end
+			end
+		else
+			v = db[key]
+		end
+		if v ~= nil then return v end
+	end
 	if def then return def.default end
 	return nil
 end
