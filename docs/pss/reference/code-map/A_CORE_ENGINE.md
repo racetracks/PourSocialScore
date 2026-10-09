@@ -162,7 +162,7 @@ Purpose: the block history module (`History`): entries, the shared capped log, t
 | Log | `History.Cap()` / `History.Max` | Option `historyTotal` clamped. |
 | | `History.Loaded()` / `M.PSS_LoggingReady` | Logging loaded and merged. |
 | | `History.Waiting()` | Outbox length. |
-| | `M.PSS_LoadLogging()` | `PSS_Need("Logging")`, `PSS_PrepareSavedData()`, `History.UnpackSaved` and `History.KeepToLog` (both defined in Logging `PSS_SavedLog.lua`), outbox -> log, `CapKeep(true)`, `Trim(true)`, `M.PSS_TidyBlockHistory()`. |
+| | `M.PSS_LoadLogging()` | `PSS_Need("Logging")`, `PSS_PrepareSavedData()`, `History.UnpackSaved` and `History.KeepToLog` (both defined in Logging `PSS_SavedLog.lua`), `History.ApplyPurge()` (3.4.1.49), outbox -> log, `CapKeep(true)`, `Trim(true)`, `M.PSS_TidyBlockHistory()`. |
 | | `History.Log()` | Loads Logging; returns `db.blockLog` (oldest first), metatables attached once. |
 | | `History.Trim(force)` / `History.TrimAll` / `M.PSS_TrimAllHistory` | Cut the log to the cap (batches at 5 % over); people's dropped lines settle into the keep. |
 | | `History.Add(owner, counts, entry, ruleTag)` | THE write path: sets `entry.o`/`r`, bumps `counts[cat]` and `counts.total`, `CountRecent`, then outbox (Logging not loaded; cap; at 200 waiting schedules `loadWhenQuiet` via `C_Timer.After(1)`) or log + `Trim(false)`. |
@@ -176,7 +176,9 @@ Purpose: the block history module (`History`): entries, the shared capped log, t
 | | `History.SettleKeep(owners, dropped, n)`, `History.SettleAllKeep()` | Recompute keep per person. |
 | | `History.KeepSize()`, `History.KeepChanged()` | Size; reset the cached keep count. |
 | Walk | `History.Each(fn)`, `History.Collect(pred)`, `History.For(owner)`, `History.CountFor(owner)` (harness only), `History.Where(owner)` | Iterate / filter newest-first / count. |
-| | `History.Clear(pred)` | Remove matching lines from log and keep; requests GC. |
+| | `History.Clear(pred)` | Remove matching lines from log and keep (unpacks every kept line); requests GC. Used by the guild reset and the tidy. |
+| | `History.ClearOwner(o, mayHave)` | (3.4.1.49, S1) One owner's lines: Logging loaded, a log walk comparing `o` and `keep[o] = nil`; not loaded, the owner's outbox lines go and `PourSocialScoreDB.purge[o] = true` unless `mayHave` is false (`History.PURGE_CAP` 200; full: loads Logging and clears now). Never loads Logging otherwise. Used by every remove and reset of a player, filter or member. |
+| | `History.ApplyPurge()` | (S1) In `M.PSS_LoadLogging`, before the outbox joins the log: the marked owners' lines go in one walk, the marks are cleared. |
 | | `History.Tidy(alive)` | Drop lines of owners that no longer exist; clear dead `r`/`gk` tags. |
 | Owner keys | `History.PlayerKey(name)` -> "p:<canon>", `History.MemberKey(m)` -> "g:<canon>", `History.FilterKey(id, text)` -> "f:<id>" or "f:t:<text>", `History.GuildKey(gkey)` -> "G:<gkey>" | |
 | Recent | `History.CountRecent(owner, ts, cat)` | Session count + 10-minute slot + `day[owner]`. |
@@ -260,7 +262,7 @@ Purpose: text filters: built-in rule definitions (code), custom rules (saved), t
 | | `M.PSS_FilterHistory(i)` | `History.For` its lines (guild rule: {}). |
 | | `M.PSS_ResetFilterHistory(i)` | Clear lines, recent counts, per-type counts; fires FILTER_HISTORY_CHANGED. |
 | | `M.PSS_ResetFilterCount(i)` | Row count to 0, forget recent; FILTERS_CHANGED. |
-| Edit | `M.RemoveChatFilter(i)` | Clear lines (only when Logging loaded or it has counts), remove from all 7 arrays; FILTERS_CHANGED. |
+| Edit | `M.RemoveChatFilter(i)` | Clear lines (`History.ClearOwner`; marked for later when Logging is not loaded and it has counts), remove from all 7 arrays; FILTERS_CHANGED. |
 | | `M.ResetSpamFilters()` | Rebuild every array from the built-ins; clears `builtinRules`, `builtinStats`, `invertSpam`, `spamFilter`. |
 | | `M.PSS_CopyChatFilter(i)` | New custom copy, off. |
 | | `M.PSS_AddCustomFilter(desc, filter, active)` | Append a custom rule. |

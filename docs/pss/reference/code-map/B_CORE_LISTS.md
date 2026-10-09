@@ -66,7 +66,7 @@ Mapped at main 3.4.1.38. Line counts are approximate (`wc -l`). `PourSocialScore
 | --- | --- |
 | `M.PSS_RecordPlayerBlock(name, event, msg, inviteKind, cat)` | Counts one block on `p.blockCounts` and adds a log line (`History.Add`, owner `p:<canon>`); sets `lastBlockedInvite`; fires `PLAYER_BLOCKED` |
 | `M.PSS_ResetPlayerBlockHistory(name)` | Clears their log lines and recent counts, zeroes `blockCounts`; fires `PLAYERS_CHANGED` |
-| `M.PSS_ForgetPlayer(name, note)` | On removal: `PSS_KeepBlockedOnBuiltIn` (shipped member stays blocked), clears their log lines only if Logging is loaded or they were ever counted (`mayHaveLines`), forgets recent counts, deletes the record |
+| `M.PSS_ForgetPlayer(name, note)` | On removal: `PSS_KeepBlockedOnBuiltIn` (shipped member stays blocked), clears their lines with `History.ClearOwner` (marked in `purge` until Logging loads if they were ever counted, `mayHaveLines`; never loads Logging), forgets recent counts, deletes the record |
 | `M.PSS_TidyPlayerData()` | Login tidy (PSS_Upgrade): deletes records of unlisted players, drops `DROPPED_FIELDS` and empty `EMPTY_FIELDS`, `nickname == name` |
 | `M.PSS_MarkIgnoreIndexDirty()` | Index rebuild on next lookup |
 
@@ -142,7 +142,7 @@ Locals: `EXCL_BY_CAT` (from `M.EXCL`), `sortValue`, `elementName/Server/Type`. S
 | `M.PSS_UpdatePlayerUnit(name, unit, guild)` | Unit seen: `PSS_SetPlayerMeta`; if the guild already has a rule, store the member (managed rule: loads the shipped lists first, skips shipped members). Never creates a rule |
 | `M.PSS_SetMemberBlock(g, m, cat, value)` | Member override (nil = inherit); newly blocked purges chat; keeps a shipped record (`keepManaged`) |
 | `M.PSS_SetMemberNote(m, text)` | Note (empty removed) |
-| `M.PSS_RemoveGuildMember(guild, player, srcKey, storedKey)` | Removes stored copies and tombstones a shipped member; if they are in no rule now, clears `g:<canon>` lines (only if Logging loaded or they were counted) |
+| `M.PSS_RemoveGuildMember(guild, player, srcKey, storedKey)` | Removes stored copies and tombstones a shipped member; if they are in no rule now, clears `g:<canon>` lines (`History.ClearOwner`; marked until Logging loads if they were counted) |
 | `M.PSS_KeepBlockedOnBuiltIn(name, note)` | A player leaving the Player list who is a shipped member: every category blocked on them, note "Removed from player list" or their old note (25 chars) |
 | `M.PSS_MoveOtherCopies(player, keepKey, target)` | Merge every other rule's copy into target and delete it; tombstones them in another shipped guild |
 | `M.PSS_MergeIntoShipped(gkey, ck, m)` | Import: merge into the shipped record, never a second stored copy |
@@ -336,7 +336,7 @@ Builds both files from OlympusMute's `OlympusDB` (`lua PSS_BuildManaged.lua <Oly
 | `History.KeepToLog()` | Once (`logAllV1`): saves from 3.2.0-dev3 to dev006 put kept lines back into the log, then trim |
 
 - Line format: `<type letter><time or +delta>\t<event letter or name>\t<channel: "" usual, "~" group's c>\t<who: "" = group m/gk/r, else index into n, "\1gk\1r">\t<message, "\2" = same as before>`. Type letters `LOG_CODE`: w whisper, p partyRaid, i partyInvite, g guildInvite, c world, u guildChat, x unknown.
-- **What loads Logging:** `M.PSS_LoadLogging()` (PSS_ChatHistory.lua), called by `History.Log()` / `History.Keep()` (any history view, Clear, Trim), by PSS_SavedData when PourSocialScoreDB still holds a logging key, by PSS_Upgrade, at startup only if already loaded, and by itself when the outbox reaches 200 waiting lines (`loadWhenQuiet`: out of combat and instances, a 30 s C_Timer retry). Removing a player or member loads it only if they were ever counted (`mayHaveLines`).
+- **What loads Logging:** `M.PSS_LoadLogging()` (PSS_ChatHistory.lua), called by `History.Log()` / `History.Keep()` (any history view, Clear, Trim), by PSS_SavedData when PourSocialScoreDB still holds a logging key, by PSS_Upgrade, at startup only if already loaded, and by itself when the outbox reaches 200 waiting lines (`loadWhenQuiet`: out of combat and instances, a 30 s C_Timer retry). Removing or resetting a player, member or filter never loads it (3.4.1.49, `History.ClearOwner` and the `purge` marks), unless the 200 marks are full.
 - **Before it loads:** `History.Add` counts on the record at once and parks the line in `PourSocialScoreDB.outbox` (capped at the log cap). On load the outbox joins the log, then `CapKeep`, `Trim(true)`, `PSS_TidyBlockHistory`.
 - **Caps:** log `History.Cap()` = option `historyTotal`, default 2000 (100 to 20000), trimmed in batches 5% over; a trimmed line of a person moves to `blockKeep` (newest 10 text, 5 party invites, 5 guild invites per owner, `History.KEEP`). Owners: `p:<canon>` players, `g:<canon>` guild members (lines carry `gk`), `G:<gkey>` guild recent counts only.
 

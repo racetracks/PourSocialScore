@@ -50,7 +50,7 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 ## 5. Crucial context
 - Three TOCs per folder; one combined TOC broke Camelot in 3.0.0-dev6.
 - **Measured hot spots:** `PSS_GetGuildBlockCounts`, the shipped member walk and `PSS_GetMemberBlockCounts` make about 200 to 350 KB of garbage per full pass on Dan's save. An estimate of 6 to 8 KB once measured 22 KB.
-- **Known gaps:** removing a guild member who was blocked loads Logging (to clear their lines); removing one never blocked, or a guild, does not (3.4.0.15). Full parity was not reached; the project closed at 3.3.1 (08).
+- **Known gaps:** removing a guild member who was blocked loads Logging (to clear their lines); removing one never blocked, or a guild, does not (3.4.0.15). Closed on the 3.4.1 line by S1 (3.4.1.49): no removal loads Logging (re-summarized here at 3.4.1.52). Full parity was not reached; the project closed at 3.3.1 (08).
 - **Known breaches of the baseline** are listed, with the line that fixes each, in 02 section 12 (the Overrides table, Dan, 2026-10-08): the idle GC cycle in `PSS_Perf.lua` (3.4.1), (the old window's totals pane and OnUpdate helpers went with it at D2, 3.4.0.25). The new window's pie hover OnUpdate is an approved override (Dan, 2026-10-08).
 
 ## 6. Plans and status
