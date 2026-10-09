@@ -288,7 +288,12 @@ function M.PSS_BuildExport(sections)
 			}
 			if e.type == "player" then
 				local p = M.PSS_GetPlayerRecord and M.PSS_GetPlayerRecord(name)
-				if p then e.prefs = copyFields(p, PREF_FIELDS); e.opts = copyOpts(p.opts); e.more = moreFields(p, "player") end
+				if p then
+					e.prefs = copyFields(p, PREF_FIELDS)
+					-- W I G P C: every switch, a missing one blocks (S3 saves only the false ones)
+					for _, f in ipairs(PREF_FIELDS) do if f ~= "nickname" then e.prefs[f] = p[f] ~= false end end
+					e.opts = copyOpts(p.opts); e.more = moreFields(p, "player")
+				end
 			end
 			data.players[#data.players + 1] = e
 		end
@@ -363,7 +368,11 @@ function M.PSS_ApplyImport(data, mode, sections)
 				if t == "player" then
 					local p = M.PSS_GetPlayerPrefs(e.name)
 					if p and type(e.prefs) == "table" and (replace or not exists) then
-						for _, f in ipairs(PREF_FIELDS) do if e.prefs[f] ~= nil then p[f] = e.prefs[f] end end
+						for _, f in ipairs(PREF_FIELDS) do
+							local v = e.prefs[f]
+							-- (a switch that blocks is not stored)
+							if v ~= nil then p[f] = (f ~= "nickname" and v == true) and nil or v end
+						end
 						p.opts = copyOpts(e.opts)
 						keepMore(p, e.more, "player")
 					end

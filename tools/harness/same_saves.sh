@@ -10,6 +10,10 @@
 # drops the upgrade step, so the players' entries, every other store and the
 # chat are still compared; the byte-for-byte players file is not. The layout
 # itself is proven by check_listrecords.lua ("== list records").
+# 3.4.1.52 (S3 saves records sparse on purpose): the files differ from the
+# previous build's by design, so for that stage use sparse_saves.sh instead,
+# which compares what the addon shows (dump_view.lua); this script works again
+# for the stages after it.
 #   sh tools/harness/same_saves.sh <ref> [save.lua ...]
 # With no saves listed: a fresh save, every PourSocialScore.lua under
 # PSS_REAL_SAVES (tools/harness/build_saves.sh) and every sv-*.lua that

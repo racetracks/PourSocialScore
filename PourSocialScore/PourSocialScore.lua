@@ -63,11 +63,16 @@ function M.PSS_TidyBlockHistory()
 		for i = 1, #db.filterList do
 			keys[M.PSS_FilterOwnerKey(i)] = true
 			local id = db.filterID[i]
-			if id and id ~= "" then ids[id] = true end
+			if id and id ~= "" then
+				ids[id] = true
+				-- lines still under the filter's text (S3: a filter saved by an older
+				-- version after it was given its id) are kept
+				keys[M.PSS_History.FilterKey("", db.filterList[i])] = true
+			end
 		end
 		-- an owner or rule tag of a form this version does not make (a newer
-		-- version's filter id) is kept (U3)
-		alive.f = function(o) return keys[o] == true or not (o:find("^f:t:") or o:find("^f:PSS%d+$")) end
+		-- version's) is kept (U3); a number id is this version's (S3)
+		alive.f = function(o) return keys[o] == true or not (o:find("^f:t:") or o:find("^f:PSS%d+$") or o:find("^f:%d+$")) end
 		alive.rule = function(id) return ids[id] == true or not tostring(id):find("^PSS%d+$") end
 	end
 	return History.Tidy(alive)
@@ -231,6 +236,8 @@ local function EventHandler (self, event, sender, ...)
 	if event == "PLAYER_LOGOUT" then
 		-- Fires on logout and /reload, before SavedVariables are written.
 		M.PSS_CollapseFilters()
+		-- the player records are saved sparse (S3)
+		if M.PSS_CompactPlayers then pcall(M.PSS_CompactPlayers) end
 		-- managed guild lists: write only the delta
 		if M.PSS_FlushManaged then pcall(M.PSS_FlushManaged) end
 		-- this session's counts are not kept past it

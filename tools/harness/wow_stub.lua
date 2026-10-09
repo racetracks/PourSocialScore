@@ -362,10 +362,12 @@ function UnitFactionGroup() return "Alliance", "Alliance" end
 function UnitLevel() return 80 end
 function UnitClass() return "Mage", "MAGE", 8 end
 function UnitRace() return "Human", "Human" end
-function GetRealmName() return "Realm" end
-function GetNormalizedRealmName() return "Realm" end
+-- PSS_CAMELOT=1: the Camelot client (interface 16001, realm ClassicBetaPvP)
+local camelot = os.getenv("PSS_CAMELOT") == "1"
+function GetRealmName() return camelot and "ClassicBetaPvP" or "Realm" end
+function GetNormalizedRealmName() return camelot and "ClassicBetaPvP" or "Realm" end
 function GetLocale() return "enUS" end
-function GetBuildInfo() return "12.0.7", "1", "Oct 1 2026", 120007 end
+function GetBuildInfo() return camelot and "1.0.0" or "12.0.7", "1", "Oct 1 2026", camelot and 16001 or 120007 end
 function GetCVar() return "0" end
 function GetCVarBool() return false end
 function IsInGroup() return false end

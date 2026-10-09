@@ -69,7 +69,7 @@ local LAYOUT = {
 				"ignoreList", "typeList", "factionList", "dateList", "notes", "expList", "syncInfo" },
 	guilds	= { "guildData", "guildExclusions", "guildGroupOpen", "scanFieldsDefaultV1", "guildPlayerCleanupV3" },
 	rules	= { "filterList", "filterDesc", "filterActive", "filterID", "builtinRules", "filterFormat",
-				"optInFiltersV1" },
+				"optInFiltersV1", "nextFilterId" },
 	counts	= { "blockStats", "historyFormat", "hiddenTotal", "filterTotal", "filterWhisperTotal",
 				"filterPrivateTotal", "filterCount", "filterBlocked", "filterBlockedLast", "builtinStats",
 				"guildRuleCountsV1" },

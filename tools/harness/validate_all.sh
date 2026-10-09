@@ -353,6 +353,60 @@ for sv in $lrsaves; do
 done
 [ $lrfail -eq 0 ] && echo "PASS list records ($(echo $lrsaves | wc -w) saves)" || { echo "FAIL list records"; fail=1; }
 
+# Sparse records and the SavedVariables performance cleanup (core uplift S3,
+# 3.4.1.52, upgrade step 10): a 3.4.1.51 save with a rule over the 1500 cap,
+# every kind of member record, players, custom chat filters with no id and
+# history under their texts migrates in one login (cap, sparse records,
+# switches, ids and their history), the next login changes nothing, the
+# saved file is sparse; the Camelot name repair on a Camelot stub (and not on
+# Retail); then every save the harness has (a new one, the 2.0 test saves,
+# every real save) shows the same through the accessors as the previous
+# build, in the migrating login and when the sparse file is read back, and
+# the previous build and 3.4.0.29 read it without an error
+echo "== sparse records"
+lua5.1 "$here/run.lua" . - "$work/sp-base.lua" > /dev/null 2>&1
+lua5.1 "$here/check_sparse.lua" --plant "$work/sp-base.lua" "$work/sp-plant.lua" > /dev/null || fail=1
+lua5.1 "$here/check_sparse.lua" --plant "$work/sp-base.lua" "$work/sp-plant-unique.lua" unique > /dev/null || fail=1
+lua5.1 "$here/run.lua" . "$work/sp-plant.lua" "$work/sp-1.lua" > "$work/sp-1.out" 2>&1
+for ph in login again; do
+	if [ $ph = login ]; then from="$work/sp-plant.lua"; else from="$work/sp-1.lua"; fi
+	out=$(PSS_PHASE=$ph PSS_LOGIN_OUT="$work/sp-1.out" lua5.1 "$here/run.lua" . "$from" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | grep -E "PASS|FAIL"
+	echo "$out" | grep -q "PASS sparse $ph" || fail=1
+done
+lua5.1 "$here/run.lua" . "$work/sp-1.lua" "$work/sp-2.lua" > "$work/sp-2.out" 2>&1
+cmp -s "$work/sp-1.lua" "$work/sp-2.lua" && ! grep -q "Upgrading your saved data" "$work/sp-2.out" || { echo "FAIL sparse: a second login changed the save or reported"; fail=1; }
+lua5.1 "$here/check_sparse.lua" --after "$work/sp-1.lua" ids || fail=1
+lua5.1 tools/check_schema.lua --saves "$work/sp-1.lua" "$work/sp-2.lua" || fail=1
+# Camelot
+PSS_CAMELOT=1 PSS_PHASE=names PSS_NOTE="$work/cam-names.txt" lua5.1 "$here/run.lua" . - - "$here/check_sparse.lua" > /dev/null 2>&1
+lua5.1 "$here/check_sparse.lua" --plant-camelot "$work/sp-base.lua" "$work/cam-names.txt" "$work/cam-plant.lua" > /dev/null || fail=1
+ship=$(head -1 "$work/cam-names.txt")
+PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/cam-plant.lua" "$work/cam-1.lua" > "$work/cam-1.out" 2>&1
+out=$(PSS_SHIPPED="$ship" PSS_FIRST=1 PSS_LOGIN_OUT="$work/cam-1.out" PSS_CAMELOT=1 PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-plant.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -E "PASS|FAIL"
+echo "$out" | grep -q "PASS sparse camelot" || fail=1
+PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/cam-1.lua" "$work/cam-2.lua" > /dev/null 2>&1
+cmp -s "$work/cam-1.lua" "$work/cam-2.lua" || { echo "FAIL camelot: a second login changed the save"; fail=1; }
+out=$(PSS_SHIPPED="$ship" PSS_CAMELOT=1 PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-1.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -q "PASS sparse camelot" || { echo "$out"; echo "FAIL camelot: the repaired save"; fail=1; }
+out=$(PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-plant.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -q "PASS sparse camelot" || { echo "$out"; echo "FAIL camelot: a Retail save was repaired"; fail=1; }
+# every save: the same through the accessors as the previous build
+sparse_ref=${PSS_SPARSE_AS:-origin/main}
+if git rev-parse --verify -q "$sparse_ref" > /dev/null; then
+	sparsesaves="- $work/sp-plant-unique.lua $work/cam-plant.lua"
+	[ -n "$PSS_REAL_SAVES" ] && sparsesaves="$sparsesaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua' | sort)"
+	for sv in "$work"/sv-*.lua; do
+		case "$sv" in *-after.lua) ;; *) sparsesaves="$sparsesaves $sv" ;; esac
+	done
+	out=$(TMPDIR="$work" sh "$here/sparse_saves.sh" "$sparse_ref" $sparsesaves 2>&1)
+	echo "$out" | grep -E "^PASS|^FAIL"
+	echo "$out" | grep -q "^PASS sparse saves" || { echo "$out" | grep -v '^same' | head -20; fail=1; }
+else
+	echo "NOTE: $sparse_ref is not known here (git fetch origin main): the previous-build comparison was skipped"
+fi
+
 # recent counts (3.2): session and last-24-hour counts per owner without
 # Logging; a login or /reload starts a new session (3.2.0-dev006), which
 # is not saved at logout

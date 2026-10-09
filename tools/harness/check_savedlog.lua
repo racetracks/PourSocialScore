@@ -73,7 +73,16 @@ if phase == 1 then
 	print(("saved log: %d bytes, %d as one table a line"):format(#saved, old))
 	check(#saved < old / 2, "saved log not smaller")
 	History.UnpackSaved()
-	check(dump() == before, "lines changed by a save and load in place")
+	local now = dump()
+	if now ~= before then
+		local a, b = {}, {}
+		for l in (before .. "\n"):gmatch("(.-)\n") do a[#a + 1] = l end
+		for l in (now .. "\n"):gmatch("(.-)\n") do b[#b + 1] = l end
+		for i = 1, math.max(#a, #b) do
+			if a[i] ~= b[i] then print("was: " .. tostring(a[i])); print("now: " .. tostring(b[i])); break end
+		end
+	end
+	check(now == before, "lines changed by a save and load in place")
 	local fh = assert(io.open(note, "w")); fh:write(before); fh:close()
 else
 	local fh = assert(io.open(note)); local before = fh:read("*a"); fh:close()
