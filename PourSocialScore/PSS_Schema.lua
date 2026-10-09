@@ -21,7 +21,7 @@ local M = addon.M
 
 M.PSS_SCHEMA = {
 	-- PourSocialScoreDB's own keys (the rest are routed, LAYOUT)
-	core = "upgrade outbox recent session sessionStart revision imported importedFrom importedLegacyAt logAllV1",
+	core = "upgrade outbox purge recent session sessionStart revision imported importedFrom importedLegacyAt logAllV1",
 	-- PourSocialScoreDB.upgrade
 	upgrade = "step=0 version at",
 	-- PSS_PlayersDB.playerData[key]

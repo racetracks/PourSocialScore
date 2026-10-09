@@ -3,7 +3,7 @@
 ## 1. SavedVariables by folder
 | Folder | SavedVariables | Holds |
 | --- | --- | --- |
-| core | `PourSocialScoreDB` | upgrade record, outbox, `recent` counts, sessionStart |
+| core | `PourSocialScoreDB` | upgrade record, outbox, `purge` marks (S1), `recent` counts, sessionStart |
 | _Options | `PSS_OptionsDB`, `PSS_PlayersDB`, `PSS_GuildsDB`, `PSS_RulesDB`, `PSS_CountsDB` | options (non-defaults), lists, rules, all-time counts |
 | _Logging | `PSS_LoggingDB` | `blockLog`, `blockKeep` |
 | _EllesmereUI | `PSS_EllesmereUIDB` | window position, last tab |
@@ -18,14 +18,14 @@ Logging loads only when:
 - the outbox reaches `OUTBOX_LOAD = 200` waiting lines **and** it is a quiet moment (not in combat, not in an instance), or
 - code calls `M.PSS_LoadLogging()` directly.
 
-That load is the moment waiting lines move into the log. **Lines move to the log framework only when logs are called.** Known exception: removing a guild member still loads Logging.
+That load is the moment waiting lines move into the log. **Lines move to the log framework only when logs are called.** Removing or resetting anyone never loads Logging (3.4.1.49, core uplift S1): `History.ClearOwner` drops the owner's waiting lines and marks the owner in `PourSocialScoreDB.purge` (at most `History.PURGE_CAP` = 200; when full, Logging loads and clears at once).
 
 ## 3. The outbox (core, always loaded)
 - A block is **counted at once** (session, recent 24 h, all time), never later from log lines.
 - Its line waits in `PourSocialScoreDB.outbox` while Logging is not loaded.
 - The outbox is capped at `History.Cap()` lines, so it cannot grow without bound.
 - `History.Log` / `History.Keep` and every reader call the loader first.
-- `M.PSS_LoadLogging()` order: PrepareSavedData -> UnpackSaved (rebuild from the grouped save) -> KeepToLog (one-time move back, flag `logAllV1`) -> outbox into the log -> CapKeep -> Trim -> Tidy.
+- `M.PSS_LoadLogging()` order: PrepareSavedData -> UnpackSaved (rebuild from the grouped save) -> KeepToLog (one-time move back, flag `logAllV1`) -> ApplyPurge (the `purge` marks' lines go, the marks are cleared) -> outbox into the log -> CapKeep -> Trim -> Tidy.
 
 ## 4. The log and the keep
 - **blockLog:** every blocked line (`History.LOG_ALL = true`), the newest `History.Cap()` (2000 by default). Players, guild members, chat filters, world and guild chat.

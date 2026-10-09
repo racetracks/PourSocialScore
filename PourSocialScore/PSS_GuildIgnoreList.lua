@@ -1207,13 +1207,11 @@ function M.PSS_RemoveGuildMember(guildName, playerName, sourceGuildKey, storedKe
 		for _ in pairs(g.members) do g.memberCount = g.memberCount + 1 end
 		markMemberIndexDirty()
 		-- in no guild rule now: their block lines go too (counts went with the
-		-- record). Never counted: no lines, and the block history (Logging)
-		-- is not loaded for it.
+		-- record). Never counted: no lines. The block history (Logging) is
+		-- never loaded for it (History.ClearOwner).
 		if rck and not lookupGuildMemberCanon(rck) then
 			local owner = "g:" .. rck
-			if History.Loaded() or mayHaveLines then
-				History.Clear(function(h) return h.o == owner end)
-			end
+			History.ClearOwner(owner, mayHaveLines)
 			History.ForgetRecent(owner)
 		end
 	end
@@ -1362,7 +1360,7 @@ function M.PSS_ResetMemberBlockHistory(member)
 	if type(member) ~= "table" then return end
 	local key = History.MemberKey(member)
 	if key then
-		History.Clear(function(h) return h.o == key end)
+		History.ClearOwner(key)
 		History.ForgetRecent(key)
 	end
 	clearMemberBlockData(member)
