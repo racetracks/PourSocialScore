@@ -53,6 +53,20 @@ jobs:
           PSS_PHASE=retail lua5.1 tools/harness/run.lua . - - tools/harness/check_gfx.lua | tee /tmp/gfx.txt && grep -q "PASS gfx retail" /tmp/gfx.txt
           PSS_GFX_NOAPI=1 PSS_PHASE=noapi PSS_CAMELOT=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_gfx.lua | tee /tmp/gfx.txt && grep -q "PASS gfx noapi" /tmp/gfx.txt
           PSS_GFX_OLDAPI=1 PSS_PHASE=noapi PSS_CAMELOT=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_gfx.lua | tee /tmp/gfx.txt && grep -q "PASS gfx noapi" /tmp/gfx.txt
+      - name: Macro helper
+        run: |
+          for ph in data global wrongclass dynicon combat list login memory; do
+            PSS_PHASE=$ph PSS_CAMELOT=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro $ph" /tmp/mac.txt
+          done
+          for ph in class stores; do
+            PSS_PHASE=$ph PSS_CAMELOT=1 PSS_CLASS=WARRIOR lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro $ph" /tmp/mac.txt
+          done
+          PSS_PHASE=existing PSS_CAMELOT=1 PSS_MACRO_SEED="a:Trinket 1=/say hi;a:Other=/dance;c:Trinket 2=/say char" lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro existing" /tmp/mac.txt
+          PSS_PHASE=full PSS_CAMELOT=1 PSS_MACRO_MAX=1,18 PSS_MACRO_SEED="a:Keep=/x" lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro full" /tmp/mac.txt
+          PSS_PHASE=full PSS_CAMELOT=1 PSS_MACRO_MAX=2,18 PSS_MACRO_SEED="a:Keep=/x" lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro full" /tmp/mac.txt
+          PSS_PHASE=dynicon PSS_CAMELOT=1 PSS_MACRO_DYNICON=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro dynicon" /tmp/mac.txt
+          PSS_PHASE=noapi PSS_CAMELOT=1 PSS_MACRO_NOAPI=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro noapi" /tmp/mac.txt
+          PSS_PHASE=retail lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro retail" /tmp/mac.txt
 
   upgrades:
     runs-on: ubuntu-latest

@@ -559,6 +559,19 @@ filter that mixes them without brackets may now behave differently.)
                           type, notes, guilds and members, chat filters,
                           history lines, the sum of every block count,
                           options, the upgrade record, and any problems
+/pss macro [set] [create] [account|character]
+                          Camelot: write the macros the addon carries,
+                          each as an account-wide or a character macro.
+                          /pss macro lists the sets, /pss macro global
+                          shows what it will do, /pss macro global create
+                          writes them (account macros unless a macro says
+                          otherwise) and /pss macro warrior create (on a
+                          warrior) the warrior's (character macros unless
+                          a macro says otherwise). Add account or
+                          character to put the whole set in one place.
+                          A macro with the same name in the same place is
+                          set to PSS's version; nothing is deleted. Not
+                          in combat.
 /pss showmsg on|off       Print what happens during synchronisation
 /pss sameserver on|off    Only sync same-server characters to Blizzard's
                           ignore list

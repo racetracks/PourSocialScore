@@ -136,6 +136,39 @@ out=$(PSS_GFX_RUN=none PSS_GFX_SET=graphicsQuality=2 PSS_RELOAD=1 PSS_PHASE=relo
 echo "$out" | sed "s/^PASS gfx reload/PASS gfx reload (none)/"
 echo "$out" | grep -q "PASS gfx reload" || fail=1
 
+# macro helper (3.5.0, /pss macro, Camelot): the shipped data, create and
+# update by name per store (account or character per macro, set, default
+# or the command word), the class gate, preview, room, combat, no API,
+# Retail, login, and the memory budget (resident, garbage, nothing kept)
+echo "== macro helper"
+for ph in data global wrongclass dynicon combat list login memory; do
+	out=$(PSS_PHASE=$ph PSS_CAMELOT=1 lua5.1 "$here/run.lua" . - "$work/macro-$ph.lua" "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS macro $ph" || fail=1
+done
+for ph in class stores; do
+	out=$(PSS_PHASE=$ph PSS_CAMELOT=1 PSS_CLASS=WARRIOR lua5.1 "$here/run.lua" . - "$work/macro-$ph.lua" "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS macro $ph" || fail=1
+done
+out=$(PSS_PHASE=existing PSS_CAMELOT=1 PSS_MACRO_SEED="a:Trinket 1=/say hi;a:Other=/dance;c:Trinket 2=/say char" lua5.1 "$here/run.lua" . - - "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS macro existing" || fail=1
+for max in 1,18 2,18; do
+	out=$(PSS_PHASE=full PSS_CAMELOT=1 PSS_MACRO_MAX=$max PSS_MACRO_SEED="a:Keep=/x" lua5.1 "$here/run.lua" . - - "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | sed "s/^PASS macro full/PASS macro full ($max)/"
+	echo "$out" | grep -q "PASS macro full" || fail=1
+done
+out=$(PSS_PHASE=dynicon PSS_CAMELOT=1 PSS_MACRO_DYNICON=1 lua5.1 "$here/run.lua" . - - "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | sed "s/^PASS macro dynicon/PASS macro dynicon (dynamic icon)/"
+echo "$out" | grep -q "PASS macro dynicon" || fail=1
+out=$(PSS_PHASE=noapi PSS_CAMELOT=1 PSS_MACRO_NOAPI=1 lua5.1 "$here/run.lua" . - - "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS macro noapi" || fail=1
+out=$(PSS_PHASE=retail lua5.1 "$here/run.lua" . - "$work/macro-retail.lua" "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS macro retail" || fail=1
+
 # the new window's Libraries maths (3.4.0-dev005): pane numbers equal the
 # core's counts, slices, back / forward, throttle
 echo "== new window maths"
