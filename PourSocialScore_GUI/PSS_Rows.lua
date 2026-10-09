@@ -33,6 +33,7 @@
 -- three looks.
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
+local M = ns.M
 
 -- link kinds whose tooltip GameTooltip:SetHyperlink shows (others, such as
 -- trade: profession links, open a window instead)
