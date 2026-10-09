@@ -10,6 +10,7 @@
 ## Dependencies: PourSocialScore
 
 PSS_ImportExport.lua
+PSS_PlayerRows.lua
 PSS_GuildQuery.lua
 PSS_FilterQuery.lua
 PSS_TotalsQuery.lua
