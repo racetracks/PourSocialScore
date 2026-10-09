@@ -130,7 +130,7 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
 - **N46 to N48:** listener errors are reported, the group warning list is fixed, and `/pss list` no longer hits a nil.
 - **Done in F1 (3.4.1.42):**
   - N40: `M.PSS_ExpireEntries(quiet, daily)` (core `PSS_PlayerIgnoreList.lua`), the expiry loop out of `SyncIgnoreList`. It runs at login after `M.PSS_RunUpgradeData`, on `PLAYER_REGEN_ENABLED` (the quiet event; at most once a day, no timer), in `M.PSS_OpenUI` and the Friends dock (the list opens), in `/pss list` and in `/pss sync`. One chat line names what it removed (`M.PSS_DelIgnore(i, true, quiet)`). Dan's real saves have no ignore list entries, so nothing changes on them.
-  - N41: the four hook bodies return early when `useUnitHacks` / `useLFGHacks` is off. The hooks are installed at login or on the first enable (`OPTION_CHANGED`; the Group Finder waiter re-arms). The labels lost "(Requires reload to take effect)". The reload popup (N3) stays dead; P1 deletes it.
+  - N41: the four hook bodies return early when `useUnitHacks` / `useLFGHacks` is off. The hooks are installed at login or on the first enable (`OPTION_CHANGED`; the Group Finder waiter re-arms). The labels lost "(Requires reload to take effect)". The reload popup (N3) stays dead; P1 deletes it (Dan, 2026-10-09: "remove in p1").
   - N42: `[talent]` / `[talent=N]` in `KNOWN_TAGS` and `TAG`; `analyse` collects `F.talentID`.
   - N45: `M.PSS_ClearGuildRules()` (core `PSS_GuildIgnoreList.lua`) replaces `db.guildData = {}` in Import Replace. Shipped rules stay; the others go with their recent counts; `ensureManagedRules`; index dirty. `existed` uses `M.PSS_NormalizeGuild`.
   - N46: `M.PSS_NoteListenerError(where, err)` (core `PSS_Events.lua`; `M.Events.errors`) for `Events.Fire` and the /who handlers: once per name in chat, counted in `/pssguild status`.
@@ -205,7 +205,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 ### Line 3.4.2: core performance and tidy (builds continue)
 | Stage | Change |
 | --- | --- |
-| P1 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup, the compat globals, `/pss test` |
+| P1 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `def.reload` and the `before` read in `M.PSS_SetOpt`; Dan, 2026-10-09), the compat globals, `/pss test` |
 | P2 | Event-driven GC and `loadWhenQuiet` without timers (L14; closes the known breach in 02 section 12) |
 | P3 | Capture events only when needed (L15) |
 | P4 | Chat path: N26 (option reads without the router), N28 (guild path), N35 (per-line tables), N31 (outbox trim), benchmarked |

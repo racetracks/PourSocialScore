@@ -6,7 +6,7 @@ Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4
 - **Live release: 3.4.0.29** (full, the new PSS window; mirrored to `racetracks/Pour-Social-Score`). **Main: 3.4.1.41** (Fix 2 of the detail pane, PR #130, works in game; N3 merged in 3.4.1.37, PR #126).
 - **Current project: core uplift** (`10_CORE_UPLIFT.md`, locked by Dan on 2026-10-08). It runs on three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
 - **Done:** Fix and Fix 2 (3.4.1.40, 3.4.1.41: the Guilds tab detail pane), N1 (3.4.1.32), N2 (3.4.1.33), plan B (3.4.1.34, docs only), B1 (3.4.1.35: PSS authoritative over Blizzard's ignore list, per-player tick, upgrade step 8), B2 (3.4.1.36: the right-click "PSS" header with Block Player / Block Guild), N3 (3.4.1.37: shipped lists rebuilt, 7634 to 7438 entries).
-- **On its PR: F1, 3.4.1.42** (PR #131): N40 expiry applied by itself (`M.PSS_ExpireEntries`), N41 option hooks without a /reload, N42 `[talent]` tag, N45 Import Replace keeps the shipped rules (`M.PSS_ClearGuildRules`), N46 listener errors shown once (`M.PSS_NoteListenerError`), N47 group warning from the current roster, N48 `/pss list` nil note. Harness `check_fixes.lua`.
+- **On its PR: F1, 3.4.1.42** (PR #131): N40 expiry applied by itself (`M.PSS_ExpireEntries`), N41 option hooks without a /reload, N42 `[talent]` tag, N45 Import Replace keeps the shipped rules (`M.PSS_ClearGuildRules`), N46 listener errors shown once (`M.PSS_NoteListenerError`), N47 group warning from the current roster, N48 `/pss list` nil note. Harness `check_fixes.lua`. In game (Dan, 2026-10-09): checks 2, 3, 5, 6, 8, 10 pass, 9 assumed; check 1 is to be rerun with the corrected command; checks 4 and 7 are left for later as #132 and #133.
 - **Next:** F2 (3.4.1.43: G21 with G26, G27, G28), then U1 (3.4.1.44).
 - The closed projects: the PSS window (3.4.0, `09_PSS_UI_PROJECT.md`; its code map and lessons stay the reference for the window) and parity (3.3.1, `08`).
 
@@ -23,6 +23,8 @@ In 02 section 12, each with its fix line. The idle GC cycle is fixed by core upl
 - #40: research whether a LoadOnDemand addon can unload.
 - #44: clean up console output.
 - #45: Questie-style upgrade output (core uplift U2).
+- #132: test later, the Group Finder option without a /reload (F1 check 4; needs a character that can use the Group Finder).
+- #133: test later, the party warning names only who is in the group now (F1 check 7).
 
 ## Parked
 - Pack the in-play chat filter log (offered, not started).
