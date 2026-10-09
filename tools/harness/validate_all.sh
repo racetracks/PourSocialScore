@@ -664,7 +664,7 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		out=$(PSS_COMPONENTS=addons,gfx lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_events.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS events" || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
+		out=$(PSS_COMPONENTS=addons,gfx lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | grep -E "PASS|FAIL"
 		echo "$out" | grep -q "PASS options" || fail=1
 		out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_upgrade_steps.lua" 2>&1 | grep -v '^|cff')
