@@ -6,8 +6,8 @@
 -- Load button for a load on demand addon, its memory and a protect mark.
 -- A line at the top shows the CPU and memory of the client's own AddOn
 -- list; hovering an addon shows its details and cost, a group header the
--- group's sums. Sets, Undo, Enable All, Disable All and Reload are under
--- the list. Drawing only: Libraries (PSS_AddonsView.lua over
+-- group's sums. Sets (bottom left), Undo, Enable All, Disable All and
+-- Reload are under the list. Drawing only: Libraries (PSS_AddonsView.lua over
 -- PSS_AddonsQuery.lua) works out every text and does every change; the
 -- tab redraws when core fires ADDONS_CHANGED. Built on first open; closing
 -- the window drops the list (page.release).
@@ -209,20 +209,23 @@ function Refresh()
 	disableAll:SetEnabled(M.PSS_AddonCan("all"))
 end
 
--- the Name popup: a set's name (the kit's Confirm with a name field)
-local function AskName(title, text, accept, name, run)
-	ns.Confirm({ title = title, text = text, accept = accept, name = { text = name or "", max = 32 },
-		onAccept = function(_, typed) run(typed or "") end })
+-- Rename's popup: a set's name (the kit's Confirm with a name field)
+local function AskName(p, run)
+	ns.Confirm({ title = "Rename Set?", text = "Give " .. p.label .. " a new name.", accept = "Rename",
+		name = { text = p.name or "", max = 32 }, onAccept = function(_, typed) run(typed or "") end })
 end
 
+-- one action on a slot of the Sets menu; Save and Delete ask first
 local function SetAction(p, act)
 	if act == "save" then
-		AskName("Save Set?", "Save what is on now over this set.", "Save", p.name, function(name)
-			Say(V:PresetAct(p, "save", name))
-			Refresh()
-		end)
+		ns.Confirm({ title = "Save Set?", text = (p.empty and "Save the addons that are on now as " or "Save the addons that are on now over ")
+			.. p.label .. "?", accept = "Save",
+			onAccept = function()
+				Say(V:PresetAct(p, "save"))
+				Refresh()
+			end })
 	elseif act == "rename" then
-		AskName("Rename Set?", "Give this set a new name.", "Rename", p.name, function(name)
+		AskName(p, function(name)
 			Say(V:PresetAct(p, "rename", name))
 			Refresh()
 		end)
@@ -234,29 +237,15 @@ local function SetAction(p, act)
 	end
 end
 
+-- the Sets menu: every place, a free one shown as empty; a click on one
+-- opens that place's actions
 local function BuildSets(m)
-	m:Title("Sets")
-	local sets = V:Presets()
-	for _, p in ipairs(sets) do
-		m:Button(("%s (%s, %d)"):format(p.label, p.scope == "all" and "all characters" or "this character", p.n), function()
+	m:Title(V.who == "all" and "Sets (all characters)" or "Sets (this character)")
+	for _, p in ipairs(V:Slots()) do
+		m:Button(p.text, function()
 			ns.RowMenu(setsDD, V:PresetMenu(p), function(act) SetAction(p, act) end)
 		end)
 	end
-	if #sets > 0 then m:Divider() end
-	m:Button("Save what is on as a new set...", function()
-		AskName("Save Set?", "Name the new set (" .. (V.who == "all" and "all characters" or "this character") .. ").", "Save", "", function(name)
-			local ok, text = V:PresetNew(name, false)
-			Say(text)
-			Refresh()
-		end)
-	end)
-	m:Button("Save what is on as my class's set...", function()
-		AskName("Save Set?", "Name your class's set (all characters).", "Save", "", function(name)
-			local _, text = V:PresetNew(name, true)
-			Say(text)
-			Refresh()
-		end)
-	end)
 end
 
 local function BuildToolbar()
@@ -307,15 +296,16 @@ local function BuildToolbar()
 	end)
 	refresh:SetPoint("TOPRIGHT", page, "TOPRIGHT", -10, -8)
 	ns.TipOn(refresh, refresh, "Reads the memory in use again.")
-	setsDD = ns.NewDropdown(page, 80, BuildSets)
-	setsDD:SetPoint("RIGHT", refresh, "LEFT", -6, 0)
-	setsDD:SetLabel("Sets")
 	page.refreshButton = refresh
 end
 
 local function BuildFooter()
+	-- the Sets drop-down, bottom left (its menu opens upward)
+	setsDD = ns.NewDropdown(page, 80, BuildSets, true)
+	setsDD:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 10, 8)
+	setsDD:SetLabel("Sets")
 	footer = ns.NewText(page, 12)
-	footer:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 12, 12)
+	footer:SetPoint("LEFT", setsDD, "RIGHT", 12, 0)
 	footer:SetAlpha(0.8)
 
 	reload = ns.NewButton(page, "Reload", 90, function()
@@ -381,6 +371,7 @@ ns.TabBuilders.addons = function(pg)
 		click = RowClick,
 	})
 	page.list, page.state, page.search = list, V, search
+	page.setsDD, page.footer, page.setsBuild = setsDD, footer, BuildSets
 	-- the window opened: memory is read once when this tab next shows
 	page.stale = function() V.needSample = true end
 	page.release = function()

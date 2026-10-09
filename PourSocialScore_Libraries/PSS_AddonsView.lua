@@ -12,7 +12,7 @@
 --   V:Tip(k)  V:Menu(k)  V:Act(k, act, arg)
 --   V:Sample()                 memory, once (never in combat)
 --   V:Stats()                  the CPU and memory line at the top
---   V:Presets()  V:PresetMenu(p)  V:PresetAct(p, act, name)
+--   V:Slots()  V:PresetMenu(p)  V:PresetAct(p, act, name)
 --   V:Release()                the window closed: the list is dropped
 -- A line is an addon (its position in the list) or a group header.
 ------------------------------------------------------------------------
@@ -337,39 +337,39 @@ function View:Act(k, act, arg)
 end
 
 ------------------------------------------------------------------------
--- Presets
+-- Sets: the 25 numbered places of the scope shown (this character or all
+-- characters) and your class's, each saved into, loaded, added, taken off,
+-- renamed or deleted
 ------------------------------------------------------------------------
-function View:Presets()
-	return M.PSS_AddonPresets()
+-- the places of the Sets menu: Presets' entries plus text, the line the
+-- menu shows
+function View:Slots()
+	local slots = M.PSS_AddonSlots(self.who)
+	for _, p in ipairs(slots) do
+		p.text = p.empty and (p.label .. " (empty)") or (p.label .. " (" .. p.n .. ")")
+	end
+	return slots
 end
 
--- the first number not used for the scope shown, or your class's preset
--- when the class is chosen
-function View:FreeId()
-	local used = {}
-	for _, p in ipairs(M.PSS_AddonPresets()) do
-		if p.scope == (self.who == "all" and "all" or "char") and not p.class then used[p.id] = true end
-	end
-	for id = 1, 25 do
-		if not used[id] then return id end
-	end
-end
-
--- the actions on one preset p (an entry of Presets)
+-- the actions on one slot p (an entry of Slots): a free place only saves
 function View:PresetMenu(p)
-	return {
-		{ kind = "title", text = p.label },
-		{ kind = "button", text = "Load (replace what is on)", act = "load" },
-		{ kind = "button", text = "Add to what is on", act = "add" },
-		{ kind = "button", text = "Take off what is on", act = "remove" },
-		{ kind = "divider" },
-		{ kind = "button", text = "Save what is on over it...", act = "save" },
-		{ kind = "button", text = "Rename...", act = "rename" },
-		{ kind = "button", text = "Delete...", act = "delete" },
-	}
+	local e = { { kind = "title", text = p.label .. (p.class and "" or (p.scope == "all" and " (all characters)" or " (this character)")) } }
+	local function add(text, act) e[#e + 1] = { kind = "button", text = text, act = act } end
+	if p.empty then
+		add("Save", "save")
+		return e
+	end
+	add("Load", "load")
+	add("Add to current", "add")
+	add("Remove from current", "remove")
+	e[#e + 1] = { kind = "divider" }
+	add("Save", "save")
+	if not p.class then add("Rename", "rename") end
+	add("Delete", "delete")
+	return e
 end
 
--- one preset action; returns the line to say
+-- one action on slot p; returns the line to say (a save keeps the name)
 function View:PresetAct(p, act, name)
 	local ok, text
 	if act == "load" then
@@ -379,20 +379,13 @@ function View:PresetAct(p, act, name)
 	elseif act == "remove" then
 		ok, text = M.PSS_AddonPresetRemove(p.id, p.scope, self.who)
 	elseif act == "save" then
-		ok, text = M.PSS_AddonPresetSave(p.id, name or p.name, p.scope == "all" and "all" or "me")
+		ok, text = M.PSS_AddonPresetSave(p.id, p.name, self.who)
 	elseif act == "rename" then
 		ok, text = M.PSS_AddonPresetRename(p.id, name, p.scope)
 	elseif act == "delete" then
 		ok, text = M.PSS_AddonPresetDelete(p.id, p.scope)
 	end
 	return text
-end
-
--- a new preset under a free number (or your class)
-function View:PresetNew(name, class)
-	local id = class and "class" or self:FreeId()
-	if not id then return false, "All 25 sets are used." end
-	return M.PSS_AddonPresetSave(id, name, self.who)
 end
 
 function View:Pending()

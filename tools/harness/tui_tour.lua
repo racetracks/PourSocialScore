@@ -120,6 +120,13 @@ local function step(name, fn)
 	H.RunTimers()
 	snapshot(name)
 end
+-- a tab's number by its key (the order changed in 3.6.0.66; main's tour runs too)
+local function TAB(key)
+	for i, t in ipairs(M.PSS_UI_TABS) do
+		if t.key == key then return i end
+	end
+end
+
 local function click(b, button)
 	local fn = b and b:GetScript("OnClick")
 	if fn then fn(b, button or "LeftButton") end
@@ -171,15 +178,15 @@ for _, skin in ipairs({ 2, 0, 1 }) do
 	step(look .. " graphics closed", function() if _G.PSS_GfxPopup then _G.PSS_GfxPopup:Hide() end end)
 	-- 3.6.0: the AddOns tab (nothing before; the tour opens it with the other tabs)
 	step(look .. " addons", function()
-		click(win.tabs[7])
-		local pg = win.pages[7]
+		click(win.tabs[TAB("addons")])
+		local pg = win.pages[TAB("addons")]
 		if pg.list then
 			pg.list.scroll:SetHeight(300)
 			pg.list:Layout()
 		end
 	end)
 	step(look .. " addons hover row", function()
-		local pg = win.pages[7]
+		local pg = win.pages[TAB("addons")]
 		for _, row in ipairs(pg.list and pg.list.rows or {}) do
 			if row.index and row.index > 1 and row:IsShown() then
 				local f = row:GetScript("OnEnter")
@@ -189,30 +196,40 @@ for _, skin in ipairs({ 2, 0, 1 }) do
 		end
 	end)
 	step(look .. " addons hover header", function()
-		local pg = win.pages[7]
+		local pg = win.pages[TAB("addons")]
 		local row = pg.list and pg.list.rows[1]
 		local f = row and row:GetScript("OnEnter")
 		if f then f(row) end
 	end)
 	step(look .. " addons collapse", function()
-		local pg = win.pages[7]
+		local pg = win.pages[TAB("addons")]
 		local row = pg.list and pg.list.rows[1]
 		if row then click(row) end
 	end)
 	step(look .. " addons search", function()
-		local pg = win.pages[7]
+		local pg = win.pages[TAB("addons")]
 		if pg.search then
 			pg.search:SetText("dbm")
 			local f = pg.search:GetScript("OnTextChanged")
 			if f then f(pg.search) end
 		end
 	end)
+	-- 3.6.0.66: the Sets drop-down at the bottom left; Save asks first, Rename has the name field
+	step(look .. " addons sets menu", function()
+		local pg = win.pages[TAB("addons")]
+		if pg.setsDD and pg.setsDD.dark then click(pg.setsDD.dark) end
+	end)
+	step(look .. " addons sets menu closed", function() if _G.PSS_Menu then _G.PSS_Menu:Hide() end end)
 	step(look .. " addons save set", function()
-		ui.Confirm({ title = "Save Set?", text = "Name the new set.", accept = "Save", name = { text = "Raid", max = 32 } })
+		ui.Confirm({ title = "Save Set?", text = "Save the addons that are on now as Set 1?", accept = "Save" })
 	end)
 	step(look .. " addons save set closed", function() _G.PSS_Confirm:Hide() end)
+	step(look .. " addons rename set", function()
+		ui.Confirm({ title = "Rename Set?", text = "Give Raid a new name.", accept = "Rename", name = { text = "Raid", max = 32 } })
+	end)
+	step(look .. " addons rename set closed", function() _G.PSS_Confirm:Hide() end)
 	step(look .. " addons disable all", function()
-		local pg = win.pages[7]
+		local pg = win.pages[TAB("addons")]
 		if pg.search then
 			pg.search:SetText("")
 			local f = pg.search:GetScript("OnTextChanged")
@@ -221,7 +238,7 @@ for _, skin in ipairs({ 2, 0, 1 }) do
 		ui.Confirm({ title = "Disable All AddOns?", text = "Tour disable all", accept = "Disable All" })
 	end)
 	step(look .. " addons disable all closed", function() _G.PSS_Confirm:Hide() end)
-	step(look .. " events", function() click(win.tabs[4]) end)
+	step(look .. " events", function() click(win.tabs[TAB("events")]) end)
 	step(look .. " close", function() win:Hide() end)
 end
 
