@@ -8,6 +8,7 @@
 3. Core fires `M.Events`; UIs listen and write only through core setters (`tools/check_layers.lua` enforces it).
 4. The 8 StaticPopup dialogs stay as they are in the native mode.
 5. **Guild member fields are read through their accessors (core uplift S2, 3.4.1.50):** `M.PSS_MemberCanon`, `M.PSS_MemberName`, `M.PSS_MemberGuildName`, `M.PSS_MemberWhenBlocked`, `M.PSS_MemberShipped`, `M.PSS_MemberPlayerKey`, and `History.CountTotal` (or `History.EnsureCounts`) for a saved counts table's total; a rule's member count from `M.PSS_GuildMemberCount`, never the saved `memberCount`. `tools/check_fields.lua` (rules check) fails the runtime fields or `memberCount` outside the accessor block.
+6. **Simulate the client while coding (Dan, 2026-10-09):** every change is driven through the harness's simulated WoW client as it is written, its real output read, changed behaviour gets a check that fails on `origin/main`, and the PR names what a simulation cannot show (11_PREFERENCES has the full text).
 
 ## 2. TOCs
 - Title `|cff69ccf0PourSocialScore|r <Part>`.
