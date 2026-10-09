@@ -3,15 +3,15 @@
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. History: `reference/06_status-history-to-3.4.1.30.md` (to 3.4.1.30) and `reference/combined-3.4.1.52/` (the 3.4.1.52 stages).
 
 ## Now
-- **Release 3.4.2.54** (PR #150, the author's call, 2026-10-09): no change in game since 3.4.1.53; the baseline, scratch and PSS packs trimmed to the current state, and the docs call the user "the author". Merging publishes it and mirrors it to `racetracks/Pour-Social-Score`; until then the live release is **3.4.1.53** (PR #143), which closed the core uplift.
-- **No current project.** The next step is whatever the author names; open items are below and in `13_CHANGES_IN_TRAIN.md`. A fix starts line 3.4.3 at build 3.4.3.55 (`sh tools/bump_version.sh line 3.4.3 "Title"`).
+- **Live release 3.4.2.54** (PR #150, merged 2026-10-09): docs only, no change in game since 3.4.1.53, which closed the core uplift.
+- **3.4.3.55** (this PR, docs only, opens line 3.4.3): the release notes, the summary of changes and the technical notes on scratch are named as context for any change or regression check (`CLAUDE.md`, 11), and `05_RELEASE.md` lists what a full release updates, the code map included.
+- **No current project.** The next step is whatever the author names; open items are below and in `13_CHANGES_IN_TRAIN.md`. The next build is 3.4.3.56 (`sh tools/bump_version.sh build "Title"`).
 
 ## Waiting on the author
-- Merge the 3.4.2.54 release PR (#150).
+- Merge the 3.4.3.55 docs PR.
 - Name the next project or fix.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: OK or revert P3 (inactive shipped lists no longer capture units or /who).
-- #45: built in U2 and shipped in 3.4.1.53; the author can close it.
 
 ## Known breaches
 None (02 section 12).
@@ -22,8 +22,6 @@ None (02 section 12).
 - #39: unload the GUI on close.
 - #40: research whether a LoadOnDemand addon can unload.
 - #44: clean up console output.
-- #45: Questie-style upgrade output (done; can close).
-- #78: the 3.3.0 parity project (closed at 3.3.1, 08; can close).
 - #125: right-click "Unblock Guild" on a shipped guild should turn the group's rule off instead of refusing.
 - #132: test later, the Group Finder option without a /reload (needs a character that can use the Group Finder).
 - #133: test later, the party warning names only who is in the group now.

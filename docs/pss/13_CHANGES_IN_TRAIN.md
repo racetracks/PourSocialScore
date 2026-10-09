@@ -7,7 +7,7 @@
 | Item | State |
 | --- | --- |
 | Release | **3.4.1.53**, live (PR #143, 2026-10-09); closes the core uplift. Previous release 3.4.0.29 |
-| Project | None. Release 3.4.2.54 (PR #150) is docs only, no change in game; a fix starts line 3.4.3 at build 3.4.3.55 |
+| Project | None. Release 3.4.2.54 (PR #150) is docs only, no change in game; line 3.4.3 is open (3.4.3.55, docs only); the next build is 3.4.3.56 |
 | Lines 3.4.2, 3.4.3 | Not used: their stages (P1 to P6, W1 to W4) shipped inside 3.4.1.52 (decision 28, a one-time override, 02 section 12) |
 
 Decided not to change: identity stays the lowercase `name-realm` key (no ID generator, decision 2); realm display spelling stays (decision 13 reversed); no new SavedVariables files; the three looks and the window's layout stay.
@@ -257,8 +257,8 @@ Every open GitHub issue on the addon repo, and the open items not yet in an issu
 | #38 | Seeing a shipped-guild member loads the lists (N36 related) |
 | #39, #40 | Unload the GUI on close / can an LOD addon unload: WoW cannot unload an addon; the window drops caches and requests GC on close |
 | #44 | Console output cleanup (R8's `print`) |
-| #45 | Questie-style upgrade output: built by U2, shipped in 3.4.1.53; the author can close it |
-| #78 | The 3.3.0 parity project issue; the project closed at 3.3.1 (08), still open on GitHub |
+| #45 | Questie-style upgrade output: built by U2, shipped in 3.4.1.53; closed 2026-10-09 |
+| #78 | The 3.3.0 parity project issue; the project closed at 3.3.1 (08); closed 2026-10-09 |
 | #125 | Right-click "Unblock Guild" on a shipped guild: turn the group's rule off instead of refusing |
 | #132 | Group Finder option without a /reload (F1 check 4); needs a character that can use the Group Finder |
 | #133 | Party warning names only who is in the group now (F1 check 7) |
