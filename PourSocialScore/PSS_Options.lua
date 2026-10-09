@@ -77,7 +77,8 @@ local COMPONENTS = {
 	{ key = "useAddons",		kind = "bool",		default = false, section = 6, reload = true, label = "Addon Manager",
 		tip = "The AddOns tab, /pss acp and /acp, the Open AddOns key and the AddOns entry in the Addon Compartment. Off: none of it exists and nothing of it is loaded. Applies after a reload." },
 	{ key = "useLogging",		kind = "bool",		default = true,		section = 6, reload = true, label = "Event Logging",
-		tip = "Keeps a line for every blocked chat line or request (the Events tab, Block History). Off: no line is stored and the Events tab goes; every count stays as it is. Needs Social Filtering. Applies after a reload." },
+		tip = "Keeps a line for every blocked chat line or request (the Events tab, Block History). Off: no line is stored and the Events tab goes; every count stays as it is. Applies after a reload.",
+		warn = "Turn off Event Logging? From now on nothing is recorded about what Pour Social Score blocks: the Events tab and every Event History page go, and you will not be able to track or review anything in the addon (the counts still run). OK turns it off after a reload; Cancel keeps it on." },
 	{ key = "useGfx",			kind = "bool",		default = false, section = 6, reload = true, label = "Graphics Settings Exporter",
 		tip = "/pss gfx: export, import and restore the graphics settings with a 15 second keep prompt (Camelot only). Off: /pss gfx does nothing and its code is not loaded. Applies after a reload." },
 	{ key = "useFiltering",		kind = "bool",		default = true,		section = 6, reload = true, label = "Social Filtering",
@@ -159,7 +160,6 @@ local function liveOn(name)
 	local key = COMPONENT_KEY[name]
 	if not key then return false end
 	if name == "gfx" and not camelot() then return false end
-	if name == "logging" and M.PSS_Opt("useFiltering") ~= true then return false end
 	return M.PSS_Opt(key) == true
 end
 

@@ -50,10 +50,8 @@ function phases.options()
 	local en, note = M.PSS_OptGate(M.PSS_OPTION_REG.useGfx)
 	check(en == camelot, "Graphics enabled on Camelot only: " .. tostring(en))
 	check(camelot or note == " (Camelot only)", "the Retail note: " .. note)
-	check(M.PSS_OptGate(M.PSS_OPTION_REG.useLogging), "Event Logging row enabled with filtering on")
 	M.PSS_SetOpt("useFiltering", "global", false)
-	en, note = M.PSS_OptGate(M.PSS_OPTION_REG.useLogging)
-	check(not en and note:find("needs Social Filtering", 1, true), "Event Logging greyed while filtering is off: " .. note)
+	check(M.PSS_OptGate(M.PSS_OPTION_REG.useLogging), "Event Logging row is not greyed while filtering is off")
 	check(PSS_OptionsDB.useFiltering == false, "only the non-default is saved")
 	M.PSS_SetOpt("useFiltering", "global", true)
 	check(PSS_OptionsDB.useFiltering == nil, "the default is not saved")
@@ -83,6 +81,28 @@ function phases.options()
 	cf.accept._scripts.OnClick(cf.accept)
 	check(H.reloads == before + 1, "Reload did not reload")
 	row.check:SetChecked(false)
+	row.check._scripts.OnClick(row.check)
+	-- Event Logging: unticking asks first (OK / Cancel); Cancel leaves it on, OK turns it off and asks to reload
+	local lrow
+	for _, it in ipairs(page.groups[1].items) do if it.o.key == "useLogging" then lrow = it.row end end
+	lrow.check:SetChecked(false)
+	lrow.check._scripts.OnClick(lrow.check)
+	local wf = _G.PSS_Confirm
+	check(wf:IsShown() and wf.text:GetText():find("will not be able to track", 1, true) and PSS_OptionsDB.useLogging == nil, "no warning, or the option changed before OK")
+	wf.cancel._scripts.OnClick(wf.cancel)
+	check(PSS_OptionsDB.useLogging == nil and lrow.check:GetChecked() == true, "Cancel did not keep Event Logging on")
+	lrow.check:SetChecked(false)
+	lrow.check._scripts.OnClick(lrow.check)
+	wf = _G.PSS_Confirm
+	wf.accept._scripts.OnClick(wf.accept)
+	check(PSS_OptionsDB.useLogging == false, "OK did not turn Event Logging off")
+	check(_G.PSS_Confirm:IsShown() and _G.PSS_Confirm.text:GetText():find("Reload now?", 1, true), "no reload question after OK")
+	_G.PSS_Confirm.cancel._scripts.OnClick(_G.PSS_Confirm.cancel)
+	lrow.check:SetChecked(true)
+	lrow.check._scripts.OnClick(lrow.check)
+	check(PSS_OptionsDB.useLogging == nil, "ticking it on again did not clear the saved value")
+	_G.PSS_Confirm.cancel._scripts.OnClick(_G.PSS_Confirm.cancel)
+	row.check:SetChecked(true)
 	row.check._scripts.OnClick(row.check)
 	H.combat = true
 	local c2 = _G.PSS_Confirm
@@ -143,7 +163,7 @@ function phases.gfxon()
 end
 
 function phases.filteringoff()
-	check(not M.PSS_On("filtering") and not M.PSS_On("logging"), "filtering and logging read on")
+	check(not M.PSS_On("filtering") and M.PSS_On("logging"), "filtering reads on, or logging was switched with it")
 	check(#H.filters == 0, "chat filters registered: " .. #H.filters)
 	check(hooksOn(C_FriendList) == 0, "C_FriendList hooks: " .. hooksOn(C_FriendList))
 	for _, e in ipairs({ "PARTY_INVITE_REQUEST", "DUEL_REQUESTED", "TRADE_SHOW", "GUILD_INVITE_REQUEST", "CHAT_MSG_WHISPER_INFORM", "IGNORELIST_UPDATE" }) do
@@ -159,7 +179,7 @@ function phases.filteringoff()
 	for i, t in ipairs(M.PSS_UI_TABS) do if t.key == "options" then idx = i end end
 	win.tabs[idx]._scripts.OnClick(win.tabs[idx])
 	check(not win.offNote:IsShown(), "the note shows on Options")
-	check(not keysOf(M.PSS_UI_TABS):find("events", 1, true), "Events listed with filtering off")
+	check(keysOf(M.PSS_UI_TABS):find("events", 1, true), "Events tab gone with filtering off (logging is independent)")
 end
 
 function phases.filteringon()
@@ -207,7 +227,7 @@ function phases.reloadset()
 end
 
 function phases.reloadread()
-	check(M.PSS_On("addons") and not M.PSS_On("filtering") and not M.PSS_On("logging"), "the saved choices were not applied")
+	check(M.PSS_On("addons") and not M.PSS_On("filtering") and M.PSS_On("logging"), "the saved choices were not applied")
 	check(M.PSS_On("gfx") == camelot, "gfx")
 	check(#H.filters == 0 and type(SlashCmdList["PSSACP"]) == "function", "the session did not start as saved")
 	check(PSS_OptionsDB.newerComponentKey and PSS_OptionsDB.newerComponentKey[2] == 2, "a newer key was lost")

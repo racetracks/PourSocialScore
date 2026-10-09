@@ -69,11 +69,22 @@ local function OptionRow(content, o, rows)
 	elseif o.kind == "bool" then
 		local c = ns.NewCheck(row)
 		c:SetPoint("LEFT", row, "RIGHT", -CONTROL_X, 0)
-		c:SetScript("OnClick", function(self)
-			M.PSS_SetOpt(o.key, "global", self:GetChecked() == true)
+		local function Apply(on)
+			M.PSS_SetOpt(o.key, "global", on)
 			if o.reload and M.PSS_OptGate(o) then
 				ns.Confirm({ title = "Reload UI?", text = "Turning " .. o.label .. " on or off applies after a reload. Reload now?",
 					accept = "Reload", cancel = "Later", onAccept = M.PSS_ReloadNow })
+			end
+		end
+		c:SetScript("OnClick", function(self)
+			local on = self:GetChecked() == true
+			if o.warn and not on then
+				-- turning it off needs an OK (issue 181): Cancel leaves it on
+				c:SetChecked(true)
+				ns.Confirm({ title = "Turn Off " .. o.label .. "?", text = o.warn, accept = "OK", cancel = "Cancel",
+					onAccept = function() Apply(false) end, onCancel = function() c:SetChecked(M.PSS_Opt(o.key) == true) end })
+			else
+				Apply(on)
 			end
 		end)
 		refresh = function()

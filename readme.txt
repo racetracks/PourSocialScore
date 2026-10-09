@@ -292,7 +292,8 @@ Enabled components (Options, first section)
 * Graphics Settings Exporter off: /pss gfx says it is off (a pending keep
   prompt is still shown once).
 * Event Logging off: blocks are counted as ever, but no line is kept; no
-  Events tab and no Event History page. Needs Social Filtering.
+  Events tab and no Event History page. Turning it off asks first (OK or
+  Cancel): you will not be able to track anything in the addon from then on.
 * Social Filtering off: nothing is blocked (no chat filter, invite, duel or
   trade decline, party warning, Blizzard ignore sync, Block menu items,
   capture or expiry); lists, rules and counts are kept and can be edited, and

@@ -84,8 +84,7 @@ function M.PSS_OptMatches(group, item, q)
 end
 
 -- an Enabled components row: its label with a note, whether it can be ticked
--- (Graphics is Camelot only; Event Logging needs Social Filtering), and
--- whether the change waits for a reload
+-- (Graphics is Camelot only), and whether the change waits for a reload
 local COMPONENT_NAME = { useAddons = "addons", useLogging = "logging", useGfx = "gfx", useFiltering = "filtering" }
 function M.PSS_OptGate(o)
 	local name = COMPONENT_NAME[o.key]
@@ -93,8 +92,6 @@ function M.PSS_OptGate(o)
 	local enabled, note = true, ""
 	if name == "gfx" and not M.PSS_IsCamelot() then
 		enabled, note = false, " (Camelot only)"
-	elseif name == "logging" and M.PSS_Opt("useFiltering") ~= true then
-		enabled, note = false, " (needs Social Filtering)"
 	end
 	if M.PSS_ComponentPending(name) then note = note .. " (after reload)" end
 	return enabled, note
