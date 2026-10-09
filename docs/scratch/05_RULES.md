@@ -15,5 +15,6 @@
 12. **Bugfix builds are hosted** like any build: the next build number, zipped, on scratch, with a link.
 13. **Real saves live here (this repo is the project files), never in an addon repo.**  All saves can be checked in the SavedVariables folder: `racetracks/Pour-Social-Score_Scratch` `SavedVariables/<version>/`, which replaces `racetracks/scratch` `PourSocialScore/savedvariables/`
 14. **Always reply with links**, never only a path.
+15. **No pull requests on scratch (2026-10-09):** commit and push straight to `main`, even when a session is given a working branch for this repo; a delivery waiting on a PR is not hosted.
 ## Rules to add
 <!-- The author adds further scratch rules here. -->
