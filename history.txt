@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.72 - Docs: reference retirements (RET)
+
+- Docs only: a new reference type for retired references, and a references file in every documentation folder that maps each retired reference to what replaced it. Nothing changes in the addon.
+
 => 3.6.0.71 - Docs: rules and context consolidated
 
 - Docs only: CLAUDE.md and the rules files are consolidated (same rules, less noise). Nothing changes in the addon.
