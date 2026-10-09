@@ -21,7 +21,7 @@ PourSocialScore (PSS) is a chat moderation addon for World of Warcraft, Retail (
 | The PSS window | One window, six tabs (Players, Guilds, Filters, Events, Import/Export, Options), three looks (Modern default, Classic, Dark) | `PourSocialScore_GUI` (drawing), `PourSocialScore_Libraries` (logic) |
 | Import / Export | One text string with chosen sections; Merge or Replace | Libraries `PSS_ImportExport.lua` |
 | Slash commands | `/pss` (window and commands), `/pssguild` (diagnostics) | Libraries `PSS_Commands.lua` |
-| Upgrades | Numbered run-once save upgrades (8 steps today) and `/pss check` | core `PSS_Upgrade.lua` |
+| Upgrades | Numbered run-once save upgrades (8 steps today, feature-tagged parts, `RETIRED`, counts per feature from 3.4.1.45) and `/pss check` | core `PSS_Upgrade.lua` |
 
 ## 2. Folders, loading and the dependency graph
 
@@ -76,7 +76,7 @@ Rules the graph follows: core never calls the GUI (it fires `M.Events`); the GUI
 | `PSS_PlayerQuery.lua` | 236 | Read helpers for the player list (so the window never reads saved tables) | `M.PSS_PlayerRow`, `M.PSS_SortPlayers`, `M.PSS_PlayerPosition`, `M.PSS_RemovePlayerAt`, `M.PSS_PlayersChanged` |
 | `PSS_GuildIgnoreList.lua` | 2461 | Guild rules and members, per-rule and per-member W I G P C, member counts and history, shipped lists and their delta save, member index, /who capture, Guild Search, Exclusion List, own-guild check, unit scans, the "guild" block source, legacy upgrades | `M.PSS_AddGuild`, `M.PSS_RemoveGuildNow`, `M.PSS_SetGuildBlock`, `M.PSS_ScanGuild`, `M.PSS_GuildSearch`, `M.PSS_SaveGuildSearch`, `M.PSS_LookupGuildMember`, `M.PSS_SetMemberBlock`, `M.PSS_SetMemberNote`, `M.PSS_IsOwnGuild`, `M.PSS_GuildRuleActive`, `M.PSS_LoadActiveManagedData`, `M.PSS_FlushManaged`, `M.PSS_GetGuildBlockCounts` |
 | `PSS_WhoisHarvest.lua` | 290 | Plans the guild sweep (one /who per click, split by level and class until under 50) and Scan All | `M.PSS_ScanAll`, `M.PSS_HarvestNext`, global `PSS_ScanAllBinding` (the key binding) |
-| `PSS_Upgrade.lua` | 489 | Run-once upgrade steps 1 to 8, the upgrade record, validation (`/pss check`) | `M.PSS_RunUpgradeFields`, `M.PSS_RunUpgradeData`, `M.PSS_Validate`, `M.PSS_PrintValidation` |
+| `PSS_Upgrade.lua` | 489 | Run-once upgrade steps 1 to 8 (the registry, U1), `RETIRED`, the upgrade record, version order, validation (`/pss check`) | `M.PSS_RunUpgradeFields`, `M.PSS_RunUpgradeData`, `M.PSS_VersionOrder`, `M.PSS_Validate`, `M.PSS_PrintValidation` |
 | `PourSocialScore.lua` | 313 | Startup, legacy one-time import, group warning, logout work, slash stubs | `ApplicationStartup` (local), `SLASH_PSS1`, `SLASH_PSSGUILD1` |
 | `PSS_Options.lua` | 152 | The one option table (30 keys) and its resolution: person > guild > global > default; only non-defaults saved | `M.PSS_OPTIONS`, `M.PSS_Opt`, `M.PSS_SetOpt`, `M.PSS_CharKey` |
 | `PSS_BlizzardUI.lua` | 340 | Core touch points with Blizzard UI: window openers, docking beside Friends/Social, core StaticPopups (`PSS_RELOAD`, `PSS_REASON`, `PSS_PARTYWARN`), Group Finder colouring, tooltip and menu, unit right-click menu, Addon Compartment | `M.PSS_OpenUI` (-> GUI `M.PSS_OpenWindow`), docking (-> GUI `M.PSS_WindowDock`), `M.PSS_HookFunctions`, `M.PSS_UnitMenuPlayer`, `M.PSS_LFG_*`, `M.PSS_AskReload` |
