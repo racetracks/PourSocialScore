@@ -31,4 +31,20 @@ view.q.period = nil
 check(view:PeriodIs("all"), "PeriodIs all when unset")
 win:Hide()
 
+-- G10: Import/Export state and the import chain
+check(M.PSS_IOOn and M.PSS_IOOn("players") == true and M.PSS_IOOn("options") == false, "PSS_IOOn")
+check(M.PSS_IOMode and M.PSS_IOMode() == "merge", "PSS_IOMode")
+M.PSS_IOSetMode("replace")
+check(M.PSS_IOMode() == "replace", "PSS_IOMode replace")
+local text, sub = M.PSS_ExportText()
+check(type(text) == "string" and sub == ("Copy the string below (%d characters)"):format(#text), "export subtitle: " .. tostring(sub))
+local err, ask, apply = M.PSS_ImportStart("not an export")
+check(type(err) == "string" and err:find("Import failed", 1, true) and ask == nil and apply == nil, "bad string")
+err, ask, apply = M.PSS_ImportStart(text)
+check(err == nil and type(ask) == "string" and ask:find("^Replace the ticked") and type(apply) == "function", "replace asks")
+M.PSS_IOSetMode("merge")
+err, ask, apply = M.PSS_ImportStart(text)
+check(err == nil and ask == nil and type(apply) == "function", "merge does not ask")
+check(tostring(apply()):find("^Merged: ") ~= nil, "apply report")
+
 if not fail then print("PASS w2b") end
