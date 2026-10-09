@@ -28,7 +28,7 @@ local EXCL_BY_CAT = {}
 for _, e in ipairs(M.EXCL) do EXCL_BY_CAT[e.cat] = e end
 
 function M.PSS_PlayerCount()
-	return #PourSocialScoreDB.ignoreList
+	return #M.PSS_List()
 end
 
 -- out gets: entry (as stored), kind ("player", "npc", "server"), name,
@@ -38,10 +38,10 @@ end
 -- counts; players only, else false). Returns out, or nil when there is no
 -- entry i.
 function M.PSS_PlayerRow(i, out)
-	local db = PourSocialScoreDB
-	local entry = db.ignoreList[i]
+	local e = M.PSS_List()[i]
+	local entry = e and e.name
 	if not entry then return nil end
-	local kind = db.typeList[i] or "player"		-- (as RemoveFromList reads it)
+	local kind = e.kind or "player"		-- (as RemoveFromList reads it)
 	local name, server = entry, "All"
 	local dash = find(entry, "-", 1, true)
 	if dash then
@@ -53,21 +53,20 @@ function M.PSS_PlayerRow(i, out)
 		server = M.prettyServer(name)
 		name = "All"
 	end
-	local listed = M.daysFromToday(db.dateList[i])
-	local expire = db.expList[i] or 0
+	local listed = M.daysFromToday(e.date)
+	local expire = e.exp or 0
 	out.entry, out.kind, out.name, out.server = entry, kind, name, server
-	out.faction = db.factionList[i]
-	out.added = db.dateList[i]
+	out.faction = e.faction
+	out.added = e.date
 	out.listed, out.expire, out.left = listed, expire, expire - listed
-	out.note = db.notes[i]
+	out.note = e.note or ""
 	out.record = kind == "player" and M.PSS_GetPlayerPrefs(entry) or false
 	return out
 end
 
 function M.PSS_PlayerEntry(i)
-	local db = PourSocialScoreDB
-	local entry = db.ignoreList[i]
-	if entry then return entry, db.typeList[i] end
+	local entry = M.PSS_EntryName(i)
+	if entry then return entry, M.PSS_EntryKind(i) end
 end
 
 function M.PSS_PlayerPosition(entry)
@@ -85,10 +84,10 @@ end
 -- sum: a table with the count keys to add up (total, whisper, ...), set to
 -- the totals of every listed player. Players without a record add nothing.
 function M.PSS_ListedBlockTotals(sum)
-	local db = PourSocialScoreDB
 	for k in pairs(sum) do sum[k] = 0 end
-	for i, name in ipairs(db.ignoreList) do
-		if db.typeList[i] == "player" and M.PSS_GetPlayerRecord(name) then
+	for _, e in ipairs(M.PSS_List()) do
+		local name = e.name
+		if (e.kind or "player") == "player" and M.PSS_GetPlayerRecord(name) then
 			local c = M.PSS_GetPlayerBlockCounts(name)
 			for k in pairs(sum) do sum[k] = sum[k] + (c[k] or 0) end
 		end
@@ -104,10 +103,9 @@ end
 -- name A-Z, then server A-Z, then list order.
 ------------------------------------------------------------------------
 local function elementName(i)
-	local db = PourSocialScoreDB
-	local kind = db.typeList[i]
+	local kind = M.PSS_EntryKind(i)
 	if kind == "player" or kind == "npc" then
-		return M.removeServer(db.ignoreList[i], true)
+		return M.removeServer(M.PSS_EntryName(i), true)
 	elseif kind == "server" then
 		return "All"
 	end
@@ -115,12 +113,11 @@ local function elementName(i)
 end
 
 local function elementServer(i)
-	local db = PourSocialScoreDB
-	local kind = db.typeList[i]
+	local kind = M.PSS_EntryKind(i)
 	if kind == "player" then
-		return M.getServer(db.ignoreList[i])
+		return M.getServer(M.PSS_EntryName(i))
 	elseif kind == "server" then
-		return db.ignoreList[i]
+		return M.PSS_EntryName(i)
 	elseif kind == "npc" then
 		return "All"
 	end
@@ -128,38 +125,37 @@ local function elementServer(i)
 end
 
 local function elementType(i)
-	local db = PourSocialScoreDB
-	local kind = db.typeList[i]
-	if kind == "player" then return db.factionList[i] end
+	local kind = M.PSS_EntryKind(i)
+	if kind == "player" then return M.PSS_List()[i].faction end
 	return kind
 end
 
 local function sortValue(i, key)
-	local db = PourSocialScoreDB
+	local e = M.PSS_List()[i]
 	if key == "name" then return lower(elementName(i) or "")
 	elseif key == "server" then return lower(elementServer(i) or "")
 	elseif key == "type" then return lower(elementType(i) or "")
-	elseif key == "listed" then return M.daysFromToday(db.dateList[i]) or 0
+	elseif key == "listed" then return M.daysFromToday(e.date) or 0
 	elseif key == "expire" then
-		local e = tonumber(db.expList[i]) or 0
-		if e == 0 then return math.huge end				-- never expires: after everything
-		return e - (M.daysFromToday(db.dateList[i]) or 0)
+		local x = tonumber(e.exp) or 0
+		if x == 0 then return math.huge end				-- never expires: after everything
+		return x - (M.daysFromToday(e.date) or 0)
 	elseif key == "note" then
-		local n = lower(db.notes[i] or "")
+		local n = lower(e.note or "")
 		if n == "" then return nil end					-- empty notes go last
 		return n
 	end
 	local mcat = key:match("^metric:(.+)$")
 	if mcat then
-		if db.typeList[i] ~= "player" then return nil end
-		local p = M.PSS_GetPlayerRecord(db.ignoreList[i])
+		if (e.kind or "player") ~= "player" then return nil end
+		local p = M.PSS_GetPlayerRecord(e.name)
 		return p and (tonumber(M.PSS_GetPlayerBlockCounts(p)[mcat]) or 0) or 0
 	end
 	local cat = key:match("^excl:(.+)$")
 	local ex = cat and EXCL_BY_CAT[cat]
 	if ex then
-		if db.typeList[i] ~= "player" then return nil end
-		local p = M.PSS_GetPlayerRecord(db.ignoreList[i])
+		if (e.kind or "player") ~= "player" then return nil end
+		local p = M.PSS_GetPlayerRecord(e.name)
 		return (not p or p[ex.field] ~= false) and 0 or 1	-- ticked (allowed) = 1
 	end
 	return 0
@@ -169,7 +165,7 @@ end
 -- = every entry). into: the table to fill (emptied first; a new one when
 -- nil). Returns into and the number of positions in it.
 function M.PSS_SortPlayers(key, asc, findText, into)
-	local db = PourSocialScoreDB
+	local list = M.PSS_List()
 	into = into or {}
 	for i = #into, 1, -1 do into[i] = nil end
 	if findText == "" then findText = nil end
@@ -177,16 +173,16 @@ function M.PSS_SortPlayers(key, asc, findText, into)
 
 	local sv, nv, srv = {}, {}, {}
 	local n = 0
-	for i = 1, #db.ignoreList do
+	for i = 1, #list do
 		local keep = true
 		if findText then
 			-- the server as stored ("Area52") and as shown ("Area 52")
-			local entry = db.ignoreList[i]
+			local entry = list[i].name
 			local dash = find(entry, "-", 1, true)
 			local shown = M.prettyServer(dash and sub(entry, dash + 1) or entry) or ""
 			keep = find(lower(entry), findText, 1, true) ~= nil
 				or find(lower(shown), findText, 1, true) ~= nil
-				or find(lower(db.notes[i] or ""), findText, 1, true) ~= nil
+				or find(lower(list[i].note or ""), findText, 1, true) ~= nil
 		end
 		if keep then
 			n = n + 1
@@ -217,7 +213,7 @@ end
 -- Remove entry i straight away: a player (also from Blizzard's ignore
 -- list), an NPC or a whole server.
 function M.PSS_RemovePlayerAt(i)
-	local kind = PourSocialScoreDB.typeList[i]
+	local kind = M.PSS_EntryKind(i)
 	V.needSorted = true
 	if kind == "player" then
 		M.PSS_DelIgnore(i, true)

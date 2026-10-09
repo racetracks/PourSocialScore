@@ -45,7 +45,7 @@ end
 
 -- every listed player, guild and chat filter
 local row = {}
-for i = 1, #(PourSocialScoreDB.ignoreList or {}) do
+for i = 1, M.PSS_PlayerCount() do
 	local r = M.PSS_PlayerRow(i, row)
 	if r and r.entry then CheckPane("players", r.entry, M.PSS_PlayerHistoryKey(r.entry), M.PSS_GetPlayerBlockCounts(r.entry)) end
 end

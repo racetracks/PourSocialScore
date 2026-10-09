@@ -36,6 +36,9 @@ local function rclick(list, i)
 	list.spec.click(list.rows[1], i, "RightButton")
 end
 
+-- Blizzard's menu opens in Modern (and Classic) only: start in Modern whatever
+-- look the save has (Dan's real save is in Dark)
+M.PSS_SetOpt("uiSkin", "global", 2)
 SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
 check(win and win:IsShown(), "/pss gui did not open the window")

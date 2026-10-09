@@ -285,7 +285,7 @@ end
 do
 	M.PSS_AddPlayer("Oldentry-Realm", "", 0)
 	local pos = M.PSS_PlayerPosition("Oldentry-Realm")
-	PourSocialScoreDB.dateList[pos] = "01 Jan 2020"
+	M.PSS_SetEntryDate(pos, "01 Jan 2020")
 	local before = M.PSS_PlayerCount()
 	page.pruneButton._scripts.OnClick(page.pruneButton)
 	local cf = _G.PSS_Confirm

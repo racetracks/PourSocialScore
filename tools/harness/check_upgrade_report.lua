@@ -131,11 +131,23 @@ check(db.upgrade.step == steps_n, "a new save is not stamped")
 ------------------------------------------------------------------------
 -- 5: a version-only change
 ------------------------------------------------------------------------
+-- A save holding rules or settings this version cannot use (Dan's real
+-- 3.4.1.50 save has two custom filters) legitimately adds one line per
+-- feature that has some (U3), so the expected count follows the save.
+local function unusableLines()
+	local u, n = M.PSS_UnusableRules(), 0
+	for _, list in pairs(u) do if #list > 0 then n = n + 1 end end
+	return n
+end
 db.upgrade.version = "3.4.1.30"
+local extra = unusableLines()
 lines = login(false)
-check(#lines == 3, ("a version-only change printed %d lines"):format(#lines))
+check(#lines == 3 + extra, ("a version-only change printed %d lines, expected %d"):format(#lines, 3 + extra))
 check(lines[1] == PREFIX .. "Updated from 3.4.1.30 to " .. version .. ". Upgrading your saved data:", "head: " .. tostring(lines[1]))
-check(lines[2] == CLEANUP .. "nothing to tidy.", "cleanup: " .. tostring(lines[2]))
+check(lines[2 + extra] == CLEANUP .. "nothing to tidy.", "cleanup: " .. tostring(lines[2 + extra]))
+for i = 2, 1 + extra do
+	check(lines[i]:find("cannot use", 1, true) or lines[i]:find("does not know", 1, true), "a feature line that is not about unusable rules: " .. tostring(lines[i]))
+end
 shape(lines, "version-only")
 
 ------------------------------------------------------------------------
@@ -144,7 +156,7 @@ shape(lines, "version-only")
 db.upgrade.version = "9.9.9.999"
 lines, counts = login(false)
 check(counts == nil, "a downgrade reported counts")
-check(#lines == 1 and lines[1] == PREFIX .. "Running " .. version .. ", older than your saved data (9.9.9.999). Nothing was upgraded.",
+check(#lines == 1 + unusableLines() and lines[1] == PREFIX .. "Running " .. version .. ", older than your saved data (9.9.9.999). Nothing was upgraded.",
 	"downgrade: " .. tostring(lines[1]))
 check(db.upgrade.version == "9.9.9.999" and db.upgrade.step == steps_n, "the record lost the newer version")
 db.upgrade.version = version

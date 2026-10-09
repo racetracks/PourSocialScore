@@ -48,7 +48,7 @@ local function tally(feature, key, n)
 end
 
 -- Keys nothing reads any more, dropped at every login (step 1 dropped the
--- first seven, steps 1, 5, 7 and 8 the rest, each in its own place). Only
+-- first seven, steps 1, 5, 7, 8 and 9 the rest, each in its own place). Only
 -- keys named here are ever deleted, so a newer version's fields are kept.
 local RETIRED = {
 	"autoIgnore", "autoUpdate", "autoCount", "autoTime", "attachFriends",	-- never used (2.0)
@@ -58,6 +58,7 @@ local RETIRED = {
 	"historySize",		-- never read (historyTotal is the setting)
 	"euiIntegration", "windowSizes", "columnWidths",	-- the old windows (3.4.0.25, step 7)
 	"blizzardSync",		-- a per-player tick from 3.4.1.35 (step 8 reads it first)
+	"ignoreList", "typeList", "factionList", "dateList", "notes", "expList", "syncInfo",	-- one record each in db.list (S2b, step 9 reads them first)
 }
 M.PSS_UPGRADE_RETIRED = RETIRED
 
@@ -176,29 +177,46 @@ local STEPS = {
 			{
 				feature = "players",
 				fields = function()
-					local n = #db.ignoreList
 					if db.delList == nil then
 						db.delList = {}
 						tally("players", "lists", 1)
 					end
-					if db.expList == nil then
-						db.expList = fill(n, 0)
-						tally("players", "lists", 1)
-					end
-					if db.syncInfo == nil then
-						db.syncInfo = fillTables(n)
-						tally("players", "lists", 1)
-					end
-					if db.typeList == nil then
-						db.typeList = fill(n, "player")
-						tally("players", "lists", 1)
+					-- The parallel arrays only exist in a save before step 9 (a 2.0
+					-- save may lack some: step 9 reads a missing one as its default,
+					-- so these backfills are only for the report's count).
+					local names = db.ignoreList
+					local legacy = type(names) == "table" and not (type(db.list) == "table" and #db.list > 0)
+					local n = legacy and #names or 0
+					if legacy then
+						if db.expList == nil then
+							db.expList = fill(n, 0)
+							tally("players", "lists", 1)
+						end
+						if db.syncInfo == nil then
+							db.syncInfo = fillTables(n)
+							tally("players", "lists", 1)
+						end
+						if db.typeList == nil then
+							db.typeList = fill(n, "player")
+							tally("players", "lists", 1)
+						end
 					end
 					if db.revision == nil then
 						db.revision = 1
-						for count = 1, n do
-							db.ignoreList[count] = M.Proper(db.ignoreList[count])
+						local renamed = 0
+						if legacy then
+							for count = 1, n do
+								names[count] = M.Proper(names[count])
+							end
+							renamed = n
+						elseif type(db.list) == "table" then
+							for count = 1, #db.list do
+								local e = db.list[count]
+								if type(e) == "table" and type(e.name) == "string" then e.name = M.Proper(e.name) end
+							end
+							renamed = #db.list
 						end
-						tally("players", "renamed", n)
+						tally("players", "renamed", renamed)
 					end
 				end,
 			},
@@ -403,6 +421,61 @@ local STEPS = {
 			},
 		},
 	},
+	-- 9 (3.4.1.51, S2b): one record for each listed entry. The parallel
+	-- arrays (ignoreList, typeList, factionList, dateList, notes, expList,
+	-- syncInfo; delList stays as it is) become db.list, one sparse record per
+	-- entry in the same order: name, date, and only when set kind (not
+	-- "player"), faction, note, exp (days, over 0) and sync.
+	-- ORDER, on purpose: every "fields" part runs before any "data" part, so
+	-- this is a fields part. Step 1's fields (the 2.0-era array backfills and
+	-- the capitals) run first, on the arrays; this zips them next; then every
+	-- data part (step 1's guild module, player tidy and history tidy, which
+	-- run at every login, and step 8's Blizzard ticks) reads db.list only, on
+	-- an old save and on a migrated one alike. The arrays are in RETIRED and
+	-- go after the data parts. Safe to run twice: with the arrays gone it
+	-- changes nothing, and a list that already holds records wins over arrays
+	-- an older version left (they are only dropped).
+	{
+		id = 9,
+		parts = {
+			{
+				feature = "players",
+				fields = function()
+					local names = db.ignoreList
+					if type(db.list) ~= "table" then db.list = {} end
+					if type(names) ~= "table" or #db.list > 0 then return end
+					local list, seen, dupes = db.list, {}, 0
+					local function arr(k) return type(db[k]) == "table" and db[k] or {} end
+					local types, factions, dates = arr("typeList"), arr("factionList"), arr("dateList")
+					local notes, exps, syncs = arr("notes"), arr("expList"), arr("syncInfo")
+					for i = 1, #names do
+						local name = names[i]
+						if type(name) == "string" and name ~= "" then
+							local kind = types[i]
+							if type(kind) ~= "string" or kind == "" then kind = "player" end
+							local key = kind .. ":" .. name:lower()
+							if seen[key] then
+								dupes = dupes + 1
+							else
+								seen[key] = true
+								local e = { name = name }
+								if type(dates[i]) == "string" and dates[i] ~= "" then e.date = dates[i] end
+								if kind ~= "player" then e.kind = kind end
+								if type(factions[i]) == "string" and factions[i] ~= "" then e.faction = factions[i] end
+								if type(notes[i]) == "string" and notes[i] ~= "" then e.note = notes[i] end
+								local days = tonumber(exps[i])
+								if days and days > 0 then e.exp = days end
+								if type(syncs[i]) == "table" and #syncs[i] > 0 then e.sync = syncs[i] end
+								list[#list + 1] = e
+							end
+						end
+					end
+					tally("players", "listRecords", #list)
+					tally("players", "listDuplicates", dupes)
+				end,
+			},
+		},
+	},
 }
 
 M.PSS_UPGRADE_STEPS = #STEPS
@@ -486,7 +559,7 @@ end
 ------------------------------------------------------------------------
 local PHRASES = {
 	filters = { "reset", "lists", "ids", "unlinked", "unusable" },
-	players = { "lists", "renamed", "toGuilds", "tidied", "declines", "blizzardTicks" },
+	players = { "lists", "renamed", "listRecords", "listDuplicates", "toGuilds", "tidied", "declines", "blizzardTicks" },
 	guilds = { "scanFields", "unusable" },
 	managed = { "rules" },
 	history = { "formats", "tidied" },
@@ -630,7 +703,6 @@ end
 -- after a moving step, so they can be compared), report.problems lists
 -- anything malformed. /pss check prints it.
 ------------------------------------------------------------------------
-local LIST_ARRAYS = { "typeList", "notes", "expList", "dateList", "factionList", "syncInfo" }
 local FILTER_ARRAYS = { "filterList", "filterDesc", "filterActive", "filterID", "filterCount", "filterBlocked", "filterBlockedLast" }
 
 local function size(t)
@@ -648,44 +720,49 @@ function M.PSS_Validate()
 	local cats = (M.PSS_History and M.PSS_History.ALL_CATS) or {}
 
 	-- the type of every table the rest of the report reads
-	for _, k in ipairs({ "ignoreList", "typeList", "notes", "expList", "dateList", "factionList", "syncInfo",
+	for _, k in ipairs({ "list", "ignoreList", "typeList", "notes", "expList", "dateList", "factionList", "syncInfo",
 			"delList", "playerData", "guildData", "guildExclusions", "blockLog", "blockKeep", "blockStats",
 			"builtinRules", "builtinStats", "upgrade" }) do
 		if sv[k] ~= nil and type(sv[k]) ~= "table" then problem("%s is a %s, not a table", k, type(sv[k])) end
 	end
 	local function tbl(k) return type(sv[k]) == "table" and sv[k] or {} end
 
-	-- Player Ignore List: entries per type, parallel lists, notes, records
-	local list, types = tbl("ignoreList"), tbl("typeList")
+	-- Player Ignore List: entries per type, notes, records. One record each in
+	-- sv.list (S2b); a save not upgraded yet (the parallel arrays) is read
+	-- through a view of the same shape, so the numbers compare before and after.
+	local list = tbl("list")
+	if type(sv.list) ~= "table" and type(sv.ignoreList) == "table" then
+		list = {}
+		for i = 1, #sv.ignoreList do
+			local note, exp = tbl("notes")[i], tbl("expList")[i]
+			list[i] = { name = sv.ignoreList[i], kind = tbl("typeList")[i], note = note, exp = exp }
+		end
+	end
 	n.list = #list
 	n.listPlayer, n.listNpc, n.listServer, n.listOther = 0, 0, 0, 0
-	local seen, dupes = {}, 0
+	local seen, dupes, notes = {}, 0, 0
 	for i = 1, #list do
-		local name, kind = list[i], types[i] or "player"
+		local e = list[i]
+		if type(e) ~= "table" then
+			problem("list entry %d is a %s, not a record", i, type(e))
+			e = {}
+		end
+		local name, kind = e.name, e.kind or "player"
 		if type(name) ~= "string" or name == "" then problem("list entry %d has no name", i) end
 		if kind == "player" then n.listPlayer = n.listPlayer + 1
 		elseif kind == "npc" then n.listNpc = n.listNpc + 1
 		elseif kind == "server" then n.listServer = n.listServer + 1
 		else n.listOther = n.listOther + 1 end
-		local key = kind .. ":" .. tostring(name):lower()
+		local key = tostring(kind) .. ":" .. tostring(name):lower()
 		if seen[key] then dupes = dupes + 1 end
 		seen[key] = true
+		if e.note ~= nil and type(e.note) ~= "string" then problem("list entry %d: its note is a %s", i, type(e.note)) end
+		if e.exp ~= nil and type(e.exp) ~= "number" then problem("list entry %d: its expiry is a %s", i, type(e.exp)) end
+		if e.sync ~= nil and type(e.sync) ~= "table" then problem("list entry %d: its sync info is a %s", i, type(e.sync)) end
+		if type(e.note) == "string" and e.note ~= "" then notes = notes + 1 end
 	end
 	n.listDuplicates = dupes
 	if dupes > 0 then problem("%d duplicate entries on the Player Ignore List", dupes) end
-	for _, k in ipairs(LIST_ARRAYS) do
-		for i in pairs(tbl(k)) do
-			if type(i) ~= "number" or i < 1 or i > #list or i % 1 ~= 0 then
-				problem("%s has an entry (%s) beyond the list's %d entries", k, tostring(i), #list)
-				break
-			end
-		end
-	end
-	local notes = 0
-	for i = 1, #list do
-		local note = tbl("notes")[i]
-		if type(note) == "string" and note ~= "" then notes = notes + 1 end
-	end
 	n.listNotes = notes
 	n.playerRecords = size(sv.playerData)
 	n.deleted = #tbl("delList")

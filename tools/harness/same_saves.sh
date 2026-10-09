@@ -4,6 +4,12 @@
 # lines must be identical, apart from the version string itself and the
 # upgrade report's lines. For a
 # change that must not touch the saved data (a refactor, the upgrade report).
+# 3.4.1.51 (S2b changed the Player Ignore List's layout on purpose): the
+# saved files go through same_norm.lua first, which writes the old seven
+# arrays and the new `list` records in one shape (duplicates merged) and
+# drops the upgrade step, so the players' entries, every other store and the
+# chat are still compared; the byte-for-byte players file is not. The layout
+# itself is proven by check_listrecords.lua ("== list records").
 #   sh tools/harness/same_saves.sh <ref> [save.lua ...]
 # With no saves listed: a fresh save, every PourSocialScore.lua under
 # PSS_REAL_SAVES (tools/harness/build_saves.sh) and every sv-*.lua that
@@ -33,8 +39,12 @@ login() {
 	tree=$1; sv=$2; tag=$3; v=$4
 	lua5.1 "$here/run.lua" "$tree" "$sv" "$work/$tag-1.lua" > "$work/$tag-1.txt" 2>&1
 	lua5.1 "$here/run.lua" "$tree" "$work/$tag-1.lua" "$work/$tag-2.lua" > "$work/$tag-2.txt" 2>&1
+	# same_norm.lua writes the Player Ignore List in one shape (the old
+	# parallel arrays and the 3.4.1.51 records alike) and leaves out the
+	# upgrade step, which a stage that adds one moves on purpose
 	for f in "$work/$tag-1.lua" "$work/$tag-2.lua"; do
-		sed "s/$v/VERSION/g" "$f" > "$f.n"
+		sed "s/$v/VERSION/g" "$f" > "$f.v"
+		lua5.1 "$here/same_norm.lua" "$f.v" "$f.n"
 	done
 	# the upgrade report's lines (3.4.1.46, U2) are left out of the chat: a
 	# version change alone now prints one; the saves still must be the same

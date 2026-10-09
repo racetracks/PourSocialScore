@@ -281,10 +281,11 @@ function M.PSS_BuildExport(sections)
 	local data = { v = 2, addon = "PourSocialScore", made = date("%Y-%m-%d %H:%M"), by = M.PSS_CharKey and M.PSS_CharKey() or "" }
 	if sections.players then
 		data.players = {}
-		for i, name in ipairs(db.ignoreList or {}) do
+		for _, le in ipairs(db.list or {}) do
+			local name = le.name
 			local e = {
-				name = name, type = db.typeList[i] or "player", note = db.notes[i] or "",
-				date = db.dateList[i] or "", exp = tonumber(db.expList[i]) or 0, faction = db.factionList[i] or "",
+				name = name, type = le.kind or "player", note = le.note or "",
+				date = le.date or "", exp = tonumber(le.exp) or 0, faction = le.faction or "",
 			}
 			if e.type == "player" then
 				local p = M.PSS_GetPlayerRecord and M.PSS_GetPlayerRecord(name)
@@ -346,7 +347,7 @@ function M.PSS_ApplyImport(data, mode, sections)
 	if not M.PSS__purgeBatch then ownBatch = {}; M.PSS__purgeBatch = ownBatch end
 	if sections.players and type(data.players) == "table" then
 		if replace and M.PSS_RemoveListEntryAt then
-			for i = #db.ignoreList, 1, -1 do M.PSS_RemoveListEntryAt(i) end
+			for i = #db.list, 1, -1 do M.PSS_RemoveListEntryAt(i) end
 		end
 		local added = 0
 		for _, e in ipairs(data.players) do
@@ -355,7 +356,7 @@ function M.PSS_ApplyImport(data, mode, sections)
 				local exists
 				if t == "player" then exists = M.PSS_IsPlayerListed(e.name)
 				elseif t == "npc" then exists = M.hasNPCIgnored(e.name) > 0
-				else exists = false; for i, n in ipairs(db.ignoreList) do if db.typeList[i] == "server" and n == e.name then exists = true end end end
+				else exists = false; for _, le in ipairs(db.list) do if le.kind == "server" and le.name == e.name then exists = true end end end
 				if not exists and M.PSS_ImportListEntry then
 					M.PSS_ImportListEntry(e.name, e.faction, e.note, t, e.date, e.exp)
 					added = added + 1

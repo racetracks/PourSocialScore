@@ -7,7 +7,7 @@
 | Item | State on 2026-10-08 |
 | --- | --- |
 | Live release | **3.4.0.29** (full; the new PSS window in three looks; mirrored to `racetracks/Pour-Social-Score`) |
-| Main | 3.4.1.49 (S1, PR #139); S2 3.4.1.50 open (PR #140); next S2b 3.4.1.51 |
+| Main | 3.4.1.49 (S1, PR #139); S2 3.4.1.50 merged (PR #140); S2b 3.4.1.51 open |
 | Current project | **Core uplift**, locked 2026-10-08, three version lines |
 | Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done), window fixes F2 (done), the upgrade registry U1 (done); next the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
 | Line 3.4.2 | Builds 3.4.2.54 to 3.4.2.60 (release). Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
@@ -41,7 +41,7 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | U3 fix | 3.4.1.48 | The missing `local M` in `PSS_Popups.lua` (export unused and the Export button); harness without a global `M`; `check_locals.lua` | Yes | Merged, PR #138 |
 | S1 | 3.4.1.49 | `History.ClearOwner` and the purge tombstone (N16) | No | Merged, PR #139 |
 | S2 | 3.4.1.50 | Accessors for the guild member fields, counts totals and `memberCount`; `check_fields.lua` | No | PR #140 (in-game checks pass) |
-| S2b | 3.4.1.51 | Player W I G P C accessors, the player list arrays' layout, the log group's `m` (decision 26) | No | |
+| S2b | 3.4.1.51 | The player list arrays become one array of sparse records (decision 27); step 9; W I G P C accessors and `m` move to S3 | No | |
 | S3 | 3.4.1.52 | Upgrade step 9 "SavedVariables performance cleanup" | Report, smaller save | |
 | R | 3.4.1.53 | Release; one summary of every change since 3.4.0.29; `01_HANDOVER.md` re-summarized | | |
 

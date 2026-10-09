@@ -91,7 +91,7 @@ StaticPopupDialogs["PSS_REASON"] = {
 
 	OnShow = function(self)
 		local idx = M.hasAnyIgnored(V.nameUI)
-		self.EditBox:SetText(idx > 0 and (PourSocialScoreDB.notes[idx] or "") or "")
+		self.EditBox:SetText(idx > 0 and (PourSocialScoreDB.list[idx].note or "") or "")
 		self.EditBox:SetFocus()
 	end,
 	OnAccept = function(self)
@@ -189,7 +189,7 @@ function M.PSS_LFG_Tooltip (self)
 			GameTooltip:AddLine(" ")
 			GameTooltip:AddLine("|c00ff0000" .. L["RCM_8"])
 
-			local notes = (PourSocialScoreDB.notes[idx] or "")
+			local notes = (PourSocialScoreDB.list[idx].note or "")
 
 			if (notes ~= "") then
 				GameTooltip:AddLine(" ")

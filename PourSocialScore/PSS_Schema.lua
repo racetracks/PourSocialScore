@@ -24,6 +24,10 @@ M.PSS_SCHEMA = {
 	core = "upgrade outbox purge recent session sessionStart revision imported importedFrom importedLegacyAt logAllV1",
 	-- PourSocialScoreDB.upgrade
 	upgrade = "step=0 version at",
+	-- PSS_PlayersDB.list[i], one record per listed player, NPC or server
+	-- (S2b; the arrays ignoreList, typeList, factionList, dateList, notes,
+	-- expList and syncInfo are read once by the upgrade and dropped)
+	entry = "name date kind=player faction note exp=0 sync",
 	-- PSS_PlayersDB.playerData[key]
 	player = "name nickname faction class className whenBlocked currentGuild guildWhenBlocked lastBlockedInvite"
 		.. " whispersBlocked=true partyInvitesBlocked=true guildInvitesBlocked=true partyRaidBlocked=true channelsBlocked=true"

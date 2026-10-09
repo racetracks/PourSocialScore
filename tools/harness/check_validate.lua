@@ -15,17 +15,20 @@ for k, v in pairs(r.n) do check(again.n[k] == v, "count changed between runs: " 
 
 -- planted faults
 local db = PourSocialScoreDB
-local saved = { db.typeList[#db.ignoreList + 5], db.filterID[2], db.guildData.zzbroken }
-db.typeList[#db.ignoreList + 5] = "player"
+local list = M.PSS_List()
+local saved = { db.filterID[2], db.guildData.zzbroken }
+local planted = #list + 1
+list[planted] = 42		-- a list entry that is not a record
 local id1 = db.filterID[1]
 db.filterID[2] = id1
 db.guildData.zzbroken = 5
 local bad = M.PSS_Validate()
 local text = table.concat(bad.problems, "\n")
-check(text:find("typeList has an entry", 1, true) ~= nil, "parallel list overflow not reported")
+check(text:find("not a record", 1, true) ~= nil, "a list entry that is not a record was not reported")
 check(text:find("chat filter ID " .. tostring(id1) .. " is used twice", 1, true) ~= nil, "duplicate filter ID not reported")
 check(text:find("guild rule zzbroken is not a table", 1, true) ~= nil, "broken guild rule not reported")
-db.typeList[#db.ignoreList + 5], db.filterID[2], db.guildData.zzbroken = saved[1], saved[2], saved[3]
+list[planted] = nil
+db.filterID[2], db.guildData.zzbroken = saved[1], saved[2]
 
 -- the chat command prints the report
 local seen, show = false, M.ShowMsg

@@ -38,11 +38,11 @@ function M.PSS_TidyBlockHistory()
 	local History = M.PSS_History
 	if type(db) ~= "table" or not History then return 0 end
 	local alive = {}
-	if type(db.ignoreList) == "table" and type(db.typeList) == "table" and M.PSS_PlayerHistoryKey then
+	if type(db.list) == "table" and M.PSS_PlayerHistoryKey then
 		local listed = {}
-		for i, name in ipairs(db.ignoreList) do
-			if (db.typeList[i] or "player") == "player" then
-				local k = M.PSS_PlayerHistoryKey(name)
+		for _, e in ipairs(db.list) do
+			if (e.kind or "player") == "player" then
+				local k = M.PSS_PlayerHistoryKey(e.name)
 				if k then listed[k] = true end
 			end
 		end
@@ -99,14 +99,8 @@ local function ApplicationStartup(self)
 	if not M.PSS_PrepareSavedData({ quiet = fresh, startup = true }) then starting = false return end
 
 	-- Ensure all core list fields exist before any UI or upgrade code uses #field.
-	PourSocialScoreDB.ignoreList = PourSocialScoreDB.ignoreList or {}
-	PourSocialScoreDB.factionList = PourSocialScoreDB.factionList or {}
-	PourSocialScoreDB.dateList = PourSocialScoreDB.dateList or {}
-	PourSocialScoreDB.notes = PourSocialScoreDB.notes or {}
-	PourSocialScoreDB.expList = PourSocialScoreDB.expList or {}
-	PourSocialScoreDB.typeList = PourSocialScoreDB.typeList or {}
+	PourSocialScoreDB.list = PourSocialScoreDB.list or {}
 	PourSocialScoreDB.delList = PourSocialScoreDB.delList or {}
-	PourSocialScoreDB.syncInfo = PourSocialScoreDB.syncInfo or {}
 	PourSocialScoreDB.playerData = PourSocialScoreDB.playerData or {}
 	PourSocialScoreDB.guildData = PourSocialScoreDB.guildData or {}
 	if PourSocialScoreDB.imported == nil then PourSocialScoreDB.imported = false end

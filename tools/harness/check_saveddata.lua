@@ -25,7 +25,7 @@ for k, g in pairs(ROUTE) do
 	check(PourSocialScoreDB[k] == t[k], k .. " not read from " .. GROUPS[g])
 end
 check(held > 10, "Options tables hold only " .. held .. " keys")
-for _, k in ipairs({ "ignoreList", "typeList", "notes", "playerData" }) do check(type(PSS_PlayersDB[k]) == "table", "PSS_PlayersDB." .. k) end
+for _, k in ipairs({ "list", "delList", "playerData" }) do check(type(PSS_PlayersDB[k]) == "table", "PSS_PlayersDB." .. k) end
 check(type(PSS_GuildsDB.guildData) == "table", "PSS_GuildsDB.guildData")
 check(type(PSS_RulesDB.filterList) == "table", "PSS_RulesDB.filterList")
 -- minimal settings (Step 4.5): no option is saved at its default, the
@@ -74,9 +74,9 @@ PourSocialScoreDB.zzOther = nil
 
 -- a move whose counts differ is undone
 local before = M.PSS_Validate().n.list
-local list = PSS_PlayersDB.ignoreList
-rawset(PourSocialScoreDB, "ignoreList", list)
-PSS_PlayersDB.ignoreList = { "Someone" }
+local list = PSS_PlayersDB.list
+rawset(PourSocialScoreDB, "list", list)
+PSS_PlayersDB.list = { { name = "Someone" } }
 local validate, calls = M.PSS_Validate, 0
 M.PSS_Validate = function()
 	calls = calls + 1
@@ -86,20 +86,20 @@ M.PSS_Validate = function()
 end
 M.PSS_PrepareSavedData({ quiet = true })
 M.PSS_Validate = validate
-check(rawget(PourSocialScoreDB, "ignoreList") == list, "undo: list not put back")
-check(PSS_PlayersDB.ignoreList[1] == "Someone", "undo: Options value not put back")
+check(rawget(PourSocialScoreDB, "list") == list, "undo: list not put back")
+check(PSS_PlayersDB.list[1].name == "Someone", "undo: Options value not put back")
 check(M.PSS_SavedDataSplit("PourSocialScore_Options") == false, "undo: split still reported")
 -- and the next try moves it
 check(M.PSS_PrepareSavedData({ quiet = true }) == true, "retry failed")
-check(rawget(PourSocialScoreDB, "ignoreList") == nil and PSS_PlayersDB.ignoreList == list, "retry: list not moved")
+check(rawget(PourSocialScoreDB, "list") == nil and PSS_PlayersDB.list == list, "retry: list not moved")
 check(M.PSS_Validate().n.list == before, "retry: list count changed")
 
 -- a reset replaces PourSocialScoreDB and empties the Options tables
 PSS_GuildsDB.zzStale = true
 M.PSS_ResetIgnoreDB()
 check(PSS_GuildsDB.zzStale == nil, "reset left old Options data")
-check(rawget(PourSocialScoreDB, "ignoreList") == nil and type(PSS_PlayersDB.ignoreList) == "table", "reset: list not routed")
-check(#PourSocialScoreDB.ignoreList == 0, "reset: list not empty")
+check(rawget(PourSocialScoreDB, "list") == nil and type(PSS_PlayersDB.list) == "table", "reset: list not routed")
+check(#PourSocialScoreDB.list == 0, "reset: list not empty")
 check(PSS_OptionsDB.chatmsg == nil and M.PSS_Opt("chatmsg") == true, "reset: options not at their default")
 check(M.PSS_Opt("showWarning") == true, "reset: showWarning not at its default")
 PourSocialScoreDB.sameserver = false

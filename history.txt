@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.51 - Player list: one record per entry
+
+- Your Player Ignore List is now saved as one small record per person instead of eight lists that had to be kept in step. Notes, expiry, added date, faction and the other details stay attached to the right person, and removing someone is one step. Your saved data is moved over once at the first login (the report shows "Player Ignore List: N entries moved to one record each"). Nothing you can see changes. Going back to an older version afterwards will not show these entries or notes.
+
 => 3.4.1.50 - Core uplift S2: member field accessors
 
 - Nothing you can see changes. Every place that reads a guild member's name, guild, added date, shipped-list mark or a block total now asks one function, so the next build can save these records smaller without anything reading a missing field.

@@ -104,8 +104,12 @@ check(db.upgrade.step == steps_n, "a new save is stamped")
 db.upgrade.version = "3.4.1.30"
 out = login(false) or {}
 check(out.from == "3.4.1.30" and out.done == steps_n and out.step == steps_n, "version-only change reported")
+-- (rules this version cannot use are counted after a version change, U3:
+-- a save that holds some has only that key on its feature)
 for _, f in ipairs({ "filters", "players", "guilds", "managed", "history", "options" }) do
-	check(out[f] == nil, "a version-only change counted " .. f)
+	for k in pairs(out[f] or {}) do
+		check(k == "unusable", "a version-only change counted " .. f .. "." .. k)
+	end
 end
 check(db.upgrade.version == version, "the record has the new version")
 
