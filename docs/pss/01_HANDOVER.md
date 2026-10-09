@@ -68,8 +68,8 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 | Native GUI parity (3.3.0, issue #78) | Closed at v3.3.1 (08) |
 | The PSS window (3.4.0) | Done, v3.4.0.29 (09; plan on scratch `docs/latest/ui uplift/`) |
 | Core uplift (3.4.1) | Done, v3.4.1.53 (10; design on scratch `docs/latest/core-uplift/`) |
-| Graphics settings (3.5.0, `/pss gfx`, Camelot) | Built in 3.5.0.57 (stages 1 to 3), awaiting the author's test (scratch `docs/latest/graphics-settings/`) |
-| Macro helper (3.5.0, `/pss macro`, Camelot) | Built in 3.5.0.61, awaiting the author's test (scratch `docs/latest/macro-helper/`) |
+| Graphics settings (3.5.0, `/pss gfx`, Camelot) | Built in 3.5.0.57 (stages 1 to 3), tested on Camelot by the author (fine, 2026-10-09), ready for the release (scratch `docs/latest/graphics-settings/`) |
+| Macro helper (3.5.0, `/pss macro`, Camelot) | Built in 3.5.0.61, awaiting the author's test; the macros of each set are tracked in issue #159 (scratch `docs/latest/macro-helper/`) |
 | Dashboard tab | Paused, branch `claude/project-thread-pa7y7o` |
 | Global moderation ideas (sync, curated lists, scoring) | Not started |
 

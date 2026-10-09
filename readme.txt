@@ -559,6 +559,12 @@ filter that mixes them without brackets may now behave differently.)
                           type, notes, guilds and members, chat filters,
                           history lines, the sum of every block count,
                           options, the upgrade record, and any problems
+/pss gfx                  Camelot: open Graphics Settings. Export every
+                          graphics setting as text, import one and see
+                          each change before you apply it; after the
+                          reload you have 15 seconds to keep the new
+                          settings or revert. The last 5 sets are kept
+                          to restore or export. Not in combat.
 /pss macro [set] [create] [account|character]
                           Camelot: write the macros the addon carries,
                           each as an account-wide or a character macro.
