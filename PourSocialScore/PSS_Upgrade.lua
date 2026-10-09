@@ -48,7 +48,7 @@ local function tally(feature, key, n)
 end
 
 -- Keys nothing reads any more, dropped at every login (step 1 dropped the
--- first seven, steps 1, 5, 7, 8 and 9 the rest, each in its own place). Only
+-- first seven, steps 1, 5, 7, 8, 9 and 10 the rest, each in its own place). Only
 -- keys named here are ever deleted, so a newer version's fields are kept.
 local RETIRED = {
 	"autoIgnore", "autoUpdate", "autoCount", "autoTime", "attachFriends",	-- never used (2.0)
@@ -59,6 +59,7 @@ local RETIRED = {
 	"euiIntegration", "windowSizes", "columnWidths",	-- the old windows (3.4.0.25, step 7)
 	"blizzardSync",		-- a per-player tick from 3.4.1.35 (step 8 reads it first)
 	"ignoreList", "typeList", "factionList", "dateList", "notes", "expList", "syncInfo",	-- one record each in db.list (S2b, step 9 reads them first)
+	"showIgnoreDebug",	-- nothing read it (S3, step 10)
 }
 M.PSS_UPGRADE_RETIRED = RETIRED
 
@@ -160,20 +161,43 @@ local function fillTables(n)
 	return t
 end
 
+
+-- Step 10: is this a Camelot save (the client, and its realm)? The name
+-- repair only runs on one: a Retail realm has the same name shapes.
+local function isCamelot()
+	local iface = GetBuildInfo and select(4, GetBuildInfo())
+	if type(iface) ~= "number" or iface >= 20000 then return false end
+	local realm = M.PSS_CanonRealm(M.PSS_OwnRealm())
+	return realm ~= nil and realm:find("^classicbetapvp") ~= nil
+end
+
+-- anything saved that carries a name (worth loading the repair for)
+local function hasNames()
+	local sv = PourSocialScoreDB
+	if type(sv.list) == "table" and #sv.list > 0 then return true end
+	if type(sv.delList) == "table" and #sv.delList > 0 then return true end
+	for _, g in pairs(type(sv.guildData) == "table" and sv.guildData or {}) do
+		if type(g) == "table" and type(g.members) == "table" and next(g.members) ~= nil then return true end
+	end
+	return false
+end
+
+-- Step 10's Camelot name repair (PourSocialScore_Libraries, PSS_Camelot.lua)
+local function camelotRepair()
+	if not (isCamelot() and hasNames()) then return end
+	if not (M.PSS_Need and M.PSS_Need("Libraries") and M.PSS_RepairCamelotNames) then return false end
+	local members, players, maybe = M.PSS_RepairCamelotNames()
+	tally("guilds", "camelot", members)
+	tally("players", "camelot", players)
+	if #maybe > 0 then M.ShowMsg(L["UPG_CAMELOT_MAYBE"]:format(#maybe, table.concat(maybe, ", "))) end
+end
+
 local STEPS = {
 	-- 1: everything 2.0 did at login, split by feature.
 	{
 		id = 1,
 		always = true,
 		parts = {
-			{
-				feature = "options",
-				fields = function()
-					if db.showIgnoreDebug == nil then
-						db.showIgnoreDebug = false
-					end
-				end,
-			},
 			{
 				feature = "players",
 				fields = function()
@@ -476,6 +500,54 @@ local STEPS = {
 			},
 		},
 	},
+	-- 10 (3.4.1.52, S3): "SavedVariables performance cleanup". Everything a
+	-- save keeps that the key, the rule or the code gives back is not saved
+	-- any more, and the data is bounded and repaired (Dan's OK, D9):
+	--   * Camelot saves: "first-last" names built from a unit are repaired
+	--   * guild members: found members of managed rules get a date (so a
+	--     record with none only ever means a shipped member), at most 1500
+	--     stored members a rule, records saved sparse (no runtime fields, no
+	--     name, guild or "Managed list" date the key and rule give, no zero
+	--     counts), the rule's memberCount gone
+	--   * players: the W I G P C switches that block are not saved
+	--   * custom chat filters get a never-reused id; their history and recent
+	--     counts move from the filter's text to it
+	-- showIgnoreDebug is in RETIRED. Every part is safe to run twice, and the
+	-- records are also saved sparse at logout, so a version that writes full
+	-- records changes nothing here.
+	{
+		id = 10,
+		parts = {
+			{ feature = "guilds", data = camelotRepair },
+			{
+				feature = "guilds",
+				data = function()
+					tally("guilds", "capped", M.PSS_CapAllMembers())
+				end,
+			},
+			{
+				feature = "cleanup",
+				data = function()
+					M.PSS_StampFoundMembers()
+					tally("cleanup", "sparse", M.PSS_CompactAllMembers())
+				end,
+			},
+			{
+				feature = "players",
+				data = function()
+					tally("players", "flags", M.PSS_CompactPlayers(true))
+				end,
+			},
+			{
+				feature = "filters",
+				data = function()
+					local n = M.PSS_AssignCustomFilterIds()
+					if n == false then return false end
+					tally("filters", "customIds", n)
+				end,
+			},
+		},
+	},
 }
 
 M.PSS_UPGRADE_STEPS = #STEPS
@@ -558,13 +630,13 @@ end
 -- in the order listed here; nothing is built on a login that does not report.
 ------------------------------------------------------------------------
 local PHRASES = {
-	filters = { "reset", "lists", "ids", "unlinked", "unusable" },
-	players = { "lists", "renamed", "listRecords", "listDuplicates", "toGuilds", "tidied", "declines", "blizzardTicks" },
-	guilds = { "scanFields", "unusable" },
+	filters = { "reset", "lists", "ids", "customIds", "unlinked", "unusable" },
+	players = { "lists", "renamed", "camelot", "listRecords", "listDuplicates", "toGuilds", "tidied", "declines", "blizzardTicks", "flags" },
+	guilds = { "scanFields", "camelot", "capped", "unusable" },
 	managed = { "rules" },
 	history = { "formats", "tidied" },
 	options = { "switchedOff", "places", "unusable" },
-	cleanup = { "defaults", "retired" },
+	cleanup = { "defaults", "retired", "sparse" },
 }
 M.PSS_UPGRADE_PHRASES = PHRASES	-- read only (the harness checks every count has a phrase)
 

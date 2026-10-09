@@ -153,15 +153,38 @@ function M.PSS_EntryAddSync(i, str)
 end
 -- (/list entries)
 
--- W I G P C switches on a player record (stored as "blocked").
+-- W I G P C switches on a player record (stored as "blocked"). A switch is
+-- saved only when it is false (the player allows it): a missing one blocks
+-- (core uplift S3). Every read is `p[field] ~= false`.
 local BLOCK_FIELDS = { "whispersBlocked", "partyInvitesBlocked", "guildInvitesBlocked", "partyRaidBlocked", "channelsBlocked" }
 
 local function anyBlocked(p)
 	if type(p) ~= "table" then return false end
-	for _, f in ipairs(BLOCK_FIELDS) do if p[f] == true then return true end end
+	for _, f in ipairs(BLOCK_FIELDS) do if p[f] ~= false then return true end end
 	return false
 end
 M.PSS_PlayerBlocksAnything = anyBlocked
+
+-- Upgrade step 10 and logout: the switches that block are not saved, nor
+-- zero counts. In the upgrade (legacy), a save from before guild invites had a
+-- switch of their own gets it from the party invite one first; afterwards a
+-- missing switch blocks. Returns how many records changed.
+function M.PSS_CompactPlayers(legacy)
+	local n = 0
+	for _, p in pairs((PourSocialScoreDB and PourSocialScoreDB.playerData) or {}) do
+		if type(p) == "table" then
+			if legacy and p.guildInvitesBlocked == nil and p.partyInvitesBlocked == false then p.guildInvitesBlocked = false end
+			local changed = false
+			for _, f in ipairs(BLOCK_FIELDS) do
+				if p[f] ~= nil and p[f] ~= false then p[f] = nil; changed = true end
+			end
+			local bc = p.blockCounts
+			if type(bc) == "table" and not M.PSS_History.CompactCounts(bc) then p.blockCounts = nil; changed = true end
+			if changed then n = n + 1 end
+		end
+	end
+	return n
+end
 
 -- Adding someone to the list opts them IN to blocking: everything from them
 -- is blocked. The W I G P C boxes are per-player EXCLUSIONS and start
@@ -177,7 +200,7 @@ local function AddToList(newname, newfaction, newnote, newtype)
 			if p then
 				-- a fresh listing blocks everything (no exclusions), even if an
 				-- older record for this name is still stored from an earlier listing
-				for _, f in ipairs(BLOCK_FIELDS) do p[f] = true end
+				for _, f in ipairs(BLOCK_FIELDS) do p[f] = nil end
 			end
 		end
 	end
@@ -385,7 +408,6 @@ local function ResetIgnoreDB()
 		filterBlockedLast	= {},
 		filterWhisperTotal	= 0,
 		filterPrivateTotal	= 0,
-		showIgnoreDebug		= false,
 		playerData		= {},
 		guildData		= {},
 		imported			= false
@@ -1338,22 +1360,12 @@ function ensurePlayer(name)
 	local p = PourSocialScoreDB.playerData[key]
 	if not p then
 		-- only what is known; empty text and zero counters are not stored
-		p = {
-			name = displayPlayer(name), whenBlocked = nowString(),
-			whispersBlocked = true, partyInvitesBlocked = true, guildInvitesBlocked = true, partyRaidBlocked = true,
-			channelsBlocked = true,
-		}
+		p = { name = displayPlayer(name), whenBlocked = nowString() }
 		PourSocialScoreDB.playerData[key] = p
 	else
 		p.name = p.name or displayPlayer(name)
 		p.whenBlocked = p.whenBlocked or nowString()
-		if p.whispersBlocked == nil then p.whispersBlocked = true end
-		if p.partyInvitesBlocked == nil then p.partyInvitesBlocked = true end
-		-- guild invites used to share the party-invite setting
-		if p.guildInvitesBlocked == nil then p.guildInvitesBlocked = p.partyInvitesBlocked end
-		if p.partyRaidBlocked == nil then p.partyRaidBlocked = true end
-		-- C (chat channels / public chat) was always blocked before it became a switch
-		if p.channelsBlocked == nil then p.channelsBlocked = true end
+		-- (a missing W I G P C switch blocks: nothing is filled in, S3)
 	end
 	return p, key
 end
@@ -1457,9 +1469,9 @@ local PLAYER_FIELDS = { whispersBlocked = true, partyInvitesBlocked = true, guil
 function M.PSS_SetPlayerSetting(name, field, value)
 	local p = ensurePlayer(name)
 	if not p or not PLAYER_FIELDS[field] then return end
-	local was = p[field] == true
-	p[field] = value == true
-	if p[field] and not was then
+	local was = p[field] ~= false
+	if value == true then p[field] = nil else p[field] = false end
+	if p[field] ~= false and not was then
 		-- newly blocked: clear what they already said (whisper / chat
 		-- switches) and decline an invite from them that is still open
 		if field == "whispersBlocked" or field == "partyRaidBlocked" or field == "channelsBlocked" then
@@ -1640,10 +1652,10 @@ if M.PSS_RegisterBlockSource then
 		end,
 		decide = function(e, cat, ctx)
 			local p = e.p
-			if cat == "whisper" then return p.whispersBlocked == true
-			elseif cat == "partyRaid" then return p.partyRaidBlocked == true
-			elseif cat == "partyInvite" then return p.partyInvitesBlocked == true
-			elseif cat == "guildInvite" then return p.guildInvitesBlocked == true
+			if cat == "whisper" then return p.whispersBlocked ~= false
+			elseif cat == "partyRaid" then return p.partyRaidBlocked ~= false
+			elseif cat == "partyInvite" then return p.partyInvitesBlocked ~= false
+			elseif cat == "guildInvite" then return p.guildInvitesBlocked ~= false
 			elseif cat == "world" then return p.channelsBlocked ~= false	-- C: channels, say, yell, emotes
 			elseif cat == "duel" then return opt("declineDuel", { person = p.opts }) ~= false
 			elseif cat == "trade" then return opt("declineTrade", { person = p.opts }) ~= false

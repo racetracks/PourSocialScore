@@ -44,7 +44,7 @@ if phase == "forget1" then
 	check(m ~= nil, "Grunt-Realm not a member before")
 	local owner = m and History.MemberKey(m)
 	check(lines(owner) > 0, "Grunt-Realm has no lines before")
-	if m then M.PSS_RemoveGuildMember(g.name, m.name, gkey, sk) end
+	if m then M.PSS_RemoveGuildMember(g.name, M.PSS_MemberName(m, sk), gkey, sk) end
 	check(M.PSS_LookupGuildMember("Grunt-Realm") == nil, "Grunt-Realm still a member")
 	check(lines(owner) == 0, "Grunt-Realm lines kept")
 

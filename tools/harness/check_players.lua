@@ -127,7 +127,7 @@ w._scripts.OnClick(w)
 check(M.PSS_GetPlayerRecord(entry).whispersBlocked == false, "W not saved as allowed")
 w:SetChecked(false)
 w._scripts.OnClick(w)
-check(M.PSS_GetPlayerRecord(entry).whispersBlocked == true, "W not saved as blocked")
+check(M.PSS_GetPlayerRecord(entry).whispersBlocked == nil, "W not saved as blocked (a switch that blocks is not stored)")
 
 CheckExceptions(pane.exceptions, M.PSS_GetPlayerRecord(entry), nil, "player")
 

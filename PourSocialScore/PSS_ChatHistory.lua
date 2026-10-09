@@ -173,6 +173,21 @@ function History.CountTotal(c)
 	return math.max(tonumber(c.total) or 0, sum)
 end
 
+-- A counts table as it is saved (core uplift S3): zero types are not stored,
+-- and neither is a total that is not more than the types added up. Returns
+-- true when something is left to save (the caller drops the table when not).
+-- Reads go through History.EnsureCounts / History.CountTotal.
+function History.CompactCounts(c)
+	if type(c) ~= "table" then return false end
+	local sum = 0
+	for _, k in ipairs(ALL_CATS) do
+		local n = tonumber(c[k]) or 0
+		if n == 0 then c[k] = nil else sum = sum + n end
+	end
+	if (tonumber(c.total) or 0) <= sum then c.total = nil end
+	return next(c) ~= nil
+end
+
 ------------------------------------------------------------------------
 -- THE SHARED BLOCK LOG
 --
@@ -1078,6 +1093,56 @@ function History.ApplyPurge()
 	rawset(db, "purge", nil)
 	if next(purge) == nil then return 0 end
 	return dropLines(nil, purge)
+end
+
+-- Give owner `from`'s lines and recent counts to owner `to` (a chat filter
+-- given an id keeps its history, core uplift S3). The waiting lines and the
+-- recent counts are always changed; the log and the keep only when Logging
+-- is loaded (the caller loads it first when the owner may have lines).
+-- Returns how many lines and counts moved.
+function History.RenameOwner(from, to)
+	local db = PourSocialScoreDB
+	if type(from) ~= "string" or type(to) ~= "string" or from == to or type(db) ~= "table" then return 0 end
+	local n = 0
+	local ob = rawget(db, "outbox")
+	if type(ob) == "table" then
+		for i = 1, #ob do
+			local e = ob[i]
+			if type(e) == "table" and e.o == from then e.o = to; n = n + 1 end
+		end
+	end
+	local function move(t)
+		local v = t[from]
+		if v ~= nil then t[from] = nil; t[to] = (t[to] or 0) + v; n = n + 1 end
+	end
+	local se = rawget(db, "session")
+	if type(se) == "table" then move(se) end
+	for _, c in pairs(sessionCat) do move(c) end
+	local r = rawget(db, "recent")
+	if type(r) == "table" and r.v == 2 and type(r.day) == "table" then
+		move(r.day)
+		for i = 1, DAY_SLOTS do
+			local t = r[i]
+			if t then for _, owners in pairs(t) do move(owners) end end
+		end
+	end
+	if ready then
+		local log = History.Log()
+		for i = 1, #log do
+			local h = log[i]
+			if h.o == from then h.o = to; n = n + 1 end
+		end
+		local keep = History.Keep()
+		local k = keep[from]
+		if k then
+			keep[from] = nil
+			local into = keep[to]
+			if into then for i = 1, #k do into[#into + 1] = k[i] end else keep[to] = k end
+			n = n + #k
+			keepTotal = nil
+		end
+	end
+	return n
 end
 
 -- owner keys

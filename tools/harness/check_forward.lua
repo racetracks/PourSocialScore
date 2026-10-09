@@ -85,7 +85,7 @@ if phase == "after" then
 	check(type(log) == "table" and type(log["f:12"]) == "table" and #log["f:12"] >= 1, "the number filter's history lines are gone")
 	local day = PourSocialScoreDB.recent and PourSocialScoreDB.recent.day
 	check(day and (day["f:12"] or 0) >= 1, "the number filter's recent count is gone")
-	check(type(log) == "table" and type(log["f:77"]) == "table" and #log["f:77"] == 1, "the line of an unknown filter id is gone")
+	check(type(log) == "table" and type(log["f:newer77"]) == "table" and #log["f:newer77"] == 1, "the line of an unknown filter id is gone")
 	if not fail then print("PASS forward after") end
 	return
 end
@@ -133,7 +133,7 @@ if phase == "plant" then
 	check(#M.PSS_History.For("f:12") >= 1, "plant: no history line for f:12")
 	-- a line of a filter id this version never made (the tidy keeps it)
 	local log = M.PSS_History.Log()
-	log[#log + 1] = setmetatable({ o = "f:77", ts = time() - 60, cat = "world", event = "CHAT_MSG_CHANNEL",
+	log[#log + 1] = setmetatable({ o = "f:newer77", ts = time() - 60, cat = "world", event = "CHAT_MSG_CHANNEL",
 		message = "older line", member = "Somebody-Testrealm" }, M.PSS_History.EntryMT)
 	M.PSS_FilterCounts(num).newerStat = nil
 	db.filterBlocked[num].newerStat = 1
@@ -220,7 +220,7 @@ check(line("CHAT_MSG_CHANNEL", "forwardnumbered again", "Somebody-Testrealm"), "
 -- the login tidy keeps lines whose owner is a form it does not make
 M.PSS_LoadLogging()
 M.PSS_TidyBlockHistory()
-check(#M.PSS_History.For("f:77") == 1 and #M.PSS_History.For("f:12") >= 1, "the history tidy dropped a newer filter's lines")
+check(#M.PSS_History.For("f:newer77") == 1 and #M.PSS_History.For("f:12") >= 1, "the history tidy dropped a newer filter's lines")
 
 -- /pss export unused: the copy box, every field of all three
 M.PSS_Need("Libraries")

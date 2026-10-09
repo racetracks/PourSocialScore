@@ -126,26 +126,77 @@ local function memberKey(name)
 end
 
 ------------------------------------------------------------------------
--- MEMBER RECORD FIELDS (core uplift S2, 3.4.1.50)
--- Every read of a member field that S3 stops saving goes through one of
--- these, so S3 changes them here only: the runtime fields (_playerKey,
--- _canon, _gkey, _managed, _virtual), guild, name, whenBlocked and the
--- rule's memberCount. tools/check_fields.lua fails any of the runtime
--- fields or memberCount outside this block. k: the member's stored key,
--- when the caller has it; g: its guild rule, when the caller has it.
+-- MEMBER RECORD FIELDS (core uplift S2, 3.4.1.50; S3, 3.4.1.52)
+-- Every read of a member field that is not saved goes through one of
+-- these: the runtime fields (_playerKey, _canon, _gkey, _managed,
+-- _virtual), guild, name, whenBlocked and the rule's memberCount.
+-- tools/check_fields.lua fails any of the runtime fields or memberCount
+-- outside this block. k: the member's stored key, when the caller has it;
+-- g: its guild rule, when the caller has it.
+-- A saved record (S3) keeps only what is not derivable: the key is not in
+-- it, the name when it is the key's form, the guild when it is the rule's
+-- name, no "Managed list" date and no runtime fields. A record that is not
+-- given its key or rule is found by where it is stored: a weak map from
+-- record to stored key (homeKey), filled in one walk over the rules the first
+-- time one is missing and emptied whenever the members change; the rule is
+-- the one that holds the record under that key.
 ------------------------------------------------------------------------
 -- (member fields)
--- the canonical name (the member index and log owner "g:<canon>")
+local WEAK = { __mode = "k" }
+local homeKey = setmetatable({}, WEAK)		-- record -> its stored key
+local homeMiss = setmetatable({}, WEAK)		-- records that are in no rule
+
+-- the members changed: what was learned about where records are is dropped
+local function forgetHome()
+	homeKey, homeMiss = setmetatable({}, WEAK), setmetatable({}, WEAK)
+end
+
+-- the stored key of a record (nil: it is in no rule)
+local function keyOf(m)
+	local k = homeKey[m]
+	if k ~= nil then return k end
+	if homeMiss[m] then return nil end
+	for _, rule in pairs((PourSocialScoreDB and PourSocialScoreDB.guildData) or {}) do
+		if type(rule) == "table" and type(rule.members) == "table" then
+			for key, rec in pairs(rule.members) do
+				if type(rec) == "table" then homeKey[rec] = key end
+			end
+		end
+	end
+	k = homeKey[m]
+	if k == nil then homeMiss[m] = true end
+	return k
+end
+
+-- the guild rule that holds a record (and its stored key)
+local function ruleOf(m)
+	local k = keyOf(m)
+	if k == nil then return nil end
+	for _, rule in pairs((PourSocialScoreDB and PourSocialScoreDB.guildData) or {}) do
+		if type(rule) == "table" and type(rule.members) == "table" and rule.members[k] == m then return rule, k end
+	end
+end
+
+-- the canonical name (the member index and log owner "g:<canon>"). A record
+-- with a name of its own (a new one, not stored yet) never walks the rules.
 local function memberCanon(m, k)
-	return canonPlayer(type(k) == "string" and k or nil)
-		or (type(m) == "table" and (canonPlayer(m._playerKey) or canonPlayer(m.name))) or nil
+	local c = canonPlayer(type(k) == "string" and k or nil)
+	if c or type(m) ~= "table" then return c end
+	c = canonPlayer(m._playerKey) or canonPlayer(homeKey[m])
+	if c then return c end
+	if m.name then return canonPlayer(m.name) end
+	return canonPlayer(keyOf(m))
 end
 M.PSS_MemberCanon = memberCanon
 
 -- the Player Ignore List form of the name (a playerData key)
 local function memberPlayerKey(m)
 	if type(m) ~= "table" then return nil end
-	return m._playerKey or normalizePlayer(m.name)
+	if m._playerKey then return m._playerKey end
+	local key = homeKey[m]
+	if key then return key end
+	if m.name then return normalizePlayer(m.name) end
+	return keyOf(m)
 end
 M.PSS_MemberPlayerKey = memberPlayerKey
 
@@ -157,27 +208,44 @@ end
 -- the name as shown
 local function memberName(m, k)
 	if type(m) ~= "table" then return nil end
-	return m.name or (type(k) == "string" and displayPlayer(k)) or nil
+	if m.name then return m.name end
+	if type(k) ~= "string" then k = keyOf(m) end
+	return type(k) == "string" and displayPlayer(k) or nil
 end
 M.PSS_MemberName = memberName
 
 -- the guild they were last seen in (the rule's guild when not known)
 local function memberGuildName(m, g)
 	if type(m) ~= "table" then return nil end
-	return m.guild or (type(g) == "table" and g.name) or nil
+	if m.guild then return m.guild end
+	if type(g) ~= "table" then g = ruleOf(m) end
+	return g and g.name or nil
 end
 M.PSS_MemberGuildName = memberGuildName
+
+-- is the record a shipped member's (not found in game)? A saved one has no
+-- date: a stored member of a managed rule with no whenBlocked is a shipped
+-- member that was changed; one found in game always has its date. g: the
+-- record's rule, when the caller has it.
+local function memberShipped(m, g)
+	if type(m) ~= "table" then return false end
+	if m._managed ~= nil then return m._managed == true end
+	if m.whenBlocked ~= nil and m.whenBlocked ~= "Managed list" then return false end
+	if type(g) ~= "table" then g = ruleOf(m) end
+	return g ~= nil and g.managed ~= nil
+end
+M.PSS_MemberShipped = memberShipped
 
 -- when they were added ("Managed list" for a shipped member)
 local function memberWhenBlocked(m)
 	if type(m) ~= "table" then return nil end
-	return m.whenBlocked or (m._managed and "Managed list") or nil
+	return m.whenBlocked or (memberShipped(m) and "Managed list") or nil
 end
 M.PSS_MemberWhenBlocked = memberWhenBlocked
 
--- a shipped member's record (stored once changed, or built this session)
-local function memberShipped(m) return type(m) == "table" and m._managed == true end
-M.PSS_MemberShipped = memberShipped
+-- did /who or an invite give the record its player key? (the Camelot name
+-- repair leaves those alone, step 10)
+function M.PSS_MemberHasPlayerKey(m) return type(m) == "table" and m._playerKey ~= nil end
 
 -- A shipped member's record built this session (vrec): it knows its
 -- canonical name and its rule until it is saved.
@@ -191,26 +259,62 @@ end
 local function shippedOnly(r) return type(r) == "table" and r._virtual == true end
 local function shippedCanon(r) return r._canon end
 local function shippedRule(r) return r._gkey end
--- saved: the runtime-only fields go (_managed stays: the member count
--- reads it while the lists are not loaded)
-local function settleShipped(r) r._virtual, r._canon, r._gkey = nil, nil, nil end
+
+-- A record as it is saved: no runtime fields, and nothing the key, the rule
+-- or the shipped list gives back. k: the stored key; g: the rule. The home
+-- is remembered, so the record reads the same afterwards. Returns true when
+-- a field went.
+local function sparseMember(m, k, g)
+	if type(m) ~= "table" then return false end
+	local n = 0
+	local function drop(f) if m[f] ~= nil then m[f] = nil; n = n + 1 end end
+	drop("_virtual"); drop("_canon"); drop("_gkey")
+	if type(k) == "string" and type(g) == "table" then
+		homeKey[m] = k
+		if m._playerKey == k then drop("_playerKey") end
+		if m.name == displayPlayer(k) then drop("name") end
+		if m.guild == g.name then drop("guild") end
+		-- shipped is only given back in a managed rule (a shipped member kept
+		-- in another rule keeps its mark and its date)
+		if g.managed ~= nil then
+			if m._managed == true or m.whenBlocked == "Managed list" then drop("whenBlocked") end
+			drop("_managed")
+		end
+	end
+	return n > 0
+end
+
+-- Upgrade step 10, before the records are made sparse: a stored member of a
+-- managed rule that is not marked shipped and has no date is a found one
+-- whose date was lost; it is stamped so a record without a date only ever
+-- means a shipped member (memberShipped).
+local function stampFound(m)
+	if m._managed ~= true and m.whenBlocked == nil then
+		m.whenBlocked = nowString()
+		return true
+	end
+	return false
+end
+
 -- a record merged into a shipped one keeps the shipped one's name fields
 local function dropOwnFields(m) m._playerKey, m.guild, m.whenBlocked = nil, nil, nil end
 
--- the rule's saved member count (display only; M.PSS_GuildMemberCount is
--- the count every reader uses)
+-- the rule's member count: worked out, no longer saved (S3; display only,
+-- M.PSS_GuildMemberCount is the count every reader uses)
 local function storeMemberCount(g, n)
 	if n == nil then
 		n = 0
 		for _ in pairs(g.members or {}) do n = n + 1 end
 	end
-	g.memberCount = n
 	return n
 end
 M.PSS_StoreMemberCount = storeMemberCount
-local function bumpMemberCount(g) g.memberCount = (tonumber(g.memberCount) or 0) + 1 end
-local function tidyMemberCount(g) g.memberCount = tonumber(g.memberCount) or 0 end
 local function dropMemberCount(g) g.memberCount = nil end
+
+-- fields a merge never copies from one record into another: the ones the key,
+-- the rule and the shipped list give (the target has its own) and the runtime
+-- fields (S3)
+local function derivedField(f) return type(f) == "string" and (f == "name" or f == "guild" or f == "whenBlocked" or f:sub(1, 1) == "_") end
 -- (/member fields)
 
 -- Custom Scan Fields: one free-text /who filter sent with the guild name.
@@ -372,7 +476,6 @@ local function ensureGuild(name)
 			customScan = M.PSS_DEFAULT_SCAN_FIELDS,
 			members = {},
 		}
-		storeMemberCount(g, 0)
 		PourSocialScoreDB.guildData[key] = g
 	else
 		g.name = g.name or trim(name)
@@ -383,7 +486,6 @@ local function ensureGuild(name)
 		M.PSS_MigrateCustomScan(g)
 		g.scan, g.scanTotal, g.scanBrackets = nil, nil, nil		-- the old Scan n/9 progress
 		g.members = g.members or {}
-		tidyMemberCount(g)
 	end
 	-- Block history and counters live on the MEMBER records only (see the
 	-- GUILD BLOCK RECORDING section), so they travel with a player whenever
@@ -472,7 +574,6 @@ function M.PSS_UpdateGuildMember(guildName, playerName, unit)
 		if faction and not isSecret(faction) then m.faction = faction end
 	end
 	g.members[pkey] = m
-	if isNew then bumpMemberCount(g) end
 	return m, g, gkey
 end
 
@@ -568,8 +669,8 @@ M.PSS_EnsureMemberBlockData = ensureMemberBlockData
 -- 1.2 KB each, which full guild sweeps (2.0.19) multiplied by thousands.
 local DROP_ALWAYS = { "online", "race", "className" }	-- never read for members
 local ALLOW_FLAGS = { "excludedGroup", "excludedGuildInvite", "excludedWhispers", "excludedChat" }
-local function compactMember(m)
-	if type(m) ~= "table" then return end
+local function compactMember(m, k, g)
+	if type(m) ~= "table" then return false end
 	ensureMemberBlockData(m)
 	if type(m.block) ~= "table" then memberBlock(m) end		-- folds true Allow flags into m.block
 	for _, f in ipairs(ALLOW_FLAGS) do
@@ -579,20 +680,42 @@ local function compactMember(m)
 	if m.lastBlockedInvite == "" then m.lastBlockedInvite = nil end
 	local bc = m.blockCounts
 	if type(bc) == "table" then
-		if History.CountTotal(bc) == 0 then m.blockCounts = nil end
+		-- (S3) zero types and a total equal to the sum are not saved
+		if History.CountTotal(bc) == 0 or not History.CompactCounts(bc) then m.blockCounts = nil end
 	end
 	if m._blockV2 and not hasLegacyBlockData(m) then m._blockV2 = nil end
 	for _, f in ipairs(DROP_ALWAYS) do m[f] = nil end
+	-- (S3) what the key, the rule and the shipped list give back is not saved
+	if k ~= nil then return sparseMember(m, k, g) end
+	return false
 end
 M.PSS_CompactMember = compactMember
 
--- every stored member of every guild rule
-local function compactAllMembers()
+-- (step 10) the found members of managed rules without a date get one; how many
+function M.PSS_StampFoundMembers()
 	local n = 0
 	for _, g in pairs((PourSocialScoreDB and PourSocialScoreDB.guildData) or {}) do
-		if type(g) == "table" and type(g.members) == "table" then
+		if type(g) == "table" and g.managed and type(g.members) == "table" then
 			for _, m in pairs(g.members) do
-				if type(m) == "table" then compactMember(m); n = n + 1 end
+				if type(m) == "table" and stampFound(m) then n = n + 1 end
+			end
+		end
+	end
+	return n
+end
+
+-- every stored member of every guild rule, saved sparse (S3); the rule's
+-- saved memberCount goes (it is worked out). Returns the number of records
+-- that lost a field.
+local function compactAllMembers()
+	local n = 0
+	for gkey, g in pairs((PourSocialScoreDB and PourSocialScoreDB.guildData) or {}) do
+		if type(g) == "table" then
+			dropMemberCount(g)
+			if type(g.members) == "table" then
+				for k, m in pairs(g.members) do
+					if type(m) == "table" and compactMember(m, k, g) then n = n + 1 end
+				end
 			end
 		end
 	end
@@ -975,7 +1098,7 @@ function M.PSS_GuildMemberCount(g, gkey)
 		-- shipped member is saved marked as one, memberShipped)
 		n = (m.count[gkey] or 0) - gone
 		for _, mm in pairs(g.members or {}) do
-			if not memberShipped(mm) then n = n + 1 end
+			if not memberShipped(mm, g) then n = n + 1 end
 		end
 		n = math.max(0, n)
 		c = c or {}
@@ -1018,6 +1141,43 @@ local function ensureManagedRules()
 end
 M.PSS_EnsureManagedRules = ensureManagedRules
 
+-- Stored members of one guild rule are capped (core uplift S3; Dan's code
+-- review decision 6): over the cap, the oldest members that hold nothing of
+-- the player's own (no note, no W I G P C choice, no counts, no history) go.
+-- A member with any of those is never dropped, so a rule can stay over the
+-- cap. Returns how many went.
+M.PSS_MEMBER_CAP = 1500
+local function capMembers(g)
+	local members = type(g) == "table" and g.members
+	if type(members) ~= "table" then return 0 end
+	local n = 0
+	for _ in pairs(members) do n = n + 1 end
+	if n <= M.PSS_MEMBER_CAP then return 0 end
+	local plain = {}
+	for k, m in pairs(members) do
+		if type(m) == "table" and not managedDirty(m) and not hasLegacyBlockData(m)
+			and m.excludedGroup ~= true and m.excludedGuildInvite ~= true and m.excludedWhispers ~= true and m.excludedChat ~= true then
+			plain[#plain + 1] = { k = k, t = parseTimeString(m.whenBlocked) or 0 }
+		end
+	end
+	table.sort(plain, function(a, b)
+		if a.t ~= b.t then return a.t < b.t end
+		return tostring(a.k) < tostring(b.k)
+	end)
+	local drop = math.min(n - M.PSS_MEMBER_CAP, #plain)
+	for i = 1, drop do members[plain[i].k] = nil end
+	if drop > 0 and M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
+	return drop
+end
+M.PSS_CapMembers = capMembers
+
+-- every rule's stored members past the cap go; how many
+function M.PSS_CapAllMembers()
+	local n = 0
+	for _, g in pairs((PourSocialScoreDB and PourSocialScoreDB.guildData) or {}) do n = n + capMembers(g) end
+	return n
+end
+
 -- Logout: keep only the delta. Changed shipped members are written into
 -- the guild record; unchanged shipped members are dropped from it.
 function M.PSS_FlushManaged()
@@ -1029,9 +1189,10 @@ function M.PSS_FlushManaged()
 				g.members = g.members or {}
 				local key = memberPlayerKey(r)
 				if key and not g.members[key] then
-					-- runtime only: rebuilt from the key when the lists load
-					settleShipped(r)
+					-- saved sparse: the runtime fields and what the key and the rule
+					-- give back are rebuilt when the lists load (S3)
 					g.members[key] = r
+					sparseMember(r, key, g)
 				end
 			end
 		end
@@ -1044,9 +1205,9 @@ function M.PSS_FlushManaged()
 				if ck and isStaticMember(gkey, ck) and not managedDirty(mm) then drop[#drop + 1] = k end
 			end
 			for _, k in ipairs(drop) do g.members[k] = nil end
-			dropMemberCount(g)
 		end
 	end
+	M.PSS_CapAllMembers()
 	compactAllMembers()
 end
 
@@ -1064,6 +1225,7 @@ local function markMemberIndexDirty()
 	memberIndexDirty = true
 	unusableRules = nil
 	memberCountGen = memberCountGen + 1
+	forgetHome()
 end
 M.PSS_MarkGuildIndexDirty = markMemberIndexDirty
 
@@ -2018,7 +2180,7 @@ local function mergeMemberRecord(existing, m)
 		M.PSS_EnsureMemberBlockData(m)
 	end
 	for field, value in pairs(m) do
-		if not MERGE_SKIP[field] and (existing[field] == nil or existing[field] == "") then existing[field] = value end
+		if not MERGE_SKIP[field] and not derivedField(field) and (existing[field] == nil or existing[field] == "") then existing[field] = value end
 	end
 	-- (only true is stored: a missing flag means false)
 	for _, f in ipairs({ "excludedGroup", "excludedGuildInvite", "excludedWhispers", "excludedChat" }) do
@@ -2031,6 +2193,8 @@ local function mergeMemberRecord(existing, m)
 	end
 	if M.PSS_MergeMemberBlockData then M.PSS_MergeMemberBlockData(existing, m) end
 end
+
+M.PSS_MergeMember = mergeMemberRecord
 
 -- Import: a shipped member's settings go into their shipped record (saved
 -- as the delta at logout), never into a second stored copy. False when ck
