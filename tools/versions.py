@@ -6,6 +6,10 @@
 # not in any addon folder, so it is never in a release zip, a test zip or the
 # mirror (check fails if one turns up there).
 #
+# The oldest releases came before pull requests (Dan, 2026-10-09): 2.0.17 and
+# the versions before it are recorded from history.txt only ("history": true),
+# and 2.0.18 by its commit ("commit"); --strict does not ask them for a PR.
+#
 # Build numbers never reset: every version is X.Y.Z.B, a release too, and B
 # counts on across lines (3.4.0.28, release 3.4.0.29, then 3.4.1.30).
 #
@@ -60,6 +64,10 @@ def save(data):
 		s = "\t\t{\n"
 		s += '\t\t\t"version": %s,\n' % json.dumps(r["version"])
 		s += '\t\t\t"pr": %s,\n' % json.dumps(r.get("pr"))
+		if r.get("commit"):
+			s += '\t\t\t"commit": %s,\n' % json.dumps(r["commit"])
+		if r.get("history"):
+			s += '\t\t\t"history": true,\n'
 		s += '\t\t\t"previous": %s,\n' % json.dumps(r.get("previous"))
 		s += '\t\t\t"preReleases": [\n'
 		if r["preReleases"]:
@@ -83,8 +91,10 @@ def all_entries(data):
 	# oldest first
 	out = []
 	for r in reversed(data["releases"]):
-		out.extend(r["preReleases"])
-		out.append({"version": r["version"], "pr": r.get("pr")})
+		old = r.get("history") or r.get("commit")
+		for e in r["preReleases"]:
+			out.append(dict(e, old=True) if old else e)
+		out.append({"version": r["version"], "pr": r.get("pr"), "old": bool(old)})
 	out.extend(data["preReleases"])
 	return out
 
@@ -224,7 +234,7 @@ def cmd_check(args):
 			if b <= prev:
 				fail("%s: build %d does not follow build %d" % (v, b, prev))
 			prev = b
-		if e.get("pr") is None:
+		if e.get("pr") is None and not e.get("old"):
 			if strict:
 				print("versions.json: %s has no PR (sh tools/bump_version.sh pr <number>)" % v)
 				bad += 1

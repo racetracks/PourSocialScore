@@ -35,6 +35,8 @@ Everything about how Dan works and what he wants from Claude lives here (Dan, 20
 - Dan uploads his WTF saves and names the version ("this is a 3.4.0.28 save"); file them on scratch under `SavedVariables/<version>/`.
 - Build numbers stay consistent: every build, a release included, takes the next number, and later lines count on.
 - Dan reads GitHub Releases himself. Release notes are one player-facing summary of every change since the previous release.
+- **Every full release has its record on scratch (2026-10-09):** a release-notes md per release (`docs/latest/release-notes/<version>.md`, one for each release in `versions.json`) and its rows in one summary of changes (`docs/latest/summary-of-changes/SUMMARY_OF_CHANGES.md`), each change linked to its build, PR and technical notes. Release notes and technical notes stay in different folders. Only Dan's full releases are releases: up to 2.0.17, 2.0.18, 2.0.19, 2.0.22, 2.0.40, 2.0.44, 3.0.0, 3.3.1, 3.4.0.29, 3.4.1.53 (3.1.0 and 3.2.0 count as pre-releases of 3.3.1).
+- **Leftovers and waiting items become GitHub issues (2026-10-09):** one issue each, with a context md on scratch (`docs/latest/issues/` for work, `docs/latest/setup/` for setup jobs) whose text is also the issue body: what, why, the decision with a recommendation, the steps in order, in-game checks and reference links. The other docs only point to the issue.
 - Dan answers decision cards. An unanswered card means the recommended option, said so in the PR.
 
 ## Values
