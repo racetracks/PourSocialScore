@@ -663,10 +663,22 @@ function History.Add(owner, counts, entry, ruleTag)
 		if type(db) ~= "table" then return entry end
 		local ob = rawget(db, "outbox")
 		if type(ob) ~= "table" then ob = {}; rawset(db, "outbox", ob) end
-		ob[#ob + 1] = entry
-		-- never more waiting than the log holds (the oldest would be trimmed)
-		if #ob > History.Cap() then table.remove(ob, 1) end
-		if #ob >= OUTBOX_LOAD and not loadQueued then
+		local n = #ob + 1
+		ob[n] = entry
+		-- never much more waiting than the log holds: past the cap and the
+		-- log's own slack the oldest go in one move, not one shift per line
+		-- (P4, N31); the cap is only read once the outbox is longer than
+		-- its smallest value
+		if n > History.MIN_TOTAL then
+			local cap = History.Cap()
+			if n > cap + math.max(20, math.floor(cap / 20)) then
+				local drop = n - cap
+				for i = 1, cap do ob[i] = ob[i + drop] end
+				for i = cap + 1, n do ob[i] = nil end
+				n = cap
+			end
+		end
+		if n >= OUTBOX_LOAD and not loadQueued then
 			loadQueued = true
 			C_Timer.After(1, loadWhenQuiet)
 		end
