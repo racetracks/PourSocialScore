@@ -28,17 +28,17 @@ Names below describe roles, not required identifiers; each addon picks its own.
 ## Events between layers
 - Core owns a small **event bus**: logic fires a named event when data changes ("an option changed", "a list changed"); UIs subscribe while they are open and unsubscribe when closed.
 - Logic never calls into a UI, and a UI never writes saved data directly: it calls a core setter, which saves and fires the event.
-- A rules script checks that core logic files make no UI calls (06_HARNESS.md).
+- `check_layers.lua` (run by `check_rules.sh`) fails a core logic file that makes UI calls (02 A9, 06_HARNESS.md).
 
 ## One config, several UIs
 - Options are defined once in a table in core: key, type, default, section, label.
 - Only non-default values are stored. One getter reads (falling back to the default) and one setter writes and fires the change event.
 - Each UI renders its option pages from that table, so a native UI and a suite UI never drift.
 
-## The bridge to a UI suite (core)
+## The bridge to a UI suite (core; 05, 02 H)
 A small core file answers: is the suite loaded; is the integration in use (suite present and the user's option on, default off); which window to open (the suite's when in use, native otherwise, with a way to force native); register the addon's pages with the suite; ask for a reload when the switch changes (the suite's popup inside the suite, a StaticPopup otherwise, a "/reload" hint where neither works). Slash commands open either front end and switch the integration.
 
-## Upgrades
+## Upgrades (02 D8)
 - Numbered run-once steps in an upgrade record in SavedVariables.
 - Cleanups that touch load-on-demand data run when that data loads, guarded until earlier steps have run.
 - A login tidy-up removes leftovers; every old store is pruned when it is replaced.

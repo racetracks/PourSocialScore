@@ -1,7 +1,7 @@
 # UI suites and known fixes
 
 ## Part 1: Integrating a UI suite (configured the same, assets in different places)
-The author's requirement for every project that offers a UI-suite front end (a full UI replacement such as EllesmereUI or ElvUI) beside its native Blizzard-styled UI: **both front ends are configured the same way, but their assets live in different locations.**
+For any addon that offers a UI-suite front end (a full UI replacement such as EllesmereUI or ElvUI) beside its native Blizzard-styled UI, **both front ends are configured the same way, but their assets live in different places.** The rules are 02 G and H; this part is how to apply them.
 
 ### The pattern
 | Layer | Where | Shared? |
@@ -14,22 +14,18 @@ The author's requirement for every project that offers a UI-suite front end (a f
 | Suite UI | Its own folder, same repo and version as the addon; fonts, colours and skins taken from the suite at run time; its own SavedVariables only for suite-only state (window position, last tab) | Suite only |
 | Bridge | One small file in core (04_ARCHITECTURE.md) | Core side of the switch |
 
-- The native UI never reads or loads a file from the suite folder, and the reverse, so a user never needs both loaded.
-- No application or service logic in either UI folder.
-- Same features, same numbers, each drawn in its own look.
+Neither UI folder reads or loads a file from the other, neither holds application logic, and both show the same features and numbers in their own look (02 G1 to G3, H10).
 
 ### Detection and loading
-- The suite is loaded (`C_AddOns.IsAddOnLoaded`) **and** the user's integration option is on (default OFF). Load the suite folder on demand only when both are true.
+- Load the suite folder on demand only when the suite is loaded (`C_AddOns.IsAddOnLoaded`) **and** the user's integration option is on (default OFF). Off means nothing from the suite folder loads (02 H1).
 - Switching the option asks for a reload, through the suite's own popup when inside the suite.
-- Zero cost when off: nothing from the suite folder loads.
 
 ### Working with any suite
-- Read the suite's contributor guide and API docs first; follow its house rules for tooltips, confirmation popups and options layout inside its windows.
-- Use only documented API and public helpers. Never read or write private fields, never hook its functions, never load its own options addon yourself.
-- Check the licence. Many suites are all rights reserved: reading their code to learn behaviour is fine, copying it is not.
+- Read the suite's contributor guide and API docs first; follow its house rules for tooltips, confirmation popups and options layout inside its windows (02 H5).
+- Documented API and public helpers only; check the licence and copy nothing (02 H3, H4).
 - Prefer the suite's plugin or module registration (its own sidebar section or page) over injecting into its frames.
-- Take fonts, accent colours and skins from the suite at run time; never copy its media into your folders.
-- Skinning callbacks often run only when the user has the suite's skin module enabled. Always ship a **plain fallback look** (a dark panel with the suite's font) for when they don't, and treat it as a first-class look.
+- Take fonts, accent colours and skins from the suite at run time; never copy its media (02 H2).
+- Skinning callbacks often run only when the user has the suite's skin module on. Always ship a **plain fallback look** (a dark panel with the suite's font) and treat it as a first-class look (02 H6).
 - Suites usually target Retail only; if the addon supports classic clients, keep the suite folder gated by detection rather than adding version checks of your own.
 - Harness: a stub of the suite's API beside the WoW stub, a check per tab, and a look-compare tour of the suite window (06_HARNESS.md).
 
@@ -37,22 +33,22 @@ The author's requirement for every project that offers a UI-suite front end (a f
 Problems seen in practice, what triggered them and the fix. Check this list before guessing at a UI bug.
 
 ### 1. A "ghost" second label behind faded text (font shadow)
-- **Seen when:** the addon drew its own tab buttons and dimmed the unselected ones to show which tab was active, in the plain fallback look (the suite's skin module was off on the user's client). Each unselected tab label showed a faint copy offset just behind it; the selected tab looked clean.
-- **Cause:** the labels were faded with `FontString:SetTextColor(r, g, b, 0.5)`. **Text colour alpha does not fade the font's shadow**, so the black shadow at offset (1, -1) stayed at full strength behind half-transparent letters and read as a second label.
+- **Seen when:** the addon dimmed its unselected tab labels in a suite's plain fallback look. Each dimmed label showed a faint copy just behind it.
+- **Cause:** the labels were faded with `FontString:SetTextColor(r, g, b, 0.5)`. **Text colour alpha does not fade the font's shadow**, so the shadow stayed at full strength and read as a second label.
 - **Fix:** fade text with `FontString:SetAlpha(a)`, which fades the letters and the shadow together:
   ```lua
   local fs = tab:GetFontString()
   if fs then fs:SetAlpha(selected and 1 or 0.5) end
   ```
 - **Related, in the skinned look:** the suite's tab skin drew its own label over the button and hid the original only by colour. The button reapplies its font object's colour on state changes (hover, press, enable), which brought the original label back as a ghost. Fix: after applying the suite's tab skin, hide your own label with `SetAlpha(0)`. Use the suite's own "set tab selected" call when it offers one (guard the call: it may be undocumented).
-- **Rule that came from it:** every frame must look right skinned and unskinned; never fade text with colour alpha.
-- **Lesson:** read the screenshot first. The plain border and missing title strip showed it was the fallback look, which made two earlier guesses about the skinned look irrelevant.
+- **Rules that came from it:** 02 H6 and H7.
+- **Lesson:** read the screenshot first. The plain border showed it was the fallback look, which made two earlier guesses about the skinned look irrelevant.
 
 ### 2. Hovering a link opened a window
 - **Seen when:** list rows showed chat messages containing links, and hovering a row showed the link's tooltip with `GameTooltip:SetHyperlink`.
 - **Cause:** some link kinds have no tooltip and instead act on `SetHyperlink`; a profession (`trade:`) link opened the profession window on hover.
 - **Fix:** an allow list of link kinds that have tooltips (item, spell, achievement, quest and similar); anything else shows plain text.
-- **Rule:** hover must never open a window.
+- **Rule:** 02 H8; hover must never open a window.
 
 ### 3. A window anchored to the Friends list lost its anchor
 - **Seen when:** a window was placed at the Friends window's top right on Retail.

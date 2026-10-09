@@ -5,8 +5,8 @@ An addon is Lua code plus TOC metadata that the World of Warcraft client loads f
 - It can only change what the user sees and does on their own client (frames, chat filtering, tooltips, keybinds). It cannot affect other players' screens.
 - It cannot write files, open sockets or call a server. **SavedVariables are the only storage**, written by the client at logout and /reload.
 - Sharing between users happens only through what ships in the addon (data lists), Import/Export strings the user copies, or in-game addon messages.
-- Protected actions are blocked in combat; code must avoid taint (never touch secure frames or call protected functions from insecure paths). Addon code is always tainted (02 J).
-- On Retail 12.x many combat, identity and chat values reach addons as **secret values** that can be shown but not compared or counted, and the combat log is closed to addons (02 J7, J8).
+- Addon code is always tainted: protected actions are blocked in combat, and code must never touch secure frames or call protected functions from insecure paths (02 J; background in reference/wow-api/02, 03 and 06).
+- On Retail 12.x many combat, identity and chat values reach addons as **secret values** that can be shown but not compared or counted, and the combat log is closed to addons (02 J7, J8; reference/wow-api/07).
 - Memory and CPU are shared with the game and every other addon, so cost when idle matters more than raw speed.
 
 The author's addons favour **performance and memory first**, then code quality, then features.
@@ -24,6 +24,6 @@ The author's addons favour **performance and memory first**, then code quality, 
 
 ## Client flavours
 - Support several clients with **three TOCs per addon folder**: a base TOC listing every interface (`## Interface: <retail>, <classic>`), plus `_Mainline` (Retail) and the classic flavour suffix (for example `_Camelot`). One combined TOC alone has broken a classic client before.
-- Look up interface numbers and API availability before each client patch: in game with `/dump select(4, GetBuildInfo())`, on the Warcraft Wiki "Public client builds" page, or on wago.tools. The number is `major x 10000 + minor x 100 + patch` (12.1.0 = 120100, Forever 1.60.1 = 16001). Snapshot and suffix table: reference/wow-api/01.
+- Look up interface numbers and API availability before each client patch (02 B5): in game with `/dump select(4, GetBuildInfo())`, on the Warcraft Wiki "Public client builds" page, or on wago.tools. The number is `major x 10000 + minor x 100 + patch` (12.1.0 = 120100, Forever 1.60.1 = 16001). Interface snapshot, suffix table and TOC directives: reference/wow-api/01.
 - The client picks the most specific TOC: game type suffix (`_Standard`, `_Camelot`, `_Mists`, `_Vanilla`), then family suffix (`_Mainline`, `_Classic`), then the base TOC. A new game-type suffix can silently take over from a family TOC (02 B5).
-- Guard any API that differs between flavours (`C_AddOns` vs older globals, `SetResizeBounds` vs `SetMinResize`, new Social UI vs FriendsFrame).
+- Guard any API that differs between flavours (`C_AddOns` vs older globals, `SetResizeBounds` vs `SetMinResize`, new Social UI vs FriendsFrame; 02 B6). Load order, events and SavedVariables timing: reference/wow-api/00.
