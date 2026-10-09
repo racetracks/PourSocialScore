@@ -11,7 +11,9 @@ docs/
   <name>-<date>-vN.zip                  every docs release / handover pack, zipped
   <project-or-feature>/                 history for a project or feature release
   latest/<project-or-feature>/          the newest markdown, unzipped
-  drafts/                               drafts for the author to read before they replace anything in latest/
+  components/<component>/               live component designs and plans, promoted from drafts/components/
+drafts/<name>-<date>-draftN/           drafts for the author to read before they replace anything in docs/ (moved from docs/drafts/, 2026-10-09)
+drafts/components/                      drafts of components, promoted to docs/components/ on the author's OK
 summary/                                <project>-<YYYY-MM-DD-hh-mm>.md  status summaries
 ```
 
