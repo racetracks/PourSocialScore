@@ -825,28 +825,121 @@ function phases.view()
 	check(V:Act(lineOf(V, function(o) return not o.header and o.name == "PourSocialScore" end), "off") ~= nil, "PSS off says no")
 	local text = V:Act(k, "load")
 	check(text == nil and row("DBM-Raids").loaded, "load")
-	-- presets from the menu
-	local ok, said1 = V:PresetNew("First", false)
-	check(ok and V:Presets()[1].id == 1, "a new set takes the first free number: " .. tostring(said1))
-	ok = V:PresetNew("Second", false)
-	check(V:Presets()[2].id == 2, "then the next")
-	V.who = "all"
-	check(V:FreeId() == 1, "the numbers are per scope")
-	V.who = "me"
-	local p = V:Presets()[1]
+	-- the Sets menu (the slots phase has the rest)
+	local p = V:Slots()[1]
+	check(p and p.empty and p.text == "Set 1 (empty)", "a free slot is listed as empty")
+	V:PresetAct(p, "save")
+	p = V:Slots()[1]
+	check(not p.empty and p.n > 0, "a save into a free slot stores it")
+	local function acts(entries) local t = {} for _, e in ipairs(entries) do if e.act then t[#t + 1] = e.act end end return table.concat(t, ",") end
 	check(acts(V:PresetMenu(p)) == "load,add,remove,save,rename,delete", "the set's actions: " .. acts(V:PresetMenu(p)))
 	check(V:PresetAct(p, "rename", "Renamed"):find("renamed", 1, true), "rename")
-	check(V:Presets()[1].name == "Renamed", "renamed")
+	check(V:Slots()[1].name == "Renamed", "renamed")
 	V:Act(k, "include", "char:1")
 	check(PSS_CharDB.addonSets[1]:find("DBM-Raids", 1, true), "add an addon to a set from its menu")
-	V:PresetAct(V:Presets()[1], "delete")
-	V:PresetAct(V:Presets()[1], "delete")
+	V:PresetAct(V:Slots()[1], "delete")
+	V:PresetAct(V:Slots()[1], "delete")
 	check(PSS_CharDB == nil, "deleted")
-	local okc, sayc = V:PresetNew("Mine", true)
-	check(okc and PSS_OptionsDB.addonSets[(os.getenv("PSS_CLASS") or "MAGE")], "a class set: " .. tostring(sayc))
 	check(not V:Pending() or V:Pending(), "pending is a boolean")
 	V:Release()
 	check(V:Count() == 0, "release")
+end
+
+-- Sets the way ACP makes them (3.6.0.66, issue 171): every numbered place of
+-- the scope shown is listed, a free one as empty; a save into it (after a
+-- confirm in the window) stores it; a used one loads, adds, removes, saves,
+-- renames and deletes; the numbers are per scope, your class's is shared
+function phases.slots()
+	needLibraries()
+	check(type(M.PSS_AddonSlots) == "function", "no M.PSS_AddonSlots")
+	local V = M.PSS_AddonView()
+	check(V.PresetNew == nil and V.FreeId == nil, "the separate new-set step is still there")
+	V:Build()
+	local cls = os.getenv("PSS_CLASS") or "MAGE"
+	local slots = V:Slots()
+	check(#slots == 26, "25 numbers and your class: " .. #slots)
+	for n = 1, 25 do
+		check(slots[n].id == n and slots[n].empty and slots[n].text == "Set " .. n .. " (empty)", "slot " .. n .. ": " .. tostring(slots[n].text))
+	end
+	check(slots[26].id == cls and slots[26].empty and slots[26].class and slots[26].text == cls:sub(1, 1) .. cls:sub(2):lower() .. " (empty)", "the class slot: " .. tostring(slots[26].text))
+	local function acts(entries) local t = {} for _, e in ipairs(entries) do if e.act then t[#t + 1] = e.act end end return table.concat(t, ",") end
+	check(acts(V:PresetMenu(slots[3])) == "save", "a free slot only saves: " .. acts(V:PresetMenu(slots[3])))
+	check(PSS_CharDB == nil and PSS_OptionsDB.addonSets == nil, "listing writes nothing")
+	-- save into a free slot: this character
+	V.who = "me"
+	local said = V:PresetAct(slots[3], "save")
+	check(said and said:find("saved", 1, true), "save says so: " .. tostring(said))
+	check(PSS_CharDB and PSS_CharDB.addonSets[3] and PSS_OptionsDB.addonSets == nil, "stored for this character")
+	slots = V:Slots()
+	check(not slots[3].empty and slots[3].text:match("^Set 3 %(%d+%)$"), "the slot shows its count: " .. slots[3].text)
+	check(acts(V:PresetMenu(slots[3])) == "load,add,remove,save,rename,delete", "a used slot: " .. acts(V:PresetMenu(slots[3])))
+	-- save over it keeps the name; rename gives one
+	V:PresetAct(slots[3], "rename", "Raid")
+	slots = V:Slots()
+	check(slots[3].text:match("^Raid %(%d+%)$"), "the name shows: " .. slots[3].text)
+	local before = PSS_CharDB.addonSets[3]
+	M.PSS_AddonTick(idx("ZedOne"), true, "me", false)
+	V:PresetAct(slots[3], "save")
+	check(PSS_CharDB.addonSets[3]:sub(1, 5) == "Raid\n" and PSS_CharDB.addonSets[3] ~= before and PSS_CharDB.addonSets[3]:find("ZedOne", 1, true), "a save over keeps the name and takes what is on")
+	-- the numbers are per scope
+	V.who = "all"
+	slots = V:Slots()
+	check(slots[3].empty, "all characters: slot 3 is free")
+	V:PresetAct(slots[3], "save")
+	check(PSS_OptionsDB.addonSets[3] and PSS_OptionsDB.addonSets[3]:sub(1, 1) == DIGIT, "stored account-wide")
+	V.who = "me"
+	check(V:Slots()[3].text:match("^Raid"), "this character's slot 3 is still its own")
+	-- load, add, remove on a used slot
+	V:PresetAct(V:Slots()[3], "load")
+	check(row("ZedOne").enabled, "load turns the set's addons on")
+	M.PSS_AddonTick(idx("ZedOne"), false, "me", false)
+	check(not row("ZedOne").enabled, "off")
+	V:PresetAct(V:Slots()[3], "add")
+	check(row("ZedOne").enabled, "add to current")
+	V:PresetAct(V:Slots()[3], "remove")
+	check(not row("ZedOne").enabled, "remove from current")
+	-- the class slot is shared, has no rename
+	V:PresetAct(V:Slots()[26], "save")
+	check(PSS_OptionsDB.addonSets[cls], "the class set is account-wide")
+	local c = V:Slots()[26]
+	check(not c.empty and acts(V:PresetMenu(c)) == "load,add,remove,save,delete", "the class set's actions: " .. acts(V:PresetMenu(c)))
+	V.who = "all"
+	check(not V:Slots()[26].empty, "the class set shows in both scopes")
+	-- delete frees the slot
+	V:PresetAct(V:Slots()[3], "delete")
+	check(V:Slots()[3].empty and PSS_OptionsDB.addonSets[3] == nil, "delete frees the slot")
+	V:PresetAct(V:Slots()[26], "delete")
+	V.who = "me"
+	V:PresetAct(V:Slots()[3], "delete")
+	check(PSS_CharDB == nil and PSS_OptionsDB.addonSets == nil, "nothing left saved")
+	V:Release()
+end
+
+-- The Sets menu in the window: bottom left, a slot per number (3.6.0.66)
+function phases.setsmenu()
+	needLibraries()
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local pg = win.pages[4]
+	check(win:IsShown() and pg:IsShown() and pg.setsDD, "the tab has no Sets drop-down")
+	local dd = pg.setsDD
+	local point, rel, relPoint = dd:GetPoint(1)
+	check(point == "BOTTOMLEFT" and rel == pg and relPoint == "BOTTOMLEFT", "the Sets drop-down is not bottom left: " .. tostring(point))
+	local fpoint, frel = pg.footer:GetPoint(1)
+	check(fpoint == "LEFT" and frel == dd, "the count is not beside the Sets drop-down")
+	-- the menu lists every place (the build function is the kit's)
+	check(type(pg.setsBuild) == "function", "no Sets menu builder")
+	local list = {}
+	pg.setsBuild({ Title = function(_, t) list[#list + 1] = "T:" .. t end, Button = function(_, t) list[#list + 1] = t end,
+		Divider = function() end })
+	check(#list == 27 and list[1] == "T:Sets (this character)" and list[2] == "Set 1 (empty)" and list[26] == "Set 25 (empty)", "the Sets menu: " .. #list .. " " .. tostring(list[2]))
+	local V = pg.state
+	V.who = "all"
+	list = {}
+	pg.setsBuild({ Title = function(_, t) list[#list + 1] = "T:" .. t end, Button = function(_, t) list[#list + 1] = t end, Divider = function() end })
+	check(list[1] == "T:Sets (all characters)", "the menu names the scope")
+	V.who = "me"
+	win:Hide()
 end
 
 function phases.access()
@@ -865,20 +958,20 @@ function phases.access()
 	check(entry ~= nil, "no second Addon Compartment entry")
 	entry.func()
 	local win = _G.PSS_Window
-	check(win and win:IsShown() and win.pages[7]:IsShown(), "the compartment entry did not open the AddOns tab")
+	check(win and win:IsShown() and win.pages[4]:IsShown(), "the compartment entry did not open the AddOns tab")
 	win:Hide()
 	PSS_AddonsBinding()
-	check(win:IsShown() and win.pages[7]:IsShown(), "the key binding did not open the AddOns tab")
+	check(win:IsShown() and win.pages[4]:IsShown(), "the key binding did not open the AddOns tab")
 	PSS_AddonsBinding()
 	check(not win:IsShown(), "the key binding again closes it")
 	win:Show()
 	win.tabs[1]._scripts.OnClick(win.tabs[1])
 	M.PSS_OpenUI("addons")
-	check(win.pages[7]:IsShown(), "M.PSS_OpenUI(tab) selects the tab on an open window")
+	check(win.pages[4]:IsShown(), "M.PSS_OpenUI(tab) selects the tab on an open window")
 	SlashCmdList["PSS"]("acp")
 	check(not win:IsShown(), "/pss acp on its tab closes it")
 	SlashCmdList["PSS"]("")
-	check(win:IsShown() and win.pages[7]:IsShown(), "/pss opens the last tab (AddOns)")
+	check(win:IsShown() and win.pages[4]:IsShown(), "/pss opens the last tab (AddOns)")
 	win:Hide()
 	local ok = capture(SlashCmdList["PSS"], "acp list nothing")
 	check(ok ~= nil, "acp list")
@@ -888,7 +981,7 @@ local function openTab()
 	M.PSS_OpenUI("addons")
 	local win = _G.PSS_Window
 	local ui = H.Private("PourSocialScore_GUI")
-	local pg = win.pages[7]
+	local pg = win.pages[4]
 	pg.list.scroll:SetSize(900, 300)
 	pg.list:Layout()
 	-- the search "pour" brings Pour Social Score's own group (a header and its
@@ -1097,7 +1190,7 @@ function phases.coverage()
 	M.PSS_AddonAll(true, who) M.PSS_AddonPending(who)
 	M.PSS_AddonUndo()
 	M.PSS_AddonMemory() M.PSS_AddonMemOf(i) M.PSS_AddonMemGroup(L, 1)
-	M.PSS_AddonPresetSave(1, "Cov", "me") M.PSS_AddonPresets() M.PSS_AddonPresetLoad(1, "char", who) M.PSS_AddonPresetAdd(1, "char", who)
+	M.PSS_AddonPresetSave(1, "Cov", "me") M.PSS_AddonPresets() M.PSS_AddonSlots(who) M.PSS_AddonPresetLoad(1, "char", who) M.PSS_AddonPresetAdd(1, "char", who)
 	M.PSS_AddonPresetRemove(1, "char", who) M.PSS_AddonPresetInclude(1, "char", "ZedOne") M.PSS_AddonPresetRename(1, "x", "char")
 	M.PSS_AddonPresetDelete(1, "char")
 	M.PSS_AddonLock("LibFoo", true, who) M.PSS_AddonLocked("LibFoo") M.PSS_AddonLock("LibFoo", false, who)

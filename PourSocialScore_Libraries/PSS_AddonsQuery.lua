@@ -26,7 +26,7 @@
 --   M.PSS_AddonUndo()  M.PSS_AddonPending(who)  M.PSS_AddonReload()
 --   M.PSS_AddonMemory()  M.PSS_AddonMemOf(i)  M.PSS_AddonMemGroup(L, gi)
 --   M.PSS_AddonDeps(i, who)            required and optional, with state
---   M.PSS_AddonPresets() and ...PresetSave / Load / Add / Remove / Rename / Delete
+--   M.PSS_AddonPresets(), M.PSS_AddonSlots(who) and ...PresetSave / Load / Add / Remove / Rename / Delete
 --   M.PSS_AddonLock(name, on, who)  M.PSS_AddonLocked(name)
 --   M.PSS_AddonViewMode(v)  M.PSS_AddonLoadOld(on)
 --   M.PSS_AddonPerfOn()  M.PSS_AddonCPU(name)  M.PSS_AddonCPUGroup(L, gi)
@@ -935,6 +935,31 @@ function M.PSS_AddonPresets()
 		return a.id < b.id
 	end)
 	return list
+end
+
+-- the slots of the Sets menu for who ("me" or "all"): the 25 numbers of that
+-- scope, then your class's (always account-wide), each { id, name, scope, n,
+-- class, label, empty }; an empty one is a free place to save into
+function M.PSS_AddonSlots(who)
+	local scope = who == "all" and "all" or "char"
+	local have = {}
+	for _, p in ipairs(M.PSS_AddonPresets()) do
+		if p.class or p.scope == scope then have[p.id] = p end
+	end
+	local out = {}
+	local function slot(id)
+		local p = have[id]
+		if not p then
+			local class = type(id) == "string"
+			p = { id = id, name = "", scope = class and "all" or scope, n = 0, class = class,
+				label = presetLabel(id, ""), empty = true }
+		end
+		out[#out + 1] = p
+	end
+	for id = 1, PRESETS_MAX do slot(id) end
+	local own = classToken()
+	if own then slot(own) end
+	return out
 end
 
 -- the enabled addons for who, not Pour Social Score, not protected

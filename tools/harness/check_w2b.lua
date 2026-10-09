@@ -17,7 +17,7 @@ local players = win.pages[1]
 players.select(entry)
 players.pane.pages:Select("summary")
 players.pane.summary.viewButton._scripts.OnClick(players.pane.summary.viewButton)
-local view = win.pages[4].view
+local view = win.pages[5].view
 check(view and view.Scoped and view:Scoped() == true, "Scoped")
 check(view.ScopeText and view:ScopeText() == "Only " .. tostring(view.name), "ScopeText")
 check(view.IsCustom and view:IsCustom() == false, "IsCustom off")

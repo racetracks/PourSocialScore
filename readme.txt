@@ -204,8 +204,8 @@ Looks
   class colour. "Font of the Pour Social Score window" picks its font.
 
 Getting around
-* Seven tabs: Player Ignore List, Guild Ignore List, Chat Filters, Events,
-  Import/Export, Options and AddOns. Each tab is built the first time you
+* Seven tabs: Player Ignore List, Guild Ignore List, Chat Filters, AddOns,
+  Events, Import/Export and Options. Each tab is built the first time you
   open it.
 * The back and forward arrows above the tabs (and mouse buttons 4 and 5)
   step through the views you opened; the line beside them says where you
@@ -298,9 +298,11 @@ AddOns
   own AddOn list does; hover an addon for its details, requirements, CPU
   (average, current, peak, encounter) and memory, or a group's header for
   its sums.
-* Sets: save the addons that are on as a set (25 numbered ones, each for
-  this character or all characters, and one for your class), then load it,
-  add it, take it off or rename it. Undo puts the addons back as they were
+* Sets (the drop-down at the bottom left): 25 numbered places, each for
+  this character or all characters (the choice at the top), and one for your
+  class. Pick a place and Save puts the addons that are on there (it asks
+  first); a used place can also be loaded, added to what is on, taken off
+  what is on, renamed or deleted. Undo puts the addons back as they were
   at login; Enable All and Disable All (which asks first); Reload applies
   the changes and shows when one is waiting.
 * /pss acp or /acp opens the tab, and the key binding "Open AddOns"

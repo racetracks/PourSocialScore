@@ -52,12 +52,12 @@ M.PSS_UI_TABS = {
 	{ key = "players", text = "Player Ignore List" },
 	{ key = "guilds", text = "Guild Ignore List" },
 	{ key = "filters", text = "Chat Filters" },
+	{ key = "addons", text = "AddOns" },
 	{ key = "events", text = "Events" },
 	{ key = "importExport", text = "Import/Export" },
 	{ key = "options", text = "Options" },
-	{ key = "addons", text = "AddOns" },
 }
-M.PSS_UI_EVENTS_TAB = 4
+M.PSS_UI_EVENTS_TAB = 5
 
 -- The tab shown last, saved by its key beside the window's place
 -- (windowPoints.PSS_WindowTab); the first tab is the default and is not saved.

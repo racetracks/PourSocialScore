@@ -163,9 +163,9 @@ SlashCmdList["PSS"]("gui")
 check(win:IsShown(), "window did not open again")
 local names = {}
 for i, t in ipairs(win.tabs or {}) do names[i] = t:GetText() end
-check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,Events,Import/Export,Options,AddOns", "tabs are not the seven (the six of the port and AddOns)")
+check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,AddOns,Events,Import/Export,Options", "tabs are not the seven (the six of the port and AddOns)")
 check(win.tabs[1].pssSelected and win.pages[1]:IsShown() and not win.pages[2]:IsShown(), "first tab not shown first")
-check(win.pages[6].note == nil and not win.pages[6].refresh, "a tab not opened yet is not built, and has no placeholder note")
+check(win.pages[7].note == nil and not win.pages[7].refresh, "a tab not opened yet is not built, and has no placeholder note")
 check(win.where:GetText() == "Player Ignore List", "the line by the arrows does not name the tab")
 check(win.where:GetAlpha() == 0.9, "the line by the arrows is not at 0.9")
 check(not win.back:IsEnabled() and not win.forward:IsEnabled(), "arrows enabled with nowhere to go")
@@ -177,13 +177,13 @@ check(PourSocialScoreDB.windowPoints.PSS_WindowTab == "filters", "tab shown not 
 check(win.back:IsEnabled() and win.where:GetText() == "Chat Filters", "tab click is not a step back")
 -- a page with a sub-view (as the Guilds tab's members view): the Options
 -- page, not built yet, stands in
-local pg = win.pages[6]
+local pg = win.pages[7]
 local sub
 pg.navState = function() return sub end
 pg.navApply = function(v) sub = v end
 pg.navUp = function() if sub then sub = nil return true end return false end
 pg.navTitle = function(v) return "Members of " .. v end
-win.tabs[6]._scripts.OnClick(win.tabs[6])
+win.tabs[7]._scripts.OnClick(win.tabs[7])
 sub = "Badguild"
 local ui = H.Private("PourSocialScore_GUI")
 ui.NavRecord()
@@ -196,7 +196,7 @@ ui.NavBack()
 check(win.pages[3]:IsShown() and win.forward:IsEnabled(), "back did not return to the tab before")
 ui.NavForward()
 ui.NavForward()
-check(win.pages[6]:IsShown() and sub == "Badguild", "forward did not return to the sub-view")
+check(win.pages[7]:IsShown() and sub == "Badguild", "forward did not return to the sub-view")
 -- mouse buttons 4 / 5 over the window only
 win._mouseOver = true
 win._scripts.OnEvent(win, "GLOBAL_MOUSE_UP", "Button4")
@@ -231,23 +231,23 @@ H.Advance(1)
 _G.PSS_WindowEscape:Hide()
 check(sub == nil and win:IsShown(), "the next Escape did not step up one level")
 -- Events opened from another tab: Escape goes back there
-win.tabs[4]._scripts.OnClick(win.tabs[4])
-check(win.pages[4]:IsShown(), "Events tab not shown")
+win.tabs[5]._scripts.OnClick(win.tabs[5])
+check(win.pages[5]:IsShown(), "Events tab not shown")
 _G.PSS_WindowEscape:Hide()
-check(win:IsShown() and win.pages[6]:IsShown(), "Escape on Events did not go back to the tab before")
+check(win:IsShown() and win.pages[7]:IsShown(), "Escape on Events did not go back to the tab before")
 _G.PSS_WindowEscape:Hide()
 check(not win:IsShown(), "Escape at the top did not close the window")
 pg.navState, pg.navApply, pg.navUp, pg.navTitle = nil, nil, nil, nil
 -- the tab shown last opens next time; the first tab clears the saved one
 SlashCmdList["PSS"]("gui")
-check(win.pages[6]:IsShown() and M.PSS_UITab() == 6, "saved tab not reopened")
+check(win.pages[7]:IsShown() and M.PSS_UITab() == 7, "saved tab not reopened")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(PourSocialScoreDB.windowPoints.PSS_WindowTab == nil, "the first tab was saved")
 -- (3.4.0.15) Events is never the tab the window opens on (it would load
 -- Logging before any click): the tab before it stays saved
-win.tabs[6]._scripts.OnClick(win.tabs[6])
-win.tabs[4]._scripts.OnClick(win.tabs[4])
-check(M.PSS_UITab() == 6, "the Events tab was saved: " .. tostring(M.PSS_UITab()))
+win.tabs[7]._scripts.OnClick(win.tabs[7])
+win.tabs[5]._scripts.OnClick(win.tabs[5])
+check(M.PSS_UITab() == 7, "the Events tab was saved: " .. tostring(M.PSS_UITab()))
 PourSocialScoreDB.windowPoints.PSS_WindowTab = "events"
 check(M.PSS_UITab() == 1, "a saved Events tab was reopened")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
@@ -260,9 +260,9 @@ ui.TabBuilders.importExport = function(page)
 	local redraw = realBuild(page)
 	return function() drawn = drawn + 1 redraw() end
 end
-win.tabs[5]._scripts.OnClick(win.tabs[5])
-win.tabs[5]._scripts.OnClick(win.tabs[5])
-check(built == 1 and drawn == 2 and win.pages[5].refresh, "a tab builder did not build once and redraw")
+win.tabs[6]._scripts.OnClick(win.tabs[6])
+win.tabs[6]._scripts.OnClick(win.tabs[6])
+check(built == 1 and drawn == 2 and win.pages[6].refresh, "a tab builder did not build once and redraw")
 ui.TabBuilders.importExport = realBuild
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 -- frame strata follows the option
@@ -680,9 +680,9 @@ end
 do
 	local ui = H.Private("PourSocialScore_GUI")
 	win:Hide()
-	check(not win.pages[7].refresh, "the AddOns tab is built before it is opened")
+	check(not win.pages[4].refresh, "the AddOns tab is built before it is opened")
 	SlashCmdList["PSS"]("acp")
-	local pg = win.pages[7]
+	local pg = win.pages[4]
 	check(win:IsShown() and pg:IsShown() and pg.refresh, "/pss acp did not open the AddOns tab")
 	SlashCmdList["PSS"]("acp")
 	check(not win:IsShown(), "/pss acp again did not close the window")
@@ -694,12 +694,23 @@ do
 	-- the tab row clears the Options search box (real fonts run wider than the stub's: 15 percent)
 	local right = 10
 	for _, t in ipairs(win.tabs) do right = right + t:GetWidth() + 2 end
-	local opts = win.pages[6]
-	if not opts.search then win.tabs[6]._scripts.OnClick(win.tabs[6]) end
-	local boxW = win.pages[6].search and win.pages[6].search:GetWidth() or 0
+	local opts = win.pages[7]
+	if not opts.search then win.tabs[7]._scripts.OnClick(win.tabs[7]) end
+	local boxW = win.pages[7].search and win.pages[7].search:GetWidth() or 0
 	check(boxW >= 160, "the Options search box is narrower than 160")
 	check(right * 1.15 < 960 - 12 - boxW, ("the tab row (%d) reaches the Options search box (from %d)"):format(right * 1.15, 960 - 12 - boxW))
-	win.tabs[7]._scripts.OnClick(win.tabs[7])
+	win.tabs[4]._scripts.OnClick(win.tabs[4])
+	-- (3.6.0.66) the AddOns tab is the fourth, after Chat Filters; the last tab is saved by its key,
+	-- so an old save's tab still opens the same tab whatever its number
+	check(M.PSS_UI_TABS[4].key == "addons" and M.PSS_UI_TABS[5].key == "events" and M.PSS_UI_EVENTS_TAB == 5, "the tab order is not Chat Filters, AddOns, Events")
+	for key, id in pairs({ players = 1, guilds = 2, filters = 3, addons = 4, importExport = 6, options = 7 }) do
+		PourSocialScoreDB.windowPoints.PSS_WindowTab = key
+		check(M.PSS_UITab() == id, "the saved tab " .. key .. " opens tab " .. M.PSS_UITab() .. ", not " .. id)
+	end
+	PourSocialScoreDB.windowPoints.PSS_WindowTab = "addons"
+	-- the Sets drop-down is bottom left, the count beside it, the buttons on the right
+	check(pg.setsDD and select(1, pg.setsDD:GetPoint(1)) == "BOTTOMLEFT" and select(1, pg.footer:GetPoint(1)) == "LEFT", "the Sets drop-down is not at the bottom left with the count beside it")
+	check(pg.setsDD:GetWidth() + 10 + 12 + 260 < 960 - (96 + 96 + 70 + 90 + 4 * 6 + 10), "the Sets drop-down and the count reach the buttons")
 	local V = pg.state
 	-- the stub's frames are 20 high: give the list its real height (15 rows)
 	pg.list.scroll:SetSize(900, 300)

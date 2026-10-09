@@ -14,7 +14,9 @@
 -- list has the port's 26 px items and is at most 200 tall; a right-click
 -- menu is compact (20 px items, a slim title and divider, as wide as its
 -- longest entry) and at most 400 tall, where Blizzard's menu scrolls.
---   ns.NewDropdown(parent, w, build)   dd:SetLabel(text)
+--   ns.NewDropdown(parent, w, build, up)   dd:SetLabel(text)
+--                                      (up: our list opens above it, for
+--                                      a drop-down at the bottom)
 --   ns.ContextMenu(owner, build)       at the cursor
 --   ns.RowMenu(owner, entries, run)    a row's right-click menu from the
 --                                      entries Libraries describes
@@ -283,7 +285,7 @@ local function Chevron(parent)
 	return { a, b }
 end
 
-function ns.NewDropdown(parent, w, build)
+function ns.NewDropdown(parent, w, build, up)
 	local dd = CreateFrame("Frame", nil, parent)
 	dd:SetSize(w, 24)
 	local ok, blizz = pcall(CreateFrame, "DropdownButton", nil, dd, "WowStyle1DropdownTemplate")
@@ -308,7 +310,13 @@ function ns.NewDropdown(parent, w, build)
 	Chevron(dark)
 	dark:SetScript("OnClick", function(self)
 		if menu and menu:IsShown() and owner == self then Close() return end
-		OpenOurs(Collect(build), w, function(m) m:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2) end, self)
+		OpenOurs(Collect(build), w, function(m)
+			if up then
+				m:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 0, 2)
+			else
+				m:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2)
+			end
+		end, self)
 	end)
 	dd.blizz, dd.dark, dd.label = blizz, dark, label
 	function dd:SetLabel(text)

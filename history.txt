@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.66 - Addon manager: sets the ACP way, AddOns tab after Chat Filters
+
+- The AddOns tab now comes right after Chat Filters: Player Ignore List, Guild Ignore List, Chat Filters, AddOns, Events, Import/Export, Options. The window still opens on the tab you used last.
+- Sets are made the way Addon Control Panel makes them: the Sets drop-down is now at the bottom left of the AddOns tab, beside the addon count, and lists every numbered place (a free one shows as empty) and one for your class. Pick a place and Save (it asks first) to put the addons that are on there; a used place can also be loaded, added to what is on, taken off what is on, renamed or deleted. The places belong to the choice at the top, this character or all characters. The separate "new set" step is gone.
+
 => 3.6.0.65 - Docs: addon manager follow-ups (sets the ACP way, tab order)
 
 - Documentation only: the next two changes to the AddOns tab are written down, sets created the same way as Addon Control Panel with the Sets drop-down at the bottom left, and the AddOns tab placed after Chat Filters. No change in the game.

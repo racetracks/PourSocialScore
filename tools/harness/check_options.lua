@@ -16,8 +16,8 @@ local function lastSaid() return said[#said] or "" end
 
 SlashCmdList["PSS"]("gui")
 local win = _G.PSS_Window
-win.tabs[6]._scripts.OnClick(win.tabs[6])
-local page = win.pages[6]
+win.tabs[7]._scripts.OnClick(win.tabs[7])
+local page = win.pages[7]
 check(page:IsShown() and page.groups and page.search, "Options tab not built")
 check(page.note == nil, "the placeholder note is gone")
 
@@ -117,8 +117,8 @@ win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(not page.search:IsVisible(), "search box shown on another tab")
 
 -- Import/Export
-win.tabs[5]._scripts.OnClick(win.tabs[5])
-local io = win.pages[5]
+win.tabs[6]._scripts.OnClick(win.tabs[6])
+local io = win.pages[6]
 check(io:IsShown() and io.checks and io.exportButton, "Import/Export tab not built")
 local mem = io.checks.members[1]
 M.PSS_IO.guilds = true
