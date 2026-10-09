@@ -260,7 +260,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | S2 | 3.4.1.50 | Accessors for the guild member fields, counts totals and `memberCount` S3 drops; `check_fields.lua` in the rules check (decision 26) | No | `tui_compare.sh` identical; 50 saves byte-identical with main | PR #140 (in-game checks 1 to 7 pass, Dan, 2026-10-09) |
 | S2b | 3.4.1.51 | The player list arrays become one array of sparse records, `list` (decision 27); upgrade step 9; the W I G P C accessors and the log group's `m` move to S3 | No (the report line once) | `check_listrecords.lua`; counters identical on every save; `same_saves.sh` normalised | Merged, PR #141 |
 | S3 | 3.4.1.52 | Upgrade step 10 (2.2; step 9 is S2b's); also the player W I G P C accessors and the log group's `m` (from S2b): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | Merged in the combined build, PR #142 |
-| R | 3.4.1.53 | Release: version only; one summary of 3.4.1.30 to 3.4.1.52 (the combined build holds S3, P1 to P6 and W1 to W4; decision 28) from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | Release PR (Dan, 2026-10-09: "launch a release") |
+| R | 3.4.1.53 | Release: version only; one summary of 3.4.1.30 to 3.4.1.52 (the combined build holds S3, P1 to P6 and W1 to W4; decision 28) from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | PR #143 (Dan, 2026-10-09: "launch a release") |
 
 ### Line 3.4.2: core performance and tidy (builds continue)
 Expected builds, if nothing is added before them (decision 24).

@@ -5,7 +5,7 @@
 	"releases": [
 		{
 			"version": "3.4.1.53",
-			"pr": null,
+			"pr": 143,
 			"previous": "3.4.0.29",
 			"preReleases": [
 				{ "version": "3.4.1.30", "pr": 118 },

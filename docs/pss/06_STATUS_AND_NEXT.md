@@ -3,14 +3,14 @@
 Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4.1.30 is in `reference/06_status-history-to-3.4.1.30.md`; the core uplift's per-stage status (3.4.1.42 to 3.4.1.52) is in `10_CORE_UPLIFT.md` (Done in ...) and `reference/combined-3.4.1.52/`. The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`.
 
 ## Now
-- **Release 3.4.1.53 (release PR open; Dan, 2026-10-09: "launch a release"):** version only. The 3.4.1 line's release and the end of the core uplift. Its notes (history.txt, the release body) are one player-facing summary of PRs #118 to #142 (3.4.1.30 to 3.4.1.52). `01_HANDOVER.md` is re-summarized at 3.4.1.53; `12_CODE_MAP.md` (and `reference/code-map/`) and `13_CHANGES_IN_TRAIN.md` are refreshed; `10_CORE_UPLIFT.md` is marked closed and no longer loads in every session; readme lists `/pss export unused`. Merging publishes the full release and mirrors it to `racetracks/Pour-Social-Score` (`release.yml` runs the rules check and the harness first).
+- **Release 3.4.1.53 (PR #143; Dan, 2026-10-09: "launch a release"):** version only. The 3.4.1 line's release and the end of the core uplift. Its notes (history.txt, the release body) are one player-facing summary of PRs #118 to #142 (3.4.1.30 to 3.4.1.52). `01_HANDOVER.md` is re-summarized at 3.4.1.53; `12_CODE_MAP.md` (and `reference/code-map/`) and `13_CHANGES_IN_TRAIN.md` are refreshed; `10_CORE_UPLIFT.md` is marked closed and no longer loads in every session; readme lists `/pss export unused`. Merging publishes the full release and mirrors it to `racetracks/Pour-Social-Score` (`release.yml` runs the rules check and the harness first).
 - **Live release: 3.4.0.29** until the release PR merges, then **3.4.1.53**. **Main: 3.4.1.52** (the combined build: S3, P1 to P6, W1 to W4; PR #142, merged 2026-10-09).
 - **No current project.** Every core uplift stage is built (3.4.1.32 to 3.4.1.52; the 3.4.2 and 3.4.3 lines were folded into 3.4.1.52, decision 28). What is left open is in `13_CHANGES_IN_TRAIN.md` and below. A fix after the release starts line 3.4.2 at build 3.4.2.54 (`sh tools/bump_version.sh line 3.4.2 "Title"`).
 - **Next:** Dan merges the release PR and checks the GitHub Release and the mirror; then names the next project or fix.
 
 ## Waiting on Dan
 - Optional: add the repository secret `SCRATCH_TOKEN` (fine-grained token, Contents: read on `racetracks/Pour-Social-Score_Scratch`) so CI runs the real saves (`real-saves` job, 10_CORE_UPLIFT decision 29).
-- Merge the 3.4.1.53 release PR. (Your habit is to test a very old save on the final pre-release before a full release: 3.4.1.52's test zip is the one; the harness ran it on the 2.0.44, 3.0.0, 3.2.0-dev011, 3.4.0.28 and 3.4.1.50 saves.)
+- Merge the 3.4.1.53 release PR (#143). (Your habit is to test a very old save on the final pre-release before a full release: 3.4.1.52's test zip is the one; the harness ran it on the 2.0.44, 3.0.0, 3.2.0-dev011, 3.4.0.28 and 3.4.1.50 saves.)
 - Dan's 3.4.1.50 login reported 2 custom chat filter rules this version cannot use (kept, not applied). Run `/pss export unused` and paste the string, so the next session can tell whether they are rules from a newer build or filters U3's check rejects wrongly.
 
 ## Known breaches
