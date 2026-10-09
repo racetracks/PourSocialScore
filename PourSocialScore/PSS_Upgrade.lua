@@ -703,7 +703,7 @@ end
 -- after a moving step, so they can be compared), report.problems lists
 -- anything malformed. /pss check prints it.
 ------------------------------------------------------------------------
-local FILTER_ARRAYS = { "filterList", "filterDesc", "filterActive", "filterID", "filterCount", "filterBlocked", "filterBlockedLast" }
+local FILTER_ARRAYS = M.PSS_FILTER_ARRAYS
 
 local function size(t)
 	local n = 0

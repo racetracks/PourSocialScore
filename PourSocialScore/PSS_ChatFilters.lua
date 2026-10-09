@@ -177,6 +177,10 @@ local function filterMayHaveLines(index)
 	return #t > 0
 end
 
+-- The parallel arrays of the custom filters, kept in step by position.
+local FILTER_ARRAYS = { "filterList", "filterDesc", "filterActive", "filterID", "filterCount", "filterBlocked", "filterBlockedLast" }
+M.PSS_FILTER_ARRAYS = FILTER_ARRAYS
+
 function M.RemoveChatFilter (index)
 	if PourSocialScoreDB.filterList[index] then
 		-- with nothing counted there are no saved lines; the block history
@@ -184,13 +188,7 @@ function M.RemoveChatFilter (index)
 		local key = M.PSS_FilterOwnerKey(index)
 		History.ClearOwner(key, filterMayHaveLines(index))
 		History.ForgetRecent(key)
-		table.remove(PourSocialScoreDB.filterList, index)
-		table.remove(PourSocialScoreDB.filterDesc, index)
-		table.remove(PourSocialScoreDB.filterCount, index)
-		table.remove(PourSocialScoreDB.filterActive, index)
-		table.remove(PourSocialScoreDB.filterID, index)
-		table.remove(PourSocialScoreDB.filterBlocked, index)
-		table.remove(PourSocialScoreDB.filterBlockedLast, index)
+		for _, k in ipairs(FILTER_ARRAYS) do table.remove(PourSocialScoreDB[k], index) end
 		M.Events.Fire("FILTERS_CHANGED")
 	end
 end
@@ -264,7 +262,6 @@ end
 local FILTER_FORMAT = 2
 local filtersExpanded = false
 
-local FILTER_ARRAYS = { "filterList", "filterDesc", "filterActive", "filterID", "filterCount", "filterBlocked", "filterBlockedLast" }
 
 function M.PSS_IsBuiltinFilterID(id)
 	if type(id) ~= "string" or id == "" then return false end
