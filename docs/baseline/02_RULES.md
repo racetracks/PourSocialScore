@@ -2,7 +2,7 @@
 
 These are every rule the author has applied, written so they fit any addon. "Core" means the always-loaded addon folder; "library folder" means the load-on-demand folder that holds shared logic.
 
-**These rules are mandatory.** An addon-specific pack may add rules and never needs to repeat these. It may override one only by listing it in its **Overrides table** (rule, what applies instead, the author's OK with its date); a known breach waiting for a fix is listed there too, with the version line that fixes it. A difference that is not in the table is a bug to fix, not a local rule.
+**These rules are mandatory.** An addon-specific pack may add rules and never needs to repeat these. It may override one only by listing it in its **Overrides table** (rule, what applies instead, the author's OK); a known breach waiting for a fix is listed there too, with the version line that fixes it. A difference that is not in the table is a bug to fix, not a local rule.
 
 ## A. Code
 1. **Lua 5.1 only.** No goto/labels, table.unpack, table.pack, bit32, utf8, _ENV, rawlen or 4-arg load.
