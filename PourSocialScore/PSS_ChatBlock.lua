@@ -234,13 +234,12 @@ function M.PSS_EventCategory(event) return EVENT_CATEGORY[event] end
 -- Categories chat filters (custom text logic) may act on.
 local TEXT_CATEGORIES = { whisper = true, partyRaid = true, world = true, guildChat = true }
 
--- Labels for history/UI.
-M.PSS_BLOCK_CATEGORIES = { "whisper", "partyInvite", "partyRaid", "world", "guildInvite" }
-M.PSS_BLOCK_LABELS = {
-	whisper = "Whisper", partyInvite = "Party Invite", partyRaid = "Party/Raid",
-	world = "World Chat", guildInvite = "Guild Invite", guildChat = "Guild Chat",
-	other = "Other", duel = "Duel", trade = "Trade",
-}
+-- Labels for history/UI: History's categories and words, plus the extra kinds.
+M.PSS_BLOCK_CATEGORIES = M.PSS_History.CAT_ORDER
+M.PSS_BLOCK_LABELS = { other = "Other", duel = "Duel", trade = "Trade" }
+for cat, label in pairs(M.PSS_History.CAT_LABEL) do
+	if cat ~= "unknown" then M.PSS_BLOCK_LABELS[cat] = label end
+end
 
 local EVENT_CHANNEL = {
 	CHAT_MSG_WHISPER = "Whisper", CHAT_MSG_BN_WHISPER = "Battle.net Whisper",
@@ -618,14 +617,15 @@ end
 M.PSS_CoreFilter = CoreFilter
 
 -- Dry-run explanation for diagnostics: { {source=, listed=true, blocked={cat=bool}} }
+local EXPLAIN_ORDER = { "whisper", "partyRaid", "world", "guildChat", "partyInvite", "guildInvite", "duel", "trade" }
 function M.PSS_ExplainPerson(name)
 	local canon = canonPlayer(name)
-	local out = { canon = canon, sources = {} }
+	local out = { canon = canon, sources = {}, order = EXPLAIN_ORDER }
 	if not canon then return out end
 	local found = lookupPeople(canon, {})
 	for _, f in ipairs(found or {}) do
 		local row = { src = f.src, entry = f.entry, blocked = {} }
-		for _, cat in ipairs({ "whisper", "partyRaid", "world", "guildChat", "partyInvite", "guildInvite", "duel", "trade" }) do
+		for _, cat in ipairs(EXPLAIN_ORDER) do
 			local ok, b = pcall(f.src.decide, f.entry, cat, {})
 			row.blocked[cat] = ok and b == true
 		end
