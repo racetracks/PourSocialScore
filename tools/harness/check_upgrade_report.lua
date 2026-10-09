@@ -52,13 +52,18 @@ local function shape(lines, what)
 	local at, n = 0, 0
 	local i = head + 1
 	while lines[i] and lines[i]:sub(1, #PREFIX + 2) == PREFIX .. "  " do
-		local label = lines[i]:sub(#PREFIX + 3):match("^([^:]+): ")
-		local pos
-		for j, l in ipairs(LABELS) do if l == label then pos = j end end
-		check(pos and pos > at, what .. ": a line out of order or unknown: " .. lines[i])
-		at = pos or at
-		n = n + 1
-		i = i + 1
+		-- the one-off graphics line (issue 181) is not a feature line
+		if lines[i]:find("Graphics Settings Exporter is now off by default: Options, Enabled components.", 1, true) then
+			i = i + 1
+		else
+			local label = lines[i]:sub(#PREFIX + 3):match("^([^:]+): ")
+			local pos
+			for j, l in ipairs(LABELS) do if l == label then pos = j end end
+			check(pos and pos > at, what .. ": a line out of order or unknown: " .. lines[i])
+			at = pos or at
+			n = n + 1
+			i = i + 1
+		end
 	end
 	check(at == #LABELS, what .. ": the cleanup line is not last")
 	check(lines[i] and lines[i]:find("Saved data upgraded to " .. version .. " (step " .. steps_n .. ").", 1, true),
@@ -141,10 +146,12 @@ local function unusableLines()
 end
 db.upgrade.version = "3.4.1.30"
 local extra = unusableLines()
+local gfx = (db.gfxSets ~= nil and M.PSS_Opt("useGfx") ~= true) and 1 or 0	-- the one-off graphics line (issue 181)
 lines = login(false)
-check(#lines == 3 + extra, ("a version-only change printed %d lines, expected %d"):format(#lines, 3 + extra))
+check(#lines == 3 + extra + gfx, ("a version-only change printed %d lines, expected %d"):format(#lines, 3 + extra + gfx))
+check((lines[2 + extra] and lines[2 + extra]:find("Graphics Settings Exporter is now off by default", 1, true) ~= nil) == (gfx == 1), "the graphics line: " .. tostring(lines[2 + extra]))
 check(lines[1] == PREFIX .. "Updated from 3.4.1.30 to " .. version .. ". Upgrading your saved data:", "head: " .. tostring(lines[1]))
-check(lines[2 + extra] == CLEANUP .. "nothing to tidy.", "cleanup: " .. tostring(lines[2 + extra]))
+check(lines[2 + extra + gfx] == CLEANUP .. "nothing to tidy.", "cleanup: " .. tostring(lines[2 + extra + gfx]))
 for i = 2, 1 + extra do
 	check(lines[i]:find("cannot use", 1, true) or lines[i]:find("does not know", 1, true), "a feature line that is not about unusable rules: " .. tostring(lines[i]))
 end

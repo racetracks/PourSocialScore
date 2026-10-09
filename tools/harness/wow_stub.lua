@@ -437,7 +437,9 @@ function IsModifiedClick() return false end
 function geterrorhandler() return function(e) print("ERROR: " .. tostring(e)); error(e, 0) end end
 function seterrorhandler() end
 function securecall(f, ...) return f(...) end
+stub.hooks, stub.filters = {}, {}	-- every hooksecurefunc (target, name) and chat filter (event) registered
 function hooksecurefunc(a, b, c)
+	stub.hooks[#stub.hooks + 1] = { target = type(a) == "table" and a or nil, name = type(a) == "table" and b or a }
 	if type(a) == "table" then
 		local old = a[b]
 		a[b] = function(...) local r = { old(...) }; c(...); return unpack(r) end
@@ -604,9 +606,9 @@ LOCALIZED_CLASS_NAMES_FEMALE = {}
 CLASS_ICON_TCOORDS = {}
 Menu = { ModifyMenu = function() end }
 MenuUtil = { CreateContextMenu = function() end }
-ChatFrame_AddMessageEventFilter = function() end
+ChatFrame_AddMessageEventFilter = function(event, fn) stub.filters[#stub.filters + 1] = { event = event, fn = fn } end
 ChatFrame_RemoveMessageEventFilter = function() end
-ChatFrameUtil = { AddMessageEventFilter = function() end }
+ChatFrameUtil = { AddMessageEventFilter = function(event, fn) stub.filters[#stub.filters + 1] = { event = event, fn = fn } end }
 ChatEdit_InsertLink = function() end
 ChatFrame_OpenChat = function() end
 StaticPopup_Show = function() end

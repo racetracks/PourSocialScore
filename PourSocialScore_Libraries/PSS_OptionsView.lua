@@ -62,7 +62,7 @@ end
 function M.PSS_OptGroups()
 	local groups = {}
 	local sections = M.PSS_OPTION_SECTIONS
-	for section = 1, #sections do
+	for _, section in ipairs(M.PSS_OPTION_SECTION_ORDER) do
 		local g
 		for _, o in ipairs(M.PSS_OPTIONS) do
 			if o.section == section and not o.inline and not o.retired then
@@ -81,6 +81,33 @@ end
 function M.PSS_OptMatches(group, item, q)
 	q = lower(q or "")
 	return q == "" or lower(group.title):find(q, 1, true) ~= nil or item.find:find(q, 1, true) ~= nil
+end
+
+-- an Enabled components row: its label with a note, whether it can be ticked
+-- (Graphics is Camelot only; Event Logging needs Social Filtering), and
+-- whether the change waits for a reload
+local COMPONENT_NAME = { useAddons = "addons", useLogging = "logging", useGfx = "gfx", useFiltering = "filtering" }
+function M.PSS_OptGate(o)
+	local name = COMPONENT_NAME[o.key]
+	if not name then return true, "" end
+	local enabled, note = true, ""
+	if name == "gfx" and not M.PSS_IsCamelot() then
+		enabled, note = false, " (Camelot only)"
+	elseif name == "logging" and M.PSS_Opt("useFiltering") ~= true then
+		enabled, note = false, " (needs Social Filtering)"
+	end
+	if M.PSS_ComponentPending(name) then note = note .. " (after reload)" end
+	return enabled, note
+end
+
+-- the reload now: refused in combat with a line
+function M.PSS_ReloadNow()
+	if InCombatLockdown and InCombatLockdown() then
+		M.ShowMsg("|cffff5555Not in combat.|r")
+		return false
+	end
+	ReloadUI()
+	return true
 end
 
 function M.PSS_OptNumberText(o)

@@ -19,6 +19,7 @@
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
 local M = addon.M
+if not M.PSS_On("addons") then return end	-- the Addon Manager is off (issue 181)
 
 local type, tostring, ipairs, pairs = type, tostring, ipairs, pairs
 local format, floor, lower = string.format, math.floor, string.lower

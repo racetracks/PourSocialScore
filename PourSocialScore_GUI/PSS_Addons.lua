@@ -20,6 +20,7 @@
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = ns.M
+if not M.PSS_On("addons") then return end	-- the Addon Manager is off: no AddOns tab (issue 181)
 
 local V = M.PSS_AddonView()
 local page, list, search, charDD, viewDD, setsDD

@@ -38,6 +38,7 @@
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
 local M = addon.M
+if not M.PSS_On("addons") then return end	-- the Addon Manager is off: nothing of it is loaded (issue 181)
 
 local type, tonumber, tostring, pcall, select = type, tonumber, tostring, pcall, select
 local pairs, ipairs, next = pairs, ipairs, next

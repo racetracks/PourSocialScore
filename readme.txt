@@ -282,6 +282,22 @@ Options and Import/Export
   options) and the mode, then Export to get a text string, or paste one and
   Import (Replace asks first).
 
+Enabled components (Options, first section)
+* Four tick boxes: Addon Manager (default off), Event Logging (on), Graphics
+  Settings Exporter (off; Camelot only) and Social Filtering (on). A change
+  applies after a reload (it asks "Reload now?"; the row says "(after
+  reload)" until then). Off means nothing of it runs or is loaded.
+* Addon Manager off: no AddOns tab, no /pss acp or /acp, the Open AddOns key
+  action and /pss acp say it is off, one Addon Compartment entry.
+* Graphics Settings Exporter off: /pss gfx says it is off (a pending keep
+  prompt is still shown once).
+* Event Logging off: blocks are counted as ever, but no line is kept; no
+  Events tab and no Event History page. Needs Social Filtering.
+* Social Filtering off: nothing is blocked (no chat filter, invite, duel or
+  trade decline, party warning, Blizzard ignore sync, Block menu items,
+  capture or expiry); lists, rules and counts are kept and can be edited, and
+  the list tabs say "Social Filtering is off".
+
 AddOns
 * Every installed addon in one list, grouped so an addon's parts and the
   libraries are not clutter (or A to Z, or the load on demand ones apart),

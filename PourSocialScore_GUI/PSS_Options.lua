@@ -69,8 +69,22 @@ local function OptionRow(content, o, rows)
 	elseif o.kind == "bool" then
 		local c = ns.NewCheck(row)
 		c:SetPoint("LEFT", row, "RIGHT", -CONTROL_X, 0)
-		c:SetScript("OnClick", function(self) M.PSS_SetOpt(o.key, "global", self:GetChecked() == true) end)
-		refresh = function() c:SetChecked(M.PSS_Opt(o.key) == true) end
+		c:SetScript("OnClick", function(self)
+			M.PSS_SetOpt(o.key, "global", self:GetChecked() == true)
+			if o.reload and M.PSS_OptGate(o) then
+				ns.Confirm({ title = "Reload UI?", text = "Turning " .. o.label .. " on or off applies after a reload. Reload now?",
+					accept = "Reload", cancel = "Later", onAccept = M.PSS_ReloadNow })
+			end
+		end)
+		refresh = function()
+			c:SetChecked(M.PSS_Opt(o.key) == true)
+			if o.reload then
+				local enabled, note = M.PSS_OptGate(o)
+				c:SetEnabled(enabled)
+				label:SetAlpha(enabled and 1 or 0.4)
+				label:SetText(M.PSS_OptLabel(o) .. note)
+			end
+		end
 		row.check = c
 	elseif o.kind == "number" then
 		local e = ns.NewNumberBox(row, 60)

@@ -15,6 +15,7 @@
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = ns.M
+if not M.PSS_On("logging") then return end	-- Event Logging off: no Events tab (issue 181)
 local L = PourSocialScore_NS.L
 local History = M.PSS_History
 

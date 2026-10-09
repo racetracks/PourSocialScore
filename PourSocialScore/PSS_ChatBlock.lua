@@ -846,19 +846,27 @@ end
 local CFU = type(ChatFrameUtil) == "table" and ChatFrameUtil or nil
 local AddFilter = (CFU and CFU.AddMessageEventFilter) or ChatFrame_AddMessageEventFilter
 M.PSS_FilterAvailable = type(AddFilter) == "function"
-if M.PSS_FilterAvailable then
-	for event in pairs(EVENT_CATEGORY) do AddFilter(event, CoreFilter) end
-end
 
+-- Social Filtering (issue 181): nothing is registered at file load; core's
+-- ADDON_LOADED handler calls M.PSS_StartBlocking only when the component is on
+-- (the chat filter and the game events below). Called once.
 local ev = CreateFrame("Frame")
-ev:RegisterEvent("PARTY_INVITE_REQUEST")
-ev:RegisterEvent("PARTY_INVITE_CANCEL")
-ev:RegisterEvent("GUILD_INVITE_REQUEST")
-ev:RegisterEvent("DUEL_REQUESTED")
-ev:RegisterEvent("TRADE_SHOW")
-ev:RegisterEvent("GROUP_ROSTER_UPDATE")
-ev:RegisterEvent("CHAT_MSG_WHISPER_INFORM")
-pcall(ev.RegisterEvent, ev, "TRADE_REQUEST")	-- not on every client
+local blockingStarted
+function M.PSS_StartBlocking()
+	if blockingStarted then return end
+	blockingStarted = true
+	if M.PSS_FilterAvailable then
+		for event in pairs(EVENT_CATEGORY) do AddFilter(event, CoreFilter) end
+	end
+	ev:RegisterEvent("PARTY_INVITE_REQUEST")
+	ev:RegisterEvent("PARTY_INVITE_CANCEL")
+	ev:RegisterEvent("GUILD_INVITE_REQUEST")
+	ev:RegisterEvent("DUEL_REQUESTED")
+	ev:RegisterEvent("TRADE_SHOW")
+	ev:RegisterEvent("GROUP_ROSTER_UPDATE")
+	ev:RegisterEvent("CHAT_MSG_WHISPER_INFORM")
+	pcall(ev.RegisterEvent, ev, "TRADE_REQUEST")	-- not on every client
+end
 ev:SetScript("OnEvent", function(_, event, arg1, ...)
 	local ok, err = true, nil
 	if event == "PARTY_INVITE_REQUEST" then
