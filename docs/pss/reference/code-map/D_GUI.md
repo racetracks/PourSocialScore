@@ -1,448 +1,313 @@
-# PourSocialScore_GUI and the core openers: reference map (main, 3.4.1.38)
+# PourSocialScore_GUI and the core openers: reference map (3.4.1.53)
 
-Folder `PourSocialScore_GUI` (LoadOnDemand; `## Dependencies: PourSocialScore, PourSocialScore_Libraries`). 15 files, 5639 lines, load order: Skin, Kit, Tooltip, Menu, Popups, Rows, Pie, Detail, History, Players, Guilds, Filters, Events, Options, Window. Private file table `ns` (the addon's `...` table); `ns.M = M` (set in Skin). No SavedVariables; no frames at load except the font objects created lazily by `ns.Font`. Looks: `ns.Skin()` returns `"blizzard"` (Classic, uiSkin 0), `"dark"` (1) or `"modern"` (2) from `M.PSS_UISkin()` (Libraries `PSS_ViewNav.lua`). `ns.IsModern()` = skin modern AND the client has the Modern atlases (else Classic paint). Backend file names below: `core/X` = `PourSocialScore/PSS_X.lua`, `Lib/X` = `PourSocialScore_Libraries/PSS_X.lua`.
+Folder `PourSocialScore_GUI` (LoadOnDemand; `## Dependencies: PourSocialScore, PourSocialScore_Libraries`). 15 files, 5731 lines, load order: Skin, Kit, Tooltip, Menu, Popups, Rows, Pie, Detail, History, Players, Guilds, Filters, Events, Options, Window. Private file table `ns` (the addon's `...` table); `ns.M = M` (set in Skin). No SavedVariables; no frames at load except the font objects created lazily by `ns.Font`. Looks: `ns.Skin()` returns `"modern"` (uiSkin 2, the default), `"blizzard"` (Classic, 0) or `"dark"` (1) from `M.PSS_UISkin()` (Libraries `PSS_ViewNav.lua`). `ns.IsModern()` = skin modern AND the client has every Modern atlas (else Classic paint). Backend file names below: `core/X` = `PourSocialScore/PSS_X.lua`, `Lib/X` = `PourSocialScore_Libraries/PSS_X.lua`.
 
-## 1. PSS_Skin.lua (339 lines): looks, fonts, primitives, Escape, listeners
-Purpose: the paint system (look, fonts, painters), pixel-exact primitives, frame art, Escape helper and the core-event listener registry.
+Since 3.4.1.38: W1 (dead code, G11 to G14, G24, G25, G29), W2 (logic to Libraries: pane views, cells, summary specs, history cells), W3 (kit: `ns.NewTextArea`, `ns.NewPicker`, `ns.NewLine`, `ns.NewLabel`, `ns.NewStrip`, `ns.NewAllowedBoxes`, edit box hints, primary buttons), W4 (counts-only redraws on a block), F2 (G21, G26, G27, G28), Fix 2 (wrapped detail lines).
+
+## 1. PSS_Skin.lua (347 lines): looks, fonts, primitives, Escape, listeners
 
 | Export | Signature | What |
 | --- | --- | --- |
 | `ns.M` | table | `PourSocialScore_NS.M` |
-| `ns.DARK` | table | Dark palette `{r,g,b,a}`: window, titleBar, border, close, closeHover, text, disabledText, panel, inset, control, box, checkBorder, hover, tab, tabWash, thumb, tip, tipBorder, tipText |
+| `ns.DARK` | table | Dark palette `{r,g,b,a}` per part |
 | `ns.TITLE_H` | 25 | title bar height |
-| `ns.Skin()` | -> "blizzard"/"dark"/"modern" | cached `M.PSS_UISkin()` |
-| `ns.IsDark()` | -> bool | skin == dark |
-| `ns.HasModernArt()` | -> bool | cached check that all 8 `MODERN_ART` atlases exist (128-RedButton-Left, common-button-tertiary-normal/-pressed, friends-card-default, perks-divider-short, checkbox-minimal, checkmark-minimal, common-searchbar-a) |
-| `ns.IsModern()` | -> bool | skin modern and `HasModernArt()` (fallback rule 3) |
-| `ns.AtlasWidth(atlas, h)` | -> w | width keeping the atlas ratio (`C_Texture.GetAtlasInfo`) |
-| `ns.Accent()` | -> r,g,b | `M.PSS_UIAccent()` (class colour), else the look's own (dark teal / gold) |
-| `ns.OnPaint(fn)` | fn(dark) | registers a painter, runs it now and on every `ns.Repaint` (painters list only grows) |
-| `ns.Font(size, blizz)` | -> FontObject | shared `CreateFont("PSS_FontN")` per size+Blizzard object; "Accent" = GameFontNormal face in accent colour; Dark = `Fonts\ARIALN.TTF`, white/grey, no shadow; picked `uiFont` (`M.PSS_UIFontPath()`) replaces the face if loadable |
-| `ns.Repaint()` | | re-reads skin, clears the art cache, repaints every font then every painter |
-| `ns.NewText(parent, size, blizz, layer)` | -> FontString | FontString on `ns.Font` |
-| `ns.OnePixel(frame)` | -> units | one physical pixel at the frame's effective scale (`GetPhysicalScreenSize`) |
-| `ns.NoSnap(tex)` | | `SetSnapToPixelGrid(false)`, `SetTexelSnappingBias(0)` |
-| `ns.PixelBorder(frame, color)` | -> holder | child frame with 4 one-pixel strips; `holder:SetColor()`; relayouts OnSizeChanged |
-| `ns.Fill(frame, color, sub, layer)` | -> tex | flat colour texture, BACKGROUND -6 default |
-| `ns.HasAtlas(name)` | -> bool | `C_Texture.GetAtlasInfo(name) ~= nil` |
-| `ns.Own(region)` | -> region | marks a texture as ours (weak-keyed set) so `ShowArt` never fades it |
-| `ns.ShowArt(frame, dark, keep)` | | fades (alpha 0) every template texture of the frame that is not `Own`/`keep`; restores its saved alpha otherwise |
-| `ns.NewFrameArt(parent)` | -> frame or nil | first of `ButtonFrameTemplate`, `PortraitFrameTemplate`, `BasicFrameTemplateWithInset` that creates; portrait, CloseButton, TitleText, Inset hidden; adds `f.pssBlack` (shown in Modern, `f.Bg` alpha 0 in Modern) |
-| `ns.Round(v)` | -> int | floor(v+0.5) |
-| `ns.EscapeCloses(f, name)` | | appends f to its list and `name` to `UISpecialFrames`; HookScript OnHide stamps `GetTime()` |
-| `ns.EscapeTaken()` | -> bool | a registered popup/menu is shown, or one closed this same frame time |
-| `ns.Listen(event, fn)` | | adds a core-event listener (registered now if listening) |
-| `ns.ListenStart()` / `ns.ListenStop()` | | `M.Events.Register` / `M.Events.Unregister` every listener (window show / hide) |
+| `ns.Skin()`, `ns.IsDark()`, `ns.IsModern()` | | cached look |
+| `ns.HasModernArt()` | -> bool | all 19 `MODERN_ART` atlases exist (G28: the red button parts with Pressed/Disabled/Highlight, tertiary button, friends card, perks divider, minimal checkbox and checkmarks, search bar and its icon) |
+| `ns.AtlasWidth(atlas, h)`, `ns.HasAtlas(name)` | | atlas helpers |
+| `ns.Accent()` | -> r,g,b | `M.PSS_UIAccent()` (class colour) |
+| `ns.OnPaint(fn)`, `ns.Repaint()` | | painters; repaint every font and painter (look or font change) |
+| `ns.Font(size, blizz)`, `ns.NewText(parent, size, blizz, layer)` | | shared `CreateFont("PSS_FontN")`; `uiFont` applied |
+| `ns.OnePixel(frame)`, `ns.NoSnap(tex)`, `ns.PixelBorder(frame, color)`, `ns.Fill(frame, color, sub, layer)`, `ns.Round(v)` | | pixel-exact primitives |
+| `ns.Own(region)`, `ns.ShowArt(frame, dark, keep)` | | template art shown or faded |
+| `ns.NewFrameArt(parent)` | -> frame or nil | first of `ButtonFrameTemplate`, `PortraitFrameTemplate`, `BasicFrameTemplateWithInset`; `f.pssBlack` in Modern |
+| `ns.EscapeCloses(f, name)`, `ns.EscapeTaken()` | | `UISpecialFrames` (append only) and the one-Escape guard |
+| `ns.Listen(event, fn)`, `ns.ListenStart()`, `ns.ListenStop()` | | core-event listeners registered only while the window shows |
 
-- Frames: none at load; `CreateFont` objects `PSS_Font1..N` on first `ns.Font`.
-- Backend: `M.PSS_UISkin`, `M.PSS_UIAccent`, `M.PSS_UIFontPath` (Lib/ViewNav), `M.Events.Register/Unregister` (core/Events).
-- Blizzard: `C_Texture.GetAtlasInfo`, `GetPhysicalScreenSize`, `CreateFont`, `UISpecialFrames` (append only, J2 exception), `ButtonFrameTemplate_HidePortrait`, `GameFontNormal`/`GameFontHighlight` objects read.
-- Stale: the header comment still says "blizzard" is the default and Modern "paints as Blizzard until built" (Modern is the default from 3.4.0-dev008_4 and is built).
+Backend: `M.PSS_UISkin`, `M.PSS_UIAccent`, `M.PSS_UIFontPath` (Lib/ViewNav), `M.Events` (core/Events).
 
-## 2. PSS_Kit.lua (485 lines): the control kit
+## 2. PSS_Kit.lua (536 lines): the control kit
 | Export | Signature | Looks |
 | --- | --- | --- |
-| `ns.NewHeading(parent, text)` | -> FontString, size 13 | accent colour in every look |
-| `ns.NewButton(parent, text, w, onClick)` | -> Button 22 high, `UIPanelButtonTemplate` | Classic: template. Dark: template art faded, `DARK.control` fill, white hover, pixel edge, white label. Modern: `b.pssPrimary == true` -> red three-slice `128-RedButton-Left/_Center/Right` (+ `-Pressed`, `-Disabled`, `-Highlight`); else `common-button-tertiary-normal/-pressed` plate with ADD hover. `b.pssParts = {fill, edge, red, tertiary}`, `b.pssPaint` |
-| `ns.NewCheck(parent)` | -> CheckButton 24x24, `UICheckButtonTemplate` | Dark: box inset 4 `DARK.box` + `checkBorder` edge, template tick tinted accent. Modern: `checkbox-minimal` box, `checkmark-minimal(-disabled)` tick following `SetChecked` (hooksecurefunc on our own button) |
-| `ns.NewEditBox(parent, w, maxLetters)` | -> EditBox 20 high, `InputBoxTemplate` | `SkinBox`: Dark fill+edge; Modern `common-searchbar-a`; font `ChatFontNormal` |
-| `ns.NewNumberBox(parent, w)` | numeric, centred | as edit box |
-| `ns.OnCommit(e, commit, refresh)` | | commit(text) once on Enter or focus loss (busy guard), Escape refreshes |
-| `ns.NewSearchBox(parent, w, hint, onChange)` | -> EditBox, 128 letters | magnifier `common-searchbar-icon-a` (Modern) / `common-search-magnifyingglass` (others), hint text (alpha 0.4), clear button `common-search-clearbutton`; Escape clears; `eb.hint`, `eb.clear` |
-| `ns.NewPanel(parent, inset)` | -> Frame | Classic: `InsetFrameTemplate` art. Dark (or no template): `DARK.panel`/`DARK.inset` fill + edge. Modern: inset -> `friends-card-default` card; page -> `perks-divider-short` top divider |
-| `ns.NewScrollFrame(parent)` | -> ScrollFrame | `ScrollFrameTemplate`, else `UIPanelScrollFrameTemplate`; Dark fades arrows/track, 4 px `DARK.thumb` strip on the thumb |
-| `ns.NewTab(parent, text, onClick)` | -> Button 24 high | first of `PanelTopTabButtonTemplate`, `TabButtonTemplate` (its OnShow/OnEvent cleared, events unregistered so it does not resize); Dark/no template: `DARK.tab` plate, wash + accent underline when selected, label alpha 0.7 unselected. Modern: `common-button-tertiary-normal` side plate, ADD lit when selected, hover 0.3 |
-| `ns.SetTabSelected(tab, on)` | | sets `tab.pssSelected`, shows Left/Middle/Right vs *Active art (Classic), centres the label (not Blizzard's PanelTemplates offsets) |
+| `ns.NewHeading(parent, text)` | -> FontString 13 | accent colour in every look |
+| `ns.NewButton(parent, text, w, onClick, primary)` | -> Button 22 high | Classic: `UIPanelButtonTemplate`. Dark: flat fill, pixel edge. Modern: `primary` -> red three-slice `128-RedButton-*`; else tertiary plate (G20: `primary` replaces setting `pssPrimary` after) |
+| `ns.NewCheck(parent)` | -> CheckButton 24 | Dark box + accent tick; Modern `checkbox-minimal` / `checkmark-minimal(-disabled)` |
+| `ns.NewEditBox(parent, w, maxLetters, hint)` | -> EditBox 20 high | `e.hint` grey text while empty (G18; hooks OnTextChanged, so a caller must not SetScript it) |
+| `ns.NewNumberBox(parent, w)`, `ns.OnCommit(e, commit, refresh)` | | numeric box; commit once on Enter or focus loss |
+| `ns.NewSearchBox(parent, w, hint, onChange)` | -> EditBox | magnifier, hint (same helper), clear button |
+| `ns.NewPanel(parent, inset)` | -> Frame | Classic `InsetFrameTemplate`; Dark flat; Modern `friends-card-default` / `perks-divider-short` |
+| `ns.NewScrollFrame(parent)` | -> ScrollFrame | `ScrollFrameTemplate` or `UIPanelScrollFrameTemplate`; Dark thumb strip |
+| `ns.NewTextArea(parent, size, maxLetters, pad)` | -> panel with `.edit`, `.scroll` | (G19) multi-line box that follows the cursor; used by Filters and the text popup |
+| `ns.NewTab(parent, text, onClick)`, `ns.SetTabSelected(tab, on)` | -> Button 24 high | tab row and page bar |
 
-- Frames: none at load; every widget is built by its tab on first open.
-- Backend: none directly (via Skin).
-- Blizzard atlases: as listed; templates `UIPanelButtonTemplate`, `UICheckButtonTemplate`, `InputBoxTemplate`, `InsetFrameTemplate`, `ScrollFrameTemplate`/`UIPanelScrollFrameTemplate`, `PanelTopTabButtonTemplate`/`TabButtonTemplate`.
-- Note: the header lists `ns.NewScrollFrame` etc. but not `NewNumberBox` modern art; `ns.NewRows`, `ns.NewDropdown`, `ns.ContextMenu`, `ns.Tip`, `ns.Confirm` live in other files (below).
+`BAR_BUTTONS` is hoisted (G25).
 
 ## 3. PSS_Tooltip.lua (96 lines): tooltips
-| Export | Signature | What |
-| --- | --- | --- |
-| `ns.Tip(owner, text)` | text or fn() -> text | Classic/Modern: `GameTooltip` (`IsForbidden()` checked, `ANCHOR_TOP`, wrapped white). Dark: our `PSS_Tooltip` frame (built on first use, strata TOOLTIP level 200, `DARK.tip` fill, `tipBorder` edge, 10 px centred text max 250 wide, 4 px above the owner, 0.25 s alpha fade in/out animations) |
-| `ns.HideTip()` | | hides GameTooltip if we own it; fades ours out |
-| `ns.TipOn(frame, owner, text)` | | SetScript OnEnter/OnLeave to Tip/HideTip |
-
-Frames: `PSS_Tooltip` (lazy, one). Backend: none.
-
-## 4. PSS_Menu.lua (360 lines): drop-downs and right-click menus
-A menu is a build function `build(m)` filling a plain list: `m:Button(text, fn)`, `m:Radio(text, isOn, fn)`, `m:Check(text, isOn, fn)` (stays open), `m:Divider()`, `m:Title(text)`; `isOn` may be a function.
-
-| Export | Signature | What |
-| --- | --- | --- |
-| `ns.NewDropdown(parent, w, build)` | -> Frame 24 high; `dd:SetLabel(text)`; `dd.blizz`, `dd.dark`, `dd.label` | Blizzard `DropdownButton` from `WowStyle1DropdownTemplate` (`SetupMenu` + `OverrideText`/`SetDefaultText`) in Classic/Modern; our Dark button (`DARK.control` fill, `checkBorder` edge, two-line chevron) opening our list in Dark or when the template is missing |
-| `ns.ContextMenu(by, build)` | | Classic/Modern with `MenuUtil.CreateContextMenu`: Blizzard context menu; else our compact list at the cursor, as wide as its longest entry (min 100) |
-| `ns.RowMenu(by, entries, run)` | | turns Libraries' entry list (`PSS_RowMenus.lua`: `{kind=title/divider/check/button, text, on, act, arg}`) into a ContextMenu; each click calls `run(act, arg)` |
-| `ns.CloseMenu()` | | hides our list |
-| `ns.DrawMenu()` | | redraws our list if shown |
-
-- Our list: one shared frame `PSS_Menu` (UIParent, FULLSCREEN_DIALOG level 200, fill `{0.103,0.095,0.088,0.98}`, edge white 0.2), built on first use, slot pool `menu.slots` (Buttons, reused), mouse-wheel scroll with a 4 px thumb, **height capped at 200** (`MAX_H`; G27 will grow it to content). Two sizes: list (26 px items, 13 font) and compact (20 px, 12). Full-screen click catcher (Button on UIParent, level 199) closes it. `ns.EscapeCloses(menu, "PSS_Menu")`.
-- Blizzard: `MenuUtil.CreateContextMenu`, root `CreateButton/CreateRadio/CreateCheckbox/CreateDivider/CreateTitle`, `MenuResponse.Refresh` (keeps a tick menu open), `SetScrollMode(400)` past 20 entries, `GetCursorPosition`.
-- Backend: none directly (entries come from Libraries through the tab files).
-
-## 5. PSS_Popups.lua (264 lines): the window's own popups
-| Export | Signature | What |
-| --- | --- | --- |
-| `ns.Confirm(opts)` | `{title, text, accept, cancel, onAccept(n), onCancel, number, numberNote(n)}` -> frame | `PSS_Confirm` (390x176, grows with the text, +52 with a number box); `number` shows `ns.NewNumberBox` (Enter accepts) and a live note; any hide that is not Accept calls `onCancel` |
-| `ns.CopyText(opts)` | `{title, subtitle, text}` | `PSS_TextPopup` read only: text re-set on user edits, all selected, one Close button |
-| `ns.ImportText(opts)` | `{title, subtitle, accept, onAccept(text)}` | same frame, editable, Import + Cancel |
-
-- Frames: `PSS_Confirm`, `PSS_TextPopup` (one each, built on first use; UIParent, FULLSCREEN_DIALOG level 100, toplevel, centred +60). Each has a `chrome` child raised above the frame art's NineSlice (+10) for the title, and a full-screen `dim` Button (Dark only; click cancels). Text popup: `ns.NewPanel(inset)` + `ns.NewScrollFrame` + multi-line EditBox (440 wide, keeps the cursor in view).
-- Looks: Classic/Modern: `ns.NewFrameArt` (black under it in Modern), title 13 `GameFontNormal` in the title bar (-6); buttons via `PopupButton` (`ns.NewButton`, `pssPrimary` = accept -> Modern red button). Dark (or no frame template): flat `{0.077,0.068,0.058}` fill, white 0.15 edge, dimmed screen, title 16 lower (-20), accept edge and label in the accent, text alpha 0.53.
-- Escape: `ns.EscapeCloses(confirm, "PSS_Confirm")`, `ns.EscapeCloses(f, "PSS_TextPopup")`, both after their OnHide scripts.
-- Blizzard globals read: `OKAY`, `CANCEL`, `CLOSE`. Backend: none (callers pass Libraries text and callbacks).
-
-## 6. PSS_Rows.lua (308 lines): the virtual row list
-`ns.NewRows(parent, spec)` -> list. spec: `rowH` (20), `cols` `{key, text, width?, justify?, tip?, sort=false?}` (one column without width fills), `sort(key)`, `draw(row, i)`, `click(row, i, button)`, `enter(row, i)`, `emptyClick()`, `links` (hyperlinks in cells), `fontSize`, `height`.
-
-| Method | What |
+| Export | What |
 | --- | --- |
-| `list:SetCount(n)` | sets the range (scroll child height n*rowH), clamps the scroll, redraws |
-| `list:Redraw()` | `draw(row, first+i)` for the rows on screen only; empty text when count 0 |
-| `list:Top()` | scroll to the top |
-| `list:SetSort(key, asc)` | header label "Text ^"/" v" in the accent; others gold (Classic/Modern) or white 0.85 (Dark) |
-| `list:Select(test)` | accent wash (0.25) on rows whose index passes |
-| `list:SetEmptyText(text)` | grey line shown when empty |
-| `list:Layout()` / `list:MakeRow(i)` | makes only the rows that fit (pool grows with height, never shrinks; extra rows hidden) |
+| `ns.Tip(owner, text)` | text or a function giving it (built when hovered, W4). Classic/Modern: `GameTooltip` (`IsForbidden()` checked). Dark: our `PSS_Tooltip` frame (lazy, fades) |
+| `ns.HideTip()`, `ns.TipOn(frame, owner, text)` | hide; OnEnter/OnLeave on our own frame |
 
-- Frames: header Frame (20 high) of header Buttons (`ns.TipOn` for `tip`), `ns.NewScrollFrame` with a 1-px-wide content child (rows do not scroll; `OnVerticalScroll` hook changes `first`), row Buttons (Left/Right clicks) with one-line FontString cells.
-- Looks: hover Classic/Modern `Interface\QuestFrame\UI-QuestTitleHighlight` ADD; Dark accent 0.12; header dark bar in Dark only; selected accent 0.25 in all.
-- Links (`spec.links`): `SetHyperlinksEnabled`; click -> `SetItemRef` (pcall, skipped `InCombatLockdown()`); hover -> `GameTooltip:SetHyperlink` only for the `TIP_LINKS` allow list (baseline H8); a row click within 0.05 s of a link click is ignored.
-- Backend: none.
+## 4. PSS_Menu.lua (374 lines): drop-downs and right-click menus
+A menu is a build function filling a plain list: `m:Button`, `m:Radio`, `m:Check`, `m:Divider`, `m:Title`.
+
+| Export | What |
+| --- | --- |
+| `ns.NewDropdown(parent, w, build)` | Blizzard `WowStyle1DropdownTemplate` in Classic/Modern; our button + list in Dark or without the template |
+| `ns.ContextMenu(by, build)` | `MenuUtil.CreateContextMenu` in Classic/Modern; else our compact list at the cursor, its width measured over every entry with one measuring FontString (G27) |
+| `ns.RowMenu(by, entries, run)` | Libraries' entry list (`PSS_RowMenus.lua`) -> ContextMenu; each click calls `run(act, arg)` |
+| `ns.DrawMenu()` | redraws our list if shown |
+
+- Our list: one shared frame `PSS_Menu` (FULLSCREEN_DIALOG level 200), slot pool, wheel scroll. `SIZES`: list (26 px items, cap 200) and compact (20 px, cap 400, G27). Leaving a slot resets only that slot's text alpha (G24); the divider is one physical pixel (G29). `ns.CloseMenu` is gone (W1).
+
+## 5. PSS_Popups.lua (254 lines): the window's own popups
+| Export | Signature | What |
+| --- | --- | --- |
+| `ns.Confirm(opts)` | `{title, text, accept, cancel, onAccept(n), onCancel, number, numberNote(n)}` | `PSS_Confirm`; optional number box; any hide but Accept runs `onCancel` |
+| `ns.CopyText(opts)`, `ns.ImportText(opts)` | `{title, subtitle, text}` / `{title, subtitle, accept, onAccept(text)}` | `PSS_TextPopup` on `ns.NewTextArea` (W3) |
+| `M.PSS_CopyTextBox(title, subtitle, text)` | | the copy box on its own, for `/pss export unused` (Libraries Commands; the window stays closed) |
+
+- Frames built on first use; `chrome` child above the frame art for the title; a `dim` button in Dark. Classic/Modern: `ns.NewFrameArt`, title in the title bar; Dark: flat panel. Escape via `ns.EscapeCloses` after their scripts.
+- `PSS_Popups.lua` declares `local M = ns.M` (the 3.4.1.48 fix; `tools/check_locals.lua` guards it).
+
+## 6. PSS_Rows.lua (384 lines): row lists and the picker
+`ns.NewRows(parent, spec)` -> list (spec: `rowH`, `cols`, `sort`, `draw`, `click`, `enter`, `emptyClick`, `links`, `fontSize`, `height`). Methods: `SetCount`, `Redraw` (rows on screen only), `Top`, `SetSort`, `Select`, `SetEmptyText`, `Layout`, `MakeRow`. Links: click -> `SetItemRef` (not in combat); hover -> `GameTooltip:SetHyperlink` only for the `TIP_LINKS` allow list.
+
+`ns.NewPicker(parent, anchor, {cols, stateW, fill, toggle, tickAll, save, close})` with `:ShowItems(title)` (G15): the /who results picker used by Players and Guilds; cells from `M.PSS_PickerCells` (Lib/ViewNav).
 
 ## 7. PSS_Pie.lua (140 lines): ring chart
-`ns.NewPie(parent, size, onClick)` -> pie; `pie:Set(slices)` with `{value, r, g, b, text, draw, within}`; `pie.tip = function(i) -> text`; `pie:Paint()`, `pie:SliceAt()`.
-- A Button with 60 `CreateLine` segments (ring 24% of size, slight overlap); centre text shows the hovered slice's count; a slice's `within` set lights with it; empty = faint ring.
-- **OnUpdate only while the mouse is over it** (OnEnter sets, OnLeave clears; the approved C3 override in PSS 02 section 12). Click -> `onClick(slice index)` (`GetCursorPosition` + `math.atan2`).
-- Same in all three looks. Backend: none.
+`ns.NewPie(parent, size, onClick)`; `pie:Set(slices)`, `pie.tip`. 60 `CreateLine` segments; **OnUpdate only while the mouse is over it** (approved C3 override). Same in all three looks.
 
-## 8. PSS_Detail.lua (427 lines): detail pane parts shared by Players, Guilds, Filters
-| Export | Signature | What |
-| --- | --- | --- |
-| `ns.DETAIL_PAGES` | `{summary, history, rule}` | page keys and labels ("Summary", "Event History", "View/Edit Rule") |
-| `ns.NewDetailPages(body, top, kind)` | -> dp | three page Frames + a bottom bar of three `ns.NewTab` buttons (equal widths); `dp:Select(key)` (remembers the pick per kind "players"/"guilds"/"filters" for the session), `dp:Limit(only)` (e.g. `{rule=true}` disables the others) |
-| `ns.NewSummary(page, tabPage, top, size)` | -> sm; `sm:Set(spec)`, `sm:Refresh()`, `sm:Open(key)` | period pie (116 default) + a tick box per period with colour/label/count + "Stored:" line + "View Events" button; built on first visible Refresh; page OnShow hook refreshes |
-| `ns.NewTypePie(parent, top, size, tabPage)` | -> tp; `tp:Set(counts, title, specFn, id)` | all-time by type pie (84) with up to 7 tick keys |
-| `ns.NewTotals(pane, tabPage, kind, title, hint, allSpec)` | -> tt; `tt:Show(guildRows)`, `tt:Hide()` | a list's totals when nothing is selected: heading, info line, Summary (84) and TypePie |
-| `ns.NewExceptions(parent, x, y, width, onChange)` | -> ex; `ex:Set(target, scope, who, parentOpts)`, `ex.frame`, `ex.height` | a tick per override option, two to a row, "(exception)" labels, tips |
+## 8. PSS_Detail.lua (482 lines): detail pane parts
+| Export | What |
+| --- | --- |
+| `ns.NewDetailPages(body, top, kind)` | Summary / Event History / View/Edit Rule pages and their tab bar; `dp:Select(key)`, `dp:Limit(only)` |
+| `ns.NewSummary(page, tabPage, top, size)` | period pie + period ticks + "Stored:" line + View Events; `sm:Set(spec)` (`M.PSS_SpecCopy`) |
+| `ns.NewTypePie(parent, top, size, tabPage)` | all-time by type pie (tips `M.PSS_TypeTip`) |
+| `ns.NewTotals(pane, tabPage, kind, title, hint, allSpec)` | a list's totals when nothing is selected |
+| `ns.NewExceptions(parent, x, y, width, onChange)` | a tick per override option; tips built when hovered |
+| `ns.NewLine(parent, y)`, `ns.NewLabel(parent, text, x, y)`, `ns.NewStrip(parent, y, h, w)`, `ns.NewAllowedBoxes(parent, y, w, tip, onClick, rightClicks)` | (G16, G17) shared pane lines, labels, strips and the W I G P C boxes (`M.EXCL`) |
 
-- Shared module state (session): `picked` page per tab, `summaries` and `typePies` lists (every pie is redrawn when a period or type tick changes; `RedrawAll`). These lists only grow.
-- Opening Events: a slice click or View Events calls `ns.OpenEvents(tabPage, spec, {period, cats})` (defined in PSS_Events.lua); hidden when `ns.OpenEvents` is nil.
-- Looks: no per-look code (kit parts paint themselves; pies the same in all looks).
+Backend: Lib/DetailQuery (summary, pies, exceptions), Lib/EventsQuery (`PSS_StoredText`). `ns.DETAIL_PAGES` is gone (W1).
+
+## 9. PSS_History.lua (190 lines): block history list in the panes
+| Export | What |
+| --- | --- |
+| `ns.NewHistory(body, y, opts)` | type ticks over an `ns.NewRows` list and a gate button "Show Block History (n)"; rows from `M.PSS_HistCells`, tips `M.PSS_HistTip`, empty text `M.PSS_HistEmptyText` (G1) |
+| `hv:Set(id, total, read, fresh)`, `hv:Clear()` | reads only when id, total or Logging-ready changed (no key string, G25); never loads Logging for a row click |
+| `ns.SenderMenu(row, name)` | right-click on a blocked line (also the Events tab) |
+
+Backend: Lib/EventsQuery (`PSS_EVENT_TYPES`), Lib/DetailQuery (`PSS_HistHidden`, `PSS_SetHistHidden`, `PSS_HistFilter`, `PSS_HistCells`, `PSS_HistTip`), Lib/ViewNav (`PSS_DoubleClick`), Lib/RowMenus (sender menu), core/ChatHistory (`M.PSS_LoadLogging`, `M.PSS_LoggingReady`).
+
+## 10. PSS_Players.lua (497 lines): Player Ignore List tab
+- Exports: `ns.TabBuilders.players`, `ns.ShowPlayerDetail(newEntry)`, `ns.ShowPlayerCounts()` (W4: counts line, history and Summary only). Page hooks: `navClose`, `navUp` (close the picker), `navReset`, `stale`, `select`, and the widgets.
+- Module state: `V = M.PSS_PlayerListNew()` (file load), `sel`, `rowBuf`.
+- Frames (first open): search, count, Add box (hint "Name-Realm"), Add Player, Player Search, Prune; pane (`ns.NewPanel`, `ns.NewTotals`, `ns.NewDetailPages`): Summary, Rule (lines through `ns.NewLine`, Expires box, Note box, `ns.NewAllowedBoxes`, Blizzard tick, `ns.NewExceptions`, Remove, Add Guild), History (`ns.NewHistory` + Reset); list `ns.NewRows` (Name, Server 112, Type 72, Listed 54, Expires 62, Blocked 62); `ns.NewPicker` (Name, Level, Class, Guild).
+- Listens: `PLAYERS_CHANGED` (dirty; refresh if visible), `PLAYER_BLOCKED` (throttled: rows + `ns.ShowPlayerCounts`), `WHOIS_COOLDOWN`.
+- Popups: "Remove Player?", "Add Player?", "Prune Players?" (number box).
 
 | Backend call | Defined in |
 | --- | --- |
-| `M.PSS_SummaryValues`, `M.PSS_PERIODS`, `M.PSS_PeriodSlices`, `M.PSS_PeriodTip`, `M.PSS_PeriodOn`, `M.PSS_SetPeriodOn`, `M.PSS_WidestPeriodOn`, `M.PSS_TypesOn`, `M.PSS_TypeSlices`, `M.PSS_SetTypeOff`, `M.PSS_TotalsView`, `M.PSS_OverrideOptions`, `M.PSS_ExceptionState`, `M.PSS_ExceptionText`, `M.PSS_ExceptionTip`, `M.PSS_ExceptionHeading`, `M.PSS_SetException` (-> core `M.PSS_SetOpt`) | Lib/DetailQuery |
-| `M.PSS_StoredText` | Lib/EventsQuery |
-| `M.PSS_History` (local `History`, held but unused here) | core/ChatHistory |
-
-## 9. PSS_History.lua (194 lines): block history list in the Players and Guilds panes
-| Export | Signature | What |
-| --- | --- | --- |
-| `ns.NewHistory(body, y, opts)` | opts `{names, empty, open(id)}` -> hv | a row of type tick boxes (one per `M.PSS_EVENT_TYPES`, shared ticks) over an `ns.NewRows` list (rowH 16, font 11; Time 118, Type 48, [Name 86], Message fill) and a gate button "Show Block History (n)" |
-| `hv:Set(id, total, read, fresh)` | | reads `read(id)` only when id/total/Logging-ready changed; if Logging is not loaded and total > 0 shows the gate instead (never loads Logging for a row click) |
-| `hv:Clear()` | | forget the key so the next Set reads again |
-| `ns.SenderMenu(row, name)` | | right-click on a blocked line: `ns.RowMenu(row, M.PSS_SenderMenu(name), SenderAct)`; also used by the Events tab |
-
-- Gate click: `M.PSS_LoadLogging()` then re-reads. Double left-click on a line (`M.PSS_DoubleClick`) calls `opts.open(id)` (Events tab). Sender remove asks `ns.Confirm{title="Remove Player?"}`.
-- Module state: `lists` (every hv, for shared tick refresh; grows per pane built).
-- Backend: `M.PSS_EVENT_TYPES`, `M.PSS_EventType` (Lib/EventsQuery); `M.PSS_HistHidden`, `M.PSS_SetHistHidden`, `M.PSS_HistFilter` (Lib/DetailQuery); `M.PSS_DoubleClick` (Lib/ViewNav); `M.PSS_SenderMenu`, `M.PSS_SenderAdd`, `M.PSS_SenderRemove`, `M.PSS_SenderRemoveText` (Lib/RowMenus); `M.PSS_LoadLogging`, `M.PSS_LoggingReady`, `M.PSS_History` (`History.UNKNOWN`, `History.CAT_COLOR`) (core/ChatHistory); `M.removeServer` (core/Globals). Blizzard: `date`.
-
-## 10. PSS_Players.lua (573 lines): Player Ignore List tab
-Purpose: list (search, sort, Add Player, Player Search, Prune), right-click row menu, detail pane (Summary / Event History / View/Edit Rule), /who results picker. Builder `ns.TabBuilders.players(pg)` -> `Refresh`.
-- Exports: `ns.TabBuilders.players`, `ns.ShowPlayerDetail(newEntry)` (redraws the pane; totals when nothing selected). Page hooks set: `pg.navClose`, `pg.navUp` (close the picker), `pg.navReset` (picker closed, selection cleared), `pg.stale` (mark dirty, re-check /who cooldown), `pg.select`, `pg.search`, `pg.count`, `pg.add`, `pg.addButton`, `pg.searchButton`, `pg.pruneButton`, `pg.list`, `pg.pane`, `pg.picker`.
-- Module state: `V = M.PSS_PlayerListNew()` (made at file load: sort key, find, index), `sel` (selected entry), `rowBuf` (one table every row is read into), `pickCells`.
-- Frames (on first open of the tab): search box, count text, Add edit box (64 letters, "Name-Realm" hint), buttons Add Player, Player Search, Prune; `pane` = `ns.NewPanel(inset)` 380 wide with `ns.NewTotals`, heading, `ns.NewDetailPages(-28, "players")`; Summary page: counts line + `ns.NewSummary`; Rule page: four fixed-height `Line()` rows at 16 px steps (type, added, guild, invite; **fixed y, the stage Fix concern**), Expires number box (4 letters), Note edit box (128), Allowed W I G P C ticks (`M.EXCL`), Blizzard tick (B1), `ns.NewExceptions`, Remove + Add Guild buttons; History page: `ns.NewHistory` + Reset Block History button; list `ns.NewRows` (Name fill, Server 112, Type 72, Listed 54, Expires 62, Blocked 62); picker Frame with its own `ns.NewRows` (tick, Name, Level, Class, Guild, state) + Save (`pssPrimary`), Tick All, Cancel.
-- Looks: none of its own (kit only; Save is the Modern red button).
-- Listens: `PLAYERS_CHANGED` (dirty; refresh if visible), `PLAYER_BLOCKED` (throttled 0.25 s redraw of rows + pane via `M.PSS_Throttle`), `WHOIS_COOLDOWN(active)` (Player Search enabled).
-- Popups: `ns.Confirm` "Remove Player?", "Add Player?" (none found, Add Anyway), "Prune Players?" (number box, `M.PSS_PRUNE_DAYS` = 365, live `M.PSS_PruneNote`).
-- `L["HISTORY_RESET"]` read from `PourSocialScore_NS.L`.
-
-| Backend call | Defined in |
-| --- | --- |
-| `M.PSS_PlayerListNew` (V:Resort/SortBy/SetFind), `M.PSS_PlayerTypeText`, `M.PSS_PlayerExpireText`, `M.PSS_PlayerTotal`, `M.PSS_PlayerTip`, `M.PSS_PlayerHeading`, `M.PSS_PlayerTypeLine`, `M.PSS_PlayerAddedLine`, `M.PSS_PlayerExpireNote`, `M.PSS_PlayerGuildLine`, `M.PSS_PlayerInviteLine`, `M.PSS_PlayerGuildState`, `M.PSS_PlayerRemoveText`, `M.PSS_PlayerAddFromText`, `M.PSS_PlayerSearchFromText`, `M.PSS_PlayerPickerItems/Title/Cells/Save`, `M.PSS_PlayerNoneFound`, `M.PSS_PlayerAddAnyway`, `M.PSS_PRUNE_DAYS`, `M.PSS_PruneText`, `M.PSS_PruneNote`, `M.PSS_PruneApply`, `M.PSS_PlayerCommitExpiry`, `M.PSS_PlayerCommitNote`, `M.PSS_PlayerAllowed`, `M.PSS_PlayerToggleAllowed`, `M.PSS_BLIZZARD_TEXT`, `M.PSS_BLIZZARD_TIP`, `M.PSS_PlayerOnBlizzard`, `M.PSS_PlayerToggleBlizzard`, `M.PSS_PlayerAddGuild`, `M.PSS_AllPlayersSpec`, `M.PSS_PlayerEventsSpec` | Lib/PlayerView |
+| `M.PSS_PlayerListNew`, `M.PSS_PlayerTypeText`, `M.PSS_PlayerExpireText`, `M.PSS_PlayerListedText`, `M.PSS_PlayerTotal`, `M.PSS_PlayerTip`, `M.PSS_PlayerHeading`, `M.PSS_PlayerTypeLine`, `M.PSS_PlayerAddedLine`, `M.PSS_PlayerExpireNote`, `M.PSS_PlayerExpireBoxText`, `M.PSS_PlayerGuildLine`, `M.PSS_PlayerInviteLine`, `M.PSS_PlayerGuildState`, `M.PSS_PlayerSummarySpec`, `M.PSS_PlayerRemoveText`, `M.PSS_PlayerAddFromText`, `M.PSS_PlayerSearchFromText`, `M.PSS_PlayerPickerItems/Title/Cells/Save`, `M.PSS_PlayerNoneFound`, `M.PSS_PlayerAddAnyway`, `M.PSS_PRUNE_DAYS`, `M.PSS_PruneText`, `M.PSS_PruneNote`, `M.PSS_PruneApply`, `M.PSS_PlayerCommitExpiry`, `M.PSS_PlayerCommitNote`, `M.PSS_PlayerAllowed`, `M.PSS_PlayerToggleAllowed`, `M.PSS_BLIZZARD_TEXT`, `M.PSS_BLIZZARD_TIP`, `M.PSS_PlayerOnBlizzard`, `M.PSS_PlayerToggleBlizzard`, `M.PSS_PlayerAddGuild`, `M.PSS_AllPlayersSpec`, `M.PSS_PlayerEventsSpec` | Lib/PlayerView |
+| `M.PSS_PlayerRow`, `M.PSS_PlayerEntry`, `M.PSS_PlayerPosition`, `M.PSS_RemovePlayerAt` | Lib/PlayerRows |
 | `M.PSS_PlayerMenu` | Lib/RowMenus |
 | `M.PSS_ClassColor`, `M.PSS_CountsText`, `M.PSS_ToggleException` | Lib/DetailQuery |
 | `M.PSS_PickerToggle`, `M.PSS_PickerTickAll`, `M.PSS_Throttle` | Lib/ViewNav |
-| `M.PSS_PlayerRow`, `M.PSS_PlayerEntry`, `M.PSS_PlayerPosition`, `M.PSS_RemovePlayerAt` | core/PlayerQuery |
-| `M.PSS_GetPlayerBlockCounts`, `M.PSS_GetPlayerBlockHistory`, `M.PSS_ResetPlayerBlockHistory`, `M.PSS_PlayerHistoryKey` | core/PlayerIgnoreList |
+| `M.PSS_GetPlayerBlockCounts`, `M.PSS_GetPlayerBlockHistory`, `M.PSS_ResetPlayerBlockHistory` | core/PlayerIgnoreList |
 | `M.PSS_ScanCooldownActive` | core/Whois |
-| `M.EXCL` | core/Globals |
 
-## 11. PSS_Guilds.lua (979 lines, largest): Guild Ignore List tab
-Purpose: grouped guild list (Managed Communities + default lists, Guild Exclusion List, other guilds), a guild's members view in place of the list, Scan All, Add/Exclude entry rows with Guild Search, the Guild Search picker, and a pane with four bodies. Builder `ns.TabBuilders.guilds(pg)` -> `Refresh`.
-- Exports: `ns.TabBuilders.guilds` only. Page hooks: `pg.navState` (members guild key or nil), `pg.navTitle = M.PSS_MembersNavTitle`, `pg.navApply(key)` (open/close members), `pg.navClose` (picker), `pg.navUp` (picker, then members), `pg.navReset`, `pg.stale`, `pg.select`, `pg.openMembers`, `pg.selectMember`, `pg.search`, `pg.count`, `pg.add`/`searchButton`/`addButton`, `pg.excl`/`exclSearchButton`/`exclButton`, `pg.scanAll`, `pg.list`, `pg.members`, `pg.membersView`, `pg.pane`, `pg.picker`, `pg.state` (= V). Uses `page.refresh` (set by the window) and `ns.NavRecord()` (window) after opening/closing members.
-- Module state: `V = M.PSS_GuildListNew()` (made at file load), `cells` (row text buffer), `groupView` (reused), `scanButtons` (follow the /who cooldown).
-- Frames (first open): search box + count; two `EntryRow`s (edit box 64 letters + "Guild Search" + Add Guild / Exclude), Scan All; `pane` (`ns.NewPanel` inset, 380 wide, below TOP_H 58) with `ns.NewTotals` and four bodies:
-  - `pane.guild` (`BuildGuildBody`): info `Line` at -28, `ns.NewDetailPages(-46, "guilds")`; Summary counts + `ns.NewSummary`; Rule: W I G P C ticks, Scan (shift = restart) + Custom Scan Fields box (128) + Custom Scan, `ns.NewExceptions`, Members, Remove Guild (disabled for a shipped guild); History: `ns.NewHistory(names=true)` + Reset.
-  - `pane.group` (`BuildGroupBody`, a default list or Managed Communities): **info, rule, state, counts `Line`s at fixed 16 px steps from -28, pies (`ns.NewSummary` + `ns.NewTypePie`, 84) at a fixed top below them** (the stage Fix target: a wrapped "Rule on the Chat Filters tab: ..." line runs into "Rule is OFF"); rule toggle and open/close buttons.
-  - `pane.info` (`BuildInfoBody`): Exclusion List / excluded guild text (160 high, wraps) + "Remove from Exclusion List".
-  - `pane.member` (`BuildMemberBody`): DetailPages; Rule: guild and added `Line`s, Note box (25 letters), W I G P C (dimmed = follows the guild; right-click = follow again), exceptions measured against the guild's opts, Remove Member, Add Guild (member's real guild differs); History + Reset.
-  - lists: guild `ns.NewRows` (Guild fill, Members 70, Blocked 62, Scan 90; rows dimmed 0.55 for a group whose rule is off), members `mview` (All Guilds back button, heading, `ns.NewRows` Name/Guild 130/Note 110/Blocked 62), picker (tick, Guild, state; Save `pssPrimary`, Tick All, Cancel).
-- Looks: none of its own (kit only).
-- Listens: `GUILDS_CHANGED`, `GUILD_SCAN_DONE` (dirty; one redraw per frame via `C_Timer.After(0)`), `GUILD_REMOVED(key)` (`V:GuildRemoved`), `GUILD_BLOCKS_CHANGED` (throttled count redraw, `V:CountsChanged()`), `WHOIS_COOLDOWN(active)` (scan buttons), `GUILD_SEARCH_RESULTS(found, query, mode, owner)` (only `owner == M.PSS_GUILD_SEARCH_OWNER`). **Not `FILTERS_CHANGED`** (G26: the group rows' rule dim is stale after a rule change on the Filters tab until the next dirty event).
-- Popups: `ns.Confirm` "Remove Guild?", "Remove Member?", "Exclude Guild?" (exclude mode with no results, Add Anyway; add mode with no results only prints a chat line via `M.PSS_Say`).
-- Blizzard: `IsShiftKeyDown`, `C_Timer.After`.
+## 11. PSS_Guilds.lua (928 lines, largest): Guild Ignore List tab
+- Exports: `ns.TabBuilders.guilds`. Page hooks: `navState`, `navTitle`, `navApply`, `navClose`, `navUp` (picker, then members), `navReset`, `stale`, `select`, `selectMember`, and the widgets.
+- Module state: `V = M.PSS_GuildListNew()`, `cells`, `groupView`, `scanButtons`.
+- Frames (first open): search + count; two entry rows (Add Guild / Exclude with Guild Search), Scan All; pane with `ns.NewTotals` and four bodies: guild (`BuildGuildBody`: Summary, Rule with `ns.NewAllowedBoxes`, Scan, Custom Scan Fields, exceptions, Members, Remove; History), group (`BuildGroupBody`: four lines with a set width whose heights `FitLines` sets from `GetStringHeight` on show and repaint, pies below the last line; Fix 2), info (Exclusion List), member (`BuildMemberBody`: lines, Note box, W I G P C boxes, exceptions, Remove, Add Guild; History). Lists: guilds (Guild, Members 70, Blocked 62, Scan 90; rows dimmed for a group whose rule is off), members (Name, Guild 130, Note 110, Blocked 62), `ns.NewPicker`.
+- Pane data from Libraries (W2): `M.PSS_GuildPaneView`, `M.PSS_MemberPaneView`, `M.PSS_MemberCells`, the `*SummarySpec` functions; member guild names through core `M.PSS_MemberGuildName`. `ShowCounts()` redraws only the counts, history and Summary on a block (W4).
+- Listens: `GUILDS_CHANGED`, `GUILD_SCAN_DONE`, `FILTERS_CHANGED` (G26: the rule dim follows) -> one redraw per frame; `GUILD_REMOVED(key)`; `GUILD_BLOCKS_CHANGED` (throttled: rows recounted, `V.share` so the pane reuses the row's count, `ShowCounts`); `WHOIS_COOLDOWN`; `GUILD_SEARCH_RESULTS` (owner `M.PSS_GUILD_SEARCH_OWNER` only).
+- Popups: "Remove Guild?", "Remove Member?", "Exclude Guild?".
 
 | Backend call | Defined in |
 | --- | --- |
-| `M.PSS_GuildListNew` (V:Resort, MResort, Click, Select, ItemSel, IsSel, SelectMember, OpenMembers, CloseMembers, SetView, SetFind, SetMFind, SortBy, MSortBy, CountText, MembersHeading, MembersEmptyText, FreshCounts, CountsChanged, GuildRemoved, RemoveMember), `M.PSS_GUILD_MANAGED`, `M.PSS_GUILD_SEARCH_OWNER`, `M.PSS_GuildRowCells`, `M.PSS_GuildRowTip`, `M.PSS_GuildScanTip`, `M.PSS_GuildAddFromText`, `M.PSS_GuildExcludeFromText`, `M.PSS_GuildSearchFromText`, `M.PSS_GuildPickerItems/Title/Save/Close/Toggle/TickAll`, `M.PSS_GuildNoneFound`, `M.PSS_GuildExcludeAnyway`, `M.PSS_MembersNavTitle`, `M.PSS_MemberTip`, `M.PSS_GuildInfoLine`, `M.PSS_GuildGroupView`, `M.PSS_GuildExclView`, `M.PSS_MemberHeading`, `M.PSS_MemberGuildLine`, `M.PSS_MemberAddedLine`, `M.PSS_MemberAllowed`, `M.PSS_MemberOtherGuild`, `M.PSS_GuildHistoryKey`, `M.PSS_MemberHistoryKey`, `M.PSS_MemberBlockTotal`, `M.PSS_GuildAllowed`, `M.PSS_GuildToggleAllowed`, `M.PSS_GuildScanNow`, `M.PSS_GuildCustomScan`, `M.PSS_GuildCommitFields`, `M.PSS_GuildRemoveText`, `M.PSS_GuildRemove`, `M.PSS_MemberRemoveText`, `M.PSS_MemberCommitNote`, `M.PSS_MemberToggleAllowed`, `M.PSS_GroupToggleRule`, `M.PSS_GroupToggleOpen`, `M.PSS_ExclRemove`, `M.PSS_AllGuildsSpec`, `M.PSS_GuildEventsSpec`, `M.PSS_GroupEventsSpec`, `M.PSS_MemberEventsSpec` | Lib/GuildView |
+| `M.PSS_GuildListNew` (and its methods), `M.PSS_GUILD_MANAGED`, `M.PSS_GUILD_SEARCH_OWNER`, `M.PSS_GuildRowCells`, `M.PSS_GuildRowTip`, `M.PSS_GuildScanTip`, `M.PSS_GuildExists`, `M.PSS_GuildPaneView`, `M.PSS_MemberPaneView`, `M.PSS_MemberCells`, `M.PSS_GuildSummarySpec`, `M.PSS_MemberSummarySpec`, `M.PSS_GroupSummarySpec`, `M.PSS_GuildAddFromText`, `M.PSS_GuildExcludeFromText`, `M.PSS_GuildSearchFromText`, `M.PSS_GuildPickerItems/Title/Save/Close`, `M.PSS_GuildNoneFound`, `M.PSS_GuildExcludeAnyway`, `M.PSS_MembersNavTitle`, `M.PSS_MemberTip`, `M.PSS_GuildGroupView`, `M.PSS_GuildExclView`, `M.PSS_MemberAllowed`, `M.PSS_GuildAllowed`, `M.PSS_GuildToggleAllowed`, `M.PSS_GuildToggleException`, `M.PSS_MemberToggleException`, `M.PSS_GuildScanNow`, `M.PSS_GuildCustomScan`, `M.PSS_GuildCommitFields`, `M.PSS_GuildRemoveText`, `M.PSS_GuildRemove`, `M.PSS_MemberRemoveText`, `M.PSS_MemberCommitNote`, `M.PSS_MemberToggleAllowed`, `M.PSS_GroupToggleRule`, `M.PSS_GroupToggleOpen`, `M.PSS_ExclRemove`, `M.PSS_AllGuildsSpec`, `M.PSS_GuildEventsSpec`, `M.PSS_GroupEventsSpec`, `M.PSS_MemberEventsSpec` | Lib/GuildView |
 | `M.PSS_GuildRowMenu`, `M.PSS_MemberMenu`, `M.PSS_GuildSetAllRules` | Lib/RowMenus |
-| `M.PSS_FindGuildRule`, `M.PSS_AddMembersGuild` | Lib/GuildQuery |
-| `M.PSS_GroupRecent`, `M.PSS_GroupRecentByCat` | Lib/EventsQuery |
-| `M.PSS_ClassColor`, `M.PSS_CountsText`, `M.PSS_ToggleException` | Lib/DetailQuery |
-| `M.PSS_Throttle` | Lib/ViewNav |
-| `M.PSS_GetGuildBlockCounts`, `M.PSS_GetGuildBlockHistory`, `M.PSS_GetMemberBlockCounts`, `M.PSS_GetMemberBlockHistory`, `M.PSS_EnsureMemberBlockData`, `M.PSS_ResetGuildBlockHistory`, `M.PSS_ResetMemberBlockHistory`, `M.PSS_IsStaticManagedGuild` | core/GuildIgnoreList |
-| `M.PSS_ScanAll`, `M.PSS_GuildSweepLabel` | core/WhoisHarvest |
+| `M.PSS_AddMembersGuild` | Lib/GuildQuery |
+| `M.PSS_GroupRecentByCat` | Lib/EventsQuery |
+| `M.PSS_ClassColor`, `M.PSS_CountsText` | Lib/DetailQuery |
+| `M.PSS_PickerToggle`, `M.PSS_PickerTickAll`, `M.PSS_Throttle` | Lib/ViewNav |
+| `M.PSS_ScanAll` | Lib/WhoisHarvest (through the core stub) |
+| `M.PSS_GetGuildBlockHistory`, `M.PSS_GetMemberBlockCounts`, `M.PSS_GetMemberBlockHistory`, `M.PSS_ResetGuildBlockHistory`, `M.PSS_ResetMemberBlockHistory`, `M.PSS_MemberGuildName` | core/GuildIgnoreList |
 | `M.PSS_ScanCooldownActive` | core/Whois |
-| `M.EXCL` | core/Globals |
 
-## 12. PSS_Filters.lua (489 lines): Chat Filters tab
-Purpose: filter list (built-ins first, search, sort), right-click menu, pane (Summary / Event History / View/Edit Rule: On, Description, Filter text, Save Filter / Copy / Remove / Reset Count, Test, Link converter), New Filter, Reset Defaults; the link-insert post-hook. Builder `ns.TabBuilders.filters(pg)` -> `Refresh`.
-- Exports: `ns.TabBuilders.filters`, `ns.ShowFilterDetail(fresh)`. Page hooks: `pg.navReset`, `pg.stale`, `pg.select`, `pg.selected()`, `pg.linkHook()` (which hook was made, for the harness), `pg.search`, `pg.count`, `pg.newButton`, `pg.resetButton`, `pg.list`, `pg.pane`, `pg.state` (= V).
-- Module state: `V = M.PSS_FilterListNew()` (file load), `sel` (filter index), `cells`, `rowBuf`, `paneRow`, `hooked`.
-- Frames (first open): search + count, New Filter, Reset Defaults (`L["BUT_7"]`); `pane` (NewPanel inset 380) with `ns.NewTotals("filters")`, body: heading, info line, `ns.NewDetailPages(-44, "filters")`; Rule: On check, Description box (100), "?" help button (`L["TIP_1"]`), built-in lock note, filter box = `ns.NewPanel` + `ns.NewScrollFrame` + raw multi-line EditBox (1000 letters, follows the cursor), Save Filter / Copy / Remove / Reset Count, Test box (255) + Test button + result text, Link box (255; Enter converts); Summary: counts line + `ns.NewSummary`; History: `ns.NewHistory(names=true)` to the page bottom. List `ns.NewRows` (Description 190, On 40, Blocked 60, Filter fill).
-- Built-ins: desc/filter not editable (alpha 0.5), Save/Remove disabled; guild rules: Copy and Reset Count disabled, `pages:Limit({rule=true})`.
-- **Hook (J3, approved in PSS 02 12):** first open runs `HookLinks()` once: `hooksecurefunc(ChatFrameUtil, "InsertLink", OnInsertLink)` on Retail 12.x, else `hooksecurefunc("ChatEdit_InsertLink", ...)`. Body returns at once unless the pane is visible; text checked with `M.PSS_IsSecret` first; inserts into the focused filter / test / link box.
-- Listens: `FILTERS_CHANGED` (dirty; one redraw per frame via `C_Timer.After(0)`), `FILTER_HISTORY_CHANGED` (throttled 0.25 s).
-- Popups: `ns.Confirm` "Remove Rule?", "Reset Chat Filters?" (`L["BOX_2"]`).
-- Looks: none of its own.
+## 12. PSS_Filters.lua (456 lines): Chat Filters tab
+- Exports: `ns.TabBuilders.filters`, `ns.ShowFilterDetail(fresh)`. Page hooks: `navReset`, `stale`, `select`, `selected()`, `linkHook()` (harness), and the widgets.
+- Frames (first open): search + count, New Filter, Reset Defaults; pane with `ns.NewTotals("filters")`, heading, info, `ns.NewDetailPages`; Rule: On, Description, help, the filter box (`ns.NewTextArea`, 1000 letters), Save / Copy / Remove / Reset Count, Test, Link converter; Summary (`M.PSS_FilterSummarySpec`); History. List: Description 190, On 40, Blocked 60, Filter.
+- **Hook (J3, approved):** first open runs `hooksecurefunc(ChatFrameUtil, "InsertLink", ...)` on Retail 12.x, else `hooksecurefunc("ChatEdit_InsertLink", ...)`; the body returns unless the pane is visible and checks `M.PSS_IsSecret` first.
+- Listens: `FILTERS_CHANGED` (one redraw per frame), `FILTER_HISTORY_CHANGED` (G21: marks the list and redraws through the 4-a-second throttle; core no longer fires `FILTERS_CHANGED` per block).
+- Popups: "Remove Rule?", "Reset Chat Filters?".
 
 | Backend call | Defined in |
 | --- | --- |
-| `M.PSS_FilterListNew`, `M.PSS_FilterRowCells`, `M.PSS_FilterRowTip`, `M.PSS_FilterHeading`, `M.PSS_FilterInfo`, `M.PSS_FilterHistoryLine`, `M.PSS_FilterRemoveText`, `M.PSS_FilterRemove`, `M.PSS_FilterSave`, `M.PSS_FilterCopy`, `M.PSS_FilterNew`, `M.PSS_FilterTestText`, `M.PSS_FilterEventsSpec`, `M.PSS_AllFiltersSpec` | Lib/FilterView |
+| `M.PSS_FilterListNew`, `M.PSS_FilterRowCells`, `M.PSS_FilterRowTip`, `M.PSS_FilterHeading`, `M.PSS_FilterInfo`, `M.PSS_FilterHistoryLine`, `M.PSS_FilterSummarySpec`, `M.PSS_FilterRemoveText`, `M.PSS_FilterRemove`, `M.PSS_FilterSave`, `M.PSS_FilterCopy`, `M.PSS_FilterNew`, `M.PSS_FilterTestText`, `M.PSS_FilterEventsSpec`, `M.PSS_AllFiltersSpec` | Lib/FilterView |
 | `M.PSS_FilterRow`, `M.PSS_ConvertChatLink` | Lib/FilterQuery |
 | `M.PSS_FilterMenu` | Lib/RowMenus |
 | `M.PSS_Throttle` | Lib/ViewNav |
-| `M.PSS_SetFilterActive`, `M.PSS_ResetFilterCount`, `M.PSS_ResetFilterHistory`, `M.PSS_FilterHistory`, `M.PSS_FilterOwnerKey`, `M.ResetSpamFilters` | core/ChatFilters |
+| `M.PSS_SetFilterActive`, `M.PSS_ResetFilterCount`, `M.PSS_ResetFilterHistory`, `M.PSS_FilterHistory`, `M.ResetSpamFilters` | core/ChatFilters |
 | `M.PSS_IsSecret` | core/ChatBlock |
 
 ## 13. PSS_Events.lua (274 lines): Events tab
-Purpose: the blocked lines of every list: Time / Types / Source drop-downs, custom range, search, sortable columns (Time 136, Source 140, Player 130, Type 60, Channel 120, Message fill; links live), double-click copies a line, right-click sender menu, Reset Block History for a scoped entry. Builder `ns.TabBuilders.events(pg)` -> refresh fn.
-- Exports: `ns.TabBuilders.events`, `ns.OpenEvents(_, spec, opts)` (calls `ns.ShowEventsTab(fn)` from the window, then `view:Open(spec, opts)`, clears the search, scrolls to top; returns the view). Page hooks: `pg.navState` (`view:NavKey()`), `pg.navTitle`, `pg.navApply` (`view:NavApply` + refresh), `pg.navReset` (`view:Reset()`, search cleared), `pg.release` (`view:Release()` + `list:SetCount(0)`, also hooked on the page's OnHide), `pg.view`, `pg.list`, `pg.ui`.
-- Module state: `view = M.PSS_EventsViewNew()` (file load), `cells`, `ui`, `clicks`.
-- Frames (first open): heading, Reset button (`L["HISTORY_RESET"]`), bar with three `ns.NewDropdown` (Time 190: `m:Radio` per `M.PSS_EVENT_TIMES`; Types 150: "All types" + `m:Check` per `History.ALL_CATS`; Source 230: "Only <entry>" + `m:Check` per `M.PSS_EVENT_SOURCES`), `ns.NewSearchBox` (240), custom range row (From / To edit boxes 20 letters, Apply, error text; moves the list down 26 px when shown), `ns.NewRows(links=true, rowH 18)`.
-- Every drop-down change and Apply records a back/forward step (`ns.NavRecord()`).
-- Logging: `view:Refresh()` calls the spec's `read`, which loads `PourSocialScore_Logging`; the tab is never restored on reopen (Libraries `M.PSS_UITab`).
-- Listens (each throttled 0.25 s, only while visible): `PLAYER_BLOCKED`, `GUILD_BLOCKS_CHANGED`, `FILTER_HISTORY_CHANGED`, `PLAYERS_CHANGED`, `GUILDS_CHANGED`.
-- Popups: `ns.CopyText` "Copy Event", `ns.Confirm` "Reset Block History?" (only when `view:ResetText()` gives text).
-- Looks: none of its own (drop-downs: Blizzard `WowStyle1DropdownTemplate` vs our list in Dark).
+- Exports: `ns.TabBuilders.events`, `ns.OpenEvents(_, spec, opts)`. Page hooks: `navState`, `navTitle`, `navApply`, `navReset`, `release` (`view:Release()` + `list:SetCount(0)`, also on the page's OnHide), `view`, `list`, `ui`.
+- Frames (first open): heading, Reset, three `ns.NewDropdown` (Time, Types, Source), search box, custom range row, `ns.NewRows(links=true)` (Time 136, Source, Player, Type, Channel, Message).
+- Logging: `view:Refresh()` calls the spec's `read`, which loads Logging; the tab is never restored on reopen.
+- Listens (throttled, only while visible): `PLAYER_BLOCKED`, `GUILD_BLOCKS_CHANGED`, `FILTER_HISTORY_CHANGED`, `PLAYERS_CHANGED`, `GUILDS_CHANGED`.
+- Popups: `ns.CopyText` "Copy Event", `ns.Confirm` "Reset Block History?".
 
 | Backend call | Defined in |
 | --- | --- |
-| `M.PSS_EventsViewNew` (view:Apply, Refresh, Release, Open, SortBy, SetPeriod, RangeTexts, ApplyRange, AllTypes, TypeOn, ToggleType, SourceOn, ToggleSource, ScopeOff, Heading, TimeLabel, TypesLabel, SourceLabel, EmptyText, NavKey, NavTitle, NavApply, Reset, ResetText, DoReset), `M.PSS_EVENT_TIMES`, `M.PSS_EVENT_SOURCES`, `M.PSS_EventCells`, `M.PSS_EventTip`, `M.PSS_EventCopy` | Lib/EventsView |
+| `M.PSS_EventsViewNew` (view methods), `M.PSS_EVENT_TIMES`, `M.PSS_EVENT_SOURCES`, `M.PSS_EventCells`, `M.PSS_EventTip`, `M.PSS_EventCopy` | Lib/EventsView |
 | `M.PSS_DoubleClick`, `M.PSS_Throttle` | Lib/ViewNav |
 | `M.PSS_History` (`ALL_CATS`, `CAT_LABEL`) | core/ChatHistory |
 
-## 14. PSS_Options.lua (240 lines): Options and Import/Export tabs
-Two builders: `ns.TabBuilders.options(page)` and `ns.TabBuilders.importExport(page)`, each returning its refresh fn.
-- Options: a scrolling page (`ns.NewScrollFrame` + content) with a heading per section (`M.PSS_OptGroups()`) and one 26 px row per option: bool -> `ns.NewCheck` (`M.PSS_SetOpt(key, "global", v)`); bool with `field` (scan level cap) -> check + `ns.NewNumberBox` (`M.PSS_OptSetFieldOn` / `M.PSS_OptSetField`); number -> number box (`M.PSS_OptSetNumber`); choice -> `ns.NewDropdown` 170 (`m:Radio` per `o.choices`, read when opened so LSM fonts appear; `M.PSS_SetOpt`). Label gets " *" for options with `target` (can be per guild/player). A search box (200) sits on the window's tab row (`ns.TAB_ROW_Y - 2`, anchored to the page's parent, shown with the page) and re-lays out by `M.PSS_OptMatches`; "No options match." line. Page fields: `page.search`, `page.groups`, `page.none`, `page.shownCount`. The look (`uiSkin`) and font (`uiFont`) are ordinary choice rows: the window repaints on `OPTION_CHANGED` (section 15).
-- Import/Export: help text, a tick per `M.PSS_IO_PARTS` (indented when `p.under`; disabled by `M.PSS_IOPartOff`), Import mode drop-down (`M.PSS_IO_MODES`, `M.PSS_IOSetMode`), Export (`ns.CopyText` "Export", subtitle with the length) and Import (`ns.ImportText` "Import" -> `M.PSS_ImportCheck`; errors and results to chat via `M.ShowMsg`; Replace asks `ns.Confirm` "Replace on Import?"). Page fields: `page.checks`, `page.mode`, `page.exportButton`, `page.importButton`. Ticks are session state `M.PSS_IO`.
+## 14. PSS_Options.lua (236 lines): Options and Import/Export tabs
+- Options: scrolling page, a heading per section (`M.PSS_OptGroups()`), one row per option: tick (`M.PSS_SetOpt(key, "global", v)`), tick with number (`M.PSS_OptSetFieldOn` / `M.PSS_OptSetField`), number (`M.PSS_OptSetNumber`), choice (`ns.NewDropdown`; `M.PSS_SetOpt`). Search box on the tab row (`M.PSS_OptMatches`).
+- Import/Export: a tick per `M.PSS_IO_PARTS` (`M.PSS_IOOn`, `M.PSS_IOSet`, `M.PSS_IOPartOff`), mode drop-down (`M.PSS_IO_MODES`, `M.PSS_IOMode`, `M.PSS_IOSetMode`), Export (`M.PSS_ExportText` gives the string and subtitle -> `ns.CopyText`), Import (`ns.ImportText` -> `M.PSS_ImportStart`: an error, or a Replace confirm then the apply function; results to chat via `M.ShowMsg`).
 - Listens: `OPTION_CHANGED` -> `ns.RefreshTab()` when either page is visible.
 
-| Backend call | Defined in |
+## 15. PSS_Window.lua (537 lines): the window, tabs, back/forward, Escape
+| Export | What |
 | --- | --- |
-| `M.PSS_OptLabel`, `M.PSS_OptTip`, `M.PSS_OptChoiceText`, `M.PSS_OptGroups`, `M.PSS_OptMatches`, `M.PSS_OptNumberText`, `M.PSS_OptSetNumber`, `M.PSS_OptFieldOn`, `M.PSS_OptFieldText`, `M.PSS_OptSetFieldOn`, `M.PSS_OptSetField`, `M.PSS_IO`, `M.PSS_IOSet`, `M.PSS_IOSetMode`, `M.PSS_IO_PARTS`, `M.PSS_IO_MODES`, `M.PSS_IOPartOff`, `M.PSS_IOModeText`, `M.PSS_ExportText`, `M.PSS_ImportCheck`, `M.PSS_ImportReplaceText`, `M.PSS_ImportApply` | Lib/OptionsView (export/import through Lib/ImportExport) |
-| `M.PSS_Opt`, `M.PSS_SetOpt` | core/Options |
-| `M.ShowMsg` | core/Globals |
+| `M.PSS_OpenWindow(show)` | builds on first call; toggles; restores the place; `M.PSS_UIFontChoices()`; Show + Raise |
+| `M.PSS_WindowDock(host, x)`, `M.PSS_WindowUndock()` | dock beside FriendsFrame / SocialUIFrame |
+| `ns.TabBuilders`, `ns.TAB_ROW_Y`, `ns.RefreshTab()` | tab builders; tab row y; refresh the shown page |
+| `ns.NavRecord()`, `ns.NavBack()`, `ns.NavForward()`, `ns.NavUp()`, `ns.ShowEventsTab(prepare)` | back/forward and Escape stepping |
 
-## 15. PSS_Window.lua (531 lines): the window, tabs, back/forward, Escape
-Purpose: the 960 x 494 window `PSS_Window`, its three-look frame art, title and close, the tab row, lazy tab building, back/forward with a breadcrumb line, Escape stepping, open/close lifecycle, dock beside Friends/Social.
-
-| Export | Signature | What |
-| --- | --- | --- |
-| `M.PSS_OpenWindow(show)` | | builds on first call; toggles (show=true never closes); clears `byFriends`, restores the saved place, refreshes `M.PSS_UIFontChoices()`, Show + Raise |
-| `M.PSS_WindowDock(host, x)` | | builds if needed; anchors TOPLEFT to `host` (FriendsFrame / SocialUIFrame) TOPRIGHT +x,-10; `byFriends = true`; Show |
-| `M.PSS_WindowUndock()` | | hides only if it was opened by docking |
-| `ns.TabBuilders` | table | key -> builder(page) returning refresh (players, guilds, filters, events, importExport, options) |
-| `ns.TAB_ROW_Y` | number | tab row y (Options search box) |
-| `ns.RefreshTab()` | | calls the shown page's `refresh` |
-| `ns.NavRecord()` | | `nav:Record(curTab, page.navState())` unless applying; updates the arrows and line |
-| `ns.NavBack()` / `ns.NavForward()` | | overlay close first, then `Go(nav:Back()/Forward())` |
-| `ns.NavUp()` | -> bool | Escape step: `navClose`, `navUp`, Events -> `nav:BackToOther(EVENTS)`; false = close |
-| `ns.ResetTab(id)` | | closes overlays, `navUp` up to 10 times, `navReset`, select, record |
-| `ns.ShowEventsTab(prepare)` | | builds Events, closes the shown page's overlay, runs prepare, selects Events, records |
-
-- Frames (all on first open): `PSS_Window` (UIParent, strata `M.PSS_FrameStrataName()`, toplevel, clamped, movable by drag; place saved on drag stop via `M.PSS_SetUIPlace("PSS_Window", ...)` rounded); `ns.NewFrameArt` (Classic/Modern); `DarkFrame` (fill `DARK.window`, title strip 25 high `DARK.titleBar`, `AdventureMap_TopBorder` atlas edge or pixel border); `chrome` frame raised above the art's NineSlice (+10) holding the title "Pour Social Score" (13, GameFontNormal; the only place the addon name is a title), `UIPanelCloseButton` (Classic/Modern; OnClick replaced on our own button) and `DarkClose` (`uitools-icon-close` atlas or `Interface\Buttons\UI-StopButton`); Modern/Classic band: `Interface\FrameGeneral\UI-Background-Rock` tiled band (Modern only) and `_UI-Frame-TopTileStreaks` streaks (ours if the atlas exists, else the template's `TopTileStreaks`); `PSS_WindowEscape` helper; six `ns.NewTab` + six `ns.NewPanel` pages (each with a fallback note "... comes in a later 3.4.0 build." hidden once built; stale text); back `<` and forward `>` `ns.NewButton`s (26 x 20), `win.where` line + `win.measure` + crumb Buttons pool (`win.crumbs`, accent underline on hover). `win.art = {blizzard, dark, blizzardClose, darkClose, black, band, streaks}` for the harness.
-- Looks: Dark (or a client with no frame template) shows `DarkFrame` + `DarkClose`; Classic shows the template art + `UIPanelCloseButton`; Modern also shows the art's black (`pssBlack`), the rock band and streaks.
-- Tabs: `BuildTab(id)` runs the builder in `xpcall(..., geterrorhandler())` once (a failed build retries on the next click); `SelectTab(id)` shows the page, runs `page.refresh()`, saves `M.PSS_SetUITab(id)`. A tab click calls `ResetTab` (even on the shown tab). First select on build: `M.PSS_UITab()` (never Events).
-- Events: `ns.ListenStart()` on show (then every `page.stale()`, `ns.RefreshTab()`, `RegisterEvent("GLOBAL_MOUSE_UP")` in pcall for mouse buttons 4/5); `ns.ListenStop()` on hide. **`OPTION_CHANGED` is registered with `M.Events.Register` once at build and never removed** (comment: always heard so the look repaints): `frameStrata` -> `SetFrameStrata`; `uiSkin`/`uiFont` -> `ns.Repaint()` + `UpdateNav()`.
+- Frames (first open): `PSS_Window` (960 x 494, strata `M.PSS_FrameStrataName()`, movable; place saved via `M.PSS_SetUIPlace`), `ns.NewFrameArt` (Classic/Modern) or the Dark frame and close, `chrome` with the title "Pour Social Score" (the only title with the addon name), the rock band and streaks in Modern, `PSS_WindowEscape`, six tabs and six pages, back/forward buttons and the breadcrumb line. `ResetTab` is a file local (W1: `ns.ResetTab` and the pages' "later 3.4.0 build" note are gone); `UpdateNav` reuses its tables (G25).
+- Events: `ns.ListenStart()` on show (then every `page.stale()`, `ns.RefreshTab()`, `GLOBAL_MOUSE_UP` for mouse buttons 4/5); on hide `ns.ListenStop()`, each page's `release()` (only Events defines one), `M.PSS_RequestGC("window closed")`. `OPTION_CHANGED` is registered once at build and never removed (look, font and strata repaint).
 
 | Backend call | Defined in |
 | --- | --- |
-| `M.PSS_UI_TABS`, `M.PSS_UI_EVENTS_TAB`, `M.PSS_UIPlace`, `M.PSS_SetUIPlace`, `M.PSS_UITab`, `M.PSS_SetUITab`, `M.PSS_UIFontChoices`, `M.PSS_NavNew` (nav:Record, Back, Forward, CanBack, CanForward, Replace, BackToOther) | Lib/ViewNav |
+| `M.PSS_UI_TABS`, `M.PSS_UI_EVENTS_TAB`, `M.PSS_UIPlace`, `M.PSS_SetUIPlace`, `M.PSS_UITab`, `M.PSS_SetUITab`, `M.PSS_UIFontChoices`, `M.PSS_NavNew` | Lib/ViewNav |
 | `M.PSS_FrameStrataName` | core/Options |
 | `M.PSS_RequestGC` | core/Perf |
-| `M.Events.Register` | core/Events |
+| `M.Events.Register`, `M.PSS_OpenUI` | core |
 
-## 16. Core openers: PourSocialScore/PSS_BlizzardUI.lua (340 lines; window part lines 12-51 and 279-288)
+## 16. Core openers: PourSocialScore/PSS_BlizzardUI.lua (352 lines)
 | Item | What |
 | --- | --- |
-| `M.PSS_OpenUI(show)` | `M.PSS_Need("GUI")` (core/Loader; loads Libraries first through `NEEDS = {GUI="Libraries"}`, then the GUI folder) then `M.PSS_OpenWindow(show)` |
-| Friends/Social dock | `hosts = {FriendsFrame, SocialUIFrame?}`, `HOST_X` 12 / 55; `HookScript("OnShow", hostShow)` (only when `M.PSS_Opt("openWithFriends")`: `PSS_Need("GUI")` + `M.PSS_WindowDock(host, x)`), `HookScript("OnHide", hostHide)` (when no host is shown: `M.PSS_WindowUndock()` if the GUI is loaded). Hooks are set at core load for everyone; the bodies are cheap when the option is off (hostHide still loops 1-2 hosts) |
-| Addon Compartment | Retail only (`V.wowIsRetail`): `AddonCompartmentFrame:RegisterAddon{text="Pour Social Score", icon="Interface\Icons\ui_chat.blp", func = M.PSS_OpenUI}` |
-| Also in this file (not window) | StaticPopups `PSS_RELOAD` (`M.PSS_AskReload`; Camelot prints instead), `PSS_REASON` (note), `PSS_PARTYWARN`; LFG hooks; `M.PSS_UnitMenuPlayer` (B2 "PSS" header); `M.PSS_HookFunctions`. These stay Blizzard StaticPopups in every look |
+| `M.PSS_OpenUI(show)` | `M.PSS_ExpireEntries()`, `M.PSS_Need("GUI")` (Libraries first), `M.PSS_OpenWindow(show)` |
+| Friends/Social dock | `HookScript("OnShow")` (only with `openWithFriends`: expiry, `PSS_Need("GUI")`, `M.PSS_WindowDock(host, x)`), `HookScript("OnHide")` (`M.PSS_WindowUndock()` when the GUI is loaded) |
+| Addon Compartment | Retail only: `AddonCompartmentFrame:RegisterAddon{..., func = M.PSS_OpenUI}` |
+| Also in this file | StaticPopups `PSS_REASON`, `PSS_PARTYWARN` (Blizzard look in every look); LFG hooks; `M.PSS_UnitMenuPlayer`; `M.PSS_HookFunctions` |
 
-Other callers of `M.PSS_OpenUI`: `PourSocialScore_Libraries/PSS_Commands.lua:134` (`/pss` alone or an `OPEN` alias `gui`/`ui`/`eui`). No keybinding opens the window.
+Other callers of `M.PSS_OpenUI`: Libraries `PSS_Commands.lua` (`/pss` alone or `gui`/`ui`/`eui`). No key binding opens the window.
 
 ---
 
 ## (a) Front end to back end, per tab
-Format: element/action -> GUI function -> Libraries -> core setter/data. "core X" = `PourSocialScore/PSS_X.lua`.
+Format: element/action -> GUI -> Libraries -> core setter/data.
 
-### Players (PSS_Players.lua)
+### Players
 | Element / action | GUI | Libraries | Core |
 | --- | --- | --- | --- |
-| List rows, sort, search | `Resort`, `DrawRow`, `V:SortBy/SetFind` | `PSS_PlayerListNew` (`:Resort` -> `M.PSS_SortPlayers`), `PSS_PlayerTypeText`, `PSS_PlayerExpireText`, `PSS_PlayerTotal`, `PSS_ClassColor` | PlayerQuery `PSS_PlayerRow`, `PSS_SortPlayers` |
-| Add Player (box / target) | `AddPlayer` | `PSS_PlayerAddFromText` | PlayerIgnoreList `PSS_AddPlayer` |
-| Player Search (/who) -> picker -> Save | searchButton, `ShowSearchResults`, picker Save | `PSS_PlayerSearchFromText`, `PSS_PlayerPickerItems/Title/Cells/Save`, `PSS_PickerToggle/TickAll`; none found: `PSS_PlayerNoneFound`, `PSS_PlayerAddAnyway` | PlayerIgnoreList `PSS_PlayerSearch` (SendWho), `PSS_AddPlayer` |
-| Prune | `ConfirmPrune` (number box) | `PSS_PruneText`, `PSS_PruneNote`, `PSS_PruneApply` | `M.PruneIgnoreList(days)` |
-| Expiry / Note boxes | `ns.OnCommit` | `PSS_PlayerCommitExpiry`, `PSS_PlayerCommitNote` | PlayerIgnoreList `PSS_SetExpiry`, `PSS_SetNote`, PlayerQuery `PSS_PlayersChanged` (fires PLAYERS_CHANGED) |
-| W I G P C ticks | OnClick | `PSS_PlayerAllowed`, `PSS_PlayerToggleAllowed` | `PSS_SetPlayerSetting` + `PSS_PlayersChanged` |
-| Blizzard tick (B1) | OnClick | `PSS_PlayerOnBlizzard`, `PSS_PlayerToggleBlizzard` | PlayerIgnoreList `PSS_SetBlizzardIgnore` (C_FriendList through the hook guard) |
-| Exceptions ticks | `ns.NewExceptions` | DetailQuery `PSS_ExceptionState`, `PSS_SetException` | Options `PSS_SetOpt(key, "person", v, target)` (OPTION_CHANGED) |
-| Add Guild | addGuild button | `PSS_PlayerGuildState`, `PSS_PlayerAddGuild` | GuildIgnoreList `PSS_AddGuild` |
-| Remove | `ConfirmRemove` | `PSS_PlayerRemoveText` | PlayerQuery `PSS_PlayerPosition`, `PSS_RemovePlayerAt` (called straight from GUI) |
-| Reset Block History | reset button | (none) | PlayerIgnoreList `PSS_ResetPlayerBlockHistory` (straight from GUI) |
-| Summary pie / counts / history | `ns.ShowPlayerDetail` | `PSS_CountsText`, DetailQuery pies, `PSS_PlayerHistoryKey` | PlayerIgnoreList `PSS_GetPlayerBlockCounts`, `PSS_GetPlayerBlockHistory` (Logging, only when loaded or the gate is clicked) |
-| Right-click row | `RowMenu`/`RowAct` | RowMenus `PSS_PlayerMenu` (acts history, addGuild, noExpiry, resetHistory, exception, remove) | as the buttons above; exception via `PSS_ToggleException` |
-| Totals (nothing selected) | `ns.NewTotals("players")` | DetailQuery `PSS_TotalsView` -> TotalsQuery `PSS_ListTotals`; `PSS_AllPlayersSpec` | ChatHistory recent counts |
+| List rows, sort, search | `Resort`, `DrawRow` | `PSS_PlayerListNew` (-> PlayerRows `PSS_SortPlayers`), `PSS_PlayerRow`, cell texts | `M.PSS_List()` records, `playerData` |
+| Add Player / Player Search -> picker | buttons, `ns.NewPicker` | `PSS_PlayerAddFromText`, `PSS_PlayerSearchFromText`, `PSS_PlayerPicker*`, `PSS_PickerCells/Toggle/TickAll` | `PSS_AddPlayer`, `PSS_PlayerSearch` (SendWho) |
+| Prune | `ns.Confirm` with number | `PSS_PruneText`, `PSS_PruneNote`, `PSS_PruneApply` | `M.PruneIgnoreList` |
+| Expiry / Note | `ns.OnCommit` | `PSS_PlayerCommitExpiry`, `PSS_PlayerCommitNote` | `PSS_SetExpiry`, `PSS_SetNote` + `PSS_PlayersChanged` |
+| W I G P C, Blizzard tick | `ns.NewAllowedBoxes`, check | `PSS_PlayerToggleAllowed`, `PSS_PlayerToggleBlizzard` | `PSS_SetPlayerSetting`, `PSS_SetBlizzardIgnore` |
+| Exceptions | `ns.NewExceptions` | `PSS_ExceptionState`, `PSS_SetException` | `PSS_SetOpt(key, "person", v, target)` |
+| Add Guild | button | `PSS_PlayerGuildState`, `PSS_PlayerAddGuild` | `PSS_AddGuild` |
+| Remove, Reset Block History | buttons | `PSS_PlayerRemoveText`; PlayerRows `PSS_RemovePlayerAt` | `PSS_DelIgnore`; `PSS_ResetPlayerBlockHistory` (straight from GUI) |
+| Summary, history, totals | `ns.ShowPlayerDetail`, `ns.ShowPlayerCounts` | `PSS_PlayerSummarySpec`, DetailQuery, TotalsQuery | counters; Logging only on the gate click |
 
-### Guilds (PSS_Guilds.lua)
+### Guilds
 | Element / action | GUI | Libraries | Core |
 | --- | --- | --- | --- |
-| Grouped list, sort, search, open/close a heading | `Resort`, `DrawRow`, `ClickRow` | `PSS_GuildListNew` (`:Resort` -> GuildQuery `PSS_GuildRows`; `:Click`; `PSS_SetGuildGroupOpen` writes `PourSocialScoreDB.guildGroupOpen` directly), `PSS_GuildRowCells`, `PSS_GuildRowTip` | GuildIgnoreList data, ChatFilters `PSS_ManagedGroupActive` |
-| Add Guild / Exclude | `EntryRow` onAdd | `PSS_GuildAddFromText`, `PSS_GuildExcludeFromText` | GuildIgnoreList `PSS_AddGuild`, `PSS_AddGuildExclusion` (GUILDS_CHANGED) |
-| Guild Search (both rows) -> picker | `EntryRow` onSearch, `GUILD_SEARCH_RESULTS` -> `ShowSearchResults` | `PSS_GuildSearchFromText(text, mode)`, `PSS_GuildPickerItems/Title/Toggle/TickAll/Save/Close`, `PSS_GuildNoneFound`, `PSS_GuildExcludeAnyway` | GuildIgnoreList `PSS_GuildSearch`, `PSS_SaveGuildSearch` / `PSS_SaveGuildExclusions`, `PSS_ForgetGuildSearch` |
-| Scan All / Scan / Custom Scan / Scan Fields | buttons, `ns.OnCommit` | `PSS_GuildScanNow`, `PSS_GuildCustomScan`, `PSS_GuildCommitFields`, `PSS_GuildScanTip` | WhoisHarvest `PSS_ScanAll` (straight from GUI), GuildIgnoreList `PSS_ScanGuild`, `PSS_SetGuildScanFields` (fires nothing) |
-| Guild W I G P C | `ExclBoxes` | `PSS_GuildAllowed`, `PSS_GuildToggleAllowed` | GuildIgnoreList `PSS_SetGuildBlock` |
-| Exceptions (guild, member) | `ns.NewExceptions` | `PSS_SetException` / `PSS_ToggleException` (member measured against `PSS_FindGuildRule(...).opts`) | Options `PSS_SetOpt(key, "guild"/"person", v, target)` |
-| Members view (double-click, Members button, menu) | `OpenMembers`, `CloseMembers`, `DrawMember` | `V:OpenMembers/CloseMembers/MResort`, `PSS_MemberBlockTotal`, `PSS_MemberTip`, `PSS_MembersNavTitle` | GuildIgnoreList `PSS_EnsureMemberBlockData` |
-| Member note / W I G P C / Remove / Add Guild | member body | `PSS_MemberCommitNote`, `PSS_MemberToggleAllowed`, `V:RemoveMember`, GuildQuery `PSS_AddMembersGuild` | `PSS_SetMemberNote`, `PSS_SetMemberBlock` (fire nothing: the tab redraws itself), `PSS_RemoveGuildMember` |
-| Remove Guild | `ConfirmRemoveGuild` | `PSS_GuildRemoveText`, `PSS_GuildRemove` | GuildIgnoreList `PSS_RemoveGuildNow` (GUILD_REMOVED) |
-| Default list / Managed Communities rule toggle, open | group body buttons, menu `allRules`/`rule`/`open` | `PSS_GroupToggleRule`, `PSS_GroupToggleOpen`, RowMenus `PSS_GuildSetAllRules` | ChatFilters `PSS_SetManagedGroupActive` |
-| Exclusion list remove | info body, menu `exclRemove` | `PSS_ExclRemove` | GuildIgnoreList `PSS_RemoveGuildExclusion` |
-| Reset history (guild / member) | reset buttons, menu | (none) | GuildIgnoreList `PSS_ResetGuildBlockHistory`, `PSS_ResetMemberBlockHistory` (straight from GUI) |
-| Pane text and pies | `ShowGuild`, `ShowGroup`, `ShowExcl`, `ShowMember` | `PSS_GuildInfoLine`, `PSS_GuildGroupView`, `PSS_GuildExclView`, `PSS_MemberHeading/GuildLine/AddedLine/Allowed/OtherGuild`, `PSS_GuildSweepLabel` (core), EventsQuery `PSS_GroupRecent/RecentByCat`, `PSS_CountsText` | GuildIgnoreList `PSS_GetGuildBlockCounts/History`, `PSS_GetMemberBlockCounts/History`, `PSS_IsStaticManagedGuild` |
+| Grouped list, open a heading | `Resort`, `DrawRow` | `PSS_GuildListNew` (-> GuildQuery `PSS_GuildRows`), `PSS_SetGuildGroupOpen` | rules, `PSS_GuildMemberCount`, `PSS_ManagedGroupActive` |
+| Add / Exclude / Guild Search | entry rows, picker | `PSS_GuildAddFromText`, `PSS_GuildExcludeFromText`, `PSS_GuildSearchFromText`, `PSS_GuildPicker*` | `PSS_AddGuild`, `PSS_AddGuildExclusion`, `PSS_GuildSearch`, `PSS_SaveGuildSearch` / `PSS_SaveGuildExclusions` |
+| Scan All / Scan / Custom Scan / Fields | buttons | `PSS_GuildScanNow`, `PSS_GuildCustomScan`, `PSS_GuildCommitFields`, WhoisHarvest `PSS_ScanAll` | `PSS_ScanGuild`, `PSS_SetGuildScanFields` |
+| Guild and member W I G P C, exceptions | boxes | `PSS_GuildToggleAllowed`, `PSS_MemberToggleAllowed`, `PSS_GuildToggleException`, `PSS_MemberToggleException` | `PSS_SetGuildBlock`, `PSS_SetMemberBlock`, `PSS_SetOpt` |
+| Members view, member note, remove, Add Guild | `mview`, member body | `V:OpenMembers/CloseMembers/MResort`, `PSS_MemberCells`, `PSS_MemberPaneView`, `PSS_MemberCommitNote`, `V:RemoveMember`, GuildQuery `PSS_AddMembersGuild` | `PSS_SetMemberNote`, `PSS_RemoveGuildMember`, `PSS_AddCapturedGuild` |
+| Remove Guild | confirm | `PSS_GuildRemoveText`, `PSS_GuildRemove` | `PSS_RemoveGuildNow` |
+| Managed list rule on/off, open | group body, menu | `PSS_GroupToggleRule`, `PSS_GroupToggleOpen`, `PSS_GuildSetAllRules` | `PSS_SetManagedGroupActive` |
+| Reset history | buttons, menu | (none) | `PSS_ResetGuildBlockHistory`, `PSS_ResetMemberBlockHistory` (straight from GUI) |
+| Pane text and pies | `ShowGuild`, `ShowGroup`, `ShowExcl`, `ShowMember`, `ShowCounts` | `PSS_GuildPaneView`, `PSS_GuildGroupView`, `PSS_GuildExclView`, `*SummarySpec`, `V:GuildCounts`, `PSS_GroupRecentByCat` | counters, history |
 
-### Filters (PSS_Filters.lua)
+### Filters
 | Element / action | GUI | Libraries | Core |
 | --- | --- | --- | --- |
-| List, sort, search | `Resort`, `DrawRow` | `PSS_FilterListNew`, FilterQuery `PSS_FilterRow`, `PSS_FilterRowCells`, `PSS_FilterRowTip` | ChatFilters data, `PSS_FilterCounts` |
-| On tick / menu toggle | OnClick | (none) | ChatFilters `PSS_SetFilterActive` (straight from GUI; FILTERS_CHANGED) |
-| Save Filter | `Save` | `PSS_FilterSave` | `PSS_SaveChatFilter` |
-| Copy / New Filter | buttons | `PSS_FilterCopy`, `PSS_FilterNew` | `PSS_CopyChatFilter`, `PSS_AddCustomFilter` |
-| Remove | `ConfirmRemove` | `PSS_FilterRemoveText`, `PSS_FilterRemove` | `RemoveChatFilter` |
-| Reset Count / Reset history (menu) | button, menu | (none) | `PSS_ResetFilterCount`, `PSS_ResetFilterHistory` (straight from GUI) |
-| Reset Defaults | confirm | (none) | `M.ResetSpamFilters` (straight from GUI) |
-| Test / Link converter / link insert hook | `RunTest`, link box, `OnInsertLink` | `PSS_FilterTestText`, FilterQuery `PSS_ConvertChatLink` | ChatBlock `PSS_IsSecret` |
-| Summary / history | `ns.ShowFilterDetail` | `PSS_FilterHeading`, `PSS_FilterInfo`, `PSS_FilterHistoryLine`, `PSS_FilterEventsSpec`, `PSS_AllFiltersSpec` | ChatFilters `PSS_FilterHistory`, `PSS_FilterOwnerKey` |
+| List, sort, search | `Resort`, `DrawRow` | `PSS_FilterListNew`, `PSS_FilterRow`, `PSS_FilterRowCells` | filter arrays, `PSS_FilterCounts` |
+| On tick | OnClick | (none) | `PSS_SetFilterActive` (straight from GUI) |
+| Save, Copy, New, Remove | buttons | `PSS_FilterSave`, `PSS_FilterCopy`, `PSS_FilterNew`, `PSS_FilterRemove` | `PSS_SaveChatFilter` (keeps id), `PSS_CopyChatFilter`, `PSS_AddCustomFilter` (new id), `RemoveChatFilter` |
+| Reset Count / history / defaults | buttons, menu | (none) | `PSS_ResetFilterCount`, `PSS_ResetFilterHistory`, `M.ResetSpamFilters` (straight from GUI) |
+| Test, link converter, link insert | boxes, hook | `PSS_FilterTestText`, `PSS_ConvertChatLink` | `PSS_IsSecret` |
 
-### Events (PSS_Events.lua)
+### Events
 | Element / action | GUI | Libraries | Core |
 | --- | --- | --- | --- |
-| Open from a pie, View Events, double-click in a pane history | `ns.OpenEvents` -> `ns.ShowEventsTab` | `view:Open(spec, opts)` (specs from Player/Guild/FilterView) | (none until Refresh) |
-| Read, filter, sort, draw | `Refresh`, `Apply`, `Draw` | `view:Refresh` (spec `read` loads Logging), `view:Apply`, `PSS_EventCells`, `PSS_EventTip` | ChatHistory (`RecentSlots`, `LOG_ALL`, ...), Logging data |
-| Time / Types / Source / custom range | drop-downs, Apply | `view:SetPeriod/RangeTexts/ApplyRange/AllTypes/ToggleType/ToggleSource/ScopeOff` | (none) |
-| Reset Block History (scoped entry) | `ResetHistory` | `view:ResetText`, `view:DoReset` -> spec `reset` (`PSS_ResetPlayerBlockHistory`, `PSS_ResetGuildBlockHistory`, `PSS_ResetMemberBlockHistory`, `PSS_ResetFilterHistory`, `PSS_ResetGroupEvents`, `PSS_ResetListedPlayerEvents`, `PSS_ResetAllGuildEvents`, `PSS_ResetAllFilterHistory`) | the matching core reset |
-| Double-click copy | `Click` | `PSS_EventCopy` | (none) |
-| Right-click sender | `ns.SenderMenu` (History) | RowMenus `PSS_SenderMenu`, `PSS_SenderAdd`, `PSS_SenderRemoveText`, `PSS_SenderRemove` | `PSS_AddPlayer`, `PSS_RemovePlayerAt` |
-| Back / forward | `pg.navState/navApply/navTitle` | `view:NavKey/NavApply/NavTitle` | (none) |
-| Close / tab change | `pg.release` | `view:Release()` drops the lines | (none) |
+| Open from a pie, View Events, pane history | `ns.OpenEvents` -> `ns.ShowEventsTab` | `view:Open(spec, opts)` | (none until Refresh) |
+| Read, filter, sort | `Refresh`, `Apply` | `view:Refresh` (spec `read` loads Logging), `PSS_EventCells` | `History`, `PSS_LoggingDB` |
+| Reset Block History | button | `view:ResetText`, `view:DoReset` -> spec `reset` | the matching core reset |
+| Close / tab change | `pg.release` | `view:Release()` | (none) |
 
-### Options and Import/Export (PSS_Options.lua)
+### Options and Import/Export
 | Element / action | GUI | Libraries | Core |
 | --- | --- | --- | --- |
-| Sections, rows, search | `OptionRow`, `Layout` | OptionsView `PSS_OptGroups`, `PSS_OptLabel`, `PSS_OptTip`, `PSS_OptMatches` | Options `PSS_OPTIONS`, `PSS_OPTION_SECTIONS` |
-| Tick | OnClick | (none) | Options `PSS_SetOpt(key, "global", v)` (straight from GUI; OPTION_CHANGED) |
-| Number | `ns.OnCommit` | `PSS_OptNumberText`, `PSS_OptSetNumber` | `PSS_SetOpt` |
-| Tick + number (scan level cap) | check + box | `PSS_OptFieldOn/FieldText/SetFieldOn/SetField` | `PSS_SetOpt` |
-| Choice (incl. uiSkin, uiFont, frameStrata) | `ns.NewDropdown` | `PSS_OptChoiceText`; ViewNav `PSS_UIFontChoices` (on window open) | `PSS_SetOpt`; window repaints on OPTION_CHANGED |
-| Import/Export ticks, mode | checks, drop-down | `PSS_IO`, `PSS_IOSet`, `PSS_IOSetMode`, `PSS_IO_PARTS`, `PSS_IO_MODES`, `PSS_IOPartOff`, `PSS_IOModeText` | (session state on M) |
-| Export | `Export` -> `ns.CopyText` | `PSS_ExportText` -> ImportExport encode | reads every store |
-| Import | `Import` -> `ns.ImportText` -> `ns.Confirm` on Replace | `PSS_ImportCheck`, `PSS_ImportReplaceText`, `PSS_ImportApply` -> ImportExport `PSS_ApplyImport` | setters plus direct writes in `PSS_ApplyImport` (libraries map) ; result via `M.ShowMsg` |
+| Rows, search | `OptionRow`, `Layout` | OptionsView `PSS_OptGroups`, `PSS_OptLabel`, `PSS_OptTip`, `PSS_OptMatches` | `PSS_OPTIONS` |
+| Tick, number, choice | controls | `PSS_OptSetNumber`, `PSS_OptSetField*`, `PSS_OptChoiceText` | `PSS_SetOpt` (OPTION_CHANGED; the window repaints) |
+| Export | `ns.CopyText` | `PSS_ExportText` -> ImportExport | reads every store |
+| Import | `ns.ImportText`, `ns.Confirm` | `PSS_ImportStart` -> `PSS_ApplyImport` | setters plus direct writes (C section 1) |
 
 ## (b) Open / close lifecycle
-1. `/pss` (or `gui`, `ui`, `eui`) -> core `SlashCmdList` stub -> `M.PSS_Stub` loads Libraries -> `M.PSS_SlashPSS` (Lib/Commands) -> `M.PSS_OpenUI()`. The Addon Compartment (Retail) calls `M.PSS_OpenUI()` straight; Friends/Social OnShow with `openWithFriends` calls `M.PSS_WindowDock`.
-2. `M.PSS_OpenUI(show)` (core BlizzardUI) -> `M.PSS_Need("GUI")` (core Loader: loads `PourSocialScore_Libraries` then `PourSocialScore_GUI`; warns once on a failed load or version mismatch) -> `M.PSS_OpenWindow(show)`.
-3. GUI load (file scope): fonts table empty; each tab file creates its list-state object (`M.PSS_PlayerListNew`, `M.PSS_GuildListNew`, `M.PSS_FilterListNew`, `M.PSS_EventsViewNew`) and queues its `ns.Listen` entries (not registered yet); Throttle closures made. No frames.
-4. First `M.PSS_OpenWindow`: `Build()` makes the window, art, chrome, Escape helper, tab row, six empty pages, nav buttons, `nav = M.PSS_NavNew()`, hooks OnShow/OnHide, registers `OPTION_CHANGED` permanently, then `SelectTab(M.PSS_UITab())` builds only that tab (`ns.TabBuilders[key](page)` in xpcall) and `ns.NavRecord()`.
-5. Every open: toggle check; `RestorePlace()` (`M.PSS_UIPlace("PSS_Window")` or centre); `M.PSS_UIFontChoices()`; `Show()` -> OnShow: `ns.ListenStart()` (all queued core listeners `M.Events.Register`), every built page's `stale()` (dirty flags, cooldown state), `ns.RefreshTab()`, `GLOBAL_MOUSE_UP` registered; `Raise()`.
-6. Use: other tabs build on first click; pane parts (Summary pies, Dark tooltip, our menu, popups) build on first use; Logging loads only from the History gate button or the Events tab's read.
-7. Close (close button, Escape at the top level, toggle, undock): OnHide -> `GLOBAL_MOUSE_UP` unregistered, `ns.ListenStop()` (every core listener unregistered), each page's `release()` (**only Events defines one**: `view:Release()` + `list:SetCount(0)`), `M.PSS_RequestGC("window closed")` (core Perf: sets `gc.pending`; the stepped collection runs at its next quiet check).
-8. Kept after close for the session: every built frame (load-on-demand never unloads), the font objects, painters list, the tab list-state objects (`V` in Players/Guilds/Filters with their index arrays and member arrays until `CloseMembers`), the pane History lists' `all` arrays (they hold the last read history lines until the next Set or Clear), Libraries caches (`allPlayers`/`allGuilds`/`allFilters` specs, period/type ticks, `M.PSS_IO`), the `OPTION_CHANGED` listener.
+1. `/pss` -> core stub loads Libraries -> `M.PSS_SlashPSS` -> `M.PSS_OpenUI()`. The Addon Compartment calls `M.PSS_OpenUI()`; Friends/Social OnShow with `openWithFriends` calls `M.PSS_WindowDock`.
+2. `M.PSS_OpenUI(show)`: expiry, `M.PSS_Need("GUI")` (Libraries then GUI), `M.PSS_OpenWindow(show)`.
+3. GUI load: each tab file makes its list-state object and queues its `ns.Listen` entries. No frames.
+4. First open: `Build()` makes the window, registers `OPTION_CHANGED` for good, then builds only the saved tab (`M.PSS_UITab()`, never Events).
+5. Every open: place restored, font choices, `Show()` -> `ns.ListenStart()`, each page's `stale()`, `ns.RefreshTab()`, `GLOBAL_MOUSE_UP`; `Raise()`.
+6. Close: `GLOBAL_MOUSE_UP` dropped, `ns.ListenStop()`, Events' `release()`, `M.PSS_RequestGC("window closed")` (runs at once when quiet, else at the next wake event).
+7. Kept after close: every built frame, fonts, painters, the tab list-state objects, the pane History lists' last lines, Libraries caches and session ticks, the `OPTION_CHANGED` listener.
 
 ## (c) Kit catalogue (who uses what)
 | Builder (file) | Used by |
 | --- | --- |
 | `ns.NewText`, `ns.Font` (Skin) | every file |
-| `ns.NewHeading` (Kit) | Detail, Players, Guilds, Filters, Events, Options |
-| `ns.NewButton` (Kit) | Detail, History, Players, Guilds, Filters, Events, Options, Popups, Window |
-| `ns.NewCheck` (Kit) | Detail, History, Players, Guilds, Filters, Options |
-| `ns.NewEditBox` (Kit) | Players, Guilds, Filters, Events |
-| `ns.NewNumberBox` (Kit) | Players, Options, Popups |
-| `ns.OnCommit` (Kit) | Players, Guilds, Options |
-| `ns.NewSearchBox` (Kit) | Players, Guilds, Filters, Events, Options |
-| `ns.NewPanel` (Kit) | Players, Guilds, Filters (panes, filter box), Popups (text box), Window (pages) |
-| `ns.NewScrollFrame` (Kit) | Rows, Filters (filter box), Options, Popups |
-| `ns.NewTab` / `ns.SetTabSelected` (Kit) | Window (tab row), Detail (page bar) |
-| `ns.NewRows` (Rows) | Players (list, picker), Guilds (list, members, picker), Filters, Events, History |
-| `ns.NewPie` (Pie) | Detail only (Summary, TypePie) |
-| `ns.NewDropdown` (Menu) | Events (3), Options (choice rows, import mode) |
-| `ns.ContextMenu` / `ns.RowMenu` (Menu) | Players, Guilds, Filters, History (SenderMenu, also Events) |
-| `ns.Tip` / `ns.TipOn` / `ns.HideTip` (Tooltip) | Rows, Pie, Detail, History, Players, Guilds, Filters, Events, Options, Window |
-| `ns.Confirm` (Popups) | Players, Guilds, Filters, Events, History, Options |
-| `ns.CopyText` (Popups) | Events (Copy Event), Options (Export) |
-| `ns.ImportText` (Popups) | Options (Import) |
+| `ns.NewHeading`, `ns.NewButton`, `ns.NewCheck`, `ns.NewEditBox`, `ns.NewNumberBox`, `ns.OnCommit`, `ns.NewSearchBox` (Kit) | tabs, Detail, History, Popups, Window |
+| `ns.NewPanel`, `ns.NewScrollFrame` (Kit) | Players, Guilds, Filters, Options, Popups, Rows, Window |
+| `ns.NewTextArea` (Kit) | Filters (filter box), Popups (text popup) |
+| `ns.NewTab` / `ns.SetTabSelected` (Kit) | Window, Detail |
+| `ns.NewRows` (Rows) | Players, Guilds, Filters, Events, History, the picker |
+| `ns.NewPicker` (Rows) | Players, Guilds |
+| `ns.NewPie` (Pie) | Detail |
+| `ns.NewDropdown` (Menu) | Events, Options |
+| `ns.ContextMenu` / `ns.RowMenu` (Menu) | Players, Guilds, Filters, History |
+| `ns.Tip` / `ns.TipOn` / `ns.HideTip` (Tooltip) | Rows, Pie, Detail, History, tabs, Window |
+| `ns.Confirm`, `ns.CopyText`, `ns.ImportText` (Popups) | Players, Guilds, Filters, Events, History, Options |
 | `ns.NewFrameArt` (Skin) | Window, Popups |
-| `ns.NewDetailPages`, `ns.NewSummary`, `ns.NewTotals` (Detail) | Players, Guilds, Filters |
-| `ns.NewTypePie` (Detail) | Guilds (group body), Detail (Totals) |
-| `ns.NewExceptions` (Detail) | Players, Guilds (guild, member) |
-| `ns.NewHistory`, `ns.SenderMenu` (History) | Players, Guilds (guild, member), Filters; SenderMenu also Events |
-| `ns.PixelBorder`, `ns.Fill`, `ns.Own`, `ns.ShowArt`, `ns.OnePixel`, `ns.NoSnap`, `ns.HasAtlas`, `ns.AtlasWidth` (Skin) | kit internals, Menu, Tooltip, Popups, Window |
+| `ns.NewDetailPages`, `ns.NewSummary`, `ns.NewTotals`, `ns.NewTypePie`, `ns.NewExceptions` (Detail) | Players, Guilds, Filters |
+| `ns.NewLine`, `ns.NewLabel`, `ns.NewStrip`, `ns.NewAllowedBoxes` (Detail) | Detail, Players, Guilds, Filters |
+| `ns.NewHistory`, `ns.SenderMenu` (History) | Players, Guilds, Filters; SenderMenu also Events |
 
-Harness: `tools/harness/kit_page.lua` (kit preview), `check_tui.lua` (kit in every look), `tui_compare.sh` / `tui_tour.lua` (window in all three looks).
+Harness: `tools/harness/kit_page.lua` (kit preview), `check_tui.lua` (kit in every look), `tui_compare.sh` / `tui_tour.lua` (window in all three looks), `check_viewfns.lua`, `check_w2b.lua` (W2 view functions).
 
 ## (d) Popups and menus
 | Popup (frame) | Title | Opened by | Accept -> |
 | --- | --- | --- | --- |
-| `ns.Confirm` (`PSS_Confirm`) | Remove Player? | Players Remove / menu; History/Events sender menu | `PSS_RemovePlayerAt` / `PSS_SenderRemove` |
+| `ns.Confirm` (`PSS_Confirm`) | Remove Player? | Players Remove / menu; sender menu | `PSS_RemovePlayerAt` / `PSS_SenderRemove` |
 | | Add Player? | Player Search, nobody found | `PSS_PlayerAddAnyway` |
-| | Prune Players? (number box) | Players Prune | `PSS_PruneApply(days)` |
-| | Remove Guild? | Guilds Remove Guild / menu | `PSS_GuildRemove` |
-| | Remove Member? | member Remove / menu | `V:RemoveMember` |
-| | Exclude Guild? | Guild Search (exclude row) with no result | `PSS_GuildExcludeAnyway` |
-| | Remove Rule? | Filters Remove / menu | `PSS_FilterRemove` |
-| | Reset Chat Filters? | Filters Reset Defaults | `M.ResetSpamFilters` |
-| | Reset Block History? | Events Reset (when text given) | `view:DoReset` |
-| | Replace on Import? | Import in Replace mode | `PSS_ImportApply` |
-| `ns.CopyText` (`PSS_TextPopup`) | Copy Event; Export | Events double-click; Export | read only |
-| `ns.ImportText` (`PSS_TextPopup`) | Import | Import button | `PSS_ImportCheck` then apply or confirm |
-| Core StaticPopups (not GUI) | `PSS_RELOAD`, `PSS_REASON`, `PSS_PARTYWARN` | core | Blizzard look always |
+| | Prune Players? | Players Prune | `PSS_PruneApply(days)` |
+| | Remove Guild? / Remove Member? / Exclude Guild? | Guilds | `PSS_GuildRemove` / `V:RemoveMember` / `PSS_GuildExcludeAnyway` |
+| | Remove Rule? / Reset Chat Filters? | Filters | `PSS_FilterRemove` / `M.ResetSpamFilters` |
+| | Reset Block History? | Events | `view:DoReset` |
+| | Replace on Import? | Import in Replace mode | the apply function from `PSS_ImportStart` |
+| `ns.CopyText` (`PSS_TextPopup`) | Copy Event; Export; Rules Not Used | Events, Export, `/pss export unused` | read only |
+| `ns.ImportText` (`PSS_TextPopup`) | Import | Import button | `PSS_ImportStart` |
+| Core StaticPopups (not GUI) | `PSS_REASON`, `PSS_PARTYWARN` | core | Blizzard look always |
 
-Menus: right-click row menus are data from Libraries `PSS_RowMenus.lua` (`PSS_PlayerMenu`, `PSS_GuildRowMenu`, `PSS_MemberMenu`, `PSS_FilterMenu`, `PSS_SenderMenu`) drawn by `ns.RowMenu` -> `ns.ContextMenu`: Blizzard `MenuUtil.CreateContextMenu` in Classic/Modern, our compact `PSS_Menu` in Dark or without the Menu API. Drop-downs (`ns.NewDropdown`): `WowStyle1DropdownTemplate` + `SetupMenu` in Classic/Modern, our `PSS_Menu` list in Dark. Every menu selects the row first, so its acts match the pane's buttons.
+Right-click menus are data from Libraries `PSS_RowMenus.lua` drawn by `ns.RowMenu`.
 
 ## (e) Escape handling
-- Popups and our menu: `ns.EscapeCloses(frame, name)` appends the name to `UISpecialFrames` (`PSS_Confirm`, `PSS_TextPopup`, `PSS_Menu`), called after each frame's own OnHide is set (SetScript would drop the hook). Hiding a Confirm any way but Accept runs `onCancel`. Edit boxes in popups hide the popup on Escape too.
-- Window: `PSS_Window` itself is **not** in `UISpecialFrames`; a hidden-by-default helper `PSS_WindowEscape` is (added directly in `EscapeFrame`), shown with the window. Blizzard's Escape hides it; its OnHide then decides:
-  1. `ns.EscapeTaken()`: a registered popup/menu is shown, or one was hidden at this same `GetTime()` (Blizzard closes every UISpecialFrame in one Escape) -> re-show the helper, window untouched.
-  2. `ns.NavUp()`: the page's `navClose()` (picker overlay), then `navUp()` (Guilds members -> guild list), then Events opened from another tab -> `nav:BackToOther(EVENTS)` -> re-show the helper.
-  3. otherwise `win:Hide()`.
-- Blizzard menus (Classic/Modern) close on Escape by themselves (not tracked by `EscapeTaken`).
-- Edit boxes: Escape clears focus (search boxes also clear their text; Filters' boxes reload the pane text).
-- Mouse buttons 4 / 5 over the window: `GLOBAL_MOUSE_UP` (registered only while shown) -> `ns.NavBack` / `ns.NavForward`.
+- Popups and our menu: `ns.EscapeCloses(frame, name)` (`PSS_Confirm`, `PSS_TextPopup`, `PSS_Menu`), after each frame's OnHide is set.
+- Window: the helper `PSS_WindowEscape` is in `UISpecialFrames`, shown with the window; its OnHide: `ns.EscapeTaken()` (a popup or menu took this Escape) -> re-show; else `ns.NavUp()` (picker, members view, Events back to its tab) -> re-show; else hide the window.
+- Mouse buttons 4 / 5 over the window: `ns.NavBack` / `ns.NavForward`.
 
-## Notable findings (GUI)
-1. Only the Events tab releases data on close (`pg.release`). Players, Guilds and Filters keep their list states and their History panes keep the last-read history line arrays (`hv.all`) after close; the "window drops what it read" rule holds only for Events.
-2. `OPTION_CHANGED` is registered once with `M.Events.Register` in `Build()` and never unregistered (deliberate, commented); every other listener follows show/hide.
-3. Painters (`ns.OnPaint`), `summaries`, `typePies` and History `lists` only grow (bounded by widgets built; rows add one painter each).
-4. GUI calls several core setters directly rather than through a Libraries wrapper: `PSS_RemovePlayerAt`, `PSS_Reset*BlockHistory`, `PSS_SetFilterActive`, `PSS_ResetFilterCount/History`, `M.ResetSpamFilters`, `PSS_ScanAll`, `PSS_SetOpt`. Allowed (core setters), but uneven with the Libraries-wrapped paths (W2 target).
-5. Guilds does not listen to `FILTERS_CHANGED` (G26 pending): a rule toggled on the Filters tab leaves the guild rows' dim stale until another dirty event.
-6. Fixed-height `Line()` stacks: Players rule page (4 lines at 16 px), Guilds `BuildGroupBody` (info/rule/state/counts, pies at a fixed top), guild info line, member lines: the stage Fix (3.4.1.39) targets.
-7. Dark menu height fixed at 200 (`MAX_H`, G27 pending); `ns.HasModernArt` checks 8 atlases while Modern draws more (`_128-RedButton-Center`, `-Pressed/-Disabled/-Highlight`, `checkmark-minimal-disabled`, `common-searchbar-icon-a`, `perks-divider-short`, ...; G28 pending).
-8. Stale text: `PSS_Skin.lua` header still calls "blizzard" the default and Modern unbuilt; `PSS_Window.lua` header says "Blizzard look" (two looks); each page's fallback note "comes in a later 3.4.0 build" (only shows if a builder errors); `PSS_Kit.lua` header says "both looks".
-9. `ns.NewTab` clears OnShow/OnEvent on our own template tab (allowed: our frame); `UIPanelCloseButton` OnClick replaced on our own button; `NewCheck` uses `hooksecurefunc(c, "SetChecked")` on our own CheckButton. No Blizzard-owned frame is written; the only Blizzard post-hook in the GUI is the link insert (Filters).
-10. The core Friends/Social `OnShow`/`OnHide` hooks are installed for everyone at load; only `hostShow` checks `openWithFriends` (hostHide runs its small loop regardless; cheap, and a no-op until the GUI is loaded).
+## Notable findings (GUI, open)
+1. Only the Events tab releases data on close; Players, Guilds and Filters keep their list states and their History panes' last lines.
+2. `OPTION_CHANGED` is registered once in `Build()` and never unregistered (deliberate).
+3. Painters, Summary and type pie lists, and History lists only grow (bounded by widgets built).
+4. GUI still calls some core setters directly (`PSS_ResetPlayerBlockHistory`, `PSS_ResetGuildBlockHistory`, `PSS_ResetMemberBlockHistory`, `PSS_SetFilterActive`, `PSS_ResetFilterCount/History`, `M.ResetSpamFilters`, `PSS_SetOpt`) and reads `M.PSS_MemberGuildName`: allowed, uneven with the Libraries-wrapped paths.
+5. The harness stub does not wrap text: wrapped lines (Guilds `FitLines`, the Players rule page lines) can only be proven in game.

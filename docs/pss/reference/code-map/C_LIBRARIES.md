@@ -151,7 +151,7 @@ Reads counters only; never loads Logging.
 | `M.PSS_ExceptionState`, `M.PSS_SetException`, `M.PSS_ToggleException`, `M.PSS_ExceptionHeading`, `M.PSS_ExceptionText`, `M.PSS_ExceptionTip` | Query/Action/View | Exceptions (`M.PSS_SetOpt(key, scope, v, target)`) | GUI: Detail; Lib |
 | `M.PSS_ClassColor(class)` | View | Class colour | GUI; Lib |
 | `M.PSS_HistHidden(t)`, `M.PSS_SetHistHidden(t, h)`, `M.PSS_HistFilter(all, out)` | View state | Pane history type ticks | GUI: History |
-| `M.PSS_HistCells(h, into)`, `M.PSS_HistTip(h)`, `M.PSS_HistEmptyText(...)` | View | (G1) pane history row, tip and empty text | GUI: History |
+| `M.PSS_HistCells(h, into)`, `M.PSS_HistTip(h, canOpen)`, `M.PSS_HistEmptyText` (string) | View | (G1) pane history row, tip and empty text | GUI: History |
 
 Gone (W1): `M.PSS_TypeOff`, `M.PSS_AnyTypeOff`, `M.PSS_HexColor`.
 
@@ -326,9 +326,9 @@ Exports `M.PSS_SlashPSS(msg)` and `M.PSS_SlashGuild(msg)` (called by core `Slash
 | --- | --- |
 | PSS_ImportExport | ChatBlock, PlayerIgnoreList, GuildIgnoreList, ChatFilters, Options, Upgrade, Perf, Events |
 | PSS_PlayerRows | PlayerIgnoreList, Globals |
-| PSS_Validate | every saved store, GuildIgnoreList, ChatHistory, Upgrade |
-| PSS_WhoisHarvest | Whois, GuildIgnoreList, Options |
-| PSS_Camelot | ChatBlock, GuildIgnoreList, PlayerIgnoreList, ChatHistory |
+| PSS_Validate | reads every saved store; GuildIgnoreList (`PSS_GuildMemberCount`), ChatFilters (`PSS_FILTER_ARRAYS`), ChatHistory, Options, Upgrade (`PSS_UpgradeText`) |
+| PSS_WhoisHarvest | Whois (`PSS_ScanBlockedMsg`, `PSS_WHO_CAP`), GuildIgnoreList (`PSS_ScanGuild`, `PSS_NormalizeGuild`), Options |
+| PSS_Camelot | ChatBlock (name helpers), GuildIgnoreList (`PSS_MergeIntoShipped`, `PSS_MergeMember`, `PSS_MemberHasPlayerKey`), PlayerIgnoreList (index), ChatHistory (`RenameOwner`; loads Logging when needed) |
 | PSS_GuildQuery | GuildIgnoreList, ChatFilters, ChatHistory, Globals (+ Lib WhoisHarvest) |
 | PSS_FilterQuery | ChatFilters, ChatHistory |
 | PSS_TotalsQuery | PlayerIgnoreList, GuildIgnoreList, ChatFilters, ChatHistory |

@@ -11,7 +11,6 @@ Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4
 ## Waiting on Dan
 - Optional: add the repository secret `SCRATCH_TOKEN` (fine-grained token, Contents: read on `racetracks/Pour-Social-Score_Scratch`) so CI runs the real saves (`real-saves` job, 10_CORE_UPLIFT decision 29).
 - Merge the 3.4.1.53 release PR (#143). (Your habit is to test a very old save on the final pre-release before a full release: 3.4.1.52's test zip is the one; the harness ran it on the 2.0.44, 3.0.0, 3.2.0-dev011, 3.4.0.28 and 3.4.1.50 saves.)
-- Dan's 3.4.1.50 login reported 2 custom chat filter rules this version cannot use (kept, not applied). Run `/pss export unused` and paste the string, so the next session can tell whether they are rules from a newer build or filters U3's check rejects wrongly.
 
 ## Known breaches
 In 02 section 12, each with its fix line. None: the idle GC cycle was fixed by P2 in 3.4.1.52.

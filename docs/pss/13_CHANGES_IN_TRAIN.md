@@ -258,16 +258,15 @@ None was scheduled by id; some were fixed along the way. State checked in the co
 
 ## 10. Where the docs disagree (checked at 3.4.1.53)
 
-| # | Disagreement | Which is right |
-| --- | --- | --- |
-| D1 | Scratch appendices 03, 04, 05 call the data migration "step 8"; the plan's decision 4 and its 2.4 example say step 9 | The code: **step 10** (8 is B1's, 9 is S2b's); plan 2.2 and decision 27 say so |
-| D2 | Decisions 22, 24 to 26 name older release builds (3.4.1.46 to 3.4.1.53) and 3.4.2 / 3.4.3 builds | The release is **3.4.1.53**; the 3.4.2 and 3.4.3 lines were not used (decision 28) |
-| D3 | Decision 14 says N2 "moves its per-character settings to the new key" | Plan 2.1: nothing is keyed by `M.PSS_CharKey`, nothing moved |
-| D4 | Plan 2.4's example prints "PourSocialScore:"; `M.ShowMsg` prints "Pour Social Score:" | The code; the harness does not match the example text |
-| D5 | The plan's stage table leaves the S3 row's state empty | S3 is in 3.4.1.52, merged (#142) |
-| D6 | 06 lists issue #45 (upgrade output) as open | U2 (3.4.1.46) built it; the issue can be closed |
+None left. D1 to D6, found at this release, were fixed in the release PR (#143):
+- D1: the data migration is **step 10** everywhere (plan 2.1, 2.4's example, decision 4; scratch appendices 03, 04, 05).
+- D2: decisions 22 and 24 to 26 carry a note that their build numbers were superseded by decision 28 (release 3.4.1.53; 3.4.2 and 3.4.3 not used).
+- D3: decision 14 says nothing was moved (nothing is keyed by `M.PSS_CharKey`).
+- D4: plan 2.4's example shows the real output (`Pour Social Score:` prefix, the real phrases).
+- D5: the S3 row is marked merged (#142).
+- D6: 06 marks issue #45 built by U2.
 
-Resolved since 3.4.1.39: the GC breach line in 02 and 01 (fixed at 3.4.1.52, re-summarized at this release), `CLAUDE.md` and 06 naming the 3.4.2 and 3.4.3 lines (rewritten at this release), `12_CODE_MAP.md` at 3.4.1.38 (refreshed at this release), N8 in two stages (S3 did it), N9 and the two exports to keep (kept), the reload popup (Dan: remove in P1), N24 after B2 (P5 did it).
+Resolved earlier: the GC breach line in 02 and 01 (fixed at 3.4.1.52, re-summarized at this release), `CLAUDE.md` and 06 naming the 3.4.2 and 3.4.3 lines (rewritten at this release), `12_CODE_MAP.md` at 3.4.1.38 (refreshed at this release), N8 in two stages (S3 did it), N9 and the two exports to keep (kept), the reload popup (Dan: remove in P1), N24 after B2 (P5 did it).
 
 ## 11. What remains after the release
 
@@ -282,7 +281,7 @@ Resolved since 3.4.1.39: the GC breach line in 02 and 01 (fixed at 3.4.1.52, re-
 | W2 to W4 leftovers | The Events view's own `TimeText` (G1); the Chat Filters pane redraw (G23); a hinted edit box must not `SetScript` `OnTextChanged` (W3 hooks it) |
 | S3 points | The cap applies at the upgrade and logout only; first-name-only detection is a guess; downgrade limits (section 4) |
 | P3 behaviour change | Inactive shipped guild rules no longer see units or hand-typed /who results while nothing is listed and no shipped list is on (decision 28) |
-| Waiting on Dan | The `SCRATCH_TOKEN` secret for the CI real-save job (decision 29); the `/pss export unused` string for the 2 custom rules his 3.4.1.50 login reported |
+| Waiting on Dan | The `SCRATCH_TOKEN` secret for the CI real-save job (decision 29). The 2 custom rules his 3.4.1.50 login reported need nothing more (Dan, 2026-10-09: issue resolved, no export needed) |
 | #37 guild exclusion list not saved | Open (intent to define) |
 | #38 seeing a shipped-guild member loads the lists | Open (N36 is related) |
 | #39, #40 unload the GUI / can an LOD addon unload | WoW cannot unload an addon; the window drops caches and requests GC on close |

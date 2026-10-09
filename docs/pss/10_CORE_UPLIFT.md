@@ -39,7 +39,7 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - Your own name (`M.PSS_PlayerDisplayName`) replaces `UnitName("player")` in the self checks (`isSelf`, adding yourself).
   - `M.PSS_SplitNameArg`: two words are the name off Retail, or when "First Last" is listed; quotes still work.
   - Import normalises the member key and merges a shipped member into its shipped record (`M.PSS_MergeIntoShipped`).
-  - `PSS_FlushManaged` no longer writes `_canon`, `_gkey` and `_virtual`. **`_managed` is still written:** the member count reads it while the lists are not loaded; it goes with the accessors in S2 and step 9 in S3.
+  - `PSS_FlushManaged` no longer writes `_canon`, `_gkey` and `_virtual`. **`_managed` is still written:** the member count reads it while the lists are not loaded; it goes with the accessors in S2 and step 10 in S3.
   - The roster warning already uses `GetUnitName(unit, true)`, which gives "First Last" (confirmed in game); unchanged.
 - **Shipped lists:** `tools/PSS_BuildManaged.lua` rejects or converts surname-as-realm names. Of its 212 entries, 196 are dropped and 16 converted (decision 6); the data file is rebuilt and re-measured.
 - **Done in N3 (3.4.1.37):**
@@ -134,14 +134,13 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - **always** "SavedVariables performance cleanup", with its counts and the size before and after;
   - today's last line, "Saved data upgraded to X (step N).", unchanged.
 
-  Example (numbers illustrative):
+  Example (numbers illustrative; each line goes through `M.ShowMsg`):
   ```
-  PourSocialScore: updated from 3.4.0.29 to 3.4.1.52. Upgrading your saved data:
-    Chat Filtering: 3 custom filters given an id
-    Guild Ignore List: 48 duplicate members merged, 267 names repaired
-    Managed Communities: 184 members already on the shipped lists dropped
-    SavedVariables performance cleanup: 6 old settings removed, 1208 records tidied (397 KB to 196 KB)
-  PourSocialScore: saved data upgraded to 3.4.1.52 (step 9).
+  Pour Social Score: Updated from 3.4.0.29 to 3.4.1.53. Upgrading your saved data:
+  Pour Social Score:   Chat Filtering: 3 rule(s) given an ID.
+  Pour Social Score:   Guild Ignore List: 267 Camelot name(s) repaired.
+  Pour Social Score:   SavedVariables performance cleanup: 6 retired key(s) removed, 1,208 saved record(s) made smaller.
+  Pour Social Score: Saved data upgraded to 3.4.1.53 (step 10).
   ```
 - Today's data-move messages stay as they are and print before the report (decision 8). A downgrade prints one line (decision 10). A normal login builds no strings and costs nothing. All output goes through `M.ShowMsg`, in ASCII.
 - **Harness:** `check_upgrade_report.lua`, 10 cases:
@@ -290,7 +289,7 @@ Expected builds, if nothing is added before them (decision 24).
 1. Three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
 2. No ID generator for players and guilds; keep the `name-realm` key and make records sparse.
 3. Custom filters get a never-reused integer id.
-4. One upgrade step for the whole data change, with one validation (D9 OK given). It is step 9: B1 takes step 8 (2026-10-08).
+4. One upgrade step for the whole data change, with one validation (D9 OK given). It is step 10: B1 takes step 8 (2026-10-08) and S2b step 9 (decision 27).
 5. The Camelot name repair runs on Camelot saves only; first-name-only entries are listed once in chat.
 6. The shipped lists are rebuilt: 196 entries dropped, 16 converted.
 7. Report lines only for features that changed, plus the cleanup line always.
@@ -300,7 +299,7 @@ Expected builds, if nothing is added before them (decision 24).
 11. Expiry is applied at login and when a list opens (a bug fix).
 12. The name cause is confirmed in game with `/dump` before N1.
 13. ~~Names show the realm as the game spells it (`GetNormalizedRealmName`, `ClassicBetaPvP`), in N2.~~ **Reversed (Dan, 2026-10-08): do not change realm names.**
-14. Dan's own character has a surname: N2 fixes `M.PSS_CharKey` and moves its per-character settings to the new key (Dan, 2026-10-08).
+14. Dan's own character has a surname: N2 fixes `M.PSS_CharKey` (Dan, 2026-10-08). Nothing is keyed by it (it only fills the export's `by` field), so no settings moved (2.1).
 15. "Also put listed players on Blizzard's ignore list" becomes a per-player tick (PSS is authoritative; never ignore through Blizzard unless the player asks). The global setting's value moves to the ticks in upgrade step 8 (Dan's OK for the save change, 2026-10-08).
 16. A new Blizzard ignore moves into PSS: listed, taken off Blizzard's list once confirmed, note "Synced from Blizzard ignore list on <date>". For everyone (02 section 12 override).
 17. People already on Blizzard's list are synced into PSS (ticked, noted) and left on Blizzard's list.
@@ -308,14 +307,14 @@ Expected builds, if nothing is added before them (decision 24).
 19. Removing from either list removes from both.
 20. Blizzard's ignore chat lines are left alone.
 21. The tick lives in the PSS window only. The right-click menu becomes a "PSS" header with "Block Player" and "Block Guild" (B2, its own stage).
-22. B1 and B2 are their own stages after N2 (builds 3.4.1.35 and .36, after this plan change took 3.4.1.34); the later stages move up three builds and the release is 3.4.1.46.
+22. B1 and B2 are their own stages after N2 (builds 3.4.1.35 and .36, after this plan change took 3.4.1.34); the later stages move up three builds and the release is 3.4.1.46. *(Superseded: decision 28 put the rest of the project into 3.4.1.52; the release is 3.4.1.53 and the 3.4.2 and 3.4.3 lines were not used.)*
 23. The detail pane collision is its own fix build, stage Fix (3.4.1.39 was taken by the code map docs build, so Fix is 3.4.1.40; 3.4.1.38 was the harness notes docs build), after N3 merges; the wrapped line keeps its text and pushes the lines below it down (Dan, 2026-10-08; he chose this over shortening the text). The later stages moved up one build for each docs build (3.4.1.38, then the code map 3.4.1.39) and the release is 3.4.1.49. 3.4.1.40 did not take in game; its follow-up is Fix 2 (3.4.1.41, Dan's screenshot, 2026-10-08), the later stages moved up one more build and the release is 3.4.1.50.
-24. **Every planned build has its expected number, and an added build moves them all (Dan, 2026-10-09).** The docs build 3.4.1.43 marks F1 merged; F2 to S3 are 3.4.1.44 to 3.4.1.50 and the 3.4.1 release is 3.4.1.51. The 3.4.2 stages are 3.4.2.52 to 3.4.2.57 with its release 3.4.2.58, and the 3.4.3 stages 3.4.3.59 to 3.4.3.62 with its release 3.4.3.63. Any build added before a stage (a docs build or a fix) moves every later build up one, and the PR that takes it updates every reference (02 section 8).
-25. **U3's fix is 3.4.1.48 (2026-10-09).** In-game checks 3 and 6 of 3.4.1.47 failed (one missing local in the GUI folder); the fix takes the next build in the same PR (#138), so S1 to S3 are 3.4.1.49 to 3.4.1.51 and the 3.4.1 release is 3.4.1.52; 3.4.2 runs 3.4.2.53 to 3.4.2.59 and 3.4.3 runs 3.4.3.60 to 3.4.3.64 (decision 24's rule).
+24. **Every planned build has its expected number, and an added build moves them all (Dan, 2026-10-09).** The docs build 3.4.1.43 marks F1 merged; F2 to S3 are 3.4.1.44 to 3.4.1.50 and the 3.4.1 release is 3.4.1.51. The 3.4.2 stages are 3.4.2.52 to 3.4.2.57 with its release 3.4.2.58, and the 3.4.3 stages 3.4.3.59 to 3.4.3.62 with its release 3.4.3.63. Any build added before a stage (a docs build or a fix) moves every later build up one, and the PR that takes it updates every reference (02 section 8). *(Superseded: decision 28 put the rest of the project into 3.4.1.52; the release is 3.4.1.53 and the 3.4.2 and 3.4.3 lines were not used.)*
+25. **U3's fix is 3.4.1.48 (2026-10-09).** In-game checks 3 and 6 of 3.4.1.47 failed (one missing local in the GUI folder); the fix takes the next build in the same PR (#138), so S1 to S3 are 3.4.1.49 to 3.4.1.51 and the 3.4.1 release is 3.4.1.52; 3.4.2 runs 3.4.2.53 to 3.4.2.59 and 3.4.3 runs 3.4.3.60 to 3.4.3.64 (decision 24's rule). *(Superseded: decision 28 put the rest of the project into 3.4.1.52; the release is 3.4.1.53 and the 3.4.2 and 3.4.3 lines were not used.)*
 
 27. **S2b is one record per entry (Dan, 2026-10-09).** The seven parallel list arrays become one array of sparse records in S2b (3.4.1.51), with upgrade step 9; S3's step becomes 10. The player W I G P C accessors and the log group's `m` move into S3 (no build changes). Dan chose layout A (the details attached to each listed person), asked for all the arrays in one stage, and accepted that an older version does not show a migrated list.
 
-26. **S2 is split (Dan, 2026-10-09).** S2 (3.4.1.50) covers what saves the memory: the guild member fields, the counts' `total` and `memberCount`, with the rules-check grep. A new stage S2b (3.4.1.51) takes the player W I G P C flags, the player list arrays and the log group's `m`; the list arrays get a layout decision first, as an array with holes breaks `table.remove`. Dan's saves hold no listed players, so S2b saves them nothing. Every later build moves up one (decision 24's rule): S3 is 3.4.1.52 and the 3.4.1 release 3.4.1.53; 3.4.2 runs 3.4.2.54 to 3.4.2.60 and 3.4.3 runs 3.4.3.61 to 3.4.3.65. Dan also said yes to keeping `_managed` saved in S2: S2 adds its accessor, and S3 drops it.
+26. **S2 is split (Dan, 2026-10-09).** S2 (3.4.1.50) covers what saves the memory: the guild member fields, the counts' `total` and `memberCount`, with the rules-check grep. A new stage S2b (3.4.1.51) takes the player W I G P C flags, the player list arrays and the log group's `m`; the list arrays get a layout decision first, as an array with holes breaks `table.remove`. Dan's saves hold no listed players, so S2b saves them nothing. Every later build moves up one (decision 24's rule): S3 is 3.4.1.52 and the 3.4.1 release 3.4.1.53; 3.4.2 runs 3.4.2.54 to 3.4.2.60 and 3.4.3 runs 3.4.3.61 to 3.4.3.65. Dan also said yes to keeping `_managed` saved in S2: S2 adds its accessor, and S3 drops it. *(Superseded: decision 28 put the rest of the project into 3.4.1.52; the release is 3.4.1.53 and the 3.4.2 and 3.4.3 lines were not used.)*
 
 ## 6. Risks
 | Risk | Cover |
