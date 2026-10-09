@@ -1,7 +1,8 @@
 #!/bin/sh
 # Saves byte-identical (core uplift U1): every save logs in twice with the
 # code of a git ref and with the working tree; the saved files and the chat
-# lines must be identical, apart from the version string itself. For a
+# lines must be identical, apart from the version string itself and the
+# upgrade report's lines. For a
 # change that must not touch the saved data (a refactor, the upgrade report).
 #   sh tools/harness/same_saves.sh <ref> [save.lua ...]
 # With no saves listed: a fresh save, every PourSocialScore.lua under
@@ -32,10 +33,17 @@ login() {
 	tree=$1; sv=$2; tag=$3; v=$4
 	lua5.1 "$here/run.lua" "$tree" "$sv" "$work/$tag-1.lua" > "$work/$tag-1.txt" 2>&1
 	lua5.1 "$here/run.lua" "$tree" "$work/$tag-1.lua" "$work/$tag-2.lua" > "$work/$tag-2.txt" 2>&1
-	for f in "$work/$tag-1.lua" "$work/$tag-2.lua" "$work/$tag-1.txt" "$work/$tag-2.txt"; do
+	for f in "$work/$tag-1.lua" "$work/$tag-2.lua"; do
 		sed "s/$v/VERSION/g" "$f" > "$f.n"
 	done
+	# the upgrade report's lines (3.4.1.46, U2) are left out of the chat: a
+	# version change alone now prints one; the saves still must be the same
+	for f in "$work/$tag-1.txt" "$work/$tag-2.txt"; do
+		sed "s/$v/VERSION/g" "$f" | grep -v -E "$REPORT" > "$f.n"
+	done
 }
+REPORT='Upgrading your saved data:|Saved data upgraded to |Saved data upgrade paused at |older than your saved data|Pour Social Score: [|]cffffffff  [A-Z][A-Za-z ]+: '
+
 
 fail=0; n=0
 for sv in "$@"; do

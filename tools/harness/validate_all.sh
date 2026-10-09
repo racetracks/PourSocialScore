@@ -343,6 +343,25 @@ for sv in - "$work/sv-gr-2.0.44.lua"; do
 	echo "$out" | grep -q "PASS upgrade steps" || fail=1
 done
 
+# the upgrade report (core uplift U2, 3.4.1.46): 10 cases on a new save, then
+# each first login's output (the 2.0.44 test save and every real save) has
+# the report's shape and the save checks clean
+echo "== upgrade report"
+reportsaves="- $work/sv-gr-2.0.44.lua"
+[ -n "$PSS_REAL_SAVES" ] && reportsaves="$reportsaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua')"
+for sv in $reportsaves; do
+	login=""
+	if [ "$sv" != "-" ]; then
+		lua5.1 "$here/run.lua" . "$sv" "$work/ur-1.lua" > "$work/ur-1.out" 2>&1
+		login="$work/ur-1.out"
+	else
+		lua5.1 "$here/run.lua" . - "$work/ur-1.lua" > /dev/null 2>&1
+	fi
+	out=$(PSS_LOGIN_OUT="$login" lua5.1 "$here/run.lua" . "$work/ur-1.lua" - "$here/check_upgrade_report.lua" 2>&1 | grep -v '^|cff')
+	echo "$out ($sv)"
+	echo "$out" | grep -q "PASS upgrade report" || fail=1
+done
+
 # /pss check (3.0): no problems on a fresh save and on every upgraded 2.0.44
 # test save; planted faults are reported
 echo "== saved data check"

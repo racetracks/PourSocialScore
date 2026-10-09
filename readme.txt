@@ -52,6 +52,10 @@ in WTF/Account/<account>/SavedVariables/, and is checked before and after
   PourSocialScore.lua          the upgrade record, and new block lines
                                waiting to join the history
 
+After any update, the first login lists what was upgraded in your saved
+data, one line per feature that changed, plus the "SavedVariables
+performance cleanup" line; later logins say nothing.
+
 
 == FEATURES
 
