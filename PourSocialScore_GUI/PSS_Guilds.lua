@@ -32,7 +32,7 @@ local cells = {}
 local groupView = {}
 local page, list, mlist, lf, mview, pane, picker
 local scanButtons = {}
-local cellBuf, paneView, memberView, pickCells = {}, {}, {}, {}
+local cellBuf, paneView, memberView = {}, {}, {}
 
 ns.TabBuilders = ns.TabBuilders or {}
 
@@ -178,14 +178,6 @@ end
 ------------------------------------------------------------------------
 -- Detail pane
 ------------------------------------------------------------------------
-local function Line(parent, y)
-	local fs = ns.NewText(parent, 12)
-	fs:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, y)
-	fs:SetPoint("RIGHT", parent, "RIGHT", -10, 0)
-	fs:SetJustifyH("LEFT")
-	return fs
-end
-
 -- A line under another: a wrapped line pushes the ones below it down.
 -- A FontString held by two side anchors stays one line tall when it wraps,
 -- so these get a set width and FitLines gives each its wrapped height.
@@ -207,21 +199,6 @@ local function FitLines(lines)
 	for _, fs in ipairs(lines) do fs:SetHeight(fs:GetStringHeight()) end
 end
 
-local function Label(parent, text)
-	local fs = ns.NewText(parent, 12)
-	fs:SetPoint("LEFT", parent, "LEFT", 0, 0)
-	fs:SetText(text)
-	fs:SetAlpha(0.7)
-	return fs
-end
-
-local function Strip(parent, y, h)
-	local f = CreateFrame("Frame", nil, parent)
-	f:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, y)
-	f:SetSize(DETAIL_W - 20, h or 22)
-	return f
-end
-
 local function Body(parent)
 	local b = CreateFrame("Frame", nil, parent)
 	b:SetAllPoints()
@@ -234,22 +211,7 @@ end
 
 -- W I G P C tick boxes (ticked = allowed). onClick(cat, box, button).
 local function ExclBoxes(parent, y, tip, onClick)
-	local row = Strip(parent, y, 24)
-	Label(row, "Allowed")
-	local boxes, prev = {}, nil
-	for _, e in ipairs(M.EXCL) do
-		local c = ns.NewCheck(row)
-		if prev then c:SetPoint("LEFT", prev, "RIGHT", 22, 0) else c:SetPoint("LEFT", row, "LEFT", 90, 0) end
-		c:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-		local letter = ns.NewText(row, 12)
-		letter:SetPoint("LEFT", c, "RIGHT", 0, 0)
-		letter:SetText(e.letter)
-		ns.TipOn(c, c, e.label .. "\n\n" .. tip)
-		c:SetScript("OnClick", function(self, button) onClick(e.cat, self, button) end)
-		boxes[e.cat] = c
-		prev = letter
-	end
-	return boxes, row
+	return ns.NewAllowedBoxes(parent, y, DETAIL_W - 20, tip, onClick, true)
 end
 
 local function OpenGuildEvents(key)
@@ -337,10 +299,10 @@ end
 
 local function BuildGuildBody(parent)
 	local b = Body(parent)
-	b.info = Line(b, -28)
+	b.info = ns.NewLine(b, -28)
 	local dp = ns.NewDetailPages(b, -46, "guilds")
 	b.pages = dp
-	b.counts = Line(dp.summary, -6)
+	b.counts = ns.NewLine(dp.summary, -6)
 	b.summary = ns.NewSummary(dp.summary, page, -30)
 	b.sumSpec = { specFn = M.PSS_GuildEventsSpec, noWhere = true }
 
@@ -352,7 +314,7 @@ local function BuildGuildBody(parent)
 	y = y - 28
 
 	-- Scan (the sweep), Scan Fields, Custom Scan: /who first, the window after
-	local sr = Strip(rule, y, 24)
+	local sr = ns.NewStrip(rule, y, 24, DETAIL_W - 20)
 	local scan = ns.NewButton(sr, "Scan", 100, function() M.PSS_GuildScanNow(pane.guildKey, IsShiftKeyDown()) end)
 	scan:SetPoint("LEFT", sr, "LEFT", 0, 0)
 	scan:SetScript("OnEnter", function(self)
@@ -438,7 +400,7 @@ end
 
 local function BuildInfoBody(parent)
 	local b = Body(parent)
-	b.text = Line(b, -30)
+	b.text = ns.NewLine(b, -30)
 	b.text:SetWordWrap(true)
 	b.text:SetJustifyV("TOP")
 	b.text:SetHeight(160)
@@ -454,18 +416,18 @@ local function BuildMemberBody(parent)
 	local b = Body(parent)
 	local dp = ns.NewDetailPages(b, -28, "guilds")
 	b.pages = dp
-	b.counts = Line(dp.summary, -6)
+	b.counts = ns.NewLine(dp.summary, -6)
 	b.summary = ns.NewSummary(dp.summary, page, -30)
 	b.sumSpec = { specFn = function(m) return M.PSS_MemberEventsSpec(m, V.mguild) end, who = "this member" }
 
 	-- View/Edit Rule
 	local rule = dp.rule
 	local y = -2
-	b.guildLine = Line(rule, y); y = y - LINE_H
-	b.addedLine = Line(rule, y); y = y - LINE_H - 4
+	b.guildLine = ns.NewLine(rule, y); y = y - LINE_H
+	b.addedLine = ns.NewLine(rule, y); y = y - LINE_H - 4
 
-	local nr = Strip(rule, y, 22)
-	Label(nr, "Note")
+	local nr = ns.NewStrip(rule, y, 22, DETAIL_W - 20)
+	ns.NewLabel(nr, "Note")
 	local note = ns.NewEditBox(nr, 200, 25)
 	note:SetPoint("LEFT", nr, "LEFT", 94, 0)
 	note:SetPoint("RIGHT", nr, "RIGHT", -4, 0)
@@ -548,7 +510,7 @@ local function ShowGuild(key, fresh)
 	b.scan:SetText(gv.sweep)
 	if not pane.fieldsBox:HasFocus() then pane.fieldsBox:SetText(gv.fields) end
 	b.exceptions:Set(g, "guild", "this guild")
-	local c = M.PSS_GetGuildBlockCounts(key)
+	local c = V:GuildCounts(key)
 	b.counts:SetText(M.PSS_CountsText(c))
 	b.removeButton:SetEnabled(gv.removable)
 	b.membersButton:SetShown(V.view ~= "members")
@@ -621,6 +583,28 @@ local function ShowMember(fresh)
 	return true
 end
 
+-- A block only changes the counts: the counts line, the history and the
+-- Summary of the guild or member shown (the rest of the pane is as it was).
+-- Anything else shown: the whole pane.
+local function ShowCounts()
+	local b = pane and (V.view == "members" and V.msel and pane.member or V.view ~= "members" and V.selKind == "guild" and pane.guild)
+	if not (b and b:IsShown()) then return ShowDetail() end
+	local s = b.sumSpec
+	local c
+	if b == pane.member then
+		local m = V.msel
+		c = M.PSS_GetMemberBlockCounts(m)
+		b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory)
+	else
+		local key = V.sel
+		c = V:GuildCounts(key)
+		b.hist:Set(key, c.total or 0, M.PSS_GetGuildBlockHistory)
+	end
+	b.counts:SetText(M.PSS_CountsText(c))
+	s.allTime = c.total or 0
+	b.summary:Set(s)
+end
+
 -- Redraw the pane for what is selected (nothing: the list's totals).
 function ShowDetail(fresh)
 	if not pane then return end
@@ -654,62 +638,16 @@ local function ClosePicker()
 	mview:SetShown(V.view == "members")
 end
 
-local function DrawPick(row, i)
-	local it = picker.items[i]
-	local c = row.cells
-	if not it then
-		for _, fs in pairs(c) do fs:SetText("") end
-		row.sel:Hide()
-		return
-	end
-	M.PSS_PickerCells(it, pickCells)
-	c.tick:SetText(pickCells.tick)
-	c.guild:SetText(it.name)
-	c.state:SetText(pickCells.state)
-	row.sel:SetShown(it.ticked and not it.listed)
-end
-
 local function BuildPicker(parent)
-	picker = CreateFrame("Frame", nil, parent)
-	picker:SetPoint("TOPLEFT", lf, "TOPLEFT", 0, 0)
-	picker:SetPoint("BOTTOMRIGHT", lf, "BOTTOMRIGHT", 0, 0)
-	picker:Hide()
-	picker.items = {}
-	picker.title = ns.NewText(picker, 12)
-	picker.title:SetPoint("TOPLEFT", picker, "TOPLEFT", 4, -4)
-	picker.title:SetPoint("RIGHT", picker, "RIGHT", -4, 0)
-	picker.title:SetJustifyH("LEFT")
-	local rf = CreateFrame("Frame", nil, picker)
-	rf:SetPoint("TOPLEFT", picker, "TOPLEFT", 0, -24)
-	rf:SetPoint("BOTTOMRIGHT", picker, "BOTTOMRIGHT", 0, 34)
-	picker.list = ns.NewRows(rf, {
-		rowH = 20, height = 240,
-		cols = {
-			{ key = "tick", text = "", width = 36, justify = "CENTER" },
-			{ key = "guild", text = "Guild" },
-			{ key = "state", text = "", width = 70 },
-		},
-		draw = DrawPick,
-		click = function(_, i)
-			if M.PSS_PickerToggle(picker.items[i]) then picker.list:Redraw() end
-		end,
+	picker = ns.NewPicker(parent, lf, {
+		cols = { { key = "guild", text = "Guild" } },
+		stateW = 70,
+		fill = function(c, it) c.guild:SetText(it.name) end,
+		toggle = M.PSS_PickerToggle,
+		tickAll = M.PSS_PickerTickAll,
+		save = function(items) M.PSS_GuildPickerSave(items, picker.mode) end,
+		close = ClosePicker,
 	})
-	local save = ns.NewButton(picker, "Save", 90, function()
-		M.PSS_GuildPickerSave(picker.items, picker.mode)
-		ClosePicker()
-	end)
-	save.pssPrimary = true
-	save.pssPaint()
-	save:SetPoint("BOTTOMLEFT", picker, "BOTTOMLEFT", 4, 4)
-	picker.saveButton = save
-	local all = ns.NewButton(picker, "Tick All", 90, function()
-		M.PSS_PickerTickAll(picker.items)
-		picker.list:Redraw()
-	end)
-	all:SetPoint("LEFT", save, "RIGHT", 6, 0)
-	picker.allButton = all
-	local cancel = ns.NewButton(picker, "Cancel", 90, ClosePicker)
-	cancel:SetPoint("LEFT", all, "RIGHT", 6, 0)
 end
 
 local function ShowSearchResults(found, query, mode)
@@ -722,12 +660,9 @@ local function ShowSearchResults(found, query, mode)
 	end
 	picker.mode = mode
 	M.PSS_GuildPickerItems(found, mode, picker.items)
-	picker.title:SetText(M.PSS_GuildPickerTitle(#found, query, mode))
 	lf:Hide()
 	mview:Hide()
-	picker:Show()
-	picker.list:SetCount(#picker.items)
-	picker.list:Top()
+	picker:ShowItems(M.PSS_GuildPickerTitle(#found, query, mode))
 end
 
 ------------------------------------------------------------------------
@@ -749,13 +684,8 @@ local function EntryRow(pg, y, hintText, addText, onSearch, onAdd, searchTip, ad
 	addButton:SetPoint("TOPRIGHT", pg, "TOPRIGHT", -8, y)
 	local search = ns.NewButton(pg, "Guild Search", 100)
 	search:SetPoint("RIGHT", addButton, "LEFT", -6, 0)
-	local box = ns.NewEditBox(pg, 150, 64)
+	local box = ns.NewEditBox(pg, 150, 64, hintText)
 	box:SetPoint("RIGHT", search, "LEFT", -8, 0)
-	local hint = ns.NewText(box, 12)
-	hint:SetPoint("LEFT", box, "LEFT", 2, 0)
-	hint:SetAlpha(0.4)
-	hint:SetText(hintText)
-	box:SetScript("OnTextChanged", function(self) hint:SetShown((self:GetText() or "") == "") end)
 	box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 	-- /who must go out straight from the click (hardware event)
 	local function doSearch()
@@ -973,9 +903,12 @@ local redrawCounts = M.PSS_Throttle(function()
 			mlist:Redraw()
 		else
 			V:CountsChanged()
+			-- the selected guild's row was counted by the redraw: the pane reuses it
+			V.share = true
 			list:Redraw()
 		end
-		ShowDetail()
+		ShowCounts()
+		V.share = nil
 	else
 		V.dirty, V.mdirty = true, true
 	end

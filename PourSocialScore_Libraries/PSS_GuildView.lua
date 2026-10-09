@@ -122,6 +122,20 @@ function List:MarkDirty(guilds, members)
 	if members then self.mdirty = true end
 end
 
+-- A guild's counts for the pane. During a block redraw (self.share, set by
+-- the tab) the drawn row's count of this round is reused, so the selected
+-- guild is walked once, not twice; otherwise counted fresh.
+function List:GuildCounts(key)
+	if self.share then
+		local rows = self.rows
+		for i = 1, self.n or 0 do
+			local it = rows[i]
+			if it.key == key and it.g and it.bc and it.counted == self.gen then return it.bc end
+		end
+	end
+	return M.PSS_GetGuildBlockCounts(key)
+end
+
 function List:CountText()
 	if self.view == "members" then
 		if self.mfind ~= "" then return ("%d of %d members"):format(self.mn, self.mtotal) end

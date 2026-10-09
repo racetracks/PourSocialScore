@@ -287,6 +287,25 @@ local function darkShown(w) return w and w.pssParts and w.pssParts.fill:IsShown(
 check(b1 and not darkShown(b1) and not b1.pssParts.edge:IsShown(), "Blizzard button shows Dark parts")
 check(e1 and not darkShown(e1), "Blizzard edit box shows Dark parts")
 check(kit.page and kit.page.pssParts.art and kit.page.pssParts.art:IsShown(), "Blizzard panel not shown")
+-- W3: the kit additions, in the Classic look (the harness starts in it)
+local b3, h1 = kit.buttons[3], kit.boxes[4]
+check(b3.pssPrimary == true and kit.buttons[1].pssPrimary == nil, "NewButton's primary argument not kept")
+check(h1.hint and h1.hint:IsShown() and h1.hint:GetText() == "Name-Realm" and h1.hint:GetAlpha() == 0.4, "edit box hint not shown while empty")
+h1:SetText("x")
+h1._scripts.OnTextChanged(h1)
+check(not h1.hint:IsShown(), "edit box hint did not hide with text")
+h1:SetText("")
+h1._scripts.OnTextChanged(h1)
+check(h1.hint:IsShown(), "edit box hint did not come back when emptied")
+local ta = kit.textArea
+check(ta and ta.edit and ta.scroll and ta.pssParts.art and ta.pssParts.art:IsShown(), "text area has no panel, box or scroll frame")
+check(ta.edit:GetText():find("A text area"), "text area holds no text")
+local n = 0
+for _ in pairs(kit.allowed) do n = n + 1 end
+check(n == #M.EXCL and kit.allowed.whisper ~= nil, "the W I G P C row has not one box per category")
+local pk = kit.menus.picker
+check(pk.saveButton.pssPrimary == true and pk.allButton.pssPrimary == nil and #pk.items == 3 and pk:IsShown(), "results picker not built")
+check(kit.line:GetText() == "A pane line" and kit.label:GetAlpha() == 0.7, "pane line or label wrong")
 local tab1, tab2 = kit.tabs[1], kit.tabs[2]
 check(tab1.pssSelected and not tab2.pssSelected, "first tab not selected")
 -- Blizzard tabs: the label centred (not Blizzard's 4 / 8 px drop), the
@@ -312,6 +331,8 @@ check(darkShown(b1) and b1.pssParts.edge:IsShown(), "Dark button parts not shown
 check(c1.pssParts.box:IsShown() and c1.pssParts.edge:IsShown(), "Dark tick box parts not shown")
 check(darkShown(e1), "Dark edit box parts not shown")
 check(darkShown(kit.page) and not kit.page.pssParts.art:IsShown(), "Dark panel not shown")
+check(darkShown(kit.textArea) and darkShown(kit.boxes[4]), "Dark text area or hinted box not shown")
+check(darkShown(kit.buttons[3]) and darkShown(kit.menus.picker.saveButton), "Dark primary buttons not shown")
 check(tab1.pssLine:IsShown() and not tab2.pssLine:IsShown(), "Dark tab underline not on the selected tab only")
 check(tab2:GetFontString():GetAlpha() == 0.7 and tab1:GetFontString():GetAlpha() == 1, "Dark tab labels not faded to 0.7 by alpha")
 kit.tabs[3]._scripts.OnClick(kit.tabs[3])
