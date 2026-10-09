@@ -114,6 +114,11 @@ local function loaded(name)
 	return f ~= nil and f(name) and true or false
 end
 
+-- The saved data check is in Libraries (PSS_Validate.lua, 3.4.1 P6): it loads
+-- for /pss check and at the one login where saved keys move.
+M.PSS_Stub("PSS_Validate", "Libraries")
+M.PSS_Stub("PSS_PrintValidation", "Libraries")
+
 local function counts()
 	return M.PSS_Validate and M.PSS_Validate().n or {}
 end
@@ -208,8 +213,9 @@ function M.PSS_PrepareSavedData(opts)
 	if #keys == 0 then return true end
 
 	-- count, move (a key PourSocialScoreDB holds wins: it is what code reads
-	-- today), validate
-	local before = counts()
+	-- today), validate (not for a new or reset save: nothing to lose, and the
+	-- check is in Libraries)
+	local before = not (opts.wipe or (opts.quiet and opts.startup)) and counts() or nil
 	local old = {}
 	for _, k in ipairs(keys) do
 		local t = _G[GROUPS[ROUTE[k]]]
@@ -217,7 +223,7 @@ function M.PSS_PrepareSavedData(opts)
 		t[k] = rawget(db, k)
 		rawset(db, k, nil)
 	end
-	local diff = compare(before, counts())
+	local diff = before and compare(before, counts()) or ""
 	if diff ~= "" then
 		-- undo: put every key back; the step is not recorded, so it runs again
 		-- at the next login
