@@ -7,9 +7,9 @@
 | Item | State on 2026-10-08 |
 | --- | --- |
 | Live release | **3.4.0.29** (full; the new PSS window in three looks; mirrored to `racetracks/Pour-Social-Score`) |
-| Main | 3.4.1.43 (docs build, PR #134; F1 merged in 3.4.1.42, PR #131) |
+| Main | 3.4.1.43 (docs build, PR #134; F1 merged in 3.4.1.42, PR #131); F2 3.4.1.44 in PR #135 |
 | Current project | **Core uplift**, locked 2026-10-08, three version lines |
-| Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done); next the window fixes F2, the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
+| Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done), window fixes F2 (PR #135); next the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
 | Line 3.4.2 | Builds 3.4.2.52 to 3.4.2.58 (release). Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
 | Line 3.4.3 | Builds 3.4.3.59 to 3.4.3.63 (release). Window tidy: dead GUI names, logic moved from GUI to Libraries, kit functions, redraw cost |
 | Build numbers | `X.Y.Z.B`; B never resets; every build (stage, fix, release) takes the next one |
@@ -33,8 +33,8 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | Fix | 3.4.1.40 | Guilds tab detail pane: a wrapped line pushes the lines and pies below it down (decision 23) | Yes | Merged (#129), did not take in game |
 | Fix 2 | 3.4.1.41 | The same pane: 3.4.1.40 did not take in game; the lines get a set width and their wrapped height (`FitLines`) | Yes | Merged (#130) |
 | F1 | 3.4.1.42 | N40 expiry applied, N41 hooks gated by option, N42 talent links, N45 Import Replace keeps shipped rules, N46 listener errors reported, N47 group warning list, N48 `/pss list` nil note | Yes | Merged (#131) |
-| Docs | 3.4.1.43 | F1 marked merged; later builds renumbered and the 3.4.2 / 3.4.3 builds set (decision 24); docs only | No | PR #134 |
-| F2 | 3.4.1.44 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | |
+| Docs | 3.4.1.43 | F1 marked merged; later builds renumbered and the 3.4.2 / 3.4.3 builds set (decision 24); docs only | No | Merged (#134) |
+| F2 | 3.4.1.44 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | PR #135 |
 | U1 | 3.4.1.45 | Upgrade step registry, invisible (step 1 split and tagged, `RETIRED`, counts, version compare) | No | |
 | U2 | 3.4.1.46 | Upgrade report printed once per update (issue #45) | Once per update | |
 | U3 | 3.4.1.47 | Forward compatibility: `M.PSS_SCHEMA`, tolerant readers, downgrade line, unusable rules kept and reported, `/pss export unused`, export format version | Only when a rule cannot be used | |
@@ -129,7 +129,7 @@ Use with `12_CODE_MAP.md` to find the file.
 | G2 | Picker tick / "listed" strings built in two tabs | `PSS_Players.lua`, `PSS_Guilds.lua` | W2 |
 | G3 | Guild tab reads rules and saved records directly | `PSS_Guilds.lua` | W2 |
 | G4 | Remove Guild target decided in the GUI | `PSS_Guilds.lua` | W2 |
-| G5 | GUI writes the view's `dirty` / `mdirty` | `PSS_Guilds.lua`, `PSS_Filters.lua` | W2 (the rule-toggle writes can go once G26 lands in F2) |
+| G5 | GUI writes the view's `dirty` / `mdirty` | `PSS_Guilds.lua`, `PSS_Filters.lua` | W2 (the rule-toggle writes went with G26 in F2, 3.4.1.44) |
 | G6 | Empty-list and hint texts chosen in the GUI | `PSS_Guilds.lua`, `PSS_History.lua` | W2 |
 | G7 | Each pane fills its Summary spec and labels | `PSS_Players`, `PSS_Guilds`, `PSS_Filters` | W2 |
 | G8 | Type-pie tip and spec copy in the GUI | `PSS_Detail.lua` | W2 |
@@ -145,14 +145,14 @@ Use with `12_CODE_MAP.md` to find the file.
 | G18 | Edit box placeholder hint hand-built twice | `PSS_Players.lua`, `PSS_Guilds.lua` | W3 |
 | G19 | Multi-line text area is raw `CreateFrame("EditBox")`, twice | `PSS_Filters.lua`, `PSS_Popups.lua` | W3 |
 | G20 | `b.pssPrimary = true; b.pssPaint()` pattern | Players, Guilds, Popups | W3 |
-| G21 | Every filter block fires FILTERS_CHANGED: unthrottled Filters resort | core `PSS_ChatFilters.lua` with `PSS_Filters.lua` | F2 (3.4.1.42) |
+| G21 | Every filter block fires FILTERS_CHANGED: unthrottled Filters resort | core `PSS_ChatFilters.lua` with `PSS_Filters.lua` | F2; done in 3.4.1.44 (PR #135) |
 | G22 | Selected guild's members walked twice per block redraw | `PSS_Guilds.lua`, Libraries `PSS_GuildView.lua` | W4 |
 | G23 | Whole pane redrawn per block; exception tips built eagerly | Players, Guilds, Detail | W4 |
 | G24 | Leaving one menu slot re-lays every slot | `PSS_Menu.lua` | W1 |
 | G25 | Small per-call allocations | Kit, Window, Guilds, Filters, History, Players | W1 |
-| G26 | Guild rows keep a stale "rule off" dim (no FILTERS_CHANGED listener) | `PSS_Guilds.lua` | F2 |
-| G27 | Dark right-click menus capped at 200 px; width measured on visible slots only | `PSS_Menu.lua` | F2 |
-| G28 | Modern art check covers only 8 of the atlases Modern draws | `PSS_Skin.lua` | F2 |
+| G26 | Guild rows keep a stale "rule off" dim (no FILTERS_CHANGED listener) | `PSS_Guilds.lua` | F2; done in 3.4.1.44 (PR #135) |
+| G27 | Dark right-click menus capped at 200 px; width measured on visible slots only | `PSS_Menu.lua` | F2; done in 3.4.1.44 (PR #135) |
+| G28 | Modern art check covers only 8 of the atlases Modern draws | `PSS_Skin.lua` | F2; done in 3.4.1.44 (PR #135) |
 | G29 | Menu divider is 1 unit, not one physical pixel | `PSS_Menu.lua` | W1 |
 | G30 | Two Exclusion "Remove" paths behave differently | `PSS_Guilds.lua` | Unscheduled (natural fit W2) |
 
