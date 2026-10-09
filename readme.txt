@@ -529,6 +529,8 @@ filter that mixes them without brackets may now behave differently.)
                           /pss gui, /pss ui and /pss eui). Its look and font
                           are on its Options tab
 /pss help                 Show the command list
+/pss export unused        Copy the saved rules this version cannot use
+                          (kept, not applied) as an export string
 /pss list [days|server]   List entries; optionally only those listed for
                           [days] or more, or from one server
 /pss add name [days] [note]
