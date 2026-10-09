@@ -4,7 +4,7 @@
 
 ## 1. Code and style
 1. Every folder indents with tabs. (Until 3.4.0.24 `PourSocialScore_EllesmereUI` used EllesmereUI's 4-space style, checked by `tools/check_rules_eui.sh`; both are gone from 3.4.0.25.)
-2. Everything shared hangs on `M` via `PourSocialScore_NS` (the project's root table); use `M.ShowMsg`, `M.Trim` and the UIKit builders.
+2. Everything shared hangs on `M` via `PourSocialScore_NS` (the project's root table); use `M.ShowMsg`, `M.Trim` and the UIKit builders. Every file that uses `M` declares it as a local first (`local M = ns.M` or `addon.M`); there is no global `M` (`check_locals.lua`, 3.4.1.48).
 3. Core fires `M.Events`; UIs listen and write only through core setters (`tools/check_layers.lua` enforces it).
 4. The 8 StaticPopup dialogs stay as they are in the native mode.
 
@@ -23,6 +23,7 @@
 - **Every number the window shows comes from the core's counters**, with the same definitions as before ("this session" = since login or /reload). `check_viewquery.lua`, `check_stats.lua` and each tab's check gate it. (Until 3.4.0.24 the EllesmereUI window's numbers had to equal the native window's, gated by `check_match.lua`.)
 - Every window closes on Escape. The window's looks are Blizzard's (Modern, Classic) or our flat Dark (section 11).
 - No guild discovery from mouseover or nameplates in combat.
+- **Forward compatible saves (core uplift U3, plan 2.3, Dan, 2026-10-08):** every field PSS saves is listed in `M.PSS_SCHEMA` (`PSS_Schema.lua`) in the PR that first saves it (`check_schema.lua` fails an unlisted one). Nothing is deleted by guesswork: only keys in `RETIRED` (`PSS_Upgrade.lua`) are dropped; a field, owner form, rule tag or built-in id this version does not know is kept and read as absent; a new layout of a whole store takes a higher `v` and an older version leaves a higher `v` untouched. A per-filter field goes in `filterID` or a table keyed by id, never a new parallel array. A rule this version cannot use is not applied, stays unchanged, is named after a version change and is exportable (`/pss export unused`). Exports carry `v` (format 2 from 3.4.1.47) and a record's unknown fields in `more`; the `PSS1` tag stays so older versions read them.
 
 ## 4. Garbage collection (changed 2026-10-07)
 - Old PSS rule: GC on request (login, /who scan, import, window close) **plus a 10-minute idle cycle**; never in combat, within 5 minutes of combat, or in an instance.

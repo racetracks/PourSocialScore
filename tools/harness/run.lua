@@ -2,6 +2,9 @@
 -- file, log in, run a script, log out and write the SavedVariables back.
 --   lua5.1 tools/harness/run.lua <addonDir> <svIn|-> <svOut|-> [script.lua]
 -- The script runs after login with globals H (the stub) and M (addon.M).
+-- M is the script's own: addon code does not see a global M, as in the game
+-- (3.4.1.47: a GUI file that used M without its local passed here and broke
+-- in game).
 --
 -- Several addons (3.0 split): the core TOC is <addonDir>/PourSocialScore.toc
 -- or <addonDir>/PourSocialScore/PourSocialScore.toc. Every other addon is a
@@ -178,7 +181,6 @@ for _, name in ipairs(order) do
 end
 
 local M = coreAddon and coreAddon.M
-_G.M = M
 
 H.Fire("PLAYER_LOGIN")
 -- PSS_RELOAD=1: a /reload instead of a login
@@ -190,7 +192,11 @@ end
 H.Fire("IGNORELIST_UPDATE")
 H.RunTimers()
 
-if script then dofile(script) end
+if script then
+	local chunk = assert(loadfile(script))
+	setfenv(chunk, setmetatable({ M = M }, { __index = _G, __newindex = _G }))
+	chunk()
+end
 
 H.Fire("PLAYER_LOGOUT")
 if svOut and svOut ~= "-" then

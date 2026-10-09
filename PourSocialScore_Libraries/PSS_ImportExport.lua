@@ -7,7 +7,11 @@
 --
 -- Format:  PSS1:<checksum>:<base64 payload>
 -- The payload is a small typed serialisation (never executed as code), so
--- an import string can only ever contain data.
+-- an import string can only ever contain data. Its field v is the format
+-- version: 2 (3.4.1.47, core uplift U3) adds "more" to a player, guild or
+-- member: the record's fields this version does not know (a newer
+-- version's), kept so a version that knows them gets them back. Older
+-- versions ignore v and more; the tag stays PSS1, so they still read it.
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
 local L = addon.L
@@ -176,6 +180,45 @@ local function copyFields(src, fields)
 	return t
 end
 
+-- a plain copy of saved data (no functions, no shared tables)
+local function plain(v, depth)
+	if type(v) ~= "table" then
+		local t = type(v)
+		return (t == "string" or t == "number" or t == "boolean") and v or nil
+	end
+	if depth > 8 then return nil end
+	local t = {}
+	for k, x in pairs(v) do
+		if type(k) == "string" or type(k) == "number" then t[k] = plain(x, depth + 1) end
+	end
+	return t
+end
+
+-- The fields of record src this version does not know (schema kind), or nil
+-- (export format 2). The _ fields are runtime fields, never exported.
+local function moreFields(src, kind)
+	if type(src) ~= "table" or not M.PSS_SchemaKnows then return nil end
+	local t
+	for k, v in pairs(src) do
+		if type(k) == "string" and k:sub(1, 1) ~= "_" and not M.PSS_SchemaKnows(kind, k) then
+			t = t or {}
+			t[k] = plain(v, 0)
+		end
+	end
+	return t
+end
+
+-- An import's "more" fields onto record dst: only those this version does
+-- not know, never over a field it has.
+local function keepMore(dst, more, kind)
+	if type(dst) ~= "table" or type(more) ~= "table" or not M.PSS_SchemaKnows then return end
+	for k, v in pairs(more) do
+		if type(k) == "string" and k:sub(1, 1) ~= "_" and not M.PSS_SchemaKnows(kind, k) and dst[k] == nil then
+			dst[k] = plain(v, 0)
+		end
+	end
+end
+
 local function copyOpts(o)
 	if type(o) ~= "table" then return nil end
 	local t = {}
@@ -207,10 +250,33 @@ local function importedOption(def, v)
 	return false
 end
 
+-- one guild rule (and its stored members) as an export entry
+local function guildEntry(key, g, members)
+	local e = copyFields(g, GUILD_FIELDS)
+	e.block = copyBlock(M.PSS_GuildBlock and M.PSS_GuildBlock(g) or g.block)
+	e.name = g.name or key
+	e.opts = copyOpts(g.opts)
+	e.more = moreFields(g, "guild")
+	if members then
+		e.members = {}
+		for mk, m in pairs(g.members or {}) do
+			if type(m) == "table" then
+				local me = copyFields(m, MEMBER_FIELDS)
+				me.block = copyBlock(M.PSS_MemberBlock and M.PSS_MemberBlock(m) or m.block)
+				me.key = mk
+				me.opts = copyOpts(m.opts)
+				me.more = moreFields(m, "member")
+				e.members[#e.members + 1] = me
+			end
+		end
+	end
+	return e
+end
+
 -- sections: { players, guilds, members, filters, builtins, options }
 function M.PSS_BuildExport(sections)
 	local db = PourSocialScoreDB
-	local data = { v = 1, addon = "PourSocialScore", made = date("%Y-%m-%d %H:%M"), by = M.PSS_CharKey and M.PSS_CharKey() or "" }
+	local data = { v = 2, addon = "PourSocialScore", made = date("%Y-%m-%d %H:%M"), by = M.PSS_CharKey and M.PSS_CharKey() or "" }
 	if sections.players then
 		data.players = {}
 		for i, name in ipairs(db.ignoreList or {}) do
@@ -220,7 +286,7 @@ function M.PSS_BuildExport(sections)
 			}
 			if e.type == "player" then
 				local p = M.PSS_GetPlayerRecord and M.PSS_GetPlayerRecord(name)
-				if p then e.prefs = copyFields(p, PREF_FIELDS); e.opts = copyOpts(p.opts) end
+				if p then e.prefs = copyFields(p, PREF_FIELDS); e.opts = copyOpts(p.opts); e.more = moreFields(p, "player") end
 			end
 			data.players[#data.players + 1] = e
 		end
@@ -228,25 +294,7 @@ function M.PSS_BuildExport(sections)
 	if sections.guilds then
 		data.guilds = {}
 		for key, g in pairs(db.guildData or {}) do
-			if type(g) == "table" then
-				local e = copyFields(g, GUILD_FIELDS)
-				e.block = copyBlock(M.PSS_GuildBlock and M.PSS_GuildBlock(g) or g.block)
-				e.name = g.name or key
-				e.opts = copyOpts(g.opts)
-				if sections.members then
-					e.members = {}
-					for mk, m in pairs(g.members or {}) do
-						if type(m) == "table" then
-							local me = copyFields(m, MEMBER_FIELDS)
-							me.block = copyBlock(M.PSS_MemberBlock and M.PSS_MemberBlock(m) or m.block)
-							me.key = mk
-							me.opts = copyOpts(m.opts)
-							e.members[#e.members + 1] = me
-						end
-					end
-				end
-				data.guilds[#data.guilds + 1] = e
-			end
+			if type(g) == "table" then data.guilds[#data.guilds + 1] = guildEntry(key, g, sections.members) end
 		end
 	end
 	if sections.filters then
@@ -315,6 +363,7 @@ function M.PSS_ApplyImport(data, mode, sections)
 					if p and type(e.prefs) == "table" and (replace or not exists) then
 						for _, f in ipairs(PREF_FIELDS) do if e.prefs[f] ~= nil then p[f] = e.prefs[f] end end
 						p.opts = copyOpts(e.opts)
+						keepMore(p, e.more, "player")
 					end
 				end
 			end
@@ -338,6 +387,7 @@ function M.PSS_ApplyImport(data, mode, sections)
 						g.opts = copyOpts(ge.opts)
 						-- older export strings have no W I G P C: rebuild from their old fields
 						g.block = copyBlock(ge.block)
+						keepMore(g, ge.more, "guild")
 					end
 					if sections.members and type(ge.members) == "table" then
 						for _, me in ipairs(ge.members) do
@@ -359,6 +409,7 @@ function M.PSS_ApplyImport(data, mode, sections)
 									m.block = copyBlock(me.block)	-- nil = converted from the old Allow fields
 									m.guild = g.name
 									m.whenBlocked = m.whenBlocked or M.PSS_NowString()
+									keepMore(m, me.more, "member")
 									for _, f in ipairs({ "excludedGroup", "excludedGuildInvite", "excludedWhispers", "excludedChat" }) do
 										if m[f] ~= true then m[f] = nil end
 									end
@@ -440,4 +491,30 @@ function M.PSS_ApplyImport(data, mode, sections)
 	M.Events.Fire("GUILDS_CHANGED")
 	M.Events.Fire("FILTERS_CHANGED")
 	return table.concat(report, ", ")
+end
+
+-- /pss export unused (core uplift U3): the saved rules and settings this
+-- version cannot use (M.PSS_UnusableRules), every field, as an export string
+-- a version that knows them can import. nil when there are none.
+function M.PSS_UnusedExportText()
+	local db = PourSocialScoreDB
+	local u = M.PSS_UnusableRules()
+	if #u.filters + #u.guilds + #u.options == 0 then return nil end
+	local data = { v = 2, addon = "PourSocialScore", made = date("%Y-%m-%d %H:%M"), by = M.PSS_CharKey and M.PSS_CharKey() or "",
+		unused = true }
+	if #u.filters > 0 then
+		data.filters = {}
+		for _, i in ipairs(u.filters) do
+			data.filters[#data.filters + 1] = { desc = db.filterDesc[i] or "", filter = db.filterList[i] or "", active = db.filterActive[i] == true }
+		end
+	end
+	if #u.guilds > 0 then
+		data.guilds = {}
+		for _, key in ipairs(u.guilds) do data.guilds[#data.guilds + 1] = guildEntry(key, db.guildData[key], true) end
+	end
+	if #u.options > 0 then
+		data.options = {}
+		for _, key in ipairs(u.options) do data.options[key] = plain(PSS_OptionsDB[key], 0) end
+	end
+	return M.PSS_EncodeExport(data)
 end

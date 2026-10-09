@@ -71,6 +71,81 @@ local function dropRetired()
 	end
 end
 
+------------------------------------------------------------------------
+-- FORWARD COMPATIBILITY (core uplift U3, 10_CORE_UPLIFT.md 2.3)
+--
+-- The schema map (PSS_Schema.lua) names every field this version knows. A
+-- saved rule this version cannot use is not applied and stays in the save
+-- unchanged, so a version that knows it applies it again:
+--   * a custom chat filter that does not compile (a tag added later)
+--   * a guild rule of a shipped list this version does not have, or with a
+--     field the map does not name
+--   * an option this version does not have
+-- After a version change (either way) the upgrade report names them and
+-- /pss export unused copies them out.
+------------------------------------------------------------------------
+local knownSets = {}	-- record kind -> { field = true }, built on first use
+
+-- Does this version know field of a record kind (its fields or old ones)?
+function M.PSS_SchemaKnows(kind, field)
+	local set = knownSets[kind]
+	if not set then
+		set = {}
+		local schema = M.PSS_SCHEMA or {}
+		for _, k in ipairs({ kind, kind .. "Old" }) do
+			for word in (schema[k] or ""):gmatch("[%a_][%w_]*[^%s]*") do set[word:match("^[%a_][%w_]*")] = true end
+		end
+		knownSets[kind] = set
+	end
+	return set[field] == true
+end
+
+local function shippedGroup(key)
+	for _, grp in ipairs((addon.MANAGED and addon.MANAGED.groups) or {}) do
+		if grp.key == key then return true end
+	end
+	return false
+end
+
+-- A guild rule this version cannot use: a shipped list it does not have,
+-- or a field the map does not name (the _ fields are runtime fields).
+function M.PSS_GuildRuleUnusable(g)
+	if type(g) ~= "table" then return false end
+	if g.managed and not shippedGroup(g.managed) then return true end
+	for k in pairs(g) do
+		if type(k) ~= "string" or (k:sub(1, 1) ~= "_" and not M.PSS_SchemaKnows("guild", k)) then return true end
+	end
+	return false
+end
+
+-- The saved rules and settings this version cannot use:
+-- { filters = { index, ... }, guilds = { key, ... }, options = { key, ... } }
+function M.PSS_UnusableRules()
+	local sv = PourSocialScoreDB
+	local u = { filters = {}, guilds = {}, options = {} }
+	if type(sv) ~= "table" then return u end
+	local list = type(sv.filterList) == "table" and sv.filterList or {}
+	for i = 1, #list do
+		local text = list[i]
+		if not M.PSS_IsBuiltinFilter(i) and type(text) == "string" and not M.PSS_IsGuildRuleText(text)
+			and M.PSS_CompileFilter(text) == false then
+			u.filters[#u.filters + 1] = i
+		end
+	end
+	for key, g in pairs(type(sv.guildData) == "table" and sv.guildData or {}) do
+		if M.PSS_GuildRuleUnusable(g) then u.guilds[#u.guilds + 1] = key end
+	end
+	table.sort(u.guilds, function(a, b) return tostring(a) < tostring(b) end)
+	local route = M.PSS_SV_ROUTE or {}
+	local retired = {}
+	for i = 1, #RETIRED do retired[RETIRED[i]] = true end
+	for key in pairs(type(PSS_OptionsDB) == "table" and PSS_OptionsDB or {}) do
+		if type(key) ~= "string" or (not route[key] and not retired[key]) then u.options[#u.options + 1] = key end
+	end
+	table.sort(u.options, function(a, b) return tostring(a) < tostring(b) end)
+	return u
+end
+
 -- a parallel list of n entries: each one value, or each a new table
 local function fill(n, value)
 	local t = {}
@@ -410,12 +485,12 @@ end
 -- in the order listed here; nothing is built on a login that does not report.
 ------------------------------------------------------------------------
 local PHRASES = {
-	filters = { "reset", "lists", "ids", "unlinked" },
+	filters = { "reset", "lists", "ids", "unlinked", "unusable" },
 	players = { "lists", "renamed", "toGuilds", "tidied", "declines", "blizzardTicks" },
-	guilds = { "scanFields" },
+	guilds = { "scanFields", "unusable" },
 	managed = { "rules" },
 	history = { "formats", "tidied" },
-	options = { "switchedOff", "places" },
+	options = { "switchedOff", "places", "unusable" },
 	cleanup = { "defaults", "retired" },
 }
 M.PSS_UPGRADE_PHRASES = PHRASES	-- read only (the harness checks every count has a phrase)
@@ -437,13 +512,29 @@ local function resultText(feature, counts)
 	return table.concat(parts, ", ")
 end
 
-local function printReport(c)
-	M.ShowMsg(L["UPG_HEAD"]:format(c.from or L["UPG_OLD"], c.to))
+-- a line for each feature with counts (not the cleanup line)
+local function printFeatures(c)
 	for i = 1, #FEATURES - 1 do
 		local f = FEATURES[i]
 		local text = c[f] and resultText(f, c[f]) or ""
 		if text ~= "" then M.ShowMsg("  " .. L["UPG_" .. f] .. ": " .. text .. ".") end
 	end
+end
+
+-- the rules this version cannot use, counted on c (after a version change)
+local function countUnusable(c)
+	local u = M.PSS_UnusableRules()
+	for f, list in pairs(u) do
+		if #list > 0 then
+			c[f] = c[f] or {}
+			c[f].unusable = #list
+		end
+	end
+end
+
+local function printReport(c)
+	M.ShowMsg(L["UPG_HEAD"]:format(c.from or L["UPG_OLD"], c.to))
+	printFeatures(c)
 	local text = resultText("cleanup", c.cleanup)
 	if text == "" then text = L["UPG_NOTHING"] end
 	text = "  " .. L["UPG_cleanup"] .. ": " .. text .. "."
@@ -505,12 +596,17 @@ function M.PSS_RunUpgradeData(fresh)
 		rec.at = (GetServerTime and GetServerTime()) or time()
 	end
 	if newer then
+		-- a downgrade: one line, then what this version cannot use
 		M.ShowMsg(L["UPG_NEWER"]:format(version, newer))
+		local c = {}
+		countUnusable(c)
+		printFeatures(c)
 	end
 	local counts = out
 	out, newer = nil, nil
 	if counts then
 		counts.to, counts.step, counts.paused = version, math.max(done, reached), paused
+		countUnusable(counts)
 		printReport(counts)
 	end
 	oldFolders = nil

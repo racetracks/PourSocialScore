@@ -241,8 +241,26 @@ M.PSS_RefreshGuildActive = refreshGuildActive
 -- added later) is linked to that rule: with the rule off, none of its guilds
 -- block, neither the shipped members nor the ones found in game and stored
 -- in SavedVariables (they live on the same guild row, g.managed).
+-- A guild rule this version cannot use (a newer version's: a shipped list
+-- it does not have, or a field it does not know) is never applied; it stays
+-- saved unchanged (core uplift U3, M.PSS_GuildRuleUnusable). The set holds
+-- only those rules (normally none); worked out on first use and again after
+-- the guild rules change (markMemberIndexDirty).
+local unusableRules
+local function ruleUnusable(g)
+	local u = unusableRules
+	if not u then
+		u = {}
+		for _, r in pairs((PourSocialScoreDB and PourSocialScoreDB.guildData) or {}) do
+			if M.PSS_GuildRuleUnusable and M.PSS_GuildRuleUnusable(r) then u[r] = true end
+		end
+		unusableRules = u
+	end
+	return u[g] == true
+end
+
 local function guildRuleActive(g)
-	if type(g) ~= "table" or not g.enabled then return false end
+	if type(g) ~= "table" or not g.enabled or ruleUnusable(g) then return false end
 	if g.managed then return M.PSS_ManagedGroupActive ~= nil and M.PSS_ManagedGroupActive(g.managed) end
 	return true
 end
@@ -966,6 +984,7 @@ local memberIndexG, memberIndexK, memberIndexDirty, memberIndexBuilt = {}, {}, t
 
 local function markMemberIndexDirty()
 	memberIndexDirty = true
+	unusableRules = nil
 	memberCountGen = memberCountGen + 1
 end
 M.PSS_MarkGuildIndexDirty = markMemberIndexDirty
@@ -2439,6 +2458,8 @@ if M.PSS_RegisterBlockSource then
 		end,
 		decide = function(e, cat, ctx)
 			local g, m = e.g, e.m
+			-- a rule this version cannot use blocks nothing (U3)
+			if ruleUnusable(g) then return false end
 			-- a managed group blocks only while its Chat Filters rule is on
 			if g.managed and not guildRuleActive(g) then return false end
 			-- a guild on the Guild Exclusion List is never blocked by a guild rule

@@ -15,6 +15,7 @@
 -- the accept button in the accent. Escape cancels in every look.
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
+local M = ns.M
 
 local DARK = ns.DARK
 local POP_FILL = { 0.077, 0.068, 0.058, 1 }
@@ -261,4 +262,9 @@ local function ShowText(opts, readOnly)
 end
 
 function ns.CopyText(opts) return ShowText(opts, true) end
+
+-- /pss export unused (Libraries PSS_Commands.lua): the copy box on its own
+function M.PSS_CopyTextBox(title, subtitle, text)
+	return ns.CopyText({ title = title, subtitle = subtitle, text = text })
+end
 function ns.ImportText(opts) return ShowText(opts, false) end

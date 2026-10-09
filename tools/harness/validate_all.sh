@@ -362,6 +362,38 @@ for sv in $reportsaves; do
 	echo "$out" | grep -q "PASS upgrade report" || fail=1
 done
 
+# forward compatibility (core uplift U3, 3.4.1.47): a save from a newer
+# version, then from an older one, keeps every field, rule and line it does
+# not know; what this version cannot use is reported, not applied and
+# exported; the 3.4.0.29 release imports the format 2 export; a newer block
+# log and recent counts come back unchanged
+echo "== forward compatibility"
+for ver in 3.4.1.99 3.4.1.46; do
+	out=$(PSS_PHASE=plant PSS_FW_VERSION=$ver lua5.1 "$here/run.lua" . - "$work/fw-0.lua" "$here/check_forward.lua" 2>&1 | grep -v '^|cff')
+	lua5.1 "$here/run.lua" . "$work/fw-0.lua" "$work/fw-1.lua" > "$work/fw-1.out" 2>&1
+	out="$out
+$(PSS_PHASE=check PSS_LOGIN_OUT="$work/fw-1.out" PSS_FW_EXPORT="$work/fw-export.txt" lua5.1 "$here/run.lua" . "$work/fw-1.lua" "$work/fw-2-$ver.lua" "$here/check_forward.lua" 2>&1 | grep -v '^|cff')
+$(lua5.1 "$here/check_forward.lua" "$work/fw-2-$ver.lua" 2>&1)"
+	echo "$out" | grep -E "PASS|FAIL"
+	for p in plant check after; do echo "$out" | grep -q "PASS forward $p" || fail=1; done
+done
+rm -rf "$work/src-3.4.0.29"; mkdir -p "$work/src-3.4.0.29"
+git archive 149625b | tar -x -C "$work/src-3.4.0.29"
+out=$(PSS_PHASE=oldimport PSS_FW_EXPORT="$work/fw-export.txt" lua5.1 "$here/run.lua" "$work/src-3.4.0.29" - - "$here/check_forward.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -E "PASS|FAIL"
+echo "$out" | grep -q "PASS forward oldimport" || fail=1
+lua5.1 "$here/run.lua" . - "$work/nl-0.lua" > /dev/null 2>&1
+cat >> "$work/nl-0.lua" <<'SV'
+PSS_LoggingDB = PSS_LoggingDB or {}
+PSS_LoggingDB.blockLog = { v = 3, newerGroup = { "x" } }
+PSS_LoggingDB.blockKeep = { newerKeep = 1 }
+PourSocialScoreDB.recent = { v = 3, newerSlots = { 1 } }
+SV
+out=$(PSS_PHASE=newerlog lua5.1 "$here/run.lua" . "$work/nl-0.lua" "$work/nl-1.lua" "$here/check_forward.lua" 2>&1 | grep -v '^|cff'
+	lua5.1 "$here/check_forward.lua" log "$work/nl-1.lua" 2>&1)
+echo "$out" | grep -E "PASS|FAIL"
+echo "$out" | grep -q "PASS forward newerlog" && echo "$out" | grep -q "PASS forward afterlog" || fail=1
+
 # /pss check (3.0): no problems on a fresh save and on every upgraded 2.0.44
 # test save; planted faults are reported
 echo "== saved data check"
@@ -411,8 +443,15 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_upgrade_steps.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS upgrade steps" || fail=1
+		lua5.1 tools/check_schema.lua --saves "$work/real-1.lua" "$work/real-2.lua" || fail=1
 	done
 fi
+
+# the schema map (core uplift U3): every field of every save this run wrote
+# is in PourSocialScore/PSS_Schema.lua (fields a check planted start with
+# "newer")
+echo "== schema"
+lua5.1 tools/check_schema.lua --saves $(ls "$work"/*.lua | grep -v '/steps\.lua$') || fail=1
 
 # saves byte-identical with another ref (PSS_SAME_AS=origin/main, for a
 # stage that must not change the saved data; same_saves.sh)
