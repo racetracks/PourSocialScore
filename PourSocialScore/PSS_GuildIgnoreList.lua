@@ -595,6 +595,7 @@ end
 
 -- Entries, categories, counts and the history UI: PSS_ChatHistory.lua
 local History = M.PSS_History
+local parseTimeString = History.ParseTime
 local CAT_LABEL = History.CAT_LABEL
 
 -- Event categories and channel labels are shared with the core.
