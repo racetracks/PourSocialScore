@@ -58,7 +58,9 @@ the addon's folders, git history and versions.json). No real saves are in it.
 
 1. Install Lua 5.1:  apt-get install -y lua5.1
 2. The checks rebuild old versions from git history:
-     git fetch --depth=2000 origin main
+     git fetch --depth=2000 origin main:refs/remotes/origin/main
+   (the explicit ref matters in a single-branch clone: without origin/main the
+   previous-build comparison is skipped, with a NOTE in the output)
 3. Rules check (Lua 5.1, ASCII, tabs, TOCs, layers, schema, history):
      sh tools/check_rules.sh
 4. Real saves live on the scratch repo (SavedVariables/<version>/). Build the

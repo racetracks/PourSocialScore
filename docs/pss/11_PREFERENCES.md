@@ -28,6 +28,7 @@ Everything about how Dan works and what he wants from Claude lives here (Dan, 20
 - Expect a code review pass before merging.
 
 ## How Dan works
+- **Claude runs every test before handover (2026-10-09).** The rules check, the full harness on the real saves from scratch `SavedVariables/`, the same-as-main or sparse-saves comparison and `tui_compare.sh` are run by Claude before a PR is handed over, and the results (counts, failures, anything skipped) are reported. CI (`rules.yml`) is a backstop, not a substitute: it cannot run the real saves, same-as-main or the look compare. A tests bundle on scratch is a record of the run, never something Dan runs. A check that prints a NOTE and skips (for example `origin/main` unknown in a single-branch clone) is not a pass: fetch the ref and run it again.
 - Dan tests every build in game and merges himself. "Branch, PR and release" is approval to merge and verify the release.
 - Production is explicit: a full release happens only when Dan says the feature is done. Before a full release goes live, he tests a very old save on the final pre-release.
 - Dan uploads his WTF saves and names the version ("this is a 3.4.0.28 save"); file them on scratch under `SavedVariables/<version>/`.
