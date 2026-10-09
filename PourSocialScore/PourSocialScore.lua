@@ -132,6 +132,8 @@ local function ApplicationStartup(self)
 	M.PSS_RunUpgradeData(fresh)
 	-- entries past their expiry go now (N40), then once a day after combat
 	M.PSS_ExpireEntries()
+	-- the lists are in their final form: hear unit and /who captures only if they can be used (P3)
+	if M.PSS_ApplyCapture then M.PSS_ApplyCapture() end
 	-- PourSocialScore_Logging was loaded for the upgrade: add the waiting
 	-- lines, trim and tidy the history now
 	local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded

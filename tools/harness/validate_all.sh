@@ -281,6 +281,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_gc.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS gc" || fail=1
 
+# capture events only while they can be used (P3, 3.4.1.52)
+echo "== capture"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_capture.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS capture" || fail=1
+
 # purge by owner (core uplift S1, 3.4.1.49): a removal never loads Logging;
 # the owner is marked and their saved lines go when it loads, a person
 # listed again keeps only their new lines, full marks load it at once

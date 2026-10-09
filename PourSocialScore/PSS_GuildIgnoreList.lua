@@ -1805,7 +1805,47 @@ local function listenUnitScans(f, on)
 	end
 end
 
+-- Capture is wanted while a listed player exists (their details are kept
+-- up to date) or a guild rule can use what is seen: a rule of the player's
+-- own, or a shipped list that is switched on. Shipped lists that are off
+-- need nothing captured. Otherwise none of these events are registered
+-- (core uplift P3, 3.4.1.52).
+local function captureNeeded()
+	local db = PourSocialScoreDB
+	if type(db) ~= "table" then return false end
+	local list = db.list		-- (not M.PSS_List: it would create the table before the layout step)
+	if type(list) == "table" and #list > 0 then return true end
+	for _, g in pairs(db.guildData or {}) do
+		if type(g) == "table" and (not g.managed or guildRuleActive(g)) then return true end
+	end
+	return false
+end
+M.PSS_CaptureNeeded = captureNeeded
+
 local frame = CreateFrame("Frame")
+local capturing, loggedIn = false, false
+local function applyCapture()
+	if not loggedIn then return end
+	local on = captureNeeded()
+	Whois.SetCapture(on)
+	if on == capturing then return end
+	capturing = on
+	if on then
+		frame:RegisterEvent("PLAYER_TARGET_CHANGED")
+		frame:RegisterEvent("GROUP_ROSTER_UPDATE")
+		frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+		frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+		listenUnitScans(frame, not inCombat())
+	else
+		frame:UnregisterEvent("PLAYER_TARGET_CHANGED")
+		frame:UnregisterEvent("GROUP_ROSTER_UPDATE")
+		frame:UnregisterEvent("PLAYER_REGEN_DISABLED")
+		frame:UnregisterEvent("PLAYER_REGEN_ENABLED")
+		listenUnitScans(frame, false)
+	end
+end
+M.PSS_ApplyCapture = applyCapture
+
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:SetScript("OnEvent", function(self, event, arg1, ...)
 	if event == "PLAYER_LOGIN" then
@@ -1813,11 +1853,8 @@ frame:SetScript("OnEvent", function(self, event, arg1, ...)
 		-- addon has not built its default lists yet. The legacy upgrade runs
 		-- from the main addon once it has finished loading (V.PSS_Loaded).
 		self:UnregisterEvent("PLAYER_LOGIN")
-		self:RegisterEvent("PLAYER_TARGET_CHANGED")
-		self:RegisterEvent("GROUP_ROSTER_UPDATE")
-		self:RegisterEvent("PLAYER_REGEN_DISABLED")
-		self:RegisterEvent("PLAYER_REGEN_ENABLED")
-		listenUnitScans(self, not inCombat())
+		loggedIn = true
+		applyCapture()
 		if V.PSS_Loaded and M.PSS_UpgradeLegacyData then M.PSS_UpgradeLegacyData() end
 	elseif event == "PLAYER_REGEN_DISABLED" then
 		listenUnitScans(self, false)
@@ -1828,6 +1865,12 @@ frame:SetScript("OnEvent", function(self, event, arg1, ...)
 		handleUnitEvents(event, arg1)
 	end
 end)
+
+-- what makes capture wanted changes with these (and once the login upgrade
+-- has run: PourSocialScore.lua)
+for _, name in ipairs({ "GUILDS_CHANGED", "PLAYERS_CHANGED", "FILTERS_CHANGED" }) do
+	M.Events.Register(name, applyCapture)
+end
 
 -- (Chat lines and invites are decided by PSS_ChatBlock.lua; this file
 -- registers the "guild" person source further down.)
