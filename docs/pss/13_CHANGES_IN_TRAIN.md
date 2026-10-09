@@ -7,7 +7,7 @@
 | Item | State on 2026-10-08 |
 | --- | --- |
 | Live release | **3.4.0.29** (full; the new PSS window in three looks; mirrored to `racetracks/Pour-Social-Score`) |
-| Main | 3.4.1.46 (U2, PR #137; U1 merged in 3.4.1.45, PR #136); U3 3.4.1.47 and its fix 3.4.1.48 open (PR #138); next S1 3.4.1.49 |
+| Main | 3.4.1.48 (U3 and its fix, PR #138); S1 3.4.1.49 open (PR #139); next S2 3.4.1.50 |
 | Current project | **Core uplift**, locked 2026-10-08, three version lines |
 | Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done), window fixes F2 (done), the upgrade registry U1 (done); next the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
 | Line 3.4.2 | Builds 3.4.2.53 to 3.4.2.59 (release). Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
@@ -37,9 +37,9 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | F2 | 3.4.1.44 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | Merged (#135) |
 | U1 | 3.4.1.45 | Upgrade step registry, invisible (step 1 split and tagged, `RETIRED`, counts, version compare) | No | Merged, PR #136 |
 | U2 | 3.4.1.46 | Upgrade report printed once per update (issue #45) | Once per update | Merged, PR #137 |
-| U3 | 3.4.1.47 | Forward compatibility: `M.PSS_SCHEMA`, tolerant readers, downgrade line, unusable rules kept and reported, `/pss export unused`, export format version | Only when a rule cannot be used | PR #138 |
-| U3 fix | 3.4.1.48 | The missing `local M` in `PSS_Popups.lua` (export unused and the Export button); harness without a global `M`; `check_locals.lua` | Yes | PR #138 |
-| S1 | 3.4.1.49 | `History.ClearOwner` and the purge tombstone (N16) | No | |
+| U3 | 3.4.1.47 | Forward compatibility: `M.PSS_SCHEMA`, tolerant readers, downgrade line, unusable rules kept and reported, `/pss export unused`, export format version | Only when a rule cannot be used | Merged, PR #138 |
+| U3 fix | 3.4.1.48 | The missing `local M` in `PSS_Popups.lua` (export unused and the Export button); harness without a global `M`; `check_locals.lua` | Yes | Merged, PR #138 |
+| S1 | 3.4.1.49 | `History.ClearOwner` and the purge tombstone (N16) | No | PR #139 |
 | S2 | 3.4.1.50 | Accessors for every field S3 drops; rules-check grep | No | |
 | S3 | 3.4.1.51 | Upgrade step 9 "SavedVariables performance cleanup" | Report, smaller save | |
 | R | 3.4.1.52 | Release; one summary of every change since 3.4.0.29; `01_HANDOVER.md` re-summarized | | |
@@ -180,7 +180,7 @@ Upgrade step 9, "SavedVariables performance cleanup", stage S3 (3.4.1.51), one r
 | `PSS_LoggingDB.blockLog` (v2 groups) | Drop `m` when `TitleCase(owner key)` gives it; done in `PackForSave` at next logout, not a step | 204.7 vs 211.6 KB |
 | Options | `showIgnoreDebug` no longer saved (N8) | |
 | `PSS_RulesDB` / history / recent | Custom filters get a never-reused integer id; counter `nextFilterId` stored once; history and recent keyed `f:<id>` (N43, decision 3); built-ins keep `PSS00NN` | |
-| `PourSocialScoreDB.purge` (new key in existing table, capped) | Purge tombstone: when Logging is not loaded, `purge[o]` is applied by `UnpackSaved` on next load; removal never loads Logging. Stage S1 (3.4.1.49), no layout OK needed per 03 | `ClearOwner` 71 us, 0 garbage vs `Clear(pred)` 5552 us, 750.5 KB garbage; tombstone 0.16 us |
+| `PourSocialScoreDB.purge` (new key in existing table, capped) | Purge tombstone: when Logging is not loaded, `purge[o]` is applied by `History.ApplyPurge` in `M.PSS_LoadLogging` on next load (built: PR #139, cap 200); removal never loads Logging. Stage S1 (3.4.1.49), no layout OK needed per 03 | `ClearOwner` 71 us, 0 garbage vs `Clear(pred)` 5552 us, 750.5 KB garbage; tombstone 0.16 us |
 
 Totals and rationale:
 
