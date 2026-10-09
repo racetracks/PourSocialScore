@@ -18,7 +18,7 @@ carries:
 - an install zip on scratch in `PourSocialScore/test-builds/`, with the link;
 - a short list of exactly what to check in game.
 
-Dan tests in game and merges. The EllesmereUI folder is edited in one step
+The author tests in game and merges. The EllesmereUI folder is edited in one step
 only (step 3), and only to swap its logic for Libraries calls with nothing
 visible changing (issue #77, option b). Every other step leaves it alone.
 
@@ -54,7 +54,7 @@ tell you before building, rather than growing one PR.
 ## What is deliberately not in this plan
 
 - No EllesmereUI change beyond step 3's logic move (rule G10, with the one
-  exception Dan allowed in issue #77).
+  exception the author allowed in issue #77).
 - The breadcrumb and back / forward navigation (decision 2).
 - Rebuilding the native pop-ups as an in-window detail pane (decision 4).
 - The four native-only features (analysis section 3): Player Search, Prune,

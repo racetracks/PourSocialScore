@@ -1,8 +1,15 @@
 {
-	"latestRelease": "3.4.1.53",
+	"latestRelease": "3.4.2.54",
 	"preReleases": [
 	],
 	"releases": [
+		{
+			"version": "3.4.2.54",
+			"pr": 150,
+			"previous": "3.4.1.53",
+			"preReleases": [
+			]
+		},
 		{
 			"version": "3.4.1.53",
 			"pr": 143,
@@ -190,7 +197,7 @@
 		},
 		{
 			"version": "2.0.18",
-			"pr": null,
+			"pr": 150,
 			"commit": "d885cd0",
 			"previous": "2.0.17",
 			"preReleases": [
@@ -198,7 +205,7 @@
 		},
 		{
 			"version": "2.0.17",
-			"pr": null,
+			"pr": 150,
 			"history": true,
 			"previous": null,
 			"preReleases": [

@@ -1,60 +1,48 @@
 # Release: what PSS does on top of the baseline pipeline
 
-The pipeline is the baseline's (baseline 09). The live files are `.github/workflows/release.yml`, `.github/workflows/rules.yml` and `tools/`. PSS-specific details:
+The pipeline is the baseline's (baseline 09). The live files are `.github/workflows/release.yml`, `.github/workflows/rules.yml` and `tools/`; they win over this file. Versions and build numbers: 02 section 8.
 
 ## Names and paths
-- Main TOC (version source): `PourSocialScore/PourSocialScore.toc`. Zip: `PourSocialScore-<version>.zip` holding every `PourSocialScore*` folder (eight from 3.4.0-dev001 with `PourSocialScore_UI`, six from 3.4.0.25), readme.txt and history.txt copied into the core folder.
+- Main TOC (version source): `PourSocialScore/PourSocialScore.toc`. Zip: `PourSocialScore-<version>.zip` holding every `PourSocialScore*` folder (six), with readme.txt and history.txt copied into the core folder; no `.github`, `tools/` or `versions.json`.
 - Release title: `Pour Social Score <version>`. Tags `v<version>`.
 - history.txt opens with "POUR SOCIAL SCORE - VERSION HISTORY" and "(newest first)"; each section is `=> X.Y.Z.B - Title`, a blank line, then plain bullets (`tools/bump_version.sh` writes it).
 
-## CI jobs (rules.yml)
-- `check`: `sh tools/check_rules.sh` (Lua 5.1 syntax, ASCII, tabs, layers, TOCs, the history check; `tools/check_rules_eui.sh` is gone with the EUI folder, 3.4.0.25).
-- `harness`: the window's checks (the EllesmereUI checks went at 3.4.0.25) (`check_tui`, `check_viewquery`, `check_players`, `check_guilds`, `check_filters`, `check_events`, `check_options`, `check_menus` (3.4.0.21)) and `check_secrets.lua` (3.4.0.14).
-- `upgrades` (3.4.0.14): `sh tools/harness/validate_all.sh` on a full clone (`fetch-depth: 0`), without real saves: upgrades from every old layout, data, on demand, growth, the window checks. A check that cannot run prints `SKIPPED` and fails the run (`PSS_ALLOW_SKIP=1` accepts it). The repository variable `PSS_SPARSE_AS` (a git ref, unset by default) turns on the every-save comparison with another build (`sparse_saves.sh`, for a stage that changes the saved layout; 3.4.1.52).
-- `window-compare` (3.4.1.52): informational, always passes: `tui_compare.sh` against the base branch in all three looks, the output in the job summary and a warning annotation when the window differs; frame numbers are not a difference.
-- `real-saves` (3.4.1.52): with the `SCRATCH_TOKEN` secret (setup: issue #144) it builds the real saves from scratch and runs the full harness on them; without the secret it prints a notice and passes. The saves are never committed and not uploaded.
-- `release.yml` runs `check_rules.sh` and `validate_all.sh` before it publishes (3.4.1.52): a red `main` publishes nothing; retry with Run workflow once fixed.
-- `check` also runs `tools/check_toc.sh` on every `PourSocialScore_*` folder (three TOCs agree, files exist, Version = core's) and the PSS-names check.
+## CI: rules.yml (every pull request and every push to main)
+- `check`: `sh tools/check_rules.sh`: Lua 5.1 (luac5.1 and `check_style.lua`), ASCII, tabs and trailing whitespace, no UI in core logic (`check_layers.lua`), every saved key in the schema map (`check_schema.lua`), a local `M` in every file (`check_locals.lua`), member fields only through accessors (`check_fields.lua`), `check_toc.sh` on every `PourSocialScore_*` folder (three TOCs agree, files exist, Version = core's), history.txt's top section is the TOC version and holds no placeholder bullet, `versions.py check` (in CI every entry has its PR; a pull request's newest entry is its own number, `PSS_PR`), and PSS names only (no EllesmereUI or EUI names) in the window and the Libraries view files.
+- `harness`: `check_tui`, `check_viewquery`, `check_players`, `check_menus`, `check_guilds`, `check_filters`, `check_events`, `check_options` and `check_secrets`, each through `run.lua` with no save.
+- `upgrades`: `sh tools/harness/validate_all.sh` on a full clone (`fetch-depth: 0`), without real saves: upgrades from every old layout, data, on demand, growth, the window checks. A check that cannot run prints `SKIPPED` and fails the run (`PSS_ALLOW_SKIP=1` accepts it). The repository variable `PSS_SPARSE_AS` (a git ref, unset by default) turns on the every-save comparison with another build (`sparse_saves.sh`, for a stage that changes the saved layout).
+- `window-compare`: informational, always passes: `tui_compare.sh` against the base branch in all three looks, the output in the job summary and a warning annotation when the window differs; frame numbers are not a difference.
+- `real-saves`: with the `SCRATCH_TOKEN` secret (contents: read on scratch; setup: issue #144) it builds the real saves from scratch (`build_saves.sh`) and runs the full harness on them; without the secret it prints a notice and passes. The saves are never committed or uploaded.
+
+## release.yml (every push to main, or Run workflow)
+- Reads the core TOC version and asks `python3 tools/versions.py kind`: the latest release is published as a full release (`--latest`), a recorded pre-release as a pre-release, a version not recorded fails the run. Nothing happens if the release exists.
+- Before publishing it runs `check_rules.sh` and `validate_all.sh`: a red `main` publishes nothing; retry with Run workflow once fixed.
+- Notes: an install line, then the version's history.txt section (under "Changes since <previous release>" for a full release, "Changes" for a pre-release).
+- A last step keeps every version `versions.json` calls a pre-release (and every `-dev` tag) marked as a pre-release on GitHub.
+- Job `mirror` keeps **`racetracks/Pour-Social-Score`** (`MIRROR_REPO`) on the latest full release: the release zip's contents committed as the repo's files (the addon folders at the root; the mirror's own readme.md stays), then the release, with the same zip and notes, on that commit; a release whose tag is not on its files is made again. It runs after every push and does nothing when the mirror is up to date. It needs the secret `MIRROR_TOKEN` (fine-grained, Contents: Read and write on that repo only) on the addon repo; the mirror repo needs an existing commit. Pre-releases are not mirrored. After fixing a secret, run Actions > Release > Run workflow on main.
+
+## Tools
+- `sh tools/bump_version.sh build "Title"`: every TOC to the next build, the build recorded in `versions.json`, a history section on top (fill in the bullets). `release "Title"` makes the next build the release (only when the author says it is one; the pre-releases move under it in `versions.json`); `line X.Y.Z "Title"` starts a line with the next build number. `pr <number>` records the PR that carries the new builds.
+- `python3 tools/versions.py prs [<version>]` lists the versions and PRs between the previous release and a version; `kind`, `latest`, `check` serve the workflows and the rules check.
+- `sh tools/host_build.sh <scratch checkout> [--no-commit | --no-push]`: builds the test zip from HEAD the way `release.yml` does, puts it in scratch `releases/` and `latest/` (replacing the old one), updates the index rows, commits and pushes, and prints the links. `--no-commit` stages only, so docs join the same commit.
+- `sh tools/host_tests.sh` builds a tests bundle; not hosted unless the author asks (11_PREFERENCES).
+
+## Full releases
+- The notes are the release's history section only: one player-facing summary of every change since the previous release, written by Claude at release time from the PRs `versions.json` lists between the two (`CLAUDE.md`, Full releases). No API key in the pipeline. Pre-releases keep their own history section as notes.
+- The release PR also writes the release's record on scratch, in the same delivery as the docs: `docs/latest/release-notes/<version>.md` (the summary, every change in shipping order with build and PR, technical note links) and its rows in `docs/latest/summary-of-changes/SUMMARY_OF_CHANGES.md`.
 
 ## Release history
-| Version | Kind | Notes |
-| --- | --- | --- |
-| 3.0.0 | Full | Load-on-demand split |
-| 3.1.0 | Full until 2026-10-09, now a pre-release of 3.3.1 | EllesmereUI integration |
-| 3.2.0 | Published full 2026-10-05; a pre-release of 3.3.1 from 2026-10-09 | |
-| 3.3.0-dev001 to dev003 | Pre-releases | Parity stages, published on merge |
-| 3.3.1 | Full, 2026-10-07 | Parity project closed (dev001 to dev005) |
-| 3.4.0-dev001 to dev012 | Pre-releases | The new PSS window (09) |
-| 3.4.0.13 on | Pre-releases | Build numbers replace `-devNNN` and `_N` (Dan, 2026-10-08) |
-| 3.4.0.29 | Full, 2026-10-08 | The new PSS window |
-| 3.4.1.30 to 3.4.1.52 | Pre-releases | The core uplift (52 is the combined build) |
-| 3.4.1.53 | Full, 2026-10-09 | The core uplift; **last full release** |
-| 3.3.0-dev004 | **Not published** | PR #82 merged 2026-10-05 20:45Z, but the Release and Rules runs on main (5c39f62) were **cancelled**, so no release or tag exists. Fix: run the Release workflow by hand (`workflow_dispatch`) on main while 3.3.0-dev004 is still the version, or let the next stage (dev005) publish and leave dev004 as test-zip only. **Dan chose skip (2026-10-07)**: dev004 is test-zip only |
+`versions.json` `releases` is the source of truth; each release's notes are on scratch: https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/docs/latest/release-notes
 
-## Tools (3.4.0.20, Dan, 2026-10-08)
-- `sh tools/bump_version.sh build "Title"`: every TOC to the next build, the build recorded in `versions.json`, a history section on top (fill in the bullets). `release "Title"` makes the next build the release (only when Dan says it is a release; the pre-releases move under it in `versions.json`); `line X.Y.Z "Title"` starts a line with the next build number (3.4.0.27). `pr <number>` records the PR that carries the new builds. `python3 tools/versions.py prs [<version>]` lists the versions and PRs between the previous release and a version.
-- `sh tools/host_build.sh <scratch checkout>`: builds the test zip from HEAD the way `release.yml` does, puts it in scratch `releases/` and `latest/` (replacing the old one), updates the index rows, commits and pushes, and prints the links. `--no-commit` stages only, so docs join the same commit; `--no-push` commits without pushing.
-- `check_rules.sh` fails a history.txt whose top section is not the TOC version or still holds a placeholder bullet, and runs `versions.py check` (CI: every entry has its PR; a pull request's newest entry is its own number, `PSS_PR` in rules.yml).
+Full releases, newest first: **3.4.2.54** (2026-10-09, docs only, no change in game), 3.4.1.53 (2026-10-09, the core uplift), 3.4.0.29 (2026-10-08, the PSS window), 3.3.1 (2026-10-07, the parity project), 3.0.0 (the load-on-demand split), 2.0.44, 2.0.40, 2.0.22, 2.0.19, 2.0.18 (recorded by commit), 2.0.17 (and the versions before it, from history.txt only).
 
-## Release records on scratch (Dan, 2026-10-09)
-- Every release in `versions.json` has `docs/latest/release-notes/<version>.md` on scratch (the summary, every change in shipping order with build and PR, technical note links) and its rows in `docs/latest/summary-of-changes/SUMMARY_OF_CHANGES.md`. The release PR writes both, in the same scratch delivery as the docs.
-- `versions.json` records every release from the start (3.4.1.53): 2.0.17 and the versions before it from history.txt only (`"history": true`), 2.0.18 by its commit (`"commit"`), the rest by PR. 3.1.0 and 3.2.0 are pre-releases of 3.3.1, and the 2.0.x builds between releases are pre-releases; `release.yml`'s relabel step marks their GitHub releases as pre-releases on its next run.
-
-## Full releases: notes and the mirror (3.4.0.20, Dan, 2026-10-08)
-- A full release's notes are its history section only, under "Changes since <previous release>": one summary of every change since the previous release, written by Claude at release time from the PRs `versions.json` lists between the two (Dan, 2026-10-08, 3.4.0.27; `CLAUDE.md`, Full releases). No API key in the pipeline; `tools/collect_notes.sh` is gone. Builds keep their own history section as notes. `release.yml` reads `versions.py kind`: a version not recorded is not published, and only the recorded release is published as a full release (`--latest`).
-- Job `mirror` keeps **`racetracks/Pour-Social-Score`** on the latest full release (3.4.1.30, Dan, 2026-10-08): the release zip's contents committed as the repo's files (the addon folders at the root; the mirror's own readme.md stays), then the release, with the same zip and notes, on that commit. It runs after every push and does nothing when the mirror is up to date, so it repaired 3.4.0.29 (its release went across without the files) (`MIRROR_REPO` in release.yml). It needs the secret `MIRROR_TOKEN` (a fine-grained token with Contents: Read and write on that repo only) on the addon repo; the mirror repo already has a commit, which it needs. Builds are not mirrored. After fixing a secret, run Actions > Release > Run workflow on main.
-
-## Build numbers (Dan, 2026-10-08)
-Every build is `X.Y.Z.B` (02 section 8): the next build number for every test zip, a stage or a fix, merged or not, and for a release (from 3.4.0.27 the number never resets: release `3.4.0.29`, then `3.4.1.30`); every TOC, a history section and the zip name carry it. `check_toc.sh` accepts only `X.Y.Z.B`. `release.yml` asks `versions.json` what a version is: the latest release is published as a full release and mirrored, a recorded pre-release as a pre-release (and kept one), anything else not at all.
-
-Until 3.4.0-dev012 a round of fixes on an unmerged dev build was `devNNN_N` (`3.4.0-dev002_2`, `_3`, ...).
+Everything else is a pre-release of the next release, including 3.1.0 and 3.2.0 (pre-releases of 3.3.1). 3.3.0-dev004 was never published (its runs were cancelled; the author chose test zip only, 2026-10-07). Older version names (`-devN`, `-devNNN`, `_N`, plain `X.Y.Z`) stay as they were.
 
 ## Test zips
-- Scratch (`racetracks/Pour-Social-Score_Scratch`, from 2026-10-08): `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`, and the same commit replaces the zip in `latest/` with it. Link `https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/<path>`.
-- Builds up to 3.4.0-dev005 are on the old `racetracks/scratch` (`PourSocialScore/test-builds/`, dev001 to dev003 of 3.3.0 also in `pss-builds/`); those links stay, nothing new goes there.
+- Scratch `releases/PourSocialScore-<version>-<YYYY-MM-DD-hh-mm>.zip`; the same commit replaces the zip in `latest/`. Link `https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/<path>`.
+- Builds up to 3.4.0-dev005 are on the old `racetracks/scratch` (`PourSocialScore/test-builds/`, `pss-builds/`); those links stay, nothing new goes there.
 
-## PSS pitfalls seen
-- 3.2.0: PRs #71 to #74 were stacked and merged into stale branches; PR #75 carried them to main. Never stack.
-- The first EUI release was dev3 because release.yml arrived late in that repo.
-- 3.3.0-dev001 to dev003 test zips first went to `pss-builds/` by mistake.
+## PSS pitfalls
+- Never stack PRs: in 3.2.0, PRs #71 to #74 merged into stale branches and PR #75 had to carry them to main.
 - Assign PRs to `racetracks` (requesting the owner as reviewer returns 422).
+- A cancelled Release run leaves a version unpublished (3.3.0-dev004): run the workflow by hand on main while that version is still current.

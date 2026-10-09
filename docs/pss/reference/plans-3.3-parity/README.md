@@ -6,7 +6,7 @@ staying in separate folders.
 
 | File | What it holds |
 | --- | --- |
-| 01_ANALYSIS.md | Both windows feature by feature, the gaps each way, four issues, where shared code belongs, and six decisions for Dan |
+| 01_ANALYSIS.md | Both windows feature by feature, the gaps each way, four issues, where shared code belongs, and six decisions for the author |
 | 02_PLAN.md | Ten steps and twelve PRs from 3.3.0-dev001 to the 3.3.0 release, with what to validate at each step |
 
 Status at 2026-10-05: analysis written, nothing built. Decision 6 (issue
