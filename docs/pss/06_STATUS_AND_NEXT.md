@@ -1,14 +1,15 @@
-# Status and next step (3.6.0.71, after release 3.5.0.62)
+# Status and next step (3.6.0.72, after release 3.5.0.62)
 
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. Earlier builds: `history.txt`, `versions.json` and the build records on scratch (`docs/components/addon-manager/03_BUILD_NOTES.md`). History: `reference/06_status-history-to-3.4.1.30.md` and `reference/combined-3.4.1.52/`.
 
 ## Now
+- **3.6.0.72, docs build:** the reference framework gains the type `RET` (Retired, own counter from `00001`; scratch `DEC-00009`) and a `00_References.md` in every documentation folder (`DEC-00010`): `refkey.py retire` maps an old key to its replacement; `CLAUDE.md` says how (`STP-00007`, `STP-00008`). #179 moves from 3.6.0.72 to 3.6.0.73.
 - **3.6.0.71, docs build:** `CLAUDE.md`, PSS 02 and baseline 02 consolidated (same rules, no dates or build history; build history lives in `history.txt` and the build records) and this file trimmed. #179 moves from 3.6.0.71 to 3.6.0.72.
 - **3.6.0.69 (PR #182, merged; awaiting the author's in-game test):** the Addon Profiles rework for #176, #177, #180 (#175 closed) and Enabled components #181.
   - Profiles are saved ACP's way: every place in the Profiles drop-down (Core 1 to 5, a line, Layered 6 to 25 and the class one), a place's side menu (Select or Deselect, Save with one confirm, Load, Add to current selection, Remove from current selection, Rename, Delete; a selected place marked `*`), any selected together (union plus hand picks; keys `addonSel`, `addonPick`); the kit's `m:Sub` (Blizzard submenu; a swap under "< Back" in Dark) fixed the menu closing; the drop-down is 190 wide and opens down in every look; the count is right-anchored to Undo. Not built (kept different from ACP): Default set, silent no-ops, empty-name reset. #177's decisions were built on the recommended options (core 1 to 5, union only, manual picks kept apart, load on the existing flow, class place under Layered).
   - Enabled components: Options section first, `useAddons` / `useLogging` / `useGfx` / `useFiltering`, `M.PSS_On` read once per session (a change applies after a reload); the addon manager and graphics files return at the top when off; Event Logging off stores no line (counts unchanged) and drops the Events tab and the Event History page; Social Filtering off registers no chat filter, block events, ignore hooks, menus, capture or expiry and the list tabs say so. The C1/C2 breach is fixed.
   - Design: scratch `docs/components/addon-manager/04_PROFILES_REWORK.md` (in-game checks section 8) and `docs/components/enabled-components/`; build record `03_BUILD_NOTES.md`.
-- **Next:** [#179](https://github.com/racetracks/PourSocialScore/issues/179) Enable all / Disable all in a profile's side menu (3.6.0.72; context scratch `docs/latest/issues/addon-profiles-enable-disable-all.md`, `docs/components/addon-manager/04_ENABLE_DISABLE_ALL.md`).
+- **Next:** [#179](https://github.com/racetracks/PourSocialScore/issues/179) Enable all / Disable all in a profile's side menu (3.6.0.73; context scratch `docs/latest/issues/addon-profiles-enable-disable-all.md`, `docs/components/addon-manager/04_ENABLE_DISABLE_ALL.md`).
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
@@ -23,7 +24,7 @@ None (02 section 12).
 
 ## Open issues (addon repo)
 - #176, #177, #180: addon profiles (reworked in 3.6.0.69; close once tested).
-- #179: Enable all / Disable all in a profile (next, 3.6.0.72).
+- #179: Enable all / Disable all in a profile (next, 3.6.0.73).
 - #181: Enabled components (built in 3.6.0.69; close once tested).
 - #183: ignore auto-reply, option to hide the "To player: ..." echo of the reply PSS sends.
 - #184: the reference framework (`ISS-00001`); shipped in 3.6.0.70.
