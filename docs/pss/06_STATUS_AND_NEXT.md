@@ -5,11 +5,13 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 ## Now
 - **Live release 3.4.2.54** (PR #150, merged 2026-10-09): docs only, no change in game since 3.4.1.53, which closed the core uplift.
 - **3.4.3.55** (PR #151, docs only, opens line 3.4.3): the release notes, the summary of changes and the technical notes on scratch are named as context for any change or regression check (`CLAUDE.md`, 11), and `05_RELEASE.md` lists what a full release updates, the code map included.
-- **No current project.** The next step is whatever the author names; open items are below and in `13_CHANGES_IN_TRAIN.md`. The next build is 3.4.3.56 (`sh tools/bump_version.sh build "Title"`).
+- **3.5.0.56** (docs only, opens line 3.5.0): points a fresh session to the graphics settings design.
+- **Current project: graphics settings (`/pss gfx`, Camelot only).** Export and import every graphics setting, a preview of each change, keep or revert within 15 s after the reload, the last 5 sets kept in `PSS_OptionsDB` (restore, export). All logic in Libraries (`PSS_Graphics.lua`); core gets one route entry and, in stage 2, one line. Design and implementation plan, every decision answered (the author, 2026-10-09): scratch `docs/latest/graphics-settings/01_DESIGN.md` (https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/docs/latest/graphics-settings/01_DESIGN.md).
+- **Next step: stage 1, 3.5.0.57** (logic, history and saved keys; harness first): follow the design's section 8. Then 3.5.0.58 (popup and keep prompt), 3.5.0.59 (History view), 3.5.0.60 (polish), release 3.5.0.61.
 
 ## Waiting on the author
-- Merge the 3.4.3.55 docs PR (#151).
-- Name the next project or fix.
+- Merge the 3.5.0.56 docs PR.
+- Stage 1 of graphics settings in a fresh session.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: OK or revert P3 (inactive shipped lists no longer capture units or /who).
 

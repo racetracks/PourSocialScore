@@ -68,6 +68,7 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 | Native GUI parity (3.3.0, issue #78) | Closed at v3.3.1 (08) |
 | The PSS window (3.4.0) | Done, v3.4.0.29 (09; plan on scratch `docs/latest/ui uplift/`) |
 | Core uplift (3.4.1) | Done, v3.4.1.53 (10; design on scratch `docs/latest/core-uplift/`) |
+| Graphics settings (3.5.0, `/pss gfx`, Camelot) | Designed (scratch `docs/latest/graphics-settings/`); stage 1 next |
 | Dashboard tab | Paused, branch `claude/project-thread-pa7y7o` |
 | Global moderation ideas (sync, curated lists, scoring) | Not started |
 
