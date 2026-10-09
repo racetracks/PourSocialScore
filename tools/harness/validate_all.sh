@@ -275,6 +275,19 @@ for sv in - "$work/sv-2.0.44.lua"; do
 	done
 done
 
+# purge by owner (core uplift S1, 3.4.1.49): a removal never loads Logging;
+# the owner is marked and their saved lines go when it loads, a person
+# listed again keeps only their new lines, full marks load it at once
+echo "== purge"
+lua5.1 "$here/run.lua" . - "$work/pg-0.lua" > /dev/null 2>&1
+src=$work/pg-0.lua
+for ph in 1 2 3 4; do
+	[ $ph = 4 ] && src=$work/pg-1.lua
+	out=$(PSS_PHASE=$ph lua5.1 "$here/run.lua" . "$src" "$work/pg-$ph.lua" "$here/check_purge.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | grep -q "PASS purge $ph" && echo "PASS purge $ph" || { echo "$out"; echo "FAIL purge $ph"; fail=1; }
+	src=$work/pg-$ph.lua
+done
+
 # recent counts (3.2): session and last-24-hour counts per owner without
 # Logging; a login or /reload starts a new session (3.2.0-dev006), which
 # is not saved at logout

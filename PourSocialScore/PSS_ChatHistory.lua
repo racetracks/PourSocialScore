@@ -233,6 +233,9 @@ function M.PSS_LoadLogging()
 	-- PourSocialScore_Logging/PSS_SavedLog.lua, loaded with the data)
 	if History.UnpackSaved then History.UnpackSaved() end
 	if History.KeepToLog and type(db) == "table" and not rawget(db, "logAllV1") then History.KeepToLog() end
+	-- owners removed while Logging was not loaded (core uplift S1); their
+	-- waiting lines went then, any waiting now are newer
+	History.ApplyPurge()
 	if type(ob) == "table" then
 		local log = History.Log()
 		for i = 1, #ob do
@@ -979,6 +982,90 @@ function History.Clear(pred)
 	keepTotal = nil
 	if removed > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history cleared") end
 	return removed
+end
+
+------------------------------------------------------------------------
+-- One owner's lines (core uplift S1, 3.4.1.49): a removal or a reset. The
+-- log is walked comparing o and the owner's keep is dropped, nothing is
+-- unpacked (5.6 ms and 750 KB of garbage through History.Clear, about
+-- 70 us and none here). With Logging not loaded, the owner's waiting lines
+-- go at once and the saved ones are marked in PourSocialScoreDB.purge
+-- (o = true, at most PURGE_CAP owners); the marks are applied when Logging
+-- loads, before the waiting lines join the log, so someone removed and
+-- listed again keeps only their new lines. A removal never loads Logging,
+-- unless the marks are full.
+--   mayHave false: nothing was ever counted for the owner, so there are no
+--   saved lines to mark (lines are only added with a count)
+------------------------------------------------------------------------
+History.PURGE_CAP = 200
+
+-- log lines of o (or of any owner in set) and their keep go; how many
+local function dropLines(o, set)
+	local log = History.Log()
+	local j, n = 0, #log
+	for i = 1, n do
+		local h = log[i]
+		local ho = h.o
+		if ho ~= o and not (set and set[ho]) then j = j + 1; log[j] = h end
+	end
+	for i = j + 1, n do log[i] = nil end
+	local removed = n - j
+	local keep = History.Keep()
+	if o and keep[o] then removed = removed + #keep[o]; keep[o] = nil end
+	if set then
+		for so in pairs(set) do
+			if keep[so] then removed = removed + #keep[so]; keep[so] = nil end
+		end
+	end
+	keepTotal = nil
+	if removed > 0 and M.PSS_RequestGC then M.PSS_RequestGC("history cleared") end
+	return removed
+end
+
+-- o's lines in the outbox go; how many
+local function dropWaiting(o)
+	local ob = rawget(PourSocialScoreDB, "outbox")
+	if type(ob) ~= "table" then return 0 end
+	local j, n = 0, #ob
+	for i = 1, n do
+		local e = ob[i]
+		if type(e) ~= "table" or e.o ~= o then j = j + 1; ob[j] = e end
+	end
+	for i = j + 1, n do ob[i] = nil end
+	if j == 0 then rawset(PourSocialScoreDB, "outbox", nil) end
+	return n - j
+end
+
+function History.ClearOwner(o, mayHave)
+	local db = PourSocialScoreDB
+	if type(o) ~= "string" or type(db) ~= "table" then return 0 end
+	if ready then return dropLines(o) end
+	local removed = dropWaiting(o)
+	if mayHave == false then return removed end
+	local purge = rawget(db, "purge")
+	if type(purge) ~= "table" then purge = {} end
+	if not purge[o] then
+		local n = 0
+		for _ in pairs(purge) do n = n + 1 end
+		if n >= History.PURGE_CAP then
+			-- full: Logging loads (the marks are applied) and o is cleared there
+			if M.PSS_LoadLogging() then return removed + dropLines(o) end
+			return removed
+		end
+		purge[o] = true
+		rawset(db, "purge", purge)
+	end
+	return removed
+end
+
+-- the marks, when Logging loads (M.PSS_LoadLogging)
+function History.ApplyPurge()
+	local db = PourSocialScoreDB
+	local purge = type(db) == "table" and rawget(db, "purge")
+	if type(purge) ~= "table" then return 0 end
+	rawset(db, "purge", nil)
+	if next(purge) == nil then return 0 end
+	return dropLines(nil, purge)
 end
 
 -- owner keys

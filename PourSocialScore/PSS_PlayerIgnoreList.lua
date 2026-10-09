@@ -1321,11 +1321,9 @@ function M.PSS_ForgetPlayer(name, note)
 	if M.PSS_KeepBlockedOnBuiltIn then M.PSS_KeepBlockedOnBuiltIn(p and p.name or name, note) end
 	local owner = History.PlayerKey(p and p.name or name)
 	-- a line is only ever added with a count, so with nothing counted for
-	-- them there is nothing to clear and the block history (Logging) is
-	-- not loaded for it
-	if owner and (History.Loaded() or mayHaveLines(p)) then
-		History.Clear(function(h) return h.o == owner end)
-	end
+	-- them there are no saved lines; the block history (Logging) is never
+	-- loaded for it (History.ClearOwner marks them until it loads)
+	History.ClearOwner(owner, mayHaveLines(p))
 	History.ForgetRecent(owner)
 	if p then PourSocialScoreDB.playerData[key] = nil end
 end
@@ -1491,7 +1489,7 @@ function M.PSS_ResetPlayerBlockHistory(name)
 	local p = ensurePlayer(name)
 	if p then
 		local key = History.PlayerKey(p.name or name)
-		History.Clear(function(h) return h.o == key end)
+		History.ClearOwner(key)
 		History.ForgetRecent(key)
 		p.blockHistory = nil
 		p.blockedWhispers, p.blockedWhisperMessages, p.blockedPrivateMessages = nil, nil, nil

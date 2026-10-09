@@ -6,7 +6,7 @@
 --                 nothing blocked, or a guild leaves it unloaded. Logout.
 --   PSS_PHASE=2 : still not loaded at login, the line still waits. Opening
 --                 the history loads Logging and the waiting line joins the
---                 log once; a removal loads it too.
+--                 log once.
 --   PSS_PHASE=3 : every blocked line waits (3.2.0-dev007: a person's too);
 --                 200 waiting lines load Logging by itself at a quiet
 --                 moment, never inside the chat filter, and all of them
