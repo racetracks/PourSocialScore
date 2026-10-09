@@ -20,6 +20,7 @@ Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4
 - The closed projects: the PSS window (3.4.0, `09_PSS_UI_PROJECT.md`; its code map and lessons stay the reference for the window) and parity (3.3.1, `08`).
 
 ## Waiting on Dan
+- Optional: add the repository secret `SCRATCH_TOKEN` (fine-grained token, Contents: read on `racetracks/Pour-Social-Score_Scratch`) so CI runs the real saves (`real-saves` job, 10_CORE_UPLIFT decision 29).
 - Test the combined build 3.4.1.52 in game and merge its PR.
 - Dan's 3.4.1.50 login reported 2 custom chat filter rules this version cannot use (kept, not applied). Run `/pss export unused` and paste the string, so the next session can tell whether they are rules from a newer build or filters U3's check rejects wrongly.
 

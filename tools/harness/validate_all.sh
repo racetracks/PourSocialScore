@@ -21,6 +21,9 @@ work=${TMPDIR:-/tmp}/pss-validate
 rm -rf "$work"; mkdir -p "$work"
 t0=1790000000
 fail=0
+# a check that could not run is listed and fails the run unless PSS_ALLOW_SKIP=1
+# (a NOTE and exit 0 once hid a skipped comparison)
+skipped=""
 # the upgrade checks rebuild old versions from git history: a shallow clone
 # (a Claude Code session) lacks it and the split checks then fail
 if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = "true" ] && ! git cat-file -e 767c49c 2>/dev/null; then
@@ -392,9 +395,13 @@ out=$(PSS_SHIPPED="$ship" PSS_CAMELOT=1 PSS_PHASE=camelot lua5.1 "$here/run.lua"
 echo "$out" | grep -q "PASS sparse camelot" || { echo "$out"; echo "FAIL camelot: the repaired save"; fail=1; }
 out=$(PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-plant.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -q "PASS sparse camelot" || { echo "$out"; echo "FAIL camelot: a Retail save was repaired"; fail=1; }
-# every save: the same through the accessors as the previous build
-sparse_ref=${PSS_SPARSE_AS:-origin/main}
-if git rev-parse --verify -q "$sparse_ref" > /dev/null; then
+# every save: the same through the accessors as another build (core uplift S3).
+# Opt-in (PSS_SPARSE_AS=<git ref>, for a change to the saved layout): it asserts
+# that nothing the addon shows changed, which a feature stage legitimately breaks.
+sparse_ref=${PSS_SPARSE_AS:-}
+if [ -z "$sparse_ref" ]; then
+	echo "== sparse saves: not requested (PSS_SPARSE_AS=<ref> compares every save with that build)"
+elif git rev-parse --verify -q "$sparse_ref" > /dev/null; then
 	sparsesaves="- $work/sp-plant-unique.lua $work/cam-plant.lua"
 	[ -n "$PSS_REAL_SAVES" ] && sparsesaves="$sparsesaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua' | sort)"
 	for sv in "$work"/sv-*.lua; do
@@ -404,7 +411,8 @@ if git rev-parse --verify -q "$sparse_ref" > /dev/null; then
 	echo "$out" | grep -E "^PASS|^FAIL"
 	echo "$out" | grep -q "^PASS sparse saves" || { echo "$out" | grep -v '^same' | head -20; fail=1; }
 else
-	echo "NOTE: $sparse_ref is not known here (git fetch origin main): the previous-build comparison was skipped"
+	echo "SKIPPED: sparse saves: $sparse_ref is not known here (git fetch origin main:refs/remotes/origin/main)"
+	skipped="$skipped sparse-saves"
 fi
 
 # recent counts (3.2): session and last-24-hour counts per owner without
@@ -587,12 +595,19 @@ lua5.1 tools/check_schema.lua --saves $(ls "$work"/*.lua | grep -v '/steps\.lua$
 
 # saves byte-identical with another ref (PSS_SAME_AS=origin/main, for a
 # stage that must not change the saved data; same_saves.sh)
-if [ -n "$PSS_SAME_AS" ]; then
+if [ -n "$PSS_SAME_AS" ] && ! git rev-parse --verify -q "$PSS_SAME_AS" > /dev/null; then
+	echo "SKIPPED: same saves: $PSS_SAME_AS is not known here (git fetch origin main:refs/remotes/origin/main)"
+	skipped="$skipped same-saves"
+elif [ -n "$PSS_SAME_AS" ]; then
 	echo "== same saves as $PSS_SAME_AS"
 	out=$(TMPDIR=${TMPDIR:-/tmp} sh "$here/same_saves.sh" "$PSS_SAME_AS" 2>&1)
 	echo "$out" | grep -v '^same:'
 	echo "$out" | grep -q "^PASS same saves" || fail=1
 fi
 
+if [ -n "$skipped" ] && [ "$PSS_ALLOW_SKIP" != 1 ]; then
+	echo "Upgrade checks INCOMPLETE: skipped$skipped (set PSS_ALLOW_SKIP=1 to accept)"
+	fail=1
+fi
 [ $fail -eq 0 ] && echo "All upgrade checks passed" || echo "Upgrade checks FAILED"
 exit $fail

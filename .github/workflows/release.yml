@@ -35,6 +35,8 @@ jobs:
       kind: ${{ steps.v.outputs.kind }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Read version
         id: v
@@ -54,6 +56,21 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ github.token }}
+
+      # Nothing is published from a red main: the rules check and the full
+      # harness (no real saves here) must pass first. A failed run is retried
+      # with the Run workflow button once main is fixed.
+      - name: Install Lua 5.1
+        if: steps.v.outputs.exists == 'false'
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+
+      - name: Rules check before publishing
+        if: steps.v.outputs.exists == 'false'
+        run: sh tools/check_rules.sh
+
+      - name: Full harness before publishing
+        if: steps.v.outputs.exists == 'false'
+        run: sh tools/harness/validate_all.sh
 
       - name: Build zip and notes
         if: steps.v.outputs.exists == 'false'
