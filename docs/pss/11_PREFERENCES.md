@@ -16,6 +16,9 @@ Everything about how Dan works and what he wants from Claude lives here (Dan, 20
 - **Keep the memory lean and technical (2026-10-08).** Load only what the step needs. Read an appendix or a reference only for the stage that uses it. Delegate wide reading to subagents, and keep only their conclusions.
 
 ## Communication
+- **Response style (2026-10-09):** short, with no preamble and no recap of what was just done. Don't explain code changes unless Dan asks. Don't repeat file contents back; reference line numbers (`file:line`).
+- **Lean memory (2026-10-09):** keep what is held in memory to a minimum. Where that would hide critical information, give it to Dan anyway, as a markdown in a scratch folder (never hosted in the session), with a link. Several files go in one folder, not a zip; a crucial markdown always sits in a folder, linked.
+- **File hosting (2026-10-09):** never host files in the Claude session; use the most relevant scratch folder (`summary/`, `releases/`, or `docs/latest/<topic>/`: `issues/`, `setup/`, `release-notes/`, `code-map/`, `pss-docs/`).
 - Plain language, answer first, short; Dan may read on the go.
 - Numbered questions, each with a recommendation; Dan answers by number ("1: yes 2: recommended"). Play the final decisions back before building.
 - Always give links: scratch `raw` links for zips, `blob` links for docs, `tree` links for folders. Never only a path.
