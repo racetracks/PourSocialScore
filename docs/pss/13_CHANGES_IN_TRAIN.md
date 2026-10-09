@@ -7,7 +7,7 @@
 | Item | State |
 | --- | --- |
 | Release | **3.4.1.53**, live (PR #143, 2026-10-09); closes the core uplift. Previous release 3.4.0.29 |
-| Project | None. A fix starts line 3.4.2 at build 3.4.2.54 |
+| Project | None. Line 3.4.2 started with the docs build 3.4.2.54; the next build is 3.4.2.55 |
 | Lines 3.4.2, 3.4.3 | Not used: their stages (P1 to P6, W1 to W4) shipped inside 3.4.1.52 (decision 28, a one-time override, 02 section 12) |
 
 Decided not to change: identity stays the lowercase `name-realm` key (no ID generator, decision 2); realm display spelling stays (decision 13 reversed); no new SavedVariables files; the three looks and the window's layout stay.

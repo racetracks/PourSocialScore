@@ -52,7 +52,7 @@ There is one front end, `PourSocialScore_GUI`.
 ## 8. Versions on PSS
 - **Versions are `X.Y.Z.B` and the build number never resets (Dan, 2026-10-08):** baseline 02 F applies as written. `sh tools/bump_version.sh build|release|line` sets every TOC, records the version in `versions.json` and adds the history section; `sh tools/bump_version.sh pr <number>` records the PR. `check_toc.sh` accepts only `X.Y.Z.B`; `check_rules.sh` runs `versions.py check` (in CI every entry needs its PR, a pull request's newest entry its own number) and fails a placeholder history bullet. A full release's notes are one summary of every change since the previous release (`CLAUDE.md`, Full releases).
 - **Expected builds are written down and kept in step (Dan, 2026-10-09):** the current plan gives every planned stage and release its expected build. A build added before them (a docs build or a fix) moves every later one up by one, and the PR that takes it updates every reference in the same PR: the plan's stage tables, 06, 13, `01_HANDOVER.md` (the next re-summary) and `CLAUDE.md`'s short form.
-- A fix line is the next `X.Y.Z` with the next build number (after release 3.4.1.53, `3.4.2.54`); ask Dan if a fix line is needed.
+- A fix line is the next `X.Y.Z` with the next build number (line 3.4.2 started at `3.4.2.54`, after release 3.4.1.53); ask Dan if a fix line is needed.
 - Older names (`3.3.0-devNNN`, `-devN`, `_N` fixes, plain `3.3.1`) stay as they were in history.txt and on scratch; never use them for a new build.
 
 ## 9. Hosting on scratch (Dan, 2026-10-08)

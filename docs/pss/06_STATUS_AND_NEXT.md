@@ -3,8 +3,9 @@
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. History: `reference/06_status-history-to-3.4.1.30.md` (to 3.4.1.30) and `reference/combined-3.4.1.52/` (the 3.4.1.52 stages).
 
 ## Now
-- **Live release: 3.4.1.53** (PR #143, published 2026-10-09 and mirrored to `racetracks/Pour-Social-Score`). It closes the core uplift. Main holds 3.4.1.53.
-- **No current project.** The next step is whatever Dan names; open items are below and in `13_CHANGES_IN_TRAIN.md`. A fix starts line 3.4.2 at build 3.4.2.54 (`sh tools/bump_version.sh line 3.4.2 "Title"`).
+- **Live release: 3.4.1.53** (PR #143, published 2026-10-09 and mirrored to `racetracks/Pour-Social-Score`). It closes the core uplift.
+- **3.4.2.54** (PR pending): docs only, the baseline, scratch and PSS packs trimmed to the current state; no change in game.
+- **No current project.** The next step is whatever Dan names; open items are below and in `13_CHANGES_IN_TRAIN.md`. The next build is 3.4.2.55 (`sh tools/bump_version.sh build "Title"`).
 
 ## Waiting on Dan
 - Name the next project or fix.
