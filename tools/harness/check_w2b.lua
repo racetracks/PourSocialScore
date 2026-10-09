@@ -47,4 +47,11 @@ err, ask, apply = M.PSS_ImportStart(text)
 check(err == nil and ask == nil and type(apply) == "function", "merge does not ask")
 check(tostring(apply()):find("^Merged: ") ~= nil, "apply report")
 
+-- G7: the Chat Filters Summary spec is filled in Libraries
+local into, r = {}, {}
+local n = M.PSS_AddCustomFilter("W2b filter", "[word=w2bfilterword]", false)
+M.PSS_FilterRow(n, r)
+check(M.PSS_FilterSummarySpec and M.PSS_FilterSummarySpec(r, into) == into, "PSS_FilterSummarySpec")
+check(into.owner == M.PSS_FilterOwnerKey(n) and into.allTime == (r.blocked or 0) and into.title == r.desc and into.id == n, "filter summary spec")
+
 if not fail then print("PASS w2b") end
