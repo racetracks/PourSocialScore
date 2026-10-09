@@ -59,10 +59,11 @@ jobs:
 
   # Informational: the window against the branch it merges into, in all three
   # looks. A change that should not show must read "identical"; an intended
-  # change lists its lines (the job never fails the PR).
+  # change lists its lines. The job always passes (a failing job would show a
+  # red cross on a PR whose difference is intended): a difference is a warning
+  # annotation and the full text is in the job summary.
   window-compare:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -72,8 +73,11 @@ jobs:
       - name: Window against the base branch
         run: |
           base=origin/${{ github.base_ref || 'main' }}
-          { echo '### Window against '"$base"; echo '```'; sh tools/harness/tui_compare.sh "$base" 2>&1 | tail -45; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
-          sh tools/harness/tui_compare.sh "$base" > /dev/null
+          rc=0
+          sh tools/harness/tui_compare.sh "$base" > "$RUNNER_TEMP/tui.txt" 2>&1 || rc=$?
+          { echo '### Window against '"$base"; echo '```'; tail -45 "$RUNNER_TEMP/tui.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          tail -3 "$RUNNER_TEMP/tui.txt"
+          if [ "$rc" != 0 ]; then echo "::warning::The window differs from $base (intended? see the job summary)"; fi
 
   # The real saves live on the private scratch repo and are never committed
   # here (baseline 02 D10). With a SCRATCH_TOKEN secret (contents: read on
