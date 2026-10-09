@@ -70,6 +70,16 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - `purge` is in `M.PSS_SCHEMA.core`. Removal never loads Logging (closes the gap in 01 section 5).
   - Harness: `check_purge.lua` ("== purge" in `validate_all.sh`, 4 phases; 2 and 3 fail on main). 50 saves byte-identical with main; `tui_compare.sh` identical.
   - Measured (3.4.0.28 save, harness, 20 owners with the most lines): keep filled to its 2000 cap, 3.43 ms and 1378.5 KB garbage to 36 us and none per owner; the save as it is (keep empty), 55 us to 36 us. `PSS_ChatHistory.lua` 32750 to 34554 bytes compiled; resident after login unchanged (2921.7 KB).
+- **Done in S2 (3.4.1.50, PR #140; Dan, 2026-10-09: 1 yes; 2 `_managed` stays saved, S2 adds only its accessor; the stage split, decision 26):**
+  - **The accessors** (core `PSS_GuildIgnoreList.lua`, one block between the comments `-- (member fields)` and `-- (/member fields)`): `M.PSS_MemberCanon(m, k)`, `M.PSS_MemberPlayerKey(m)`, `M.PSS_MemberName(m, k)` (the key's display form when `name` is missing), `M.PSS_MemberGuildName(m, g)` (the rule's name when `guild` is missing), `M.PSS_MemberWhenBlocked(m)` ("Managed list" for a shipped record), `M.PSS_MemberShipped(m)`, `M.PSS_StoreMemberCount(g, n)`; inside the block only: the shipped record's runtime fields (`newShippedRecord`, `shippedOnly`, `shippedCanon`, `shippedRule`, `settleShipped`, `dropOwnFields`) and the `memberCount` writes. `k` is the stored key and `g` the rule, when the caller has them.
+  - **Counts:** `History.CountTotal(c)` (core `PSS_ChatHistory.lua`) reads a total as the larger of `total` and the categories added up, without changing the table. `History.Add`, `managedDirty`, `memberMayHaveLines`, `compactMember`, the players' and filters' "may have lines", `M.PSS_Validate`, `M.PSS_ListTotals` and the Filters tab's line count read through it.
+  - **memberCount:** nothing reads the saved field. The Guilds list keeps the count on its row item (`item.count`, from `M.PSS_GuildMemberCount`), and `M.PSS_GuildInfoLine(g, key)` asks `M.PSS_GuildMemberCount`. The saved value is still written (S3 drops it).
+  - **The rules check:** `tools/check_fields.lua` (in `check_rules.sh`) fails `_playerKey`, `_canon`, `_gkey`, `_managed`, `_virtual` or `memberCount` as a field in code outside the block (62 places on main). Strings and comments do not count (the schema map, the export's field list).
+  - **Export:** a member's `name`, `guild` and `whenBlocked` are filled through the accessors, so an export stays whole once S3 saves less. Import's shipped merge clears the incoming record's own name fields in `M.PSS_MergeIntoShipped` (it did so in Libraries).
+  - **For S3:** the window and the view functions (`M.PSS_MemberTip`, `M.PSS_MemberHeading`, `M.PSS_MemberGuildLine`, `M.PSS_MemberAddedLine`, `M.PSS_MemberRemoveText`, the Guilds tab's rows) pass only the record, with no key or rule. Before S3 drops `name` or `guild`, the accessors need the record's home (for example a weak map from record to key and rule, filled by the member index and `M.PSS_ForEachGuildMember`), measured. `mergeMemberRecord` copies any field the target lacks, so a sparse target would take the source's `name` and `guild` back; S3 skips them there. `M.PSS_GuildMemberCount` reads `M.PSS_MemberShipped` while the lists are not loaded, so dropping `_managed` needs another way to tell a stored shipped member from the manifest.
+  - **In game (Dan, 2026-10-09):** checks 1 to 7 pass. Check 1 printed the upgrade report (Updated from 3.4.1.49 to 3.4.1.50, the cleanup line, step 8); that is wanted: every update says it happened (11_PREFERENCES). The report also named 2 custom chat filter rules this version cannot use (kept, not applied).
+  - Harness: `check_accessors.lua` ("== accessors" in `validate_all.sh`): a member without `name`, `guild` and `_playerKey` reads the same through the accessors, the member index still finds it, counts without `total` read right and `History.Add` counts on from them, and the member count never reads the saved `memberCount`. It fails on main.
+  - Measured (3.4.0.28 save, harness): resident after login 2921.8 to 2927.1 KB (+5.3 KB, the accessor closures). Compiled: core +981 bytes (`PSS_GuildIgnoreList.lua` 65712 to 66437, `PSS_ChatHistory.lua` 34554 to 34830), Libraries +595, GUI +129. An accessor read costs about 0.06 us more than the field (1 million reads, plain Lua 5.1); the guild source reads the guild twice per line it checks. 50 saves byte-identical with main (`same_saves.sh`); `tui_compare.sh` identical in all three looks (125 and 139 steps).
 - **Upgrade step 9, "SavedVariables performance cleanup"** (step 8 is B1's, 2.7) (decision 4; Dan's OK given, D9): one run-once step for everything below, then one validation on all four saves with identical counters.
   - Sparse records, and the runtime fields dropped.
   - The 1500 member cap per rule, and `memberCount` no longer saved (L12, L16).
@@ -236,34 +246,35 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | U2 | 3.4.1.46 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | Merged, PR #137 |
 | U3 | 3.4.1.47 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | Merged, PR #138 (in game: checks 3 and 6 failed, fixed in 3.4.1.48) |
 | U3 fix | 3.4.1.48 | `PSS_Popups.lua` used `M` with no `local M`: the GUI folder stopped loading at its last line, so `/pss export unused` did nothing and the Import/Export tab gave no string (Dan, in game, 2026-10-09). `local M = ns.M`; the harness no longer has a global `M` for addon code (`run.lua`), and `tools/check_locals.lua` (rules check) fails a file that uses `M` without a local | Yes | `check_forward.lua` and `check_options.lua` fail without the fix; in game checks 3 and 6 again | Merged, PR #138 |
-| S1 | 3.4.1.49 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | PR #139 |
-| S2 | 3.4.1.50 | Accessors for every field S3 drops; the rules-check grep | No | `tui_compare.sh` identical | |
-| S3 | 3.4.1.51 | Upgrade step 9 (2.2): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
-| R | 3.4.1.52 | Release: version only; one summary of 3.4.1.30 to 3.4.1.51 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
+| S1 | 3.4.1.49 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | Merged, PR #139 |
+| S2 | 3.4.1.50 | Accessors for the guild member fields, counts totals and `memberCount` S3 drops; `check_fields.lua` in the rules check (decision 26) | No | `tui_compare.sh` identical; 50 saves byte-identical with main | PR #140 (in-game checks 1 to 7 pass, Dan, 2026-10-09) |
+| S2b | 3.4.1.51 | Player W I G P C accessors, the list arrays' layout (`notes`, `typeList`, `syncInfo`: an array with holes breaks `table.remove`, so a layout decision comes first) and the log group's `m` (decision 26) | No | `tui_compare.sh` identical; saves byte-identical with main | |
+| S3 | 3.4.1.52 | Upgrade step 9 (2.2): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
+| R | 3.4.1.53 | Release: version only; one summary of 3.4.1.30 to 3.4.1.52 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
 
 ### Line 3.4.2: core performance and tidy (builds continue)
 Expected builds, if nothing is added before them (decision 24).
 
 | Stage | Build | Change |
 | --- | --- | --- |
-| P1 | 3.4.2.53 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `def.reload` and the `before` read in `M.PSS_SetOpt`; Dan, 2026-10-09), the compat globals, `/pss test` |
-| P2 | 3.4.2.54 | Event-driven GC and `loadWhenQuiet` without timers (L14; closes the known breach in 02 section 12) |
-| P3 | 3.4.2.55 | Capture events only when needed (L15) |
-| P4 | 3.4.2.56 | Chat path: N26 (option reads without the router), N28 (guild path), N35 (per-line tables), N31 (outbox trim), benchmarked |
-| P5 | 3.4.2.57 | Duplicated logic into functions: N17 to N25 |
-| P6 | 3.4.2.58 | Core placement: L20 plus N37 to N39, measured before and after |
-| R | 3.4.2.59 | Release; `01_HANDOVER.md` re-summarized |
+| P1 | 3.4.2.54 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `def.reload` and the `before` read in `M.PSS_SetOpt`; Dan, 2026-10-09), the compat globals, `/pss test` |
+| P2 | 3.4.2.55 | Event-driven GC and `loadWhenQuiet` without timers (L14; closes the known breach in 02 section 12) |
+| P3 | 3.4.2.56 | Capture events only when needed (L15) |
+| P4 | 3.4.2.57 | Chat path: N26 (option reads without the router), N28 (guild path), N35 (per-line tables), N31 (outbox trim), benchmarked |
+| P5 | 3.4.2.58 | Duplicated logic into functions: N17 to N25 |
+| P6 | 3.4.2.59 | Core placement: L20 plus N37 to N39, measured before and after |
+| R | 3.4.2.60 | Release; `01_HANDOVER.md` re-summarized |
 
 ### Line 3.4.3: window tidy
 Expected builds, if nothing is added before them (decision 24).
 
 | Stage | Build | Change |
 | --- | --- | --- |
-| W1 | 3.4.3.60 | G11 to G14, G24, G25, G29 |
-| W2 | 3.4.3.61 | Logic to Libraries: G1 to G10 |
-| W3 | 3.4.3.62 | Kit functions in all three looks, plus the kit preview: G15 to G20 |
-| W4 | 3.4.3.63 | Redraw cost: G22, G23, measured on the 3.4.0.28 save |
-| R | 3.4.3.64 | Release; `01_HANDOVER.md` re-summarized |
+| W1 | 3.4.3.61 | G11 to G14, G24, G25, G29 |
+| W2 | 3.4.3.62 | Logic to Libraries: G1 to G10 |
+| W3 | 3.4.3.63 | Kit functions in all three looks, plus the kit preview: G15 to G20 |
+| W4 | 3.4.3.64 | Redraw cost: G22, G23, measured on the 3.4.0.28 save |
+| R | 3.4.3.65 | Release; `01_HANDOVER.md` re-summarized |
 
 ## 5. Decisions (Dan, 2026-10-08; all as recommended)
 1. Three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
@@ -291,6 +302,8 @@ Expected builds, if nothing is added before them (decision 24).
 23. The detail pane collision is its own fix build, stage Fix (3.4.1.39 was taken by the code map docs build, so Fix is 3.4.1.40; 3.4.1.38 was the harness notes docs build), after N3 merges; the wrapped line keeps its text and pushes the lines below it down (Dan, 2026-10-08; he chose this over shortening the text). The later stages moved up one build for each docs build (3.4.1.38, then the code map 3.4.1.39) and the release is 3.4.1.49. 3.4.1.40 did not take in game; its follow-up is Fix 2 (3.4.1.41, Dan's screenshot, 2026-10-08), the later stages moved up one more build and the release is 3.4.1.50.
 24. **Every planned build has its expected number, and an added build moves them all (Dan, 2026-10-09).** The docs build 3.4.1.43 marks F1 merged; F2 to S3 are 3.4.1.44 to 3.4.1.50 and the 3.4.1 release is 3.4.1.51. The 3.4.2 stages are 3.4.2.52 to 3.4.2.57 with its release 3.4.2.58, and the 3.4.3 stages 3.4.3.59 to 3.4.3.62 with its release 3.4.3.63. Any build added before a stage (a docs build or a fix) moves every later build up one, and the PR that takes it updates every reference (02 section 8).
 25. **U3's fix is 3.4.1.48 (2026-10-09).** In-game checks 3 and 6 of 3.4.1.47 failed (one missing local in the GUI folder); the fix takes the next build in the same PR (#138), so S1 to S3 are 3.4.1.49 to 3.4.1.51 and the 3.4.1 release is 3.4.1.52; 3.4.2 runs 3.4.2.53 to 3.4.2.59 and 3.4.3 runs 3.4.3.60 to 3.4.3.64 (decision 24's rule).
+
+26. **S2 is split (Dan, 2026-10-09).** S2 (3.4.1.50) covers what saves the memory: the guild member fields, the counts' `total` and `memberCount`, with the rules-check grep. A new stage S2b (3.4.1.51) takes the player W I G P C flags, the player list arrays and the log group's `m`; the list arrays get a layout decision first, as an array with holes breaks `table.remove`. Dan's saves hold no listed players, so S2b saves them nothing. Every later build moves up one (decision 24's rule): S3 is 3.4.1.52 and the 3.4.1 release 3.4.1.53; 3.4.2 runs 3.4.2.54 to 3.4.2.60 and 3.4.3 runs 3.4.3.61 to 3.4.3.65. Dan also said yes to keeping `_managed` saved in S2: S2 adds its accessor, and S3 drops it.
 
 ## 6. Risks
 | Risk | Cover |

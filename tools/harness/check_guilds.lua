@@ -262,7 +262,7 @@ local gkey = M.PSS_NormalizeGuild("Tui Guild 010")
 reselect(gkey)
 local gb = pane.guild
 local _, g = M.PSS_FindGuildRule(gkey)
-check(gb:IsShown() and gb.info:GetText() == M.PSS_GuildInfoLine(g), "guild body lines")
+check(gb:IsShown() and gb.info:GetText() == M.PSS_GuildInfoLine(g, gkey), "guild body lines")
 check(gb.counts:GetText() == M.PSS_CountsText(M.PSS_GetGuildBlockCounts(gkey)), "guild counts line")
 local gw = gb.excl.whisper
 check(gw:GetChecked() == false, "a new guild allows whispers")

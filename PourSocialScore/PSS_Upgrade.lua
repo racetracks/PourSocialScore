@@ -763,7 +763,7 @@ function M.PSS_Validate()
 	-- block counts: the sum of every counter per source and category
 	local function addCounts(prefix, c)
 		if type(c) ~= "table" then return end
-		n[prefix .. "Total"] = (n[prefix .. "Total"] or 0) + (tonumber(c.total) or 0)
+		n[prefix .. "Total"] = (n[prefix .. "Total"] or 0) + M.PSS_History.CountTotal(c)
 		for _, cat in ipairs(cats) do
 			n[prefix .. "." .. cat] = (n[prefix .. "." .. cat] or 0) + (tonumber(c[cat]) or 0)
 		end

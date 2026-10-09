@@ -426,7 +426,7 @@ function M.PSS_SlashGuild (msg)
 		if g then
 			local c = M.PSS_GetMemberBlockCounts(m)
 			gp(("FOUND under rule <%s>, stored as %q, actual guild %q"):format(
-				tostring(g.name), tostring(storedKey), tostring(m.guild)))
+				tostring(g.name), tostring(storedKey), tostring(M.PSS_MemberGuildName(m, g))))
 			gp(("exclusions (red = blocked): %s   guild: %s | blocked: W %d, PI %d, P/R %d, World %d, GI %d"):format(
 				M.PSS_ExclusionText(g, m), M.PSS_ExclusionText(g), c.whisper, c.partyInvite, c.partyRaid, c.world, c.guildInvite))
 		else
@@ -438,7 +438,7 @@ function M.PSS_SlashGuild (msg)
 					if type(k) == "string" and k:match("^([^%-]+)") == base then
 						n = n + 1
 						gp(("  <%s> key %q name %q -> lookup key %q"):format(tostring(gg.name or gk), k,
-							tostring(type(mm) == "table" and mm.name), tostring(canonPlayer(k))))
+							tostring(type(mm) == "table" and M.PSS_MemberName(mm, k)), tostring(canonPlayer(k))))
 					end
 				end
 			end

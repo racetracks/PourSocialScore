@@ -173,7 +173,7 @@ local function filterMayHaveLines(index)
 	if (tonumber(db.filterCount[index]) or 0) > 0 then return true end
 	local t = db.filterBlocked[index]
 	if type(t) ~= "table" then return false end
-	if type(t.counts) == "table" and (tonumber(t.counts.total) or 0) > 0 then return true end
+	if History.CountTotal(t.counts) > 0 then return true end
 	return #t > 0
 end
 

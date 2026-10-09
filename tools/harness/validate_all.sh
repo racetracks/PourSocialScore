@@ -288,6 +288,14 @@ for ph in 1 2 3 4; do
 	src=$work/pg-$ph.lua
 done
 
+# member field accessors (core uplift S2, 3.4.1.50): a record without the
+# fields S3 stops saving reads the same through M.PSS_Member*; counts
+# without total; the member count never reads the saved memberCount
+echo "== accessors"
+lua5.1 "$here/run.lua" . - "$work/ac-0.lua" > /dev/null 2>&1
+out=$(lua5.1 "$here/run.lua" . "$work/ac-0.lua" "$work/ac-1.lua" "$here/check_accessors.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | grep -q "PASS accessors" && echo "PASS accessors" || { echo "$out"; echo "FAIL accessors"; fail=1; }
+
 # recent counts (3.2): session and last-24-hour counts per owner without
 # Logging; a login or /reload starts a new session (3.2.0-dev006), which
 # is not saved at logout
