@@ -363,7 +363,12 @@ function UnitIsPlayer() return false end
 function UnitIsUnit() return false end
 function UnitFactionGroup() return "Alliance", "Alliance" end
 function UnitLevel() return 80 end
-function UnitClass() return "Mage", "MAGE", 8 end
+-- PSS_CLASS=<TOKEN> plays another class (macro helper); Mage by default
+local CLASS_NAMES = { DRUID = 11, HUNTER = 3, MAGE = 8, PALADIN = 2, PRIEST = 5, ROGUE = 4, SHAMAN = 7, WARLOCK = 9, WARRIOR = 1 }
+function UnitClass()
+	local token = os.getenv("PSS_CLASS") or "MAGE"
+	return token:sub(1, 1) .. token:sub(2):lower(), token, CLASS_NAMES[token] or 0
+end
 function UnitRace() return "Human", "Human" end
 -- PSS_CAMELOT=1: the Camelot client (interface 16001, realm ClassicBetaPvP)
 local camelot = os.getenv("PSS_CAMELOT") == "1"
@@ -613,4 +618,76 @@ end
 stub.serialize = function(v) local out = {}; serialize(v, "", out, {}); return table.concat(out) end
 
 stub.frames = frames
+-- Macros (macro helper, 3.5.0): stub.macros.account and .char, each a
+-- name-sorted array of {name, icon, body}, as the client's two stores.
+-- Account macros are indexes 1 to MAX_ACCOUNT_MACROS, character macros
+-- follow. CreateMacro and EditMacro raise errors as the client does (in
+-- combat, store full, name or body too long); stub.macroWrites lists every
+-- call, accepted or not. PSS_MACRO_MAX="<account>,<character>" sets the
+-- limits; PSS_MACRO_SEED="a:Name=body;c:Name=body" ("|" for a new line)
+-- seeds the stores; PSS_MACRO_DYNICON=1 answers icon 999 for a body that
+-- starts "#showtooltip" (the client's dynamic icon); PSS_MACRO_NOAPI=1
+-- leaves the four functions out.
+do
+	local maxA, maxC = (os.getenv("PSS_MACRO_MAX") or ""):match("^(%d+),(%d+)$")
+	MAX_ACCOUNT_MACROS, MAX_CHARACTER_MACROS = tonumber(maxA) or 120, tonumber(maxC) or 18
+	stub.macros, stub.macroWrites = { account = {}, char = {} }, {}
+	local function byName(a, b) return a.name < b.name end
+	local function store(i)
+		if i <= MAX_ACCOUNT_MACROS then return stub.macros.account, i end
+		return stub.macros.char, i - MAX_ACCOUNT_MACROS
+	end
+	local function check(name, body)
+		if stub.combat then error("Cannot change macros in combat") end
+		if type(name) ~= "string" or #name < 1 or #name > 16 then error("bad macro name") end
+		if type(body) ~= "string" or #body > 255 then error("bad macro body") end
+	end
+	local function indexOf(t, m, perChar)
+		for i, x in ipairs(t) do if x == m then return perChar and i + MAX_ACCOUNT_MACROS or i end end
+	end
+	function stub.SeedMacros(spec)
+		stub.macros = { account = {}, char = {} }
+		for item in (spec or ""):gmatch("[^;]+") do
+			local where, name, body = item:match("^([ac]):([^=]+)=(.*)$")
+			if where then
+				local t = where == "a" and stub.macros.account or stub.macros.char
+				t[#t + 1] = { name = name, icon = 134400, body = (body:gsub("|", "\n")) }
+				table.sort(t, byName)
+			end
+		end
+	end
+	stub.SeedMacros(os.getenv("PSS_MACRO_SEED"))
+	if os.getenv("PSS_MACRO_NOAPI") ~= "1" then
+		function GetNumMacros() return #stub.macros.account, #stub.macros.char end
+		function GetMacroInfo(i)
+			local t, j = store(i)
+			local m = t[j]
+			if not m then return nil end
+			local icon = m.icon
+			if os.getenv("PSS_MACRO_DYNICON") == "1" and m.body:find("^#showtooltip") then icon = 999 end
+			return m.name, icon, m.body
+		end
+		function CreateMacro(name, icon, body, perChar)
+			stub.macroWrites[#stub.macroWrites + 1] = { "create", name, perChar and true or false }
+			check(name, body)
+			local t = perChar and stub.macros.char or stub.macros.account
+			if #t >= (perChar and MAX_CHARACTER_MACROS or MAX_ACCOUNT_MACROS) then error("Cannot create any more macros") end
+			local m = { name = name, icon = icon, body = body }
+			t[#t + 1] = m
+			table.sort(t, byName)
+			return indexOf(t, m, perChar)
+		end
+		function EditMacro(i, name, icon, body)
+			stub.macroWrites[#stub.macroWrites + 1] = { "edit", name, i > MAX_ACCOUNT_MACROS }
+			check(name, body)
+			local t, j = store(i)
+			local m = t[j]
+			if not m then error("no such macro") end
+			m.name, m.icon, m.body = name, icon, body
+			table.sort(t, byName)
+			return indexOf(t, m, i > MAX_ACCOUNT_MACROS)
+		end
+	end
+end
+
 return stub

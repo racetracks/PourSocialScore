@@ -21,7 +21,7 @@ local CORE = {
 	"PSS_Communities.lua", "PSS_ChatHistory.lua",
 	"PSS_ChatBlock.lua", "PSS_ChatFilters.lua", "PSS_PlayerIgnoreList.lua", "PSS_GuildIgnoreList.lua",
 	"PSS_WhoisHarvest.lua", "PourSocialScore.lua", "PSS_Options.lua", "PSS_ImportExport.lua", "PSS_PlayerQuery.lua", "PSS_PlayerRows.lua", "PSS_Validate.lua", "PSS_GuildQuery.lua", "PSS_FilterQuery.lua",
-	"PSS_ViewNav.lua", "PSS_DetailQuery.lua", "PSS_PlayerView.lua", "PSS_GuildView.lua", "PSS_FilterView.lua", "PSS_EventsView.lua", "PSS_OptionsView.lua", "PSS_RowMenus.lua", "PSS_Graphics.lua",
+	"PSS_ViewNav.lua", "PSS_DetailQuery.lua", "PSS_PlayerView.lua", "PSS_GuildView.lua", "PSS_FilterView.lua", "PSS_EventsView.lua", "PSS_OptionsView.lua", "PSS_RowMenus.lua", "PSS_Graphics.lua", "PSS_MacroData.lua", "PSS_Macros.lua",
 }
 
 -- { Lua pattern, what it is }

@@ -40,7 +40,7 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 ## Release history
 `versions.json` `releases` is the source of truth; each release's notes are on scratch: https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/docs/latest/release-notes
 
-Full releases, newest first: **3.4.2.54** (2026-10-09, docs only, no change in game), 3.4.1.53 (2026-10-09, the core uplift), 3.4.0.29 (2026-10-08, the PSS window), 3.3.1 (2026-10-07, the parity project), 3.0.0 (the load-on-demand split), 2.0.44, 2.0.40, 2.0.22, 2.0.19, 2.0.18 (recorded by commit), 2.0.17 (and the versions before it, from history.txt only).
+Full releases, newest first: **3.5.0.62** (2026-10-09, Graphics settings and Macro Helper: `/pss gfx` and `/pss macro`, Camelot), 3.4.2.54 (2026-10-09, docs only, no change in game), 3.4.1.53 (2026-10-09, the core uplift), 3.4.0.29 (2026-10-08, the PSS window), 3.3.1 (2026-10-07, the parity project), 3.0.0 (the load-on-demand split), 2.0.44, 2.0.40, 2.0.22, 2.0.19, 2.0.18 (recorded by commit), 2.0.17 (and the versions before it, from history.txt only).
 
 Everything else is a pre-release of the next release, including 3.1.0 and 3.2.0 (pre-releases of 3.3.1). 3.3.0-dev004 was never published (its runs were cancelled; the author chose test zip only, 2026-10-07). Older version names (`-devN`, `-devNNN`, `_N`, plain `X.Y.Z`) stay as they were.
 
