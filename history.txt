@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.67 - Docs: next steps, addon profiles issues 175 to 177
+
+- Docs only: the addon manager's sets (3.6.0.66) tested fine; the next issues are written down (addon profiles, core and layered profiles). Nothing changes in the addon.
+
 => 3.6.0.66 - Addon manager: sets the ACP way, AddOns tab after Chat Filters
 
 - The AddOns tab now comes right after Chat Filters: Player Ignore List, Guild Ignore List, Chat Filters, AddOns, Events, Import/Export, Options. The window still opens on the tab you used last.
