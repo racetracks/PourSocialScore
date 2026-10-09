@@ -529,6 +529,7 @@ end
 -- One chat line names them unless quiet. The number removed.
 local expireDay = nil
 function M.PSS_ExpireEntries(quiet, daily)
+	if not M.PSS_On("filtering") then return 0 end	-- Social Filtering off: nothing expires (issue 181)
 	local db = PourSocialScoreDB
 	if not (db and db.list) then return 0 end
 	local list = db.list
@@ -1143,8 +1144,6 @@ local function PSS_IgnoreRemovedByIndex(index)
 end
 
 local hookFrame = CreateFrame("Frame")
-hookFrame:RegisterEvent("IGNORELIST_UPDATE")
-hookFrame:RegisterEvent("PLAYER_LOGIN")
 hookFrame:SetScript("OnEvent", function(self, event)
 	if event == "IGNORELIST_UPDATE" then
 		if pendingToggle then
@@ -1160,11 +1159,21 @@ hookFrame:SetScript("OnEvent", function(self, event)
 	takeBlizzSnapshot()
 end)
 
-if hooksecurefunc then
-	if C_FriendList.AddIgnore then hooksecurefunc(C_FriendList, "AddIgnore", PSS_IgnoreAdded) end
-	if C_FriendList.DelIgnore then hooksecurefunc(C_FriendList, "DelIgnore", PSS_IgnoreRemoved) end
-	if C_FriendList.AddOrDelIgnore then hooksecurefunc(C_FriendList, "AddOrDelIgnore", PSS_IgnoreToggled) end
-	if C_FriendList.DelIgnoreByIndex then hooksecurefunc(C_FriendList, "DelIgnoreByIndex", PSS_IgnoreRemovedByIndex) end
+-- Social Filtering (issue 181): the Blizzard ignore sync (its events and the
+-- C_FriendList post-hooks, which cannot be removed) starts only when the
+-- component is on; core's ADDON_LOADED handler calls this once.
+local ignoreSyncStarted
+function M.PSS_StartIgnoreSync()
+	if ignoreSyncStarted then return end
+	ignoreSyncStarted = true
+	hookFrame:RegisterEvent("IGNORELIST_UPDATE")
+	hookFrame:RegisterEvent("PLAYER_LOGIN")
+	if hooksecurefunc then
+		if C_FriendList.AddIgnore then hooksecurefunc(C_FriendList, "AddIgnore", PSS_IgnoreAdded) end
+		if C_FriendList.DelIgnore then hooksecurefunc(C_FriendList, "DelIgnore", PSS_IgnoreRemoved) end
+		if C_FriendList.AddOrDelIgnore then hooksecurefunc(C_FriendList, "AddOrDelIgnore", PSS_IgnoreToggled) end
+		if C_FriendList.DelIgnoreByIndex then hooksecurefunc(C_FriendList, "DelIgnoreByIndex", PSS_IgnoreRemovedByIndex) end
+	end
 end
 
 M.AddOrDelNPC = function (argStr)

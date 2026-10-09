@@ -471,7 +471,7 @@ mk.area._scripts.OnClick(mk.area, "RightButton")
 check(menu:IsShown() and menu.slots[2].text:GetText() == "Show details", "Dark right-click menu not ours")
 -- compact: 20 px entries, a slim title and divider
 check(menu.slots[2]:GetHeight() == 20 and menu.slots[1]:GetHeight() == 18 and menu.slots[4]:GetHeight() == 7, "right-click menu not compact")
-check(menu:GetHeight() == 18 + 20 + 20 + 7 + 20 + 2, "right-click menu height not the sum of its entries")
+check(menu:GetHeight() == 18 + 20 + 20 + 7 + 20 + 20 + 2, "right-click menu height not the sum of its entries")
 menu:Hide()
 
 -- the row list: only the rows that fit, header sort in the accent, selection
@@ -708,9 +708,22 @@ do
 		check(M.PSS_UITab() == id, "the saved tab " .. key .. " opens tab " .. M.PSS_UITab() .. ", not " .. id)
 	end
 	PourSocialScoreDB.windowPoints.PSS_WindowTab = "addons"
-	-- the Sets drop-down is bottom left, the count beside it, the buttons on the right
-	check(pg.setsDD and select(1, pg.setsDD:GetPoint(1)) == "BOTTOMLEFT" and select(1, pg.footer:GetPoint(1)) == "LEFT", "the Sets drop-down is not at the bottom left with the count beside it")
+	-- the Profiles drop-down is bottom left, the count beside it, the buttons on the right
+	check(pg.setsDD and select(1, pg.setsDD:GetPoint(1)) == "BOTTOMLEFT" and (pg.footer._points and pg.footer._points[1][1]) == "LEFT", "the Sets drop-down is not at the bottom left with the count beside it")
 	check(pg.setsDD:GetWidth() + 10 + 12 + 260 < 960 - (96 + 96 + 70 + 90 + 4 * 6 + 10), "the Sets drop-down and the count reach the buttons")
+	-- the count is anchored to the leftmost button and builds leftward; the drop-down is 190 wide
+	local second = pg.footer._points and pg.footer._points[2]
+	check(pg.setsDD:GetWidth() == 190 and second and second[1] == "RIGHT" and second[2] == pg.undoButton and second[3] == "LEFT", "the count is not anchored to the leftmost footer button")
+	-- Dark opens the menu downward from the drop-down, as the other looks do
+	local skinBefore = PourSocialScoreDB.uiSkin or 2
+	M.PSS_SetOpt("uiSkin", "global", 1)
+	pg.setsDD.dark._scripts.OnClick(pg.setsDD.dark)
+	local pm = _G.PSS_Menu
+	local mp, mrel, mrelp = pm:GetPoint(1)
+	check(pm:IsShown() and mp == "TOPLEFT" and mrel == pg.setsDD.dark and mrelp == "BOTTOMLEFT", "the Dark Profiles menu does not open downward: " .. tostring(mp) .. " " .. tostring(mrelp))
+	check(pm:GetWidth() >= 190, "the Dark Profiles menu is narrower than its drop-down: " .. tostring(pm:GetWidth()))
+	pm:Hide()
+	M.PSS_SetOpt("uiSkin", "global", skinBefore)
 	local V = pg.state
 	-- the stub's frames are 20 high: give the list its real height (15 rows)
 	pg.list.scroll:SetSize(900, 300)

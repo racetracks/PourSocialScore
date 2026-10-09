@@ -12,12 +12,14 @@
 --   V:Tip(k)  V:Menu(k)  V:Act(k, act, arg)
 --   V:Sample()                 memory, once (never in combat)
 --   V:Stats()                  the CPU and memory line at the top
---   V:Slots()  V:PresetMenu(p)  V:PresetAct(p, act, name)
+--   V:Slots()  V:PresetMenu(p)  V:PresetAct(p, act, name)   (addon profiles)
+--   V:ProfileMenu()  (level 1: every place; PresetMenu is level 2)
 --   V:Release()                the window closed: the list is dropped
 -- A line is an addon (its position in the list) or a group header.
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
 local M = addon.M
+if not M.PSS_On("addons") then return end	-- the Addon Manager is off (issue 181)
 
 local type, tostring, ipairs, pairs = type, tostring, ipairs, pairs
 local format, floor, lower = string.format, math.floor, string.lower
@@ -48,7 +50,10 @@ local T = {
 	requires = "Requires",
 	optional = "Optional",
 	pssTip = "Pour Social Score cannot be turned off here.",
-	protectedTip = "Protected: Disable All and sets leave it on.",
+	protectedTip = "Protected: Disable All and addon profiles leave it on.",
+	coreHead = "Core Addon Profiles",
+	layeredHead = "Layered Addon Profiles",
+	mark = "*",
 }
 
 local function pct(v)
@@ -337,11 +342,13 @@ function View:Act(k, act, arg)
 end
 
 ------------------------------------------------------------------------
--- Sets: the 25 numbered places of the scope shown (this character or all
--- characters) and your class's, each saved into, loaded, added, taken off,
--- renamed or deleted
+-- Addon profiles: the 25 numbered places of the scope shown (this character
+-- or all characters) and your class's. Places 1 to 5 are the Core Addon
+-- Profiles, the rest the Layered ones; any of them can be selected together
+-- (the union of their addons, plus the hand picks, is what is on), and each
+-- place can be saved into, loaded, added, taken off, renamed or deleted.
 ------------------------------------------------------------------------
--- the places of the Sets menu: Presets' entries plus text, the line the
+-- the places of the menu: the engine's entries plus text, the line the
 -- menu shows
 function View:Slots()
 	local slots = M.PSS_AddonSlots(self.who)
@@ -351,20 +358,50 @@ function View:Slots()
 	return slots
 end
 
--- the actions on one slot p (an entry of Slots): a free place only saves
+-- the entries of one layer: a title, then a line per place; fn(p) says what
+-- a place becomes
+local function layerEntries(e, head, slots, layer, fn)
+	e[#e + 1] = { kind = "title", text = head }
+	for _, p in ipairs(slots) do
+		if p.layer == layer then e[#e + 1] = fn(p) end
+	end
+end
+
+-- the drop-down's menu: Core Addon Profiles, a line, Layered Addon Profiles,
+-- every place a button "Name (count)" (a free one "Profile N (empty)"), a
+-- selected one marked "* "; a click opens the place's actions (PresetMenu)
+function View:ProfileMenu()
+	local who = self.who
+	local slots = self:Slots()
+	local e = {}
+	local function button(p)
+		local on = not p.empty and M.PSS_AddonProfileSelected(p.id, who)
+		return { kind = "button", text = (on and (T.mark .. " ") or "") .. p.text, act = "place", p = p }
+	end
+	layerEntries(e, T.coreHead, slots, "core", button)
+	e[#e + 1] = { kind = "divider" }
+	layerEntries(e, T.layeredHead, slots, "layered", button)
+	return e
+end
+
+-- the actions on one place p (an entry of Slots): a title, then (a used
+-- place) Select or Deselect, Save, Load, Add to current selection, Remove
+-- from current selection, Rename, Delete; a free place only Save and Rename
 function View:PresetMenu(p)
 	local e = { { kind = "title", text = p.label .. (p.class and "" or (p.scope == "all" and " (all characters)" or " (this character)")) } }
 	local function add(text, act) e[#e + 1] = { kind = "button", text = text, act = act } end
 	if p.empty then
 		add("Save", "save")
+		add("Rename", "rename")
 		return e
 	end
-	add("Load", "load")
-	add("Add to current", "add")
-	add("Remove from current", "remove")
-	e[#e + 1] = { kind = "divider" }
+	add(M.PSS_AddonProfileSelected(p.id, self.who) and "Deselect" or "Select", "select")
 	add("Save", "save")
-	if not p.class then add("Rename", "rename") end
+	add("Load", "load")
+	add("Add to current selection", "add")
+	add("Remove from current selection", "remove")
+	add("Rename", "rename")
+	e[#e + 1] = { kind = "divider" }
 	add("Delete", "delete")
 	return e
 end
@@ -372,7 +409,9 @@ end
 -- one action on slot p; returns the line to say (a save keeps the name)
 function View:PresetAct(p, act, name)
 	local ok, text
-	if act == "load" then
+	if act == "select" then
+		ok, text = M.PSS_AddonProfileSelect(p.id, not M.PSS_AddonProfileSelected(p.id, self.who), self.who)
+	elseif act == "load" then
 		ok, text = M.PSS_AddonPresetLoad(p.id, p.scope, self.who)
 	elseif act == "add" then
 		ok, text = M.PSS_AddonPresetAdd(p.id, p.scope, self.who)

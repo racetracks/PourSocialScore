@@ -1055,6 +1055,7 @@ function M.PSS_ManagedDataLoaded() return buildManaged().dataLoaded end
 
 -- Login and ticking a rule: load the lists when any group's rule is on.
 function M.PSS_LoadActiveManagedData()
+	if not M.PSS_On("filtering") then return end	-- Social Filtering off: shipped lists stay unloaded (issue 181)
 	for key in pairs(buildManaged().groups) do
 		if M.PSS_ManagedGroupActive and M.PSS_ManagedGroupActive(key) then return ensureManagedData() end
 	end
@@ -1953,6 +1954,7 @@ end
 -- need nothing captured. Otherwise none of these events are registered
 -- (core uplift P3, 3.4.1.52).
 local function captureNeeded()
+	if not M.PSS_On("filtering") then return false end	-- Social Filtering off: nothing is captured (issue 181)
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return false end
 	local list = db.list		-- (not M.PSS_List: it would create the table before the layout step)

@@ -95,7 +95,12 @@ function W:GetCenter() return 0, 0 end
 function W:GetScale() return 1 end
 function W:GetEffectiveScale() return 1 end
 function W:GetNumPoints() return 0 end
-function W:SetPoint(...) self._point = { ... } end
+function W:SetPoint(...)
+	self._point = { ... }
+	-- every anchor in order (a frame can have more than one)
+	self._points = self._points or {}
+	self._points[#self._points + 1] = self._point
+end
 -- the last SetPoint as the game returns it: point, relativeTo, relativePoint, x, y
 function W:GetPoint()
 	local p = self._point
@@ -135,6 +140,28 @@ function W:MenuButtons()
 	}
 	if self._menu then self._menu(self, root) end
 	return out
+end
+-- the whole tree of a SetupMenu drop-down: items { kind, text, fn, sub = { items } },
+-- titles and dividers included, a CreateButton's returned root holds its submenu
+function W:MenuTree()
+	local function node()
+		local n = { items = {} }
+		local r = {}
+		function r:CreateButton(text, fn, data)
+			local it = { kind = "button", text = text, fn = fn and function() return fn(data) end or nil }
+			n.items[#n.items + 1] = it
+			local child, cr = node()
+			it.sub = child
+			return cr
+		end
+		function r:CreateTitle(text) n.items[#n.items + 1] = { kind = "title", text = text } end
+		function r:CreateDivider() n.items[#n.items + 1] = { kind = "divider" } end
+		function r:SetScrollMode() n.scroll = true end
+		return n, r
+	end
+	local n, r = node()
+	if self._menu then self._menu(self, r) end
+	return n
 end
 -- the text a drop-down shows (OverrideText)
 function W:OverrideText(t) self._ddText = t end
@@ -410,7 +437,9 @@ function IsModifiedClick() return false end
 function geterrorhandler() return function(e) print("ERROR: " .. tostring(e)); error(e, 0) end end
 function seterrorhandler() end
 function securecall(f, ...) return f(...) end
+stub.hooks, stub.filters = {}, {}	-- every hooksecurefunc (target, name) and chat filter (event) registered
 function hooksecurefunc(a, b, c)
+	stub.hooks[#stub.hooks + 1] = { target = type(a) == "table" and a or nil, name = type(a) == "table" and b or a }
 	if type(a) == "table" then
 		local old = a[b]
 		a[b] = function(...) local r = { old(...) }; c(...); return unpack(r) end
@@ -577,9 +606,9 @@ LOCALIZED_CLASS_NAMES_FEMALE = {}
 CLASS_ICON_TCOORDS = {}
 Menu = { ModifyMenu = function() end }
 MenuUtil = { CreateContextMenu = function() end }
-ChatFrame_AddMessageEventFilter = function() end
+ChatFrame_AddMessageEventFilter = function(event, fn) stub.filters[#stub.filters + 1] = { event = event, fn = fn } end
 ChatFrame_RemoveMessageEventFilter = function() end
-ChatFrameUtil = { AddMessageEventFilter = function() end }
+ChatFrameUtil = { AddMessageEventFilter = function(event, fn) stub.filters[#stub.filters + 1] = { event = event, fn = fn } end }
 ChatEdit_InsertLink = function() end
 ChatFrame_OpenChat = function() end
 StaticPopup_Show = function() end

@@ -644,6 +644,8 @@ function History.Add(owner, counts, entry, ruleTag)
 		counts.total = total + 1
 	end
 	History.CountRecent(owner, entry.ts, entry.cat)
+	-- Event Logging off: counted, but the line is not kept (issue 181)
+	if not M.PSS_On("logging") then return entry end
 	if not ready then
 		-- Logging is not loaded: the line waits (never loads it per line)
 		local db = PourSocialScoreDB

@@ -69,6 +69,8 @@ jobs:
           PSS_PHASE=retail lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro retail" /tmp/mac.txt
       - name: Addon manager
         run: sh tools/harness/addons_phases.sh /tmp/pss-addons
+      - name: Enabled components
+        run: sh tools/harness/components_phases.sh /tmp/pss-components
 
   upgrades:
     runs-on: ubuntu-latest

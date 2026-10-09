@@ -71,7 +71,23 @@ local OPTIONS = {
 		tip = "When ticked, no /who scan searches above this level: Scan and Scan All stop their level brackets at the cap, Custom and Guild Search are limited to it." },
 	{ key = "whoLevelCap",		kind = "number", default = nil,		section = 5, min = 1, max = 999, inline = true, label = "Scan level cap" },
 }
-local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:" }
+-- Enabled components (3.6.0.69, issue 181): section 6, listed first; a change
+-- applies after a reload (reload = true). Read through M.PSS_On, never directly.
+local COMPONENTS = {
+	{ key = "useAddons",		kind = "bool",		default = false, section = 6, reload = true, label = "Addon Manager",
+		tip = "The AddOns tab, /pss acp and /acp, the Open AddOns key and the AddOns entry in the Addon Compartment. Off: none of it exists and nothing of it is loaded. Applies after a reload." },
+	{ key = "useLogging",		kind = "bool",		default = true,		section = 6, reload = true, label = "Event Logging",
+		tip = "Keeps a line for every blocked chat line or request (the Events tab, Block History). Off: no line is stored and the Events tab goes; every count stays as it is. Applies after a reload.",
+		warn = "Turn off Event Logging? From now on nothing is recorded about what Pour Social Score blocks: the Events tab and every Event History page go, and you will not be able to track or review anything in the addon (the counts still run). OK turns it off after a reload; Cancel keeps it on." },
+	{ key = "useGfx",			kind = "bool",		default = false, section = 6, reload = true, label = "Graphics Settings Exporter",
+		tip = "/pss gfx: export, import and restore the graphics settings with a 15 second keep prompt (Camelot only). Off: /pss gfx does nothing and its code is not loaded. Applies after a reload." },
+	{ key = "useFiltering",		kind = "bool",		default = true,		section = 6, reload = true, label = "Social Filtering",
+		tip = "Everything that blocks: chat filtering, invite, duel and trade declines, the party warning, the Blizzard ignore sync, the Block menu items and capture. Off: nothing is blocked; your lists, rules and counts are kept and editable. Applies after a reload." },
+}
+for _, o in ipairs(COMPONENTS) do OPTIONS[#OPTIONS + 1] = o end
+local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:", "Enabled components:" }
+-- the order the Options tab lists the sections in (Enabled components first)
+M.PSS_OPTION_SECTION_ORDER = { 6, 1, 2, 3, 4, 5 }
 
 local REG = {}
 for _, o in ipairs(OPTIONS) do REG[o.key] = o end
@@ -100,6 +116,12 @@ function M.PSS_Opt(key, ctx)
 		if type(guild) == "table" and guild[key] ~= nil then return guild[key] end
 	end
 	local db = PourSocialScoreDB
+	if not db and def then
+		-- before the core table exists (ADDON_LOADED on a first run): the options table alone
+		local o = PSS_OptionsDB
+		local v = o and o[key]
+		if v ~= nil then return v end
+	end
 	if db then
 		local v
 		if def then
@@ -118,6 +140,51 @@ function M.PSS_Opt(key, ctx)
 	end
 	if def then return def.default end
 	return nil
+end
+
+-- Enabled components (issue 181). M.PSS_On(name) is the one reader: name is
+-- "addons", "gfx", "logging" or "filtering". It answers what the session
+-- started with (M.PSS_SnapComponents at ADDON_LOADED), so a change made in
+-- the Options tab applies after a reload and a session never has half a
+-- component. M.PSS_OnNow(name) is the option as set now (the Options tab).
+local COMPONENT_KEY = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering" }
+local snap
+
+local function camelot()
+	local build = select(4, GetBuildInfo())
+	return type(build) == "number" and build < 20000
+end
+M.PSS_IsCamelot = camelot
+
+local function liveOn(name)
+	local key = COMPONENT_KEY[name]
+	if not key then return false end
+	if name == "gfx" and not camelot() then return false end
+	return M.PSS_Opt(key) == true
+end
+
+function M.PSS_SnapComponents()
+	snap = {}
+	for name in pairs(COMPONENT_KEY) do snap[name] = liveOn(name) end
+end
+
+function M.PSS_On(name)
+	if snap then return snap[name] == true end
+	return liveOn(name)
+end
+M.PSS_OnNow = liveOn
+
+-- the line a command or key prints while its component is off
+M.PSS_OFF_TEXT = {
+	addons = "The Addon Manager is off: Options, Enabled components.",
+	gfx = "The Graphics Settings Exporter is off: Options, Enabled components.",
+	logging = "Event Logging is off: Options, Enabled components.",
+	filtering = "Social Filtering is off: nothing is blocked (Options, Enabled components).",
+}
+
+-- a component whose option was changed since the session started
+function M.PSS_ComponentPending(name)
+	return snap ~= nil and snap[name] ~= nil and snap[name] ~= liveOn(name)
 end
 
 local STRATA = { [0] = "LOW", [1] = "MEDIUM", [2] = "HIGH", [3] = "DIALOG" }

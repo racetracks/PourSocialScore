@@ -138,6 +138,8 @@ local function SelectTab(id)
 		win.pages[i]:SetShown(i == id)
 	end
 	if page.refresh then page.refresh() end
+	local key = TABS[id].key
+	win.offNote:SetShown(not M.PSS_On("filtering") and (key == "players" or key == "guilds" or key == "filters"))
 	M.PSS_SetUITab(id)
 end
 
@@ -411,6 +413,13 @@ local function Build()
 	title:SetPoint("TOP", win, "TOP", 0, -6)
 	title:SetText("Pour Social Score")
 	win.title = title
+	-- Social Filtering off (issue 181): the three list tabs say so, at the right end of the arrows' line
+	local offNote = ns.NewText(chrome, 12)
+	offNote:SetPoint("TOPRIGHT", win, "TOPRIGHT", -14, NAV_Y - 4)
+	offNote:SetText(M.PSS_OFF_TEXT.filtering)
+	offNote:SetAlpha(0.85)
+	offNote:Hide()
+	win.offNote = offNote
 	-- each look's parts, so the look shown can be checked
 	win.art = { blizzard = blizz, dark = dark, blizzardClose = blizzClose, darkClose = darkClose }
 

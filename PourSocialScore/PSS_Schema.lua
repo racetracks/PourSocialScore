@@ -66,6 +66,8 @@ M.PSS_SCHEMA = {
 	logGroup = "c gk m n k r",
 	-- the addon manager (3.6.0): PSS_OptionsDB.addonSets / addonLock / addonView
 	-- (account-wide) and PSS_CharDB.addonSets / addonLock (this character),
-	-- all packed strings, no record fields (PSS_AddonsQuery.lua)
-	charDB = "addonSets addonLock",
+	-- all packed strings, no record fields (PSS_AddonsQuery.lua). 3.6.0.68
+	-- adds addonSel (the selected addon profiles) and addonPick (the addons
+	-- turned on by hand while profiles are selected) in both stores
+	charDB = "addonSets addonLock addonSel addonPick",
 }
