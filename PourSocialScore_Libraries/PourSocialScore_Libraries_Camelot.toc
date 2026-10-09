@@ -26,4 +26,5 @@ PSS_FilterView.lua
 PSS_EventsView.lua
 PSS_OptionsView.lua
 PSS_RowMenus.lua
+PSS_Graphics.lua
 PSS_Commands.lua

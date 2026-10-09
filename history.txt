@@ -3,7 +3,10 @@ POUR SOCIAL SCORE - VERSION HISTORY
 
 => 3.5.0.57 - Graphics settings: export, import, history and keep prompt (/pss gfx, Camelot)
 
-- What changed, in plain words.
+- New /pss gfx (Camelot only): export every graphics setting as text, import one, and see each change before you apply it.
+- After the reload you get 15 seconds to keep the new settings; Revert, Escape or no answer puts the old ones back.
+- History keeps the last 5 sets saved before a change: see what differs from now, restore one or export it.
+- Nothing loads and nothing is saved unless you use it (Retail prints that it is Camelot only).
 
 => 3.5.0.56 - Graphics settings design and next steps (docs only)
 

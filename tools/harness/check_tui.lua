@@ -547,10 +547,14 @@ M.PSS_SetOpt("uiSkin", "global", 0)
 
 -- (3.5.0) the timed confirm and the graphics settings popup (/pss gfx), built
 -- and painted in every look; every button is a one-line call into Libraries
--- (stood in for here by a tiny fake of the M.PSS_Gfx* functions when the
--- client is not Camelot, so Libraries defines none)
+-- (stood in for here by a tiny fake of the M.PSS_Gfx* functions, put back
+-- after; the real ones are driven by check_gfx.lua)
 do
-	local fakes = not M.PSS_GfxHistory
+	local fakes = true
+	local real = {}
+	for _, n in ipairs({ "ExportText", "Parse", "RestorePlan", "Summary", "Apply", "History", "SetDiff", "Reload", "KeepSpec" }) do
+		real[n] = M["PSS_Gfx" .. n]
+	end
 	local glog = {}
 	local sets = { { i = 1, when = 1790000000, whenText = "2026-10-09 10:00", changed = 3 },
 		{ i = 2, when = 1789999000, whenText = "2026-10-09 09:43", changed = 0 } }
@@ -647,7 +651,7 @@ do
 	end
 	if fakes then
 		for _, n in ipairs({ "ExportText", "Parse", "RestorePlan", "Summary", "Apply", "History", "SetDiff", "Reload", "KeepSpec" }) do
-			M["PSS_Gfx" .. n] = nil
+			M["PSS_Gfx" .. n] = real[n]
 		end
 	end
 	M.PSS_SetOpt("uiSkin", "global", 0)

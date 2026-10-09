@@ -7,11 +7,12 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - **3.4.3.55** (PR #151, docs only, opens line 3.4.3): the release notes, the summary of changes and the technical notes on scratch are named as context for any change or regression check (`CLAUDE.md`, 11), and `05_RELEASE.md` lists what a full release updates, the code map included.
 - **3.5.0.56** (docs only, opens line 3.5.0): points a fresh session to the graphics settings design.
 - **Current project: graphics settings (`/pss gfx`, Camelot only).** Export and import every graphics setting, a preview of each change, keep or revert within 15 s after the reload, the last 5 sets kept in `PSS_OptionsDB` (restore, export). All logic in Libraries (`PSS_Graphics.lua`); core gets one route entry and, in stage 2, one line. Design and implementation plan, every decision answered (the author, 2026-10-09): scratch `docs/latest/graphics-settings/01_DESIGN.md` (https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/docs/latest/graphics-settings/01_DESIGN.md).
-- **Next step: stage 1, 3.5.0.57** (logic, history and saved keys; harness first): follow the design's section 8. Then 3.5.0.58 (popup and keep prompt), 3.5.0.59 (History view), 3.5.0.60 (polish), release 3.5.0.61.
+- **3.5.0.57 builds stages 1 to 3 in one PR** (the author's OK, 2026-10-09): logic, history and saved keys (`PSS_Graphics.lua`), the popup, the timed keep prompt and the History view; `check_gfx.lua` (phases logic, history, keep, retail, noapi, popup, history_ui, apply, reload) in `validate_all.sh` and CI. The keep prompt is started by `M.PSS_GfxAsk` (core's one line loads Libraries; the design's end-of-file block would have looped through the loader).
+- **Next:** the author tests 3.5.0.57 on Camelot (design section 9; first the console API and count, J11). Fixes are 3.5.0.58 (polish: readme, code map), release 3.5.0.59 when the author says it is done.
 
 ## Waiting on the author
 - Merge the 3.5.0.56 docs PR.
-- Stage 1 of graphics settings in a fresh session.
+- Test 3.5.0.57 (graphics settings, stages 1 to 3) on Camelot and merge its PR.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: OK or revert P3 (inactive shipped lists no longer capture units or /who).
 
