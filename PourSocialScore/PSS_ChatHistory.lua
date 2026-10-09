@@ -60,7 +60,7 @@ function History.SetSource(h, label) if type(h) == "table" then History.sourceLa
 -- Time
 ------------------------------------------------------------------------
 local TIME_FMT = "%d %b %Y %H:%M:%S"
-local MONTHS = { Jan=1, Feb=2, Mar=3, Apr=4, May=5, Jun=6, Jul=7, Aug=8, Sep=9, Oct=10, Nov=11, Dec=12 }
+local MONTHS = M.MONTHS
 
 function History.Now() return GetServerTime and GetServerTime() or time() end
 function History.FormatTime(ts)

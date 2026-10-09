@@ -180,6 +180,15 @@ function M.PSS_LFG_Tooltip (self)
 	end
 end
 
+-- The menu button that adds a player to the list, or takes them off it.
+local function addToggle(root, text, name)
+	root:CreateButton(text,
+		function(owner, root, contextData)
+			M.PSS_AddOrDelIgnore(M.addServer(name))
+			M.PSS_PlayersChanged(true)
+		end)
+end
+
 function M.PSS_LFG_ApplicantMenu(owner, root, contextData)
 	if not lfgOn() then return end
 	if not owner or not owner.resultID then return end
@@ -201,11 +210,7 @@ function M.PSS_LFG_ApplicantMenu(owner, root, contextData)
 
 	root:CreateDivider()
 	root:CreateTitle(leaderText)
-	root:CreateButton(text,
-		function(owner, root, contextData)
-			M.PSS_AddOrDelIgnore(M.addServer(info.leaderName))
-			M.PSS_PlayersChanged(true)
-		end)
+	addToggle(root, text, info.leaderName)
 end
 
 ----------------------
@@ -242,11 +247,7 @@ function M.PSS_UnitMenuPlayer (owner, root, contextData)
 
 	root:CreateDivider()
 	root:CreateTitle(L["RCM_16"])
-	root:CreateButton(M.hasGlobalIgnored(M.addServer(target)) > 0 and L["RCM_18"] or L["RCM_17"],
-		function(owner, root, contextData)
-			M.PSS_AddOrDelIgnore(M.addServer(target))
-			M.PSS_PlayersChanged(true)
-		end)
+	addToggle(root, M.hasGlobalIgnored(M.addServer(target)) > 0 and L["RCM_18"] or L["RCM_17"], target)
 
 	if guild then
 		local listed = M.PSS_IsGuildListed(guild)

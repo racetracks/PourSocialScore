@@ -27,33 +27,22 @@ function M.ChatMsg (text)
 	if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then DEFAULT_CHAT_FRAME:AddMessage(text) end
 end
 
+-- Month abbreviations ("%b") to numbers; History.ParseTime uses it too.
+local MONTHS = { Jan=1, Feb=2, Mar=3, Apr=4, May=5, Jun=6, Jul=7, Aug=8, Sep=9, Oct=10, Nov=11, Dec=12 }
+M.MONTHS = MONTHS
+
 function M.dateToJulianDate (dateStr)
 
 	if dateStr == nil then
 		return 0
 	end
 
-	local monthList = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
-	local words		= {}
+	local d, mon, y = dateStr:match("(%w+)%W+(%w+)%W+(%w+)")
+	local day	= tonumber(d)
+	local year	= tonumber(y)
+	local month = MONTHS[mon]
 
-	for word in dateStr:gmatch("%w+") do
-		words[#words + 1] = word
-	end
-
-	local day	= tonumber(words[1])
-	local year	= tonumber(words[3])
-	local month = 0
-
-	for key, value in pairs(monthList) do
-
-		if value == words[2] then
-			month = tonumber(key)
-
-			break
-		end
-	end
-
-	if (not month) or (not day) or (not year) or (month < 1) or (month > 12) or (day < 1) or (day > 31) or (year < 2014) then
+	if (not month) or (not day) or (not year) or (day < 1) or (day > 31) or (year < 2014) then
 		return 0
 	end
 
@@ -65,16 +54,19 @@ function M.dateToJulianDate (dateStr)
 	return math.floor(t / 86400)
 end
 
+-- Today's day number is kept until the date changes.
+local todayStr, todayDay
 function M.daysFromToday (dateStr)
 
 	local addDate = M.dateToJulianDate(dateStr)
-	local today		= M.dateToJulianDate(date("%d %b %Y"))
+	local str = date("%d %b %Y")
+	if str ~= todayStr then todayStr, todayDay = str, M.dateToJulianDate(str) end
 
 	if addDate == 0 then
 		return -1
 	else
 
-		return math.abs(today - addDate)
+		return math.abs(todayDay - addDate)
 	end
 end
 
@@ -462,3 +454,9 @@ M.EXCL = {
 	{ cat = "partyRaid",	letter = "P", field = "partyRaidBlocked",		label = "Party/Raid chat (incl. raid warnings)" },
 	{ cat = "world",		letter = "C", field = "channelsBlocked",		label = "Chat channels (Trade, General, LFG, communities) and public chat (say, yell, emotes)" },
 }
+-- The player record fields of M.EXCL, in order, and as a set.
+M.PSS_BLOCK_FIELDS, M.PSS_BLOCK_FIELD_SET = {}, {}
+for _, e in ipairs(M.EXCL) do
+	M.PSS_BLOCK_FIELDS[#M.PSS_BLOCK_FIELDS + 1] = e.field
+	M.PSS_BLOCK_FIELD_SET[e.field] = true
+end

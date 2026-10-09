@@ -154,7 +154,7 @@ end
 -- (/list entries)
 
 -- W I G P C switches on a player record (stored as "blocked").
-local BLOCK_FIELDS = { "whispersBlocked", "partyInvitesBlocked", "guildInvitesBlocked", "partyRaidBlocked", "channelsBlocked" }
+local BLOCK_FIELDS = M.PSS_BLOCK_FIELDS
 
 local function anyBlocked(p)
 	if type(p) ~= "table" then return false end
@@ -1366,7 +1366,7 @@ function M.PSS_SetExpiry(index, days)
 end
 
 -- Per-player block parameters
-local PLAYER_FIELDS = { whispersBlocked = true, partyInvitesBlocked = true, guildInvitesBlocked = true, partyRaidBlocked = true, channelsBlocked = true }
+local PLAYER_FIELDS = M.PSS_BLOCK_FIELD_SET
 function M.PSS_SetPlayerSetting(name, field, value)
 	local p = ensurePlayer(name)
 	if not p or not PLAYER_FIELDS[field] then return end

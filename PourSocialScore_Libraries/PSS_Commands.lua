@@ -364,7 +364,7 @@ function M.PSS_SlashGuild (msg)
 		end
 		local labels = { whisper = "Whispers", partyRaid = "Party/Raid", world = "World chat", guildChat = "Guild chat",
 						partyInvite = "Party invite", guildInvite = "Guild invite", duel = "Duel", trade = "Trade" }
-		local order = { "whisper", "partyRaid", "world", "guildChat", "partyInvite", "guildInvite", "duel", "trade" }
+		local order = ex.order
 		local any = {}
 		for _, row in ipairs(ex.sources) do
 			gp("listed: " .. tostring(row.describe or row.src.label))
