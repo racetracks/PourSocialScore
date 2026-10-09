@@ -91,6 +91,7 @@ The saved values never change (old saves keep their look). Nothing ships that wo
 - Call the user "the author", never by name.
 - Never host files in the Claude session: put them in the most relevant scratch folder (`summary/`, `releases/`, `docs/latest/<topic>/`: `issues/`, `setup/`, `release-notes/`, `code-map/`, `pss-docs/`) and reply with the link.
 - Short: no preamble, no recap; don't explain code changes unless asked; reference `file:line`, never repeat file contents.
+- Sparse messages and token use, only when required; reuse a thread that already has the tools and the context the task needs rather than starting a new one.
 - Keep what is held in memory lean. Critical information still reaches the author, as a markdown in a scratch folder, linked (several files: one folder, no zip).
 
 ## Working in a Claude Code session
