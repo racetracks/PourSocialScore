@@ -26,9 +26,9 @@
 - No guild discovery from mouseover or nameplates in combat.
 - **Forward compatible saves (core uplift U3, plan 2.3, Dan, 2026-10-08):** every field PSS saves is listed in `M.PSS_SCHEMA` (`PSS_Schema.lua`) in the PR that first saves it (`check_schema.lua` fails an unlisted one). Nothing is deleted by guesswork: only keys in `RETIRED` (`PSS_Upgrade.lua`) are dropped; a field, owner form, rule tag or built-in id this version does not know is kept and read as absent; a new layout of a whole store takes a higher `v` and an older version leaves a higher `v` untouched. A per-filter field goes in `filterID` or a table keyed by id, never a new parallel array. A rule this version cannot use is not applied, stays unchanged, is named after a version change and is exportable (`/pss export unused`). Exports carry `v` (format 2 from 3.4.1.47) and a record's unknown fields in `more`; the `PSS1` tag stays so older versions read them.
 
-## 4. Garbage collection (changed 2026-10-07)
-- Old PSS rule: GC on request (login, /who scan, import, window close) **plus a 10-minute idle cycle**; never in combat, within 5 minutes of combat, or in an instance.
-- **Dan chose event-driven on 2026-10-07:** no idle timer and no 5-minute combat wait. GC runs only on request, deferred to out of combat and not in an instance, detected from events. The code (`PSS_Perf.lua`) has not been changed yet (Dan: templates only for now). **It changes on the 3.4.1 line**, straight after the 3.4.0 release (code review decision 5, Dan, 2026-10-08).
+## 4. Garbage collection (changed 2026-10-07; done in 3.4.1.52, core uplift P2)
+- Old PSS rule: GC on request plus a 10-minute idle cycle and a 5-minute combat wait. Gone.
+- **Event-driven (Dan, 2026-10-07):** no ticker, no idle timer, no wall-clock gate. GC runs only on request (`M.PSS_RequestGC`: login, /who scan, import, window close), and only out of combat, not dead, not in an encounter and not in a dungeon, raid, battleground or arena (`IsInInstance`). A request made at a bad moment waits for `PLAYER_REGEN_ENABLED`, `PLAYER_ENTERING_WORLD`, `ZONE_CHANGED_NEW_AREA`, `PLAYER_ALIVE` or `PLAYER_UNGHOST`, registered only while a request waits. A running cycle stops itself at the first frame that is busy. `PSS_Perf.lua` has no `C_Timer`; `loadWhenQuiet` (Logging) waits the same way (`History.LoadWhenQuiet`). `check_gc.lua` and `check_ondemand.lua` phase 3 gate it.
 
 ## 5. Core placement (G2, confirmed 2026-10-05 15:30Z)
 > "minimal functions are stored in the poursocialscore core addon. it must only service as the core framework to handle the chat filtering and a launchpad for the addon. Functions that wont run in active memory or be considered as regularly active (chat filters etc) should be in the libraries folder."
@@ -104,6 +104,4 @@ The baseline's rules are mandatory. These are the only places PSS differs, each 
 Blizzard hooks approved within the J rules (post-hooks, no override): `hooksecurefunc(ChatFrameUtil, "InsertLink")` on Retail 12.x (Dan, 2026-10-08), and the rest of 10.3.
 
 ### Known breaches, with their fix
-| Baseline rule | Where | Fixed by |
-| --- | --- | --- |
-| C15 GC only on request, event-driven | `PSS_Perf.lua`: a 10-minute idle cycle (section 4) | The 3.4.1 line (code review decision 5, Dan, 2026-10-08) |
+None. (The idle GC cycle in `PSS_Perf.lua`, the last one, was fixed in 3.4.1.52, core uplift P2.)

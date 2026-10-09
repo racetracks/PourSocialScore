@@ -72,8 +72,21 @@ elseif phase == 3 then
 	end
 	check(w == 205, "a person's waiting lines: " .. w)
 	check(not loaded("PourSocialScore_Logging"), "loaded inside the chat filter")
+	-- in combat or an instance it waits for an event, not a timer (3.4.1.52)
+	local combat = true
+	local realCombat = InCombatLockdown
+	InCombatLockdown = function() return combat end
+	local after, oldAfter = 0, C_Timer.After
+	C_Timer.After = function(...) after = after + 1 return oldAfter(...) end
 	H.RunTimers()
-	check(loaded("PourSocialScore_Logging"), "200 waiting lines did not load Logging")
+	check(not loaded("PourSocialScore_Logging"), "Logging loaded in combat")
+	check(after == 0, "waiting for a quiet moment made " .. after .. " timer(s)")
+	combat = false
+	check(H.Fire("PLAYER_REGEN_ENABLED") >= 1, "no event wakes the load")
+	check(loaded("PourSocialScore_Logging"), "200 waiting lines did not load Logging after combat")
+	InCombatLockdown = realCombat
+	C_Timer.After = oldAfter
+	check(H.Fire("ZONE_CHANGED_NEW_AREA") == 0, "the quiet events stayed registered after the load")
 	check(History.Waiting() == 0, "outbox not emptied after the load")
 	local fkey = M.PSS_FilterOwnerKey(1)		-- a filter that exists (the tidy-up keeps it)
 	for i = 1, 205 do
