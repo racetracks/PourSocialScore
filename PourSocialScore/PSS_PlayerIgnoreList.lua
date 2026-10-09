@@ -163,6 +163,7 @@ local function anyBlocked(p)
 	for _, f in ipairs(BLOCK_FIELDS) do if p[f] ~= false then return true end end
 	return false
 end
+M.PSS_PlayerBlocksAnything = anyBlocked
 
 -- Upgrade step 10 and logout: the switches that block are not saved, nor
 -- zero counts. In the upgrade (legacy), a save from before guild invites had a

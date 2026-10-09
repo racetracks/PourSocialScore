@@ -710,6 +710,7 @@ local function compactAllMembers()
 	end
 	return n
 end
+M.PSS_CompactAllMembers = compactAllMembers
 
 -- forget a member's counts (Reset): no counts stored = all zero
 local function clearMemberBlockData(m)
