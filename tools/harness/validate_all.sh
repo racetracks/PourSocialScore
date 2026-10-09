@@ -130,6 +130,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_options.lua" 2>&1 | grep -v '^|c
 echo "$out" | grep -E "PASS|FAIL"
 echo "$out" | grep -q "PASS options" || fail=1
 
+# window tidy W2: logic of the Events, Options and Chat Filters tabs in Libraries
+echo "== window tidy W2 (Events, Options, Filters)"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_w2b.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS w2b" || fail=1
+
 # secret values: chat, unit and hook values checked, never kept (3.4.0.14)
 echo "== secret values"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_secrets.lua" 2>&1 | grep -v '^|cff')
