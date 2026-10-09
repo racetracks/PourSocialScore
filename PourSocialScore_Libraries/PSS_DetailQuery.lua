@@ -12,7 +12,7 @@
 -- them), every type starts ticked.
 --   M.PSS_PERIODS                         { key, text, r, g, b } x 3
 --   M.PSS_PeriodOn(key) / M.PSS_SetPeriodOn(key, on)
---   M.PSS_TypeOff(cat) / M.PSS_SetTypeOff(cat, off) / M.PSS_AnyTypeOff()
+--   M.PSS_SetTypeOff(cat, off)
 --   M.PSS_WidestPeriodOn()                "day", "session" or nil (all time)
 --   M.PSS_TypesOn()                       { [cat] = true } of the ticked, nil if all
 --   M.PSS_SummaryValues(spec, into)       into.session / day / all
@@ -50,9 +50,7 @@ local typeOff = {}
 
 function M.PSS_PeriodOn(key) return periodOn[key] == true end
 function M.PSS_SetPeriodOn(key, on) periodOn[key] = on and true or false end
-function M.PSS_TypeOff(cat) return typeOff[cat] == true end
 function M.PSS_SetTypeOff(cat, off) typeOff[cat] = off and true or nil end
-function M.PSS_AnyTypeOff() return next(typeOff) ~= nil end
 
 function M.PSS_WidestPeriodOn()
 	if periodOn.all then return nil end
@@ -154,7 +152,6 @@ local function HexColor(hex)
 	return (tonumber(hex:sub(3, 4), 16) or 255) / 255, (tonumber(hex:sub(5, 6), 16) or 255) / 255,
 		(tonumber(hex:sub(7, 8), 16) or 255) / 255
 end
-M.PSS_HexColor = HexColor
 
 -- All time by type as slices, in the core's type order, at most max (7)
 -- types with a count. A type unticked draws nothing (draw = 0) but keeps

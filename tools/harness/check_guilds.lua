@@ -50,7 +50,7 @@ win.tabs[2]._scripts.OnClick(win.tabs[2])
 local page = win.pages[2]
 local list, pane, V, picker = page.list, page.pane, page.state, page.picker
 check(page:IsShown() and list and pane and V and picker, "Guilds tab not built")
-check(not page.note:IsShown(), "the built tab still shows its note")
+check(page.note == nil, "the placeholder note is gone")
 check(win.where:GetText() == "Guild Ignore List", "the line by the arrows")
 
 -- nothing selected: the list's totals

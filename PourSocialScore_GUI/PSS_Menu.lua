@@ -109,7 +109,6 @@ end
 local function Close()
 	if menu then menu:Hide() end
 end
-ns.CloseMenu = Close
 
 local function MakeSlot(i)
 	local sl = CreateFrame("Button", nil, menu)
@@ -131,12 +130,15 @@ local function MakeSlot(i)
 	sl.text:SetJustifyH("LEFT")
 	sl.text:SetWordWrap(false)
 	sl.line = sl:CreateTexture(nil, "ARTWORK")
-	sl.line:SetHeight(1)
+	ns.NoSnap(sl.line)
 	sl.line:SetPoint("LEFT", sl, "LEFT", 8, 0)
 	sl.line:SetPoint("RIGHT", sl, "RIGHT", -8, 0)
 	sl.line:SetColorTexture(1, 1, 1, 0.10)
 	sl:SetScript("OnEnter", function(self) self.text:SetAlpha(1) end)
-	sl:SetScript("OnLeave", function() ns.DrawMenu() end)
+	sl:SetScript("OnLeave", function(self)
+		local e = self.entry
+		self.text:SetAlpha(e and e.kind == "title" and 0.41 or 0.53)
+	end)
 	sl:SetScript("OnClick", function(self)
 		local e = self.entry
 		if not e then return end
@@ -175,6 +177,7 @@ local function Draw()
 		sl.text:SetTextColor(1, 1, 1)
 		sl.text:SetAlpha(title and 0.41 or 0.53)
 		sl.line:SetShown(divider)
+		if divider then sl.line:SetHeight(ns.OnePixel(sl)) end
 		local on = (e.kind == "radio" or e.kind == "check") and IsOn(e)
 		sl.mark:SetShown(on)
 		sl.mark:SetColorTexture(ns.Accent())

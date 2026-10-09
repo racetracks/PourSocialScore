@@ -165,7 +165,7 @@ local names = {}
 for i, t in ipairs(win.tabs or {}) do names[i] = t:GetText() end
 check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,Events,Import/Export,Options", "tabs are not the six of the port")
 check(win.tabs[1].pssSelected and win.pages[1]:IsShown() and not win.pages[2]:IsShown(), "first tab not shown first")
-check(win.pages[6].note and win.pages[6].note:GetText():find("later", 1, true), "a tab not opened yet has no note")
+check(win.pages[6].note == nil and not win.pages[6].refresh, "a tab not opened yet is not built, and has no placeholder note")
 check(win.where:GetText() == "Player Ignore List", "the line by the arrows does not name the tab")
 check(win.where:GetAlpha() == 0.9, "the line by the arrows is not at 0.9")
 check(not win.back:IsEnabled() and not win.forward:IsEnabled(), "arrows enabled with nowhere to go")
@@ -262,7 +262,7 @@ ui.TabBuilders.importExport = function(page)
 end
 win.tabs[5]._scripts.OnClick(win.tabs[5])
 win.tabs[5]._scripts.OnClick(win.tabs[5])
-check(built == 1 and drawn == 2 and not win.pages[5].note:IsShown(), "a tab builder did not build once and redraw")
+check(built == 1 and drawn == 2 and win.pages[5].refresh, "a tab builder did not build once and redraw")
 ui.TabBuilders.importExport = realBuild
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 -- frame strata follows the option

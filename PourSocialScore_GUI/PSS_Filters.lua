@@ -465,16 +465,17 @@ end
 -- Core events: redraw now if the tab shows, else when it next shows.
 ------------------------------------------------------------------------
 local queued
+local function RunQueued()
+	queued = false
+	if page and page:IsVisible() then Refresh() end
+end
 ns.Listen("FILTERS_CHANGED", function()
 	V.dirty = true
 	if queued or not (page and page:IsVisible()) then return end
 	-- one redraw however many changes arrive in a frame (an import adds
 	-- many filters at once)
 	queued = true
-	C_Timer.After(0, function()
-		queued = false
-		if page and page:IsVisible() then Refresh() end
-	end)
+	C_Timer.After(0, RunQueued)
 end)
 
 -- a blocked line: the order (the Blocked column), the counts and the

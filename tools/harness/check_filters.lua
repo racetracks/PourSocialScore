@@ -25,7 +25,7 @@ win.tabs[3]._scripts.OnClick(win.tabs[3])
 local page = win.pages[3]
 local list, pane, V = page.list, page.pane, page.state
 check(page:IsShown() and list and pane and V, "Chat Filters tab not built")
-check(not page.note:IsShown(), "the built tab still shows its note")
+check(page.note == nil, "the placeholder note is gone")
 check(page.linkHook() == "ChatFrameUtil.InsertLink", "link hook not on ChatFrameUtil.InsertLink: " .. tostring(page.linkHook()))
 
 -- nothing selected: every filter's totals

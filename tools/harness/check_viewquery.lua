@@ -55,10 +55,10 @@ end
 for i = 1, #(PourSocialScoreDB.filterList or {}) do
 	CheckPane("filters", "#" .. i, M.PSS_FilterOwnerKey(i), M.PSS_FilterCounts(i))
 end
-check(not M.PSS_AnyTypeOff() and M.PSS_TypesOn() == nil, "type tick not cleared")
+check(M.PSS_TypesOn() == nil, "type tick not cleared")
 if cat then
 	M.PSS_SetTypeOff(cat, true)
-	check(M.PSS_AnyTypeOff() and M.PSS_TypesOn() and not M.PSS_TypesOn()[cat], "type tick state")
+	check(M.PSS_TypesOn() and not M.PSS_TypesOn()[cat], "type tick state")
 	M.PSS_SetTypeOff(cat, false)
 end
 

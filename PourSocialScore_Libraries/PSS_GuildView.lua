@@ -330,9 +330,6 @@ function M.PSS_GuildPickerTitle(n, query, mode)
 		.. (exclude and "exclude." or "add.")
 end
 
--- the picker's ticks: the shared ones (PSS_ViewNav.lua)
-M.PSS_GuildPickerToggle, M.PSS_GuildPickerTickAll = M.PSS_PickerToggle, M.PSS_PickerTickAll
-
 -- Save the ticked entries; the count saved
 function M.PSS_GuildPickerSave(items, mode)
 	local names = {}

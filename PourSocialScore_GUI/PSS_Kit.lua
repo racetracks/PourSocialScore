@@ -1,10 +1,10 @@
 ------------------------------------------------------------------------
 -- POUR SOCIAL SCORE UI - KIT
 --
--- The controls every tab is built from, each in both looks (PSS_Skin.lua).
--- Blizzard: the Blizzard template as it is. Dark: the template's art faded
--- out and flat fills and one-pixel borders drawn over it. Sizes are the
--- same in both looks.
+-- The controls every tab is built from, each in all three looks
+-- (PSS_Skin.lua). Modern: Blizzard's 12.x art. Classic: the Blizzard
+-- template as it is. Dark: the template's art faded out and flat fills and
+-- one-pixel borders drawn over it. Sizes are the same in every look.
 --   ns.NewHeading(parent, text)          13, the accent colour
 --   ns.NewButton(parent, text, w, onClick)
 --   ns.NewCheck(parent)                  24 x 24
@@ -336,6 +336,8 @@ end
 -- A scroll frame (ScrollFrameTemplate where the client has it, else the
 -- older UIPanelScrollFrameTemplate). Dark: the bar's arrows and track
 -- faded, the thumb a 4 px light strip.
+local BAR_BUTTONS = { "Back", "Forward", "ScrollUpButton", "ScrollDownButton" }
+
 function ns.NewScrollFrame(parent)
 	local ok, sf = pcall(CreateFrame, "ScrollFrame", nil, parent, "ScrollFrameTemplate")
 	if not (ok and sf) then sf = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate") end
@@ -355,7 +357,7 @@ function ns.NewScrollFrame(parent)
 	end
 	local keep = thumbTex and { [thumbTex] = true } or nil
 	ns.OnPaint(function(dark)
-		for _, k in ipairs({ "Back", "Forward", "ScrollUpButton", "ScrollDownButton" }) do
+		for _, k in ipairs(BAR_BUTTONS) do
 			if bar[k] then bar[k]:SetAlpha(dark and 0 or 1) end
 		end
 		ns.ShowArt(bar, dark, keep)

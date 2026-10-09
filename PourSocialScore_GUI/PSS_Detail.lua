@@ -31,7 +31,6 @@ local PAGES = {
 	{ key = "history", text = "Event History" },
 	{ key = "rule", text = "View/Edit Rule" },
 }
-ns.DETAIL_PAGES = PAGES
 
 -- the page last picked, per tab ("players", "guilds", "filters")
 local picked = {}

@@ -123,10 +123,10 @@ HV.__index = HV
 -- only when id or its count changed. fresh scrolls back to the top.
 function HV:Set(id, total, read, fresh)
 	local ready = M.PSS_LoggingReady()
-	local key = tostring(id) .. "\001" .. total .. "\001" .. tostring(ready)
-	if key == self.key then return end
+	if self.set and self.id == id and self.total == total and self.ready == ready then return end
 	fresh = fresh or self.id ~= id
-	self.key, self.id, self.total, self.read = key, id, total, read
+	self.set, self.ready = true, ready
+	self.id, self.total, self.read = id, total, read
 	if total > 0 and not ready then
 		-- not loaded yet: offer it rather than load it for a click on a row
 		self.all = EMPTY
@@ -145,7 +145,7 @@ end
 
 -- Forget what is shown (the next Set reads again).
 function HV:Clear()
-	self.key, self.id, self.read = nil, nil, nil
+	self.set, self.id, self.read = nil, nil, nil
 end
 
 -- body: the page; y: top of the list; opts.names adds a Name column,
@@ -182,7 +182,7 @@ function ns.NewHistory(body, y, opts)
 	hv.gate = ns.NewButton(lf, "Show Block History", 170, function()
 		if not M.PSS_LoadLogging() then return end
 		local id, total, read = hv.id, hv.total, hv.read
-		hv.key = nil
+		hv.set = nil
 		if read then hv:Set(id, total, read, true) end
 	end)
 	hv.gate:SetPoint("TOP", lf, "TOP", 0, -36)

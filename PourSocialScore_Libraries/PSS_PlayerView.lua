@@ -63,6 +63,18 @@ function M.PSS_PlayerTypeText(r)
 	return "Unknown"
 end
 
+-- days listed as "12d", each string made once
+local listedText = {}
+function M.PSS_PlayerListedText(r)
+	local n = r.listed
+	local t = listedText[n]
+	if not t then
+		t = n .. "d"
+		listedText[n] = t
+	end
+	return t
+end
+
 function M.PSS_PlayerExpireText(r)
 	if r.expire == 0 then return "|cff808080" .. L["EXP_NVR"] .. "|r" end
 	if r.left <= 0 then return "|cffff6666" .. L["EXP_TDY"] .. "|r" end

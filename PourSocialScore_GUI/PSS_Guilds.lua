@@ -622,7 +622,6 @@ local function ShowMember(fresh)
 	end
 	b.exceptions:Set(m, "person", "this member", gg.opts)
 	b.addGuild:SetShown(M.PSS_MemberOtherGuild(gg, V.mguild, m))
-	M.PSS_EnsureMemberBlockData(m)
 	local c = M.PSS_GetMemberBlockCounts(m)
 	b.counts:SetText(M.PSS_CountsText(c))
 	b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory, fresh)
@@ -701,7 +700,7 @@ local function BuildPicker(parent)
 		},
 		draw = DrawPick,
 		click = function(_, i)
-			if M.PSS_GuildPickerToggle(picker.items[i]) then picker.list:Redraw() end
+			if M.PSS_PickerToggle(picker.items[i]) then picker.list:Redraw() end
 		end,
 	})
 	local save = ns.NewButton(picker, "Save", 90, function()
@@ -713,14 +712,13 @@ local function BuildPicker(parent)
 	save:SetPoint("BOTTOMLEFT", picker, "BOTTOMLEFT", 4, 4)
 	picker.saveButton = save
 	local all = ns.NewButton(picker, "Tick All", 90, function()
-		M.PSS_GuildPickerTickAll(picker.items)
+		M.PSS_PickerTickAll(picker.items)
 		picker.list:Redraw()
 	end)
 	all:SetPoint("LEFT", save, "RIGHT", 6, 0)
 	picker.allButton = all
 	local cancel = ns.NewButton(picker, "Cancel", 90, ClosePicker)
 	cancel:SetPoint("LEFT", all, "RIGHT", 6, 0)
-	picker.cancelButton = cancel
 end
 
 local function ShowSearchResults(found, query, mode)
@@ -938,7 +936,7 @@ ns.TabBuilders.guilds = function(pg)
 	end
 
 	pg.list, pg.members, pg.membersView, pg.pane, pg.picker, pg.state = list, mlist, mview, pane, picker, V
-	pg.openMembers, pg.selectMember = OpenMembers, SelectMember
+	pg.selectMember = SelectMember
 	pg.stale = function()
 		V.dirty, V.mdirty = true, true
 		for _, b in ipairs(scanButtons) do b:SetEnabled(not M.PSS_ScanCooldownActive()) end
@@ -952,16 +950,17 @@ end
 -- Core events: redraw now if the tab shows, else when it next shows.
 ------------------------------------------------------------------------
 local queued = false
+local function RunQueued()
+	queued = false
+	if page and page:IsVisible() then Refresh() end
+end
 local function Changed()
 	V.dirty, V.mdirty = true, true
 	if queued or not (page and page:IsVisible()) then return end
 	-- one redraw however many changes arrive in a frame (saving Guild
 	-- Search results adds many guilds at once)
 	queued = true
-	C_Timer.After(0, function()
-		queued = false
-		if page and page:IsVisible() then Refresh() end
-	end)
+	C_Timer.After(0, RunQueued)
 end
 ns.Listen("GUILDS_CHANGED", Changed)
 ns.Listen("GUILD_SCAN_DONE", Changed)

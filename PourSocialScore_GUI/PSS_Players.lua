@@ -51,7 +51,7 @@ local function DrawRow(row, i)
 	cells.name:SetTextColor(M.PSS_ClassColor(r.record and r.record.class))
 	cells.server:SetText(r.server)
 	cells.type:SetText(M.PSS_PlayerTypeText(r))
-	cells.listed:SetText(r.listed .. "d")
+	cells.listed:SetText(M.PSS_PlayerListedText(r))
 	cells.expire:SetText(M.PSS_PlayerExpireText(r))
 	cells["metric:total"]:SetText(r.record and M.PSS_PlayerTotal(r.record) or "")
 	row.sel:SetShown(r.entry == sel)
@@ -419,7 +419,6 @@ local function BuildPicker(parent)
 	picker.allButton = all
 	local cancel = ns.NewButton(picker, "Cancel", 90, ClosePicker)
 	cancel:SetPoint("LEFT", all, "RIGHT", 6, 0)
-	picker.cancelButton = cancel
 end
 
 -- the /who answer (Libraries M.PSS_PlayerSearchFromText calls it)
