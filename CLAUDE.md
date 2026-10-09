@@ -85,6 +85,12 @@ The saved values never change (old saves keep their look). Nothing ships that wo
 - **Taint and secrets:** baseline 02 J and PSS 02 section 10 apply to every UI hook and every unit or chat value the window shows or acts on.
 - **Saved state:** window place, last tab and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` UI keys); no new SavedVariables.
 
+## File hosting and response style (the author, 2026-10-09; full text in `docs/pss/11_PREFERENCES.md`)
+- Call the user "the author", never by name.
+- Never host files in the Claude session: put them in the most relevant scratch folder (`summary/`, `releases/`, `docs/latest/<topic>/`: `issues/`, `setup/`, `release-notes/`, `code-map/`, `pss-docs/`) and reply with the link.
+- Short: no preamble, no recap; don't explain code changes unless asked; reference `file:line`, never repeat file contents.
+- Keep what is held in memory lean. Critical information still reaches the author, as a markdown in a scratch folder, linked (several files: one folder, no zip).
+
 ## Working in a Claude Code session
 - **Install `lua5.1` first, in every session (required, the author, 2026-10-08):** `apt-get install -y lua5.1` (run `apt-get update` first if it is not found). The rules check, every harness check and the real-save run need it; never skip a check because it is missing.
 - Develop on the session's `claude/...` branch from the latest `origin/main`; one step per PR, based on main; never stack.
