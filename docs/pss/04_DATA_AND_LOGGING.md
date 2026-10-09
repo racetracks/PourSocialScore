@@ -73,5 +73,6 @@ Not started: pack the in-play chat filter log like the keep (06, Parked).
 | 3.4.1.50 | core (6.3 KB), _Options (394 KB), _Logging (202 KB) | First save with listed players; two planted "Newer test" filters (unusable-rule check); Camelot |
 | 3.4.2.54 | core (13 KB), _Options (214 KB), _Logging (198 KB) | First save in the core uplift's sparse layout (`list` records, schema); player list empty, 10 names in `delList`; Camelot |
 | 3.5.0.61 | core (20 KB), _Options (255 KB), _Logging (200 KB) | First save with graphics settings (`gfxSets`, 2 kept sets); 1 listed player; sparse layout; Camelot |
+| 3.5.0.62 | core (2.2 KB), _Options (173 KB), _Logging (183 KB) | Written by release 3.5.0.62; no kept graphics sets; 1 listed player, 10 names in `delList`; Camelot |
 
 Folders are named by the save's `upgrade.version` (the version last run). `sh tools/harness/build_saves.sh <scratch checkout> <out dir>` concatenates each 3.x set into `<out dir>/<version>/PourSocialScore.lua`; 2.0.44 is copied as is. The split check in validate_all.sh only takes 2.0-layout saves (no `PSS_OptionsDB`).
