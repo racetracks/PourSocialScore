@@ -2,7 +2,8 @@
 	"latestRelease": "3.5.0.62",
 	"preReleases": [
 		{ "version": "3.5.1.63", "pr": 170 },
-		{ "version": "3.6.0.64", "pr": null }
+		{ "version": "3.6.0.64", "pr": null },
+		{ "version": "3.6.0.65", "pr": null }
 	],
 	"releases": [
 		{

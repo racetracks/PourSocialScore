@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.65 - Docs: addon manager follow-ups (sets the ACP way, tab order)
+
+- Documentation only: the next two changes to the AddOns tab are written down, sets created the same way as Addon Control Panel with the Sets drop-down at the bottom left, and the AddOns tab placed after Chat Filters. No change in the game.
+
 => 3.6.0.64 - Addon manager
 
 - New AddOns tab in the Pour Social Score window (all three looks), also /pss acp and /acp, the key binding "Open AddOns" and, on Retail, a second Addon Compartment entry "Pour Social Score: AddOns": every installed addon in one grouped, searchable list; tick to turn an addon on or off for this character or all characters (it can also turn on the addons it requires), Load for load on demand addons, Disable All and Enable All, Undo back to the state at login and a Reload button that shows when a change waits for a reload.
