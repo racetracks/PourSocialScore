@@ -195,17 +195,6 @@ function M.RemoveChatFilter (index)
 	end
 end
 
-local function hasFilterID (id)
-
-	for count = 1, #PourSocialScoreDB.filterDesc do
-		if PourSocialScoreDB.filterID[count] == id then
-			return count
-		end
-	end
-
-	return 0
-end
-
 local function isDefFilterID (id)
 
 	-- (a custom filter: no id, or a newer version's number id, kept)

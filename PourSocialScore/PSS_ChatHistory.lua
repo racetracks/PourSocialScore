@@ -47,7 +47,7 @@ History.CAT_COLOR = {
 	whisper = "ffffff00", partyInvite = "ffff9933", partyRaid = "ff66ccff",
 	world = "ff99ff99", guildInvite = "ffcc99ff", guildChat = "ff40ff40", unknown = "ff9d9d9d",
 }
-local CAT_LABEL, CAT_COLOR, CAT_ORDER = History.CAT_LABEL, History.CAT_COLOR, History.CAT_ORDER
+local CAT_LABEL = History.CAT_LABEL
 local ALL_CATS = { "whisper", "partyInvite", "guildInvite", "partyRaid", "world", "guildChat", "unknown" }
 History.ALL_CATS = ALL_CATS
 
@@ -83,7 +83,6 @@ function History.ParseTime(s)
 	end
 	return nil
 end
-M.PSS_ParseTimeString = History.ParseTime
 
 ------------------------------------------------------------------------
 -- Entries
@@ -130,7 +129,6 @@ function History.Normalize(h)
 	h.message = tostring(h.message or "")
 	return h
 end
-M.PSS_NormalizeBlockEntry = History.Normalize
 
 -- A new line. cat: core category; channel: label (built from the event when nil).
 function History.NewEntry(cat, event, message, channel, member)
@@ -200,7 +198,6 @@ function History.Cap()
 	if v > History.MAX_TOTAL then return History.MAX_TOTAL end
 	return v
 end
-History.Max = History.Cap		-- (older name)
 
 -- time / kind are worked out when read
 History.EntryMT = { __index = function(h, k)
@@ -488,49 +485,6 @@ function History.CapKeep(force)
 	end
 	keepTotal = cap
 	return drop
-end
-
--- Store a person's line in their keep: their newest lines of each kind
--- (KEEP), the oldest of that kind goes. Nothing for a kind never kept.
-function History.KeepAdd(h)
-	local k = KEEP_KIND[h.cat]
-	if not k then return false end
-	local keep = History.Keep()
-	local o = h.o
-	local list = keep[o]
-	if not list then list = {}; keep[o] = list end
-	list[#list + 1] = pack(h, list)
-	local have, first = 0, nil
-	for i = #list, 1, -1 do
-		if BYTE_KIND[list[i]:byte(1)] == k then have = have + 1; first = i end
-	end
-	if not keepTotal then History.CapKeep() end
-	if have > KEEP[k] then
-		table.remove(list, first)
-	else
-		keepTotal = keepTotal + 1
-		if keepTotal > History.KEEP_TOTAL + math.floor(History.KEEP_TOTAL / 20) then History.CapKeep(true) end
-	end
-	return true
-end
-
--- Older saves: people's lines leave the log for their keep (newest of each
--- kind kept, the rest let go). Returns how many lines left the log.
-function History.MovePeople()
-	local log = History.Log()
-	local moved, owners, n, j = {}, nil, 0, 0
-	for i = 1, #log do
-		local h = log[i]
-		if keepsOwner(h.o) then
-			n = n + 1; moved[n] = h
-			owners = owners or {}; owners[h.o] = true
-		else
-			j = j + 1; log[j] = h
-		end
-	end
-	for i = #log, j + 1, -1 do log[i] = nil end
-	if owners then History.SettleKeep(owners, moved, n) end
-	return n
 end
 
 -- Work out the keep of `owners` (set of owner keys) again: their kept lines
@@ -1187,63 +1141,6 @@ function History.Sig(h)
 	return tostring(h.ts or 0) .. "\1" .. tostring(h.time or "") .. "\1" .. tostring(h.event or "") ..
 			"\1" .. tostring(h.message or "") .. "\1" .. tostring(h.cat or "")
 end
-
--- Union of two lists, de-duplicated (copies), newest first, capped.
-function History.MergeLists(a, b)
-	local max = History.Max()
-	local seen, merged = {}, {}
-	for _, list in ipairs({ a or {}, b or {} }) do
-		for _, h in ipairs(list) do
-			local sig = History.Sig(h)
-			if not seen[sig] then
-				seen[sig] = true
-				local copy = {}
-				for k, v in pairs(h) do copy[k] = v end
-				merged[#merged + 1] = copy
-			end
-		end
-	end
-	table.sort(merged, function(x, y) return (x.ts or 0) > (y.ts or 0) end)
-	while #merged > max do table.remove(merged) end
-	return merged
-end
-
--- Several lists -> one newest-first list (for "all players / guilds /
--- filters" views). sourceFn(list) gives the tooltip label, ownerName the
--- sender when a line does not name one.
-function History.Combine(parts)
-	local out = {}
-	for _, p in ipairs(parts) do
-		for _, h in ipairs(p.list or {}) do
-			if History.Normalize(h) then
-				h.member = h.member or p.owner or UNKNOWN
-				if p.source then History.SetSource(h, p.source) end
-				out[#out + 1] = h
-			end
-		end
-	end
-	table.sort(out, function(a, b)
-		if (a.ts or 0) ~= (b.ts or 0) then return (a.ts or 0) > (b.ts or 0) end
-		return tostring(a.member or "") < tostring(b.member or "")
-	end)
-	return out
-end
-
--- "Whispers: 3  Party Invites: 0 ..." summary line.
-function History.FormatCounts(c)
-	c = c or {}
-	local function part(cat, label)
-		return "|cffaaaaaa" .. label .. ":|r |c" .. CAT_COLOR[cat] .. (c[cat] or 0) .. "|r"
-	end
-	local s = part("whisper", "Whispers") .. "    " .. part("partyInvite", "Party Invites") .. "    " ..
-				part("partyRaid", "Party/Raid") .. "    " .. part("world", "World Chat")
-	if (c.guildInvite or 0) > 0 then s = s .. "    " .. part("guildInvite", "Guild Invites") end
-	if (c.guildChat or 0) > 0 then s = s .. "    " .. part("guildChat", "Guild Chat") end
-	if (c.unknown or 0) > 0 then s = s .. "    " .. part("unknown", UNKNOWN) end
-	return s
-end
-M.PSS_FormatGuildCounts = History.FormatCounts
-M.PSS_FormatBlockCounts = History.FormatCounts
 
 ------------------------------------------------------------------------
 -- Chat filter history migration

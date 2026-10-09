@@ -4,7 +4,6 @@ local L = addon.L
 -- use this array to share variables between addon files
 addon.V = {}
 local V = addon.V
-V.needSorted = true		-- the Player Ignore List needs sorting before it is drawn
 -- use this to share methods between addon files
 addon.M = {}
 local M = addon.M
@@ -102,7 +101,7 @@ function M.Proper (name, okSpaces)
 			local base = string.sub(name, 1, dash - 1):gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
 			if string.find(base, " ", 1, true) then
 				name = base .. string.sub(name, dash)
-				keepUntil = strlen(base)
+				keepUntil = #base
 			end
 		end
 	end
@@ -331,8 +330,8 @@ end
 -- Any other realm: a space before each capital or digit, up to the first
 -- digit or "(".
 local function spaceRealmName(origName)
-	local len	= strlen(origName)
-	local sb	= strbyte
+	local len	= #origName
+	local sb	= string.byte
 	local char = string.char
 	local c1
 	local c
@@ -426,15 +425,7 @@ V.playerName		= M.addServer(GetUnitName("player"), true)
 -- the real Mainline client, so Mainline-only extras (e.g. the addon
 -- compartment) are skipped elsewhere; everything else checks that an API
 -- exists before using it.
-V.wowIsERA		= false
-V.wowIsTBC		= false
-V.wowIsWrath	= false
-V.wowIsCata		= false
-V.wowIsMOP		= false
 V.wowIsRetail	= (WOW_PROJECT_ID == nil) or (WOW_PROJECT_MAINLINE ~= nil and WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
-V.wowIsClassic	= false
-V.wowLongName	= V.wowIsRetail and "Mainline" or "Other"
-V.wowName		= V.wowLongName
 
 ------------------------------------------------------------------------
 -- Messages (shared by every module)

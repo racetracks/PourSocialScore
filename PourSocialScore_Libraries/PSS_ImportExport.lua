@@ -14,8 +14,6 @@
 -- versions ignore v and more; the tag stays PSS1, so they still read it.
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
-local L = addon.L
-local V = addon.V
 local M = addon.M
 
 local FORMAT_TAG = "PSS1"
@@ -471,7 +469,7 @@ function M.PSS_ApplyImport(data, mode, sections)
 			local ok, value = importedOption(def, v)
 			if ok then
 				-- through the setter: defaults are not stored, the windows
-				-- repaint (OPTION_CHANGED), a login-only option asks to reload
+				-- repaint (OPTION_CHANGED)
 				M.PSS_SetOpt(key, "global", value)
 				n = n + 1
 			end
@@ -487,7 +485,6 @@ function M.PSS_ApplyImport(data, mode, sections)
 	-- an imported guild rule may be on: load the shipped member lists
 	if M.PSS_LoadActiveManagedData then M.PSS_LoadActiveManagedData() end
 	if M.PSS_RequestGC then M.PSS_RequestGC("import") end
-	V.needSorted = true
 	M.Events.Fire("PLAYERS_CHANGED", true)
 	M.Events.Fire("GUILDS_CHANGED")
 	M.Events.Fire("FILTERS_CHANGED")

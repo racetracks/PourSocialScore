@@ -46,7 +46,7 @@ end
 
 -- a tick box
 local boolKey
-for _, o in ipairs(M.PSS_OPTIONS) do if o.kind == "bool" and not o.field and not o.reload and rowOf[o.key] then boolKey = o.key break end end
+for _, o in ipairs(M.PSS_OPTIONS) do if o.kind == "bool" and not o.field and rowOf[o.key] then boolKey = o.key break end end
 local bc = rowOf[boolKey].check
 local was = M.PSS_Opt(boolKey) == true
 bc:SetChecked(not was)

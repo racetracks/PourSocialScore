@@ -228,14 +228,12 @@ local EVENT_CATEGORY = {
 	CHAT_MSG_MONSTER_WHISPER = "npc", CHAT_MSG_MONSTER_YELL = "npc",
 	CHAT_MSG_SYSTEM = "system",
 }
-M.PSS_EVENT_CATEGORY = EVENT_CATEGORY
 function M.PSS_EventCategory(event) return EVENT_CATEGORY[event] end
 
 -- Categories chat filters (custom text logic) may act on.
 local TEXT_CATEGORIES = { whisper = true, partyRaid = true, world = true, guildChat = true }
 
 -- Labels for history/UI.
-M.PSS_BLOCK_CATEGORIES = { "whisper", "partyInvite", "partyRaid", "world", "guildInvite" }
 M.PSS_BLOCK_LABELS = {
 	whisper = "Whisper", partyInvite = "Party Invite", partyRaid = "Party/Raid",
 	world = "World Chat", guildInvite = "Guild Invite", guildChat = "Guild Chat",
@@ -305,7 +303,6 @@ function M.PSS_RegisterBlockSource(def)
 	table.sort(sources, function(a, b) return (a.order or 50) < (b.order or 50) end)
 end
 
-function M.PSS_GetBlockSources() return sources end
 
 -- kind: "system", "npc", "realm", "text"; fn(ctx) -> blocked[, info]
 function M.PSS_RegisterBlockHandler(kind, id, fn)
@@ -658,7 +655,6 @@ local function chatFrames()
 	end
 	return list
 end
-M.PSS_ChatFrames = chatFrames
 
 function M.PSS_PurgeChatFrom(keys)
 	if type(keys) ~= "table" or not next(keys) then return end
@@ -845,7 +841,6 @@ M.PSS_FilterAvailable = type(AddFilter) == "function"
 if M.PSS_FilterAvailable then
 	for event in pairs(EVENT_CATEGORY) do AddFilter(event, CoreFilter) end
 end
-M.PSS_CoreEvents = EVENT_CATEGORY
 
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("PARTY_INVITE_REQUEST")
@@ -880,7 +875,7 @@ ev:SetScript("OnEvent", function(_, event, arg1, ...)
 	if not ok then noteError(err) end
 end)
 
--- Test hooks for an offline test harness (not shipped with the addon).
+-- Test hooks for an offline test harness (used only by tools/harness).
 M.PSS__CoreTest = {
 	handlePartyInvite = handlePartyInvite, handleGuildInvite = handleGuildInvite,
 	handleDuel = handleDuel, handleTrade = handleTrade, handleWhisperSent = handleWhisperSent,

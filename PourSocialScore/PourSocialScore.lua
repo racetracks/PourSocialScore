@@ -17,10 +17,8 @@ V.lastFilterError		= false
 -- PSS_GuildIgnoreList.lua and PSS_ChatFilters.lua.
 local PSSFRAME			= nil
 local gotLoaded			= false
-local gotUpdate			= false
 local gotEntering		= false
 local safeToLoad		= false
-local gotGroup			= IsInGroup()
 V.groupWarning			= {}
 
 ----------------------------------
@@ -139,7 +137,6 @@ local function ApplicationStartup(self)
 
 	M.PSS_HookFunctions()
 
-	self:UnregisterEvent("IGNORELIST_UPDATE")
 	self:UnregisterEvent("PLAYER_ENTERING_WORLD")
 	self:UnregisterEvent("ADDON_LOADED")
 
@@ -201,7 +198,6 @@ local function CheckGroupForIgnored()
 	if not IsInGroup() or not PourSocialScoreDB then return end
 	if M.PSS_Opt("listWarnings") == false then return end
 	if InCombatLockdown and InCombatLockdown() then rosterCheckDeferred = true return end
-	gotGroup = true
 	local prefix	= IsInRaid() and "raid" or "party"
 	local doWarn	= false
 	local inGroup = {}
@@ -247,10 +243,6 @@ local function EventHandler (self, event, sender, ...)
 		gotLoaded = true
 	end
 
-	if event == "IGNORELIST_UPDATE" then
-		gotUpdate = true
-	end
-
 	if event == "PLAYER_ENTERING_WORLD" then
 		gotEntering = true
 		-- sender = isInitialLogin, then isReloadingUi: a login or /reload starts
@@ -262,7 +254,6 @@ local function EventHandler (self, event, sender, ...)
 		-- Raids fire this many times in a row: check once, 1 s after the
 		-- last one, and never while in combat (checked when combat ends).
 		if not IsInGroup() then
-			gotGroup		= false
 			V.groupWarning = {}
 		elseif V.PSS_Loaded and PourSocialScoreDB and not rosterCheckQueued then
 			rosterCheckQueued = true
@@ -297,7 +288,6 @@ PSSFRAME = CreateFrame("FRAME")
 
 PSSFRAME:RegisterEvent("PLAYER_ENTERING_WORLD")
 PSSFRAME:RegisterEvent("ADDON_LOADED")
-PSSFRAME:RegisterEvent("IGNORELIST_UPDATE")
 PSSFRAME:RegisterEvent("GROUP_ROSTER_UPDATE")
 PSSFRAME:RegisterEvent("PLAYER_LOGOUT")
 PSSFRAME:RegisterEvent("PLAYER_REGEN_ENABLED")

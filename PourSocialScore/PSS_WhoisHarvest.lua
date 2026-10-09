@@ -285,6 +285,3 @@ BINDING_HEADER_POURSOCIALSCORE = "Pour Social Score"
 BINDING_NAME_PSS_SCAN_ALL = "Scan All: next guild /who"
 function PSS_ScanAllBinding() M.PSS_ScanAll() end
 
--- This session's /who totals (the table itself, read only) and the number
--- of Scan All rounds completed; the Scan tooltip shows them.
-function M.PSS_HarvestStats() return stats, sweepRound end

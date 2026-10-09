@@ -11,7 +11,6 @@
 --   M.PSS_SortPlayers(key, asc, find, into)  list positions in display order
 --   M.PSS_PlayerEntry(i)                  entry i as stored, and its kind
 --   M.PSS_PlayerPosition(entry)           position of an entry (0 = none)
---   M.PSS_ListedBlockTotals(sum)          block counts of every listed player
 --   M.PSS_IsGuildListed(guild)            the guild is on the Guild Ignore List
 --   M.PSS_RemovePlayerAt(i)               remove entry i (player, NPC, server)
 --   M.PSS_PlayersChanged(forced)          the one refresh entry: every front
@@ -20,7 +19,6 @@
 ------------------------------------------------------------------------
 local addonName, addon = ...
 local M = addon.M
-local V = addon.V
 
 local find, sub, lower = string.find, string.sub, string.lower
 
@@ -79,20 +77,6 @@ function M.PSS_IsGuildListed(guild)
 	local data = PourSocialScoreDB.guildData
 	local key = M.PSS_NormalizeGuild(guild)
 	return (data and key and data[key]) and true or false
-end
-
--- sum: a table with the count keys to add up (total, whisper, ...), set to
--- the totals of every listed player. Players without a record add nothing.
-function M.PSS_ListedBlockTotals(sum)
-	for k in pairs(sum) do sum[k] = 0 end
-	for _, e in ipairs(M.PSS_List()) do
-		local name = e.name
-		if (e.kind or "player") == "player" and M.PSS_GetPlayerRecord(name) then
-			local c = M.PSS_GetPlayerBlockCounts(name)
-			for k in pairs(sum) do sum[k] = sum[k] + (c[k] or 0) end
-		end
-	end
-	return sum
 end
 
 ------------------------------------------------------------------------
@@ -214,7 +198,6 @@ end
 -- list), an NPC or a whole server.
 function M.PSS_RemovePlayerAt(i)
 	local kind = M.PSS_EntryKind(i)
-	V.needSorted = true
 	if kind == "player" then
 		M.PSS_DelIgnore(i, true)
 	elseif kind == "npc" then
@@ -227,6 +210,5 @@ function M.PSS_RemovePlayerAt(i)
 end
 
 function M.PSS_PlayersChanged(forced)
-	if forced == true then V.needSorted = true end
 	M.Events.Fire("PLAYERS_CHANGED", forced)
 end

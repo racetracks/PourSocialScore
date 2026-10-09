@@ -19,7 +19,6 @@
 ------------------------------------------------------------------------
 local addonName, addon = ...
 local L = addon.L
-local V = addon.V
 local M = addon.M
 
 local OPTIONS = {
@@ -117,7 +116,6 @@ function M.PSS_SetOpt(key, scope, value, target)
 	local db = PourSocialScoreDB
 	if not db then return end
 	local def = REG[key]
-	local before = M.PSS_Opt(key)
 	if scope == "global" then
 		-- the default is not saved
 		if def and value == def.default then value = nil end
@@ -132,10 +130,6 @@ function M.PSS_SetOpt(key, scope, value, target)
 	M.Events.Fire("OPTION_CHANGED", key)
 	-- a smaller history buffer frees the memory now, not only as lines arrive
 	if key == "historyTotal" and M.PSS_TrimAllHistory then M.PSS_TrimAllHistory() end
-	-- options read only at login (def.reload: the prompt text)
-	if def and def.reload and scope == "global" and M.PSS_Opt(key) ~= before and M.PSS_AskReload then
-		M.PSS_AskReload(def.reload:format(M.PSS_Opt(key) and "on" or "off"))
-	end
 end
 
 -- Saved values equal to their default are dropped (3.0: only changes are

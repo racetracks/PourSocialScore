@@ -18,7 +18,6 @@ PSS_Perf.lua
 PSS_Events.lua
 PSS_Whois.lua
 PSS_Communities.lua
-PSS_MainlineCompat.lua
 PSS_ChatHistory.lua
 PSS_ChatBlock.lua
 PSS_ChatFilters.lua

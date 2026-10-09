@@ -161,7 +161,6 @@ local function anyBlocked(p)
 	for _, f in ipairs(BLOCK_FIELDS) do if p[f] == true then return true end end
 	return false
 end
-M.PSS_PlayerBlocksAnything = anyBlocked
 
 -- Adding someone to the list opts them IN to blocking: everything from them
 -- is blocked. The W I G P C boxes are per-player EXCLUSIONS and start
@@ -535,7 +534,6 @@ function M.PSS_ExpireEntries(quiet, daily)
 		end
 	end
 	if not gone then return 0 end
-	V.needSorted = true
 	if not quiet then
 		M.ShowMsg(("Expired: %d entr%s removed (%s)."):format(#gone, #gone == 1 and "y" or "ies", table.concat(gone, ", ")))
 	end
@@ -745,7 +743,6 @@ function M.PruneIgnoreList (days, doit)
 	end
 
 	if doit == true then
-		V.needSorted = true
 		M.ShowMsg(("Pruned %d entr%s listed for %d or more days."):format(targets, targets == 1 and "y" or "ies", days))
 		M.Events.Fire("PLAYERS_CHANGED", true)
 	end
@@ -832,7 +829,6 @@ M.PSS_AddIgnore = function(name, noNote, exactName)
 		end
 	end
 
-	V.needSorted = true
 	name		= M.Proper(M.addServer(name))
 
 	local tmp = M.removeServer(name, true)
@@ -885,7 +881,6 @@ function M.PSS_AddPlayer(name, note, days, unit)
 		if tonumber(days) and tonumber(days) > 0 then M.PSS_SetEntryExp(idx, days) end
 		if unit and M.PSS_SetPlayerMeta then M.PSS_SetPlayerMeta(full, unit) end
 	end
-	V.needSorted = true
 	M.Events.Fire("PLAYERS_CHANGED", true)
 end
 
@@ -946,7 +941,6 @@ M.PSS_DelIgnore = function(idxpos, isPSS, quiet)
 		if M.PSS_EntryKind(index) ~= "player" then
 			-- NPC / server entry: no Blizzard ignore to touch
 			RemoveFromList(index)
-			V.needSorted = true
 			M.Events.Fire("PLAYERS_CHANGED")
 			return
 		end
@@ -962,7 +956,6 @@ M.PSS_DelIgnore = function(idxpos, isPSS, quiet)
 		return
 	end
 
-	V.needSorted = true
 	name = M.Proper(M.addServer(name))
 	if index == 0 then index = M.hasGlobalIgnored(name) end
 
@@ -990,83 +983,6 @@ M.PSS_AddOrDelIgnore = function(name)
 	end
 
 	if type(name) ~= "string" or M.PSS_IsSecret(name) or name == "" then return end		-- no name and no target
-
-	local find = string.find
-	local sub	= string.sub
-
-	-- try to resolve server if there isn't one due to Blizzard bugs
-
-	if not find(name, "-", nil, true) then
-		local pServers = {}
-		local pServer	= ""
-		local tempName, count
-
-		-- check group for a name
-
-		if IsInGroup() then
-			local prefix = IsInRaid() and "raid" or "party"
-
-			for count = 1, GetNumGroupMembers() do
-				tempName = GetUnitName(prefix..count, true)
-
-				if type(tempName) == "string" and not M.PSS_IsSecret(tempName) then
-					if M.removeServer(tempName, true) == name then
-						pServer = M.Proper(M.getServer(tempName), "")
-						--print ("DEBUG matched name: "..name)
-
-						if pServer ~= "" then
-							--print ("DEBUG adding possible server by group="..pServer)
-							pServers[#pServers + 1] = pServer
-						end
-					end
-				end
-			end
-		end
-
-		-- check chat history for a name
-
-		for count = 1, 20 do
-			local frameName = "ChatFrame"..count
-
-			local hb = _G[frameName] and _G[frameName].historyBuffer
-			if hb and hb.GetNumElements and hb.GetEntryAtIndex then
-				local msg, pos
-
-				for c = 1, hb:GetNumElements() do
-					local e = hb:GetEntryAtIndex(hb:GetNumElements() - c + 1)
-					msg = e and e.message
-					if type(msg) ~= "string" or (M.PSS_IsSecret and M.PSS_IsSecret(msg)) then msg = "" end
-					pos = find(msg, "|Hplayer:", 1, true)
-					--t = string.gsub(msg, "|", "!")
-
-					if pos then
-						--print("RAW="..t);
-						--tempName = sub(msg, pos + 9, find(msg, ":", pos + 10, true) - 1, true)
-						tempName = sub(msg, pos + 9, (find(msg, ":", pos + 9, true) or (find(msg, "|", pos + 10, true))) - 1)
-
-
-						if M.removeServer(tempName, true) == name then
-							--print ("DEBUG matched name: "..name)
-
-							pServer = M.Proper(M.getServer(tempName), "")
-
-							if pServer ~= "" then
-								--print("DEBUG Adding possible server name by chat="..pServer)
-								pServers[#pServers + 1] = pServer
-							end
-						end
-					end
-				end
-			end
-		end
-
-		if pServer ~= "" then
-			name = name .. "-" .. pServer
-		end
-
-		--print("FINAL="..pServer.. " name="..name)
-		--M.ShowMsg (L["ADD_4"])
-	end
 
 	if (not name or name == "") then
 		return
@@ -1121,7 +1037,6 @@ local function addFromBlizzard(name)
 	if M.PSS_PlayerDisplayName() == full then return end
 	if M.hasGlobalIgnored(full) == 0 then
 		takeOn(full)
-		V.needSorted = true
 		if M.PSS_Opt("chatmsg") ~= false then M.ShowMsg(format(L["ADD_2"], full)) end
 		M.Events.Fire("PLAYERS_CHANGED", true)
 	end
@@ -1164,7 +1079,6 @@ local function syncFromBlizzard()
 		M.PSS_TickBlizzardIgnored()
 	end
 	if added > 0 then
-		V.needSorted = true
 		if M.PSS_Opt("chatmsg") ~= false then
 			M.ShowMsg(("Added %d player%s from Blizzard's ignore list to Pour Social Score."):format(added, added == 1 and "" or "s"))
 		end
@@ -1180,7 +1094,6 @@ local function removeFromBlizzard(name, full)
 	if index == 0 then index = M.hasGlobalIgnored(M.Proper(M.addServer(name))) end
 	if index > 0 then
 		RemoveFromList(index)
-		V.needSorted = true
 		M.Events.Fire("PLAYERS_CHANGED", true)
 	end
 end
@@ -1527,14 +1440,6 @@ function M.PSS_GetPlayerBlockCounts(nameOrRecord)
 	end
 	p.blockCounts = History.EnsureCounts(p.blockCounts)
 	return p.blockCounts
-end
-
--- total, whispers, chat messages, invites
-function M.PSS_GetPlayerBlockTotals(name)
-	local p = M.PSS_GetPlayerRecord(name)
-	if not p then return 0, 0, 0, 0 end
-	local c = M.PSS_GetPlayerBlockCounts(p)
-	return c.total, c.whisper, c.partyRaid + c.world, c.partyInvite + c.guildInvite
 end
 
 -- Log key of a listed player (record or name).

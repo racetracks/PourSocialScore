@@ -297,10 +297,8 @@ frame:SetScript("OnEvent", function(self, event, arg1)
 end)
 
 ------------------------------------------------------------------------
--- older names, still used across the addon
+-- names used across the addon
 ------------------------------------------------------------------------
 M.PSS_ScanCooldownActive	= Whois.CooldownActive
-M.PSS_ScanCooldownRemaining = Whois.CooldownRemaining
-M.PSS_StartScanCooldown		= Whois.StartCooldown
 M.PSS_ScanBlockedMsg		= Whois.BlockedMsg
 function M.PSS_WhoPending() return pending ~= nil end
