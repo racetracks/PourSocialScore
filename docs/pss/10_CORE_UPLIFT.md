@@ -100,12 +100,12 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
 
   Example (numbers illustrative):
   ```
-  PourSocialScore: updated from 3.4.0.29 to 3.4.1.50. Upgrading your saved data:
+  PourSocialScore: updated from 3.4.0.29 to 3.4.1.51. Upgrading your saved data:
     Chat Filtering: 3 custom filters given an id
     Guild Ignore List: 48 duplicate members merged, 267 names repaired
     Managed Communities: 184 members already on the shipped lists dropped
     SavedVariables performance cleanup: 6 old settings removed, 1208 records tidied (397 KB to 196 KB)
-  PourSocialScore: saved data upgraded to 3.4.1.50 (step 9).
+  PourSocialScore: saved data upgraded to 3.4.1.51 (step 9).
   ```
 - Today's data-move messages stay as they are and print before the report (decision 8). A downgrade prints one line (decision 10). A normal login builds no strings and costs nothing. All output goes through `M.ShowMsg`, in ASCII.
 - **Harness:** `check_upgrade_report.lua`, 10 cases:
@@ -192,35 +192,40 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | Docs | 3.4.1.39 | The code map and changes in train (`12_CODE_MAP.md`, `13_CHANGES_IN_TRAIN.md`; appendices in `reference/code-map/`), loaded on demand; the later stages move up one build; docs only | No | `check_rules.sh` | Merged, PR #128 |
 | Fix | 3.4.1.40 | The Guilds tab detail pane: a line that wraps (the list's "Rule on the Chat Filters tab: ..." line in Dan's screenshot) pushes the lines and pies below it down, instead of running into the next line (section 2.5, decision 23) | Yes | `tui_compare.sh` on a narrow pane and a long rule name: no overlap in all three looks; in-game in all three looks | Merged, PR #129 (did not take in game) |
 | Fix 2 | 3.4.1.41 | The same pane: 3.4.1.40's lines kept two side anchors, which hold a FontString one line tall in game, so the wrap still overlapped (Dan's screenshot, 2026-10-08). The four lines get a set width (`DETAIL_W - 20`) and `FitLines` sets each one's height from `GetStringHeight` on every show and repaint | Yes | `tui_compare.sh`: only the four lines' size and anchors, in all three looks; in game in all three looks | Merged, PR #130 (works in game) |
-| F1 | 3.4.1.42 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | PR #131 |
-| F2 | 3.4.1.43 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |
-| U1 | 3.4.1.44 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
-| U2 | 3.4.1.45 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | |
-| U3 | 3.4.1.46 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | |
-| S1 | 3.4.1.47 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | |
-| S2 | 3.4.1.48 | Accessors for every field S3 drops; the rules-check grep | No | `tui_compare.sh` identical | |
-| S3 | 3.4.1.49 | Upgrade step 9 (2.2): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
-| R | 3.4.1.50 | Release: version only; one summary of 3.4.1.30 to 3.4.1.49 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
+| F1 | 3.4.1.42 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | Merged, PR #131 (in-game checks 4 and 7 later: #132, #133) |
+| Docs | 3.4.1.43 | F1 marked merged; every later stage moves up one build and the 3.4.2 and 3.4.3 stages get their expected builds (decision 24); docs only | No | `check_rules.sh` | PR #134 |
+| F2 | 3.4.1.44 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |
+| U1 | 3.4.1.45 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
+| U2 | 3.4.1.46 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | |
+| U3 | 3.4.1.47 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | |
+| S1 | 3.4.1.48 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | |
+| S2 | 3.4.1.49 | Accessors for every field S3 drops; the rules-check grep | No | `tui_compare.sh` identical | |
+| S3 | 3.4.1.50 | Upgrade step 9 (2.2): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
+| R | 3.4.1.51 | Release: version only; one summary of 3.4.1.30 to 3.4.1.50 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
 
 ### Line 3.4.2: core performance and tidy (builds continue)
-| Stage | Change |
-| --- | --- |
-| P1 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `def.reload` and the `before` read in `M.PSS_SetOpt`; Dan, 2026-10-09), the compat globals, `/pss test` |
-| P2 | Event-driven GC and `loadWhenQuiet` without timers (L14; closes the known breach in 02 section 12) |
-| P3 | Capture events only when needed (L15) |
-| P4 | Chat path: N26 (option reads without the router), N28 (guild path), N35 (per-line tables), N31 (outbox trim), benchmarked |
-| P5 | Duplicated logic into functions: N17 to N25 |
-| P6 | Core placement: L20 plus N37 to N39, measured before and after |
-| R | Release; `01_HANDOVER.md` re-summarized |
+Expected builds, if nothing is added before them (decision 24).
+
+| Stage | Build | Change |
+| --- | --- | --- |
+| P1 | 3.4.2.52 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `def.reload` and the `before` read in `M.PSS_SetOpt`; Dan, 2026-10-09), the compat globals, `/pss test` |
+| P2 | 3.4.2.53 | Event-driven GC and `loadWhenQuiet` without timers (L14; closes the known breach in 02 section 12) |
+| P3 | 3.4.2.54 | Capture events only when needed (L15) |
+| P4 | 3.4.2.55 | Chat path: N26 (option reads without the router), N28 (guild path), N35 (per-line tables), N31 (outbox trim), benchmarked |
+| P5 | 3.4.2.56 | Duplicated logic into functions: N17 to N25 |
+| P6 | 3.4.2.57 | Core placement: L20 plus N37 to N39, measured before and after |
+| R | 3.4.2.58 | Release; `01_HANDOVER.md` re-summarized |
 
 ### Line 3.4.3: window tidy
-| Stage | Change |
-| --- | --- |
-| W1 | G11 to G14, G24, G25, G29 |
-| W2 | Logic to Libraries: G1 to G10 |
-| W3 | Kit functions in all three looks, plus the kit preview: G15 to G20 |
-| W4 | Redraw cost: G22, G23, measured on the 3.4.0.28 save |
-| R | Release; `01_HANDOVER.md` re-summarized |
+Expected builds, if nothing is added before them (decision 24).
+
+| Stage | Build | Change |
+| --- | --- | --- |
+| W1 | 3.4.3.59 | G11 to G14, G24, G25, G29 |
+| W2 | 3.4.3.60 | Logic to Libraries: G1 to G10 |
+| W3 | 3.4.3.61 | Kit functions in all three looks, plus the kit preview: G15 to G20 |
+| W4 | 3.4.3.62 | Redraw cost: G22, G23, measured on the 3.4.0.28 save |
+| R | 3.4.3.63 | Release; `01_HANDOVER.md` re-summarized |
 
 ## 5. Decisions (Dan, 2026-10-08; all as recommended)
 1. Three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
@@ -246,6 +251,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 21. The tick lives in the PSS window only. The right-click menu becomes a "PSS" header with "Block Player" and "Block Guild" (B2, its own stage).
 22. B1 and B2 are their own stages after N2 (builds 3.4.1.35 and .36, after this plan change took 3.4.1.34); the later stages move up three builds and the release is 3.4.1.46.
 23. The detail pane collision is its own fix build, stage Fix (3.4.1.39 was taken by the code map docs build, so Fix is 3.4.1.40; 3.4.1.38 was the harness notes docs build), after N3 merges; the wrapped line keeps its text and pushes the lines below it down (Dan, 2026-10-08; he chose this over shortening the text). The later stages moved up one build for each docs build (3.4.1.38, then the code map 3.4.1.39) and the release is 3.4.1.49. 3.4.1.40 did not take in game; its follow-up is Fix 2 (3.4.1.41, Dan's screenshot, 2026-10-08), the later stages moved up one more build and the release is 3.4.1.50.
+24. **Every planned build has its expected number, and an added build moves them all (Dan, 2026-10-09).** The docs build 3.4.1.43 marks F1 merged; F2 to S3 are 3.4.1.44 to 3.4.1.50 and the 3.4.1 release is 3.4.1.51. The 3.4.2 stages are 3.4.2.52 to 3.4.2.57 with its release 3.4.2.58, and the 3.4.3 stages 3.4.3.59 to 3.4.3.62 with its release 3.4.3.63. Any build added before a stage (a docs build or a fix) moves every later build up one, and the PR that takes it updates every reference (02 section 8).
 
 ## 6. Risks
 | Risk | Cover |

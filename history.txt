@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.43 - Docs: F1 marked merged; later builds renumbered
+
+- No change to the addon: project notes only (F1 recorded as merged, and the planned build numbers for the rest of the project written down).
+
 => 3.4.1.42 - Fixes: expiry, option hooks, talent tag, import Replace, listener errors, group warning, /pss list
 
 - Ignore list expiry now works by itself: an entry listed with an expiry (for example 30 days) is removed once that many days have passed. It happens at login, when combat ends (once a day), and when the window or /pss list opens. Before, it only happened on /pss sync.

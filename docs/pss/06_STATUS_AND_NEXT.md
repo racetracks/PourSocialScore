@@ -1,13 +1,13 @@
-# Status and next step (2026-10-08)
+# Status and next step (2026-10-09)
 
 Kept short and current: every PR updates it (baseline 02 E10). History up to 3.4.1.30 is in `reference/06_status-history-to-3.4.1.30.md`. The addon as it works is in `01_HANDOVER.md`; the current plan is `10_CORE_UPLIFT.md`.
 
 ## Now
-- **Live release: 3.4.0.29** (full, the new PSS window; mirrored to `racetracks/Pour-Social-Score`). **Main: 3.4.1.41** (Fix 2 of the detail pane, PR #130, works in game; N3 merged in 3.4.1.37, PR #126).
+- **Live release: 3.4.0.29** (full, the new PSS window; mirrored to `racetracks/Pour-Social-Score`). **Main: 3.4.1.43** (docs build, PR #134: F1 marked merged and the later builds renumbered, decision 24; F1 merged in 3.4.1.42, PR #131).
 - **Current project: core uplift** (`10_CORE_UPLIFT.md`, locked by Dan on 2026-10-08). It runs on three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
-- **Done:** Fix and Fix 2 (3.4.1.40, 3.4.1.41: the Guilds tab detail pane), N1 (3.4.1.32), N2 (3.4.1.33), plan B (3.4.1.34, docs only), B1 (3.4.1.35: PSS authoritative over Blizzard's ignore list, per-player tick, upgrade step 8), B2 (3.4.1.36: the right-click "PSS" header with Block Player / Block Guild), N3 (3.4.1.37: shipped lists rebuilt, 7634 to 7438 entries).
-- **On its PR: F1, 3.4.1.42** (PR #131): N40 expiry applied by itself (`M.PSS_ExpireEntries`), N41 option hooks without a /reload, N42 `[talent]` tag, N45 Import Replace keeps the shipped rules (`M.PSS_ClearGuildRules`), N46 listener errors shown once (`M.PSS_NoteListenerError`), N47 group warning from the current roster, N48 `/pss list` nil note. Harness `check_fixes.lua`. In game (Dan, 2026-10-09): checks 1, 2, 3, 5, 6, 8, 10 pass, 9 assumed; checks 4 and 7 are left for later as #132 and #133.
-- **Next:** F2 (3.4.1.43: G21 with G26, G27, G28), then U1 (3.4.1.44).
+- **Done:** F1 (3.4.1.42, below), Fix and Fix 2 (3.4.1.40, 3.4.1.41: the Guilds tab detail pane), N1 (3.4.1.32), N2 (3.4.1.33), plan B (3.4.1.34, docs only), B1 (3.4.1.35: PSS authoritative over Blizzard's ignore list, per-player tick, upgrade step 8), B2 (3.4.1.36: the right-click "PSS" header with Block Player / Block Guild), N3 (3.4.1.37: shipped lists rebuilt, 7634 to 7438 entries).
+- **F1, 3.4.1.42** (merged, PR #131): N40 expiry applied by itself (`M.PSS_ExpireEntries`), N41 option hooks without a /reload, N42 `[talent]` tag, N45 Import Replace keeps the shipped rules (`M.PSS_ClearGuildRules`), N46 listener errors shown once (`M.PSS_NoteListenerError`), N47 group warning from the current roster, N48 `/pss list` nil note. Harness `check_fixes.lua`. In game (Dan, 2026-10-09): checks 1, 2, 3, 5, 6, 8, 10 pass, 9 assumed; checks 4 and 7 are left for later as #132 and #133.
+- **Next:** F2 (3.4.1.44: G21 with G26, G27, G28), then U1 (3.4.1.45). Expected builds to the end of the project are in `10_CORE_UPLIFT.md` section 4 (decision 24): the 3.4.1 release is 3.4.1.51, 3.4.2 runs 3.4.2.52 to 3.4.2.58, 3.4.3 runs 3.4.3.59 to 3.4.3.63.
 - The closed projects: the PSS window (3.4.0, `09_PSS_UI_PROJECT.md`; its code map and lessons stay the reference for the window) and parity (3.3.1, `08`).
 
 ## Waiting on Dan

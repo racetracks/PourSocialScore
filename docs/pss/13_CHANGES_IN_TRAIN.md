@@ -1,4 +1,4 @@
-# PourSocialScore: changes in train (2026-10-09, main 3.4.1.41)
+# PourSocialScore: changes in train (2026-10-09, main 3.4.1.43)
 
 **What this is.** A context document: what PourSocialScore is about to change, where, and why, so a later session (Claude or GPT) can tell the shipped features apart from the planned ones. Read it with `12_CODE_MAP.md`, which describes the code as it is on main at **3.4.1.38**. The source of truth stays the locked plan, `docs/pss/10_CORE_UPLIFT.md` in the addon repo (scratch `docs/latest/core-uplift/00_CORE_UPLIFT.md`). Where this file and the plan differ, the plan wins.
 
@@ -7,11 +7,11 @@
 | Item | State on 2026-10-08 |
 | --- | --- |
 | Live release | **3.4.0.29** (full; the new PSS window in three looks; mirrored to `racetracks/Pour-Social-Score`) |
-| Main | 3.4.1.41 (Fix 2, PR #130); F1 3.4.1.42 on PR #131 |
+| Main | 3.4.1.43 (docs build, PR #134; F1 merged in 3.4.1.42, PR #131) |
 | Current project | **Core uplift**, locked 2026-10-08, three version lines |
-| Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); next the detail pane fix, then bug fixes, the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.49 |
-| Line 3.4.2 | Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
-| Line 3.4.3 | Window tidy: dead GUI names, logic moved from GUI to Libraries, kit functions, redraw cost |
+| Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done); next the window fixes F2, the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
+| Line 3.4.2 | Builds 3.4.2.52 to 3.4.2.58 (release). Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
+| Line 3.4.3 | Builds 3.4.3.59 to 3.4.3.63 (release). Window tidy: dead GUI names, logic moved from GUI to Libraries, kit functions, redraw cost |
 | Build numbers | `X.Y.Z.B`; B never resets; every build (stage, fix, release) takes the next one |
 | How work is delivered | One stage per PR, one stage per session, based on main, test zip on scratch, Dan tests in game and merges |
 
@@ -32,17 +32,18 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | Docs | 3.4.1.39 | This code map and changes in train; docs only | No | PR #128 |
 | Fix | 3.4.1.40 | Guilds tab detail pane: a wrapped line pushes the lines and pies below it down (decision 23) | Yes | Merged (#129), did not take in game |
 | Fix 2 | 3.4.1.41 | The same pane: 3.4.1.40 did not take in game; the lines get a set width and their wrapped height (`FitLines`) | Yes | Merged (#130) |
-| F1 | 3.4.1.42 | N40 expiry applied, N41 hooks gated by option, N42 talent links, N45 Import Replace keeps shipped rules, N46 listener errors reported, N47 group warning list, N48 `/pss list` nil note | Yes | PR #131 |
-| F2 | 3.4.1.43 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | |
-| U1 | 3.4.1.44 | Upgrade step registry, invisible (step 1 split and tagged, `RETIRED`, counts, version compare) | No | |
-| U2 | 3.4.1.45 | Upgrade report printed once per update (issue #45) | Once per update | |
-| U3 | 3.4.1.46 | Forward compatibility: `M.PSS_SCHEMA`, tolerant readers, downgrade line, unusable rules kept and reported, `/pss export unused`, export format version | Only when a rule cannot be used | |
-| S1 | 3.4.1.47 | `History.ClearOwner` and the purge tombstone (N16) | No | |
-| S2 | 3.4.1.48 | Accessors for every field S3 drops; rules-check grep | No | |
-| S3 | 3.4.1.49 | Upgrade step 9 "SavedVariables performance cleanup" | Report, smaller save | |
-| R | 3.4.1.50 | Release; one summary of every change since 3.4.0.29; `01_HANDOVER.md` re-summarized | | |
+| F1 | 3.4.1.42 | N40 expiry applied, N41 hooks gated by option, N42 talent links, N45 Import Replace keeps shipped rules, N46 listener errors reported, N47 group warning list, N48 `/pss list` nil note | Yes | Merged (#131) |
+| Docs | 3.4.1.43 | F1 marked merged; later builds renumbered and the 3.4.2 / 3.4.3 builds set (decision 24); docs only | No | PR #134 |
+| F2 | 3.4.1.44 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | |
+| U1 | 3.4.1.45 | Upgrade step registry, invisible (step 1 split and tagged, `RETIRED`, counts, version compare) | No | |
+| U2 | 3.4.1.46 | Upgrade report printed once per update (issue #45) | Once per update | |
+| U3 | 3.4.1.47 | Forward compatibility: `M.PSS_SCHEMA`, tolerant readers, downgrade line, unusable rules kept and reported, `/pss export unused`, export format version | Only when a rule cannot be used | |
+| S1 | 3.4.1.48 | `History.ClearOwner` and the purge tombstone (N16) | No | |
+| S2 | 3.4.1.49 | Accessors for every field S3 drops; rules-check grep | No | |
+| S3 | 3.4.1.50 | Upgrade step 9 "SavedVariables performance cleanup" | Report, smaller save | |
+| R | 3.4.1.51 | Release; one summary of every change since 3.4.0.29; `01_HANDOVER.md` re-summarized | | |
 
-Lines 3.4.2 (P1 to P6, R) and 3.4.3 (W1 to W4, R) take the build numbers after 3.4.1.50 in order.
+Lines 3.4.2 (P1 to P6 3.4.2.52 to 3.4.2.57, R 3.4.2.58) and 3.4.3 (W1 to W4 3.4.3.59 to 3.4.3.62, R 3.4.3.63) take the build numbers after 3.4.1.51 in order (decision 24).
 
 ## 2. What each planned change touches in the code
 
@@ -162,7 +163,7 @@ N27 (Import Replace half), N29 (via N19 in P5), N30, N32, N33, N34, N36, N44 (wi
 
 ## 4. SavedVariables changes planned (appendix 03; plan 2.2, 2.3)
 
-Upgrade step 9, "SavedVariables performance cleanup", stage S3 (3.4.1.49), one run-once step, Dan's OK given (decision 4, D9). Step 8 belongs to B1 (blizzardSync to per-player ticks, shipped 3.4.1.35). The appendices call this "step 8"; the plan renumbered it to 9.
+Upgrade step 9, "SavedVariables performance cleanup", stage S3 (3.4.1.50), one run-once step, Dan's OK given (decision 4, D9). Step 8 belongs to B1 (blizzardSync to per-player ticks, shipped 3.4.1.35). The appendices call this "step 8"; the plan renumbered it to 9.
 
 | Store | Change | Measured (3.4.0.28 save unless noted) |
 | --- | --- | --- |
@@ -178,7 +179,7 @@ Upgrade step 9, "SavedVariables performance cleanup", stage S3 (3.4.1.49), one r
 | `PSS_LoggingDB.blockLog` (v2 groups) | Drop `m` when `TitleCase(owner key)` gives it; done in `PackForSave` at next logout, not a step | 204.7 vs 211.6 KB |
 | Options | `showIgnoreDebug` no longer saved (N8) | |
 | `PSS_RulesDB` / history / recent | Custom filters get a never-reused integer id; counter `nextFilterId` stored once; history and recent keyed `f:<id>` (N43, decision 3); built-ins keep `PSS00NN` | |
-| `PourSocialScoreDB.purge` (new key in existing table, capped) | Purge tombstone: when Logging is not loaded, `purge[o]` is applied by `UnpackSaved` on next load; removal never loads Logging. Stage S1 (3.4.1.46), no layout OK needed per 03 | `ClearOwner` 71 us, 0 garbage vs `Clear(pred)` 5552 us, 750.5 KB garbage; tombstone 0.16 us |
+| `PourSocialScoreDB.purge` (new key in existing table, capped) | Purge tombstone: when Logging is not loaded, `purge[o]` is applied by `UnpackSaved` on next load; removal never loads Logging. Stage S1 (3.4.1.47), no layout OK needed per 03 | `ClearOwner` 71 us, 0 garbage vs `Clear(pred)` 5552 us, 750.5 KB garbage; tombstone 0.16 us |
 
 Totals and rationale:
 
@@ -190,10 +191,10 @@ Totals and rationale:
 | Integer IDs for players / guilds | Rejected (decision 2): A0 saves 70 KB disk (11%) but needs an 81 KB name-to-ID index, memory goes up |
 | Nested log under members (B) | Rejected: +116 KB always-loaded memory, breaks the Logging split |
 | Optional later | C1t (`whenBlocked` as integer time, -11 KB disk, -58 KB memory); C2 packed member strings (guildData 383 KB memory). Not in the plan's stages |
-| Accessors (S2, 3.4.1.48) | `M.PSS_MemberGuildName(m, gkey)`, `M.PSS_MemberCanon(k)`, `History.EnsureCounts`; rules-check grep for `_playerKey` / `_canon` / `_gkey` outside accessors |
+| Accessors (S2, 3.4.1.49) | `M.PSS_MemberGuildName(m, gkey)`, `M.PSS_MemberCanon(k)`, `History.EnsureCounts`; rules-check grep for `_playerKey` / `_canon` / `_gkey` outside accessors |
 | Validation | All four real saves (2.0.44, 3.0.0, 3.2.0-dev011, 3.4.0.28): counters identical, sizes before and after; 3.4.0.29 run once on a migrated save |
 
-Forward compatibility (U3, 3.4.1.46; plan 2.3): `M.PSS_SCHEMA` (core, data only: every saved field, its reader and default; a rules check fails an unlisted field); tolerant readers (missing = default, unknown kept); deletion only of keys in `RETIRED`; step numbers only grow and are idempotent; the record keeps the highest version that wrote the save; a downgrade prints one line and runs nothing backwards; unusable rules (filter fails `M.PSS_CompileFilter`, guild rule kind or field not in the schema, option not in `M.PSS_OPTIONS`) are not applied, kept, reported, and exportable with `/pss export unused`; exports carry a format version and every field.
+Forward compatibility (U3, 3.4.1.47; plan 2.3): `M.PSS_SCHEMA` (core, data only: every saved field, its reader and default; a rules check fails an unlisted field); tolerant readers (missing = default, unknown kept); deletion only of keys in `RETIRED`; step numbers only grow and are idempotent; the record keeps the highest version that wrote the save; a downgrade prints one line and runs nothing backwards; unusable rules (filter fails `M.PSS_CompileFilter`, guild rule kind or field not in the schema, option not in `M.PSS_OPTIONS`) are not applied, kept, reported, and exportable with `/pss export unused`; exports carry a format version and every field.
 
 ## 5. Upgrade helper essentials (appendix 04; plan 2.4)
 
@@ -201,12 +202,12 @@ Today: record `PourSocialScoreDB.upgrade = { step, version, at }`; steps 1 (ever
 
 | Piece | Design |
 | --- | --- |
-| Registry (U1, 3.4.1.44, invisible) | `STEPS` array in `PSS_Upgrade.lua`: `{ id, feature, always, fields, data }`; ids never change; `fields` / `data` take `(db, out)`, return false to pause, else add counts to `out` (counts only, no strings) |
+| Registry (U1, 3.4.1.45, invisible) | `STEPS` array in `PSS_Upgrade.lua`: `{ id, feature, always, fields, data }`; ids never change; `fields` / `data` take `(db, out)`, return false to pause, else add counts to `out` (counts only, no strings) |
 | Features | `filters` (Chat Filtering), `players` (Player Ignore List), `guilds` (Guild Ignore List), `managed` (Managed Communities), `history` (Block History), `options` (Options), `cleanup` (SavedVariables performance cleanup, always) |
 | Step 1 | Split into feature-tagged sub-parts under id 1 (no renumbering); helpers gain count returns (`ApplyOptionDefaults`, `UnlinkGuildRuleCounts`, `ensureManagedRules`) |
 | `RETIRED` | One list, one loop: `autoIgnore`, `autoUpdate`, `autoCount`, `autoTime`, `attachFriends`, `syncList`, `filterHistory`, `blockStats`, `optionsV2012`, `charOptions`, `historySize`, `euiIntegration`, `windowSizes`, `columnWidths` (later `memberCount`, and B1's `blizzardSync`, `showIgnoreDebug`) |
 | `tally(out, feature, key, n)` | No-op when `out` is nil, so a normal login builds no strings (zero cost) |
-| When it reports (U2, 3.4.1.45) | First login where `upgrade.version` differs or a step is due, not a fresh save; all lines at once, no timers (decision 9) |
+| When it reports (U2, 3.4.1.46) | First login where `upgrade.version` differs or a step is due, not a fresh save; all lines at once, no timers (decision 9) |
 | Format | Header "updated from A to B. Upgrading your saved data:"; one indented line per feature that changed (decision 7); the cleanup line always, with counts and size before and after; last line unchanged "Saved data upgraded to X (step N)."; existing move messages print before it (decision 8); at most 8 lines, ASCII, via `M.ShowMsg`; strings `L["UPG_*"]` |
 | Pause | Red line "Saved data upgrade paused at step N: <reason>. It tries again at the next login." |
 | Downgrade | One line "Running X, older than your saved data (Y). Nothing was upgraded."; the record keeps the newer version (decision 10) |
@@ -283,7 +284,7 @@ These were found while mapping main at 3.4.1.38 and are in no stage by id. None 
 | --- | --- | --- |
 | D1 | Appendices 03, 04, 05 call the data migration "step 8" | Plan: **step 9** (B1 took step 8) |
 | D2 | PSS 02 section 4 and section 12 say the idle GC breach is fixed on "the 3.4.1 line" | Plan and 06: **P2 on 3.4.2** |
-| D3 | Decision 22 says the release is 3.4.1.46 | Decision 23 and the stage table: **3.4.1.50** (after Fix 2, 3.4.1.41) |
+| D3 | Decision 22 says the release is 3.4.1.46 | Decision 24 and the stage table: **3.4.1.51** (after the docs build 3.4.1.43) |
 | D4 | Decision 14 says N2 "moves its per-character settings to the new key" | Plan 2.1: nothing is keyed by `M.PSS_CharKey`, nothing moved |
 | D5 | N8 is in P1 (N1 to N15) and in S3 | S3 runs first; P1 has nothing left for N8 |
 | D6 | N9 (P1) would delete `M.PSS_EnsureManagedRules` and `M.PSS_CompileFilter` | Keep both: N45 (F1) and U3 use them. N9 and N10 also overlap G12 (W1) |
@@ -299,7 +300,7 @@ These were found while mapping main at 3.4.1.38 and are in no stage by id. None 
 | #38 seeing a shipped-guild member loads the lists | Unscheduled (N36 is related, a per-line cost) |
 | #39, #40 unload the GUI / can an LOD addon unload | WoW cannot unload an addon; the window drops caches and requests GC on close; nothing more planned |
 | #44 console output cleanup | Unscheduled (U2 changes upgrade output only) |
-| #45 Questie-style upgrade output | U2 (3.4.1.45) |
+| #45 Questie-style upgrade output | U2 (3.4.1.46) |
 | Parked: pack the in-play chat filter log | Offered, not started |
 | Parked: Dashboard / overview page | Paused, branch `claude/project-thread-pa7y7o` |
 | Parked: global moderation (sync, curated lists, scoring) | Not started |
