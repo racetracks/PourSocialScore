@@ -32,7 +32,7 @@ Last state (pack written): main was **3.3.0-dev004**. Since then: 3.3.1 released
 | 09_PSS_UI_PROJECT.md | The closed window project (3.4.0, released as 3.4.0.29); its code map and lessons stay the reference for the window: the new PSS window, decisions, three looks, stages, code map, lessons; plan on scratch `docs/latest/ui uplift/`. The window's rules are `CLAUDE.md`'s Interface section |
 | 10_CORE_UPLIFT.md | The closed core uplift project (released as 3.4.1.53): design, decisions, what each stage did; design and findings on scratch `docs/latest/core-uplift/` |
 | 11_PREFERENCES.md | Dan's preferences and approach: the one file, loaded in every session |
-| 12_CODE_MAP.md | How the addon is built (files, functions, front end to back end, dependencies); on demand; appendices in `reference/code-map/` |
+| (code map) | Moved to scratch `docs/latest/code-map/` (https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/docs/latest/code-map) (2026-10-09); read first for code review, code change, code questions and feature requests |
 | 13_CHANGES_IN_TRAIN.md | Every planned change by stage, findings, review findings, where docs disagree; on demand |
 | PROJECT_INSTRUCTIONS.md | Paste-ready project instructions |
 | savedvariables/<version>/ | Dan's real saves: 2.0.44, 3.0.0, 3.2.0-dev011, 3.4.0.28 (on scratch `SavedVariables/<version>/`) |

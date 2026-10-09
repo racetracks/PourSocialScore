@@ -1,6 +1,6 @@
 # PourSocialScore: changes in train (2026-10-09, state at the 3.4.1.53 release)
 
-**What this is.** A context document: what the core uplift changed, where, and what is still open after it, so a later session (Claude or GPT) can tell the shipped changes from the open ones. Read it with `12_CODE_MAP.md`. The source of truth stays the plan, `docs/pss/10_CORE_UPLIFT.md` (scratch `docs/latest/core-uplift/00_CORE_UPLIFT.md`), and the per-stage notes of the combined build in `docs/pss/reference/combined-3.4.1.52/`. Where this file and the plan differ, the plan wins; where either differs from the code, the code wins.
+**What this is.** A context document: what the core uplift changed, where, and what is still open after it, so a later session (Claude or GPT) can tell the shipped changes from the open ones. Read it with the code map (scratch `docs/latest/code-map/`). The source of truth stays the plan, `docs/pss/10_CORE_UPLIFT.md` (scratch `docs/latest/core-uplift/00_CORE_UPLIFT.md`), and the per-stage notes of the combined build in `docs/pss/reference/combined-3.4.1.52/`. Where this file and the plan differ, the plan wins; where either differs from the code, the code wins.
 
 ## 0. In one screen
 
@@ -46,7 +46,7 @@ What did **not** change (decided): player and guild identity stays the lowercase
 
 ## 2. What each stage touched in the code
 
-Use with `12_CODE_MAP.md` to find the file.
+Use with the code map (scratch `docs/latest/code-map/` (https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/docs/latest/code-map)) to find the file.
 
 | Stage | Files that changed (main ones) | Saved data? |
 | --- | --- | --- |
@@ -266,7 +266,7 @@ None left. D1 to D6, found at this release, were fixed in the release PR (#143):
 - D5: the S3 row is marked merged (#142).
 - D6: 06 marks issue #45 built by U2.
 
-Resolved earlier: the GC breach line in 02 and 01 (fixed at 3.4.1.52, re-summarized at this release), `CLAUDE.md` and 06 naming the 3.4.2 and 3.4.3 lines (rewritten at this release), `12_CODE_MAP.md` at 3.4.1.38 (refreshed at this release), N8 in two stages (S3 did it), N9 and the two exports to keep (kept), the reload popup (Dan: remove in P1), N24 after B2 (P5 did it).
+Resolved earlier: the GC breach line in 02 and 01 (fixed at 3.4.1.52, re-summarized at this release), `CLAUDE.md` and 06 naming the 3.4.2 and 3.4.3 lines (rewritten at this release), the code map at 3.4.1.38 (refreshed at this release and moved to scratch `docs/latest/code-map/`), N8 in two stages (S3 did it), N9 and the two exports to keep (kept), the reload popup (Dan: remove in P1), N24 after B2 (P5 did it).
 
 ## 11. What remains after the release
 
