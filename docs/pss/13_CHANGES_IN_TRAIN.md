@@ -40,7 +40,7 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | U3 | 3.4.1.47 | Forward compatibility: `M.PSS_SCHEMA`, tolerant readers, downgrade line, unusable rules kept and reported, `/pss export unused`, export format version | Only when a rule cannot be used | Merged, PR #138 |
 | U3 fix | 3.4.1.48 | The missing `local M` in `PSS_Popups.lua` (export unused and the Export button); harness without a global `M`; `check_locals.lua` | Yes | Merged, PR #138 |
 | S1 | 3.4.1.49 | `History.ClearOwner` and the purge tombstone (N16) | No | Merged, PR #139 |
-| S2 | 3.4.1.50 | Accessors for the guild member fields, counts totals and `memberCount`; `check_fields.lua` | No | PR #140 |
+| S2 | 3.4.1.50 | Accessors for the guild member fields, counts totals and `memberCount`; `check_fields.lua` | No | PR #140 (in-game checks pass) |
 | S2b | 3.4.1.51 | Player W I G P C accessors, the player list arrays' layout, the log group's `m` (decision 26) | No | |
 | S3 | 3.4.1.52 | Upgrade step 9 "SavedVariables performance cleanup" | Report, smaller save | |
 | R | 3.4.1.53 | Release; one summary of every change since 3.4.0.29; `01_HANDOVER.md` re-summarized | | |
