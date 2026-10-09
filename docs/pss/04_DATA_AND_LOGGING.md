@@ -41,12 +41,14 @@ blockLog = { v = 2, [owner] = {
     [1..] = "<type><time>\t<event>\t<channel>\t<who>\t<message>" } }
 ```
 Times are the first line's time then `+<seconds>`; a repeated message is `"\2"`. `UnpackSaved` rebuilds the in-play tables when Logging loads. Nothing in PSS_SavedLog.lua runs unless Logging was loaded that session.
+A log saved with `v` above 2 (a newer version's layout) is kept as it is from 3.4.1.47 (core uplift U3): chat says so once, blocks are still counted, and that session's lines are not added to it. A new layout of the log takes `v = 3`.
 
 Measured on Dan's save: 2000 lines went from 633 KB to 203 KB. Earlier, packing the keep took 2000 kept lines from 806 KB to 165 KB.
 
 ## 6. Recent and session counts (core, always loaded)
 - `PourSocialScoreDB.recent = { v=2, last, day={[owner]=n}, [1..144]={[cat]={[owner]=n}} }`: 144 slots of 10 minutes, time-major. Chosen by Dan after a benchmark.
 - `day` is the running 24 h total per owner; expired slots subtract from it.
+- A recent table with `v` above 2 (a newer version's) is left as it is and nothing is counted in it (3.4.1.47, U3); only an untyped table (3.2.0-dev1) is dropped.
 - Session counts are memory only and reset on login and /reload. `sessionCat[cat][owner]` (3.2.0-dev010) gives the session pie its type breakdown.
 - Owner keys: `p:` players, `g:` guild members, `G:<gkey>` guild totals, `f:` filters.
 - Readers: `History.CountRecent`, `RecentCounts`, `RecentSlots`, `Where`, `ForgetRecent`, `StartSession`, `SessionStart`; `History.RecentByCat` and `RecentByCatData` live in Libraries `PSS_TotalsQuery.lua`.

@@ -4,7 +4,7 @@
 
 ## 1. Code and style
 1. Every folder indents with tabs. (Until 3.4.0.24 `PourSocialScore_EllesmereUI` used EllesmereUI's 4-space style, checked by `tools/check_rules_eui.sh`; both are gone from 3.4.0.25.)
-2. Everything shared hangs on `M` via `PourSocialScore_NS` (the project's root table); use `M.ShowMsg`, `M.Trim` and the UIKit builders.
+2. Everything shared hangs on `M` via `PourSocialScore_NS` (the project's root table); use `M.ShowMsg`, `M.Trim` and the UIKit builders. Every file that uses `M` declares it as a local first (`local M = ns.M` or `addon.M`); there is no global `M` (`check_locals.lua`, 3.4.1.48).
 3. Core fires `M.Events`; UIs listen and write only through core setters (`tools/check_layers.lua` enforces it).
 4. The 8 StaticPopup dialogs stay as they are in the native mode.
 

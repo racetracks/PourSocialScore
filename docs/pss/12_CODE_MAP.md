@@ -63,6 +63,7 @@ Rules the graph follows: core never calls the GUI (it fires `M.Events`); the GUI
 | `PSS_Localization.lua` | 517 | `L` table, English plus locale blocks | `L[...]` |
 | `PSS_Globals.lua` | 473 | Creates `M` and `V`; string and name helpers, realm display names, client flags, message output, the W I G P C table | `M.ShowMsg`, `M.ChatMsg`, `M.Trim`, `M.Proper`, `M.addServer`, `M.removeServer`, `M.PSS_SplitNameArg`, `M.daysFromToday`, `M.prettyServer`, `V.serverName`, `V.playerName` |
 | `PSS_Loader.lua` | 67 | Loads on-demand parts | `M.PSS_Need`, `M.PSS_Stub`, `M.PSS_PARTS` |
+| `PSS_Schema.lua` | 57 | Data only (3.4.1.47, U3): `M.PSS_SCHEMA`, every saved field per record kind, current and old; `tools/check_schema.lua` checks code and saves against it | `M.PSS_SCHEMA` (read through `M.PSS_SchemaKnows`, `PSS_Upgrade.lua`) |
 | `PSS_SavedData.lua` | 248 | Router metatable on `PourSocialScoreDB`: code writes `PourSocialScoreDB.<key>`, the key lives in its owner table (section 7); moves keys from old layouts | `M.PSS_PrepareSavedData`, `M.PSS_SavedDataSplit` |
 | `PSS_Perf.lua` | 274 | Stepped garbage collection on request (deferred to out of combat, not in an instance), `/pss mem`; still has a 10-minute idle cycle and 15 s ticker (known breach, P2) | `M.PSS_RequestGC(reason)`, `M.PSS_MemReport`, `M.PSS_GCState` |
 | `PSS_Events.lua` | 57 | The core event bus | `M.Events.Register / Unregister / Fire` |
@@ -88,7 +89,7 @@ TOC order matters: `PSS_ViewNav` before the three `*View` files, `PSS_GuildView`
 
 | File | Lines | Kind | Does | Core files it calls |
 | --- | --- | --- | --- | --- |
-| `PSS_ImportExport.lua` | 442 | Action | `PSS1:<checksum>:<base64>` string, own typed serialiser (never `loadstring`), Merge / Replace apply | ChatBlock, PlayerIgnoreList, GuildIgnoreList, ChatFilters, Options, Perf, Events |
+| `PSS_ImportExport.lua` | 442 | Action | `PSS1:<checksum>:<base64>` string (payload `v = 2` from 3.4.1.47: unknown fields in `more`), own typed serialiser (never `loadstring`), Merge / Replace apply, `/pss export unused` | ChatBlock, PlayerIgnoreList, GuildIgnoreList, ChatFilters, Options, Perf, Events |
 | `PSS_GuildQuery.lua` | 361 | Query | Grouped guild rows, a rule's members, group open state, Add Guild from a member | GuildIgnoreList, ChatFilters, WhoisHarvest, ChatHistory, Globals |
 | `PSS_FilterQuery.lua` | 145 | Query | Filter rows, counts, sort, search, history, test, chat link converter | ChatFilters, ChatHistory |
 | `PSS_TotalsQuery.lua` | 118 | Query | Whole-list totals (`M.PSS_ListTotals`), per-type recent counts (adds `History.RecentByCat`) | PlayerIgnoreList, GuildIgnoreList, ChatFilters, ChatHistory |
@@ -232,7 +233,7 @@ The plan's findings N1 to N48 and G1 to G30 still hold where their stage has not
 | Guild rules, members, scans | core `PSS_GuildIgnoreList.lua`, `PSS_WhoisHarvest.lua`, `PSS_Whois.lua` |
 | Filter language, built-ins | core `PSS_ChatFilters.lua` |
 | Counts, history, outbox, log | core `PSS_ChatHistory.lua`, Logging `PSS_SavedLog.lua` |
-| A saved key, routing, upgrades | core `PSS_SavedData.lua`, `PSS_Upgrade.lua` |
+| A saved key, routing, upgrades | core `PSS_SavedData.lua`, `PSS_Upgrade.lua`; a new saved field also goes in `PSS_Schema.lua` (U3) |
 | An option | core `PSS_Options.lua`; drawn by GUI `PSS_Options.lua` via Libraries `PSS_OptionsView.lua` |
 | Names (Camelot surnames) | core `PSS_ChatBlock.lua` (`M.PSS_NormName`), `PSS_Globals.lua` (`M.PSS_SplitNameArg`) |
 | Right-click menu, popups, docking | core `PSS_BlizzardUI.lua` |

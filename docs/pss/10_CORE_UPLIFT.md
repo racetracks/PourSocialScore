@@ -89,7 +89,7 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
    A rule that fails is not applied. It stays in the save unchanged, so moving back to a version that knows it restores it. The report names the rules and offers an export: "Chat Filtering: 2 rules this version cannot use (kept, not applied): /pss export unused". The command copies them to the Import/Export text so they can be saved outside the game. A rule becomes usable again the moment a version that knows it loads.
 7. **Exports carry a format version** and every field (filled from the accessors), so an export is readable by older and newer versions alike. Import keeps unknown fields.
 8. Releases up to 3.4.1.30 cannot run this; S3's validation runs 3.4.0.29 on a migrated save once to prove it tolerates the sparse records.
-- **Done in U3 (3.4.1.47, PR #138; Dan, 2026-10-09, "go" on the five recommendations: 1 one stage; 2 no new saved key, `upgrade.version` is the highest version (U2 keeps the newer one on a downgrade); 3 `/pss export unused` shows the window's copy box, the window stays closed; 4 the map in core, measured; 5 the format version inside the payload, the `PSS1` tag kept):**
+- **Done in U3 (3.4.1.47, fixed in 3.4.1.48, PR #138; Dan, 2026-10-09, "go" on the five recommendations: 1 one stage; 2 no new saved key, `upgrade.version` is the highest version (U2 keeps the newer one on a downgrade); 3 `/pss export unused` shows the window's copy box, the window stays closed; 4 the map in core, measured; 5 the format version inside the payload, the `PSS1` tag kept):**
   - **The map:** `PourSocialScore/PSS_Schema.lua` (core, data only, after `PSS_SavedData.lua` in the three TOCs). `M.PSS_SCHEMA` holds one string per record kind: `core` (PourSocialScoreDB's own keys), `upgrade`, `player`, `guild`, `member`, `block`, `counts`, `filterStat`, `builtinStat`, `line`, `logGroup`, and `<kind>Old` (fields older versions saved that this one reads once to convert). Each field is `name`, `name=default` or `name@reader`. The top-level keys are LAYOUT plus `M.PSS_OPTIONS` plus `core`. `M.PSS_SchemaKnows(kind, field)` (core `PSS_Upgrade.lua`) builds a kind's set on first use.
   - **The checks:** `tools/check_schema.lua` in `check_rules.sh` fails a top-level key the code writes (`PourSocialScoreDB.<key> =`, a `local db = PourSocialScoreDB` alias, `rawset(db, "<key>")`) that the map does not list. `check_schema.lua --saves <files>` in `validate_all.sh` ("== schema", and after each real save) fails a field of any saved record the map does not list; planted fields start with `newer`. **Any stage that saves a new field adds it to the map in the same PR.**
   - **Unusable rules** (`M.PSS_UnusableRules()`, core): a custom filter `M.PSS_CompileFilter` rejects; a guild rule whose `managed` list this version does not ship, or with a field the map does not name (`M.PSS_GuildRuleUnusable`); a key in `PSS_OptionsDB` that is neither routed nor `RETIRED`. Never applied: a filter that does not compile never was; a guild rule is skipped in the guild source's `decide` and in `guildRuleActive` through a set of only those rules, rebuilt when the member index is marked dirty. Nothing is changed in the save.
@@ -99,6 +99,7 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
   - **Tolerant readers** (each a loss the harness found on main): the history tidy keeps lines and rule tags whose owner is a form this version does not make (only `f:t:...` and `f:PSS####` filter owners, `PSS####` tags are judged); `History.FilterKey` takes a number id (`f:12`, S3's form); `M.PSS_ExpandFilters` / `M.PSS_CollapseFilters` keep a custom filter's number id and a built-in rule this version does not have (`builtinRules`, `builtinStats`); a filter's counts table keeps fields it does not know; a block log saved with `v` above 2 is kept as it is (one chat line; this session's lines are counted, not saved) and so is a recent-counts table with `v` above 2. **For S3:** a new per-filter field goes in `filterID` (the id) or a table keyed by id, never a new parallel array; a new log or recent layout takes `v = 3`.
   - Harness: `check_forward.lua` ("== forward compatibility" in `validate_all.sh`): plant (fresh save, a newer version's fields at every level, a filter tag, a number filter id with its lines and recent count, a built-in rule, an option), a plain login, check (the report or downgrade lines, not applied, the rest still blocks, the tidy, `/pss export unused` and the copy box, format 2 and `more`, a merge keeps them, the next login), after (every planted value unchanged in the saved file), for a newer (3.4.1.99) and an older (3.4.1.46) record; oldimport on 3.4.0.29's code; newerlog (a v3 log and recent table come back unchanged). On main's code the after and newerlog phases fail (8 failures). `check_keep.lua`: the removed-rule tag is `PSS9998` (a form this version makes) and a number tag stays.
   - Measured (3.4.0.28 save, harness, a save each build stamped): +10.5 KB resident after login (the map 3.2 KB of it); +1.3 KB more once a listed member's line builds the guild set; `M.PSS_UnusableRules` 0.42 ms, only on a version-change login. Compiled: core +6.7 KB (`PSS_Schema.lua` 2373 bytes, `PSS_Upgrade.lua` 20893 to 23586), Libraries `PSS_ImportExport.lua` 14899 to 17483. 50 saves byte-identical with main (`same_saves.sh`); `tui_compare.sh` identical (125 and 139 steps). The unusable-rules code and the map are P6 candidates for a measured move.
+  - **Fix, 3.4.1.48 (Dan's in-game checks of 3.4.1.47: 1, 2, 4, 5, 7 pass; 3 and 6 failed):** `PSS_Popups.lua` defined `M.PSS_CopyTextBox` without a `local M`, so loading the GUI folder errored at that line: `/pss export unused` did nothing and the Export button gave no string. `local M = ns.M` fixes it. **Lesson:** `run.lua` used to set a global `M` for its scripts, which hid the missing local; it now gives `M` to the script's own environment only, and `tools/check_locals.lua` (rules check) fails any addon file that uses `M` without a local. Without the fix `check_forward.lua` and `check_options.lua` fail.
 
 ### 2.4 Upgrade report (appendix 04; issue #45)
 - **A step registry in `PSS_Upgrade.lua`.** Each entry has `id`, `feature`, `always` (runs every upgrade), and `fields` / `data` functions that add their counts to an `out` table. Step 1 is split into feature-tagged parts. Retired keys are pruned in one loop over `RETIRED`.
@@ -110,12 +111,12 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
 
   Example (numbers illustrative):
   ```
-  PourSocialScore: updated from 3.4.0.29 to 3.4.1.51. Upgrading your saved data:
+  PourSocialScore: updated from 3.4.0.29 to 3.4.1.52. Upgrading your saved data:
     Chat Filtering: 3 custom filters given an id
     Guild Ignore List: 48 duplicate members merged, 267 names repaired
     Managed Communities: 184 members already on the shipped lists dropped
     SavedVariables performance cleanup: 6 old settings removed, 1208 records tidied (397 KB to 196 KB)
-  PourSocialScore: saved data upgraded to 3.4.1.51 (step 9).
+  PourSocialScore: saved data upgraded to 3.4.1.52 (step 9).
   ```
 - Today's data-move messages stay as they are and print before the report (decision 8). A downgrade prints one line (decision 10). A normal login builds no strings and costs nothing. All output goes through `M.ShowMsg`, in ASCII.
 - **Harness:** `check_upgrade_report.lua`, 10 cases:
@@ -227,35 +228,36 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | F2 | 3.4.1.44 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | Merged, PR #135 (in-game checks pass, Dan, 2026-10-09) |
 | U1 | 3.4.1.45 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | Merged, PR #136 |
 | U2 | 3.4.1.46 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | Merged, PR #137 |
-| U3 | 3.4.1.47 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | PR #138 |
-| S1 | 3.4.1.48 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | |
-| S2 | 3.4.1.49 | Accessors for every field S3 drops; the rules-check grep | No | `tui_compare.sh` identical | |
-| S3 | 3.4.1.50 | Upgrade step 9 (2.2): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
-| R | 3.4.1.51 | Release: version only; one summary of 3.4.1.30 to 3.4.1.50 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
+| U3 | 3.4.1.47 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | PR #138 (in game: checks 3 and 6 failed, fixed in 3.4.1.48) |
+| U3 fix | 3.4.1.48 | `PSS_Popups.lua` used `M` with no `local M`: the GUI folder stopped loading at its last line, so `/pss export unused` did nothing and the Import/Export tab gave no string (Dan, in game, 2026-10-09). `local M = ns.M`; the harness no longer has a global `M` for addon code (`run.lua`), and `tools/check_locals.lua` (rules check) fails a file that uses `M` without a local | Yes | `check_forward.lua` and `check_options.lua` fail without the fix; in game checks 3 and 6 again | PR #138 |
+| S1 | 3.4.1.49 | `History.ClearOwner` and the purge tombstone; the six copies call it | No | Identical lines and counters; 5.6 ms to about 70 us | |
+| S2 | 3.4.1.50 | Accessors for every field S3 drops; the rules-check grep | No | `tui_compare.sh` identical | |
+| S3 | 3.4.1.51 | Upgrade step 9 (2.2): sparse records, cap, `memberCount`, Camelot repair, `showIgnoreDebug`, filter ids | Yes (report, smaller save) | Four saves: counters identical, sizes before and after; 3.4.0.29 run on a migrated save | |
+| R | 3.4.1.52 | Release: version only; one summary of 3.4.1.30 to 3.4.1.51 from their PRs; `01_HANDOVER.md` re-summarized | | Dan confirms | |
 
 ### Line 3.4.2: core performance and tidy (builds continue)
 Expected builds, if nothing is added before them (decision 24).
 
 | Stage | Build | Change |
 | --- | --- | --- |
-| P1 | 3.4.2.52 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `def.reload` and the `before` read in `M.PSS_SetOpt`; Dan, 2026-10-09), the compat globals, `/pss test` |
-| P2 | 3.4.2.53 | Event-driven GC and `loadWhenQuiet` without timers (L14; closes the known breach in 02 section 12) |
-| P3 | 3.4.2.54 | Capture events only when needed (L15) |
-| P4 | 3.4.2.55 | Chat path: N26 (option reads without the router), N28 (guild path), N35 (per-line tables), N31 (outbox trim), benchmarked |
-| P5 | 3.4.2.56 | Duplicated logic into functions: N17 to N25 |
-| P6 | 3.4.2.57 | Core placement: L20 plus N37 to N39, measured before and after |
-| R | 3.4.2.58 | Release; `01_HANDOVER.md` re-summarized |
+| P1 | 3.4.2.53 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `def.reload` and the `before` read in `M.PSS_SetOpt`; Dan, 2026-10-09), the compat globals, `/pss test` |
+| P2 | 3.4.2.54 | Event-driven GC and `loadWhenQuiet` without timers (L14; closes the known breach in 02 section 12) |
+| P3 | 3.4.2.55 | Capture events only when needed (L15) |
+| P4 | 3.4.2.56 | Chat path: N26 (option reads without the router), N28 (guild path), N35 (per-line tables), N31 (outbox trim), benchmarked |
+| P5 | 3.4.2.57 | Duplicated logic into functions: N17 to N25 |
+| P6 | 3.4.2.58 | Core placement: L20 plus N37 to N39, measured before and after |
+| R | 3.4.2.59 | Release; `01_HANDOVER.md` re-summarized |
 
 ### Line 3.4.3: window tidy
 Expected builds, if nothing is added before them (decision 24).
 
 | Stage | Build | Change |
 | --- | --- | --- |
-| W1 | 3.4.3.59 | G11 to G14, G24, G25, G29 |
-| W2 | 3.4.3.60 | Logic to Libraries: G1 to G10 |
-| W3 | 3.4.3.61 | Kit functions in all three looks, plus the kit preview: G15 to G20 |
-| W4 | 3.4.3.62 | Redraw cost: G22, G23, measured on the 3.4.0.28 save |
-| R | 3.4.3.63 | Release; `01_HANDOVER.md` re-summarized |
+| W1 | 3.4.3.60 | G11 to G14, G24, G25, G29 |
+| W2 | 3.4.3.61 | Logic to Libraries: G1 to G10 |
+| W3 | 3.4.3.62 | Kit functions in all three looks, plus the kit preview: G15 to G20 |
+| W4 | 3.4.3.63 | Redraw cost: G22, G23, measured on the 3.4.0.28 save |
+| R | 3.4.3.64 | Release; `01_HANDOVER.md` re-summarized |
 
 ## 5. Decisions (Dan, 2026-10-08; all as recommended)
 1. Three lines: 3.4.1 fixes and data, 3.4.2 core performance, 3.4.3 window tidy.
@@ -282,6 +284,7 @@ Expected builds, if nothing is added before them (decision 24).
 22. B1 and B2 are their own stages after N2 (builds 3.4.1.35 and .36, after this plan change took 3.4.1.34); the later stages move up three builds and the release is 3.4.1.46.
 23. The detail pane collision is its own fix build, stage Fix (3.4.1.39 was taken by the code map docs build, so Fix is 3.4.1.40; 3.4.1.38 was the harness notes docs build), after N3 merges; the wrapped line keeps its text and pushes the lines below it down (Dan, 2026-10-08; he chose this over shortening the text). The later stages moved up one build for each docs build (3.4.1.38, then the code map 3.4.1.39) and the release is 3.4.1.49. 3.4.1.40 did not take in game; its follow-up is Fix 2 (3.4.1.41, Dan's screenshot, 2026-10-08), the later stages moved up one more build and the release is 3.4.1.50.
 24. **Every planned build has its expected number, and an added build moves them all (Dan, 2026-10-09).** The docs build 3.4.1.43 marks F1 merged; F2 to S3 are 3.4.1.44 to 3.4.1.50 and the 3.4.1 release is 3.4.1.51. The 3.4.2 stages are 3.4.2.52 to 3.4.2.57 with its release 3.4.2.58, and the 3.4.3 stages 3.4.3.59 to 3.4.3.62 with its release 3.4.3.63. Any build added before a stage (a docs build or a fix) moves every later build up one, and the PR that takes it updates every reference (02 section 8).
+25. **U3's fix is 3.4.1.48 (2026-10-09).** In-game checks 3 and 6 of 3.4.1.47 failed (one missing local in the GUI folder); the fix takes the next build in the same PR (#138), so S1 to S3 are 3.4.1.49 to 3.4.1.51 and the 3.4.1 release is 3.4.1.52; 3.4.2 runs 3.4.2.53 to 3.4.2.59 and 3.4.3 runs 3.4.3.60 to 3.4.3.64 (decision 24's rule).
 
 ## 6. Risks
 | Risk | Cover |

@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.48 - Core uplift U3 fix: /pss export unused and Export
+
+- Fixed in 3.4.1.47's test: "/pss export unused" did nothing, and the Export button on the Import/Export tab gave no string. One window file used a name it had not declared, so the window's files stopped loading part way. Both work again.
+
 => 3.4.1.47 - Core uplift U3: forward compatibility
 
 - Your saved data now works across versions in both directions. From this version on, going back to an older version and forward again keeps everything a newer version saved, even the parts the older one does not know.

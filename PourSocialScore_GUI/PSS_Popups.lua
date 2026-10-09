@@ -15,6 +15,7 @@
 -- the accept button in the accent. Escape cancels in every look.
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
+local M = ns.M
 
 local DARK = ns.DARK
 local POP_FILL = { 0.077, 0.068, 0.058, 1 }
