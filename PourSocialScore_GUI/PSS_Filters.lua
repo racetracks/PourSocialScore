@@ -116,7 +116,6 @@ local function RowAct(i, act, arg)
 		M.PSS_ResetFilterCount(i)
 	elseif act == "resetHistory" then
 		M.PSS_ResetFilterHistory(i)
-		V.dirty = true
 		page.refresh()
 	elseif act == "remove" then
 		ConfirmRemove()
@@ -354,9 +353,7 @@ function ns.ShowFilterDetail(fresh)
 	-- read again only when the filter or its count changed; the block
 	-- history (PourSocialScore_Logging) loads only when asked for
 	pane.hist:Set(r.index, r.lines, M.PSS_FilterHistory, fresh)
-	local s = pane.sumSpec
-	s.owner, s.allTime, s.title, s.id = M.PSS_FilterOwnerKey(r.index), r.blocked or 0, r.desc, r.index
-	pane.summary:Set(s)
+	pane.summary:Set(M.PSS_FilterSummarySpec(r, pane.sumSpec))
 end
 
 ------------------------------------------------------------------------
