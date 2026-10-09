@@ -116,7 +116,6 @@ local function RowAct(i, act, arg)
 		M.PSS_ResetFilterCount(i)
 	elseif act == "resetHistory" then
 		M.PSS_ResetFilterHistory(i)
-		V.dirty = true
 		page.refresh()
 	elseif act == "remove" then
 		ConfirmRemove()

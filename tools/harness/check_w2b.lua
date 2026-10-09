@@ -54,4 +54,16 @@ M.PSS_FilterRow(n, r)
 check(M.PSS_FilterSummarySpec and M.PSS_FilterSummarySpec(r, into) == into, "PSS_FilterSummarySpec")
 check(into.owner == M.PSS_FilterOwnerKey(n) and into.allTime == (r.blocked or 0) and into.title == r.desc and into.id == n, "filter summary spec")
 
+-- G5: Reset Block History marks the Filters list by the event it fires,
+-- not by a flag the tab sets
+SlashCmdList["PSS"]("gui")
+local w2 = _G.PSS_Window
+w2.tabs[3]._scripts.OnClick(w2.tabs[3])
+local fpage = w2.pages[3]
+local V = fpage.state
+V.dirty = false
+M.PSS_ResetFilterHistory(n)
+check(V.dirty == true, "Reset Block History did not mark the Filters list")
+w2:Hide()
+
 if not fail then print("PASS w2b") end
