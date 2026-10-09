@@ -5,7 +5,7 @@ An addon is Lua code plus TOC metadata that the World of Warcraft client loads f
 - It can only change what the user sees and does on their own client (frames, chat filtering, tooltips, keybinds). It cannot affect other players' screens.
 - It cannot write files, open sockets or call a server. **SavedVariables are the only storage**, written by the client at logout and /reload.
 - Sharing between users happens only through what ships in the addon (data lists), Import/Export strings the user copies, or in-game addon messages.
-- **No taint (02 C4, J).** Addon code runs insecure, so protected actions are blocked in combat; it never touches secure frames, protected functions or Blizzard state.
+- **Zero taint risk, no exceptions (02 C4, J).** Protected actions are blocked in combat; code must avoid taint (never touch secure frames or call protected functions from insecure paths). Addon code is always tainted, which is why these rules exist.
 - On Retail 12.x many combat, identity and chat values reach addons as **secret values** that can be shown but not compared or counted, and the combat log is closed to addons (02 J7, J8).
 - Memory and CPU are shared with the game and every other addon, so cost when idle matters more than raw speed.
 

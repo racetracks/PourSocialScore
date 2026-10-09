@@ -24,7 +24,7 @@ Rules for the design:
 - Play the final decisions back to the author before the first stage starts.
 
 ## 2. Implementation plan: stages
-Each stage is one PR and one build (`X.Y.Z.B`, the next build number) on the feature's line; a fix to a stage is the next build too. The table numbers a first line from 1; build numbers never reset (02 F2), so a later line carries on from the last build (`1.5.0.9`, `1.5.0.10`, ...).
+Cut the feature into stages. Each stage is one PR and one build (`X.Y.Z.B`, the next build number) on the feature's line; a fix to a stage is the next build too. The table numbers a first line from 1; build numbers never reset (02 F2), so a later line carries on from the last build (`1.5.0.9`, `1.5.0.10`, ...).
 
 | Stage | Build | Change | Visible? | How it is validated |
 | --- | --- | --- | --- | --- |

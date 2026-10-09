@@ -47,7 +47,7 @@ Read when the task touches the topic:
 - Everything on `M` via `PourSocialScore_NS`; core fires `M.Events`; UIs write only through core setters. Tabs everywhere.
 - Core holds only the chat filtering engine and the launchpad; anything not regularly active, or shared by both UIs, goes in `PourSocialScore_Libraries`, with a measured resident cost.
 - No application or service logic in `PourSocialScore_GUI`. The old EllesmereUI window is in git history (tag `v3.4.0.24`).
-- Every number the window shows comes from the core's counters (`check_viewquery.lua`). Logging loads only when logs are called.
+- Every number the window shows comes from the core's counters, the same definitions as before (`check_viewquery.lua`). Logging loads only when logs are called.
 - Taint and secrets (baseline 02 J, PSS 02 section 10): never write or replace Blizzard state; post-hooks and `Menu.ModifyMenu` only; every chat, unit and hook value goes through `M.PSS_IsSecret` before any compare or index; a secret line is neither filtered nor counted.
 - Never change TOC Title or Notes. SavedVariables layout changes need the author's OK and a migration validated on every real save.
 - **Every saved field is in the schema map** (`PourSocialScore/PSS_Schema.lua`, U3; `check_schema.lua` in the rules check and the harness). A newer version's data is never deleted: only `RETIRED` keys go, unknown fields and layouts (`v` above what this version writes) are kept as they are, and a rule this version cannot use is kept, not applied and reported (PSS 02 section 3).

@@ -31,7 +31,7 @@ How a new addon project runs from an empty repo to production releases and maint
 **Goal:** safe to leave running.
 - Caps on every store, pruning on upgrade, garbage collection only at safe moments (02 C, D).
 - Migrations validated against every old layout and the author's real saves.
-- Resident memory and CPU measured, the numbers in each PR.
+- Measure resident memory and CPU; record the numbers in each PR.
 - A look-compare for the UI (06; `examples/ui_compare.sh`), so later UI-neutral changes can prove they changed nothing.
 
 ## Phase 4: Split for memory
@@ -53,7 +53,7 @@ How a new addon project runs from an empty repo to production releases and maint
 
 ## Phase 7: Production release
 **Goal:** a full release, once the author confirms the feature (or feature set) that owns the line is complete and tested.
-- A PR makes the next build the release and writes its one-summary notes (02 F5, 09 section 6); merging publishes it.
+- A PR makes the next build the release (`sh tools/bump_version.sh release "Title"`, recorded in `versions.json`), with one summary of every change since the previous release as its history section, written from the PRs between them (02 F5, 09 section 6); merging it publishes the full release.
 - Update the readme for users.
 
 ## Phase 8: Maintenance
