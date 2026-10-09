@@ -19,7 +19,7 @@ local win = _G.PSS_Window
 win.tabs[6]._scripts.OnClick(win.tabs[6])
 local page = win.pages[6]
 check(page:IsShown() and page.groups and page.search, "Options tab not built")
-check(not page.note:IsShown(), "the built tab still shows its note")
+check(page.note == nil, "the placeholder note is gone")
 
 -- every option once, under its section, showing the saved value
 local rowOf, n = {}, 0

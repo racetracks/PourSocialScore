@@ -20,9 +20,10 @@
 --   list:SetCount(n)  list:Redraw()  list:Top()  list:SetSort(key, asc)
 --   list:Select(test)  list:SetEmptyText(text)
 -- A column without a width takes the space left over (one per list).
--- Looks: the header labels are Blizzard's gold or Dark's white, the sorted
--- column in the accent; a hovered row gets Blizzard's highlight or a faint
--- accent wash; a selected row an accent wash in both looks.
+-- Looks: the header labels are Blizzard's gold (Modern, Classic) or Dark's
+-- white, the sorted column in the accent; a hovered row gets Blizzard's
+-- highlight or a faint accent wash; a selected row an accent wash in all
+-- three looks.
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 
