@@ -74,6 +74,85 @@ local function removeDeleted (name)
 	end
 end
 
+-- (list entries)
+-- One sparse record per listed entry: { name, date, [kind], [faction], [note], [exp], [sync] }.
+-- Readers apply the defaults: kind "player", note "", exp 0; no faction, sync or date = none.
+local function getList()
+	local db = PourSocialScoreDB
+	local list = db.list
+	if not list then
+		list = {}
+		db.list = list
+	end
+	return list
+end
+M.PSS_List = getList
+
+function M.PSS_EntryName(i)
+	local e = getList()[i]
+	return e and e.name or nil
+end
+
+function M.PSS_EntryKind(i)
+	local e = getList()[i]
+	if not e then return nil end
+	return e.kind or "player"
+end
+
+function M.PSS_NewEntry(name, kind, faction, note, exp)
+	local list = getList()
+	local e = { name = name, date = date("%d %b %Y") }
+	if kind and kind ~= "player" then e.kind = kind end
+	if type(faction) == "string" and faction ~= "" then e.faction = faction end
+	if type(note) == "string" and note ~= "" then e.note = note end
+	exp = tonumber(exp)
+	if exp and exp > 0 then e.exp = exp end
+	local index = #list + 1
+	list[index] = e
+	return index
+end
+
+function M.PSS_SetEntryNote(i, note)
+	local e = getList()[i]
+	if not e then return end
+	if type(note) == "string" and note ~= "" then e.note = note else e.note = nil end
+end
+
+function M.PSS_SetEntryExp(i, days)
+	local e = getList()[i]
+	if not e then return end
+	days = tonumber(days)
+	if days and days > 0 then e.exp = days else e.exp = nil end
+end
+
+function M.PSS_SetEntryDate(i, str)
+	local e = getList()[i]
+	if not e then return end
+	if type(str) == "string" and str ~= "" then e.date = str else e.date = nil end
+end
+
+function M.PSS_SetEntryFaction(i, f)
+	local e = getList()[i]
+	if not e then return end
+	if type(f) == "string" and f ~= "" then e.faction = f else e.faction = nil end
+end
+
+function M.PSS_EntrySync(i)
+	local e = getList()[i]
+	local sync = e and e.sync
+	if type(sync) == "table" then return sync end
+	return nil
+end
+
+function M.PSS_EntryAddSync(i, str)
+	local e = getList()[i]
+	if not e then return end
+	if type(e.sync) ~= "table" then e.sync = {} end
+	e.sync[#e.sync + 1] = str
+	return #e.sync
+end
+-- (/list entries)
+
 -- W I G P C switches on a player record (stored as "blocked").
 local BLOCK_FIELDS = { "whispersBlocked", "partyInvitesBlocked", "guildInvitesBlocked", "partyRaidBlocked", "channelsBlocked" }
 
@@ -89,15 +168,7 @@ M.PSS_PlayerBlocksAnything = anyBlocked
 -- unticked; tick one to let that one thing through.
 local function AddToList(newname, newfaction, newnote, newtype)
 
-	local index = #PourSocialScoreDB.ignoreList+1
-
-	PourSocialScoreDB.ignoreList[index] = newname
-	PourSocialScoreDB.factionList[index] = newfaction
-	PourSocialScoreDB.dateList[index] = date("%d %b %Y")
-	PourSocialScoreDB.notes[index] = (newnote or "")
-	PourSocialScoreDB.expList[index] = M.PSS_Opt("defexpire")
-	PourSocialScoreDB.typeList[index] = (newtype or "player")
-	PourSocialScoreDB.syncInfo[index] = {}
+	M.PSS_NewEntry(newname, newtype, newfaction, newnote, M.PSS_Opt("defexpire"))
 
 	local p
 	if newtype == nil or newtype == "player" then
@@ -126,20 +197,15 @@ local function AddToList(newname, newfaction, newnote, newtype)
 end
 
 local function RemoveFromList (index)
-	local name = PourSocialScoreDB.ignoreList[index]
+	local e = getList()[index]
+	local name = e and e.name
 	if name then
 		addDeleted(name)
-		if (PourSocialScoreDB.typeList[index] or "player") == "player" and M.PSS_ForgetPlayer then
-			M.PSS_ForgetPlayer(name, PourSocialScoreDB.notes[index])
+		if (e.kind or "player") == "player" and M.PSS_ForgetPlayer then
+			M.PSS_ForgetPlayer(name, e.note or "")
 		end
 
-		table.remove(PourSocialScoreDB.ignoreList, index)
-		table.remove(PourSocialScoreDB.factionList, index)
-		table.remove(PourSocialScoreDB.dateList, index)
-		table.remove(PourSocialScoreDB.notes, index)
-		table.remove(PourSocialScoreDB.expList, index)
-		table.remove(PourSocialScoreDB.typeList, index)
-		table.remove(PourSocialScoreDB.syncInfo, index)
+		table.remove(getList(), index)
 		if M.PSS_MarkIgnoreIndexDirty then M.PSS_MarkIgnoreIndexDirty() end
 	end
 end
@@ -149,9 +215,9 @@ M.PSS_RemoveFromList = RemoveFromList
 -- Import/Export entry points (PSS_ImportExport.lua)
 function M.PSS_ImportListEntry(name, faction, note, ltype, dateStr, exp)
 	AddToList(name, faction ~= "" and faction or nil, note, ltype)
-	local i = #PourSocialScoreDB.ignoreList
-	if type(dateStr) == "string" and dateStr ~= "" then PourSocialScoreDB.dateList[i] = dateStr end
-	if tonumber(exp) then PourSocialScoreDB.expList[i] = tonumber(exp) end
+	local i = #getList()
+	if type(dateStr) == "string" and dateStr ~= "" then M.PSS_SetEntryDate(i, dateStr) end
+	if tonumber(exp) then M.PSS_SetEntryExp(i, exp) end
 	return i
 end
 
@@ -160,10 +226,10 @@ function M.PSS_RemoveListEntryAt(index)
 end
 
 local function getSyncValue (index)
-	-- value, index of syncInfo data
+	-- value, index of the entry's sync data
 
-	local info = PourSocialScoreDB.syncInfo[index]
-	if type(info) ~= "table" then return 0, 0 end
+	local info = M.PSS_EntrySync(index)
+	if not info then return 0, 0 end
 
 	for c = 1, #info do
 		local s = info[c]
@@ -182,18 +248,17 @@ end
 
 local function setSyncValue (name, index)
 
-	if type(PourSocialScoreDB.syncInfo[index]) ~= "table" then PourSocialScoreDB.syncInfo[index] = {} end
 	local val,idx = getSyncValue(index)
-
-	if idx == 0 then
-		idx = #PourSocialScoreDB.syncInfo[index] + 1
-	end
 
 	val = val + 1
 
 	--M.debugMsg("Setting "..name.. " failed add attempts to "..val)
 
-	PourSocialScoreDB.syncInfo[index][idx] = V.playerName .. "@" .. val
+	if idx == 0 then
+		M.PSS_EntryAddSync(index, V.playerName .. "@" .. val)
+	else
+		M.PSS_EntrySync(index)[idx] = V.playerName .. "@" .. val
+	end
 end
 
 local function isServerMatch (server1, server2)
@@ -225,8 +290,9 @@ function M.hasNPCIgnored (name)
 
 	if not name then return 0 end
 
-	for count = 1, #PourSocialScoreDB.ignoreList do
-		if PourSocialScoreDB.ignoreList[count] == name and PourSocialScoreDB.typeList[count] == "npc" then
+	local list = getList()
+	for count = 1, #list do
+		if list[count].name == name and list[count].kind == "npc" then
 			return count
 		end
 	end
@@ -238,8 +304,9 @@ local function hasServerIgnored (name)
 
 	if not name then return 0 end
 
-	for count = 1, #PourSocialScoreDB.ignoreList do
-		if PourSocialScoreDB.ignoreList[count] == name and PourSocialScoreDB.typeList[count] == "server" then
+	local list = getList()
+	for count = 1, #list do
+		if list[count].name == name and list[count].kind == "server" then
 			return count
 		end
 	end
@@ -264,8 +331,9 @@ function M.hasGlobalIgnored (name)
 
 	if not name then return 0 end
 
-	for count = 1, #PourSocialScoreDB.ignoreList do
-		if PourSocialScoreDB.ignoreList[count] == name and PourSocialScoreDB.typeList[count] == "player" then
+	local list = getList()
+	for count = 1, #list do
+		if list[count].name == name and (list[count].kind or "player") == "player" then
 			return count
 		end
 	end
@@ -283,9 +351,10 @@ function M.hasAnyIgnored (name)
 
 	if not name then return 0 end
 
-	for count = 1, #PourSocialScoreDB.ignoreList do
+	local list = getList()
+	for count = 1, #list do
 
-		if PourSocialScoreDB.ignoreList[count] == name then
+		if list[count].name == name then
 			return count
 		end
 	end
@@ -305,14 +374,8 @@ local function ResetIgnoreDB()
 
 	-- (options are not listed: no saved value is the default, PSS_Options.lua)
 	PourSocialScoreDB = {
-		ignoreList			= {},
-		factionList			= {},
-		dateList			= {},
-		notes				= {},
-		expList				= {},
-		typeList			= {},
+		list				= {},
 		delList				= {},
-		syncInfo			= {},
 		filterTotal			= 0,
 		filterCount			= {},
 		filterDesc			= {},
@@ -445,24 +508,26 @@ end
 local expireDay = nil
 function M.PSS_ExpireEntries(quiet, daily)
 	local db = PourSocialScoreDB
-	if not (db and db.ignoreList and db.expList and db.dateList) then return 0 end
+	if not (db and db.list) then return 0 end
+	local list = db.list
 	local today = M.dateToJulianDate(date("%d %b %Y"))
 	if daily and expireDay == today then return 0 end
 	expireDay = today
 	local gone
-	for count = #db.ignoreList, 1, -1 do
-		local exp = tonumber(db.expList[count]) or 0
+	for count = #list, 1, -1 do
+		local e = list[count]
+		local exp = tonumber(e.exp) or 0
 		if exp > 0 then
-			local added = M.dateToJulianDate(db.dateList[count])
+			local added = M.dateToJulianDate(e.date)
 			if added > 0 and today - added >= exp then
-				local name = db.ignoreList[count]
-				local before = #db.ignoreList
-				if db.typeList[count] == "player" then
+				local name = e.name
+				local before = #list
+				if (e.kind or "player") == "player" then
 					M.PSS_DelIgnore(count, true, true)
 				else
 					RemoveFromList(count)
 				end
-				if #db.ignoreList < before then
+				if #list < before then
 					gone = gone or {}
 					gone[#gone + 1] = tostring(name)
 				end
@@ -538,8 +603,8 @@ function M.SyncIgnoreList (silent)
 	-- never shifts an entry we have not looked at yet. Expired ones go
 	-- through M.PSS_ExpireEntries (N40).
 
-	for count = #PourSocialScoreDB.ignoreList, 1, -1 do
-		local entry = PourSocialScoreDB.ignoreList[count]
+	for count = #getList(), 1, -1 do
+		local entry = M.PSS_EntryName(count)
 		local tmp = type(entry) == "string" and M.removeServer(entry, true) or ""
 
 		if tmp == "" then
@@ -581,7 +646,8 @@ function M.SyncIgnoreList (silent)
 						pssHookGuard = true; BlizzardDelIgnoreByIndex(count); pssHookGuard = false
 					end
 				else
-					PourSocialScoreDB.syncInfo[globIdx] = {}
+					local e = getList()[globIdx]
+					if e then e.sync = nil end
 				end
 			end
 		end
@@ -599,16 +665,17 @@ function M.SyncIgnoreList (silent)
 
 		M.debugMsg("Moving ticked characters from PSS to Ignore")
 
-		for key = 1, #PourSocialScoreDB.ignoreList do
-			local value = PourSocialScoreDB.ignoreList[key]
+		local list = getList()
+		for key = 1, #list do
+			local value = list[key].name
 
-			if PourSocialScoreDB.typeList[key] == "player" and getSyncValue(key) < maxSyncTries then
+			if (list[key].kind or "player") == "player" and getSyncValue(key) < maxSyncTries then
 
 				local name = M.Proper(M.addServer(value))
 				local rec = M.PSS_GetPlayerRecord(name)
 
 				if rec and rec.blizzardIgnore == true and hasIgnored(name) == 0 then
-					local ok = (PourSocialScoreDB.factionList[key] == currentFaction()) or (M.PSS_Opt("samefaction") == false)
+					local ok = (list[key].faction == currentFaction()) or (M.PSS_Opt("samefaction") == false)
 
 					if ok then
 						ok = (isServerMatch(V.serverName, M.getServer(name))) or (M.PSS_Opt("sameserver") == false)
@@ -648,26 +715,27 @@ function M.PruneIgnoreList (days, doit)
 	local targets = 0
 	local count		= 0
 
-	while count < #PourSocialScoreDB.dateList do
+	local list = getList()
+	while count < #list do
 		count = count + 1
 
-		if M.daysFromToday(PourSocialScoreDB.dateList[count]) >= days then
+		if M.daysFromToday(list[count].date) >= days then
 			targets = targets + 1
 
-			local name = M.addServer(PourSocialScoreDB.ignoreList[count])
+			local name = M.addServer(list[count].name)
 
 			--if doit ~= true then
 			--	M.ShowMsg("Prune will remove: "..name)
 			--end
 
 			if doit == true then
-				local before = #PourSocialScoreDB.ignoreList
-				if PourSocialScoreDB.typeList[count] == "player" then
+				local before = #list
+				if (list[count].kind or "player") == "player" then
 					M.PSS_DelIgnore(count, true)	-- by position: always the right entry
 				else
 					RemoveFromList(count)
 				end
-				if #PourSocialScoreDB.ignoreList >= before then
+				if #list >= before then
 					-- could not be removed: skip it instead of looping forever
 				else
 					count = count - 1
@@ -778,7 +846,7 @@ M.PSS_AddIgnore = function(name, noNote, exactName)
 			AddToList(name, currentFaction(), note)
 			-- "/pss add Name 30 note": the days were parsed but never saved
 			local newIndex = M.hasGlobalIgnored(name)
-			if newIndex > 0 and tonumber(days) then PourSocialScoreDB.expList[newIndex] = tonumber(days) end
+			if newIndex > 0 and tonumber(days) then M.PSS_SetEntryExp(newIndex, days) end
 
 			if M.PSS_Opt("asknote") == true and not noNote then
 
@@ -813,8 +881,8 @@ function M.PSS_AddPlayer(name, note, days, unit)
 	local full = M.Proper(M.addServer(name))
 	local idx = M.hasGlobalIgnored(full)
 	if idx and idx > 0 then
-		if type(note) == "string" and note ~= "" then PourSocialScoreDB.notes[idx] = note end
-		if tonumber(days) and tonumber(days) > 0 then PourSocialScoreDB.expList[idx] = tonumber(days) end
+		if type(note) == "string" and note ~= "" then M.PSS_SetEntryNote(idx, note) end
+		if tonumber(days) and tonumber(days) > 0 then M.PSS_SetEntryExp(idx, days) end
 		if unit and M.PSS_SetPlayerMeta then M.PSS_SetPlayerMeta(full, unit) end
 	end
 	V.needSorted = true
@@ -873,9 +941,9 @@ M.PSS_DelIgnore = function(idxpos, isPSS, quiet)
 
 	if isPSS and tonumber(idxpos) ~= nil then
 		index = tonumber(idxpos)
-		name = PourSocialScoreDB.ignoreList[index]
+		name = M.PSS_EntryName(index)
 		if name == nil then return end
-		if PourSocialScoreDB.typeList[index] ~= "player" then
+		if M.PSS_EntryKind(index) ~= "player" then
 			-- NPC / server entry: no Blizzard ignore to touch
 			RemoveFromList(index)
 			V.needSorted = true
@@ -1169,9 +1237,9 @@ M.AddOrDelNPC = function (argStr)
 
 		local nIndex = tonumber(argStr)
 
-		if (nIndex > 0) and (PourSocialScoreDB.ignoreList[nIndex]) and (PourSocialScoreDB.typeList[nIndex] == "npc") then
+		if (nIndex > 0) and (M.PSS_EntryName(nIndex)) and (M.PSS_EntryKind(nIndex) == "npc") then
 
-			M.ShowMsg (format(L["CMD_12"], PourSocialScoreDB.ignoreList[nIndex]))
+			M.ShowMsg (format(L["CMD_12"], M.PSS_EntryName(nIndex)))
 			RemoveFromList(nIndex)
 		end
 	else
@@ -1194,7 +1262,7 @@ M.AddOrDelNPC = function (argStr)
 			local npcIndex = M.hasNPCIgnored(argStr)
 
 			if npcIndex > 0 then
-				local name = PourSocialScoreDB.ignoreList[npcIndex]
+				local name = M.PSS_EntryName(npcIndex)
 
 				M.ShowMsg (format(L["CMD_12"], name))
 				RemoveFromList(npcIndex)
@@ -1214,9 +1282,9 @@ M.AddOrDelServer = function (sName)
 
 		local sIndex = tonumber(sName)
 
-		if (sIndex > 0) and (PourSocialScoreDB.ignoreList[sIndex]) and (PourSocialScoreDB.typeList[sIndex] == "server") then
+		if (sIndex > 0) and (M.PSS_EntryName(sIndex)) and (M.PSS_EntryKind(sIndex) == "server") then
 
-			M.ShowMsg(format(L["CMD_19"], PourSocialScoreDB.ignoreList[sIndex]))
+			M.ShowMsg(format(L["CMD_19"], M.PSS_EntryName(sIndex)))
 			RemoveFromList(sIndex)
 		end
 
@@ -1342,8 +1410,9 @@ function M.PSS_TidyPlayerData()
 	ensureDB()
 	local db = PourSocialScoreDB
 	local listed = {}
-	for i, name in ipairs(db.ignoreList or {}) do
-		if (db.typeList[i] or "player") == "player" then
+	for _, e in ipairs(db.list or {}) do
+		local name = e.name
+		if (e.kind or "player") == "player" then
 			local k = normalizePlayer(name)
 			if k then listed[k] = true end
 		end
@@ -1375,14 +1444,12 @@ end
 
 -- The note of list entry index.
 function M.PSS_SetNote(index, note)
-	if not PourSocialScoreDB.ignoreList[index] then return end
-	PourSocialScoreDB.notes[index] = note
+	M.PSS_SetEntryNote(index, note)
 end
 
 -- Days after the date added that list entry index expires (0 = never).
 function M.PSS_SetExpiry(index, days)
-	if not PourSocialScoreDB.ignoreList[index] then return end
-	PourSocialScoreDB.expList[index] = days
+	M.PSS_SetEntryExp(index, days)
 end
 
 -- Per-player block parameters
@@ -1509,10 +1576,10 @@ function M.PSS_MarkIgnoreIndexDirty() idx.dirty = true end
 
 local function rebuildIndex()
 	local players, pos, npcs, servers = {}, {}, {}, {}
-	local list = PourSocialScoreDB and PourSocialScoreDB.ignoreList or {}
-	local types = PourSocialScoreDB and PourSocialScoreDB.typeList or {}
-	for i, name in ipairs(list) do
-		local t = types[i] or "player"
+	local list = PourSocialScoreDB and PourSocialScoreDB.list or {}
+	for i, e in ipairs(list) do
+		local name = e.name
+		local t = e.kind or "player"
 		if type(name) == "string" then
 			if t == "player" then
 				local c = canonPlayer(name)
@@ -1532,7 +1599,7 @@ local function rebuildIndex()
 end
 
 local function ensureIndex()
-	local n = PourSocialScoreDB and PourSocialScoreDB.ignoreList and #PourSocialScoreDB.ignoreList or 0
+	local n = PourSocialScoreDB and PourSocialScoreDB.list and #PourSocialScoreDB.list or 0
 	-- rebuilt only when the list changed (no timed rebuilds)
 	if idx.dirty or n ~= idx.count then rebuildIndex() end
 end
@@ -1542,7 +1609,7 @@ local function listedName(canon)
 	ensureIndex()
 	local name = idx.players[canon]
 	if not name then return nil end
-	if PourSocialScoreDB.ignoreList[idx.pos[canon]] ~= name then
+	if M.PSS_EntryName(idx.pos[canon]) ~= name then
 		rebuildIndex()
 		name = idx.players[canon]
 	end

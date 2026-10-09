@@ -236,7 +236,7 @@ function M.PSS_MemReport(full)
 
 	-- lists
 	local players = 0
-	for i = 1, #(db.ignoreList or {}) do if (db.typeList and db.typeList[i] or "player") == "player" then players = players + 1 end end
+	for _, e in ipairs(db.list or {}) do if (e.kind or "player") == "player" then players = players + 1 end end
 	local rules, stored, managedRules = 0, 0, 0
 	for _, g in pairs(db.guildData or {}) do
 		if type(g) == "table" then

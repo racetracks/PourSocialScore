@@ -48,7 +48,7 @@ local function tally(feature, key, n)
 end
 
 -- Keys nothing reads any more, dropped at every login (step 1 dropped the
--- first seven, steps 1, 5, 7 and 8 the rest, each in its own place). Only
+-- first seven, steps 1, 5, 7, 8 and 9 the rest, each in its own place). Only
 -- keys named here are ever deleted, so a newer version's fields are kept.
 local RETIRED = {
 	"autoIgnore", "autoUpdate", "autoCount", "autoTime", "attachFriends",	-- never used (2.0)
@@ -58,6 +58,7 @@ local RETIRED = {
 	"historySize",		-- never read (historyTotal is the setting)
 	"euiIntegration", "windowSizes", "columnWidths",	-- the old windows (3.4.0.25, step 7)
 	"blizzardSync",		-- a per-player tick from 3.4.1.35 (step 8 reads it first)
+	"ignoreList", "typeList", "factionList", "dateList", "notes", "expList", "syncInfo",	-- one record each in db.list (S2b, step 9 reads them first)
 }
 M.PSS_UPGRADE_RETIRED = RETIRED
 
@@ -176,29 +177,46 @@ local STEPS = {
 			{
 				feature = "players",
 				fields = function()
-					local n = #db.ignoreList
 					if db.delList == nil then
 						db.delList = {}
 						tally("players", "lists", 1)
 					end
-					if db.expList == nil then
-						db.expList = fill(n, 0)
-						tally("players", "lists", 1)
-					end
-					if db.syncInfo == nil then
-						db.syncInfo = fillTables(n)
-						tally("players", "lists", 1)
-					end
-					if db.typeList == nil then
-						db.typeList = fill(n, "player")
-						tally("players", "lists", 1)
+					-- The parallel arrays only exist in a save before step 9 (a 2.0
+					-- save may lack some: step 9 reads a missing one as its default,
+					-- so these backfills are only for the report's count).
+					local names = db.ignoreList
+					local legacy = type(names) == "table" and not (type(db.list) == "table" and #db.list > 0)
+					local n = legacy and #names or 0
+					if legacy then
+						if db.expList == nil then
+							db.expList = fill(n, 0)
+							tally("players", "lists", 1)
+						end
+						if db.syncInfo == nil then
+							db.syncInfo = fillTables(n)
+							tally("players", "lists", 1)
+						end
+						if db.typeList == nil then
+							db.typeList = fill(n, "player")
+							tally("players", "lists", 1)
+						end
 					end
 					if db.revision == nil then
 						db.revision = 1
-						for count = 1, n do
-							db.ignoreList[count] = M.Proper(db.ignoreList[count])
+						local renamed = 0
+						if legacy then
+							for count = 1, n do
+								names[count] = M.Proper(names[count])
+							end
+							renamed = n
+						elseif type(db.list) == "table" then
+							for count = 1, #db.list do
+								local e = db.list[count]
+								if type(e) == "table" and type(e.name) == "string" then e.name = M.Proper(e.name) end
+							end
+							renamed = #db.list
 						end
-						tally("players", "renamed", n)
+						tally("players", "renamed", renamed)
 					end
 				end,
 			},

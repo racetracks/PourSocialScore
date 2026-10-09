@@ -59,12 +59,14 @@ local ON_DEMAND = { PourSocialScore_Logging = "Logging" }
 -- M.PSS_OPTIONS (PSS_Options.lua) are added to "options".
 -- Retired keys stay listed so an upgrade step can still clear them in
 -- PSS_OptionsDB (charOptions, optionsV2012; euiIntegration, no longer an
--- option from 3.4.0.25; blizzardSync, a per-player tick from 3.4.1.35).
+-- option from 3.4.0.25; blizzardSync, a per-player tick from 3.4.1.35; the
+-- seven parallel player arrays at the end of "players", replaced by "list"
+-- in 3.4.1.51).
 local LAYOUT = {
 	options	= { "showIgnoreDebug", "windowSizes", "windowPoints", "columnWidths", "charOptions", "optionsV2012",
 				"euiIntegration", "blizzardSync" },
-	players	= { "ignoreList", "typeList", "factionList", "dateList", "notes", "expList", "delList",
-				"syncInfo", "playerData" },
+	players	= { "list", "delList", "playerData",
+				"ignoreList", "typeList", "factionList", "dateList", "notes", "expList", "syncInfo" },
 	guilds	= { "guildData", "guildExclusions", "guildGroupOpen", "scanFieldsDefaultV1", "guildPlayerCleanupV3" },
 	rules	= { "filterList", "filterDesc", "filterActive", "filterID", "builtinRules", "filterFormat",
 				"optInFiltersV1" },

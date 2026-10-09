@@ -1838,13 +1838,22 @@ local function noTally() end
 function M.PSS_UpgradeLegacyData(tally)
 	tally = tally or noTally
 	ensureDB()
-	for i, name in ipairs(PourSocialScoreDB.ignoreList or {}) do
-		local p = ((PourSocialScoreDB.typeList or {})[i] or "player") == "player" and M.PSS_GetPlayerPrefs and M.PSS_GetPlayerPrefs(name)
+	-- (a 2.0-era save still has the parallel arrays here, before the layout
+	-- step turns them into the list; a newer save has the list)
+	local old = PourSocialScoreDB.ignoreList
+	for i, e in ipairs(old or PourSocialScoreDB.list or {}) do
+		local name, kind, when, fac
+		if old then
+			name, kind = e, (PourSocialScoreDB.typeList or {})[i]
+			when, fac = (PourSocialScoreDB.dateList or {})[i], (PourSocialScoreDB.factionList or {})[i]
+		else
+			name, kind, when, fac = e.name, e.kind, e.date, e.faction
+		end
+		local p = (kind or "player") == "player" and M.PSS_GetPlayerPrefs and M.PSS_GetPlayerPrefs(name)
 		if p then
 		p.name = name
-		p.whenBlocked = p.whenBlocked or PourSocialScoreDB.dateList[i] or nowString()
+		p.whenBlocked = p.whenBlocked or when or nowString()
 		-- (the note and expiry live in the list itself, not on the record)
-		local fac = PourSocialScoreDB.factionList[i]
 		if (p.faction or "") == "" and type(fac) == "string" and fac ~= "" then p.faction = fac end
 		end
 	end
@@ -2406,8 +2415,8 @@ function M.PSS_RemoveGuild(guildNameOrKey)
 			-- Pour Social Score; otherwise discard the guild-only metadata.
 			if M.hasGlobalIgnored then
 				local stillIgnored = false
-				for _, ignoredName in ipairs(PourSocialScoreDB.ignoreList or {}) do
-					if normalizePlayer(ignoredName) == memberKey then stillIgnored = true break end
+				for _, entry in ipairs(PourSocialScoreDB.list or {}) do
+					if normalizePlayer(entry.name) == memberKey then stillIgnored = true break end
 				end
 				if not stillIgnored then PourSocialScoreDB.playerData[memberKey] = nil end
 			end
@@ -2434,19 +2443,23 @@ cleanupLegacyGuildPlayers = function()
 			guildMembers[key][memberWhenBlocked(m) or ""] = true
 		end
 	end
-	PourSocialScoreDB.ignoreList = PourSocialScoreDB.ignoreList or {}
-	for i = #PourSocialScoreDB.ignoreList, 1, -1 do
-		local name = PourSocialScoreDB.ignoreList[i]
+	-- (before the layout step a 2.0-era save still has the parallel arrays)
+	local db = PourSocialScoreDB
+	local old = db.ignoreList
+	local list = old or db.list or {}
+	if not old then db.list = list end
+	for i = #list, 1, -1 do
+		local name = old and list[i] or list[i].name
 		local key = normalizePlayer(name)
-		local p = PourSocialScoreDB.playerData and PourSocialScoreDB.playerData[key]
+		local p = db.playerData and db.playerData[key]
 		if key and p and guildMembers[key] and guildMembers[key][p.whenBlocked or ""] then
-			table.remove(PourSocialScoreDB.ignoreList, i)
-			table.remove(PourSocialScoreDB.factionList, i)
-			table.remove(PourSocialScoreDB.dateList, i)
-			table.remove(PourSocialScoreDB.notes, i)
-			table.remove(PourSocialScoreDB.expList, i)
-			table.remove(PourSocialScoreDB.typeList, i)
-			table.remove(PourSocialScoreDB.syncInfo, i)
+			if old then
+				for _, k in ipairs({ "ignoreList", "factionList", "dateList", "notes", "expList", "typeList", "syncInfo" }) do
+					if db[k] then table.remove(db[k], i) end
+				end
+			else
+				table.remove(list, i)
+			end
 			PourSocialScoreDB.playerData[key] = nil
 			removed = removed + 1
 		end

@@ -76,29 +76,30 @@ local function ShowIgnoreList (param)
 
 	local count = 0
 
-	for key,value in pairs(PourSocialScoreDB.ignoreList) do
+	for key,entry in ipairs(PourSocialScoreDB.list) do
 
 		local ok	= true
 		local type = "P"
+		local value = entry.name
 
-		if PourSocialScoreDB.typeList[key] == "npc" then
+		if entry.kind == "npc" then
 			type = "N"
-		elseif PourSocialScoreDB.typeList[key] == "server" then
+		elseif entry.kind == "server" then
 			type = "S"
 		end
 
 		if days > 0 then
-			ok = M.daysFromToday(PourSocialScoreDB.dateList[key]) >= days
+			ok = M.daysFromToday(entry.date) >= days
 		elseif sName ~= "" then
 			ok = (type == "N" and sName == "Npc") or (type == "P" and isServerMatch(sName, M.getServer(value))) or (type == "S" and isServerMatch(sName, value))
 		end
 
 		if ok then
-			local str = "  (" .. key .. ") [" .. type.. "] " .. value .. " (" .. (PourSocialScoreDB.factionList[key] or "Unknown") .. ") " .. "[".. M.daysFromToday(PourSocialScoreDB.dateList[key]) .. " "..L["DAYS"] .. "]"
+			local str = "  (" .. key .. ") [" .. type.. "] " .. value .. " (" .. (entry.faction or "Unknown") .. ") " .. "[".. M.daysFromToday(entry.date) .. " "..L["DAYS"] .. "]"
 
 			-- older saves and the legacy import can have no note (N48);
 			-- (type is the entry's letter here, not the function)
-			local note = PourSocialScoreDB.notes[key]
+			local note = entry.note
 			if note ~= nil and note ~= "" then
 				str = str .." (" .. tostring(note) .. ")"
 			end
@@ -206,7 +207,7 @@ function M.PSS_SlashPSS (msg)
 		if tonumber(argStr) then
 			-- by list position, whatever the entry type (player, NPC or server)
 			local index = tonumber(argStr)
-			local str = PourSocialScoreDB.typeList[index]
+			local str = PourSocialScoreDB.list[index] and (PourSocialScoreDB.list[index].kind or "player")
 
 			if str == "npc" then
 				M.AddOrDelNPC(index)
@@ -249,16 +250,16 @@ function M.PSS_SlashPSS (msg)
 		if tonumber(args[2]) then
 			local index = tonumber(args[2])
 
-			if (index > 0) and (PourSocialScoreDB.ignoreList[index]) then
+			if (index > 0) and (PourSocialScoreDB.list[index]) then
 
 				M.PSS_SetExpiry(index, tonumber(args[3]))
-				M.ShowMsg(format(L["CMD_14"], PourSocialScoreDB.ignoreList[index], tonumber(args[3])))
+				M.ShowMsg(format(L["CMD_14"], PourSocialScoreDB.list[index].name, tonumber(args[3])))
 			end
 
 		else
 			local name			= M.Proper(M.addServer(args[2]))
 			local playerIndex = M.hasGlobalIgnored(name)
-			if playerIndex > 0 then name = PourSocialScoreDB.ignoreList[playerIndex] end
+			if playerIndex > 0 then name = PourSocialScoreDB.list[playerIndex].name end
 
 			if playerIndex > 0 then
 				M.PSS_SetExpiry(playerIndex, tonumber(args[3]))
