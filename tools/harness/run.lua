@@ -18,6 +18,7 @@
 --     written to <svOut> at logout; a LoadOnDemand addon's saved variables
 --     appear when it loads, and are written back unchanged if it never did
 -- PSS_EXTRA_ADDONS (comma separated folders) adds addons of any name.
+-- PSS_COMPONENTS sets the Enabled components (see below; default addons and gfx on).
 -- <svIn> may name several files separated by commas (one per SavedVariables
 -- file in the game); they are all loaded before any addon.
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
@@ -30,6 +31,25 @@ _G.H = H
 
 if svIn and svIn ~= "-" then
 	for path in svIn:gmatch("[^,]+") do dofile(path) end
+end
+
+-- PSS_COMPONENTS (issue 181): the Enabled components the run starts with,
+-- as options in PSS_OptionsDB, only where the save does not hold them. A comma
+-- list of names to turn ON (addons, gfx, logging, filtering) or, with a minus,
+-- OFF (-logging, -filtering). Default "addons,gfx": the optional parts the
+-- older checks drive; "none" starts as a fresh install (the product defaults).
+-- Applied just before core's ADDON_LOADED (the session reads them then) and
+-- again once startup is done (a fresh install wipes the options table).
+local function injectComponents()
+	local want = os.getenv("PSS_COMPONENTS") or "addons,gfx"
+	local KEYS = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering" }
+	if want == "none" then return end
+	PSS_OptionsDB = PSS_OptionsDB or {}
+	for tok in want:gmatch("[^,]+") do
+		local off, name = tok:match("^(%-?)(%a+)$")
+		local k = name and KEYS[name]
+		if k and PSS_OptionsDB[k] == nil then PSS_OptionsDB[k] = (off == "") end
+	end
 end
 
 ------------------------------------------------------------------------
@@ -150,6 +170,7 @@ local function load(name)
 	end
 	loading[name] = nil
 	loaded[name] = true
+	if name == CORE then injectComponents() end
 	H.Fire("ADDON_LOADED", name)
 	return true
 end
@@ -193,6 +214,7 @@ if os.getenv("PSS_RELOAD") == "1" then
 else
 	H.Fire("PLAYER_ENTERING_WORLD", true, false)
 end
+injectComponents()
 H.Fire("IGNORELIST_UPDATE")
 H.RunTimers()
 

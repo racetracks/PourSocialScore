@@ -11,6 +11,8 @@ local M = addon.M
 
 local iface = select(4, GetBuildInfo())
 if type(iface) ~= "number" or iface >= 20000 then return end
+-- off unless a keep prompt is pending (the import was the player's own click and Revert stays possible; issue 181)
+if not M.PSS_On("gfx") and not (PourSocialScoreDB and PourSocialScoreDB.gfxPending) then return end
 
 local C_CVar, ReloadUI, InCombatLockdown = C_CVar, ReloadUI, InCombatLockdown
 local GetBuildInfo, time, date = GetBuildInfo, time, date

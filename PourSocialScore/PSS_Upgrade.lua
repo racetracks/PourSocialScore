@@ -680,6 +680,7 @@ end
 local function printReport(c)
 	M.ShowMsg(L["UPG_HEAD"]:format(c.from or L["UPG_OLD"], c.to))
 	printFeatures(c)
+	if c.gfxOff then M.ShowMsg("  Graphics Settings Exporter is now off by default: Options, Enabled components.") end
 	local text = resultText("cleanup", c.cleanup)
 	if text == "" then text = L["UPG_NOTHING"] end
 	text = "  " .. L["UPG_cleanup"] .. ": " .. text .. "."
@@ -710,6 +711,12 @@ function M.PSS_RunUpgradeFields(fresh, defaults)
 		elseif stepsDone() < #STEPS or from ~= version then
 			out = { from = type(from) == "string" and from or nil, done = stepsDone() }
 			tally("cleanup", "defaults", defaults)
+			-- Graphics Settings Exporter became an opt-in component in 3.6.0.69 (issue 181):
+			-- a save that holds graphics sets from before is told once
+			if sv.gfxSets ~= nil and M.PSS_Opt("useGfx") ~= true
+				and (not from or M.PSS_VersionOrder(from, "3.6.0.69") == -1) then
+				out.gfxOff = true
+			end
 		end
 	end
 	runPart("fields")

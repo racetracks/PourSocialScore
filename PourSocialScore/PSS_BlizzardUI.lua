@@ -269,7 +269,10 @@ end
 -- ADDON COMPARTMENT --
 -----------------------
 
-if V.wowIsRetail == true and AddonCompartmentFrame and AddonCompartmentFrame.RegisterAddon then
+-- Called once by core's ADDON_LOADED handler (issue 181): the second entry,
+-- which opens the AddOns tab, exists only while the Addon Manager is on.
+function M.PSS_StartCompartment(addonsOn)
+	if not (V.wowIsRetail == true and AddonCompartmentFrame and AddonCompartmentFrame.RegisterAddon) then return end
 	AddonCompartmentFrame:RegisterAddon({
 		text = "Pour Social Score",
 		icon = "Interface\\Icons\\ui_chat.blp",
@@ -278,15 +281,16 @@ if V.wowIsRetail == true and AddonCompartmentFrame and AddonCompartmentFrame.Reg
 			M.PSS_OpenUI()
 		end,
 	})
-	-- a second entry opens the AddOns tab (3.6.0)
-	AddonCompartmentFrame:RegisterAddon({
-		text = "Pour Social Score: AddOns",
-		icon = "Interface\\Icons\\ui_chat.blp",
-		notCheckable = true,
-		func = function(button, menuInputData, menu)
-			M.PSS_OpenUI("addons")
-		end,
-	})
+	if addonsOn then
+		AddonCompartmentFrame:RegisterAddon({
+			text = "Pour Social Score: AddOns",
+			icon = "Interface\\Icons\\ui_chat.blp",
+			notCheckable = true,
+			func = function(button, menuInputData, menu)
+				M.PSS_OpenUI("addons")
+			end,
+		})
+	end
 end
 
 --------------
@@ -353,6 +357,8 @@ local hooksReady = false
 function M.PSS_HookFunctions()
 	-- /script Menu.PrintOpenMenuTags()
 	hooksReady = true
+	-- the Block items on unit and Group Finder menus belong to Social Filtering
+	if not M.PSS_On("filtering") then return end
 	startLFG()
 	hookUnit()
 end

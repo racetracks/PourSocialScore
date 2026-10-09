@@ -282,6 +282,23 @@ Options and Import/Export
   options) and the mode, then Export to get a text string, or paste one and
   Import (Replace asks first).
 
+Enabled components (Options, first section)
+* Four tick boxes: Addon Manager (default off), Event Logging (on), Graphics
+  Settings Exporter (off; Camelot only) and Social Filtering (on). A change
+  applies after a reload (it asks "Reload now?"; the row says "(after
+  reload)" until then). Off means nothing of it runs or is loaded.
+* Addon Manager off: no AddOns tab, no /pss acp or /acp, the Open AddOns key
+  action and /pss acp say it is off, one Addon Compartment entry.
+* Graphics Settings Exporter off: /pss gfx says it is off (a pending keep
+  prompt is still shown once).
+* Event Logging off: blocks are counted as ever, but no line is kept; no
+  Events tab and no Event History page. Turning it off asks first (OK or
+  Cancel): you will not be able to track anything in the addon from then on.
+* Social Filtering off: nothing is blocked (no chat filter, invite, duel or
+  trade decline, party warning, Blizzard ignore sync, Block menu items,
+  capture or expiry); lists, rules and counts are kept and can be edited, and
+  the list tabs say "Social Filtering is off".
+
 AddOns
 * Every installed addon in one list, grouped so an addon's parts and the
   libraries are not clutter (or A to Z, or the load on demand ones apart),
@@ -292,17 +309,24 @@ AddOns
 * Each row shows its state in colour (Loaded, Disabled, Load on demand,
   Out of date, a missing requirement, or a change that waits for a
   reload) and its memory; click Memory to list the biggest first. A star
-  protects an addon: Disable All and sets leave it on. Pour Social Score
+  protects an addon: Disable All and addon profiles leave it on. Pour Social Score
   itself is always protected.
 * The line above the list shows the addons' CPU and memory as Blizzard's
   own AddOn list does; hover an addon for its details, requirements, CPU
   (average, current, peak, encounter) and memory, or a group's header for
   its sums.
-* Sets (the drop-down at the bottom left): 25 numbered places, each for
-  this character or all characters (the choice at the top), and one for your
-  class. Pick a place and Save puts the addons that are on there (it asks
-  first); a used place can also be loaded, added to what is on, taken off
-  what is on, renamed or deleted. Undo puts the addons back as they were
+* Addon Profiles (the drop-down "Profiles" at the bottom left): 25
+  numbered places, each for this character or all characters (the choice at
+  the top), and one for your class; the first five are Core Addon Profiles,
+  then a line, then the Layered Addon Profiles. Every place is listed (a free
+  one as "Profile N (empty)"); choose one for its side menu: Select or
+  Deselect, Save (puts the addons that are on there, after one question),
+  Load (replaces what is on), Add to current selection, Remove from current
+  selection, Rename (up to 32 letters, not empty, not used twice in the
+  list) and Delete; a free place offers Save and Rename. A selected place is
+  marked *; any number can be selected together: the addons that are on are
+  every selected profile plus anything you turned on by hand, and deselecting
+  turns off only what nothing else wants (protected addons stay on). Undo puts the addons back as they were
   at login; Enable All and Disable All (which asks first); Reload applies
   the changes and shows when one is waiting.
 * /pss acp or /acp opens the tab, and the key binding "Open AddOns"
@@ -616,11 +640,13 @@ filter that mixes them without brackets may now behave differently.)
 /pss acp all on|off       Enable All or Disable All (Pour Social Score and
                           protected addons stay on)
 /pss acp undo             Put the addons back as at login
-/pss acp sets             List the saved sets
-/pss acp set 1-25|class [char|all] save [name]|load|add|remove|delete
-                          Sets of addons: char (the default) is this
+/pss acp profiles         List the saved addon profiles (* = selected)
+/pss acp profile 1-25|class [char|all] save [name]|load|add|remove|select|
+                          deselect|rename name|delete
+                          Addon profiles: char (the default) is this
                           character's, all is shared by every character
-/pss acp lock|unlock name Protect an addon from Disable All and sets
+                          (set and sets still work as well)
+/pss acp lock|unlock name Protect an addon from Disable All and profiles
 /pss acp api              Which addon functions this game client has
 /pss showmsg on|off       Print what happens during synchronisation
 /pss sameserver on|off    Only sync same-server characters to Blizzard's

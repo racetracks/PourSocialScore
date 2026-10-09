@@ -250,6 +250,7 @@ local function EventHandler (self, event, sender, ...)
 
 	if (event == "ADDON_LOADED") and (sender == "PourSocialScore") then
 		M.PSS_ImportLegacyDB()
+		M.PSS_StartComponents()
 		gotLoaded = true
 	end
 
@@ -260,7 +261,8 @@ local function EventHandler (self, event, sender, ...)
 		if M.PSS_History then M.PSS_History.StartSession(sender, (...)) end
 	end
 
-	if event == "GROUP_ROSTER_UPDATE" then
+	if event == "GROUP_ROSTER_UPDATE" and M.PSS_On("filtering") then
+		-- (the party warning belongs to Social Filtering, issue 181)
 		-- Raids fire this many times in a row: check once, 1 s after the
 		-- last one, and never while in combat (checked when combat ends).
 		if not IsInGroup() then
@@ -312,12 +314,29 @@ SlashCmdList["PSS"] = function(msg) M.PSS_SlashPSS(msg) end
 SlashCmdList["PSSGUILD"] = function(msg) M.PSS_SlashGuild(msg) end
 -- /acp is /pss acp (the AddOns tab, 3.6.0), under our own key and only when
 -- no other addon owns /acp (the client runs the first it finds)
-local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
-if SlashCmdList["ACP"] == nil and not (isLoaded and isLoaded("ACP")) then
-	SLASH_PSSACP1 = "/acp"
-	SlashCmdList["PSSACP"] = function(msg) M.PSS_SlashPSS("acp " .. (msg or "")) end
-else
-	M.PSS_ACPTaken = true
+-- Enabled components (issue 181): read once at ADDON_LOADED. What starts at
+-- file load for a component is started here, only when it is on, and a
+-- change applies after a reload (hooks cannot be removed).
+function M.PSS_StartComponents()
+	M.PSS_SnapComponents()
+	if M.PSS_On("filtering") then
+		if M.PSS_StartBlocking then M.PSS_StartBlocking() end
+		if M.PSS_StartIgnoreSync then M.PSS_StartIgnoreSync() end
+	end
+	M.PSS_StartCompartment(M.PSS_On("addons"))
+	if M.PSS_On("addons") then
+		-- /acp is /pss acp (the AddOns tab, 3.6.0), under our own key and only
+		-- when no other addon owns /acp (the client runs the first it finds)
+		local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+		if SlashCmdList["ACP"] == nil and not (isLoaded and isLoaded("ACP")) then
+			SLASH_PSSACP1 = "/acp"
+			SlashCmdList["PSSACP"] = function(msg) M.PSS_SlashPSS("acp " .. (msg or "")) end
+		else
+			M.PSS_ACPTaken = true
+		end
+	else
+		BINDING_NAME_PSS_OPEN_ADDONS = "Open AddOns (Addon Manager off)"
+	end
 end
 
 PSSFRAME:SetScript("OnEvent", EventHandler)

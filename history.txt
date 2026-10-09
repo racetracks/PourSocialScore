@@ -5,6 +5,18 @@ POUR SOCIAL SCORE - VERSION HISTORY
 
 - Docs only: CLAUDE.md gains the reference framework rule (one key schema for every document, issue #184). Nothing changes in the addon.
 
+=> 3.6.0.69 - Addon Profiles: ACP-style save, side menus, menus open down
+
+- Addon Profiles can be saved again, the way Addon Control Panel does it: the Profiles drop-down lists every place (Core Addon Profiles 1 to 5, a line, Layered Addon Profiles 6 to 25 and your class), a free one as "Profile N (empty)". Choose a place and its side menu offers Select or Deselect, Save (one question, "Save the current addon list to [name]?"), Load, Add to current selection, Remove from current selection, Rename and Delete; a free place offers Save and Rename. A selected place is marked with *, and any number can be selected together. This also fixes the places' menu closing at once, which hid Save and Rename.
+- New Options section "Enabled components" (first on the Options tab): Addon Manager (off), Event Logging (on), Graphics Settings Exporter (off, Camelot only) and Social Filtering (on). A part that is off costs nothing: with the Addon Manager off there is no AddOns tab, no /pss acp or /acp, no Open AddOns key action and no second Addon Compartment entry, and its code is not loaded; with the Graphics Settings Exporter off /pss gfx says so; with Event Logging off (it asks OK or Cancel first, warning that nothing can be tracked afterwards) blocks are still counted but no line is kept and the Events tab and the history pages go; with Social Filtering off nothing is blocked (no chat filter, declines, party warning, Blizzard ignore sync, Block menu items or capture; your lists, rules and counts are kept and editable, and the list tabs say so). A change applies after a reload ("Reload now?"). The addon manager and the graphics exporter are now opt-in; saved addon profiles and graphics sets are kept untouched, and the upgrade report says once that the Graphics Settings Exporter is now off by default.
+- The Profiles drop-down is wider so its titles show, opens downward in every look (Dark opened upward), and the addon count now sits at the right against the Undo button. Menus in the Dark look are as wide as their longest entry.
+
+=> 3.6.0.68 - Addon Profiles: renamed, rename any, Core and Layered
+
+- "Sets" are now called Addon Profiles everywhere on the AddOns tab, and the drop-down at the bottom left reads "Profiles".
+- The first five addon profiles are Core Addon Profiles, then a line, then the Layered Addon Profiles (6 to 25 and your class). Tick any or all of them in the drop-down: the addons turned on are every selected profile together plus anything you turned on by hand, and unticking a profile turns off only what no other profile or hand pick still wants (protected addons always stay on). Loading a profile, Enable All, Disable All and Undo still replace everything and clear the selection. Manage Addon Profiles at the bottom of the menu has the places (Save, Load, Add to current, Remove from current, Rename, Delete).
+- Rename now shows for every addon profile, a free place and your class one included (a named free place is kept, empty); names are up to 32 letters, not empty and not used twice in the same list. New: /pss acp profile ... select, deselect and rename.
+
 => 3.6.0.67 - Docs: next steps, addon profiles issues 175 to 177
 
 - Docs only: the addon manager's sets (3.6.0.66) tested fine; the next issues are written down (addon profiles, core and layered profiles). Nothing changes in the addon.

@@ -174,6 +174,11 @@ echo "$out" | grep -q "PASS macro retail" || fail=1
 echo "== addon manager"
 sh "$here/addons_phases.sh" "$work" || fail=1
 
+# Enabled components (issue 181): defaults, the Options section, each
+# component off and on, a simulated reload (components_phases.sh)
+echo "== enabled components"
+sh "$here/components_phases.sh" "$work" || fail=1
+
 # the new window's Libraries maths (3.4.0-dev005): pane numbers equal the
 # core's counts, slices, back / forward, throttle
 echo "== new window maths"
@@ -317,6 +322,10 @@ done
 # moves to PourSocialScore_Options and PourSocialScore_Logging (dev12 build vs
 # this one), each move prints one line (2.0.1 to 2.0.17 saves have no shared
 # block log to move), and the next login moves nothing
+# the checks about saved data (split, upgrades, forward, same saves) run as a
+# fresh install: the Enabled components at their defaults, so no option the
+# harness adds changes a count or a saved byte (issue 181; run.lua PSS_COMPONENTS)
+export PSS_COMPONENTS=none
 echo "== split"
 rm -rf "$work/src-prev"; mkdir -p "$work/src-prev"
 git archive c5c8296 | tar -x -C "$work/src-prev"
@@ -353,6 +362,7 @@ for sv in $splitsaves; do
 done
 
 # the saved log (3.2.0-dev007): one group per owner, every line comes back
+unset PSS_COMPONENTS
 echo "== saved log"
 PSS_NOTE="$work/savedlog.txt" PSS_PHASE=1 lua5.1 "$here/run.lua" . - "$work/savedlog.lua" "$here/check_savedlog.lua" 2>&1 | grep -E "PASS|FAIL|saved log:" > "$work/savedlog-1.txt"
 PSS_NOTE="$work/savedlog.txt" PSS_PHASE=2 lua5.1 "$here/run.lua" . "$work/savedlog.lua" - "$here/check_savedlog.lua" 2>&1 | grep -E "PASS|FAIL|was:|now:" >> "$work/savedlog-1.txt"
@@ -534,6 +544,7 @@ echo "$out" | grep -q "PASS own guild" || fail=1
 
 # upgrade record (3.0): a 2.0 save gets step 1 once with one chat line, the
 # next login prints nothing; a fresh save is stamped without a message
+export PSS_COMPONENTS=none
 echo "== upgrade record"
 echo 'print("steps=" .. M.PSS_UPGRADE_STEPS)' > "$work/steps.lua"
 steps=$(lua5.1 "$here/run.lua" . - - "$work/steps.lua" 2>&1 | sed -n 's/^steps=//p')
@@ -650,10 +661,10 @@ if [ -n "$PSS_REAL_SAVES" ]; then
 		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_filters.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS filters" || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_events.lua" 2>&1 | grep -v '^|cff')
+		out=$(PSS_COMPONENTS=addons,gfx lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_events.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS events" || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
+		out=$(PSS_COMPONENTS=addons,gfx lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | grep -E "PASS|FAIL"
 		echo "$out" | grep -q "PASS options" || fail=1
 		out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_upgrade_steps.lua" 2>&1 | grep -v '^|cff')
