@@ -968,8 +968,8 @@ function M.PSS_ChatFilters_Evaluate(ctx)
 		end
 		-- the sender's display name is only built for a hidden line
 		local from = M.Proper(M.addServer(ctx.author or _G.UNKNOWN))
+		-- FILTER_HISTORY_CHANGED (fired there) says the counts changed
 		AddToBlockHistory(filterNum, ctx, from, chNumber, chName)
-		M.Events.Fire("FILTERS_CHANGED")
 		return true, filterNum
 	end
 	if invert then

@@ -62,9 +62,17 @@ function ns.IsDark()
 	return ns.Skin() == "dark"
 end
 
--- The art of Blizzard's new Social window (12.x); a client without it
--- (Camelot) shows the Blizzard look when Modern is picked.
-local MODERN_ART = { "128-RedButton-Left", "common-button-tertiary-normal", "common-button-tertiary-pressed", "friends-card-default", "perks-divider-short", "checkbox-minimal", "checkmark-minimal", "common-searchbar-a" }
+-- The art of Blizzard's new Social window (12.x), every atlas Modern draws;
+-- a client without one of them (Camelot) shows the Blizzard look when
+-- Modern is picked.
+local MODERN_ART = {
+	"128-RedButton-Left", "128-RedButton-Left-Pressed", "128-RedButton-Left-Disabled",
+	"_128-RedButton-Center", "_128-RedButton-Center-Pressed", "_128-RedButton-Center-Disabled",
+	"128-RedButton-Right", "128-RedButton-Right-Pressed", "128-RedButton-Right-Disabled",
+	"128-RedButton-Highlight",
+	"common-button-tertiary-normal", "common-button-tertiary-pressed", "friends-card-default", "perks-divider-short",
+	"checkbox-minimal", "checkmark-minimal", "checkmark-minimal-disabled", "common-searchbar-a", "common-searchbar-icon-a",
+}
 
 function ns.HasModernArt()
 	if modernArt == nil then

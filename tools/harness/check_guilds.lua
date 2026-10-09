@@ -398,6 +398,15 @@ if hk then
 	gp.toggle._scripts.OnClick(gp.toggle)
 	H.RunTimers()
 	check(M.PSS_ManagedGroupActive(hk) == was, "rule toggle back")
+	-- (3.4.1.44, G26) the rule switched on the Chat Filters tab: the rows'
+	-- dim follows
+	M.PSS_SetManagedGroupActive(hk, not was)
+	H.RunTimers()
+	page.refresh()
+	local g1 = V.rows.groups and V.rows.groups[hk] and V.rows.groups[hk][1]
+	check(g1 and (g1.groupOn and true or false) == (not was), "rule switched on the Chat Filters tab: the rows keep the old dim")
+	M.PSS_SetManagedGroupActive(hk, was)
+	H.RunTimers()
 	local open0 = M.PSS_GuildGroupOpen(hk)
 	gp.open._scripts.OnClick(gp.open)
 	check(M.PSS_GuildGroupOpen(hk) ~= open0, "Expand / Collapse")

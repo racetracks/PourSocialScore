@@ -469,7 +469,7 @@ ns.Listen("FILTERS_CHANGED", function()
 	V.dirty = true
 	if queued or not (page and page:IsVisible()) then return end
 	-- one redraw however many changes arrive in a frame (an import adds
-	-- many filters at once, and every blocked line fires it)
+	-- many filters at once)
 	queued = true
 	C_Timer.After(0, function()
 		queued = false
@@ -477,13 +477,12 @@ ns.Listen("FILTERS_CHANGED", function()
 	end)
 end)
 
--- a blocked line: the counts and the history, at most 4 times a second
+-- a blocked line: the order (the Blocked column), the counts and the
+-- history, at most 4 times a second
 local redrawCounts = M.PSS_Throttle(function()
-	if page and page:IsVisible() then
-		list:Redraw()
-		ns.ShowFilterDetail()
-	end
+	if page and page:IsVisible() then Refresh() end
 end)
 ns.Listen("FILTER_HISTORY_CHANGED", function()
+	V.dirty = true
 	if page and page:IsVisible() then redrawCounts() end
 end)

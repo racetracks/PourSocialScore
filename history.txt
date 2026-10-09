@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.44 - F2: Chat Filters redraw, guild rule dim, Dark menu height, Modern art check
+
+- Chat Filters tab: with the tab open while chat filters block lines, the list and the pane now redraw at most 4 times a second instead of on every blocked line. The Blocked column still counts up and still re-sorts.
+- Guilds tab: turning a default guild list's rule (for example Managed Communities) on or off on the Chat Filters tab now updates the guild rows (dimmed while the rule is off) the next time you look at the Guilds tab. Before, they kept the old state until something else changed.
+- Dark look: right-click menus show every entry up to 400 pixels tall (as Blizzard's menus do in Modern and Classic), so "Remove Player" no longer needs the mouse wheel, and the menu is as wide as its longest entry, including entries further down.
+- Modern look: the check for Blizzard's new Social window art now covers every piece Modern draws (the red button's middle, right end and its pressed, disabled and highlight art, the greyed-out tick and the search icon). A client missing any of them shows the Classic look instead of empty art.
+
 => 3.4.1.43 - Docs: F1 marked merged; later builds renumbered
 
 - No change to the addon: project notes only (F1 recorded as merged, and the planned build numbers for the rest of the project written down).

@@ -109,6 +109,26 @@ local before = calls
 list.spec.click(list.rows[1], 1, "RightButton")
 check(calls == before and _G.PSS_Menu and _G.PSS_Menu:IsShown(), "Dark did not open our menu list")
 if _G.PSS_Menu then _G.PSS_Menu:Hide() end
+-- (3.4.1.44, G27) a right-click menu up to 400 tall shows every entry (the
+-- player row menu is 237 with a guild and an expiry), as wide as its
+-- longest entry, the last one included
+do
+	local long = "The longest entry of this menu, the last one"
+	ui.ContextMenu(list.rows[1], function(m)
+		m:Title("Title")
+		m:Divider()
+		for i = 1, 14 do m:Button("Entry " .. i, function() end) end
+		m:Divider()
+		m:Button(long, function() end)
+	end)
+	local pm, n = _G.PSS_Menu, 0
+	for _, sl in ipairs(pm and pm.slots or {}) do
+		if sl:IsShown() then n = n + 1 end
+	end
+	check(n == 18 and not pm.thumb:IsShown(), "Dark right-click menu cut short: " .. n .. " of 18 entries shown")
+	check(pm:GetWidth() >= #long * 6 + 28, "Dark right-click menu narrower than its last entry")
+	pm:Hide()
+end
 M.PSS_SetOpt("uiSkin", "global", 2)
 
 ------------------------------------------------------------------------
