@@ -1,15 +1,22 @@
 {
-	"latestRelease": "3.4.2.54",
+	"latestRelease": "3.5.0.62",
 	"preReleases": [
-		{ "version": "3.4.3.55", "pr": 151 },
-		{ "version": "3.5.0.56", "pr": 153 },
-		{ "version": "3.5.0.57", "pr": 154 },
-		{ "version": "3.5.0.58", "pr": 155 },
-		{ "version": "3.5.0.59", "pr": 156 },
-		{ "version": "3.5.0.60", "pr": 157 },
-		{ "version": "3.5.0.61", "pr": 158 }
 	],
 	"releases": [
+		{
+			"version": "3.5.0.62",
+			"pr": 158,
+			"previous": "3.4.2.54",
+			"preReleases": [
+				{ "version": "3.4.3.55", "pr": 151 },
+				{ "version": "3.5.0.56", "pr": 153 },
+				{ "version": "3.5.0.57", "pr": 154 },
+				{ "version": "3.5.0.58", "pr": 155 },
+				{ "version": "3.5.0.59", "pr": 156 },
+				{ "version": "3.5.0.60", "pr": 157 },
+				{ "version": "3.5.0.61", "pr": 158 }
+			]
+		},
 		{
 			"version": "3.4.2.54",
 			"pr": 150,

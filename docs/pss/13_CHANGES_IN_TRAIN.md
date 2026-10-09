@@ -1,4 +1,4 @@
-# PourSocialScore: changes in train (state at release 3.4.1.53)
+# PourSocialScore: changes in train (state at release 3.5.0.62)
 
 **What this is.** What the core uplift changed and what is still open, so a later session (Claude or GPT) can tell shipped from open. Read it with the code map (scratch `docs/latest/code-map/`, https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/docs/latest/code-map). The design and decisions are in `10_CORE_UPLIFT.md` (scratch `docs/latest/core-uplift/`); per-stage notes of the combined build in `reference/combined-3.4.1.52/`. Where this file and the plan differ, the plan wins; where either differs from the code, the code wins. Refreshed at each full release.
 
@@ -6,8 +6,8 @@
 
 | Item | State |
 | --- | --- |
-| Release | **3.4.1.53**, live (PR #143, 2026-10-09); closes the core uplift. Previous release 3.4.0.29 |
-| Project | Graphics settings (`/pss gfx`, Camelot), line 3.5.0, opened by 3.5.0.56 (docs only); design on scratch `docs/latest/graphics-settings/`; 3.5.0.57 builds stages 1 to 3; graphics settings tested fine on Camelot (2026-10-09) and ready for the release; the Macro Helper's macros are tracked in issue #159. The Macro Helper (`/pss macro`, Camelot) is built in 3.5.0.61, awaiting the author's test (design and plan on scratch `docs/latest/macro-helper/`); its polish takes the next free build. Release 3.4.2.54 (PR #150) is docs only, no change in game |
+| Release | **3.5.0.62**, Graphics settings and Macro Helper (PR #158, 2026-10-09); the core uplift closed at 3.4.1.53 (PR #143). Previous release 3.4.2.54 |
+| Line 3.5.0 | Graphics settings (`/pss gfx`, built 3.5.0.57, tested fine on Camelot 2026-10-09) and the Macro Helper framework (`/pss macro`, built 3.5.0.61) released in 3.5.0.62; designs on scratch `docs/latest/graphics-settings/` and `docs/latest/macro-helper/`. Next: the author's macros, drip-fed from issue #159 (one build per ask) |
 | Lines 3.4.2, 3.4.3 | Not used: their stages (P1 to P6, W1 to W4) shipped inside 3.4.1.52 (decision 28, a one-time override, 02 section 12) |
 
 Decided not to change: identity stays the lowercase `name-realm` key (no ID generator, decision 2); realm display spelling stays (decision 13 reversed); no new SavedVariables files; the three looks and the window's layout stay.
