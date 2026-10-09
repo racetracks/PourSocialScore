@@ -7,9 +7,9 @@
 | Item | State on 2026-10-08 |
 | --- | --- |
 | Live release | **3.4.0.29** (full; the new PSS window in three looks; mirrored to `racetracks/Pour-Social-Score`) |
-| Main | 3.4.1.43 (docs build, PR #134; F1 merged in 3.4.1.42, PR #131); F2 3.4.1.44 in PR #135 |
+| Main | 3.4.1.44 (F2, PR #135; F1 merged in 3.4.1.42, PR #131); next U1 3.4.1.45 |
 | Current project | **Core uplift**, locked 2026-10-08, three version lines |
-| Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done), window fixes F2 (PR #135); next the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
+| Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done), window fixes F2 (done); next the upgrade registry U1, the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
 | Line 3.4.2 | Builds 3.4.2.52 to 3.4.2.58 (release). Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
 | Line 3.4.3 | Builds 3.4.3.59 to 3.4.3.63 (release). Window tidy: dead GUI names, logic moved from GUI to Libraries, kit functions, redraw cost |
 | Build numbers | `X.Y.Z.B`; B never resets; every build (stage, fix, release) takes the next one |
@@ -34,7 +34,7 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | Fix 2 | 3.4.1.41 | The same pane: 3.4.1.40 did not take in game; the lines get a set width and their wrapped height (`FitLines`) | Yes | Merged (#130) |
 | F1 | 3.4.1.42 | N40 expiry applied, N41 hooks gated by option, N42 talent links, N45 Import Replace keeps shipped rules, N46 listener errors reported, N47 group warning list, N48 `/pss list` nil note | Yes | Merged (#131) |
 | Docs | 3.4.1.43 | F1 marked merged; later builds renumbered and the 3.4.2 / 3.4.3 builds set (decision 24); docs only | No | Merged (#134) |
-| F2 | 3.4.1.44 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | PR #135 |
+| F2 | 3.4.1.44 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | Merged (#135) |
 | U1 | 3.4.1.45 | Upgrade step registry, invisible (step 1 split and tagged, `RETIRED`, counts, version compare) | No | |
 | U2 | 3.4.1.46 | Upgrade report printed once per update (issue #45) | Once per update | |
 | U3 | 3.4.1.47 | Forward compatibility: `M.PSS_SCHEMA`, tolerant readers, downgrade line, unusable rules kept and reported, `/pss export unused`, export format version | Only when a rule cannot be used | |

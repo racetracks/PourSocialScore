@@ -140,7 +140,7 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
 - **G21 and G26:** the Filters tab's redraw is throttled, and the guild rows' rule dim refreshes on `FILTERS_CHANGED`.
 - **G27:** Dark right-click menus grow to their content, capped at 400 px (Dan, 2026-10-09; Blizzard's menu scrolls at the same height).
 - **G28:** the Modern art check covers every atlas Modern draws.
-- **Done in F2 (3.4.1.44, PR #135; Dan, 2026-10-09: the Blocked sort still follows, the cap is 400):**
+- **Done in F2 (3.4.1.44, merged, PR #135; in-game checks pass; Dan, 2026-10-09: the Blocked sort still follows, the cap is 400):**
   - G21: core `PSS_ChatFilters.lua` no longer fires `FILTERS_CHANGED` after a block. `PSS_Filters.lua` sets `V.dirty` on `FILTER_HISTORY_CHANGED` and runs `Refresh` (re-sort and pane) through the existing 4-a-second throttle.
   - G26: `PSS_Guilds.lua` listens to `FILTERS_CHANGED` (`Changed`); the three `V.dirty = true` lines after the rule toggles are gone (G5's rule-toggle part).
   - G27: `PSS_Menu.lua` `SIZES` has a `cap` per size: 200 for a drop-down's list, 400 for a compact right-click menu (`MAX_H` is gone). `ns.ContextMenu` measures its width over every entry with one measuring FontString (`menu.measure`).
@@ -200,7 +200,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | Fix 2 | 3.4.1.41 | The same pane: 3.4.1.40's lines kept two side anchors, which hold a FontString one line tall in game, so the wrap still overlapped (Dan's screenshot, 2026-10-08). The four lines get a set width (`DETAIL_W - 20`) and `FitLines` sets each one's height from `GetStringHeight` on every show and repaint | Yes | `tui_compare.sh`: only the four lines' size and anchors, in all three looks; in game in all three looks | Merged, PR #130 (works in game) |
 | F1 | 3.4.1.42 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | Merged, PR #131 (in-game checks 4 and 7 later: #132, #133) |
 | Docs | 3.4.1.43 | F1 marked merged; every later stage moves up one build and the 3.4.2 and 3.4.3 stages get their expected builds (decision 24); docs only | No | `check_rules.sh` | Merged, PR #134 |
-| F2 | 3.4.1.44 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | PR #135 |
+| F2 | 3.4.1.44 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | Merged, PR #135 (in-game checks pass, Dan, 2026-10-09) |
 | U1 | 3.4.1.45 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
 | U2 | 3.4.1.46 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | |
 | U3 | 3.4.1.47 | Forward compatibility (2.3): `M.PSS_SCHEMA` and its rules check, tolerant readers, the downgrade line, unusable rules reported and kept, `/pss export unused`, the export format version | Yes (only when a rule cannot be used) | Planted newer fields survive; a planted unknown filter tag is reported, kept and exported; a downgrade case | |
