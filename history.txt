@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.5.0.56 - Graphics settings design and next steps (docs only)
+
+- No change in game. Opens line 3.5.0 for the next feature, graphics settings for Camelot (/pss gfx: export, import, keep or revert after a reload, and the last 5 sets kept). The project docs point a fresh session to its design and implementation plan on scratch.
+
 => 3.4.3.55 - Docs: release and technical notes as context
 
 - No change in game. The project docs now point to the release notes, the summary of changes and the technical notes as context for any change or regression check, and list what each full release updates.
