@@ -46,3 +46,7 @@ local db = PourSocialScoreDB
 for _ = 1, cap + 50 do History.Add("p:bench", nil, { ts = 1, cat = "whisper" }) end
 run("outbox", function(i) History.Add("p:bench", nil, { ts = 1, cat = "whisper" }) end)
 print(("BENCH outbox size %d (cap %d)"):format(#rawget(db, "outbox") or {}, cap))
+-- the decision alone (no counting, no history line)
+local octx = {}
+run("d-listed", function(i) M.PSS_PersonHits("Listed-Realm", "whisper", octx) end)
+run("d-guild", function(i) M.PSS_PersonHits("Gmember-Realm", "whisper", octx) end)

@@ -264,8 +264,14 @@ local function guildBlock(g)
 			world = on,
 		}
 	end
-	for _, c in ipairs(EXCL_CATS) do g.block[c] = g.block[c] == true end
-	return g.block
+	-- written only when a flag is not yet a boolean (P4, N28)
+	local b = g.block
+	for i = 1, #EXCL_CATS do
+		local c = EXCL_CATS[i]
+		local v = b[c]
+		if v ~= true and v ~= false then b[c] = false end
+	end
+	return b
 end
 M.PSS_GuildBlock = guildBlock
 

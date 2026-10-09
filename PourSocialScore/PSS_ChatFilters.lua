@@ -296,14 +296,18 @@ function M.PSS_IsGuildRuleFilter(index)
 end
 
 local groupIndexCache = {}
+local groupIds = {}		-- group key -> its filter id (P4, N28: not a walk per line)
 local function groupFilterIndex(groupKey)
 	local db = PourSocialScoreDB
 	if not db or not db.filterID then return nil end
-	local id
-	for _, grp in ipairs((addon.MANAGED and addon.MANAGED.groups) or {}) do
-		if grp.key == groupKey then id = grp.id break end
+	local id = groupIds[groupKey]
+	if not id then
+		for _, grp in ipairs((addon.MANAGED and addon.MANAGED.groups) or {}) do
+			if grp.key == groupKey then id = grp.id break end
+		end
+		if not id then return nil end
+		groupIds[groupKey] = id
 	end
-	if not id then return nil end
 	local i = groupIndexCache[id]
 	if i and db.filterID[i] == id then return i end
 	for n = 1, #db.filterID do
