@@ -277,6 +277,15 @@ function stub.Fire(event, ...)
 	return #list
 end
 
+-- how many frames are registered for an event (nothing is fired)
+function stub.Listeners(event)
+	local n = 0
+	for f in pairs(eventFrames) do
+		if f._events[event] then n = n + 1 end
+	end
+	return n
+end
+
 -- run every queued C_Timer callback (and the ones they queue), and OnUpdate once
 function stub.RunTimers(maxRounds)
 	for _ = 1, maxRounds or 20 do

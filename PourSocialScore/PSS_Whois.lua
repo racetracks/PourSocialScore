@@ -104,12 +104,13 @@ local function send(filter)
 	return false
 end
 
-local finish
+local finish, applyEvents
 
 function Whois.Request(req)
 	if not send(req.filter) then return false end
 	req.startedAt = GetTime()
 	pending = req
+	applyEvents()
 
 	-- after the /who: cooldown on the next frame, give up if nobody answers
 	C_Timer.After(0, Whois.StartCooldown)
@@ -161,6 +162,7 @@ finish = function(numWhos, total, how)
 	local req = pending
 	pending = nil
 	inAnswer = false
+	applyEvents()
 	call("finish", req, numWhos, total, how)
 	if req and req.onFinish then pcall(req.onFinish, req, numWhos, total, how) end
 	M.Events.Fire("WHOIS_ANSWERED", req)
@@ -281,20 +283,38 @@ local function onChatLine(msg)
 	end
 end
 
+-- The answer events are heard only while a /who of ours is waiting
+-- (pending), or while the guild source wants /who results typed by hand
+-- (Whois.SetCapture; it asks only when a guild rule or listed player can
+-- use them). Nothing is registered otherwise (core uplift P3, 3.4.1.52).
 local frame = CreateFrame("Frame")
-frame:RegisterEvent("PLAYER_LOGIN")
 frame:SetScript("OnEvent", function(self, event, arg1)
-	if event == "PLAYER_LOGIN" then
-		self:UnregisterEvent("PLAYER_LOGIN")
-		self:RegisterEvent("WHO_LIST_UPDATE")
-		self:RegisterEvent("CHAT_MSG_SYSTEM")
-	elseif event == "CHAT_MSG_SYSTEM" then
+	if event == "CHAT_MSG_SYSTEM" then
 		-- /who results printed in chat (Who window closed)
 		pcall(onChatLine, arg1)
 	elseif event == "WHO_LIST_UPDATE" then
 		pcall(readWhoList)
 	end
 end)
+
+local capture, listening = false, false
+applyEvents = function()
+	local on = pending ~= nil or capture
+	if on == listening then return end
+	listening = on
+	if on then
+		frame:RegisterEvent("WHO_LIST_UPDATE")
+		frame:RegisterEvent("CHAT_MSG_SYSTEM")
+	else
+		frame:UnregisterEvent("WHO_LIST_UPDATE")
+		frame:UnregisterEvent("CHAT_MSG_SYSTEM")
+	end
+end
+
+function Whois.SetCapture(on)
+	capture = on == true
+	applyEvents()
+end
 
 ------------------------------------------------------------------------
 -- names used across the addon

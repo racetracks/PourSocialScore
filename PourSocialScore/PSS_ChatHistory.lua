@@ -262,15 +262,33 @@ function M.PSS_LoadLogging()
 end
 
 local loadQueued = false
-local function loadWhenQuiet()
-	if ready then loadQueued = false return end
+local quietFrame
+local QUIET_EVENTS = { "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA" }
+local function watchQuiet(on)
+	if not quietFrame then
+		if not on then return end
+		quietFrame = CreateFrame("Frame")
+		quietFrame:SetScript("OnEvent", function() History.LoadWhenQuiet() end)
+	end
+	for i = 1, #QUIET_EVENTS do
+		if on then quietFrame:RegisterEvent(QUIET_EVENTS[i]) else quietFrame:UnregisterEvent(QUIET_EVENTS[i]) end
+	end
+end
+
+-- Loads Logging at the first quiet moment (out of combat, not in an
+-- instance). A busy moment waits for an event that can end it; there is no
+-- timer (3.4.1.52, baseline 02 C15).
+function History.LoadWhenQuiet()
+	if ready then loadQueued = false; watchQuiet(false) return end
 	if (InCombatLockdown and InCombatLockdown()) or (IsInInstance and IsInInstance()) then
-		C_Timer.After(30, loadWhenQuiet)
+		watchQuiet(true)
 		return
 	end
 	loadQueued = false
+	watchQuiet(false)
 	M.PSS_LoadLogging()
 end
+local function loadWhenQuiet() History.LoadWhenQuiet() end
 
 local attached = setmetatable({}, { __mode = "k" })
 function History.Log()
