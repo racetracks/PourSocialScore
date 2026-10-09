@@ -69,6 +69,7 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 | The PSS window (3.4.0) | Done, v3.4.0.29 (09; plan on scratch `docs/latest/ui uplift/`) |
 | Core uplift (3.4.1) | Done, v3.4.1.53 (10; design on scratch `docs/latest/core-uplift/`) |
 | Graphics settings (3.5.0, `/pss gfx`, Camelot) | Built in 3.5.0.57 (stages 1 to 3), awaiting the author's test (scratch `docs/latest/graphics-settings/`) |
+| Macro helper (3.5.0, `/pss macro`, Camelot) | Next step: stage 1 as 3.5.0.61; design and plan on scratch `docs/latest/macro-helper/` |
 | Dashboard tab | Paused, branch `claude/project-thread-pa7y7o` |
 | Global moderation ideas (sync, curated lists, scoring) | Not started |
 
