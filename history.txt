@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.3.55 - Docs: release and technical notes as context
+
+- No change in game. The project docs now point to the release notes, the summary of changes and the technical notes as context for any change or regression check, and list what each full release updates.
+
 => 3.4.2.54 - Project docs trimmed to the current state
 
 - No change in game since 3.4.1.53: the addon is the same build. The project documentation was trimmed to how the addon works today, without version history.
