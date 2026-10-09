@@ -436,6 +436,48 @@ function M.PSS_TickBlizzardIgnored()
 	return n
 end
 
+-- Entries listed for their expiry's number of days or more are removed
+-- (N40; readme: "entries remove themselves after N days"): at login after
+-- the upgrades, when combat ends (at most once a day), when the window or
+-- /pss list opens, and on /pss sync. Backwards, by position, so a removal
+-- never shifts an entry not looked at yet; an NPC or server entry goes too.
+-- One chat line names them unless quiet. The number removed.
+local expireDay = nil
+function M.PSS_ExpireEntries(quiet, daily)
+	local db = PourSocialScoreDB
+	if not (db and db.ignoreList and db.expList and db.dateList) then return 0 end
+	local today = M.dateToJulianDate(date("%d %b %Y"))
+	if daily and expireDay == today then return 0 end
+	expireDay = today
+	local gone
+	for count = #db.ignoreList, 1, -1 do
+		local exp = tonumber(db.expList[count]) or 0
+		if exp > 0 then
+			local added = M.dateToJulianDate(db.dateList[count])
+			if added > 0 and today - added >= exp then
+				local name = db.ignoreList[count]
+				local before = #db.ignoreList
+				if db.typeList[count] == "player" then
+					M.PSS_DelIgnore(count, true, true)
+				else
+					RemoveFromList(count)
+				end
+				if #db.ignoreList < before then
+					gone = gone or {}
+					gone[#gone + 1] = tostring(name)
+				end
+			end
+		end
+	end
+	if not gone then return 0 end
+	V.needSorted = true
+	if not quiet then
+		M.ShowMsg(("Expired: %d entr%s removed (%s)."):format(#gone, #gone == 1 and "y" or "ies", table.concat(gone, ", ")))
+	end
+	M.Events.Fire("PLAYERS_CHANGED", true)
+	return #gone
+end
+
 function M.SyncIgnoreList (silent)
 
 	if silent == nil then
@@ -492,11 +534,9 @@ function M.SyncIgnoreList (silent)
 		PourSocialScoreDB.imported = true
 	end
 
-	-- first remove broken and expired entries. Backwards, by position, so a
-	-- removal never shifts an entry we have not looked at yet and an entry
-	-- that is not a player (NPC / server) is removed too. (2.0.8 restarted the
-	-- loop after each expiry and could only remove players, so an expired NPC
-	-- or server entry made it loop forever.)
+	-- first remove broken entries. Backwards, by position, so a removal
+	-- never shifts an entry we have not looked at yet. Expired ones go
+	-- through M.PSS_ExpireEntries (N40).
 
 	for count = #PourSocialScoreDB.ignoreList, 1, -1 do
 		local entry = PourSocialScoreDB.ignoreList[count]
@@ -505,18 +545,9 @@ function M.SyncIgnoreList (silent)
 		if tmp == "" then
 			M.debugMsg ("Blank character name found in position " .. count)
 			RemoveFromList(count)
-		else
-			local exp = tonumber(PourSocialScoreDB.expList[count]) or 0
-			if exp > 0 and M.daysFromToday(PourSocialScoreDB.dateList[count]) >= exp then
-				M.debugMsg ("Removing " .. entry .. " due to expiration date")
-				if PourSocialScoreDB.typeList[count] == "player" then
-					M.PSS_DelIgnore(count, true)
-				else
-					RemoveFromList(count)
-				end
-			end
 		end
 	end
+	M.PSS_ExpireEntries(silent)
 
 	-- find account ignores that aren't on Pour Social Score and do things
 	-- (backwards: removing an entry moves the later ones up a place)
@@ -829,9 +860,10 @@ end
 --                    NPC or server entry at that position is removed too.
 --   isPSS + name   : the player with that name.
 --   otherwise      : a Blizzard ignore list position or a name.
-M.PSS_DelIgnore = function(idxpos, isPSS)
+--   quiet          : no chat line (expiry says it once for all, N40)
+M.PSS_DelIgnore = function(idxpos, isPSS, quiet)
 
-	local okDisplay = true
+	local okDisplay = not quiet
 
 	if (V.PSS_InSync == true and M.PSS_Opt("chatmsg") == false) then
 		okDisplay = false

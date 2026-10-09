@@ -303,6 +303,13 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_unitmenu.lua" 2>&1 | grep -v '^|
 echo "$out"
 echo "$out" | grep -q "PASS unitmenu" || fail=1
 
+# core uplift F1 (3.4.1.42): expiry, option hooks, talent tag, Replace keeps
+# the shipped rules, listener errors, the group warning, /pss list
+echo "== fixes"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_fixes.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS fixes" || fail=1
+
 # your own guild (3.2): a guild rule never blocks it, a player entry does
 echo "== own guild"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_ownguild.lua" 2>&1 | grep -v '^|cff')

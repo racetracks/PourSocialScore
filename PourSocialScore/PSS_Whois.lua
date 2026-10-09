@@ -139,7 +139,7 @@ local function call(stage, ...)
 	for _, h in ipairs(listeners) do
 		if h[stage] then
 			local ok, err = pcall(h[stage], ...)
-			if not ok and M.debugMsg then M.debugMsg("PSS whois " .. stage .. ": " .. tostring(err)) end
+			if not ok then M.PSS_NoteListenerError("whois " .. stage, err) end
 		end
 	end
 end

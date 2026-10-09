@@ -2350,6 +2350,23 @@ cleanupLegacyGuildPlayers = function()
 	PourSocialScoreDB.guildPlayerCleanupV3 = true
 end
 
+-- Import with Replace (N45): every guild rule goes except the shipped
+-- ones (their lists, switches and member changes stay), with their recent
+-- counts; the shipped rules are made sure of and the lookups rebuilt.
+function M.PSS_ClearGuildRules()
+	ensureDB()
+	local data = PourSocialScoreDB.guildData
+	for key in pairs(data) do
+		if not isStaticGuild(key) then
+			data[key] = nil
+			History.ForgetRecent(History.GuildKey(key))
+		end
+	end
+	ensureManagedRules()
+	if M.PSS_MarkGuildIndexDirty then M.PSS_MarkGuildIndexDirty() end
+	if M.PSS_TidyBlockHistory and History.Loaded() then M.PSS_TidyBlockHistory() end
+end
+
 -- Chat output for the Guild Ignore List ("PSS: ...").
 local function pssSay(msg)
 	M.ChatMsg("PSS: " .. msg)

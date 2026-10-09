@@ -323,12 +323,13 @@ function M.PSS_ApplyImport(data, mode, sections)
 	end
 
 	if sections.guilds and type(data.guilds) == "table" then
-		if replace then db.guildData = {} end
+		if replace then M.PSS_ClearGuildRules() end
 		local addedG, addedM = 0, 0
 		for _, ge in ipairs(data.guilds) do
 			if type(ge) == "table" and type(ge.name) == "string" and ge.name ~= "" then
-				local key = M.PSS_CanonGuild(ge.name)
-				local existed = db.guildData[key] ~= nil
+				-- the key guild rules are stored under (N45)
+				local key = M.PSS_NormalizeGuild(ge.name)
+				local existed = key ~= nil and db.guildData[key] ~= nil
 				local g = M.PSS_GetGuild(ge.name)
 				if g then
 					if not existed then
