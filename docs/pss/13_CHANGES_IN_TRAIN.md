@@ -1,4 +1,4 @@
-# PourSocialScore: changes in train (2026-10-08, main 3.4.1.38)
+# PourSocialScore: changes in train (2026-10-09, main 3.4.1.41)
 
 **What this is.** A context document: what PourSocialScore is about to change, where, and why, so a later session (Claude or GPT) can tell the shipped features apart from the planned ones. Read it with `12_CODE_MAP.md`, which describes the code as it is on main at **3.4.1.38**. The source of truth stays the locked plan, `docs/pss/10_CORE_UPLIFT.md` in the addon repo (scratch `docs/latest/core-uplift/00_CORE_UPLIFT.md`). Where this file and the plan differ, the plan wins.
 
@@ -7,7 +7,7 @@
 | Item | State on 2026-10-08 |
 | --- | --- |
 | Live release | **3.4.0.29** (full; the new PSS window in three looks; mirrored to `racetracks/Pour-Social-Score`) |
-| Main | 3.4.1.38 (docs build, PR #127; N3 merged in 3.4.1.37) |
+| Main | 3.4.1.41 (Fix 2, PR #130); F1 3.4.1.42 on PR #131 |
 | Current project | **Core uplift**, locked 2026-10-08, three version lines |
 | Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); next the detail pane fix, then bug fixes, the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.49 |
 | Line 3.4.2 | Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
@@ -30,9 +30,9 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | N3 | 3.4.1.37 | Builder fix, shipped lists rebuilt (7634 to 7438 entries) | Lists | Merged (#126) |
 | Docs | 3.4.1.38 | Harness notes for a list rebuild; docs only | No | PR #127 |
 | Docs | 3.4.1.39 | This code map and changes in train; docs only | No | PR #128 |
-| **Fix** | 3.4.1.40 | Guilds tab detail pane: a wrapped line pushes the lines and pies below it down (decision 23) | Yes | **Next** |
-| **Fix 2** | 3.4.1.41 | The same pane: 3.4.1.40 did not take in game; the lines get a set width and their wrapped height (`FitLines`) | Yes | |
-| F1 | 3.4.1.42 | N40 expiry applied, N41 hooks gated by option, N42 talent links, N45 Import Replace keeps shipped rules, N46 listener errors reported, N47 group warning list, N48 `/pss list` nil note | Yes | |
+| Fix | 3.4.1.40 | Guilds tab detail pane: a wrapped line pushes the lines and pies below it down (decision 23) | Yes | Merged (#129), did not take in game |
+| Fix 2 | 3.4.1.41 | The same pane: 3.4.1.40 did not take in game; the lines get a set width and their wrapped height (`FitLines`) | Yes | Merged (#130) |
+| F1 | 3.4.1.42 | N40 expiry applied, N41 hooks gated by option, N42 talent links, N45 Import Replace keeps shipped rules, N46 listener errors reported, N47 group warning list, N48 `/pss list` nil note | Yes | PR #131 |
 | F2 | 3.4.1.43 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | |
 | U1 | 3.4.1.44 | Upgrade step registry, invisible (step 1 split and tagged, `RETIRED`, counts, version compare) | No | |
 | U2 | 3.4.1.45 | Upgrade report printed once per update (issue #45) | Once per update | |
@@ -110,15 +110,15 @@ Use with `12_CODE_MAP.md` to find the file.
 | N37 | `M.PSS_Validate` / `M.PSS_PrintValidation` resident in core (28.1 KB) | `PSS_Upgrade.lua` | P6 |
 | N38 | `REALM_PAIRS` / `M.prettyServer` resident in core (25.6 KB), only window uses it | `PSS_Globals.lua` | P6 |
 | N39 | Measured costs of L20 candidates plus new ones (`AddCapturedGuild` 21.1 KB, legacy import, one-time upgrades, ...); about 105 KB resident total | several core files | P6 |
-| N40 | Expiry never applied automatically (only `/pss sync`); readme says it is | `PourSocialScore.lua`, `PSS_PlayerIgnoreList.lua`, `PSS_Commands.lua` | F1 (decision 11: login, quiet event, list open) |
-| N41 | Menu / LFG hooks installed only if option on at login; bodies never recheck | `PSS_BlizzardUI.lua`, `PSS_Options.lua` | F1 |
-| N42 | Talent link converts to `[talent=N]`, which the filter language does not know | `PSS_FilterQuery.lua`, `PSS_ChatFilters.lua` | F1 |
+| N40 | Expiry never applied automatically (only `/pss sync`); readme says it is | `PourSocialScore.lua`, `PSS_PlayerIgnoreList.lua`, `PSS_Commands.lua` | F1 (decision 11: login, quiet event, list open); done in 3.4.1.42 (PR #131) |
+| N41 | Menu / LFG hooks installed only if option on at login; bodies never recheck | `PSS_BlizzardUI.lua`, `PSS_Options.lua` | F1; done in 3.4.1.42 (PR #131) |
+| N42 | Talent link converts to `[talent=N]`, which the filter language does not know | `PSS_FilterQuery.lua`, `PSS_ChatFilters.lua` | F1; done in 3.4.1.42 (PR #131) |
 | N43 | Custom filter history keyed by its text: edit orphans lines, Copy shares one owner | `PSS_ChatFilters.lua` | S3 (decision 3, integer id `nextFilterId`, history and recent on `f:<id>`) |
 | N44 | Realm guess in the dead N14 block: oldest chat match wins | `PSS_PlayerIgnoreList.lua` | Not in the table by id; goes with N14 (P1) per the appendix |
-| N45 | Import Replace on guilds wipes shipped rules until /reload; recent counts not forgotten; `existed` uses the wrong normaliser | `PSS_ImportExport.lua`, `PSS_GuildIgnoreList.lua` | F1 |
-| N46 | Listener and /who handler errors swallowed by the empty `debugMsg` | `PSS_Events.lua`, `PSS_Whois.lua` | F1 |
-| N47 | Group warning keeps everyone warned since joining, shows leavers again | `PourSocialScore.lua` | F1 |
-| N48 | `/pss list` errors on a nil note | `PSS_Commands.lua` | F1 |
+| N45 | Import Replace on guilds wipes shipped rules until /reload; recent counts not forgotten; `existed` uses the wrong normaliser | `PSS_ImportExport.lua`, `PSS_GuildIgnoreList.lua` | F1; done in 3.4.1.42 (PR #131) |
+| N46 | Listener and /who handler errors swallowed by the empty `debugMsg` | `PSS_Events.lua`, `PSS_Whois.lua` | F1; done in 3.4.1.42 (PR #131) |
+| N47 | Group warning keeps everyone warned since joining, shows leavers again | `PourSocialScore.lua` | F1; done in 3.4.1.42 (PR #131) |
+| N48 | `/pss list` errors on a nil note | `PSS_Commands.lua` | F1; done in 3.4.1.42 (PR #131) |
 
 ### 3.2 Window (appendix 02, G1 to G30)
 

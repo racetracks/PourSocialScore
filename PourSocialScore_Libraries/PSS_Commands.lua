@@ -39,6 +39,8 @@ local function OnOff (value)
 end
 
 local function ShowIgnoreList (param)
+	-- the list shown has no expired entries (N40)
+	M.PSS_ExpireEntries()
 	local days		= tonumber(param)
 	local sName		= ""
 
@@ -94,8 +96,11 @@ local function ShowIgnoreList (param)
 		if ok then
 			local str = "  (" .. key .. ") [" .. type.. "] " .. value .. " (" .. (PourSocialScoreDB.factionList[key] or "Unknown") .. ") " .. "[".. M.daysFromToday(PourSocialScoreDB.dateList[key]) .. " "..L["DAYS"] .. "]"
 
-			if PourSocialScoreDB.notes[key] ~= "" then
-				str = str .." (" .. PourSocialScoreDB.notes[key] .. ")"
+			-- older saves and the legacy import can have no note (N48);
+			-- (type is the entry's letter here, not the function)
+			local note = PourSocialScoreDB.notes[key]
+			if note ~= nil and note ~= "" then
+				str = str .." (" .. tostring(note) .. ")"
 			end
 
 			M.ShowMsg(str)
@@ -438,6 +443,8 @@ function M.PSS_SlashGuild (msg)
 		M.PSS_FilterAvailable and "registered" or "|cffff5555MISSING|r", stats.checked or 0, stats.personHits or 0, stats.hidden or 0,
 		#bySrc > 0 and table.concat(bySrc, ", ") or "-", stats.errors or 0, tonumber(PourSocialScoreDB.hiddenTotal) or 0))
 	if stats.lastError then gp("last error: " .. stats.lastError) end
+	local le = M.Events.errors
+	if le and le.count > 0 then gp(("listener errors: %d | last: %s"):format(le.count, tostring(le.last))) end
 	local gcs = M.PSS_GCState
 	if gcs then
 		local heap = (pcall(collectgarbage, "count") and collectgarbage("count") or 0) / 1024

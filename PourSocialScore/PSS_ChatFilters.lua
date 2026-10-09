@@ -558,7 +558,7 @@ local KNOWN_TAGS = {
 	["[word]"] = true, ["[contains]"] = true, ["[chname]"] = true, ["[channel]"] = true, ["[words]"] = true,
 	["[item]"] = true, ["[spell]"] = true, ["[achievement]"] = true, ["[icon]"] = true, ["[pet]"] = true,
 	["[link]"] = true, ["[trade]"] = true, ["[guild]"] = true, ["[outfit]"] = true, ["[journal]"] = true,
-	["[mount]"] = true, ["[community]"] = true, ["[nonlatin]"] = true,
+	["[mount]"] = true, ["[community]"] = true, ["[nonlatin]"] = true, ["[talent]"] = true,
 	["[cyrillic]"] = true,
 }
 
@@ -669,12 +669,12 @@ local ICON_CODES = { "{x}", "{star}", "{coin}", "{moon}", "{cross}", "{skull}", 
 
 -- One feature table (and its sub-tables), reused for every line: the
 -- result is only used while that line is checked.
-local Fbuf = { itemID = {}, spellID = {}, achieveID = {}, petID = {}, wordSet = {}, wordCount = 0 }
+local Fbuf = { itemID = {}, spellID = {}, achieveID = {}, petID = {}, talentID = {}, wordSet = {}, wordCount = 0 }
 local function clear(t) for k in pairs(t) do t[k] = nil end end
 
 local function analyse(chatStr)
 	local F = Fbuf
-	clear(F.itemID); clear(F.spellID); clear(F.achieveID); clear(F.petID)
+	clear(F.itemID); clear(F.spellID); clear(F.achieveID); clear(F.petID); clear(F.talentID)
 	F.talents, F.icons, F.words, F.chNumber, F.chName = 0, 0, nil, nil, nil
 	local pos1, pos2, pos3
 	-- links and colour codes are only present when there is a "|"
@@ -685,6 +685,7 @@ local function analyse(chatStr)
 			pos2 = find(chatStr, "|h|r", pos1 + 9, true)
 			if not pos2 then break end
 			F.talents = F.talents + 1
+			F.talentID[sub(chatStr, pos1 + 9, (find(chatStr, ":", pos1 + 9, true) or pos2) - 1)] = true
 			chatStr = sub(chatStr, 1, pos1 - 1) .. " " .. sub(chatStr, pos2 + 4, -1)
 		until false
 		repeat
@@ -791,6 +792,8 @@ local TAG = {
 	["[spell]"]		= function(F, d) if d == "" then return anyKey(F.spellID) end return hasKey(F.spellID, d) end,
 	["[achievement]"] = function(F, d) if d == "" then return anyKey(F.achieveID) end return hasKey(F.achieveID, d) end,
 	["[pet]"]		= function(F, d) if d == "" then return anyKey(F.petID) end return hasKey(F.petID, d) end,
+	-- the Chat Filters tab's link converter makes [talent=N] (N42)
+	["[talent]"]	= function(F, d) if d == "" then return F.talents > 0 end return hasKey(F.talentID, d) end,
 	["[icon]"]		= function(F, d) if d == "" then return F.icons > 0 end return F.icons >= (tonumber(d) or 0) end,
 	["[link]"]		= function(F) return anyKey(F.itemID) or anyKey(F.spellID) or anyKey(F.achieveID) or anyKey(F.petID)
 						or F.talents > 0 or F.hasJournal or F.hasGuild or F.hasTrade or F.hasOutfit or F.hasMount end,

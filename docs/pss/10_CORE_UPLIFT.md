@@ -128,6 +128,15 @@ Fix what players hit today, halve the always-loaded saved data, make every upgra
 - **N42:** talent links convert to a tag the filter language knows.
 - **N45:** Import with Replace on guilds keeps the shipped rules.
 - **N46 to N48:** listener errors are reported, the group warning list is fixed, and `/pss list` no longer hits a nil.
+- **Done in F1 (3.4.1.42):**
+  - N40: `M.PSS_ExpireEntries(quiet, daily)` (core `PSS_PlayerIgnoreList.lua`), the expiry loop out of `SyncIgnoreList`. It runs at login after `M.PSS_RunUpgradeData`, on `PLAYER_REGEN_ENABLED` (the quiet event; at most once a day, no timer), in `M.PSS_OpenUI` and the Friends dock (the list opens), in `/pss list` and in `/pss sync`. One chat line names what it removed (`M.PSS_DelIgnore(i, true, quiet)`). Dan's real saves have no ignore list entries, so nothing changes on them.
+  - N41: the four hook bodies return early when `useUnitHacks` / `useLFGHacks` is off. The hooks are installed at login or on the first enable (`OPTION_CHANGED`; the Group Finder waiter re-arms). The labels lost "(Requires reload to take effect)". The reload popup (N3) stays dead; P1 deletes it (Dan, 2026-10-09: "remove in p1").
+  - N42: `[talent]` / `[talent=N]` in `KNOWN_TAGS` and `TAG`; `analyse` collects `F.talentID`.
+  - N45: `M.PSS_ClearGuildRules()` (core `PSS_GuildIgnoreList.lua`) replaces `db.guildData = {}` in Import Replace. Shipped rules stay; the others go with their recent counts; `ensureManagedRules`; index dirty. `existed` uses `M.PSS_NormalizeGuild`.
+  - N46: `M.PSS_NoteListenerError(where, err)` (core `PSS_Events.lua`; `M.Events.errors`) for `Events.Fire` and the /who handlers: once per name in chat, counted in `/pssguild status`.
+  - N47: `V.groupWarning` is rebuilt from the roster on each check; a warning only for someone new.
+  - N48: `/pss list` reads the note safely.
+  - Harness: `tools/harness/check_fixes.lua` ("== fixes" in `validate_all.sh`). Measured: core +2574 bytes compiled, +6.1 KB resident after login (harness). `tui_compare.sh`: only the two labels, in all three looks.
 - **G21 and G26:** the Filters tab's redraw is throttled, and the guild rows' rule dim refreshes on `FILTERS_CHANGED`.
 - **G27:** Dark menus grow to their content, capped at the screen height.
 - **G28:** the Modern art check covers every atlas Modern draws.
@@ -182,8 +191,8 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 | Docs | 3.4.1.38 | `07_HARNESS.md`: checks after a shipped list rebuild (missed N3's merge); N3 marked merged; docs only | No | `check_rules.sh` | Merged, PR #127 |
 | Docs | 3.4.1.39 | The code map and changes in train (`12_CODE_MAP.md`, `13_CHANGES_IN_TRAIN.md`; appendices in `reference/code-map/`), loaded on demand; the later stages move up one build; docs only | No | `check_rules.sh` | Merged, PR #128 |
 | Fix | 3.4.1.40 | The Guilds tab detail pane: a line that wraps (the list's "Rule on the Chat Filters tab: ..." line in Dan's screenshot) pushes the lines and pies below it down, instead of running into the next line (section 2.5, decision 23) | Yes | `tui_compare.sh` on a narrow pane and a long rule name: no overlap in all three looks; in-game in all three looks | Merged, PR #129 (did not take in game) |
-| Fix 2 | 3.4.1.41 | The same pane: 3.4.1.40's lines kept two side anchors, which hold a FontString one line tall in game, so the wrap still overlapped (Dan's screenshot, 2026-10-08). The four lines get a set width (`DETAIL_W - 20`) and `FitLines` sets each one's height from `GetStringHeight` on every show and repaint | Yes | `tui_compare.sh`: only the four lines' size and anchors, in all three looks; in game in all three looks | PR #130 |
-| F1 | 3.4.1.42 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | |
+| Fix 2 | 3.4.1.41 | The same pane: 3.4.1.40's lines kept two side anchors, which hold a FontString one line tall in game, so the wrap still overlapped (Dan's screenshot, 2026-10-08). The four lines get a set width (`DETAIL_W - 20`) and `FitLines` sets each one's height from `GetStringHeight` on every show and repaint | Yes | `tui_compare.sh`: only the four lines' size and anchors, in all three looks; in game in all three looks | Merged, PR #130 (works in game) |
+| F1 | 3.4.1.42 | N40, N41, N42, N45, N46 to N48 | Yes | A harness case for each; in-game checks | PR #131 |
 | F2 | 3.4.1.43 | G21 with G26, G27, G28 | Yes (G27 in Dark) | `tui_compare.sh`: only the Dark menu height; garbage per filter block measured | |
 | U1 | 3.4.1.44 | Upgrade registry, invisible: step 1 split and tagged, `RETIRED`, counts returned, version compare | No | Saves byte-identical on all four saves | |
 | U2 | 3.4.1.45 | The upgrade report (2.4); `check_upgrade_report.lua` | Yes (once per update) | 10 cases; in game, the batch prints once and the next login prints nothing | |
@@ -196,7 +205,7 @@ Build numbers never reset. 3.4.1.31 is this plan's own build (docs and working r
 ### Line 3.4.2: core performance and tidy (builds continue)
 | Stage | Change |
 | --- | --- |
-| P1 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup, the compat globals, `/pss test` |
+| P1 | Dead code N1 to N15: 61 localization strings, about 25 unused `M.*` exports, `V.needSorted`, the reload popup (`PSS_RELOAD`, `M.PSS_AskReload`, `def.reload` and the `before` read in `M.PSS_SetOpt`; Dan, 2026-10-09), the compat globals, `/pss test` |
 | P2 | Event-driven GC and `loadWhenQuiet` without timers (L14; closes the known breach in 02 section 12) |
 | P3 | Capture events only when needed (L15) |
 | P4 | Chat path: N26 (option reads without the router), N28 (guild path), N35 (per-line tables), N31 (outbox trim), benchmarked |

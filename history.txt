@@ -1,6 +1,16 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.42 - Fixes: expiry, option hooks, talent tag, import Replace, listener errors, group warning, /pss list
+
+- Ignore list expiry now works by itself: an entry listed with an expiry (for example 30 days) is removed once that many days have passed. It happens at login, when combat ends (once a day), and when the window or /pss list opens. Before, it only happened on /pss sync.
+- Options, "Enable Unit Menu ignore hack" and "Enable LFG Tool warnings and hacks": turning either one off or on now applies straight away, without a /reload ("Requires reload" is gone from their labels).
+- Chat Filters: the link converter's [talent=N] is now a tag the filter language knows (as the readme describes), so a converted talent link makes a working filter. [talent] on its own matches any talent link.
+- Import with Replace on guild rules keeps the default guild lists (Managed Communities). Before, they stopped blocking until a /reload.
+- An error inside the window or a guild scan is now shown once in chat and counted in /pssguild status, instead of being lost.
+- The party warning lists only the listed players in your group now, not everyone it warned about since you joined.
+- /pss list no longer stops with a Lua error on an entry that has no note.
+
 => 3.4.1.41 - Guilds tab detail pane: wrapped lines fit their text
 
 - Guilds tab, a default guild list's detail pane: the fix in 3.4.1.40 did not take in game, so a long "Rule on the Chat Filters tab" line still ran into "Rule is ON". Each line now has a set width and takes the height of its wrapped text, so the lines and charts below move down. The heights are worked out again when the font changes.

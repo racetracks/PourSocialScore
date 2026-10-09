@@ -133,6 +133,8 @@ local function ApplicationStartup(self)
 
 	-- the rest of the upgrade steps, then the upgrade record
 	M.PSS_RunUpgradeData(fresh)
+	-- entries past their expiry go now (N40), then once a day after combat
+	M.PSS_ExpireEntries()
 	-- PourSocialScore_Logging was loaded for the upgrade: add the waiting
 	-- lines, trim and tidy the history now
 	local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
@@ -194,6 +196,8 @@ function M.PSS_ImportLegacyDB()
 end
 
 -- Warn about players on any list in the group (once per player per group).
+-- The list is rebuilt from the roster on each check, so a player who left
+-- is not named again; the warning shows when someone new joins (N47).
 local rosterCheckQueued, rosterCheckDeferred = false, false
 local function CheckGroupForIgnored()
 	rosterCheckQueued = false
@@ -203,18 +207,18 @@ local function CheckGroupForIgnored()
 	gotGroup = true
 	local prefix	= IsInRaid() and "raid" or "party"
 	local doWarn	= false
+	local inGroup = {}
 	for count = 1, GetNumGroupMembers() do
 		local name = GetUnitName(prefix..count, true)
 		-- O(1) lookups on the raw name (every list); the display name is
 		-- only built for a player who is actually listed
 		if type(name) == "string" and not M.PSS_IsSecret(name) and name ~= "" and M.PSS_PersonListed(name) then
 			name = M.Proper(M.addServer(name))
-			if M.hasGroupWarning(name) == 0 then
-				doWarn = true
-				V.groupWarning[#V.groupWarning + 1] = name
-			end
+			if M.hasGroupWarning(name) == 0 then doWarn = true end
+			inGroup[#inGroup + 1] = name
 		end
 	end
+	V.groupWarning = inGroup
 	if doWarn then
 		M.ShowMsg(format(L["CHAT_1"], #V.groupWarning, table.concat(V.groupWarning, "\n")))
 		M.Events.Fire("GROUP_WARNING", V.groupWarning)
@@ -268,9 +272,13 @@ local function EventHandler (self, event, sender, ...)
 			C_Timer.After(1, CheckGroupForIgnored)
 		end
 	end
-	if event == "PLAYER_REGEN_ENABLED" and rosterCheckDeferred then
-		rosterCheckDeferred = false
-		CheckGroupForIgnored()
+	if event == "PLAYER_REGEN_ENABLED" then
+		if rosterCheckDeferred then
+			rosterCheckDeferred = false
+			CheckGroupForIgnored()
+		end
+		-- a quiet moment: entries that expired since the last check (N40)
+		if V.PSS_Loaded then M.PSS_ExpireEntries(false, true) end
 	end
 
 	-- Party/guild invites, duels and trades: handled by PSS_ChatBlock.lua

@@ -17,6 +17,8 @@ V.nameUI = ""		-- the player the note and expiry popups are for
 -- new window from 3.4.0): /pss gui, /pss ui and the Addon Compartment open
 -- it. show true: open, never toggle shut.
 function M.PSS_OpenUI(show)
+	-- the list shown has no expired entries (N40)
+	M.PSS_ExpireEntries()
 	if M.PSS_Need("GUI") and M.PSS_OpenWindow then M.PSS_OpenWindow(show) end
 end
 
@@ -35,6 +37,7 @@ end
 
 local function hostShow(host)
 	if not M.PSS_Opt("openWithFriends") then return end
+	M.PSS_ExpireEntries()
 	if M.PSS_Need("GUI") and M.PSS_WindowDock then M.PSS_WindowDock(host, HOST_X[host]) end
 end
 -- switching Social to the Who tab hides one host and shows the other: the
@@ -155,7 +158,12 @@ function M.PSS_LFG_Refresh()
 	end)
 end
 
+-- Each hook body checks its option when it runs (J3, N41): turning the
+-- option off in the window applies at once; hooks cannot be removed.
+local function lfgOn() return M.PSS_Opt("useLFGHacks") == true end
+
 function M.PSS_LFG_Update (self)
+	if not lfgOn() then return end
 	if not C_LFGList.HasSearchResultInfo(self.resultID) then return end
 
 	local info = C_LFGList.GetSearchResultInfo(self.resultID);
@@ -169,6 +177,7 @@ function M.PSS_LFG_Update (self)
 end
 
 function M.PSS_LFG_Tooltip (self)
+	if not lfgOn() then return end
 	if not C_LFGList.HasSearchResultInfo(self.resultID) then return end
 
 	local info = C_LFGList.GetSearchResultInfo(self.resultID);
@@ -194,6 +203,7 @@ function M.PSS_LFG_Tooltip (self)
 end
 
 function M.PSS_LFG_ApplicantMenu(owner, root, contextData)
+	if not lfgOn() then return end
 	if not owner or not owner.resultID then return end
 
 	local info = C_LFGList.GetSearchResultInfo(owner.resultID);
@@ -225,6 +235,7 @@ end
 ----------------------
 
 function M.PSS_UnitMenuPlayer (owner, root, contextData)
+	if M.PSS_Opt("useUnitHacks") ~= true then return end	-- checked when it runs (N41)
 	if type(contextData) ~= "table" then return end
 	if contextData.bnetIDAccount and not contextData.unit then return end	-- a Battle.net friend, not a character
 	local target, server
@@ -314,27 +325,49 @@ local function hookLFG()
 	return true
 end
 
-function M.PSS_HookFunctions()
-	-- /script Menu.PrintOpenMenuTags()
-
-	if not hookLFG() then
-		local waiter = CreateFrame("Frame")
-		waiter:RegisterEvent("ADDON_LOADED")
-		waiter:SetScript("OnEvent", function(self)
+-- Retried when an addon loads (the Group Finder is load on demand); kept
+-- for a later enable.
+local lfgWaiter
+local function startLFG()
+	if hookLFG() then return end
+	if not lfgWaiter then
+		lfgWaiter = CreateFrame("Frame")
+		lfgWaiter:SetScript("OnEvent", function(self)
 			if hookLFG() then
 				self:UnregisterAllEvents()
 			end
 		end)
 	end
-
-	if M.PSS_Opt("useUnitHacks") == true and Menu and Menu.ModifyMenu then
-		-- FRIEND is the menu for a name clicked in chat; the COMMUNITIES and
-		-- GUILD ones are the guild / community rosters. (Battle.net friend
-		-- menus are left alone: they carry a Battle.net name, not a character.)
-		for _, tag in ipairs({ "MENU_UNIT_ENEMY_PLAYER", "MENU_UNIT_PLAYER", "MENU_UNIT_PARTY", "MENU_UNIT_RAID_PLAYER",
-								"MENU_UNIT_FRIEND", "MENU_UNIT_FRIEND_OFFLINE", "MENU_UNIT_CHAT_ROSTER", "MENU_UNIT_GUILD",
-								"MENU_UNIT_COMMUNITIES_GUILD_MEMBER", "MENU_UNIT_COMMUNITIES_MEMBER", "MENU_UNIT_COMMUNITIES_WOW_MEMBER" }) do
-			pcall(Menu.ModifyMenu, tag, M.PSS_UnitMenuPlayer)
-		end
-	end
+	lfgWaiter:RegisterEvent("ADDON_LOADED")
 end
+
+local unitHooked = false
+local function hookUnit()
+	if unitHooked then return end
+	if not (M.PSS_Opt("useUnitHacks") == true and Menu and Menu.ModifyMenu) then return end
+	-- FRIEND is the menu for a name clicked in chat; the COMMUNITIES and
+	-- GUILD ones are the guild / community rosters. (Battle.net friend
+	-- menus are left alone: they carry a Battle.net name, not a character.)
+	for _, tag in ipairs({ "MENU_UNIT_ENEMY_PLAYER", "MENU_UNIT_PLAYER", "MENU_UNIT_PARTY", "MENU_UNIT_RAID_PLAYER",
+							"MENU_UNIT_FRIEND", "MENU_UNIT_FRIEND_OFFLINE", "MENU_UNIT_CHAT_ROSTER", "MENU_UNIT_GUILD",
+							"MENU_UNIT_COMMUNITIES_GUILD_MEMBER", "MENU_UNIT_COMMUNITIES_MEMBER", "MENU_UNIT_COMMUNITIES_WOW_MEMBER" }) do
+		pcall(Menu.ModifyMenu, tag, M.PSS_UnitMenuPlayer)
+	end
+	unitHooked = true
+end
+
+-- Hooks go in at login when their option is on, or when it is first
+-- turned on (N41); turned off, the hook bodies do nothing.
+local hooksReady = false
+function M.PSS_HookFunctions()
+	-- /script Menu.PrintOpenMenuTags()
+	hooksReady = true
+	startLFG()
+	hookUnit()
+end
+
+M.Events.Register("OPTION_CHANGED", function(key)
+	if not hooksReady then return end
+	if key == "useLFGHacks" then startLFG()
+	elseif key == "useUnitHacks" then hookUnit() end
+end)
