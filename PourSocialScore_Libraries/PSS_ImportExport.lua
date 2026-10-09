@@ -158,8 +158,9 @@ end
 ------------------------------------------------------------------------
 -- Build / apply
 ------------------------------------------------------------------------
-local PREF_FIELDS = { "whispersBlocked", "partyInvitesBlocked", "guildInvitesBlocked", "partyRaidBlocked", "channelsBlocked", "nickname" }
-local BLOCK_CATS = { "whisper", "partyInvite", "guildInvite", "partyRaid", "world" }
+local PREF_FIELDS = { unpack(M.PSS_BLOCK_FIELDS) }
+PREF_FIELDS[#PREF_FIELDS + 1] = "nickname"
+local BLOCK_CATS = M.PSS_EXCL_CATS
 -- W I G P C flags (true/false; missing = inherit for members)
 local function copyBlock(b)
 	if type(b) ~= "table" then return nil end

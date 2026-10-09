@@ -463,3 +463,9 @@ M.EXCL = {
 	{ cat = "partyRaid",	letter = "P", field = "partyRaidBlocked",		label = "Party/Raid chat (incl. raid warnings)" },
 	{ cat = "world",		letter = "C", field = "channelsBlocked",		label = "Chat channels (Trade, General, LFG, communities) and public chat (say, yell, emotes)" },
 }
+-- The player record fields of M.EXCL, in order, and as a set.
+M.PSS_BLOCK_FIELDS, M.PSS_BLOCK_FIELD_SET = {}, {}
+for _, e in ipairs(M.EXCL) do
+	M.PSS_BLOCK_FIELDS[#M.PSS_BLOCK_FIELDS + 1] = e.field
+	M.PSS_BLOCK_FIELD_SET[e.field] = true
+end
