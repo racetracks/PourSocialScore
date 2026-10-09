@@ -181,11 +181,19 @@ function M.PSS_CanonRealm(realm)
 	return realm ~= "" and realm or nil
 end
 
+-- guild name -> canon, for the names seen on chat lines (P4, N28): a small
+-- table that starts over when it fills
+local guildCanons, guildCanonCount = {}, 0
 function M.PSS_CanonGuild(name)
 	if type(name) ~= "string" or isSecret(name) then return nil end
-	name = trim(name):gsub("%s+", " ")
-	if name == "" then return nil end
-	return name:lower()
+	local c = guildCanons[name]
+	if c ~= nil then return c or nil end
+	local n = trim(name):gsub("%s+", " ")
+	c = n ~= "" and n:lower() or false
+	if guildCanonCount >= 500 then guildCanons, guildCanonCount = {}, 0 end
+	guildCanons[name] = c
+	guildCanonCount = guildCanonCount + 1
+	return c or nil
 end
 
 function M.PSS_NowString()

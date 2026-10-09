@@ -264,8 +264,14 @@ local function guildBlock(g)
 			world = on,
 		}
 	end
-	for _, c in ipairs(EXCL_CATS) do g.block[c] = g.block[c] == true end
-	return g.block
+	-- written only when a flag is not yet a boolean (P4, N28)
+	local b = g.block
+	for i = 1, #EXCL_CATS do
+		local c = EXCL_CATS[i]
+		local v = b[c]
+		if v ~= true and v ~= false then b[c] = false end
+	end
+	return b
 end
 M.PSS_GuildBlock = guildBlock
 
@@ -2482,9 +2488,10 @@ end
 --   W I G P C per guild rule, overridable per member (see EXCLUSIONS near
 --   the top of this file). Guild chat of your own guild is never touched.
 ------------------------------------------------------------------------
+local optCtx = {}		-- the option context, reused (P4, N35): used at once, never kept
 local function gopt(key, e)
-	local ctx = { person = e.m.opts, guild = e.g.opts }
-	if M.PSS_Opt then return M.PSS_Opt(key, ctx) end
+	optCtx.person, optCtx.guild = e.m.opts, e.g.opts
+	if M.PSS_Opt then return M.PSS_Opt(key, optCtx) end
 	return PourSocialScoreDB[key]
 end
 
@@ -2540,7 +2547,7 @@ if M.PSS_RegisterBlockSource then
 				(cat == "partyInvite" or cat == "guildInvite") and CAT_LABEL[cat]
 					or channelLabel(ctx.event, ctx.channelString, ctx.chNumber, ctx.chName), e.gkey)
 		end,
-		optionContext = function(e) return { person = e.m.opts, guild = e.g.opts } end,
+		optionContext = function(e) optCtx.person, optCtx.guild = e.m.opts, e.g.opts; return optCtx end,
 		describe = function(e)
 			return ("Guild Ignore List <%s> (%s), stored as %s, actual guild %s"):format(
 				tostring(e.g.name), M.PSS_ExclusionText(e.g, e.m), tostring(e.storedKey), tostring(memberGuildName(e.m)))

@@ -282,14 +282,18 @@ function M.PSS_IsGuildRuleFilter(index)
 end
 
 local groupIndexCache = {}
+local groupIds = {}		-- group key -> its filter id (P4, N28: not a walk per line)
 local function groupFilterIndex(groupKey)
 	local db = PourSocialScoreDB
 	if not db or not db.filterID then return nil end
-	local id
-	for _, grp in ipairs((addon.MANAGED and addon.MANAGED.groups) or {}) do
-		if grp.key == groupKey then id = grp.id break end
+	local id = groupIds[groupKey]
+	if not id then
+		for _, grp in ipairs((addon.MANAGED and addon.MANAGED.groups) or {}) do
+			if grp.key == groupKey then id = grp.id break end
+		end
+		if not id then return nil end
+		groupIds[groupKey] = id
 	end
-	if not id then return nil end
 	local i = groupIndexCache[id]
 	if i and db.filterID[i] == id then return i end
 	for n = 1, #db.filterID do
@@ -861,6 +865,16 @@ buildNode = function(node)
 	end
 end
 
+-- the filter list and its switches, read from PSS_RulesDB without the
+-- router (P4, N26; a table PourSocialScoreDB still holds wins, as through it)
+local function ruleLists()
+	local db = PourSocialScoreDB
+	local r = PSS_RulesDB
+	local list, active = rawget(db, "filterList"), rawget(db, "filterActive")
+	if r then list, active = list or r.filterList, active or r.filterActive end
+	return list or db.filterList, active or db.filterActive
+end
+
 local runnable, runnableCount = {}, 0
 -- filter text -> function(F), or false when the filter has an error
 local function filterFn(text)
@@ -889,8 +903,7 @@ function M.filterComplex (filterStr, chatStr, chNumber, chName)
 		if fn(F) then return true, 0 end
 		return false
 	end
-	local db = PourSocialScoreDB
-	local list, active = db.filterList, db.filterActive
+	local list, active = ruleLists()
 	for i = 1, #list do
 		if active[i] == true then
 			local text = list[i]
@@ -908,8 +921,7 @@ end
 
 -- any text filter switched on? (cheap: no tables, no strings)
 local function anyTextFilterOn()
-	local db = PourSocialScoreDB
-	local list, active = db.filterList, db.filterActive
+	local list, active = ruleLists()
 	for i = 1, #list do
 		if active[i] == true and not M.PSS_IsGuildRuleText(list[i]) then return true end
 	end
