@@ -9,7 +9,7 @@ is a bug to fix, and a new difference needs a row (and Dan's OK) first.
 | Layer | Folder | Holds |
 | --- | --- | --- |
 | 1 | `docs/baseline/` | WoW addon baseline v9 (2026-10-08): how any addon is built, released and delivered; mandatory; v5 02 J (taint, secret values) and `reference/wow-api/`, v6 `X.Y.Z.B` and the version tools, v7 build numbers that never reset and `versions.json`, v8 the mirror carries the release's files, v9 one step per session, context updated in every PR, state re-summarized at release, the author's preferences in one file (02 E9 to E11) |
-| 2 | `docs/scratch/` | Scratch repo usage pack v4 (2026-10-07; the v2 pack adapted to `racetracks/Pour-Social-Score_Scratch`): how scratch hosts builds, saves, docs and summaries. Live copy on scratch `docs/latest/scratch-repo-usage/`, criteria in its `CLAUDE.md` |
+| 2 | `docs/scratch/` | Scratch repo usage pack: how `racetracks/Pour-Social-Score_Scratch` hosts builds, saves, docs and summaries. Live copy on scratch `docs/latest/scratch-repo-usage/`, criteria in its `CLAUDE.md` |
 | 3 | `docs/pss/` | PSS pack, kept current: only what is true of PourSocialScore (01 the addon as it works, 06 status, 10 the last project (core uplift, closed at 3.4.1.53), 11 Dan's preferences; 02 section 12 the Overrides table). Newest copies on scratch `docs/latest/pss-docs/` |
 
 Loaded in every session (kept lean, Dan, 2026-10-08; everything else is read when a step needs it):
