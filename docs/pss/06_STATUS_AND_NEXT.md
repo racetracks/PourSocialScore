@@ -4,11 +4,11 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 
 ## Now
 - **Live release 3.4.2.54** (PR #150, merged 2026-10-09): docs only, no change in game since 3.4.1.53, which closed the core uplift.
-- **3.4.3.55** (this PR, docs only, opens line 3.4.3): the release notes, the summary of changes and the technical notes on scratch are named as context for any change or regression check (`CLAUDE.md`, 11), and `05_RELEASE.md` lists what a full release updates, the code map included.
+- **3.4.3.55** (PR #151, docs only, opens line 3.4.3): the release notes, the summary of changes and the technical notes on scratch are named as context for any change or regression check (`CLAUDE.md`, 11), and `05_RELEASE.md` lists what a full release updates, the code map included.
 - **No current project.** The next step is whatever the author names; open items are below and in `13_CHANGES_IN_TRAIN.md`. The next build is 3.4.3.56 (`sh tools/bump_version.sh build "Title"`).
 
 ## Waiting on the author
-- Merge the 3.4.3.55 docs PR.
+- Merge the 3.4.3.55 docs PR (#151).
 - Name the next project or fix.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: OK or revert P3 (inactive shipped lists no longer capture units or /who).
