@@ -7,7 +7,7 @@
 | Item | State on 2026-10-08 |
 | --- | --- |
 | Live release | **3.4.0.29** (full; the new PSS window in three looks; mirrored to `racetracks/Pour-Social-Score`) |
-| Main | 3.4.1.45 (U1, PR #136; F2 merged in 3.4.1.44, PR #135); next U2 3.4.1.46 |
+| Main | 3.4.1.45 (U1, PR #136; F2 merged in 3.4.1.44, PR #135); U2 3.4.1.46 open (PR #137); next U3 3.4.1.47 |
 | Current project | **Core uplift**, locked 2026-10-08, three version lines |
 | Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done), window fixes F2 (done), the upgrade registry U1 (done); next the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
 | Line 3.4.2 | Builds 3.4.2.52 to 3.4.2.58 (release). Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
@@ -36,7 +36,7 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | Docs | 3.4.1.43 | F1 marked merged; later builds renumbered and the 3.4.2 / 3.4.3 builds set (decision 24); docs only | No | Merged (#134) |
 | F2 | 3.4.1.44 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | Merged (#135) |
 | U1 | 3.4.1.45 | Upgrade step registry, invisible (step 1 split and tagged, `RETIRED`, counts, version compare) | No | Merged, PR #136 |
-| U2 | 3.4.1.46 | Upgrade report printed once per update (issue #45) | Once per update | |
+| U2 | 3.4.1.46 | Upgrade report printed once per update (issue #45) | Once per update | PR #137 |
 | U3 | 3.4.1.47 | Forward compatibility: `M.PSS_SCHEMA`, tolerant readers, downgrade line, unusable rules kept and reported, `/pss export unused`, export format version | Only when a rule cannot be used | |
 | S1 | 3.4.1.48 | `History.ClearOwner` and the purge tombstone (N16) | No | |
 | S2 | 3.4.1.49 | Accessors for every field S3 drops; rules-check grep | No | |
@@ -208,8 +208,8 @@ Today: record `PourSocialScoreDB.upgrade = { step, version, at }`; steps 1 (ever
 | `RETIRED` | One list, one loop: `autoIgnore`, `autoUpdate`, `autoCount`, `autoTime`, `attachFriends`, `syncList`, `filterHistory`, `blockStats`, `optionsV2012`, `charOptions`, `historySize`, `euiIntegration`, `windowSizes`, `columnWidths`, `blizzardSync` (built in U1, dropped every login after the data parts; later `memberCount`, `showIgnoreDebug` in S3) |
 | `tally(out, feature, key, n)` | No-op when `out` is nil, so a normal login builds no strings (zero cost) |
 | When it reports (U2, 3.4.1.46) | First login where `upgrade.version` differs or a step is due, not a fresh save; all lines at once, no timers (decision 9) |
-| Format | Header "updated from A to B. Upgrading your saved data:"; one indented line per feature that changed (decision 7); the cleanup line always, with counts and size before and after; last line unchanged "Saved data upgraded to X (step N)."; existing move messages print before it (decision 8); at most 8 lines, ASCII, via `M.ShowMsg`; strings `L["UPG_*"]` |
-| Pause | Red line "Saved data upgrade paused at step N: <reason>. It tries again at the next login." |
+| Format | Header "updated from A to B. Upgrading your saved data:"; one indented line per feature that changed (decision 7); the cleanup line always, with counts (no size: the game cannot read it; S3 decides); last line unchanged "Saved data upgraded to X (step N)."; existing move messages print before it (decision 8); at most 8 lines, ASCII, via `M.ShowMsg`; strings `L["UPG_*"]` |
+| Pause | Red line "Saved data upgrade paused at step N. It tries again at the next login." (built in U2; the reason is the move message printed before it) |
 | Downgrade | One line "Running X, older than your saved data (Y). Nothing was upgraded."; the record keeps the newer version (decision 10) |
 | Version compare | `X.Y.Z.B` by build; older names (`-devNNN`, plain `2.0.44`) order before any `X.Y.Z.B` |
 | Harness | `check_upgrade_report.lua`, 10 cases (registry shape, 2.0.44 upgrade, same-version silence, fresh save, version-only bump, planted retired keys, downgrade, paused step, real saves, memory bound) plus "== upgrade report" in `validate_all.sh` |
