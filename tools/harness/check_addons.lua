@@ -1,7 +1,7 @@
 -- The addon manager (/pss acp, /acp, the AddOns tab; 3.6.0), as a run.lua
 -- script. The phase is PSS_PHASE; each prints "PASS addons <phase>" or
 -- "FAIL addons: <phase>: <what>". Both clients (PSS_CAMELOT=1 for Camelot).
---   list group az lod tick deps all load undo pending sets lock prune
+--   list group az lod tick deps all load undo pending sets profiles rename selforward lock prune
 --   noapi oldapi enum guid combat command slash saved charstore memory login
 --   big names forward coverage                     (stage 1: the logic)
 --   perf perfgroup perftop perfcost                (stage 3: CPU and memory)
@@ -337,7 +337,7 @@ end
 function phases.sets()
 	needLibraries()
 	local on = function() local t = {} for _, r in ipairs(H.AddonList()) do if r.me then t[#t + 1] = r.name end end return t end
-	check(select(2, M.PSS_AddonPresetSave(1, "Raid", "me")) == "Set Raid saved: 13 addons.", "save: " .. tostring(select(2, M.PSS_AddonPresetSave(1, "Raid", "me"))))
+	check(select(2, M.PSS_AddonPresetSave(1, "Raid", "me")) == "Addon profile Raid saved: 13 addons.", "save: " .. tostring(select(2, M.PSS_AddonPresetSave(1, "Raid", "me"))))
 	local str = PSS_CharDB.addonSets[1]
 	check(str:sub(1, 5) == "Raid\n", "character sets have no client digit: " .. str:sub(1, 6))
 	check(not str:find("PourSocialScore", 1, true) and not str:find("Blizzard_", 1, true), "no Pour Social Score or Blizzard_ in a set")
@@ -357,7 +357,7 @@ function phases.sets()
 	M.PSS_AddonTick(idx("ZedOne"), true, "me", false)
 	M.PSS_AddonTick(idx("Atlas"), false, "me", false)
 	local ok2, text = M.PSS_AddonPresetLoad(1, "char", "me")
-	check(ok2 and text == "Set Raid: 13 on, 0 not installed.", "load: " .. tostring(text))
+	check(ok2 and text == "Addon profile Raid: 13 on, 0 not installed.", "load: " .. tostring(text))
 	check(not row("ZedOne").enabled and row("Atlas").enabled, "load replaced what was on")
 	check(row("PourSocialScore").enabled, "load keeps Pour Social Score on")
 	-- remove then add
@@ -371,9 +371,9 @@ function phases.sets()
 	-- names not installed are skipped and counted
 	PSS_CharDB.addonSets[3] = "Old\nAtlas\nGoneA\nGoneB"
 	ok2, text = M.PSS_AddonPresetLoad(3, "char", "me")
-	check(ok2 and text == "Set Old: 1 on, 2 not installed.", "not installed: " .. tostring(text))
+	check(ok2 and text == "Addon profile Old: 1 on, 2 not installed.", "not installed: " .. tostring(text))
 	-- rename and delete
-	check(select(2, M.PSS_AddonPresetRename(3, "New", "char")) == "Set New renamed.", "rename")
+	check(select(2, M.PSS_AddonPresetRename(3, "New", "char")) == "Addon profile New renamed.", "rename")
 	check(PSS_CharDB.addonSets[3]:sub(1, 4) == "New\n" and PSS_CharDB.addonSets[3]:find("GoneA", 1, true), "the names are kept")
 	M.PSS_AddonPresetDelete(3, "char")
 	check(PSS_CharDB.addonSets[3] == nil, "deleted")
@@ -517,21 +517,21 @@ function phases.command()
 	check(has(l, "Every addon is on for this character."), "all on: " .. say(l))
 	l = pss("acp undo")
 	check(has(l, "Back to the addons as at login."), "undo: " .. say(l))
-	check(has(pss("acp sets"), "No sets saved yet."), "no sets yet")
+	check(has(pss("acp sets"), "No addon profiles saved yet."), "no sets yet")
 	l = pss("acp set 1 save My Raid")
-	check(has(l, "Set My Raid saved:"), "save with a two word name: " .. say(l))
+	check(has(l, "Addon profile My Raid saved:"), "save with a two word name: " .. say(l))
 	l = pss("acp set 2 all save")
-	check(has(l, "Set Set 2 saved:") and PSS_OptionsDB.addonSets[2], "account-wide: " .. say(l))
+	check(has(l, "Addon profile 2 saved:") and PSS_OptionsDB.addonSets[2], "account-wide: " .. say(l))
 	l = pss("acp sets")
 	check(has(l, "My Raid (this character)") and has(l, "all characters"), "sets: " .. say(l))
-	check(has(pss("acp set 1 load"), "Set My Raid:"), "set load")
-	check(has(pss("acp set 1 add"), "Set My Raid added"), "set add")
+	check(has(pss("acp set 1 load"), "Addon profile My Raid:"), "set load")
+	check(has(pss("acp set 1 add"), "Addon profile My Raid added"), "set add")
 	check(has(pss("acp set 1 remove"), "taken off"), "set remove")
-	check(has(pss("acp set 1 delete"), "Set My Raid deleted."), "set delete")
+	check(has(pss("acp set 1 delete"), "Addon profile My Raid deleted."), "set delete")
 	check(has(pss("acp set 2 all delete"), "deleted"), "account set delete")
-	check(has(pss("acp set 7 load"), "There is no set Set 7 here."), "no set")
-	check(has(pss("acp set 99 save"), "is not a set"), "bad id")
-	check(has(pss("acp set"), "Sets: /pss acp set"), "set usage")
+	check(has(pss("acp set 7 load"), "There is no addon profile 7 here."), "no set")
+	check(has(pss("acp set 99 save"), "is not an addon profile"), "bad id")
+	check(has(pss("acp set"), "Addon profiles: /pss acp profile"), "set usage")
 	check(has(pss("acp api"), "Addon API present:"), "api")
 	check(has(pss("acp nonsense"), "/pss acp: list"), "help")
 	-- the main help lists the command
@@ -827,7 +827,7 @@ function phases.view()
 	check(text == nil and row("DBM-Raids").loaded, "load")
 	-- the Sets menu (the slots phase has the rest)
 	local p = V:Slots()[1]
-	check(p and p.empty and p.text == "Set 1 (empty)", "a free slot is listed as empty")
+	check(p and p.empty and p.text == "Profile 1 (empty)", "a free slot is listed as empty")
 	V:PresetAct(p, "save")
 	p = V:Slots()[1]
 	check(not p.empty and p.n > 0, "a save into a free slot stores it")
@@ -859,11 +859,11 @@ function phases.slots()
 	local slots = V:Slots()
 	check(#slots == 26, "25 numbers and your class: " .. #slots)
 	for n = 1, 25 do
-		check(slots[n].id == n and slots[n].empty and slots[n].text == "Set " .. n .. " (empty)", "slot " .. n .. ": " .. tostring(slots[n].text))
+		check(slots[n].id == n and slots[n].empty and slots[n].text == "Profile " .. n .. " (empty)", "slot " .. n .. ": " .. tostring(slots[n].text))
 	end
 	check(slots[26].id == cls and slots[26].empty and slots[26].class and slots[26].text == cls:sub(1, 1) .. cls:sub(2):lower() .. " (empty)", "the class slot: " .. tostring(slots[26].text))
 	local function acts(entries) local t = {} for _, e in ipairs(entries) do if e.act then t[#t + 1] = e.act end end return table.concat(t, ",") end
-	check(acts(V:PresetMenu(slots[3])) == "save", "a free slot only saves: " .. acts(V:PresetMenu(slots[3])))
+	check(acts(V:PresetMenu(slots[3])) == "save,rename", "a free slot saves or is named: " .. acts(V:PresetMenu(slots[3])))
 	check(PSS_CharDB == nil and PSS_OptionsDB.addonSets == nil, "listing writes nothing")
 	-- save into a free slot: this character
 	V.who = "me"
@@ -871,7 +871,7 @@ function phases.slots()
 	check(said and said:find("saved", 1, true), "save says so: " .. tostring(said))
 	check(PSS_CharDB and PSS_CharDB.addonSets[3] and PSS_OptionsDB.addonSets == nil, "stored for this character")
 	slots = V:Slots()
-	check(not slots[3].empty and slots[3].text:match("^Set 3 %(%d+%)$"), "the slot shows its count: " .. slots[3].text)
+	check(not slots[3].empty and slots[3].text:match("^Profile 3 %(%d+%)$"), "the slot shows its count: " .. slots[3].text)
 	check(acts(V:PresetMenu(slots[3])) == "load,add,remove,save,rename,delete", "a used slot: " .. acts(V:PresetMenu(slots[3])))
 	-- save over it keeps the name; rename gives one
 	V:PresetAct(slots[3], "rename", "Raid")
@@ -898,11 +898,11 @@ function phases.slots()
 	check(row("ZedOne").enabled, "add to current")
 	V:PresetAct(V:Slots()[3], "remove")
 	check(not row("ZedOne").enabled, "remove from current")
-	-- the class slot is shared, has no rename
+	-- the class slot is shared and can be renamed too
 	V:PresetAct(V:Slots()[26], "save")
 	check(PSS_OptionsDB.addonSets[cls], "the class set is account-wide")
 	local c = V:Slots()[26]
-	check(not c.empty and acts(V:PresetMenu(c)) == "load,add,remove,save,delete", "the class set's actions: " .. acts(V:PresetMenu(c)))
+	check(not c.empty and acts(V:PresetMenu(c)) == "load,add,remove,save,rename,delete", "the class profile's actions: " .. acts(V:PresetMenu(c)))
 	V.who = "all"
 	check(not V:Slots()[26].empty, "the class set shows in both scopes")
 	-- delete frees the slot
@@ -915,31 +915,233 @@ function phases.slots()
 	V:Release()
 end
 
--- The Sets menu in the window: bottom left, a slot per number (3.6.0.66)
+-- The Addon Profiles menu in the window: bottom left, Core and Layered
+-- profiles as ticks, then Manage (3.6.0.68; the places were 3.6.0.66)
 function phases.setsmenu()
 	needLibraries()
 	SlashCmdList["PSS"]("acp")
 	local win = _G.PSS_Window
 	local pg = win.pages[4]
-	check(win:IsShown() and pg:IsShown() and pg.setsDD, "the tab has no Sets drop-down")
+	check(win:IsShown() and pg:IsShown() and pg.setsDD, "the tab has no Addon Profiles drop-down")
 	local dd = pg.setsDD
 	local point, rel, relPoint = dd:GetPoint(1)
-	check(point == "BOTTOMLEFT" and rel == pg and relPoint == "BOTTOMLEFT", "the Sets drop-down is not bottom left: " .. tostring(point))
+	check(point == "BOTTOMLEFT" and rel == pg and relPoint == "BOTTOMLEFT", "the drop-down is not bottom left: " .. tostring(point))
+	check(dd.label:GetText() == "Profiles", "the drop-down label: " .. tostring(dd.label:GetText()))
 	local fpoint, frel = pg.footer:GetPoint(1)
-	check(fpoint == "LEFT" and frel == dd, "the count is not beside the Sets drop-down")
-	-- the menu lists every place (the build function is the kit's)
-	check(type(pg.setsBuild) == "function", "no Sets menu builder")
-	local list = {}
-	pg.setsBuild({ Title = function(_, t) list[#list + 1] = "T:" .. t end, Button = function(_, t) list[#list + 1] = t end,
-		Divider = function() end })
-	check(#list == 27 and list[1] == "T:Sets (this character)" and list[2] == "Set 1 (empty)" and list[26] == "Set 25 (empty)", "the Sets menu: " .. #list .. " " .. tostring(list[2]))
+	check(fpoint == "LEFT" and frel == dd, "the count is not beside the drop-down")
+	check(type(pg.setsBuild) == "function" and type(pg.manageBuild) == "function", "no menu builders")
+	local function collect(build)
+		local list = {}
+		build({ Title = function(_, t) list[#list + 1] = "T:" .. t end, Button = function(_, t, fn) list[#list + 1] = "B:" .. t end,
+			Check = function(_, t, on, fn) list[#list + 1] = (on() and "X:" or "C:") .. t end, Divider = function() list[#list + 1] = "-" end })
+		return list
+	end
+	-- nothing saved: the headers, nothing to tick, Manage
+	local list = collect(pg.setsBuild)
+	check(table.concat(list, "|") == "T:Core Addon Profiles|T:None saved|-|T:Layered Addon Profiles|T:None saved|-|B:Manage Addon Profiles", "the empty menu: " .. table.concat(list, "|"))
+	-- the manage menu: every place, Core first, a line, Layered
+	list = collect(pg.manageBuild)
+	check(list[1] == "T:Core Addon Profiles" and list[2] == "B:Profile 1 (empty)" and list[6] == "B:Profile 5 (empty)" and list[7] == "-"
+		and list[8] == "T:Layered Addon Profiles" and list[9] == "B:Profile 6 (empty)" and list[#list - 1] == "B:Profile 25 (empty)", "the manage menu: " .. table.concat(list, "|", 1, 9))
 	local V = pg.state
+	M.PSS_AddonPresetSave(1, "Core one", "me")
+	M.PSS_AddonPresetSave(7, "", "me")
+	list = collect(pg.setsBuild)
+	check(list[2]:match("^C:Core one %(%d+%)$") and list[5]:match("^C:Profile 7 %(%d+%)$") and list[#list] == "B:Manage Addon Profiles", "the saved ones: " .. table.concat(list, "|"))
 	V.who = "all"
-	list = {}
-	pg.setsBuild({ Title = function(_, t) list[#list + 1] = "T:" .. t end, Button = function(_, t) list[#list + 1] = t end, Divider = function() end })
-	check(list[1] == "T:Sets (all characters)", "the menu names the scope")
+	list = collect(pg.setsBuild)
+	check(list[2] == "T:None saved", "the other scope has its own: " .. table.concat(list, "|", 1, 3))
 	V.who = "me"
+	-- a tick selects and stays ticked in the menu
+	local entries = V:ProfileMenu()
+	local first
+	for _, e in ipairs(entries) do if e.kind == "check" then first = first or e end end
+	check(first and not first.on(), "the check starts off")
+	V:ProfileSelect(first.p, true)
+	check(first.on(), "the check shows it selected")
+	list = collect(pg.setsBuild)
+	check(list[2]:match("^X:Core one"), "the menu shows the tick: " .. list[2])
 	win:Hide()
+end
+
+-- Core and Layered addon profiles, selected together (3.6.0.68, issue 177):
+-- places 1 to 5 are Core, the rest Layered; any number are selected at once;
+-- what is on is the union of the selected profiles and the hand picks
+function phases.profiles()
+	needLibraries()
+	local cls = os.getenv("PSS_CLASS") or "MAGE"
+	local V = M.PSS_AddonView()
+	V:Build()
+	local slots = V:Slots()
+	for n = 1, 25 do
+		check(slots[n].layer == (n <= 5 and "core" or "layered"), "slot " .. n .. " layer: " .. tostring(slots[n].layer))
+	end
+	check(slots[26].layer == "layered", "the class profile is Layered")
+	-- a profile holding exactly names (this character, or the account when who is "all")
+	local function make(id, names, who)
+		M.PSS_AddonAll(false, who)
+		for _, n in ipairs(names) do M.PSS_AddonTick(idx(n), true, who, false) end
+		check(M.PSS_AddonPresetSave(id, "", who), "save " .. tostring(id))
+	end
+	make(1, { "ZedOne", "WeakAuras" }, "me")
+	make(2, { "ZedOne", "ZedTwo" }, "me")
+	make(7, { "DBM-Core", "DBM-GUI" }, "me")
+	M.PSS_AddonAll(false, "me")
+	check(PSS_CharDB.addonSel == nil and PSS_CharDB.addonPick == nil, "Disable All forgets the selection and the picks")
+	local function on(n) return row(n).enabled end
+	local function sel(id) return M.PSS_AddonProfileSelected(id, "me") end
+	-- select Core 1 and Layered 7 together: both loaded, both ticked
+	local ok, text = M.PSS_AddonProfileSelect(1, true, "me")
+	check(ok and text == "Addon profile 1 selected: 2 on, 0 not installed.", "select: " .. tostring(text))
+	M.PSS_AddonProfileSelect(7, true, "me")
+	check(on("ZedOne") and on("WeakAuras") and on("DBM-Core") and on("DBM-GUI") and not on("ZedTwo"), "the union of 1 and 7 is on")
+	check(sel(1) and sel(7) and not sel(2), "selected flags")
+	check(PSS_CharDB.addonSel == "1 7", "saved packed: " .. tostring(PSS_CharDB.addonSel))
+	local u = M.PSS_AddonProfileUnion("me")
+	check(u.ZedOne and u.WeakAuras and u["DBM-Core"] and not u.ZedTwo, "the union")
+	-- Core 2 too; deselect 1: ZedOne is still wanted by 2, WeakAuras goes
+	M.PSS_AddonProfileSelect(2, true, "me")
+	check(on("ZedTwo"), "the third profile adds its addon")
+	ok, text = M.PSS_AddonProfileSelect(1, false, "me")
+	check(ok and text == "Addon profile 1 deselected: 1 off, 1 kept by others.", "deselect: " .. tostring(text))
+	check(on("ZedOne") and not on("WeakAuras") and on("DBM-Core"), "deselect keeps what another profile still wants")
+	-- a hand pick survives deselecting the profile that holds it
+	M.PSS_AddonTick(idx("WeakAuras"), true, "me", false)
+	M.PSS_AddonTick(idx("LibFoo"), true, "me", false)
+	check(PSS_CharDB.addonPick == "LibFoo\nWeakAuras", "the picks: " .. tostring(PSS_CharDB.addonPick))
+	M.PSS_AddonProfileSelect(1, true, "me")
+	M.PSS_AddonProfileSelect(1, false, "me")
+	check(on("WeakAuras"), "a hand pick stays on")
+	M.PSS_AddonProfileSelect(2, false, "me")
+	check(not on("ZedTwo") and not on("ZedOne") and on("WeakAuras") and on("LibFoo") and on("DBM-Core"), "only what nothing wants goes")
+	-- ticking a pick off forgets it
+	M.PSS_AddonTick(idx("WeakAuras"), false, "me", false)
+	check(PSS_CharDB.addonPick == "LibFoo", "a pick ticked off is forgotten: " .. tostring(PSS_CharDB.addonPick))
+	-- protected addons are never turned off by a deselect
+	M.PSS_AddonLock("DBM-GUI", true, "me")
+	M.PSS_AddonProfileSelect(7, false, "me")
+	check(on("DBM-GUI") and not on("DBM-Core"), "protected stays on")
+	M.PSS_AddonLock("DBM-GUI", false, "me")
+	-- a profile load replaces the state and is the one selected; Enable All, Undo forget
+	M.PSS_AddonProfileSelect(2, true, "me")
+	M.PSS_AddonPresetLoad(1, "char", "me")
+	check(PSS_CharDB.addonSel == "1" and PSS_CharDB.addonPick == nil, "a load selects only that profile: " .. tostring(PSS_CharDB.addonSel))
+	M.PSS_AddonProfileSelect(2, true, "me")
+	M.PSS_AddonAll(true, "me")
+	check(PSS_CharDB.addonSel == nil, "Enable All forgets the selection")
+	M.PSS_AddonProfileSelect(2, true, "me")
+	M.PSS_AddonUndo()
+	check(PSS_CharDB.addonSel == nil, "Undo forgets the selection")
+	-- deleting a selected profile drops it from the selection
+	M.PSS_AddonProfileSelect(2, true, "me")
+	M.PSS_AddonPresetDelete(2, "char")
+	check(not sel(2) and PSS_CharDB.addonSel == nil, "a deleted profile is not selected")
+	check(not M.PSS_AddonProfileSelect(2, true, "me"), "an empty place cannot be selected")
+	-- what is already on when a profile is selected is the player's own: it stays on after a deselect
+	M.PSS_AddonAll(false, "me")
+	M.PSS_AddonTick(idx("ZedOne"), true, "me", false)
+	check(PSS_CharDB.addonPick == nil and PSS_CharDB.addonSel == nil, "ticking with nothing selected records nothing")
+	M.PSS_AddonPresetSave(2, "", "me")
+	M.PSS_AddonProfileSelect(2, true, "me")
+	check(PSS_CharDB.addonPick == "ZedOne", "already on: a pick: " .. tostring(PSS_CharDB.addonPick))
+	M.PSS_AddonProfileSelect(2, false, "me")
+	check(on("ZedOne") and not on("ZedTwo"), "deselect turns off only what the profile turned on")
+	M.PSS_AddonPresetDelete(2, "char")
+	M.PSS_AddonAll(false, "me")
+	-- all characters: its own selection, in the account's store under the client digit
+	make(3, { "ZedOne", "ZedTwo" }, "all")
+	M.PSS_AddonAll(false, "all")
+	ok = M.PSS_AddonProfileSelect(3, true, "all")
+	check(ok and PSS_OptionsDB.addonSel and PSS_OptionsDB.addonSel[DIGIT] == "3", "account selection")
+	check(M.PSS_AddonProfileSelected(3, "all") and not M.PSS_AddonProfileSelected(3, "me"), "the scopes are separate")
+	check(row("ZedOne", "all").enabled, "it turned them on for all")
+	M.PSS_AddonProfileSelect(3, false, "all")
+	check(not row("ZedOne", "all").enabled and PSS_OptionsDB.addonSel == nil, "off again and the empty key is gone")
+	-- the class profile, shared; Layered
+	M.PSS_AddonAll(false, "me")
+	M.PSS_AddonTick(idx("WeakAuras"), true, "me", false)
+	M.PSS_AddonPresetSave(cls:lower(), "", "me")
+	M.PSS_AddonAll(false, "me")
+	check(M.PSS_AddonProfileSelect(cls, true, "me") and on("WeakAuras") and M.PSS_AddonProfileSelected(cls, "me"), "the class profile selects")
+	check(M.PSS_AddonProfileSelect(cls, true, "all") and M.PSS_AddonProfileSelected(cls, "all"), "and in the other scope")
+	M.PSS_AddonPresetDelete(cls, "all")
+	check(not M.PSS_AddonProfileSelected(cls, "me") and not M.PSS_AddonProfileSelected(cls, "all"), "deleting it drops both selections")
+	-- everything cleared leaves nothing saved
+	for _, id in ipairs({ 1, 7 }) do M.PSS_AddonPresetDelete(id, "char") end
+	M.PSS_AddonPresetDelete(3, "all")
+	M.PSS_AddonAll(true, "me")
+	M.PSS_AddonAll(true, "all")
+	check(PSS_CharDB == nil and PSS_OptionsDB.addonSets == nil and PSS_OptionsDB.addonSel == nil and PSS_OptionsDB.addonPick == nil, "nothing left saved")
+	V:Release()
+end
+
+-- A newer version's selection and picks are kept untouched (3.6.0.68)
+function phases.selforward()
+	PourSocialScoreDB.addonSel = { ["3"] = "9 8" }
+	PourSocialScoreDB.addonPick = "newer layout"
+	_G["PSS_CharDB"] = { addonSel = { 1, 2 }, addonPick = { "x" } }
+	needLibraries()
+	M.PSS_AddonAll(false, "me")
+	M.PSS_AddonPresetSave(1, "A", "all")
+	M.PSS_AddonPresetSave(2, "B", "me")
+	check(M.PSS_AddonProfileSelect(1, true, "all"), "select on the account")
+	check(PSS_OptionsDB.addonSel["3"] == "9 8" and PSS_OptionsDB.addonSel[DIGIT] == "1", "the other client's selection is kept")
+	M.PSS_AddonTick(idx("ZedOne"), true, "all", false)
+	check(PSS_OptionsDB.addonPick == "newer layout", "a pick of a newer layout is not replaced")
+	M.PSS_AddonProfileSelect(2, true, "me")
+	M.PSS_AddonTick(idx("ZedOne"), true, "me", false)
+	check(type(PSS_CharDB.addonSel) == "table" and PSS_CharDB.addonSel[2] == 2 and type(PSS_CharDB.addonPick) == "table", "the character's newer values are kept")
+	M.PSS_AddonAll(true, "all")
+	check(PSS_OptionsDB.addonSel["3"] == "9 8" and PSS_OptionsDB.addonSel[DIGIT] == nil, "Enable All clears only this client's")
+end
+
+-- Renaming any addon profile (3.6.0.68, issue 176): every kind, a free place
+-- too, with the name rules; and the menu offers it everywhere
+function phases.rename()
+	needLibraries()
+	local cls = os.getenv("PSS_CLASS") or "MAGE"
+	local V = M.PSS_AddonView()
+	V:Build()
+	local function acts(entries) local t = {} for _, e in ipairs(entries) do if e.act then t[#t + 1] = e.act end end return table.concat(t, ",") end
+	-- the menu of every kind of place offers Rename
+	local slots = V:Slots()
+	check(acts(V:PresetMenu(slots[1])):find("rename", 1, true), "a free place offers Rename")
+	check(acts(V:PresetMenu(slots[26])):find("rename", 1, true), "the class place offers Rename")
+	M.PSS_AddonPresetSave(2, "", "me")
+	check(acts(V:PresetMenu(V:Slots()[2])):find("rename", 1, true), "a used place offers Rename")
+	-- a free place named: kept, empty
+	local ok, text = M.PSS_AddonPresetRename(4, "Raid Core", "char")
+	check(ok and text == "Addon profile Raid Core renamed.", "free place: " .. tostring(text))
+	check(PSS_CharDB.addonSets[4] == "Raid Core", "stored as a name only: " .. tostring(PSS_CharDB.addonSets[4]))
+	local p = V:Slots()[4]
+	check(not p.empty and p.name == "Raid Core" and p.n == 0 and p.text == "Raid Core (0)", "it shows with its name: " .. tostring(p.text))
+	-- a used place keeps its addons
+	M.PSS_AddonPresetSave(3, "Old", "me")
+	local before = PSS_CharDB.addonSets[3]:sub(5)
+	check(M.PSS_AddonPresetRename(3, "New Name", "char") and PSS_CharDB.addonSets[3] == "New Name\n" .. before, "a used place keeps its addons")
+	-- the class one (account-wide) and an account one
+	check(M.PSS_AddonPresetRename(cls:lower(), "Mine", "all") and PSS_OptionsDB.addonSets[cls] == DIGIT .. "Mine", "the class profile")
+	check(M.PSS_AddonPresetRename(9, "Everyone", "all") and PSS_OptionsDB.addonSets[9] == DIGIT .. "Everyone", "an account profile")
+	-- the rules: not empty, not too long, no duplicate in the store (any case), ASCII only
+	ok, text = M.PSS_AddonPresetRename(5, "   ", "char")
+	check(not ok and text == "Give the addon profile a name." and PSS_CharDB.addonSets[5] == nil, "empty refused: " .. tostring(text))
+	ok, text = M.PSS_AddonPresetRename(5, string.rep("x", 33), "char")
+	check(not ok and text == "That name is too long: at most 32 letters." and PSS_CharDB.addonSets[5] == nil, "long refused: " .. tostring(text))
+	check(M.PSS_AddonPresetRename(5, string.rep("x", 32), "char"), "32 is allowed")
+	ok, text = M.PSS_AddonPresetRename(6, "raid core", "char")
+	check(not ok and text == "Another addon profile here is already called \"raid core\"." and PSS_CharDB.addonSets[6] == nil, "duplicate refused: " .. tostring(text))
+	check(M.PSS_AddonPresetRename(4, "RAID CORE", "char"), "its own name in another case is fine")
+	check(M.PSS_AddonPresetRename(6, "Raid Core", "all"), "the same name in the other scope is fine")
+	check(M.PSS_AddonPresetRename(7, "caf\195\169 ok", "char") and PSS_CharDB.addonSets[7] == "caf ok", "non-ASCII is stripped: " .. tostring(PSS_CharDB.addonSets[7]))
+	check(not M.PSS_AddonPresetRename(26, "x", "char"), "no place 26")
+	-- through the view and the command
+	local said = V:PresetAct(V:Slots()[8], "rename", "Via view")
+	check(said == "Addon profile Via view renamed." and V:Slots()[8].name == "Via view", "the view's rename: " .. tostring(said))
+	local l = pss("acp profile 10 rename From Command")
+	check(has(l, "Addon profile From Command renamed."), "the command: " .. say(l))
+	l = pss("acp profile 11 select")
+	check(has(l, "There is no addon profile 11 here."), "select an empty place: " .. say(l))
+	V:Release()
 end
 
 function phases.access()
@@ -1192,6 +1394,7 @@ function phases.coverage()
 	M.PSS_AddonMemory() M.PSS_AddonMemOf(i) M.PSS_AddonMemGroup(L, 1)
 	M.PSS_AddonPresetSave(1, "Cov", "me") M.PSS_AddonPresets() M.PSS_AddonSlots(who) M.PSS_AddonPresetLoad(1, "char", who) M.PSS_AddonPresetAdd(1, "char", who)
 	M.PSS_AddonPresetRemove(1, "char", who) M.PSS_AddonPresetInclude(1, "char", "ZedOne") M.PSS_AddonPresetRename(1, "x", "char")
+	M.PSS_AddonProfileSelect(1, true, who) M.PSS_AddonProfileSelected(1, who) M.PSS_AddonProfileUnion(who) M.PSS_AddonProfileSelect(1, false, who)
 	M.PSS_AddonPresetDelete(1, "char")
 	M.PSS_AddonLock("LibFoo", true, who) M.PSS_AddonLocked("LibFoo") M.PSS_AddonLock("LibFoo", false, who)
 	M.PSS_AddonViewMode("az") M.PSS_AddonViewMode("group") M.PSS_AddonLoadOld(true) M.PSS_AddonLoadOld(nil) M.PSS_AddonLoadOld(false)
@@ -1201,8 +1404,8 @@ function phases.coverage()
 	M.PSS_AddonPct(1) M.PSS_AddonKBText(1)
 	local V = M.PSS_AddonView()
 	V:Build()
-	for _, word in ipairs({ "list", "on zedone", "off zedone", "load atlas_options", "all on", "all off", "undo", "sets", "set 1 save", "set 1 load",
-		"set 1 add", "set 1 remove", "set 1 delete", "lock libfoo", "unlock libfoo", "api", "nonsense" }) do
+	for _, word in ipairs({ "list", "on zedone", "off zedone", "load atlas_options", "all on", "all off", "undo", "sets", "profiles", "set 1 save", "set 1 select", "set 1 deselect", "set 1 load",
+		"set 1 add", "set 1 remove", "set 1 rename Cov", "profile 1 delete", "lock libfoo", "unlock libfoo", "api", "nonsense" }) do
 		local l = pss("acp " .. word)
 		check(#l > 0, "/pss acp " .. word .. " said nothing")
 	end

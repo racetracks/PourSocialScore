@@ -27,6 +27,9 @@
 --   M.PSS_AddonMemory()  M.PSS_AddonMemOf(i)  M.PSS_AddonMemGroup(L, gi)
 --   M.PSS_AddonDeps(i, who)            required and optional, with state
 --   M.PSS_AddonPresets(), M.PSS_AddonSlots(who) and ...PresetSave / Load / Add / Remove / Rename / Delete
+--                                      (the addon profiles; "presets" in code)
+--   M.PSS_AddonProfileSelect(id, on, who)  M.PSS_AddonProfileSelected(id, who)
+--   M.PSS_AddonProfileUnion(who)       the names selected profiles and hand picks want on
 --   M.PSS_AddonLock(name, on, who)  M.PSS_AddonLocked(name)
 --   M.PSS_AddonViewMode(v)  M.PSS_AddonLoadOld(on)
 --   M.PSS_AddonPerfOn()  M.PSS_AddonCPU(name)  M.PSS_AddonCPUGroup(L, gi)
@@ -41,11 +44,13 @@ local pairs, ipairs, next = pairs, ipairs, next
 local sort, concat = table.sort, table.concat
 local format, lower, sub, find, byte, gsub = string.format, string.lower, string.sub, string.find, string.byte, string.gsub
 local floor = math.floor
+local tremove = table.remove
 local InCombatLockdown, UnitGUID, UnitClass = InCombatLockdown, UnitGUID, UnitClass
 
 local iface = select(4, GetBuildInfo())
 local DIGIT = (type(iface) == "number" and iface < 20000) and "2" or "1"	-- the client in a set: 1 Retail, 2 Camelot
 local PRESETS_MAX = 25
+local CORE_MAX = 5	-- places 1 to 5 are the Core Addon Profiles, the rest Layered
 local NAME_MAX = 32
 local NL = "\n"
 
@@ -88,27 +93,32 @@ local T = {
 	everyone = "all characters",
 	listHead = "%d addons, %d on for %s:",
 	listRow = "  %s: %s",
-	presetUsage = "Sets: /pss acp set <1-25 or your class> [char|all] save [name] | load | add | remove | delete",
-	presetNone = "No sets saved yet.",
-	presetHead = "Sets:",
-	presetRow = "  %s %s (%s): %d addons",
-	presetSaved = "Set %s saved: %d addons.",
-	presetLoaded = "Set %s: %d on, %d not installed.",
-	presetAdded = "Set %s added: %d on, %d not installed.",
-	presetAdded2 = "Set %s now holds %s.",
-	presetRemoved = "Set %s taken off: %d addons.",
-	presetDeleted = "Set %s deleted.",
-	presetRenamed = "Set %s renamed.",
-	presetNo = "There is no set %s here.",
-	presetBadId = "\"%s\" is not a set: use 1 to %d or your class.",
-	presetOther = "Set %s was saved by a newer version and is left alone.",
+	presetUsage = "Addon profiles: /pss acp profile <1-25 or your class> [char|all] save [name] | load | add | remove | select | deselect | rename <name> | delete",
+	presetNone = "No addon profiles saved yet.",
+	presetHead = "Addon profiles (* selected):",
+	presetRow = "  %s%s %s (%s): %d addons",
+	presetSaved = "Addon profile %s saved: %d addons.",
+	presetLoaded = "Addon profile %s: %d on, %d not installed.",
+	presetAdded = "Addon profile %s added: %d on, %d not installed.",
+	presetAdded2 = "Addon profile %s now holds %s.",
+	presetRemoved = "Addon profile %s taken off: %d addons.",
+	presetDeleted = "Addon profile %s deleted.",
+	presetRenamed = "Addon profile %s renamed.",
+	presetSelected = "Addon profile %s selected: %d on, %d not installed.",
+	presetDeselected = "Addon profile %s deselected: %d off, %d kept by others.",
+	presetNo = "There is no addon profile %s here.",
+	presetBadId = "\"%s\" is not an addon profile: use 1 to %d or your class.",
+	presetOther = "Addon profile %s was saved by a newer version and is left alone.",
+	nameEmpty = "Give the addon profile a name.",
+	nameLong = "That name is too long: at most %d letters.",
+	nameDup = "Another addon profile here is already called \"%s\".",
 	lockOn = "%s is protected.",
 	lockOff = "%s is not protected any more.",
 	lockPss = "Pour Social Score is always protected.",
 	apiHave = "Addon API present: %s.",
 	apiLack = "Addon API missing: %s.",
 	apiNone = "none",
-	help = "/pss acp: list [filter] | on <name> | off <name> | load <name> | all on|off | undo | sets | set <id> ... | lock <name> | unlock <name> | api",
+	help = "/pss acp: list [filter] | on <name> | off <name> | load <name> | all on|off | undo | profiles | profile <id> ... | lock <name> | unlock <name> | api",
 }
 M.PSS_AddonText = T
 
@@ -215,6 +225,9 @@ end
 -- Saved data: protected addons and presets, per character (PSS_CharDB) and
 -- for all characters (PSS_OptionsDB), packed as strings
 --   addonLock   account: { [client] = "NameA\nNameB" }, character: "NameA\nNameB"
+--   addonPick   the same shape: the addons ticked by hand in the tab
+--   addonSel    account: { [client] = "1 3 WARRIOR" }, character: "1 3 WARRIOR":
+--               the addon profiles selected (a number, or the class token)
 --   addonSets   account: { [1..25 or CLASS] = "<client><name>\nAddonA\nAddonB" }
 --               character: { [1..25] = "<name>\nAddonA\nAddonB" }
 -- A key goes back to nil when it is empty, so an unused character writes
@@ -325,6 +338,94 @@ function M.PSS_AddonLock(name, on, who)
 	lockCache = nil
 	fire()
 	return true
+end
+
+-- a packed string kept under key for who: the account's under the client
+-- digit, this character's as the string itself. A value of another shape
+-- (a newer version's) is never read and never replaced.
+local function getPacked(key, who)
+	if who == "all" then
+		local db = acct()
+		local t = db and type(db[key]) == "table" and db[key]
+		local v = t and t[DIGIT]
+		return type(v) == "string" and v or nil
+	end
+	local c = chr()
+	local v = c and c[key]
+	return type(v) == "string" and v or nil
+end
+
+local function setPacked(key, who, str)
+	if who == "all" then
+		local db = acct()
+		if not db or (db[key] ~= nil and type(db[key]) ~= "table") then return end
+		local t = db[key] or {}
+		t[DIGIT] = str
+		db[key] = next(t) ~= nil and t or nil
+	else
+		local c = chr(str ~= nil)
+		if c and (c[key] == nil or type(c[key]) == "string") then c[key] = str end
+		tidyChar()
+	end
+end
+
+-- Hand picks: the addons the player turned on by hand while addon profiles
+-- are selected (ticked in the tab) and those already on when a profile is
+-- selected. A pick that is also in a selected profile stays on when that
+-- profile is deselected. Ticking off, a profile load, Enable All, Disable
+-- All and Undo forget them. With nothing selected nothing is recorded.
+local function pickNames(who)
+	return listOf(getPacked("addonPick", who))
+end
+
+local function notePicks(names, on, who, force)
+	if on and not force and getPacked("addonSel", who) == nil then return end
+	local have = {}
+	local l = pickNames(who)
+	for _, n in ipairs(l) do have[n] = true end
+	local changed = false
+	if on then
+		for _, n in ipairs(names) do
+			if not have[n] and not isPSS(n) and not hidden(n) and not find(n, NL, 1, true) and #l < count() then
+				l[#l + 1] = n
+				have[n] = true
+				changed = true
+			end
+		end
+	else
+		local gone = {}
+		for _, n in ipairs(names) do gone[n] = true end
+		local out = {}
+		for _, n in ipairs(l) do
+			if not gone[n] then out[#out + 1] = n end
+		end
+		changed = #out ~= #l
+		l = out
+	end
+	if changed then setPacked("addonPick", who, #l > 0 and packNames(l) or nil) end
+end
+
+-- the profiles selected for who: ids (numbers, or a class token), in order
+local function selIds(who)
+	local out = {}
+	local str = getPacked("addonSel", who)
+	if str then
+		for tok in str:gmatch("%S+") do out[#out + 1] = tonumber(tok) or tok end
+	end
+	return out
+end
+
+local function setSelIds(who, ids)
+	local out = {}
+	for _, id in ipairs(ids) do out[#out + 1] = tostring(id) end
+	setPacked("addonSel", who, #out > 0 and concat(out, " ") or nil)
+end
+
+-- forget the selection and the picks (a whole-state change: Enable All,
+-- Disable All, Undo, a profile load); keep is an id to stay selected
+local function forgetChoice(who, keep)
+	setSelIds(who, keep and { keep } or {})
+	setPacked("addonPick", who, nil)
 end
 
 -- the list view: nil = grouped (the default), "az" or "lod"
@@ -613,6 +714,7 @@ function M.PSS_AddonTick(i, on, who, deps)
 	if not on and isPSS(name) then return false, T.pss end
 	local turned, missing = {}, {}
 	applyOne(i, name, on, c, deps, turned, missing)
+	notePicks({ name }, on, who)
 	save()
 	fire()
 	return true, tickText(name, on, who, turned, missing)
@@ -625,15 +727,17 @@ function M.PSS_AddonTickMany(L, a, b, on, who, deps)
 	if not CAN.tick() then return false, T.noApi end
 	local c = charArg(who)
 	if c == false then return false, T.noChar end
-	local turned, missing, done = {}, {}, 0
+	local turned, missing, done, picked = {}, {}, 0, {}
 	for p = a, b do
 		local i = L.idx[p]
 		local name = i and info(i)
 		if type(name) == "string" and (on or not M.PSS_AddonLocked(name)) then
 			applyOne(i, name, on, c, deps, turned, missing)
 			done = done + 1
+			picked[done] = name
 		end
 	end
+	notePicks(picked, on, who)
 	save()
 	fire()
 	return true, done
@@ -673,6 +777,7 @@ function M.PSS_AddonAll(on, who)
 		DisableAllAddOns(c)
 		if EnableAddOn then keepOn(c) end
 	end
+	forgetChoice(who == "all" and "all" or "me")
 	save()
 	fire()
 	return true, format(on and T.allOn or T.allOff, whoText(who))
@@ -681,6 +786,8 @@ end
 function M.PSS_AddonUndo()
 	if not ResetAddOns then return false, T.noUndo end
 	ResetAddOns()
+	forgetChoice("me")
+	forgetChoice("all")
 	fire()
 	return true, T.undone
 end
@@ -840,7 +947,7 @@ local function classToken()
 	return t:upper()
 end
 
-local function cleanName(s)
+local function cleanName(s, noCap)
 	s = type(s) == "string" and s or ""
 	local out = {}
 	for k = 1, #s do
@@ -848,6 +955,7 @@ local function cleanName(s)
 		if b >= 32 and b <= 126 then out[#out + 1] = sub(s, k, k) end
 	end
 	s = concat(out):gsub("^%s+", ""):gsub("%s+$", "")
+	if noCap then return s end
 	return sub(s, 1, NAME_MAX)
 end
 
@@ -904,7 +1012,14 @@ end
 local function presetLabel(id, name)
 	if name ~= "" then return name end
 	if type(id) == "string" then return id:sub(1, 1) .. id:sub(2):lower() end
-	return "Set " .. id
+	return "Profile " .. id
+end
+
+-- the name in a line of text: the name, else the number or the class
+local function msgLabel(id, name)
+	if name ~= "" then return name end
+	if type(id) == "string" then return id:sub(1, 1) .. id:sub(2):lower() end
+	return tostring(id)
 end
 
 -- every preset that can be used here: { id, name, scope, n, class, label }
@@ -959,6 +1074,9 @@ function M.PSS_AddonSlots(who)
 	for id = 1, PRESETS_MAX do slot(id) end
 	local own = classToken()
 	if own then slot(own) end
+	for _, p in ipairs(out) do
+		p.layer = (type(p.id) == "number" and p.id <= CORE_MAX) and "core" or "layered"
+	end
 	return out
 end
 
@@ -986,12 +1104,12 @@ function M.PSS_AddonPresetSave(id, name, who)
 	if not tbl then return false, T.noApi end
 	if tbl[pid] ~= nil and not parse(tbl[pid], scope == "all") then
 		dropEmpty(scope)
-		return false, format(T.presetOther, presetLabel(pid, ""))
+		return false, format(T.presetOther, msgLabel(pid, ""))
 	end
 	local list = enabledNames(who)
 	local head = (scope == "all" and DIGIT or "") .. cleanName(name)
 	tbl[pid] = #list > 0 and (head .. NL .. packNames(list)) or head
-	return true, format(T.presetSaved, presetLabel(pid, cleanName(name)), #list)
+	return true, format(T.presetSaved, msgLabel(pid, cleanName(name)), #list)
 end
 
 local function presetOf(id, scope)
@@ -1001,8 +1119,8 @@ local function presetOf(id, scope)
 	local str = tbl and tbl[pid]
 	local name, pos = parse(str, sc == "all")
 	if not name then
-		if str ~= nil then return nil, format(T.presetOther, presetLabel(pid, "")) end
-		return nil, format(T.presetNo, presetLabel(pid, ""))
+		if str ~= nil then return nil, format(T.presetOther, msgLabel(pid, "")) end
+		return nil, format(T.presetNo, msgLabel(pid, ""))
 	end
 	return pid, str, name, pos, sc
 end
@@ -1037,9 +1155,11 @@ function M.PSS_AddonPresetLoad(id, scope, who)
 	DisableAllAddOns(c)
 	keepOn(c)
 	local done, missing = eachInstalled(str, pos, function(i) EnableAddOn(i, c) end)
+	-- the profile stays selected when it belongs to the scope shown
+	forgetChoice(who, (type(pid) == "string" or (scope == "all") == (who == "all")) and pid or nil)
 	save()
 	fire()
-	return true, format(T.presetLoaded, presetLabel(pid, name), done, missing)
+	return true, format(T.presetLoaded, msgLabel(pid, name), done, missing)
 end
 
 function M.PSS_AddonPresetAdd(id, scope, who)
@@ -1053,7 +1173,7 @@ function M.PSS_AddonPresetAdd(id, scope, who)
 	local done, missing = eachInstalled(str, pos, function(i) EnableAddOn(i, c) end)
 	save()
 	fire()
-	return true, format(T.presetAdded, presetLabel(pid, name), done, missing)
+	return true, format(T.presetAdded, msgLabel(pid, name), done, missing)
 end
 
 function M.PSS_AddonPresetRemove(id, scope, who)
@@ -1069,7 +1189,7 @@ function M.PSS_AddonPresetRemove(id, scope, who)
 	end)
 	save()
 	fire()
-	return true, format(T.presetRemoved, presetLabel(pid, name), done)
+	return true, format(T.presetRemoved, msgLabel(pid, name), done)
 end
 
 -- one addon (by folder name) into a preset
@@ -1086,17 +1206,79 @@ function M.PSS_AddonPresetInclude(id, scope, name)
 	if not have then list[#list + 1] = name end
 	local tbl = presetTable(pid, scope)
 	tbl[pid] = (sc == "all" and DIGIT or "") .. label .. NL .. packNames(list)
-	return true, format(T.presetAdded2, presetLabel(pid, label), name)
+	return true, format(T.presetAdded2, msgLabel(pid, label), name)
 end
 
+-- a name for a profile: ASCII, not empty, at most NAME_MAX, and not another
+-- profile's in the same store; returns the clean name or nil and the reason
+local function checkName(tbl, pid, raw, withDigit)
+	local name = cleanName(raw, true)
+	if name == "" then return nil, T.nameEmpty end
+	if #name > NAME_MAX then return nil, format(T.nameLong, NAME_MAX) end
+	local want = lower(name)
+	for id, str in pairs(tbl) do
+		if id ~= pid then
+			local other = parse(str, withDigit)
+			if other and lower(other) == want then return nil, format(T.nameDup, name) end
+		end
+	end
+	return name
+end
+
+-- name any place, a free one too (it is then kept, empty, under its name)
 function M.PSS_AddonPresetRename(id, name, scope)
 	M.PSS_AddonPrune()
-	local pid, str, _, pos, sc = presetOf(id, scope)
-	if not pid then return false, str end
-	local tbl = presetTable(pid, scope)
-	local rest = pos <= #str and sub(str, pos - 1) or ""
-	tbl[pid] = (sc == "all" and DIGIT or "") .. cleanName(name) .. rest
-	return true, format(T.presetRenamed, presetLabel(pid, cleanName(name)))
+	local pid = presetId(id)
+	if not pid then return false, format(T.presetBadId, tostring(id), PRESETS_MAX) end
+	local tbl, sc = presetTable(pid, scope == "all" and "all" or "char", true)
+	if not tbl then return false, T.noApi end
+	local withDigit = sc == "all"
+	local str = tbl[pid]
+	local pos
+	if str ~= nil then
+		local old
+		old, pos = parse(str, withDigit)
+		if not old then
+			dropEmpty(sc)
+			return false, format(T.presetOther, msgLabel(pid, ""))
+		end
+	end
+	local clean, why = checkName(tbl, pid, name, withDigit)
+	if not clean then
+		dropEmpty(sc)
+		return false, why
+	end
+	local rest = (str and pos <= #str) and sub(str, pos - 1) or ""
+	tbl[pid] = (withDigit and DIGIT or "") .. clean .. rest
+	return true, format(T.presetRenamed, msgLabel(pid, clean))
+end
+
+------------------------------------------------------------------------
+-- Selected addon profiles: any of the Core (1 to 5) and Layered (6 to 25
+-- and your class) profiles at once. What is wanted on is the union of the
+-- selected profiles' addons and the hand picks; deselecting turns off only
+-- what nothing else still wants (protected addons stay on).
+------------------------------------------------------------------------
+local function profileScope(id, who)
+	return (type(id) == "string" or who == "all") and "all" or "char"
+end
+
+local function selIndex(ids, id)
+	for k, v in ipairs(ids) do
+		if v == id then return k end
+	end
+end
+
+-- a profile was deleted: it is no longer selected
+local function dropSel(pid, sc)
+	for _, who in ipairs(type(pid) == "string" and { "me", "all" } or { sc == "all" and "all" or "me" }) do
+		local ids = selIds(who)
+		local k = selIndex(ids, pid)
+		if k then
+			tremove(ids, k)
+			setSelIds(who, ids)
+		end
+	end
 end
 
 function M.PSS_AddonPresetDelete(id, scope)
@@ -1106,7 +1288,74 @@ function M.PSS_AddonPresetDelete(id, scope)
 	local tbl = presetTable(pid, scope)
 	tbl[pid] = nil
 	dropEmpty(sc)
-	return true, format(T.presetDeleted, presetLabel(pid, name))
+	dropSel(pid, sc)
+	return true, format(T.presetDeleted, msgLabel(pid, name))
+end
+
+function M.PSS_AddonProfileSelected(id, who)
+	local pid = presetId(id)
+	if not pid then return false end
+	who = who == "all" and "all" or "me"
+	return selIndex(selIds(who), pid) ~= nil and presetOf(pid, profileScope(pid, who)) ~= nil
+end
+
+-- the names the selected profiles and the hand picks want on, for who
+local function wantedBy(who)
+	local want = {}
+	for _, id in ipairs(selIds(who)) do
+		local pid, str, _, pos = presetOf(id, profileScope(id, who))
+		if pid then eachName(str, pos, function(n) want[n] = true end) end
+	end
+	for _, n in ipairs(pickNames(who)) do want[n] = true end
+	return want
+end
+M.PSS_AddonProfileUnion = wantedBy
+
+function M.PSS_AddonProfileSelect(id, on, who)
+	M.PSS_AddonPrune()
+	local pid0 = presetId(id)
+	if not pid0 then return false, format(T.presetBadId, tostring(id), PRESETS_MAX) end
+	who = who == "all" and "all" or "me"
+	local pid, str, name, pos = presetOf(pid0, profileScope(pid0, who))
+	if not pid then return false, str end
+	if not CAN.tick() then return false, T.noApi end
+	local c = charArg(who)
+	if c == false then return false, T.noChar end
+	local ids = selIds(who)
+	local k = selIndex(ids, pid)
+	if on then
+		if not k then
+			-- what is already on and nothing wants is the player's own
+			local want, mine = wantedBy(who), {}
+			eachInstalled(str, pos, function(i, n)
+				if enableState(i, who) ~= NONE and not want[n] and not M.PSS_AddonLocked(n) then mine[#mine + 1] = n end
+			end)
+			notePicks(mine, true, who, true)
+			ids[#ids + 1] = pid
+			setSelIds(who, ids)
+		end
+		local done, missing = eachInstalled(str, pos, function(i) EnableAddOn(i, c) end)
+		save()
+		fire()
+		return true, format(T.presetSelected, msgLabel(pid, name), done, missing)
+	end
+	if k then
+		tremove(ids, k)
+		setSelIds(who, ids)
+	end
+	local want = wantedBy(who)
+	local off, kept = 0, 0
+	eachInstalled(str, pos, function(i, n)
+		if want[n] or M.PSS_AddonLocked(n) then
+			kept = kept + 1
+		else
+			DisableAddOn(i, c)
+			off = off + 1
+		end
+	end)
+	save()
+	fire()
+	return true, format(T.presetDeselected, msgLabel(pid, name), off, kept)
 end
 
 ------------------------------------------------------------------------
@@ -1139,6 +1388,13 @@ function M.PSS_AddonPrune()
 	if c then
 		local out, changed = keep(map, c, 1)
 		if changed then setLockList("me", out) end
+	end
+	for _, who in ipairs({ "me", "all" }) do
+		local str = getPacked("addonPick", who)
+		if str then
+			local out, changed = keep(map, str, 1)
+			if changed then setPacked("addonPick", who, #out > 0 and packNames(out) or nil) end
+		end
 	end
 	-- presets: this character's, then the account's saved on this client
 	local function sets(tbl, withDigit, scope)
@@ -1251,6 +1507,10 @@ local function presetCommand(args, raw)
 		report(M.PSS_AddonPresetRemove(id, scope, "me"))
 	elseif act == "delete" then
 		report(M.PSS_AddonPresetDelete(id, scope))
+	elseif act == "rename" then
+		report(M.PSS_AddonPresetRename(id, #raw >= k + 1 and concat(raw, " ", k + 1) or "", scope))
+	elseif act == "select" or act == "deselect" then
+		report(M.PSS_AddonProfileSelect(id, act == "select", scope == "all" and "all" or "me"))
 	else
 		say(T.presetUsage)
 	end
@@ -1277,17 +1537,18 @@ function M.PSS_AddonCommand(args, raw)
 		report(M.PSS_AddonAll(args[3] == "on", "me"))
 	elseif word == "undo" then
 		report(M.PSS_AddonUndo())
-	elseif word == "sets" then
+	elseif word == "sets" or word == "profiles" then
 		local l = M.PSS_AddonPresets()
 		if #l == 0 then
 			say(T.presetNone)
 		else
 			say(T.presetHead)
 			for _, p in ipairs(l) do
-				say(format(T.presetRow, tostring(p.id), p.name ~= "" and p.name or "", p.scope == "all" and T.everyone or T.me, p.n))
+				local on = M.PSS_AddonProfileSelected(p.id, p.scope == "all" and "all" or "me")
+				say(format(T.presetRow, on and "*" or " ", tostring(p.id), p.name ~= "" and p.name or "", p.scope == "all" and T.everyone or T.me, p.n))
 			end
 		end
-	elseif word == "set" then
+	elseif word == "set" or word == "profile" then
 		presetCommand(args, raw)
 	elseif word == "lock" or word == "unlock" then
 		local i, name = find1(raw[3])

@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.68 - Addon Profiles: renamed, rename any, Core and Layered
+
+- "Sets" are now called Addon Profiles everywhere on the AddOns tab, and the drop-down at the bottom left reads "Profiles".
+- The first five addon profiles are Core Addon Profiles, then a line, then the Layered Addon Profiles (6 to 25 and your class). Tick any or all of them in the drop-down: the addons turned on are every selected profile together plus anything you turned on by hand, and unticking a profile turns off only what no other profile or hand pick still wants (protected addons always stay on). Loading a profile, Enable All, Disable All and Undo still replace everything and clear the selection. Manage Addon Profiles at the bottom of the menu has the places (Save, Load, Add to current, Remove from current, Rename, Delete).
+- Rename now shows for every addon profile, a free place and your class one included (a named free place is kept, empty); names are up to 32 letters, not empty and not used twice in the same list. New: /pss acp profile ... select, deselect and rename.
+
 => 3.6.0.67 - Docs: next steps, addon profiles issues 175 to 177
 
 - Docs only: the addon manager's sets (3.6.0.66) tested fine; the next issues are written down (addon profiles, core and layered profiles). Nothing changes in the addon.

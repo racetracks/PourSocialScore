@@ -6,7 +6,7 @@
 -- Load button for a load on demand addon, its memory and a protect mark.
 -- A line at the top shows the CPU and memory of the client's own AddOn
 -- list; hovering an addon shows its details and cost, a group header the
--- group's sums. Sets (bottom left), Undo, Enable All, Disable All and
+-- group's sums. Addon Profiles (bottom left), Undo, Enable All, Disable All and
 -- Reload are under the list. Drawing only: Libraries (PSS_AddonsView.lua over
 -- PSS_AddonsQuery.lua) works out every text and does every change; the
 -- tab redraws when core fires ADDONS_CHANGED. Built on first open; closing
@@ -93,8 +93,8 @@ local function MakeRow(row)
 		local o = k and V:Row(k, rowBuf)
 		if o and not o.header then
 			ns.Tip(self, o.pss and "Pour Social Score is always protected." or
-				(o.locked and "Protected: Disable All and sets leave it on. Click to stop protecting it."
-				or "Click to protect it: Disable All and sets leave it on."))
+				(o.locked and "Protected: Disable All and addon profiles leave it on. Click to stop protecting it."
+				or "Click to protect it: Disable All and addon profiles leave it on."))
 		end
 	end)
 	lock:SetScript("OnLeave", ns.HideTip)
@@ -209,16 +209,16 @@ function Refresh()
 	disableAll:SetEnabled(M.PSS_AddonCan("all"))
 end
 
--- Rename's popup: a set's name (the kit's Confirm with a name field)
+-- Rename's popup: an addon profile's name (the kit's Confirm with a name field)
 local function AskName(p, run)
-	ns.Confirm({ title = "Rename Set?", text = "Give " .. p.label .. " a new name.", accept = "Rename",
+	ns.Confirm({ title = "Rename Addon Profile?", text = "Give " .. p.label .. " a name (up to 32 letters).", accept = "Rename",
 		name = { text = p.name or "", max = 32 }, onAccept = function(_, typed) run(typed or "") end })
 end
 
--- one action on a slot of the Sets menu; Save and Delete ask first
+-- one action on a place of the Addon Profiles menu; Save and Delete ask first
 local function SetAction(p, act)
 	if act == "save" then
-		ns.Confirm({ title = "Save Set?", text = (p.empty and "Save the addons that are on now as " or "Save the addons that are on now over ")
+		ns.Confirm({ title = "Save Addon Profile?", text = (p.empty and "Save the addons that are on now as " or "Save the addons that are on now over ")
 			.. p.label .. "?", accept = "Save",
 			onAccept = function()
 				Say(V:PresetAct(p, "save"))
@@ -230,21 +230,45 @@ local function SetAction(p, act)
 			Refresh()
 		end)
 	elseif act == "delete" then
-		ns.Confirm({ title = "Delete Set?", text = "Delete the set " .. p.label .. "? The addons stay as they are.", accept = "Delete",
+		ns.Confirm({ title = "Delete Addon Profile?", text = "Delete the addon profile " .. p.label .. "? The addons stay as they are.", accept = "Delete",
 			onAccept = function() Say(V:PresetAct(p, "delete")) end })
 	else
 		Say(V:PresetAct(p, act))
 	end
 end
 
--- the Sets menu: every place, a free one shown as empty; a click on one
--- opens that place's actions
+-- Manage Addon Profiles: every place, a free one shown as empty; a click on
+-- one opens that place's actions
+local function BuildManage(m)
+	for _, e in ipairs(V:ManageMenu()) do
+		if e.kind == "title" then
+			m:Title(e.text)
+		elseif e.kind == "divider" then
+			m:Divider()
+		else
+			m:Button(e.text, function()
+				ns.RowMenu(setsDD, V:PresetMenu(e.p), function(act) SetAction(e.p, act) end)
+			end)
+		end
+	end
+end
+
+-- the Addon Profiles menu: Core and Layered profiles, each a tick (any or
+-- all at once, the menu stays open), then Manage
 local function BuildSets(m)
-	m:Title(V.who == "all" and "Sets (all characters)" or "Sets (this character)")
-	for _, p in ipairs(V:Slots()) do
-		m:Button(p.text, function()
-			ns.RowMenu(setsDD, V:PresetMenu(p), function(act) SetAction(p, act) end)
-		end)
+	for _, e in ipairs(V:ProfileMenu()) do
+		if e.kind == "title" then
+			m:Title(e.text)
+		elseif e.kind == "divider" then
+			m:Divider()
+		elseif e.kind == "check" then
+			m:Check(e.text, e.on, function()
+				Say(V:ProfileSelect(e.p, not e.on()))
+				Refresh()
+			end)
+		else
+			m:Button(e.text, function() ns.ContextMenu(setsDD, BuildManage) end)
+		end
 	end
 end
 
@@ -300,10 +324,10 @@ local function BuildToolbar()
 end
 
 local function BuildFooter()
-	-- the Sets drop-down, bottom left (its menu opens upward)
+	-- the Addon Profiles drop-down, bottom left (its menu opens upward)
 	setsDD = ns.NewDropdown(page, 80, BuildSets, true)
 	setsDD:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 10, 8)
-	setsDD:SetLabel("Sets")
+	setsDD:SetLabel("Profiles")
 	footer = ns.NewText(page, 12)
 	footer:SetPoint("LEFT", setsDD, "RIGHT", 12, 0)
 	footer:SetAlpha(0.8)
@@ -371,7 +395,7 @@ ns.TabBuilders.addons = function(pg)
 		click = RowClick,
 	})
 	page.list, page.state, page.search = list, V, search
-	page.setsDD, page.footer, page.setsBuild = setsDD, footer, BuildSets
+	page.setsDD, page.footer, page.setsBuild, page.manageBuild = setsDD, footer, BuildSets, BuildManage
 	-- the window opened: memory is read once when this tab next shows
 	page.stale = function() V.needSample = true end
 	page.release = function()
