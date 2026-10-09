@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.46 - Core uplift U2: the upgrade report
+
+- After an update, the first login now says in plain words what was upgraded in your saved data, all at once: a line "Updated from <old version> to <new version>. Upgrading your saved data:", one line for each feature that changed (Chat Filtering, Player Ignore List, Guild Ignore List, Managed Communities, Block History, Options), the "SavedVariables performance cleanup" line every time (what it tidied, or "nothing to tidy"), then "Saved data upgraded to <version> (step N)." as before. The next login says nothing. A brand new save says nothing either.
+- Going back to an older version than the one that last wrote your saved data now says so in one line ("Running X, older than your saved data (Y). Nothing was upgraded.") and keeps the newer version's record, instead of quietly overwriting it.
+- If an upgrade step has to wait (for example a folder is missing), a red line says which step paused; it tries again at the next login.
+- The note about old folders that are safe to delete is now on the cleanup line.
+
 => 3.4.1.45 - Upgrade step registry (U1)
 
 - Nothing you can see changes. The steps that upgrade your saved data at login are now grouped by feature (Chat Filtering, Player Ignore List, Guild Ignore List, Managed Communities, Block History, Options) and count what they change, ready for the readable upgrade report in the next build.

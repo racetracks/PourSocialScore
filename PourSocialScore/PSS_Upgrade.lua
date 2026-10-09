@@ -28,8 +28,10 @@ local V = addon.V -- runtime state
 local db	-- PourSocialScoreDB while a pass runs
 local blocked	-- first step whose part returned false this login (not recorded)
 local out	-- counts per feature, only on a login that reports (see tally)
+local oldFolders	-- folders the window no longer uses, named on the cleanup line
+local newer	-- the save's version when it is newer than this one (a downgrade)
 
--- The report's groups, in print order (U2 prints them).
+-- The report's groups, in print order.
 local FEATURES = { "filters", "players", "guilds", "managed", "history", "options", "cleanup" }
 M.PSS_UPGRADE_FEATURES = FEATURES
 
@@ -294,7 +296,12 @@ local STEPS = {
 						if exists(name) then left[#left + 1] = name end
 					end
 					if #left > 0 then
-						M.ShowMsg(L["OLD_FOLDERS"]:format(table.concat(left, ", ")))
+						-- on the cleanup line when this login reports, else said now
+						if out then
+							oldFolders = table.concat(left, ", ")
+						else
+							M.ShowMsg(L["OLD_FOLDERS"]:format(table.concat(left, ", ")))
+						end
 						tally("cleanup", "oldFolders", #left)
 					end
 				end,
@@ -393,17 +400,78 @@ local function runPart(part)
 	db = nil
 end
 
+------------------------------------------------------------------------
+-- THE UPGRADE REPORT (core uplift U2, issue #45)
+--
+-- Printed all at once at the end of M.PSS_RunUpgradeData on a login that
+-- reports: a head line, a line for each feature that changed, the cleanup
+-- line (always), then "Saved data upgraded to X (step N)." (or the paused
+-- line). The phrases for each feature's counts are L["UPG_<feature>_<key>"],
+-- in the order listed here; nothing is built on a login that does not report.
+------------------------------------------------------------------------
+local PHRASES = {
+	filters = { "reset", "lists", "ids", "unlinked" },
+	players = { "lists", "renamed", "toGuilds", "tidied", "declines", "blizzardTicks" },
+	guilds = { "scanFields" },
+	managed = { "rules" },
+	history = { "formats", "tidied" },
+	options = { "switchedOff", "places" },
+	cleanup = { "defaults", "retired" },
+}
+M.PSS_UPGRADE_PHRASES = PHRASES	-- read only (the harness checks every count has a phrase)
+
+-- 12480 -> "12,480"
+local function fmtNum(n)
+	local s, k = tostring(math.floor(n))
+	repeat s, k = s:gsub("^(%d+)(%d%d%d)", "%1,%2") until k == 0
+	return s
+end
+
+-- "3 records of players no longer listed removed, 2 names given capitals"
+local function resultText(feature, counts)
+	local parts, keys = {}, PHRASES[feature]
+	for i = 1, #keys do
+		local n = counts and counts[keys[i]]
+		if n then parts[#parts + 1] = L["UPG_" .. feature .. "_" .. keys[i]]:format(fmtNum(n)) end
+	end
+	return table.concat(parts, ", ")
+end
+
+local function printReport(c)
+	M.ShowMsg(L["UPG_HEAD"]:format(c.from or L["UPG_OLD"], c.to))
+	for i = 1, #FEATURES - 1 do
+		local f = FEATURES[i]
+		local text = c[f] and resultText(f, c[f]) or ""
+		if text ~= "" then M.ShowMsg("  " .. L["UPG_" .. f] .. ": " .. text .. ".") end
+	end
+	local text = resultText("cleanup", c.cleanup)
+	if text == "" then text = L["UPG_NOTHING"] end
+	text = "  " .. L["UPG_cleanup"] .. ": " .. text .. "."
+	if oldFolders then text = text .. " " .. L["OLD_FOLDERS"]:format(oldFolders) end
+	M.ShowMsg(text)
+	if c.paused then
+		M.ShowMsg("|cffff3333" .. L["UPG_PAUSED"]:format(c.paused) .. "|r")
+	else
+		M.ShowMsg(L["UPG_DONE"]:format(c.to, c.step))
+	end
+end
+
 -- The "fields" parts. fresh: a new save built this login (nothing to
 -- report); defaults: options M.PSS_ApplyOptionDefaults dropped just before.
 -- A login reports when the save is not new and a step is due or the
--- version changed; only then are the counts kept (out).
+-- version changed; only then are the counts kept (out). A save from a
+-- newer version (a downgrade) does not report: it gets one line and keeps
+-- its version in the record.
 function M.PSS_RunUpgradeFields(fresh, defaults)
 	local sv = PourSocialScoreDB
-	out = nil
+	out, oldFolders, newer = nil, nil, nil
 	if not fresh and type(sv) == "table" then
 		local rec = type(sv.upgrade) == "table" and sv.upgrade or nil
 		local from = rec and rec.version
-		if stepsDone() < #STEPS or from ~= addonVersion() then
+		local version = addonVersion()
+		if M.PSS_VersionOrder(from, version) == 1 then
+			newer = from
+		elseif stepsDone() < #STEPS or from ~= version then
 			out = { from = type(from) == "string" and from or nil, done = stepsDone() }
 			tally("cleanup", "defaults", defaults)
 		end
@@ -431,19 +499,21 @@ function M.PSS_RunUpgradeData(fresh)
 	local rec = type(sv.upgrade) == "table" and sv.upgrade or {}
 	sv.upgrade = rec
 	local version = addonVersion()
-	if done < reached or rec.version ~= version then
+	if done < reached or (rec.version ~= version and not newer) then
 		rec.step = math.max(done, reached)
-		rec.version = version
+		if not newer then rec.version = version end
 		rec.at = (GetServerTime and GetServerTime()) or time()
 	end
-	if done < reached and not fresh then
-		M.ShowMsg(("Saved data upgraded to %s (step %d)."):format(version, reached))
+	if newer then
+		M.ShowMsg(L["UPG_NEWER"]:format(version, newer))
 	end
 	local counts = out
-	out = nil
+	out, newer = nil, nil
 	if counts then
 		counts.to, counts.step, counts.paused = version, math.max(done, reached), paused
+		printReport(counts)
 	end
+	oldFolders = nil
 	return counts
 end
 
