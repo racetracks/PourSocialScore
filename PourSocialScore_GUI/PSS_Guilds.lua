@@ -514,7 +514,7 @@ local function ShowGuild(key, fresh)
 	b.scan:SetText(M.PSS_GuildSweepLabel(key))
 	if not pane.fieldsBox:HasFocus() then pane.fieldsBox:SetText(g.customScan or "") end
 	b.exceptions:Set(g, "guild", "this guild")
-	local c = M.PSS_GetGuildBlockCounts(key)
+	local c = V:GuildCounts(key)
 	b.counts:SetText(M.PSS_CountsText(c))
 	b.removeButton:SetEnabled(not M.PSS_IsStaticManagedGuild(key))
 	b.membersButton:SetShown(V.view ~= "members")
@@ -592,6 +592,28 @@ local function ShowMember(fresh)
 	s.owner, s.allTime, s.title, s.id = M.PSS_MemberHistoryKey(m), c.total or 0, tostring(M.PSS_MemberName(m)), m
 	b.summary:Set(s)
 	return true
+end
+
+-- A block only changes the counts: the counts line, the history and the
+-- Summary of the guild or member shown (the rest of the pane is as it was).
+-- Anything else shown: the whole pane.
+local function ShowCounts()
+	local b = pane and (V.view == "members" and V.msel and pane.member or V.view ~= "members" and V.selKind == "guild" and pane.guild)
+	if not (b and b:IsShown()) then return ShowDetail() end
+	local s = b.sumSpec
+	local c
+	if b == pane.member then
+		local m = V.msel
+		c = M.PSS_GetMemberBlockCounts(m)
+		b.hist:Set(m, c.total or 0, M.PSS_GetMemberBlockHistory)
+	else
+		local key = V.sel
+		c = V:GuildCounts(key)
+		b.hist:Set(key, c.total or 0, M.PSS_GetGuildBlockHistory)
+	end
+	b.counts:SetText(M.PSS_CountsText(c))
+	s.allTime = c.total or 0
+	b.summary:Set(s)
 end
 
 -- Redraw the pane for what is selected (nothing: the list's totals).
@@ -891,9 +913,12 @@ local redrawCounts = M.PSS_Throttle(function()
 			mlist:Redraw()
 		else
 			V:CountsChanged()
+			-- the selected guild's row was counted by the redraw: the pane reuses it
+			V.share = true
 			list:Redraw()
 		end
-		ShowDetail()
+		ShowCounts()
+		V.share = nil
 	else
 		V.dirty, V.mdirty = true, true
 	end

@@ -441,7 +441,7 @@ function EX:Set(target, scope, who, parentOpts)
 		local on, isEx, base = M.PSS_ExceptionState(target, b.opt.key, parentOpts)
 		b:SetChecked(on)
 		b.label:SetText(M.PSS_ExceptionText(b.opt, isEx))
-		b.tip = M.PSS_ExceptionTip(b.opt, who, base)
+		b.base = base
 	end
 end
 
@@ -475,7 +475,10 @@ function ns.NewExceptions(parent, x, y, width, onChange)
 			M.PSS_SetException(ex.target, ex.scope, o.key, self:GetChecked(), ex.parentOpts)
 			if onChange then onChange() end
 		end)
-		c:SetScript("OnEnter", function(self) if self.tip then ns.Tip(self, self.tip) end end)
+		-- the tip is built when hovered, not on every Set
+		c:SetScript("OnEnter", function(self)
+			if ex.target then ns.Tip(self, function() return M.PSS_ExceptionTip(self.opt, ex.who, self.base) end) end
+		end)
 		c:SetScript("OnLeave", ns.HideTip)
 		ex.boxes[#ex.boxes + 1] = c
 	end

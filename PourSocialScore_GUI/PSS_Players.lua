@@ -265,6 +265,19 @@ function ns.ShowPlayerDetail(newEntry)
 	pane.summary:Set(s)
 end
 
+-- A block only changes the counts: the counts line, the history and the
+-- Summary (the rest of the pane is as it was). Anything else: the whole pane.
+function ns.ShowPlayerCounts()
+	local p = pane and pane.record
+	if not (p and sel and pane.body:IsShown()) then return ns.ShowPlayerDetail() end
+	local c = M.PSS_GetPlayerBlockCounts(p)
+	pane.counts:SetText(M.PSS_CountsText(c))
+	pane.hist:Set(sel, c.total or 0, M.PSS_GetPlayerBlockHistory)
+	local s = pane.sumSpec
+	s.allTime = c.total or 0
+	pane.summary:Set(s)
+end
+
 ------------------------------------------------------------------------
 -- Tab
 ------------------------------------------------------------------------
@@ -473,7 +486,7 @@ end)
 local redrawCounts = M.PSS_Throttle(function()
 	if page and page:IsVisible() then
 		list:Redraw()
-		ns.ShowPlayerDetail()
+		ns.ShowPlayerCounts()
 	end
 end)
 ns.Listen("PLAYER_BLOCKED", function()

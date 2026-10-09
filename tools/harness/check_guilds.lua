@@ -459,4 +459,35 @@ end
 win.tabs[2]._scripts.OnClick(win.tabs[2])
 check(V.selKind == nil and V.view == "guilds" and pane.totals.frame:IsShown(), "a tab click did not reset the tab")
 
+-- W4 (G22, G23): a block redraw walks the selected guild once, not twice, and
+-- redraws only the counts of the pane (no exception state read)
+do
+	M.PSS_AddGuild("Redrawcheck Guild")
+	H.RunTimers()
+	local key = M.PSS_NormalizeGuild and M.PSS_NormalizeGuild("Redrawcheck Guild") or "redrawcheck guild"
+	page.select("guild", key)
+	list:Redraw()
+	local counted, states = 0, 0
+	local realC, realS = M.PSS_GetGuildBlockCounts, M.PSS_ExceptionState
+	M.PSS_GetGuildBlockCounts = function(...) counted = counted + 1 return realC(...) end
+	M.PSS_ExceptionState = function(...) states = states + 1 return realS(...) end
+	M.Events.Fire("GUILD_BLOCKS_CHANGED")
+	H.RunTimers()
+	M.PSS_GetGuildBlockCounts, M.PSS_ExceptionState = realC, realS
+	local drawn = 0
+	local onScreen = false
+	for i = 1, list.shown or 0 do
+		local it = V.rows[i]
+		if it and it.g and it.key then
+			drawn = drawn + 1
+			if it.key == key then onScreen = true end
+		end
+	end
+	if not onScreen then drawn = drawn + 1 end	-- the pane counts it once
+	check(counted == drawn, ("block redraw counted %d times for %d drawn guild rows"):format(counted, drawn))
+	check(states == 0, "block redraw rebuilt the exception boxes")
+	M.PSS_RemoveGuild("Redrawcheck Guild")
+	H.RunTimers()
+end
+
 if not fail then print(("PASS guilds (%d rules)"):format(M.PSS_GuildCount())) end
