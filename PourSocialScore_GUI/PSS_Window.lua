@@ -8,7 +8,7 @@
 -- elsewhere it remembers the place (Libraries M.PSS_UIPlace) and the tab
 -- shown (M.PSS_UITab).
 --
--- Six tabs (M.PSS_UI_TABS); each is built on first open by its builder,
+-- Seven tabs (M.PSS_UI_TABS); each is built on first open by its builder,
 -- ns.TabBuilders[key](page), which returns the function that redraws it.
 -- A tab without a builder yet shows a note. Back / forward arrows above the
 -- tabs (and mouse buttons 4 / 5) step through the views shown; the line by
@@ -506,9 +506,17 @@ end
 
 -- /pss gui, /pss ui, the Addon Compartment (core M.PSS_OpenUI); show true
 -- opens without toggling. Opened this way the window is at its own place.
-function M.PSS_OpenWindow(show)
+function M.PSS_OpenWindow(show, tab)
 	if not win then Build() end
-	if win:IsShown() and not show then
+	-- a tab key (/pss acp, the key binding): open on that tab; the same call
+	-- with that tab shown closes it
+	local id
+	if tab then
+		for i, t in ipairs(TABS) do
+			if t.key == tab then id = i end
+		end
+	end
+	if win:IsShown() and not show and (not id or id == curTab) then
 		win:Hide()
 		return
 	end
@@ -516,6 +524,10 @@ function M.PSS_OpenWindow(show)
 	RestorePlace()
 	-- fonts other addons shared since the last open join the font choices
 	M.PSS_UIFontChoices()
+	if id and id ~= curTab then
+		SelectTab(id)
+		ns.NavRecord()
+	end
 	win:Show()
 	win:Raise()
 end

@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.64 - Addon manager
+
+- New AddOns tab in the Pour Social Score window (all three looks), also /pss acp and /acp, the key binding "Open AddOns" and, on Retail, a second Addon Compartment entry "Pour Social Score: AddOns": every installed addon in one grouped, searchable list; tick to turn an addon on or off for this character or all characters (it can also turn on the addons it requires), Load for load on demand addons, Disable All and Enable All, Undo back to the state at login and a Reload button that shows when a change waits for a reload.
+- Protect an addon with the star so Disable All and sets leave it on; save the addons that are on as a set (25 numbered ones, each for this character or all characters, and one for your class) and load, add or take off a set. Sets and protected addons are saved per character or account-wide (a new saved file for each character only once something is saved there).
+- Memory and CPU for every addon: a line at the top shows the CPU and memory as Blizzard's own AddOn list does, hovering an addon shows its details, CPU and memory, and hovering a group's header shows the group's sums.
+- Works on Retail and Camelot. Nothing is loaded or built until the tab is opened; Pour Social Score and your protected addons can never be turned off from the tab. The Options tab's search box is a little narrower to make room for the new tab.
+
 => 3.5.1.63 - Docs: the addon manager is the next workload
 
 - Docs only, no change in game: the addon manager (an AddOns tab in the PSS window, /pss acp and /acp, with CPU and memory per addon) is the next workload; CLAUDE.md, the status and the handover point to its design and plan on scratch. The first macros from issue #159 take the next build after this one.

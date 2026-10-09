@@ -128,6 +128,12 @@ local function BuildConfirm()
 		if o and o.numberNote then confirm.note:SetText(o.numberNote(tonumber(self:GetText()))) end
 	end)
 	confirm.number:SetScript("OnEscapePressed", function() confirm:Hide() end)
+	-- the name box (opts.name = { text, max }): a preset's name; the same
+	-- place as the number box
+	confirm.name = ns.NewEditBox(confirm, 220, 32)
+	confirm.name:SetPoint("TOP", confirm.text, "BOTTOM", 0, -10)
+	confirm.name:Hide()
+	confirm.name:SetScript("OnEscapePressed", function() confirm:Hide() end)
 	confirm.accept = PopupButton(confirm, 125, 27, true)
 	confirm.cancel = PopupButton(confirm, 125, 27, false)
 	confirm.accept:SetPoint("BOTTOMRIGHT", confirm, "BOTTOM", -8, 13)
@@ -136,11 +142,13 @@ local function BuildConfirm()
 		local o = confirmOpts
 		confirmOpts = nil
 		local n = o and o.number ~= nil and tonumber(confirm.number:GetText()) or nil
+		local typed = o and o.name ~= nil and confirm.name:GetText() or nil
 		confirm:Hide()
-		if o and o.onAccept then o.onAccept(n) end
+		if o and o.onAccept then o.onAccept(n, typed) end
 	end
 	confirm.accept:SetScript("OnClick", Accept)
 	confirm.number:SetScript("OnEnterPressed", Accept)
+	confirm.name:SetScript("OnEnterPressed", Accept)
 	confirm.cancel:SetScript("OnClick", function() confirm:Hide() end)
 	-- hidden any other way (Cancel, Escape, a click on the dimmed screen,
 	-- another popup) is a cancel
@@ -201,12 +209,22 @@ function ns.Confirm(opts)
 		confirm.number:SetText(tostring(opts.number))
 		confirm.note:SetText(opts.numberNote and opts.numberNote(tonumber(opts.number)) or "")
 	end
-	-- grows with a long message (and the number box)
+	local withName = opts.name ~= nil
+	confirm.name:SetShown(withName)
+	if withName then
+		confirm.name:SetMaxLetters(opts.name.max or 32)
+		confirm.name:SetText(opts.name.text or "")
+	end
+	-- grows with a long message (and the number or name box)
 	local over = math.max(0, confirm.text:GetStringHeight() - 44)
-	confirm:SetHeight(176 + over + (withNumber and 52 or 0))
+	confirm:SetHeight(176 + over + ((withNumber or withName) and 52 or 0))
 	confirm:Show()
 	confirm:Raise()
 	if withNumber then confirm.number:SetFocus() end
+	if withName then
+		confirm.name:SetFocus()
+		confirm.name:HighlightText()
+	end
 	return confirm
 end
 

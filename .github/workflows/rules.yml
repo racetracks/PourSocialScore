@@ -67,6 +67,8 @@ jobs:
           PSS_PHASE=dynicon PSS_CAMELOT=1 PSS_MACRO_DYNICON=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro dynicon" /tmp/mac.txt
           PSS_PHASE=noapi PSS_CAMELOT=1 PSS_MACRO_NOAPI=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro noapi" /tmp/mac.txt
           PSS_PHASE=retail lua5.1 tools/harness/run.lua . - - tools/harness/check_macro.lua | tee /tmp/mac.txt && grep -q "PASS macro retail" /tmp/mac.txt
+      - name: Addon manager
+        run: sh tools/harness/addons_phases.sh /tmp/pss-addons
 
   upgrades:
     runs-on: ubuntu-latest

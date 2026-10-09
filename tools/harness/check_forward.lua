@@ -70,6 +70,9 @@ if phase == "after" then
 	check(PourSocialScoreDB.newerCore and PourSocialScoreDB.newerCore.a == 1, "the newer core key is gone")
 	check(R.newerNextFilterId == 13, "the newer PSS_RulesDB key is gone")
 	check(O.newerOption == true, "the newer option is gone")
+	check(O.addonSets and O.addonSets[5] == "3Newer\nAtlas" and O.addonSets[6] == "1Old\nAtlas", "the addon sets are gone or changed")
+	check(O.addonLock and O.addonLock["3"] == "Other" and O.addonView == "newerview", "the addon lock list or view is gone or changed")
+	check(PSS_CharDB and PSS_CharDB.newerKey and PSS_CharDB.newerKey[1] == 1 and PSS_CharDB.addonSets[1] == "Mine\nAtlas", "the per-character store is gone or changed")
 	check(PourSocialScoreDB.upgrade.newerRec == 1, "the upgrade record's newer field is gone")
 	check(R.builtinRules.PSS0099 == true and C.builtinStats.PSS0099 and C.builtinStats.PSS0099.count == 3,
 		"a newer built-in rule's state is gone")
@@ -122,6 +125,13 @@ if phase == "plant" then
 	kept.newerField = "keep"
 	kept.newerTable = { a = 1 }
 	M.PSS_MarkGuildIndexDirty()
+	-- the addon manager's keys (3.6.0) as a newer version writes them: a set
+	-- from a newer client digit, a lock list of a newer client, a view this
+	-- version does not know, and a per-character store with a field of its own
+	PourSocialScoreDB.addonSets = { [5] = "3Newer\nAtlas", [6] = "1Old\nAtlas" }
+	PourSocialScoreDB.addonLock = { ["3"] = "Other" }
+	PourSocialScoreDB.addonView = "newerview"
+	_G["PSS_CharDB"] = { addonSets = { [1] = "Mine\nAtlas" }, newerKey = { 1 } }
 	-- both rules block before the newer fields count (this version made them)
 	check(line("CHAT_MSG_WHISPER", "hello", USED_MEMBER), "plant: the usable rule does not block")
 	M.PSS_AddCustomFilter("Newer tag", NEWER_TAG, true)

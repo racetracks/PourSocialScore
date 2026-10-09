@@ -310,6 +310,15 @@ M.PSS_Stub("PSS_SlashPSS", "Libraries")
 M.PSS_Stub("PSS_SlashGuild", "Libraries")
 SlashCmdList["PSS"] = function(msg) M.PSS_SlashPSS(msg) end
 SlashCmdList["PSSGUILD"] = function(msg) M.PSS_SlashGuild(msg) end
+-- /acp is /pss acp (the AddOns tab, 3.6.0), under our own key and only when
+-- no other addon owns /acp (the client runs the first it finds)
+local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+if SlashCmdList["ACP"] == nil and not (isLoaded and isLoaded("ACP")) then
+	SLASH_PSSACP1 = "/acp"
+	SlashCmdList["PSSACP"] = function(msg) M.PSS_SlashPSS("acp " .. (msg or "")) end
+else
+	M.PSS_ACPTaken = true
+end
 
 PSSFRAME:SetScript("OnEvent", EventHandler)
 

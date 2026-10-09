@@ -118,7 +118,7 @@ local function lines(list, where)
 	end
 end
 
-local STORES = { "PourSocialScoreDB", "PSS_OptionsDB", "PSS_PlayersDB", "PSS_GuildsDB", "PSS_RulesDB", "PSS_CountsDB", "PSS_LoggingDB" }
+local STORES = { "PourSocialScoreDB", "PSS_CharDB", "PSS_OptionsDB", "PSS_PlayersDB", "PSS_GuildsDB", "PSS_RulesDB", "PSS_CountsDB", "PSS_LoggingDB" }
 for i = 2, #arg do
 	local path = arg[i]
 	for _, g in ipairs(STORES) do _G[g] = nil end

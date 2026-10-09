@@ -55,6 +55,7 @@ M.PSS_UI_TABS = {
 	{ key = "events", text = "Events" },
 	{ key = "importExport", text = "Import/Export" },
 	{ key = "options", text = "Options" },
+	{ key = "addons", text = "AddOns" },
 }
 M.PSS_UI_EVENTS_TAB = 4
 

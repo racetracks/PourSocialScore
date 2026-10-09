@@ -64,4 +64,8 @@ M.PSS_SCHEMA = {
 	-- a saved log group (blockLog[o] from 3.2.0-dev007; lines in its array part;
 	-- m only when it is not the owner key's own form, 3.4.1.52)
 	logGroup = "c gk m n k r",
+	-- the addon manager (3.6.0): PSS_OptionsDB.addonSets / addonLock / addonView
+	-- (account-wide) and PSS_CharDB.addonSets / addonLock (this character),
+	-- all packed strings, no record fields (PSS_AddonsQuery.lua)
+	charDB = "addonSets addonLock",
 }

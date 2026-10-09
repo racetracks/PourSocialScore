@@ -157,13 +157,13 @@ _G.PSS_WindowEscape:Hide()
 check(not win:IsShown(), "Escape did not close the window")
 
 ------------------------------------------------------------------------
--- dev006: six tabs, back / forward, the line by the arrows, Escape
+-- dev006: seven tabs, back / forward, the line by the arrows, Escape
 ------------------------------------------------------------------------
 SlashCmdList["PSS"]("gui")
 check(win:IsShown(), "window did not open again")
 local names = {}
 for i, t in ipairs(win.tabs or {}) do names[i] = t:GetText() end
-check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,Events,Import/Export,Options", "tabs are not the six of the port")
+check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,Events,Import/Export,Options,AddOns", "tabs are not the seven (the six of the port and AddOns)")
 check(win.tabs[1].pssSelected and win.pages[1]:IsShown() and not win.pages[2]:IsShown(), "first tab not shown first")
 check(win.pages[6].note == nil and not win.pages[6].refresh, "a tab not opened yet is not built, and has no placeholder note")
 check(win.where:GetText() == "Player Ignore List", "the line by the arrows does not name the tab")
@@ -671,6 +671,108 @@ do
 	check(reg == unreg, ("opening the window added %d listeners, %d were removed"):format(reg, unreg))
 	M.Events.Register, M.Events.Unregister = realReg, realUnreg
 	win:Hide()
+end
+
+------------------------------------------------------------------------
+-- (3.6.0) the AddOns tab: opened by /pss acp, drawn in all three looks, built
+-- only when opened, its list dropped when the window closes
+------------------------------------------------------------------------
+do
+	local ui = H.Private("PourSocialScore_GUI")
+	win:Hide()
+	check(not win.pages[7].refresh, "the AddOns tab is built before it is opened")
+	SlashCmdList["PSS"]("acp")
+	local pg = win.pages[7]
+	check(win:IsShown() and pg:IsShown() and pg.refresh, "/pss acp did not open the AddOns tab")
+	SlashCmdList["PSS"]("acp")
+	check(not win:IsShown(), "/pss acp again did not close the window")
+	win.tabs[1]._scripts.OnClick(win.tabs[1])
+	win:Show()
+	M.PSS_OpenUI("addons")
+	check(win:IsShown() and pg:IsShown(), "M.PSS_OpenUI(\"addons\") did not select the tab")
+	check(PourSocialScoreDB.windowPoints.PSS_WindowTab == "addons", "the AddOns tab is not remembered as the last tab")
+	-- the tab row clears the Options search box (real fonts run wider than the stub's: 15 percent)
+	local right = 10
+	for _, t in ipairs(win.tabs) do right = right + t:GetWidth() + 2 end
+	local opts = win.pages[6]
+	if not opts.search then win.tabs[6]._scripts.OnClick(win.tabs[6]) end
+	local boxW = win.pages[6].search and win.pages[6].search:GetWidth() or 0
+	check(boxW >= 160, "the Options search box is narrower than 160")
+	check(right * 1.15 < 960 - 12 - boxW, ("the tab row (%d) reaches the Options search box (from %d)"):format(right * 1.15, 960 - 12 - boxW))
+	win.tabs[7]._scripts.OnClick(win.tabs[7])
+	local V = pg.state
+	-- the stub's frames are 20 high: give the list its real height (15 rows)
+	pg.list.scroll:SetSize(900, 300)
+	pg.list:Layout()
+	for _, look in ipairs({ 2, 0, 1 }) do
+		M.PSS_SetOpt("uiSkin", "global", look)
+		local name = ({ [2] = "Modern", [0] = "Classic", [1] = "Dark" })[look]
+		pg.refresh()
+		check(V:Count() > 10 and #pg.list.rows >= 10, name .. ": the AddOns list is empty")
+		local header, withLoad, plain
+		for _, row in ipairs(pg.list.rows) do
+			local text = row.cells.title:GetText() or ""
+			if row.arrow:IsShown() or text:find("^%[[-+]%]") then header = header or row end
+			if row.load:IsShown() then withLoad = withLoad or row end
+			if row.tick:IsShown() and not row.arrow:IsShown() and text ~= "" then plain = plain or row end
+		end
+		check(header and withLoad and plain, name .. ": no header, Load button or addon row")
+		-- the stats row and the footer say what they must
+		check(pg.refresh and tostring(V:Stats()):find("Memory", 1, true), name .. ": no memory in the stats line")
+	end
+	M.PSS_SetOpt("uiSkin", "global", 0)
+	-- a search narrows the list; a tick turns an addon on; Escape of the search clears it
+	local search = pg.search
+	search:SetText("zedone")
+	search._scripts.OnTextChanged(search)
+	check(V:Count() == 1, "the search did not narrow the list to one addon: " .. V:Count())
+	local row = pg.list.rows[1]
+	row.tick:SetChecked(true)
+	row.tick._scripts.OnClick(row.tick)
+	local zed
+	for _, r in ipairs(H.AddonList()) do if r.name == "ZedOne" then zed = r end end
+	check(zed and zed.me, "the tick did not turn the addon on")
+	-- the Load button of a load on demand addon
+	search:SetText("atlas_options")
+	search._scripts.OnTextChanged(search)
+	row = pg.list.rows[1]
+	check(row.load:IsShown(), "no Load button on a load on demand addon")
+	row.load._scripts.OnClick(row.load)
+	local loadedNow
+	for _, r in ipairs(H.AddonList()) do if r.name == "Atlas_Options" then loadedNow = r.loaded end end
+	check(loadedNow, "the Load button did not load the addon")
+	search:SetText("")
+	search._scripts.OnTextChanged(search)
+	-- a group header collapses
+	local before = V:Count()
+	for k = 1, V:Count() do
+		local o = V:Row(k, {})
+		if o.header then
+			pg.list.rows[k]._scripts.OnClick(pg.list.rows[k], "LeftButton")
+			break
+		end
+	end
+	check(V:Count() < before, "a header click did not collapse its group")
+	V:CollapseAll(false)
+	-- the window closing drops the list (the choices stay)
+	win:Hide()
+	check(V:Count() == 0 and V.L == nil, "the AddOns list is kept after the window closes")
+	-- the kit: a name field on the confirm, and the file helper
+	local got
+	ui.Confirm({ title = "Save Set?", text = "x", name = { text = "Raid", max = 32 }, onAccept = function(_, typed) got = typed end })
+	local c = _G.PSS_Confirm
+	check(c.name:IsShown() and c.name:GetText() == "Raid", "the name field is not shown with its text")
+	c.name:SetText("Other")
+	c.accept._scripts.OnClick(c.accept)
+	check(got == "Other", "Accept did not hand over the name: " .. tostring(got))
+	ui.Confirm({ title = "Delete?", text = "x", onAccept = function() end })
+	check(not c.name:IsShown(), "the name field shows on a popup without one")
+	c:Hide()
+	local t = { SetTexture = function() return false end, SetTexCoord = function() error("coords on a missing file") end }
+	check(ui.FileTexture(t, "x", { 0, 1, 0, 1 }) == false, "FileTexture does not report a missing file")
+	local coords
+	t = { SetTexture = function() return true end, SetTexCoord = function(_, ...) coords = { ... } end }
+	check(ui.FileTexture(t, "x", { 0.75, 1, 0, 1 }) == true and coords[1] == 0.75, "FileTexture does not set the coords")
 end
 
 if not fail then print("PASS tui") end

@@ -1,0 +1,1276 @@
+------------------------------------------------------------------------
+-- POUR SOCIAL SCORE - ADDON MANAGER, THE LOGIC (/pss acp, 3.6.0)
+--
+-- Everything the AddOns tab and /pss acp do, written for this addon from
+-- docs/components/addon-manager/01_DESIGN.md (clean room: no code, names or
+-- texts of any other addon manager). The tab only draws; every call into
+-- the client's addon API is here.
+--
+-- The list is built per call as plain arrays of addon indexes (no table per
+-- addon); a row's state is read from the client when it is drawn. Nothing
+-- is kept on M, in an upvalue or in a frame between calls except the small
+-- lock list cache, dropped by M.PSS_AddonRelease (the window's close).
+-- No events are registered: the tab hears ADDONS_CHANGED while it shows.
+--
+-- Saved (only what the player chose, packed, capped, pruned): presets and
+-- protected addons per character (PSS_CharDB) and for all characters
+-- (PSS_OptionsDB addonSets, addonLock), and the list view (addonView).
+--   M.PSS_AddonCan(what)               the client has the API for what
+--   M.PSS_AddonCount()                 addons installed
+--   M.PSS_AddonList(who, view, search) the list, grouped (who "me" / "all")
+--   M.PSS_AddonRow(i, who, out)        one addon's state, drawn live
+--   M.PSS_AddonTick(i, on, who, deps)  enable or disable (deps: its required ones)
+--   M.PSS_AddonTickMany(L, a, b, on, who, deps)   a group, protected spared
+--   M.PSS_AddonLoad(i)                 load a load-on-demand addon
+--   M.PSS_AddonAll(on, who)            Enable All / Disable All
+--   M.PSS_AddonUndo()  M.PSS_AddonPending(who)  M.PSS_AddonReload()
+--   M.PSS_AddonMemory()  M.PSS_AddonMemOf(i)  M.PSS_AddonMemGroup(L, gi)
+--   M.PSS_AddonDeps(i, who)            required and optional, with state
+--   M.PSS_AddonPresets() and ...PresetSave / Load / Add / Remove / Rename / Delete
+--   M.PSS_AddonLock(name, on, who)  M.PSS_AddonLocked(name)
+--   M.PSS_AddonViewMode(v)  M.PSS_AddonLoadOld(on)
+--   M.PSS_AddonPerfOn()  M.PSS_AddonCPU(name)  M.PSS_AddonCPUGroup(L, gi)
+--   M.PSS_AddonCPUTotal()  M.PSS_AddonWarn()
+--   M.PSS_AddonPrune()  M.PSS_AddonRelease()  M.PSS_AddonCommand(args, raw)
+------------------------------------------------------------------------
+local addon = PourSocialScore_NS
+local M = addon.M
+
+local type, tonumber, tostring, pcall, select = type, tonumber, tostring, pcall, select
+local pairs, ipairs, next = pairs, ipairs, next
+local sort, concat = table.sort, table.concat
+local format, lower, sub, find, byte, gsub = string.format, string.lower, string.sub, string.find, string.byte, string.gsub
+local floor = math.floor
+local InCombatLockdown, UnitGUID, UnitClass = InCombatLockdown, UnitGUID, UnitClass
+
+local iface = select(4, GetBuildInfo())
+local DIGIT = (type(iface) == "number" and iface < 20000) and "2" or "1"	-- the client in a set: 1 Retail, 2 Camelot
+local PRESETS_MAX = 25
+local NAME_MAX = 32
+local NL = "\n"
+
+-- the client's addon API, once (C_AddOns on current clients, the old
+-- globals where it is missing)
+local function api(n) return (C_AddOns and C_AddOns[n]) or _G[n] end
+local GetNumAddOns, GetAddOnInfo, GetAddOnMetadata = api("GetNumAddOns"), api("GetAddOnInfo"), api("GetAddOnMetadata")
+local EnableAddOn, DisableAddOn = api("EnableAddOn"), api("DisableAddOn")
+local EnableAllAddOns, DisableAllAddOns = api("EnableAllAddOns"), api("DisableAllAddOns")
+local GetDeps, GetOptDeps = api("GetAddOnDependencies"), api("GetAddOnOptionalDependencies")
+local IsLoaded, IsLoD, LoadAddOn = api("IsAddOnLoaded"), api("IsAddOnLoadOnDemand"), api("LoadAddOn")
+local UpdateMem, GetMem = api("UpdateAddOnMemoryUsage"), api("GetAddOnMemoryUsage")
+local SaveAddOns, ResetAddOns = api("SaveAddOns"), api("ResetAddOns")
+local GetVersionCheck, SetVersionCheck = api("IsAddonVersionCheckEnabled"), api("SetAddonVersionCheck")
+-- GetAddOnEnableState(name, character) on 11.0 and later, (character, name) before
+local stateNew = C_AddOns and C_AddOns.GetAddOnEnableState
+local stateOld = (not stateNew) and _G.GetAddOnEnableState
+local NONE = (Enum and Enum.AddOnEnableState and Enum.AddOnEnableState.None) or 0
+
+-- the chat texts (English, inline as the other Libraries files)
+local T = {
+	noApi = "The AddOn list is not available on this client.",
+	noChar = "This character could not be told apart: nothing was changed.",
+	combat = "Not in combat.",
+	reload = " Reload to apply.",
+	unknown = "No addon called \"%s\".",
+	pss = "Pour Social Score cannot be turned off here.",
+	notLod = "%s does not load on demand.",
+	loadFail = "%s did not load: %s.",
+	loaded = "%s loaded.",
+	on = "%s is on for %s.",
+	off = "%s is off for %s.",
+	needs = " Needs %s, which is not installed.",
+	alsoOn = " Also turned on: %s.",
+	allOn = "Every addon is on for %s.",
+	allOff = "Every addon is off for %s (Pour Social Score and protected addons stay on).",
+	undone = "Back to the addons as at login.",
+	noUndo = "This client cannot undo.",
+	me = "this character",
+	everyone = "all characters",
+	listHead = "%d addons, %d on for %s:",
+	listRow = "  %s: %s",
+	presetUsage = "Sets: /pss acp set <1-25 or your class> [char|all] save [name] | load | add | remove | delete",
+	presetNone = "No sets saved yet.",
+	presetHead = "Sets:",
+	presetRow = "  %s %s (%s): %d addons",
+	presetSaved = "Set %s saved: %d addons.",
+	presetLoaded = "Set %s: %d on, %d not installed.",
+	presetAdded = "Set %s added: %d on, %d not installed.",
+	presetAdded2 = "Set %s now holds %s.",
+	presetRemoved = "Set %s taken off: %d addons.",
+	presetDeleted = "Set %s deleted.",
+	presetRenamed = "Set %s renamed.",
+	presetNo = "There is no set %s here.",
+	presetBadId = "\"%s\" is not a set: use 1 to %d or your class.",
+	presetOther = "Set %s was saved by a newer version and is left alone.",
+	lockOn = "%s is protected.",
+	lockOff = "%s is not protected any more.",
+	lockPss = "Pour Social Score is always protected.",
+	apiHave = "Addon API present: %s.",
+	apiLack = "Addon API missing: %s.",
+	apiNone = "none",
+	help = "/pss acp: list [filter] | on <name> | off <name> | load <name> | all on|off | undo | sets | set <id> ... | lock <name> | unlock <name> | api",
+}
+M.PSS_AddonText = T
+
+-- the checks the tab and commands make before they offer a feature
+local CAN = {
+	list = function() return GetNumAddOns and GetAddOnInfo and (stateNew or stateOld) end,
+	tick = function() return EnableAddOn and DisableAddOn end,
+	all = function() return EnableAllAddOns and DisableAllAddOns end,
+	load = function() return LoadAddOn end,
+	undo = function() return ResetAddOns end,
+	loadold = function() return GetVersionCheck and SetVersionCheck end,
+	memory = function() return UpdateMem and GetMem end,
+}
+function M.PSS_AddonCan(what)
+	local f = CAN[what]
+	return f and f() and true or false
+end
+
+local function count()
+	return GetNumAddOns and GetNumAddOns() or 0
+end
+function M.PSS_AddonCount() return count() end
+
+-- (the full API list for /pss acp api: label, present)
+local API_NAMES = { "GetNumAddOns", "GetAddOnInfo", "GetAddOnMetadata", "EnableAddOn", "DisableAddOn", "EnableAllAddOns",
+	"DisableAllAddOns", "GetAddOnDependencies", "GetAddOnOptionalDependencies", "IsAddOnLoaded", "IsAddOnLoadOnDemand",
+	"LoadAddOn", "UpdateAddOnMemoryUsage", "GetAddOnMemoryUsage", "SaveAddOns", "ResetAddOns",
+	"IsAddonVersionCheckEnabled", "SetAddonVersionCheck" }
+
+------------------------------------------------------------------------
+-- Small helpers
+------------------------------------------------------------------------
+local function guid()
+	local g = UnitGUID and UnitGUID("player")
+	if type(g) ~= "string" or M.PSS_IsSecret(g) then return nil end
+	return g
+end
+
+-- the character argument: this character's GUID, or nil for all of them
+-- (false when this character cannot be told: nothing may be written)
+local function charArg(who)
+	if who == "all" then return nil end
+	return guid() or false
+end
+
+local function plain(s)
+	s = gsub(s, "|c%x%x%x%x%x%x%x%x", "")
+	s = gsub(s, "|r", "")
+	return (gsub(s, "|T[^|]*|t", ""))
+end
+
+local function isPSS(name)
+	return name == "PourSocialScore" or sub(name, 1, 16) == "PourSocialScore_"
+end
+
+local function meta(i, field)
+	if not GetAddOnMetadata then return nil end
+	local ok, v = pcall(GetAddOnMetadata, i, field)
+	if ok and type(v) == "string" and v ~= "" then return v end
+end
+
+-- name, title, notes, loadable, reason (a table on a client that returns one)
+local function info(i)
+	local a, b, c, d, e = GetAddOnInfo(i)
+	if type(a) == "table" then return a.name, a.title, a.notes, a.loadable, a.reason end
+	return a, b, c, d, e
+end
+
+local function enableState(i, who)
+	local c = charArg(who)
+	if c == false then return 0 end
+	local s
+	if stateNew then s = stateNew(i, c) elseif stateOld then s = stateOld(c, i) end
+	return tonumber(s) or 0
+end
+
+local function fire()
+	M.Events.Fire("ADDONS_CHANGED")
+end
+
+local function save()
+	if SaveAddOns then SaveAddOns() end
+end
+
+local function whoText(who)
+	return who == "all" and T.everyone or T.me
+end
+
+-- name -> index, for one command (never kept)
+local function nameMap()
+	local map = {}
+	for i = 1, count() do
+		local n = info(i)
+		if type(n) == "string" then map[n] = i end
+	end
+	return map
+end
+
+local function hidden(name)
+	return sub(name, 1, 9) == "Blizzard_"
+end
+
+------------------------------------------------------------------------
+-- Saved data: protected addons and presets, per character (PSS_CharDB) and
+-- for all characters (PSS_OptionsDB), packed as strings
+--   addonLock   account: { [client] = "NameA\nNameB" }, character: "NameA\nNameB"
+--   addonSets   account: { [1..25 or CLASS] = "<client><name>\nAddonA\nAddonB" }
+--               character: { [1..25] = "<name>\nAddonA\nAddonB" }
+-- A key goes back to nil when it is empty, so an unused character writes
+-- nothing. Names never hold a newline, so the packing is exact.
+------------------------------------------------------------------------
+local function acct()
+	local db = PourSocialScoreDB
+	return type(db) == "table" and db or nil
+end
+
+local function chr(create)
+	local c = _G["PSS_CharDB"]
+	if type(c) ~= "table" and create then
+		c = {}
+		_G["PSS_CharDB"] = c
+	end
+	return type(c) == "table" and c or nil
+end
+
+local function tidyChar()
+	local c = chr()
+	if c and next(c) == nil then _G["PSS_CharDB"] = nil end
+end
+
+-- "a\nb\nc" from a sorted list
+local function packNames(list)
+	sort(list)
+	return concat(list, NL)
+end
+
+-- the names in str from position pos
+local function eachName(str, pos, fn)
+	if not pos or pos > #str then return end
+	for n in str:sub(pos):gmatch("[^\n]+") do fn(n) end
+end
+
+local lockCache
+local function lockSet()
+	if lockCache then return lockCache end
+	lockCache = {}
+	local db = acct()
+	local a = db and type(db.addonLock) == "table" and db.addonLock[DIGIT]
+	if type(a) == "string" then eachName(a, 1, function(n) lockCache[n] = true end) end
+	local c = chr()
+	local s = c and c.addonLock
+	if type(s) == "string" then eachName(s, 1, function(n) lockCache[n] = true end) end
+	return lockCache
+end
+
+function M.PSS_AddonLocked(name)
+	if type(name) ~= "string" then return false end
+	M.PSS_AddonPrune()
+	return isPSS(name) or lockSet()[name] == true
+end
+
+local function lockStrings()
+	local db = acct()
+	local a = db and type(db.addonLock) == "table" and db.addonLock[DIGIT]
+	local c = chr()
+	return type(a) == "string" and a or nil, c and type(c.addonLock) == "string" and c.addonLock or nil
+end
+
+local function setLockList(scope, list)
+	local str = #list > 0 and packNames(list) or nil
+	if scope == "all" then
+		local db = acct()
+		if not db then return end
+		local t = type(db.addonLock) == "table" and db.addonLock or {}
+		t[DIGIT] = str
+		db.addonLock = next(t) ~= nil and t or nil
+	else
+		local c = chr(str ~= nil)
+		if c then c.addonLock = str end
+		tidyChar()
+	end
+end
+
+local function listOf(str)
+	local l = {}
+	if str then eachName(str, 1, function(n) l[#l + 1] = n end) end
+	return l
+end
+
+-- who "all": the account-wide list; "me": this character's. Unlock leaves
+-- both. PSS's own folders are always protected and never stored.
+function M.PSS_AddonLock(name, on, who)
+	M.PSS_AddonPrune()
+	if type(name) ~= "string" or name == "" or find(name, NL, 1, true) then return false end
+	if isPSS(name) then return false, T.lockPss end
+	local a, c = lockStrings()
+	local scope = who == "all" and "all" or "me"
+	if on then
+		local l
+		if scope == "all" then l = listOf(a) else l = listOf(c) end
+		for _, n in ipairs(l) do if n == name then return true end end
+		if #l >= count() and count() > 0 then return false end
+		l[#l + 1] = name
+		setLockList(scope, l)
+	else
+		for _, sc in ipairs({ "all", "me" }) do
+			local l, out
+			if sc == "all" then l = listOf(a) else l = listOf(c) end
+			out = {}
+			for _, n in ipairs(l) do if n ~= name then out[#out + 1] = n end end
+			if #out ~= #l then setLockList(sc, out) end
+		end
+	end
+	lockCache = nil
+	fire()
+	return true
+end
+
+-- the list view: nil = grouped (the default), "az" or "lod"
+function M.PSS_AddonViewMode(v)
+	local db = acct()
+	if not db then return nil end
+	if v == nil then
+		local cur = db.addonView
+		return (cur == "az" or cur == "lod") and cur or "group"
+	end
+	db.addonView = (v == "az" or v == "lod") and v or nil
+	return M.PSS_AddonViewMode()
+end
+
+-- "Load out of date AddOns" (the client's version check is its opposite)
+function M.PSS_AddonLoadOld(on)
+	if not (GetVersionCheck and SetVersionCheck) then return nil end
+	if on == nil then return not GetVersionCheck() end
+	SetVersionCheck(not on)
+	save()
+	fire()
+	return on and true or false
+end
+
+------------------------------------------------------------------------
+-- The list
+------------------------------------------------------------------------
+-- scratch of the list build (arrays by addon index), reused by every build
+-- while the window is open and dropped by M.PSS_AddonRelease, so a rebuild
+-- makes almost no garbage; one comparator, no closure per build
+local X1, X2, X3, GD, GK, GL, GC = {}, {}, {}, {}, {}, {}, {}
+local function before(a, b)
+	local x, y = X1[a], X1[b]
+	if x ~= y then return x < y end
+	x, y = X2[a], X2[b]
+	if x ~= y then return x < y end
+	x, y = X3[a], X3[b]
+	if x ~= y then return x < y end
+	return a < b
+end
+
+local LIBS = "Libraries"
+local LODNAME = "Load on demand"
+
+-- the group an addon belongs to: its TOC Group, else Libraries, else the
+-- word before the first _ or - of its name (a leading ! _ or + ignored);
+-- returns the display name
+local function groupName(i, name)
+	local g = meta(i, "Group")
+	if g then return plain(g) end
+	local cat = meta(i, "X-Category") or meta(i, "Category")
+	if (cat and lower(cat) == "library") or (sub(name, 1, 3) == "Lib" and find(name, "^Lib%u")) then return LIBS end
+	local s = gsub(name, "^[!_+]+", "")
+	return s:match("^([^_%-]+)[_%-]") or s
+end
+
+-- who: "me" or "all". view: "group" (default), "az", "lod" or "mem" (most
+-- memory first). search: text
+-- in the name or title. Returns L = { n, idx = {addon indexes in order},
+-- gi = { [position] = group number }, groups = { { name, from, to } } }.
+function M.PSS_AddonList(who, view, search)
+	M.PSS_AddonPrune()
+	local L = { n = 0, idx = {}, gi = {}, groups = {} }
+	if not CAN.list() then return L end
+	local needle = search and search ~= "" and lower(search) or nil
+	local idx, n = L.idx, 0
+	local byGroup = view ~= "az" and view ~= "lod" and view ~= "mem"
+	for i = 1, count() do
+		local name, title = info(i)
+		if type(name) == "string" and not hidden(name) then
+			local key = lower(plain(type(title) == "string" and title ~= "" and title or name))
+			if not needle or find(lower(name), needle, 1, true) or find(key, needle, 1, true) then
+				n = n + 1
+				idx[n] = i
+				X3[i] = key
+				if byGroup then
+					local g = groupName(i, name)
+					local k = lower(g)
+					GD[i], GK[i] = g, k
+					GC[k] = (GC[k] or 0) + 1
+					GL[i] = lower(name) == k
+				elseif view == "lod" then
+					X1[i] = (IsLoD and IsLoD(i)) and "b" or "a"
+					X2[i] = key
+					X3[i] = ""
+				elseif view == "mem" then
+					X1[i], X2[i], X3[i] = -M.PSS_AddonMemOf(i), 0, key
+				else
+					X1[i], X2[i], X3[i] = key, 0, ""
+				end
+			end
+		end
+	end
+	if byGroup then
+		for p = 1, n do
+			local i = idx[p]
+			local k = GK[i]
+			local grouped = GC[k] > 1 or GD[i] == LIBS
+			if GD[i] == LIBS then
+				X1[i] = "\127"
+			elseif grouped then
+				X1[i] = k
+			else
+				X1[i] = X3[i]
+				GK[i] = false
+			end
+			X2[i] = (not grouped or GL[i]) and 0 or 1
+		end
+	end
+	sort(idx, before)
+	-- the groups: runs of one key (grouped view), or the load on demand tail
+	local groups, gi = L.groups, L.gi
+	if byGroup then
+		local cur, curKey
+		for p = 1, n do
+			local i = idx[p]
+			local k = GK[i]
+			if k then
+				if curKey == k then
+					cur.to = p
+				else
+					cur, curKey = { name = GD[i], from = p, to = p }, k
+					groups[#groups + 1] = cur
+				end
+				gi[p] = #groups
+			else
+				curKey = nil
+			end
+		end
+	elseif view == "lod" then
+		for p = 1, n do
+			if X1[idx[p]] == "b" then
+				groups[1] = { name = LODNAME, from = p, to = n }
+				for q = p, n do gi[q] = 1 end
+				break
+			end
+		end
+	end
+	-- the scratch is emptied for the next build
+	for p = 1, n do
+		local i = idx[p]
+		X1[i], X2[i], X3[i], GD[i], GK[i], GL[i] = nil, nil, nil, nil, nil, nil
+	end
+	for k in pairs(GC) do GC[k] = nil end
+	L.n = n
+	return L
+end
+
+local function status(o)
+	local r = o.reason
+	if o.loaded then
+		if o.enabled then return "ok", "Loaded" end
+		return "reload", "Turns off at reload"
+	end
+	if not o.enabled then
+		if r == "MISSING" then return "bad", "Missing" end
+		return "off", "Disabled"
+	end
+	if r == "DEP_DISABLED" or r == "DEP_MISSING" or r == "DEP_CORRUPT" or r == "DEP_INCOMPATIBLE" then
+		o.blocked = true
+		return "warn", _G["ADDON_" .. r] or "Dependency off"
+	end
+	if r == "INTERFACE_VERSION" or r == "INCOMPATIBLE" or r == "CORRUPT" or r == "MISSING" then
+		o.blocked = true
+		if r == "INTERFACE_VERSION" then o.outdated = true end
+		return "bad", _G["ADDON_" .. r] or "Out of date"
+	end
+	if o.lod then return "lod", "Load on demand" end
+	return "reload", "Turns on at reload"
+end
+
+-- one addon, from the client now; out is a table to fill (the tab reuses one)
+function M.PSS_AddonRow(i, who, o)
+	local name, title, notes, _, reason = info(i)
+	o = o or {}
+	o.i, o.name, o.reason = i, name, reason
+	o.title = (type(title) == "string" and title ~= "") and title or name
+	o.notes = notes
+	o.state = enableState(i, who)
+	o.enabled = o.state ~= NONE
+	o.loaded = IsLoaded and IsLoaded(i) and true or false
+	o.lod = IsLoD and IsLoD(i) and true or false
+	o.blocked, o.outdated = nil, nil
+	o.pss = type(name) == "string" and isPSS(name) or false
+	o.locked = o.pss or (type(name) == "string" and M.PSS_AddonLocked(name)) or false
+	o.status, o.text = status(o)
+	o.canLoad = o.enabled and o.lod and not o.loaded and not o.blocked
+	return o
+end
+
+function M.PSS_AddonName(i)
+	local name = info(i)
+	return type(name) == "string" and name or nil
+end
+
+function M.PSS_AddonMeta(i, field)
+	return meta(i, field)
+end
+
+-- an addon's own icon: the texture file, or the atlas, from its TOC
+function M.PSS_AddonIcon(i)
+	local atlas = meta(i, "IconAtlas")
+	if atlas then return nil, atlas end
+	return meta(i, "IconTexture")
+end
+
+-- an addon's requirements and extras, for its tip: two arrays of { name, text }
+function M.PSS_AddonDeps(i, who)
+	local req, opt = {}, {}
+	local function fill(into, get)
+		if not get then return end
+		for _, d in ipairs({ get(i) }) do
+			local n = info(d)
+			local text
+			if type(n) ~= "string" or n == "" then
+				text = "not installed"
+			elseif IsLoaded and IsLoaded(d) then
+				text = "loaded"
+			elseif enableState(d, who) ~= NONE then
+				text = "on"
+			else
+				text = "off"
+			end
+			into[#into + 1] = { name = d, text = text }
+		end
+	end
+	fill(req, GetDeps)
+	fill(opt, GetOptDeps)
+	return req, opt
+end
+
+------------------------------------------------------------------------
+-- Changes
+------------------------------------------------------------------------
+-- turn one addon on or off; deps also turns its required addons on (one
+-- walk with a visited set, so a loop ends). Returns turnedOn (names),
+-- missing (names), without saving or firing.
+local function applyOne(i, name, on, c, deps, turned, missing)
+	if not on then
+		DisableAddOn(i, c)
+		return
+	end
+	EnableAddOn(i, c)
+	if not (deps and GetDeps) then return end
+	local seen, stack = { [name] = true }, { i }
+	local top = 1
+	local map
+	while top > 0 do
+		local cur = stack[top]
+		stack[top] = nil
+		top = top - 1
+		for _, d in ipairs({ GetDeps(cur) }) do
+			if type(d) == "string" and not seen[d] then
+				seen[d] = true
+				map = map or nameMap()
+				local di = map[d]
+				if di then
+					if enableState(di, c == nil and "all" or "me") == NONE then
+						EnableAddOn(di, c)
+						turned[#turned + 1] = d
+					end
+					top = top + 1
+					stack[top] = di
+				else
+					missing[#missing + 1] = d
+				end
+			end
+		end
+	end
+end
+
+local function tickText(name, on, who, turned, missing)
+	local t = format(on and T.on or T.off, name, whoText(who))
+	if #turned > 0 then t = t .. format(T.alsoOn, concat(turned, ", ")) end
+	if #missing > 0 then t = t .. format(T.needs, concat(missing, ", ")) end
+	return t
+end
+
+function M.PSS_AddonTick(i, on, who, deps)
+	M.PSS_AddonPrune()
+	if not CAN.tick() then return false, T.noApi end
+	local c = charArg(who)
+	if c == false then return false, T.noChar end
+	local name = info(i)
+	if type(name) ~= "string" then return false, format(T.unknown, tostring(i)) end
+	if not on and isPSS(name) then return false, T.pss end
+	local turned, missing = {}, {}
+	applyOne(i, name, on, c, deps, turned, missing)
+	save()
+	fire()
+	return true, tickText(name, on, who, turned, missing)
+end
+
+-- positions a to b of a built list, together; protected addons and Pour
+-- Social Score are spared when turning off
+function M.PSS_AddonTickMany(L, a, b, on, who, deps)
+	M.PSS_AddonPrune()
+	if not CAN.tick() then return false, T.noApi end
+	local c = charArg(who)
+	if c == false then return false, T.noChar end
+	local turned, missing, done = {}, {}, 0
+	for p = a, b do
+		local i = L.idx[p]
+		local name = i and info(i)
+		if type(name) == "string" and (on or not M.PSS_AddonLocked(name)) then
+			applyOne(i, name, on, c, deps, turned, missing)
+			done = done + 1
+		end
+	end
+	save()
+	fire()
+	return true, done
+end
+
+function M.PSS_AddonLoad(i)
+	M.PSS_AddonPrune()
+	if InCombatLockdown() then return false, T.combat end
+	if not CAN.load() then return false, T.noApi end
+	local name = info(i)
+	if type(name) ~= "string" then return false, format(T.unknown, tostring(i)) end
+	if not (IsLoD and IsLoD(i)) then return false, format(T.notLod, name) end
+	local ok, reason = LoadAddOn(i)
+	fire()
+	if ok then return true, format(T.loaded, name) end
+	reason = reason and (_G["ADDON_" .. tostring(reason)] or tostring(reason)) or "unknown"
+	return false, format(T.loadFail, name, reason)
+end
+
+-- Pour Social Score's folders and the protected addons back on after a
+-- Disable All
+local function keepOn(c)
+	for i = 1, count() do
+		local name = info(i)
+		if type(name) == "string" and M.PSS_AddonLocked(name) then EnableAddOn(i, c) end
+	end
+end
+
+function M.PSS_AddonAll(on, who)
+	M.PSS_AddonPrune()
+	if not CAN.all() then return false, T.noApi end
+	local c = charArg(who)
+	if c == false then return false, T.noChar end
+	if on then
+		EnableAllAddOns(c)
+	else
+		DisableAllAddOns(c)
+		if EnableAddOn then keepOn(c) end
+	end
+	save()
+	fire()
+	return true, format(on and T.allOn or T.allOff, whoText(who))
+end
+
+function M.PSS_AddonUndo()
+	if not ResetAddOns then return false, T.noUndo end
+	ResetAddOns()
+	fire()
+	return true, T.undone
+end
+
+-- a change waits for a reload: an addon that is loaded and turned off, or
+-- turned on and not loaded (a load on demand addon loads when asked)
+function M.PSS_AddonPending(who)
+	if not CAN.list() then return false end
+	for i = 1, count() do
+		local name, _, _, _, reason = info(i)
+		if type(name) == "string" then
+			local on = enableState(i, who) ~= NONE
+			local loaded = IsLoaded and IsLoaded(i)
+			if loaded and not on then return true end
+			if on and not loaded and not (IsLoD and IsLoD(i)) and (reason == nil or reason == "" or reason == "DISABLED") then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+function M.PSS_AddonReload()
+	if InCombatLockdown() then return false, T.combat end
+	ReloadUI()
+	return true
+end
+
+------------------------------------------------------------------------
+-- Memory: the client keeps the last sample; ours reads it. Sampled once
+-- per call of PSS_AddonMemory (a window open or Refresh), never in combat.
+------------------------------------------------------------------------
+function M.PSS_AddonMemory()
+	if InCombatLockdown() or not CAN.memory() then return nil end
+	if not pcall(UpdateMem) then return nil end
+	local total = 0
+	for i = 1, count() do
+		local ok, kb = pcall(GetMem, i)
+		if ok and type(kb) == "number" then total = total + kb end
+	end
+	return total
+end
+
+function M.PSS_AddonMemOf(i)
+	if not GetMem then return 0 end
+	local ok, kb = pcall(GetMem, i)
+	return ok and type(kb) == "number" and kb or 0
+end
+
+function M.PSS_AddonMemGroup(L, gi)
+	local g = L.groups[gi]
+	if not g then return 0 end
+	local sum = 0
+	for p = g.from, g.to do sum = sum + M.PSS_AddonMemOf(L.idx[p]) end
+	return sum
+end
+
+------------------------------------------------------------------------
+-- CPU: the client's addon profiler (feature-detected; the parts hide
+-- without it). Shares are percentages of the game's time.
+------------------------------------------------------------------------
+local METRICS = { "SessionAverageTime", "RecentAverageTime", "PeakTime", "EncounterAverageTime" }
+
+local function profiler()
+	local p, e = C_AddOnProfiler, Enum and Enum.AddOnProfilerMetric
+	if type(p) ~= "table" or type(e) ~= "table" then return nil end
+	if type(p.IsEnabled) ~= "function" or not p.IsEnabled() then return nil end
+	if type(p.GetAddOnMetric) ~= "function" or type(p.GetOverallMetric) ~= "function" or type(p.GetApplicationMetric) ~= "function" then return nil end
+	return p, e
+end
+
+function M.PSS_AddonPerfOn()
+	return profiler() ~= nil
+end
+
+local function share(v, app, overall)
+	local d = (app or 0) - (overall or 0) + v
+	if d <= 0 or v <= 0 then return 0 end
+	return 100 * v / d
+end
+
+-- one addon's average, current, peak and encounter share, or nil
+function M.PSS_AddonCPU(name)
+	local p, e = profiler()
+	if not p or not IsLoaded or not IsLoaded(name) then return nil end
+	local v1, v2, v3, v4
+	for k = 1, 4 do
+		local m = e[METRICS[k]]
+		local v = m and share(p.GetAddOnMetric(name, m) or 0, p.GetApplicationMetric(m), p.GetOverallMetric(m)) or 0
+		if k == 1 then v1 = v elseif k == 2 then v2 = v elseif k == 3 then v3 = v else v4 = v end
+	end
+	return v1, v2, v3, v4
+end
+
+-- a group as if it were one addon: its loaded members' times added up, then
+-- the same share; also how many of its addons are loaded
+function M.PSS_AddonCPUGroup(L, gi)
+	local g = L.groups[gi]
+	local p, e = profiler()
+	if not g then return nil end
+	local loaded = 0
+	for q = g.from, g.to do
+		local i = L.idx[q]
+		if IsLoaded and IsLoaded(i) then loaded = loaded + 1 end
+	end
+	if not p then return nil, nil, nil, nil, loaded, g.to - g.from + 1 end
+	local out = {}
+	for k = 1, 4 do
+		local m = e[METRICS[k]]
+		local sum = 0
+		if m then
+			for q = g.from, g.to do
+				local i = L.idx[q]
+				if IsLoaded and IsLoaded(i) then
+					local n = info(i)
+					sum = sum + (p.GetAddOnMetric(n, m) or 0)
+				end
+			end
+			out[k] = share(sum, p.GetApplicationMetric(m), p.GetOverallMetric(m))
+		else
+			out[k] = 0
+		end
+	end
+	return out[1], out[2], out[3], out[4], loaded, g.to - g.from + 1
+end
+
+-- all addons together: current, average, peak
+function M.PSS_AddonCPUTotal()
+	local p, e = profiler()
+	if not p then return nil end
+	local res = {}
+	for k, name in ipairs({ "RecentAverageTime", "SessionAverageTime", "PeakTime" }) do
+		local m = e[name]
+		local app = m and p.GetApplicationMetric(m) or 0
+		local over = m and p.GetOverallMetric(m) or 0
+		res[k] = app > 0 and 100 * over / app or 0
+	end
+	return res[1], res[2], res[3]
+end
+
+-- the share above which a line is shown red (percent)
+function M.PSS_AddonWarn()
+	local get = (GetCVarNumberOrDefault) or (C_CVar and C_CVar.GetCVar) or GetCVar
+	local v = get and tonumber((get("addonPerformanceMsgWarning")))
+	return v and v > 0 and v or 1
+end
+
+------------------------------------------------------------------------
+-- Presets: the enabled list saved under a number or your class, for this
+-- character or all characters
+------------------------------------------------------------------------
+local function classToken()
+	local f = _G.UnitClassBase
+	local t = f and f("player")
+	if t == nil then t = select(2, UnitClass("player")) end
+	if type(t) ~= "string" or M.PSS_IsSecret(t) then return nil end
+	return t:upper()
+end
+
+local function cleanName(s)
+	s = type(s) == "string" and s or ""
+	local out = {}
+	for k = 1, #s do
+		local b = byte(s, k)
+		if b >= 32 and b <= 126 then out[#out + 1] = sub(s, k, k) end
+	end
+	s = concat(out):gsub("^%s+", ""):gsub("%s+$", "")
+	return sub(s, 1, NAME_MAX)
+end
+
+-- a preset id: 1..25 or your class token; nil when it is neither
+local function presetId(id)
+	local n = tonumber(id)
+	if n and n >= 1 and n <= PRESETS_MAX and n == floor(n) then return n end
+	if type(id) == "string" then
+		local t = classToken()
+		local u = id:upper()
+		if t and (u == t or u == "CLASS") then return t end
+	end
+end
+
+-- where an id is kept: a number per scope, a class only account-wide
+local function presetTable(id, scope, create)
+	if type(id) == "string" or scope == "all" then
+		local db = acct()
+		if not db then return nil end
+		if type(db.addonSets) ~= "table" and create then db.addonSets = {} end
+		return type(db.addonSets) == "table" and db.addonSets or nil, "all"
+	end
+	local c = chr(create)
+	if not c then return nil end
+	if type(c.addonSets) ~= "table" and create then c.addonSets = {} end
+	return type(c.addonSets) == "table" and c.addonSets or nil, "char"
+end
+
+local function dropEmpty(scope)
+	if scope == "all" then
+		local db = acct()
+		if db and type(db.addonSets) == "table" and next(db.addonSets) == nil then db.addonSets = nil end
+	else
+		local c = chr()
+		if c and type(c.addonSets) == "table" and next(c.addonSets) == nil then c.addonSets = nil end
+		tidyChar()
+	end
+end
+
+-- a stored string: name, digit (account-wide), names start
+local function parse(str, withDigit)
+	if type(str) ~= "string" then return nil end
+	local e = str:find(NL, 1, true)
+	local head = e and sub(str, 1, e - 1) or str
+	local pos = e and e + 1 or #str + 1
+	if withDigit then
+		local d = sub(head, 1, 1)
+		if d ~= "1" and d ~= "2" then return nil end
+		return sub(head, 2), pos, d
+	end
+	return head, pos
+end
+
+local function presetLabel(id, name)
+	if name ~= "" then return name end
+	if type(id) == "string" then return id:sub(1, 1) .. id:sub(2):lower() end
+	return "Set " .. id
+end
+
+-- every preset that can be used here: { id, name, scope, n, class, label }
+-- (a class set only for your own class; one a newer version wrote is left out)
+function M.PSS_AddonPresets()
+	M.PSS_AddonPrune()
+	local list = {}
+	local t = chr()
+	local own = classToken()
+	local function add(tbl, scope, withDigit)
+		if type(tbl) ~= "table" then return end
+		for id, str in pairs(tbl) do
+			local name, pos = parse(str, withDigit)
+			if name and (type(id) == "number" or id == own) then
+				local n = 0
+				eachName(str, pos, function() n = n + 1 end)
+				list[#list + 1] = { id = id, name = name, scope = scope, n = n, class = type(id) == "string",
+					label = presetLabel(id, name) }
+			end
+		end
+	end
+	add(t and t.addonSets, "char", false)
+	local db = acct()
+	add(db and db.addonSets, "all", true)
+	sort(list, function(a, b)
+		if a.class ~= b.class then return b.class end
+		if a.scope ~= b.scope then return a.scope == "char" end
+		return a.id < b.id
+	end)
+	return list
+end
+
+-- the enabled addons for who, not Pour Social Score, not protected
+local function enabledNames(who)
+	local list = {}
+	for i = 1, count() do
+		local name = info(i)
+		if type(name) == "string" and not hidden(name) and not M.PSS_AddonLocked(name)
+			and enableState(i, who) ~= NONE then
+			list[#list + 1] = name
+		end
+	end
+	return list
+end
+
+-- save the addons now on for who under id: this character's list when who
+-- is "me", the account-wide one for "all" (a class preset is always account-wide)
+function M.PSS_AddonPresetSave(id, name, who)
+	M.PSS_AddonPrune()
+	if not CAN.list() then return false, T.noApi end
+	local pid = presetId(id)
+	if not pid then return false, format(T.presetBadId, tostring(id), PRESETS_MAX) end
+	local tbl, scope = presetTable(pid, who == "all" and "all" or "char", true)
+	if not tbl then return false, T.noApi end
+	if tbl[pid] ~= nil and not parse(tbl[pid], scope == "all") then
+		dropEmpty(scope)
+		return false, format(T.presetOther, presetLabel(pid, ""))
+	end
+	local list = enabledNames(who)
+	local head = (scope == "all" and DIGIT or "") .. cleanName(name)
+	tbl[pid] = #list > 0 and (head .. NL .. packNames(list)) or head
+	return true, format(T.presetSaved, presetLabel(pid, cleanName(name)), #list)
+end
+
+local function presetOf(id, scope)
+	local pid = presetId(id)
+	if not pid then return nil, format(T.presetBadId, tostring(id), PRESETS_MAX) end
+	local tbl, sc = presetTable(pid, scope == "all" and "all" or "char")
+	local str = tbl and tbl[pid]
+	local name, pos = parse(str, sc == "all")
+	if not name then
+		if str ~= nil then return nil, format(T.presetOther, presetLabel(pid, "")) end
+		return nil, format(T.presetNo, presetLabel(pid, ""))
+	end
+	return pid, str, name, pos, sc
+end
+
+-- walk a preset's names that are installed: fn(i, name); returns the number
+-- turned and the number not installed
+local function eachInstalled(str, pos, fn)
+	local map = nameMap()
+	local done, missing = 0, 0
+	eachName(str, pos, function(n)
+		local i = map[n]
+		if i then
+			fn(i, n)
+			done = done + 1
+		else
+			missing = missing + 1
+		end
+	end)
+	return done, missing
+end
+
+-- scope: where the preset is kept; who: whose enable states it writes
+-- (a character preset always writes this character's)
+function M.PSS_AddonPresetLoad(id, scope, who)
+	M.PSS_AddonPrune()
+	local pid, str, name, pos = presetOf(id, scope)
+	if not pid then return false, str end
+	if not CAN.all() or not CAN.tick() then return false, T.noApi end
+	who = scope == "all" and who == "all" and "all" or "me"
+	local c = charArg(who)
+	if c == false then return false, T.noChar end
+	DisableAllAddOns(c)
+	keepOn(c)
+	local done, missing = eachInstalled(str, pos, function(i) EnableAddOn(i, c) end)
+	save()
+	fire()
+	return true, format(T.presetLoaded, presetLabel(pid, name), done, missing)
+end
+
+function M.PSS_AddonPresetAdd(id, scope, who)
+	M.PSS_AddonPrune()
+	local pid, str, name, pos = presetOf(id, scope)
+	if not pid then return false, str end
+	if not CAN.tick() then return false, T.noApi end
+	who = scope == "all" and who == "all" and "all" or "me"
+	local c = charArg(who)
+	if c == false then return false, T.noChar end
+	local done, missing = eachInstalled(str, pos, function(i) EnableAddOn(i, c) end)
+	save()
+	fire()
+	return true, format(T.presetAdded, presetLabel(pid, name), done, missing)
+end
+
+function M.PSS_AddonPresetRemove(id, scope, who)
+	M.PSS_AddonPrune()
+	local pid, str, name, pos = presetOf(id, scope)
+	if not pid then return false, str end
+	if not CAN.tick() then return false, T.noApi end
+	who = scope == "all" and who == "all" and "all" or "me"
+	local c = charArg(who)
+	if c == false then return false, T.noChar end
+	local done = eachInstalled(str, pos, function(i, n)
+		if not M.PSS_AddonLocked(n) then DisableAddOn(i, c) end
+	end)
+	save()
+	fire()
+	return true, format(T.presetRemoved, presetLabel(pid, name), done)
+end
+
+-- one addon (by folder name) into a preset
+function M.PSS_AddonPresetInclude(id, scope, name)
+	M.PSS_AddonPrune()
+	local pid, str, label, pos, sc = presetOf(id, scope)
+	if not pid then return false, str end
+	if type(name) ~= "string" or find(name, NL, 1, true) or isPSS(name) or hidden(name) then return false end
+	local list, have = {}, false
+	eachName(str, pos, function(n)
+		list[#list + 1] = n
+		if n == name then have = true end
+	end)
+	if not have then list[#list + 1] = name end
+	local tbl = presetTable(pid, scope)
+	tbl[pid] = (sc == "all" and DIGIT or "") .. label .. NL .. packNames(list)
+	return true, format(T.presetAdded2, presetLabel(pid, label), name)
+end
+
+function M.PSS_AddonPresetRename(id, name, scope)
+	M.PSS_AddonPrune()
+	local pid, str, _, pos, sc = presetOf(id, scope)
+	if not pid then return false, str end
+	local tbl = presetTable(pid, scope)
+	local rest = pos <= #str and sub(str, pos - 1) or ""
+	tbl[pid] = (sc == "all" and DIGIT or "") .. cleanName(name) .. rest
+	return true, format(T.presetRenamed, presetLabel(pid, cleanName(name)))
+end
+
+function M.PSS_AddonPresetDelete(id, scope)
+	M.PSS_AddonPrune()
+	local pid, str, name, _, sc = presetOf(id, scope)
+	if not pid then return false, str end
+	local tbl = presetTable(pid, scope)
+	tbl[pid] = nil
+	dropEmpty(sc)
+	return true, format(T.presetDeleted, presetLabel(pid, name))
+end
+
+------------------------------------------------------------------------
+-- Prune: once per load of this file, on the first call into it. A name
+-- that is not installed goes from a protected list or a preset that this
+-- client saved; the other client's names are kept.
+------------------------------------------------------------------------
+local pruned
+
+local function keep(map, str, pos)
+	local out, changed = {}, false
+	eachName(str, pos, function(n)
+		if map[n] then out[#out + 1] = n else changed = true end
+	end)
+	return out, changed
+end
+
+function M.PSS_AddonPrune()
+	if pruned then return end
+	pruned = true
+	if not CAN.list() or count() == 0 then return end
+	local map = nameMap()
+	local db = acct()
+	-- protected lists (this client's)
+	local a, c = lockStrings()
+	if a then
+		local out, changed = keep(map, a, 1)
+		if changed then setLockList("all", out) end
+	end
+	if c then
+		local out, changed = keep(map, c, 1)
+		if changed then setLockList("me", out) end
+	end
+	-- presets: this character's, then the account's saved on this client
+	local function sets(tbl, withDigit, scope)
+		if type(tbl) ~= "table" then return end
+		local ids = {}
+		for id in pairs(tbl) do ids[#ids + 1] = id end
+		for _, id in ipairs(ids) do
+			local str = tbl[id]
+			local name, pos, d = parse(str, withDigit)
+			if name and (not withDigit or d == DIGIT) then
+				local out, changed = keep(map, str, pos)
+				if changed then
+					local head = (withDigit and DIGIT or "") .. name
+					tbl[id] = #out > 0 and (head .. NL .. packNames(out)) or head
+				end
+			end
+		end
+		dropEmpty(scope)
+	end
+	local ch = chr()
+	sets(ch and ch.addonSets, false, "char")
+	sets(db and db.addonSets, true, "all")
+	lockCache = nil
+end
+
+-- the window closed: drop what was kept for the tab
+function M.PSS_AddonRelease()
+	lockCache = nil
+	X1, X2, X3, GD, GK, GL, GC = {}, {}, {}, {}, {}, {}, {}
+end
+
+------------------------------------------------------------------------
+-- /pss acp (args are the lower-cased words, raw the words as typed)
+------------------------------------------------------------------------
+local function say(text)
+	M.ShowMsg(text)
+end
+
+-- the pending-reload note on a changed line
+local function report(ok, text)
+	if text then
+		say(ok and (text .. (M.PSS_AddonPending("me") and T.reload or "")) or ("|cffff5555" .. text .. "|r"))
+	end
+end
+
+-- an addon by name: the exact folder name (any case), else the one folder
+-- whose name starts with the text
+local function find1(text)
+	if not text then return nil end
+	local want = lower(text)
+	local hit, n = nil, 0
+	for i = 1, count() do
+		local name = info(i)
+		if type(name) == "string" then
+			local l = lower(name)
+			if l == want then return i, name end
+			if sub(l, 1, #want) == want then hit, n = i, n + 1 end
+		end
+	end
+	if n == 1 then return hit, (info(hit)) end
+end
+
+local function listCommand(filter)
+	local L = M.PSS_AddonList("me", "az", filter)
+	local o, on = {}, 0
+	for p = 1, L.n do
+		if M.PSS_AddonRow(L.idx[p], "me", o).enabled then on = on + 1 end
+	end
+	say(format(T.listHead, L.n, on, T.me))
+	for p = 1, L.n do
+		local r = M.PSS_AddonRow(L.idx[p], "me", o)
+		say(format(T.listRow, r.name, r.text .. (r.locked and " (protected)" or "")))
+	end
+end
+
+local function apiCommand()
+	local have, lack = {}, {}
+	local function note(present, n)
+		local into = present and have or lack
+		into[#into + 1] = n
+	end
+	for _, n in ipairs(API_NAMES) do note(api(n) ~= nil, n) end
+	note((stateNew or stateOld) ~= nil, "GetAddOnEnableState")
+	say(format(T.apiHave, #have > 0 and concat(have, ", ") or T.apiNone))
+	say(format(T.apiLack, #lack > 0 and concat(lack, ", ") or T.apiNone))
+	say(format("Addon profiler: %s.", M.PSS_AddonPerfOn() and "on" or "off or missing"))
+end
+
+local function presetCommand(args, raw)
+	local id = args[3]
+	if not id then
+		say(T.presetUsage)
+		return
+	end
+	local k = 4
+	local scope = "char"
+	if args[k] == "char" or args[k] == "all" then
+		scope = args[k]
+		k = k + 1
+	end
+	local act = args[k]
+	if act == "save" then
+		local name = #raw >= k + 1 and concat(raw, " ", k + 1) or ""
+		report(M.PSS_AddonPresetSave(id, name, scope == "all" and "all" or "me"))
+	elseif act == "load" then
+		report(M.PSS_AddonPresetLoad(id, scope, "me"))
+	elseif act == "add" then
+		report(M.PSS_AddonPresetAdd(id, scope, "me"))
+	elseif act == "remove" then
+		report(M.PSS_AddonPresetRemove(id, scope, "me"))
+	elseif act == "delete" then
+		report(M.PSS_AddonPresetDelete(id, scope))
+	else
+		say(T.presetUsage)
+	end
+end
+
+function M.PSS_AddonCommand(args, raw)
+	M.PSS_AddonPrune()
+	local word = args[2]
+	if word == "api" then
+		apiCommand()
+	elseif not CAN.list() then
+		say(T.noApi)
+	elseif word == "list" then
+		listCommand(raw[3])
+	elseif word == "on" or word == "off" then
+		local i, name = find1(raw[3])
+		if not i then say(format(T.unknown, raw[3] or "")) return end
+		report(M.PSS_AddonTick(i, word == "on", "me", true))
+	elseif word == "load" then
+		local i, name = find1(raw[3])
+		if not i then say(format(T.unknown, raw[3] or "")) return end
+		report(M.PSS_AddonLoad(i))
+	elseif word == "all" and (args[3] == "on" or args[3] == "off") then
+		report(M.PSS_AddonAll(args[3] == "on", "me"))
+	elseif word == "undo" then
+		report(M.PSS_AddonUndo())
+	elseif word == "sets" then
+		local l = M.PSS_AddonPresets()
+		if #l == 0 then
+			say(T.presetNone)
+		else
+			say(T.presetHead)
+			for _, p in ipairs(l) do
+				say(format(T.presetRow, tostring(p.id), p.name ~= "" and p.name or "", p.scope == "all" and T.everyone or T.me, p.n))
+			end
+		end
+	elseif word == "set" then
+		presetCommand(args, raw)
+	elseif word == "lock" or word == "unlock" then
+		local i, name = find1(raw[3])
+		if not i then say(format(T.unknown, raw[3] or "")) return end
+		if isPSS(name) then say(T.lockPss) return end
+		local ok, text = M.PSS_AddonLock(name, word == "lock", "me")
+		say(text or format(word == "lock" and T.lockOn or T.lockOff, name))
+	else
+		say(T.help)
+	end
+end
