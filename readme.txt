@@ -1,5 +1,5 @@
 POUR SOCIAL SCORE AND CHAT SPAM FILTER
-Version 3.4.0.24 - by Boaties
+Version 3.4.1.53 - by Boaties
 
 Pour Social Score is a quality-of-life addon with an unlimited, account-wide
 ignore list, a guild ignore list, and a chat/spam filter engine. It removes
@@ -65,6 +65,8 @@ Player Ignore List
 * Notes and expiry times (entries remove themselves after N days)
 * Per-player exclusions W I G P C (see EXCLUSIONS below)
 * Character names with a space ("First Last-Realm") are supported
+* Right-click a player (in the world, in a group or a chat name): the "PSS"
+  heading has Block Player and Block Guild (Unblock when already listed)
 * For everyone listed, by default: no ignore response, no decline messages,
   duels and trades declined (set on the Options tab). Any player, guild or
   guild member can be an exception (ticks on its View/Edit Rule page, or
@@ -143,6 +145,9 @@ Also
   another guild rule.
   /pss mem shows what the addon is using (/pss mem full: who has the most
   history lines).
+* After an update, the first login reports what was upgraded in your saved
+  data, one line per feature, and the next login says nothing. Saved data
+  from a newer version is kept by an older one.
 * Options apply to every character on the account; some can also be set
   per guild or per player. Only options you changed are saved.
 
@@ -553,6 +558,9 @@ filter that mixes them without brackets may now behave differently.)
 /pss mem [full]           Memory: addon total, block history lines / cap and
                           size, list sizes, shipped guild index, cleanup
                           state; "full" adds the top 10 history owners
+/pss export unused        Copy the saved rules this version cannot use
+                          (from a newer version; kept, not applied) as an
+                          export string
 /pss check                Count and check all saved data: list entries by
                           type, notes, guilds and members, chat filters,
                           history lines, the sum of every block count,

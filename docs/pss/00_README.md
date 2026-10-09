@@ -30,7 +30,7 @@ Last state (pack written): main was **3.3.0-dev004**. Since then: 3.3.1 released
 | 07_HARNESS.md | PSS harness commands and checks |
 | 08_PARITY_PROJECT.md | The closed 3.3.0 parity project (shipped as 3.3.1): objective, decisions, stage table |
 | 09_PSS_UI_PROJECT.md | The closed window project (3.4.0, released as 3.4.0.29); its code map and lessons stay the reference for the window: the new PSS window, decisions, three looks, stages, code map, lessons; plan on scratch `docs/latest/ui uplift/`. The window's rules are `CLAUDE.md`'s Interface section |
-| 10_CORE_UPLIFT.md | **The current project** (3.4.1 to 3.4.3), the locked implementation plan; design and findings on scratch `docs/latest/core-uplift/` |
+| 10_CORE_UPLIFT.md | The closed core uplift project (released as 3.4.1.53): decisions and per-stage notes; design and findings on scratch `docs/latest/core-uplift/`. The next planned work (chat path garbage) is on scratch `docs/latest/chat-garbage/` |
 | 11_PREFERENCES.md | Dan's preferences and approach: the one file, loaded in every session |
 | 12_CODE_MAP.md | How the addon is built (files, functions, front end to back end, dependencies); on demand; appendices in `reference/code-map/` |
 | 13_CHANGES_IN_TRAIN.md | Every planned change by stage, findings, review findings, where docs disagree; on demand |
