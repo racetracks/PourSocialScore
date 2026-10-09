@@ -69,8 +69,15 @@ strict=""
 [ -n "$CI" ] && strict="--strict"
 python3 tools/versions.py check --toc "$ver" $strict ${PSS_PR:+--pr "$PSS_PR"} || fail=1
 
-if grep -nE 'EUI|[Ee]llesmere' PourSocialScore_GUI/* PourSocialScore_Libraries/PSS_ViewNav.lua PourSocialScore_Libraries/PSS_DetailQuery.lua PourSocialScore_Libraries/PSS_PlayerView.lua PourSocialScore_Libraries/PSS_GuildView.lua PourSocialScore_Libraries/PSS_FilterView.lua PourSocialScore_Libraries/PSS_EventsView.lua PourSocialScore_Libraries/PSS_OptionsView.lua PourSocialScore_Libraries/PSS_RowMenus.lua PourSocialScore_Libraries/PSS_Graphics.lua PourSocialScore_Libraries/PSS_MacroData.lua PourSocialScore_Libraries/PSS_Macros.lua; then
+if grep -nE 'EUI|[Ee]llesmere' PourSocialScore_GUI/* PourSocialScore_Libraries/PSS_ViewNav.lua PourSocialScore_Libraries/PSS_DetailQuery.lua PourSocialScore_Libraries/PSS_PlayerView.lua PourSocialScore_Libraries/PSS_GuildView.lua PourSocialScore_Libraries/PSS_FilterView.lua PourSocialScore_Libraries/PSS_EventsView.lua PourSocialScore_Libraries/PSS_OptionsView.lua PourSocialScore_Libraries/PSS_RowMenus.lua PourSocialScore_Libraries/PSS_Graphics.lua PourSocialScore_Libraries/PSS_MacroData.lua PourSocialScore_Libraries/PSS_Macros.lua PourSocialScore_Libraries/PSS_AddonsQuery.lua PourSocialScore_Libraries/PSS_AddonsView.lua; then
 	echo "PSS names only: an EllesmereUI or EUI name found above"
+	fail=1
+fi
+
+# the addon manager is written from its design, clean room (3.6.0): no
+# identifier of the addon manager it follows in behaviour may be copied
+if grep -nE 'ACP_|AddonList_|NoRecurse|NoChildren|ProtectedAddons|AddonSet|EnableRecurse|LocateEmbeds|FauxScrollFrame' PourSocialScore*/*.lua PourSocialScore*/*.xml 2>/dev/null; then
+	echo "clean room: an identifier of another addon manager found above (written from the design, never copied)"
 	fail=1
 fi
 

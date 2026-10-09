@@ -204,8 +204,9 @@ Looks
   class colour. "Font of the Pour Social Score window" picks its font.
 
 Getting around
-* Six tabs: Player Ignore List, Guild Ignore List, Chat Filters, Events,
-  Options and Import/Export. Each tab is built the first time you open it.
+* Seven tabs: Player Ignore List, Guild Ignore List, Chat Filters, Events,
+  Import/Export, Options and AddOns. Each tab is built the first time you
+  open it.
 * The back and forward arrows above the tabs (and mouse buttons 4 and 5)
   step through the views you opened; the line beside them says where you
   are and links back up. Clicking a tab takes it back to its start.
@@ -280,6 +281,32 @@ Options and Import/Export
   its captured members, custom chat filters, built-in filters on or off,
   options) and the mode, then Export to get a text string, or paste one and
   Import (Replace asks first).
+
+AddOns
+* Every installed addon in one list, grouped so an addon's parts and the
+  libraries are not clutter (or A to Z, or the load on demand ones apart),
+  with a search box. Tick an addon to turn it on or off for this character
+  or for all characters (the box at the top); "Dependencies" also turns on
+  the addons it requires. Load starts a load on demand addon now (not in
+  combat). Tick a group's header to turn the whole group on or off.
+* Each row shows its state in colour (Loaded, Disabled, Load on demand,
+  Out of date, a missing requirement, or a change that waits for a
+  reload) and its memory; click Memory to list the biggest first. A star
+  protects an addon: Disable All and sets leave it on. Pour Social Score
+  itself is always protected.
+* The line above the list shows the addons' CPU and memory as Blizzard's
+  own AddOn list does; hover an addon for its details, requirements, CPU
+  (average, current, peak, encounter) and memory, or a group's header for
+  its sums.
+* Sets: save the addons that are on as a set (25 numbered ones, each for
+  this character or all characters, and one for your class), then load it,
+  add it, take it off or rename it. Undo puts the addons back as they were
+  at login; Enable All and Disable All (which asks first); Reload applies
+  the changes and shows when one is waiting.
+* /pss acp or /acp opens the tab, and the key binding "Open AddOns"
+  (Key Bindings > AddOns > Pour Social Score) and the minimap Addon
+  Compartment entry "Pour Social Score: AddOns" do too. The behaviour
+  follows Addon Control Panel by Sylvanaar (MIT); no code or art is copied.
 
 Core's own popups (the note prompt, the party warning, the reload prompt)
 are Blizzard's popups.
@@ -578,6 +605,21 @@ filter that mixes them without brackets may now behave differently.)
                           A macro with the same name in the same place is
                           set to PSS's version; nothing is deleted. Not
                           in combat.
+/pss acp                  Open the AddOns tab (/acp does the same, unless
+                          another addon already uses /acp)
+/pss acp list [text]      List the addons and their state
+/pss acp on|off name      Turn an addon on or off for this character
+                          (on also turns on what it requires)
+/pss acp load name        Load a load on demand addon now (not in combat)
+/pss acp all on|off       Enable All or Disable All (Pour Social Score and
+                          protected addons stay on)
+/pss acp undo             Put the addons back as at login
+/pss acp sets             List the saved sets
+/pss acp set 1-25|class [char|all] save [name]|load|add|remove|delete
+                          Sets of addons: char (the default) is this
+                          character's, all is shared by every character
+/pss acp lock|unlock name Protect an addon from Disable All and sets
+/pss acp api              Which addon functions this game client has
 /pss showmsg on|off       Print what happens during synchronisation
 /pss sameserver on|off    Only sync same-server characters to Blizzard's
                           ignore list

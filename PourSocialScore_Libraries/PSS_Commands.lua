@@ -291,6 +291,12 @@ function M.PSS_SlashPSS (msg)
 		-- nothing on other clients)
 		if M.PSS_MacroCommand then M.PSS_MacroCommand(args) else M.ShowMsg("The macro helper is for Camelot only.") end
 
+	elseif args[1] == "acp" then
+
+		-- the addon manager (3.6.0): on its own the AddOns tab, else
+		-- PSS_AddonsQuery.lua
+		if not args[2] then M.PSS_OpenUI("addons") else M.PSS_AddonCommand(args, rawArgs) end
+
 	elseif args[1] == "sync" then
 
 		M.SyncIgnoreList(false)
@@ -327,6 +333,8 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  " .. L["HELP_19"])
 		M.ShowMsg ("  |cffffff00gfx|cffffffff: Export, import and restore graphics settings (Camelot)")
 		M.ShowMsg ("  |cffffff00macro|cffffffff: Create the preloaded macros (Camelot): /pss macro global create, /pss macro <class> create [account|character]")
+		M.ShowMsg ("  |cffffff00acp|cffffffff: Turn addons on and off, see what they cost, presets: /pss acp (the AddOns tab), /pss acp list | on | off | load | all | undo | sets | set | lock | api")
+		M.ShowMsg ("  " .. (M.PSS_ACPTaken and "/acp is used by another addon; use /pss acp" or "/acp = /pss acp"))
 		M.ShowMsg ("  " .. L["HELP_9"])
 		M.ShowMsg ("")
 		M.ShowMsg ("  " .. format(L["HELP_10"], OnOff(M.PSS_Opt("chatmsg"))))

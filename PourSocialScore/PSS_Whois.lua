@@ -337,3 +337,5 @@ end
 BINDING_HEADER_POURSOCIALSCORE = "Pour Social Score"
 BINDING_NAME_PSS_SCAN_ALL = "Scan All: next guild /who"
 function PSS_ScanAllBinding() M.PSS_ScanAll() end
+BINDING_NAME_PSS_OPEN_ADDONS = "Open AddOns"
+function PSS_AddonsBinding() M.PSS_OpenUI("addons") end

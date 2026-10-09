@@ -16,10 +16,13 @@ V.nameUI = ""		-- the player the note and expiry popups are for
 -- The Pour Social Score window (PourSocialScore_GUI, loaded on demand; the
 -- new window from 3.4.0): /pss gui, /pss ui and the Addon Compartment open
 -- it. show true: open, never toggle shut.
-function M.PSS_OpenUI(show)
+-- a tab key ("addons") opens the window on that tab (the first argument
+-- may be the key, or the second after show)
+function M.PSS_OpenUI(show, tab)
+	if type(show) == "string" then show, tab = nil, show end
 	-- the list shown has no expired entries (N40)
 	M.PSS_ExpireEntries()
-	if M.PSS_Need("GUI") and M.PSS_OpenWindow then M.PSS_OpenWindow(show) end
+	if M.PSS_Need("GUI") and M.PSS_OpenWindow then M.PSS_OpenWindow(show, tab) end
 end
 
 -- The window opens beside the Friends window when the option
@@ -273,6 +276,15 @@ if V.wowIsRetail == true and AddonCompartmentFrame and AddonCompartmentFrame.Reg
 		notCheckable = true,
 		func = function(button, menuInputData, menu)
 			M.PSS_OpenUI()
+		end,
+	})
+	-- a second entry opens the AddOns tab (3.6.0)
+	AddonCompartmentFrame:RegisterAddon({
+		text = "Pour Social Score: AddOns",
+		icon = "Interface\\Icons\\ui_chat.blp",
+		notCheckable = true,
+		func = function(button, menuInputData, menu)
+			M.PSS_OpenUI("addons")
 		end,
 	})
 end

@@ -169,6 +169,58 @@ for _, skin in ipairs({ 2, 0, 1 }) do
 		if g and M.PSS_GfxHistory then click(g.history) end
 	end)
 	step(look .. " graphics closed", function() if _G.PSS_GfxPopup then _G.PSS_GfxPopup:Hide() end end)
+	-- 3.6.0: the AddOns tab (nothing before; the tour opens it with the other tabs)
+	step(look .. " addons", function()
+		click(win.tabs[7])
+		local pg = win.pages[7]
+		if pg.list then
+			pg.list.scroll:SetHeight(300)
+			pg.list:Layout()
+		end
+	end)
+	step(look .. " addons hover row", function()
+		local pg = win.pages[7]
+		for _, row in ipairs(pg.list and pg.list.rows or {}) do
+			if row.index and row.index > 1 and row:IsShown() then
+				local f = row:GetScript("OnEnter")
+				if f then f(row) end
+				break
+			end
+		end
+	end)
+	step(look .. " addons hover header", function()
+		local pg = win.pages[7]
+		local row = pg.list and pg.list.rows[1]
+		local f = row and row:GetScript("OnEnter")
+		if f then f(row) end
+	end)
+	step(look .. " addons collapse", function()
+		local pg = win.pages[7]
+		local row = pg.list and pg.list.rows[1]
+		if row then click(row) end
+	end)
+	step(look .. " addons search", function()
+		local pg = win.pages[7]
+		if pg.search then
+			pg.search:SetText("dbm")
+			local f = pg.search:GetScript("OnTextChanged")
+			if f then f(pg.search) end
+		end
+	end)
+	step(look .. " addons save set", function()
+		ui.Confirm({ title = "Save Set?", text = "Name the new set.", accept = "Save", name = { text = "Raid", max = 32 } })
+	end)
+	step(look .. " addons save set closed", function() _G.PSS_Confirm:Hide() end)
+	step(look .. " addons disable all", function()
+		local pg = win.pages[7]
+		if pg.search then
+			pg.search:SetText("")
+			local f = pg.search:GetScript("OnTextChanged")
+			if f then f(pg.search) end
+		end
+		ui.Confirm({ title = "Disable All AddOns?", text = "Tour disable all", accept = "Disable All" })
+	end)
+	step(look .. " addons disable all closed", function() _G.PSS_Confirm:Hide() end)
 	step(look .. " events", function() click(win.tabs[4]) end)
 	step(look .. " close", function() win:Hide() end)
 end

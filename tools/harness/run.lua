@@ -57,7 +57,7 @@ local function readToc(name, dir, toc)
 				a.lod = value == "1"
 			elseif key == "Dependencies" or key == "RequiredDeps" or key:match("^Dep") then
 				for d in value:gmatch("[^,%s]+") do a.deps[#a.deps + 1] = d end
-			elseif key == "SavedVariables" then
+			elseif key == "SavedVariables" or key == "SavedVariablesPerCharacter" then
 				for v in value:gmatch("[^,%s]+") do a.sv[#a.sv + 1] = v end
 			end
 		elseif not line:match("^#") and line:match("%S") then
@@ -171,6 +171,10 @@ C_AddOns.GetAddOnMetadata = function(name, field)
 end
 IsAddOnLoaded = isLoaded
 LoadAddOn = C_AddOns.LoadAddOn
+
+-- the addon list API (3.6.0): the stub installs it over these
+local realMeta = C_AddOns.GetAddOnMetadata
+H.AddonsReal({ order = order, addons = addons, isLoaded = isLoaded, load = C_AddOns.LoadAddOn, meta = realMeta })
 
 -- login: every addon that is not LoadOnDemand, dependencies first
 for _, name in ipairs(order) do

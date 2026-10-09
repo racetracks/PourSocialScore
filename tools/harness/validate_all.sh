@@ -169,6 +169,11 @@ out=$(PSS_PHASE=retail lua5.1 "$here/run.lua" . - "$work/macro-retail.lua" "$her
 echo "$out"
 echo "$out" | grep -q "PASS macro retail" || fail=1
 
+# addon manager (3.6.0, /pss acp, /acp and the AddOns tab): every phase of
+# check_addons.lua on Retail and on Camelot (addons_phases.sh)
+echo "== addon manager"
+sh "$here/addons_phases.sh" "$work" || fail=1
+
 # the new window's Libraries maths (3.4.0-dev005): pane numbers equal the
 # core's counts, slices, back / forward, throttle
 echo "== new window maths"

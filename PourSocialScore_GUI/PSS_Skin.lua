@@ -232,6 +232,15 @@ function ns.HasAtlas(name)
 	return C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(name) ~= nil
 end
 
+-- A Blizzard client file by path on a texture, with the client's answer:
+-- true when it loaded (coords { left, right, top, bottom } applied), false
+-- when the client has no such file, so the caller shows its glyph instead.
+function ns.FileTexture(tex, path, coords)
+	if tex:SetTexture(path) == false then return false end
+	if coords then tex:SetTexCoord(coords[1], coords[2], coords[3], coords[4]) end
+	return true
+end
+
 -- The look's own parts of a widget: Dark parts are ours (kept in a table
 -- per widget); Blizzard parts are the template's textures. ns.ShowArt shows
 -- one set and fades the other (alpha, so a template's state changes cannot

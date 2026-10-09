@@ -188,7 +188,13 @@ function W:IsDragging() return false end
 function W:GetTexture() return nil end
 function W:GetAtlas() return self._atlas end
 function W:SetAtlas(a) self._atlas = a end
-function W:SetTexture(t) self._texture = t end
+-- PSS_TEX_MISSING="path;path": the client has no such file (SetTexture says false)
+local missingTex = {}
+for p in (os.getenv("PSS_TEX_MISSING") or ""):gmatch("[^;]+") do missingTex[p] = true end
+function W:SetTexture(t)
+	if missingTex[t] then return false end
+	self._texture = t
+end
 function W:SetWordWrap(w) self._wrap = w end
 function W:SetMaxLines(n) self._maxLines = n end
 function W:SetTextureSliceMargins(l, t, r, b) self._slice = { l, t, r, b } end
@@ -357,7 +363,7 @@ function UnitAffectingCombat() return false end
 function UnitName(u) if u == "player" then return "Tester", nil end return nil end
 function UnitFullName(u) if u == "player" then return "Tester", "Realm" end return nil end
 function GetUnitName(u) if u == "player" then return "Tester" end return nil end
-function UnitGUID() return nil end
+function UnitGUID(u) if u == "player" then return "Player-1-0001" end return nil end
 function UnitExists() return false end
 function UnitIsPlayer() return false end
 function UnitIsUnit() return false end
@@ -376,7 +382,11 @@ function GetRealmName() return camelot and "ClassicBetaPvP" or "Realm" end
 function GetNormalizedRealmName() return camelot and "ClassicBetaPvP" or "Realm" end
 function GetLocale() return "enUS" end
 function GetBuildInfo() return camelot and "1.0.0" or "12.0.7", "1", "Oct 1 2026", camelot and 16001 or 120007 end
-function GetCVar(name) local c = stub.cvars[name]; return c and c.value or "0" end
+function GetCVar(name)
+	if name == "addonPerformanceMsgWarning" then return os.getenv("PSS_ADDON_WARN") or "1" end
+	local c = stub.cvars[name]
+	return c and c.value or "0"
+end
 function GetCVarBool() return false end
 function IsInGroup() return false end
 function IsInRaid() return false end
@@ -550,6 +560,16 @@ if camelot then stub.SeedGfx() end
 
 C_DateAndTime = {}
 C_Texture = {}
+-- PSS_ATLAS=all | "name,name": the client has these atlases (none otherwise)
+if os.getenv("PSS_ATLAS") then
+	local have = {}
+	for n in os.getenv("PSS_ATLAS"):gmatch("[^,]+") do have[n] = true end
+	local all = have.all
+	-- PSS_ATLAS_MISSING=name,name: atlases the client lacks even with "all"
+	local lack = {}
+	for n in (os.getenv("PSS_ATLAS_MISSING") or ""):gmatch("[^,]+") do lack[n] = true end
+	C_Texture.GetAtlasInfo = function(name) if (all or have[name]) and not lack[name] then return { width = 16, height = 16 } end end
+end
 C_ClassColor = { GetClassColor = function() return { r = 1, g = 1, b = 1, GenerateHexColor = function() return "ffffffff" end } end }
 RAID_CLASS_COLORS = setmetatable({}, { __index = function() return { r = 1, g = 1, b = 1, colorStr = "ffffffff" } end })
 LOCALIZED_CLASS_NAMES_MALE = {}
@@ -687,6 +707,260 @@ do
 			table.sort(t, byName)
 			return indexOf(t, m, i > MAX_ACCOUNT_MACROS)
 		end
+	end
+end
+
+------------------------------------------------------------------------
+-- The addon list (3.6.0, the addon manager). The real folders come first
+-- (run.lua hands them over: H.AddonsReal), then the fake ones from
+-- PSS_ADDONS: a count (Fake001 ...) or "name:flags;name:flags" with flags
+-- joined by commas: e enabled for this character, E enabled for both
+-- characters (me and alt), L loaded, l load on demand, d=<dep>, o=<optional
+-- dep>, g=<TOC Group>, c=<X-Category>, m=<memory KB>, r=<reason>, t=<title>,
+-- p=<avg/cur/peak/enc CPU ms>. Every call is counted in stub.calls; every
+-- write is listed in stub.addonWrites. PSS_ADDON_NOAPI=<names> removes
+-- APIs, PSS_ADDON_OLDAPI=1 gives GetAddOnEnableState as the old global
+-- (character, name), PSS_ADDON_NOENUM=1 leaves Enum.AddOnEnableState out,
+-- PSS_ADDON_NOPROFILER=1 / PSS_ADDON_PROFILEROFF=1 the profiler.
+------------------------------------------------------------------------
+stub.calls, stub.addonWrites, stub.versionCheck = {}, {}, true
+local DEFAULT_ADDONS = "Atlas:e,L,m=900;Atlas_Options:e,l,d=Atlas;LibStub:e,L,c=Library,m=10;LibFoo:e,L,m=20;"
+	.. "DBM-Core:e,L,m=4000,p=2/1/9/3;DBM-GUI:e,L,d=DBM-Core,m=600;DBM-Raids:e,l,d=DBM-Core;Details:e,L,m=2500,p=1/2/3/4;"
+	.. "Details_Streamer:E,d=Details;WeakAuras:e;ZedOne:g=Zeds;ZedTwo:g=Zeds,e;OldThing:e,r=INTERFACE_VERSION;"
+	.. "Needy:e,d=Gone;Loner:o=Atlas;CycA:d=CycB;CycB:d=CycA;CycC:d=CycA;Blizzard_Test:l"
+if os.getenv("PSS_ACP_TAKEN") == "1" then
+	SlashCmdList = SlashCmdList or {}
+	SlashCmdList["ACP"] = function() end
+	SLASH_ACP1 = "/acp"
+end
+local list, real
+local function call(n) stub.calls[n] = (stub.calls[n] or 0) + 1 end
+local function parseFlags(rec, flags)
+	for f in (flags or ""):gmatch("[^,]+") do
+		local k, v = f:match("^(%a)=(.*)$")
+		if not k then k = f end
+		if k == "e" then rec.me = true
+		elseif k == "E" then rec.me, rec.alt = true, true
+		elseif k == "L" then rec.loaded = true
+		elseif k == "l" then rec.lod = true
+		elseif k == "d" then rec.deps[#rec.deps + 1] = v
+		elseif k == "o" then rec.opt[#rec.opt + 1] = v
+		elseif k == "g" then rec.group = v
+		elseif k == "c" then rec.cat = v
+		elseif k == "m" then rec.mem = tonumber(v)
+		elseif k == "r" then rec.reason = v
+		elseif k == "t" then rec.title = v
+		elseif k == "i" then rec.iconTex = v
+		elseif k == "a" then rec.iconAtlas = v
+		elseif k == "p" then
+			rec.cpu = {}
+			for n in v:gmatch("[^/]+") do rec.cpu[#rec.cpu + 1] = tonumber(n) end
+		end
+	end
+end
+local function build()
+	if list then return list end
+	list = {}
+	for _, r in ipairs(real and real.order or {}) do
+		local a = real.addons[r]
+		list[#list + 1] = { name = r, real = true, me = true, deps = a.deps, opt = {}, lod = a.lod, mem = 100 }
+	end
+	local spec = os.getenv("PSS_ADDONS") or DEFAULT_ADDONS
+	if spec == "big" then
+		-- 280 plain addons, a chain of 20 (C20 needs C19 ... C01) and a loop
+		local parts = {}
+		for i = 1, 280 do parts[#parts + 1] = ("Big%03d:%s"):format(i, i % 2 == 0 and "e,L,m=50" or "l") end
+		for i = 1, 20 do parts[#parts + 1] = ("C%02d:%s"):format(i, i > 1 and ("d=C%02d"):format(i - 1) or "") end
+		parts[#parts + 1] = "LoopA:d=LoopB"
+		parts[#parts + 1] = "LoopB:d=LoopA"
+		spec = table.concat(parts, ";")
+	end
+	if tonumber(spec) then
+		for i = 1, tonumber(spec) do
+			list[#list + 1] = { name = ("Fake%03d"):format(i), deps = {}, opt = {}, me = i % 3 ~= 0, mem = 10 + i,
+				loaded = i % 3 ~= 0, group = i % 10 == 0 and "Grp" or nil }
+		end
+	else
+		for item in spec:gmatch("[^;]+") do
+			local name, flags = item:match("^([^:]+):?(.*)$")
+			local rec = { name = name, deps = {}, opt = {}, mem = 0 }
+			parseFlags(rec, flags)
+			list[#list + 1] = rec
+		end
+	end
+	for _, r in ipairs(list) do
+		if not r.real then r.title = r.title or ("|cff69ccf0" .. r.name .. "|r") end
+	end
+	stub.snapshot = {}
+	for i, r in ipairs(list) do stub.snapshot[i] = { r.me, r.alt } end
+	return list
+end
+function stub.AddonList() return build() end
+-- ids: an index or a name
+local function find(x)
+	local l = build()
+	if type(x) == "number" then return l[x], x end
+	for i, r in ipairs(l) do if r.name == x then return r, i end end
+end
+local function target(char, r)
+	-- nil: every character; the GUID or a name: this one
+	if char == nil then return "all" end
+	return "me"
+end
+local function setEnabled(i, char, on)
+	local r = find(i)
+	if not r then return end
+	stub.addonWrites[#stub.addonWrites + 1] = { i = i, name = r.name, char = char, on = on }
+	local t = target(char, r)
+	if t == "all" then r.me, r.alt = on or nil, on or nil else r.me = on or nil end
+end
+local function stateOf(r, char)
+	if char == nil then
+		if r.me and r.alt then return 2 end
+		if r.me or r.alt then return 1 end
+		return 0
+	end
+	return r.me and 2 or 0
+end
+local function reasonOf(r)
+	if r.reason then return r.reason end
+	if not r.me then return "DISABLED" end
+	for _, d in ipairs(r.deps) do
+		local dr = find(d)
+		if not dr then return "DEP_MISSING" end
+		if not dr.me then return "DEP_DISABLED" end
+	end
+	if r.lod then return "DEMAND_LOADED" end
+end
+
+local api = {}
+function api.GetNumAddOns() call("GetNumAddOns") return #build() end
+function api.GetAddOnInfo(x)
+	call("GetAddOnInfo")
+	local r = find(x)
+	if not r then return nil end
+	local reason = reasonOf(r)
+	return r.name, r.title or r.name, "Notes of " .. r.name, reason == nil, reason, "INSECURE"
+end
+function api.GetAddOnEnableState(x, char)
+	call("GetAddOnEnableState")
+	local r = find(x)
+	return r and stateOf(r, char) or 0
+end
+function api.EnableAddOn(x, char) call("EnableAddOn") setEnabled(x, char, true) end
+function api.DisableAddOn(x, char) call("DisableAddOn") setEnabled(x, char, false) end
+function api.EnableAllAddOns(char)
+	call("EnableAllAddOns")
+	stub.addonWrites[#stub.addonWrites + 1] = { fn = "EnableAll", char = char }
+	for _, r in ipairs(build()) do if char == nil then r.me, r.alt = true, true else r.me = true end end
+end
+function api.DisableAllAddOns(char)
+	call("DisableAllAddOns")
+	stub.addonWrites[#stub.addonWrites + 1] = { fn = "DisableAll", char = char }
+	for _, r in ipairs(build()) do if char == nil then r.me, r.alt = nil, nil else r.me = nil end end
+end
+function api.GetAddOnDependencies(x) call("GetAddOnDependencies") local r = find(x) return unpack(r and r.deps or {}) end
+function api.GetAddOnOptionalDependencies(x) call("GetAddOnOptionalDependencies") local r = find(x) return unpack(r and r.opt or {}) end
+function api.IsAddOnLoadOnDemand(x) call("IsAddOnLoadOnDemand") local r = find(x) return r and r.lod and true or false end
+function api.IsAddOnLoaded(x)
+	local r = find(x)
+	if not r then return false end
+	if r.real then return real.isLoaded(r.name) end
+	return r.loaded and true or false
+end
+function api.LoadAddOn(x)
+	call("LoadAddOn")
+	local r = find(x)
+	if not r then return false, "MISSING" end
+	if r.real then return real.load(r.name) end
+	if not r.me then return false, "DISABLED" end
+	if not r.lod then return false, "NOT_DEMAND_LOADED" end
+	r.loaded = true
+	return true
+end
+function api.GetAddOnMetadata(x, field)
+	call("GetAddOnMetadata")
+	local r = find(x)
+	if not r then return nil end
+	if r.real then return real.meta(r.name, field) end
+	if field == "Title" then return r.title or r.name end
+	if field == "Group" then return r.group end
+	if field == "X-Category" or field == "Category" then return r.cat end
+	if field == "IconTexture" then return r.iconTex end
+	if field == "IconAtlas" then return r.iconAtlas end
+	if field == "Author" then return "Tester" end
+	if field == "Version" then return "1.0" end
+	return nil
+end
+function api.UpdateAddOnMemoryUsage() call("UpdateAddOnMemoryUsage") stub.memUpdates = (stub.memUpdates or 0) + 1 end
+function api.GetAddOnMemoryUsage(x) call("GetAddOnMemoryUsage") local r = find(x) return r and r.mem or 0 end
+function api.SaveAddOns() call("SaveAddOns") stub.saveAddOns = (stub.saveAddOns or 0) + 1 end
+function api.ResetAddOns()
+	call("ResetAddOns")
+	for i, r in ipairs(build()) do
+		local s = stub.snapshot[i]
+		if s then r.me, r.alt = s[1], s[2] end
+	end
+end
+function api.IsAddonVersionCheckEnabled() call("IsAddonVersionCheckEnabled") return stub.versionCheck end
+function api.SetAddonVersionCheck(on) call("SetAddonVersionCheck") stub.versionCheck = on and true or false end
+
+-- the real folders: run.lua hands over what it loaded (order, addons,
+-- isLoaded, load, meta); this installs the whole list API over its own
+function stub.AddonsReal(r)
+	real, list = r, nil
+	local noapi = {}
+	for n in (os.getenv("PSS_ADDON_NOAPI") or ""):gmatch("[^,%s]+") do noapi[n] = true end
+	local old = os.getenv("PSS_ADDON_OLDAPI") == "1"
+	for n, f in pairs(api) do
+		if n == "GetAddOnEnableState" and old then
+			-- the old global: (character, name)
+			_G.GetAddOnEnableState = function(char, x) return f(x, char) end
+			C_AddOns.GetAddOnEnableState = nil
+		else
+			C_AddOns[n] = f
+			_G[n] = f
+		end
+	end
+	local doesExist = C_AddOns.DoesAddOnExist
+	C_AddOns.DoesAddOnExist = function(x) return doesExist(x) or find(x) ~= nil end
+	for n in pairs(noapi) do
+		C_AddOns[n] = nil
+		_G[n] = nil
+	end
+	if os.getenv("PSS_ADDON_NOENUM") == "1" then
+		rawset(Enum, "AddOnEnableState", nil)
+		getmetatable(Enum).__index = function(t, k)
+			if k == "AddOnEnableState" then return nil end
+			local v = setmetatable({}, { __index = function() return 0 end })
+			rawset(t, k, v)
+			return v
+		end
+	else
+		rawset(Enum, "AddOnEnableState", { None = 0, Some = 1, All = 2 })
+	end
+	-- the profiler
+	rawset(Enum, "AddOnProfilerMetric", nil)
+	Enum.AddOnProfilerMetric = { SessionAverageTime = 0, RecentAverageTime = 1, EncounterAverageTime = 2, PeakTime = 3 }
+	local slot = { [0] = 1, [1] = 2, [3] = 3, [2] = 4 }	-- metric -> the p= position (avg/cur/peak/enc)
+	if os.getenv("PSS_ADDON_NOPROFILER") ~= "1" then
+		local function metric(rec, m) return rec.cpu and rec.cpu[slot[m]] or 0 end
+		C_AddOnProfiler = {
+			IsEnabled = function() return os.getenv("PSS_ADDON_PROFILEROFF") ~= "1" end,
+			GetAddOnMetric = function(name, m) call("GetAddOnMetric") local rec = find(name) return rec and metric(rec, m) or 0 end,
+			GetOverallMetric = function(m)
+				call("GetOverallMetric")
+				local sum = 0
+				for _, rec in ipairs(build()) do sum = sum + metric(rec, m) end
+				return sum
+			end,
+			GetApplicationMetric = function(m)
+				call("GetApplicationMetric")
+				local sum = tonumber(os.getenv("PSS_ADDON_APP") or "100")
+				for _, rec in ipairs(build()) do sum = sum + metric(rec, m) end
+				return sum
+			end,
+		}
 	end
 end
 

@@ -286,6 +286,24 @@ function ns.BuildKitMenus(page)
 			onTimeout = function() Say("Timed out") end })
 	end)
 	b4:SetPoint("TOPLEFT", b1, "BOTTOMLEFT", 0, -6)
+	-- a confirm with a name field (3.6.0: the AddOns tab's Save Set and Rename Set)
+	local b5 = ns.NewButton(page, "Name...", 110, function()
+		ns.Confirm({ title = "Save Set?", text = "Name the new set.", accept = "Save", name = { text = "Raid", max = 32 },
+			onAccept = function(_, typed) Say("Saved as " .. tostring(typed)) end })
+	end)
+	b5:SetPoint("LEFT", b4, "RIGHT", 8, 0)
+	-- a Blizzard client file by path with its fallback (3.6.0: ns.FileTexture)
+	local fileBox = CreateFrame("Frame", nil, page)
+	fileBox:SetSize(18, 18)
+	fileBox:SetPoint("LEFT", b5, "RIGHT", 12, 0)
+	local fileTex = fileBox:CreateTexture(nil, "ARTWORK")
+	fileTex:SetAllPoints()
+	local fileGlyph = ns.NewText(fileBox, 16)
+	fileGlyph:SetPoint("CENTER", fileBox, "CENTER", 0, -3)
+	fileGlyph:SetText("*")
+	local hasFile = ns.FileTexture(fileTex, "Interface\\Glues\\CharacterSelect\\Glues-AddOn-Icons", { 0.75, 1, 0, 1 })
+	fileTex:SetShown(hasFile)
+	fileGlyph:SetShown(not hasFile)
 
 	-- the results picker (Player Search, Guild Search) over a frame of its own
 	Label("Results picker", -212)
@@ -306,5 +324,5 @@ function ns.BuildKitMenus(page)
 	picker:ShowItems("3 players found")
 	page.picker = picker
 
-	return { picker = picker, pick = dd1, ticks = dd2, long = dd3, area = area, confirm = b1, timed = b4, copy = b2, import = b3, result = result, types = on }
+	return { picker = picker, pick = dd1, ticks = dd2, long = dd3, area = area, confirm = b1, timed = b4, name = b5, file = fileBox, copy = b2, import = b3, result = result, types = on }
 end
