@@ -1,4 +1,4 @@
-# PourSocialScore: changes in train (2026-10-09, main 3.4.1.44, U1 in PR #136)
+# PourSocialScore: changes in train (2026-10-09, main 3.4.1.45)
 
 **What this is.** A context document: what PourSocialScore is about to change, where, and why, so a later session (Claude or GPT) can tell the shipped features apart from the planned ones. Read it with `12_CODE_MAP.md`, which describes the code as it is on main at **3.4.1.38**. The source of truth stays the locked plan, `docs/pss/10_CORE_UPLIFT.md` in the addon repo (scratch `docs/latest/core-uplift/00_CORE_UPLIFT.md`). Where this file and the plan differ, the plan wins.
 
@@ -7,9 +7,9 @@
 | Item | State on 2026-10-08 |
 | --- | --- |
 | Live release | **3.4.0.29** (full; the new PSS window in three looks; mirrored to `racetracks/Pour-Social-Score`) |
-| Main | 3.4.1.44 (F2, PR #135); U1 3.4.1.45 in PR #136; next U2 3.4.1.46 |
+| Main | 3.4.1.45 (U1, PR #136; F2 merged in 3.4.1.44, PR #135); next U2 3.4.1.46 |
 | Current project | **Core uplift**, locked 2026-10-08, three version lines |
-| Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done), window fixes F2 (done), the upgrade registry U1 (PR #136); next the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
+| Line 3.4.1 | Fixes and data: names (done), Blizzard ignore authority (done), right-click PSS header (done), shipped lists rebuilt (done); detail pane fixes (done), bug fixes F1 (done), window fixes F2 (done), the upgrade registry U1 (done); next the upgrade report, forward-compatible saves, and the step 9 save cleanup; release 3.4.1.51 |
 | Line 3.4.2 | Builds 3.4.2.52 to 3.4.2.58 (release). Core performance: dead code out, event-driven GC, events only when needed, cheaper chat path, duplicate logic merged, core placement |
 | Line 3.4.3 | Builds 3.4.3.59 to 3.4.3.63 (release). Window tidy: dead GUI names, logic moved from GUI to Libraries, kit functions, redraw cost |
 | Build numbers | `X.Y.Z.B`; B never resets; every build (stage, fix, release) takes the next one |
@@ -35,7 +35,7 @@ What will **not** change (decided): player and guild identity stays the lowercas
 | F1 | 3.4.1.42 | N40 expiry applied, N41 hooks gated by option, N42 talent links, N45 Import Replace keeps shipped rules, N46 listener errors reported, N47 group warning list, N48 `/pss list` nil note | Yes | Merged (#131) |
 | Docs | 3.4.1.43 | F1 marked merged; later builds renumbered and the 3.4.2 / 3.4.3 builds set (decision 24); docs only | No | Merged (#134) |
 | F2 | 3.4.1.44 | G21 filter redraw throttle with G26 rule dim refresh, G27 Dark menu height, G28 Modern art check | Yes (Dark menus) | Merged (#135) |
-| U1 | 3.4.1.45 | Upgrade step registry, invisible (step 1 split and tagged, `RETIRED`, counts, version compare) | No | PR #136 |
+| U1 | 3.4.1.45 | Upgrade step registry, invisible (step 1 split and tagged, `RETIRED`, counts, version compare) | No | Merged, PR #136 |
 | U2 | 3.4.1.46 | Upgrade report printed once per update (issue #45) | Once per update | |
 | U3 | 3.4.1.47 | Forward compatibility: `M.PSS_SCHEMA`, tolerant readers, downgrade line, unusable rules kept and reported, `/pss export unused`, export format version | Only when a rule cannot be used | |
 | S1 | 3.4.1.48 | `History.ClearOwner` and the purge tombstone (N16) | No | |
@@ -202,7 +202,7 @@ Today: record `PourSocialScoreDB.upgrade = { step, version, at }`; steps 1 (ever
 
 | Piece | Design |
 | --- | --- |
-| Registry (U1, 3.4.1.45, invisible; built, PR #136) | `STEPS` in `PSS_Upgrade.lua`: `{ id, always, parts }`, each part `{ feature, fields, data }`; ids never change; parts take no arguments, return false to pause, and count through `tally(feature, key, n)` into `out` (counts only, no strings); `M.PSS_RunUpgradeData` returns `out` on a login that reports. Details in the plan, 2.4 "Done in U1" |
+| Registry (U1, 3.4.1.45, invisible; merged, PR #136) | `STEPS` in `PSS_Upgrade.lua`: `{ id, always, parts }`, each part `{ feature, fields, data }`; ids never change; parts take no arguments, return false to pause, and count through `tally(feature, key, n)` into `out` (counts only, no strings); `M.PSS_RunUpgradeData` returns `out` on a login that reports. Details in the plan, 2.4 "Done in U1" |
 | Features | `filters` (Chat Filtering), `players` (Player Ignore List), `guilds` (Guild Ignore List), `managed` (Managed Communities), `history` (Block History), `options` (Options), `cleanup` (SavedVariables performance cleanup, always) |
 | Step 1 | Split into feature-tagged sub-parts under id 1 (no renumbering); helpers gain count returns (`ApplyOptionDefaults`, `UnlinkGuildRuleCounts`, `ensureManagedRules`) |
 | `RETIRED` | One list, one loop: `autoIgnore`, `autoUpdate`, `autoCount`, `autoTime`, `attachFriends`, `syncList`, `filterHistory`, `blockStats`, `optionsV2012`, `charOptions`, `historySize`, `euiIntegration`, `windowSizes`, `columnWidths`, `blizzardSync` (built in U1, dropped every login after the data parts; later `memberCount`, `showIgnoreDebug` in S3) |
