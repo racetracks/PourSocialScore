@@ -23,7 +23,8 @@
 --   M.PSS_PlayerToggleAllowed(entry, field, allowed)
 --   M.PSS_PlayerOnBlizzard(p), M.PSS_PlayerToggleBlizzard(entry, on)   the Blizzard ignore tick (B1)
 --   M.PSS_PlayerAddGuild(guild)           the player's guild onto the guild list
---   M.PSS_PlayerGuildState(p)             guild, listed (Add Guild button)
+--   M.PSS_PlayerGuildState(p)             guild, listed, button text (Add Guild)
+--   M.PSS_PlayerExpireBoxText(r), M.PSS_PlayerSummarySpec(r, c, into)
 --   M.PSS_PlayerEventsSpec(entry), M.PSS_AllPlayersSpec()
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
@@ -134,7 +135,19 @@ end
 function M.PSS_PlayerGuildState(p)
 	local now = p and p.currentGuild or ""
 	if now == "" then return nil end
-	return now, M.PSS_IsGuildListed(now)
+	local listed = M.PSS_IsGuildListed(now)
+	return now, listed, listed and "Guild listed" or "Add Guild"
+end
+
+-- the Expire box's text
+function M.PSS_PlayerExpireBoxText(r)
+	return tostring(tonumber(r.expire) or 0)
+end
+
+-- the Summary's spec for a selected player (r: its row, c: its counts)
+function M.PSS_PlayerSummarySpec(r, c, into)
+	into.owner, into.allTime, into.title, into.id = M.PSS_PlayerHistoryKey(r.entry), c.total or 0, r.name or r.entry, r.entry
+	return into
 end
 
 function M.PSS_PlayerRemoveText(entry)
@@ -205,13 +218,13 @@ function M.PSS_PlayerPickerTitle(n, query)
 	return ("Player Search: %d player(s) found for \"%s\". Click the players to add."):format(n, query or "")
 end
 
--- one cell's text for a picker entry (level, class, guild)
+-- one cell's text for a picker entry (name, level, class, guild, tick, state)
 function M.PSS_PlayerPickerCells(it, into)
 	into.name = it.name or ""
 	into.level = it.level and tostring(it.level) or ""
 	into.class = it.class or ""
 	into.guild = it.guild or ""
-	return into
+	return M.PSS_PickerCells(it, into)
 end
 
 -- Add the ticked players; the number added

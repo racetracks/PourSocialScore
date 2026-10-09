@@ -267,7 +267,7 @@ function ns.ShowPlayerDetail(newEntry)
 	pane.heading:SetText(M.PSS_PlayerHeading(r))
 	pane.typeLine:SetText(M.PSS_PlayerTypeLine(r))
 	pane.addedLine:SetText(M.PSS_PlayerAddedLine(r))
-	if not pane.expireBox:HasFocus() then pane.expireBox:SetText(tostring(tonumber(r.expire) or 0)) end
+	if not pane.expireBox:HasFocus() then pane.expireBox:SetText(M.PSS_PlayerExpireBoxText(r)) end
 	pane.expireNote:SetText(M.PSS_PlayerExpireNote(r))
 	if not pane.noteBox:HasFocus() then pane.noteBox:SetText(r.note or "") end
 
@@ -278,10 +278,10 @@ function ns.ShowPlayerDetail(newEntry)
 	end
 	pane.guildLine:SetText(M.PSS_PlayerGuildLine(p))
 	pane.inviteLine:SetText(M.PSS_PlayerInviteLine(p))
-	local guild, listed = M.PSS_PlayerGuildState(p)
+	local guild, listed, guildText = M.PSS_PlayerGuildState(p)
 	if guild then
 		pane.addGuild.guild = guild
-		pane.addGuild:SetText(listed and "Guild listed" or "Add Guild")
+		pane.addGuild:SetText(guildText)
 		pane.addGuild:SetEnabled(not listed)
 		pane.addGuild:Show()
 	end
@@ -296,9 +296,7 @@ function ns.ShowPlayerDetail(newEntry)
 	-- read again only when the entry or its count changed; the block
 	-- history (PourSocialScore_Logging) loads only when asked for
 	pane.hist:Set(r.entry, c.total or 0, M.PSS_GetPlayerBlockHistory, newEntry)
-	local s = pane.sumSpec
-	s.owner, s.allTime, s.title, s.id = M.PSS_PlayerHistoryKey(r.entry), c.total or 0, r.name or r.entry, r.entry
-	pane.summary:Set(s)
+	pane.summary:Set(M.PSS_PlayerSummarySpec(r, c, pane.sumSpec))
 end
 
 ------------------------------------------------------------------------
@@ -366,12 +364,12 @@ local function DrawPick(row, i)
 		return
 	end
 	M.PSS_PlayerPickerCells(it, pickCells)
-	c.tick:SetText(it.listed and "|cff808080[x]|r" or (it.ticked and "|cff00ff00[x]|r" or "[  ]"))
+	c.tick:SetText(pickCells.tick)
 	c.name:SetText(pickCells.name)
 	c.level:SetText(pickCells.level)
 	c.class:SetText(pickCells.class)
 	c.guild:SetText(pickCells.guild)
-	c.state:SetText(it.listed and "|cff808080listed|r" or "")
+	c.state:SetText(pickCells.state)
 	row.sel:SetShown(it.ticked and not it.listed)
 end
 

@@ -112,6 +112,12 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_guilds.lua" 2>&1 | grep -v '^|cf
 echo "$out"
 echo "$out" | grep -q "PASS guilds" || fail=1
 
+# the view functions moved out of the window's drawing files (W2)
+echo "== view functions"
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_viewfns.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS viewfns" || fail=1
+
 # the new window's Chat Filters tab (3.4.0-dev010)
 echo "== new window Chat Filters tab"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_filters.lua" 2>&1 | grep -v '^|cff')

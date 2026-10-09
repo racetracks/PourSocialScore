@@ -265,8 +265,7 @@ function TP:Build()
 	self.pie.frame:SetPoint("TOPLEFT", f, "TOPLEFT", 18, top)
 	self.pie.tip = function(i)
 		local sl = self.slices[i]
-		return ("%s\n%s: %d blocked (all time)"):format(self.title or "", sl.text, sl.value or 0)
-			.. (CanOpen() and "\n\n|cffaaaaaaClick: these events in the Events tab.|r" or "")
+		return M.PSS_TypeTip(self.title, sl, CanOpen())
 	end
 	self.keys = {}
 	for i = 1, TYPE_SLOTS do
@@ -345,9 +344,7 @@ function ns.NewTotals(pane, tabPage, kind, title, hint, allSpec)
 	if allSpec then
 		-- a copy each time: a slice sets the period it opens on
 		tt.specFn = function()
-			local spec = {}
-			for k, v in pairs(allSpec()) do spec[k] = v end
-			return spec
+			return M.PSS_SpecCopy(allSpec())
 		end
 	end
 	tt.spec = { title = title, noWhere = true, specFn = tt.specFn }
