@@ -279,6 +279,12 @@ function M.PSS_SlashPSS (msg)
 			M.PSS_CopyTextBox("Rules Not Used", ("Copy the string below (%d characters) and keep it: a version that knows these rules imports it"):format(#text), text)
 		end
 
+	elseif args[1] == "gfx" then
+
+		-- graphics settings export, import and history (3.5.0, Camelot only;
+		-- PSS_Graphics.lua defines nothing on other clients)
+		if M.PSS_GfxOpen then M.PSS_GfxOpen() else M.ShowMsg("Graphics settings are for Camelot only.") end
+
 	elseif args[1] == "sync" then
 
 		M.SyncIgnoreList(false)
@@ -313,6 +319,7 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  " .. L["HELP_17"])
 		M.ShowMsg ("  " .. L["HELP_18"])
 		M.ShowMsg ("  " .. L["HELP_19"])
+		M.ShowMsg ("  |cffffff00gfx|cffffffff: Export, import and restore graphics settings (Camelot)")
 		M.ShowMsg ("  " .. L["HELP_9"])
 		M.ShowMsg ("")
 		M.ShowMsg ("  " .. format(L["HELP_10"], OnOff(M.PSS_Opt("chatmsg"))))

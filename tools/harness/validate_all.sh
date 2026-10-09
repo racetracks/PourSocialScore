@@ -98,6 +98,44 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_tui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS tui" || fail=1
 
+# graphics settings (3.5.0, /pss gfx, Camelot): the logic, the history, keep
+# and revert, Retail and a client without the console API; the popup, the
+# keep prompt after a /reload (the apply run writes a save with a change
+# waiting, each login run answers it another way) and the History view.
+# The saves they write join the schema check below.
+echo "== graphics settings"
+for ph in logic history keep; do
+	out=$(PSS_PHASE=$ph PSS_CAMELOT=1 lua5.1 "$here/run.lua" . - "$work/gfx-$ph.lua" "$here/check_gfx.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS gfx $ph" || fail=1
+done
+out=$(PSS_PHASE=retail lua5.1 "$here/run.lua" . - "$work/gfx-retail.lua" "$here/check_gfx.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS gfx retail" || fail=1
+out=$(PSS_GFX_NOAPI=1 PSS_PHASE=noapi PSS_CAMELOT=1 lua5.1 "$here/run.lua" . - - "$here/check_gfx.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS gfx noapi" || fail=1
+out=$(PSS_GFX_OLDAPI=1 PSS_PHASE=noapi PSS_CAMELOT=1 lua5.1 "$here/run.lua" . - - "$here/check_gfx.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS gfx noapi" || fail=1
+for ph in popup history_ui; do
+	out=$(PSS_PHASE=$ph PSS_CAMELOT=1 lua5.1 "$here/run.lua" . - "$work/gfx-$ph.lua" "$here/check_gfx.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS gfx $ph" || fail=1
+done
+out=$(PSS_PHASE=apply PSS_CAMELOT=1 lua5.1 "$here/run.lua" . - "$work/gfx-apply.lua" "$here/check_gfx.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS gfx apply" || fail=1
+for run in keep timeout escape revert; do
+	out=$(PSS_GFX_RUN=$run PSS_GFX_SET=graphicsQuality=2 PSS_RELOAD=1 PSS_PHASE=reload PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/gfx-apply.lua" "$work/gfx-reload-$run.lua" "$here/check_gfx.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | sed "s/^PASS gfx reload/PASS gfx reload ($run)/"
+	echo "$out" | grep -q "PASS gfx reload" || fail=1
+done
+# a login after the prompt was answered: nothing waits, neither part loads
+out=$(PSS_GFX_RUN=none PSS_GFX_SET=graphicsQuality=2 PSS_RELOAD=1 PSS_PHASE=reload PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/gfx-reload-keep.lua" "$work/gfx-reload-none.lua" "$here/check_gfx.lua" 2>&1 | grep -v '^|cff')
+echo "$out" | sed "s/^PASS gfx reload/PASS gfx reload (none)/"
+echo "$out" | grep -q "PASS gfx reload" || fail=1
+
 # the new window's Libraries maths (3.4.0-dev005): pane numbers equal the
 # core's counts, slices, back / forward, throttle
 echo "== new window maths"

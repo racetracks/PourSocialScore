@@ -83,7 +83,7 @@ end
 
 local fh = assert(io.open(out, "w"))
 local errors, snaps = {}, 0
-local ROOTS = { "PSS_Window", "PSS_Confirm", "PSS_TextPopup", "PSS_Menu" }
+local ROOTS = { "PSS_Window", "PSS_Confirm", "PSS_TextPopup", "PSS_Menu", "PSS_GfxPopup" }
 local function rootOf(f)
 	while f do
 		for _, n in ipairs(ROOTS) do if f == _G[n] then return true end end
@@ -158,6 +158,17 @@ for _, skin in ipairs({ 2, 0, 1 }) do
 	step(look .. " confirm closed", function() _G.PSS_Confirm:Hide() end)
 	step(look .. " copy", function() ui.CopyText({ title = "Tour copy", text = "line one\nline two" }) end)
 	step(look .. " copy closed", function() _G.PSS_TextPopup:Hide() end)
+	-- 3.5.0: the timed confirm (a plain one before) and the graphics popup
+	-- (nothing before; the History view only where Libraries has it, run
+	-- with PSS_CAMELOT=1)
+	step(look .. " timed confirm", function() ui.Confirm({ title = "Keep Settings?", text = "Tour timed confirm", accept = "Keep", cancel = "Revert", timeout = 15 }) end)
+	step(look .. " timed confirm closed", function() _G.PSS_Confirm:Hide() end)
+	step(look .. " graphics", function() if M.PSS_GfxBox then M.PSS_GfxBox() end end)
+	step(look .. " graphics history", function()
+		local g = _G.PSS_GfxPopup
+		if g and M.PSS_GfxHistory then click(g.history) end
+	end)
+	step(look .. " graphics closed", function() if _G.PSS_GfxPopup then _G.PSS_GfxPopup:Hide() end end)
 	step(look .. " events", function() click(win.tabs[4]) end)
 	step(look .. " close", function() win:Hide() end)
 end

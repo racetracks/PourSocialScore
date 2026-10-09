@@ -45,6 +45,14 @@ jobs:
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_options.lua | tee /tmp/op.txt && grep -q "PASS options" /tmp/op.txt
       - name: Secret values
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_secrets.lua | tee /tmp/se.txt && grep -q "PASS secrets" /tmp/se.txt
+      - name: Graphics settings
+        run: |
+          for ph in logic history keep popup history_ui; do
+            PSS_PHASE=$ph PSS_CAMELOT=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_gfx.lua | tee /tmp/gfx.txt && grep -q "PASS gfx $ph" /tmp/gfx.txt
+          done
+          PSS_PHASE=retail lua5.1 tools/harness/run.lua . - - tools/harness/check_gfx.lua | tee /tmp/gfx.txt && grep -q "PASS gfx retail" /tmp/gfx.txt
+          PSS_GFX_NOAPI=1 PSS_PHASE=noapi PSS_CAMELOT=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_gfx.lua | tee /tmp/gfx.txt && grep -q "PASS gfx noapi" /tmp/gfx.txt
+          PSS_GFX_OLDAPI=1 PSS_PHASE=noapi PSS_CAMELOT=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_gfx.lua | tee /tmp/gfx.txt && grep -q "PASS gfx noapi" /tmp/gfx.txt
 
   upgrades:
     runs-on: ubuntu-latest

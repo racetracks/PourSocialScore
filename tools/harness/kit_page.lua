@@ -278,6 +278,14 @@ function ns.BuildKitMenus(page)
 			accept = "Import", onAccept = function(text) Say("Imported " .. #text .. " characters") end })
 	end)
 	b3:SetPoint("LEFT", b2, "RIGHT", 8, 0)
+	-- a timed confirm (3.5.0): the cancel button counts down
+	local b4 = ns.NewButton(page, "Timed confirm...", 110, function()
+		ns.Confirm({ title = "Keep Settings?", text = "Keep the new settings?\n\nThey are put back when the count reaches 0.",
+			accept = "Keep", cancel = "Revert", timeout = 15,
+			onAccept = function() Say("Kept") end, onCancel = function() Say("Reverted") end,
+			onTimeout = function() Say("Timed out") end })
+	end)
+	b4:SetPoint("TOPLEFT", b1, "BOTTOMLEFT", 0, -6)
 
 	-- the results picker (Player Search, Guild Search) over a frame of its own
 	Label("Results picker", -212)
@@ -298,5 +306,5 @@ function ns.BuildKitMenus(page)
 	picker:ShowItems("3 players found")
 	page.picker = picker
 
-	return { picker = picker, pick = dd1, ticks = dd2, long = dd3, area = area, confirm = b1, copy = b2, import = b3, result = result, types = on }
+	return { picker = picker, pick = dd1, ticks = dd2, long = dd3, area = area, confirm = b1, timed = b4, copy = b2, import = b3, result = result, types = on }
 end

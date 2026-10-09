@@ -545,6 +545,118 @@ check(not tert.texture:IsShown() and not c1.pssParts.modernBox:IsShown() and not
 kit.tabs[1]._scripts.OnClick(kit.tabs[1])
 M.PSS_SetOpt("uiSkin", "global", 0)
 
+-- (3.5.0) the timed confirm and the graphics settings popup (/pss gfx), built
+-- and painted in every look; every button is a one-line call into Libraries
+-- (stood in for here by a tiny fake of the M.PSS_Gfx* functions, put back
+-- after; the real ones are driven by check_gfx.lua)
+do
+	local fakes = true
+	local real = {}
+	for _, n in ipairs({ "ExportText", "Parse", "RestorePlan", "Summary", "Apply", "History", "SetDiff", "Reload", "KeepSpec" }) do
+		real[n] = M["PSS_Gfx" .. n]
+	end
+	local glog = {}
+	local sets = { { i = 1, when = 1790000000, whenText = "2026-10-09 10:00", changed = 3 },
+		{ i = 2, when = 1789999000, whenText = "2026-10-09 09:43", changed = 0 } }
+	if fakes then
+		M.PSS_GfxExportText = function() return "PSSGFX1 Camelot 16001\nrenderScale=1", 1 end
+		M.PSS_GfxParse = function(text)
+			if not text:find("^PSSGFX1") then return nil, "Not a graphics settings string." end
+			return { changes = { { "renderScale", "1", "2" } } }
+		end
+		M.PSS_GfxRestorePlan = function() return { changes = { { "renderScale", "2", "1" } } } end
+		M.PSS_GfxSummary = function(plan) return #plan.changes .. " settings will change." end
+		M.PSS_GfxApply = function(plan) glog[#glog + 1] = "apply" return true end
+		M.PSS_GfxHistory = function() return sets end
+		M.PSS_GfxSetDiff = function(i) return "Saved " .. sets[i].whenText .. "\nrenderScale: 2 -> 1" end
+		M.PSS_GfxReload = function() glog[#glog + 1] = "reload" end
+		M.PSS_GfxKeepSpec = function()
+			return { title = "Keep Graphics Settings?", text = "Keep?", accept = "Keep", cancel = "Revert", timeout = 15,
+				onAccept = function() glog[#glog + 1] = "keep" end, onCancel = function() glog[#glog + 1] = "cancel" end,
+				onTimeout = function() glog[#glog + 1] = "timeout" end }
+		end
+	end
+	for _, skin in ipairs({ 2, 0, 1 }) do
+		local look = ({ [0] = "Classic", [1] = "Dark", [2] = "Modern" })[skin]
+		for k in pairs(glog) do glog[k] = nil end
+		M.PSS_SetOpt("uiSkin", "global", skin)
+		-- the kit preview's timed confirm
+		mk.timed._scripts.OnClick(mk.timed)
+		local c = _G.PSS_Confirm
+		check(c:IsShown() and c.cancel._text == "Revert (15)", look .. " timed confirm: cancel button not counting")
+		check(c.title:GetText() == "Keep Settings?", look .. " timed confirm title")
+		H.RunOnUpdate(100)
+		check(c.cancel._text == "Revert (13)" or c.cancel._text == "Revert (14)", look .. " timed confirm did not count down: " .. tostring(c.cancel._text))
+		H.RunOnUpdate(700)
+		check(not c:IsShown() and mk.result:GetText() == "Last: Timed out", look .. " timed confirm: timeout did not run onTimeout only")
+		check(c._scripts.OnUpdate == nil, look .. " timed confirm left its OnUpdate")
+		mk.timed._scripts.OnClick(mk.timed)
+		c.cancel._scripts.OnClick(c)
+		check(mk.result:GetText() == "Last: Reverted", look .. " timed confirm: cancel")
+		mk.timed._scripts.OnClick(mk.timed)
+		c.accept._scripts.OnClick(c)
+		check(mk.result:GetText() == "Last: Kept" and c._scripts.OnUpdate == nil, look .. " timed confirm: accept")
+		mk.confirm._scripts.OnClick(mk.confirm)
+		check(c.cancel._text == (CANCEL or "Cancel"), look .. " plain confirm keeps the plain cancel")
+		c:Hide()
+		-- the keep prompt
+		M.PSS_GfxKeepPrompt()
+		H.RunOnUpdate(800)
+		check(glog[#glog] == "timeout" and #glog == 1, look .. " keep prompt timeout: " .. table.concat(glog, ","))
+		M.PSS_GfxKeepPrompt()
+		c:Hide()	-- Escape
+		check(glog[#glog] == "cancel", look .. " keep prompt Escape is not a revert")
+		-- the graphics popup
+		M.PSS_GfxBox()
+		local g = _G.PSS_GfxPopup
+		check(g and g:IsShown() and g.title:GetText() == "Graphics Settings", look .. " graphics popup")
+		local dark = skin == 1
+		check(g.pssParts.dim:IsShown() == dark and g.pssParts.fill:IsShown() == (dark or not g.pssParts.art), look .. " graphics popup paint")
+		g.export._scripts.OnClick(g.export)
+		check(g.edit:GetText():find("^PSSGFX1") and g.subtitle:GetText() == "1 settings", look .. " Export")
+		g.edit:SetText("junk")
+		g.import._scripts.OnClick(g.import)
+		check(g.subtitle:GetText() == "Not a graphics settings string.", look .. " Import refusal text")
+		g.edit:SetText("PSSGFX1 Camelot 16001\nrenderScale=2")
+		g.import._scripts.OnClick(g.import)
+		check(c:IsShown() and c.title:GetText() == "Apply Graphics Settings?" and c.text:GetText() == "1 settings will change.", look .. " Import preview")
+		c.accept._scripts.OnClick(c)
+		check(glog[#glog] == "apply", look .. " Apply did not call Libraries")
+		g.reload._scripts.OnClick(g.reload)
+		check(glog[#glog] == "reload", look .. " Reload UI")
+		-- History
+		g.history._scripts.OnClick(g.history)
+		check(g.listFrame:IsShown() and g.restore:IsShown() and g.back:IsShown() and not g.import:IsShown(), look .. " History view not shown")
+		g.list.scroll:SetHeight(88)	-- the stub does not size it from its anchors
+		g.list:Layout()
+		check(g.list.count == 2 and g.list.rows[1].cells.when:GetText() == "2026-10-09 10:00" and g.list.rows[1].cells.changed:GetText() == "3", look .. " History rows")
+		check(not g.restore:IsEnabled(), look .. " Restore enabled with nothing picked")
+		g.list.rows[2]._scripts.OnClick(g.list.rows[2], "LeftButton")
+		check(g.list.rows[2].sel:IsShown() and not g.list.rows[1].sel:IsShown() and g.edit:GetText():find("^Saved 2026%-10%-09 09:43"), look .. " History row click")
+		g.restore._scripts.OnClick(g.restore)
+		check(c:IsShown() and c.title:GetText() == "Apply Graphics Settings?", look .. " Restore preview")
+		c:Hide()
+		g.hexport._scripts.OnClick(g.hexport)
+		check(g.edit:GetText():find("^PSSGFX1"), look .. " History Export")
+		g.back._scripts.OnClick(g.back)
+		check(not g.listFrame:IsShown() and g.import:IsShown() and not g.restore:IsShown(), look .. " Back")
+		g.history._scripts.OnClick(g.history)
+		g:Hide()	-- Escape from the History view: the next open starts on the main view
+		M.PSS_GfxBox()
+		check(not g.histOn and g.import:IsShown() and g.edit:GetText() == "", look .. " reopened in the History view")
+		g:Hide()
+		local listed = false
+		for _, n in ipairs(UISpecialFrames) do if n == "PSS_GfxPopup" then listed = true end end
+		check(listed, "PSS_GfxPopup does not close on Escape")
+	end
+	if fakes then
+		for _, n in ipairs({ "ExportText", "Parse", "RestorePlan", "Summary", "Apply", "History", "SetDiff", "Reload", "KeepSpec" }) do
+			M["PSS_Gfx" .. n] = real[n]
+		end
+	end
+	M.PSS_SetOpt("uiSkin", "global", 0)
+end
+
 -- (3.4.0.16) the tabs hear core events only while the window shows
 do
 	local realReg, realUnreg = M.Events.Register, M.Events.Unregister

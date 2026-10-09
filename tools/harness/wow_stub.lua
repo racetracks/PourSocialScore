@@ -339,6 +339,9 @@ CANCEL, OKAY, ACCEPT, YES, NO, UNKNOWN, CLOSE = "Cancel", "Okay", "Accept", "Yes
 WOW_PROJECT_ID, WOW_PROJECT_MAINLINE = 1, 1
 LE_PARTY_CATEGORY_HOME = 1
 Enum = setmetatable({}, { __index = function(t, k) local v = setmetatable({}, { __index = function() return 0 end }); rawset(t, k, v); return v end })
+-- the console's categories and command types (the auto Enum answers 0 for any other name)
+rawset(Enum, "ConsoleCategory", { Debug = 0, Graphics = 1, Console = 2, Combat = 3, Game = 4, Default = 5, Net = 6, Sound = 7 })
+rawset(Enum, "ConsoleCommandType", { Cvar = 0, Command = 1, Macro = 2, Script = 3 })
 
 function GetTime() return uptime end
 function GetServerTime() return clock end
@@ -347,7 +350,7 @@ function date(fmt, t) return osdate(fmt, t or clock) end
 function time(t) if t then return os.time(t) end return clock end
 function debugprofilestop() return uptime * 1000 end
 function GetFramerate() return 60 end
-function InCombatLockdown() return false end
+function InCombatLockdown() return stub.combat == true end
 function IsEncounterInProgress() return false end
 function UnitIsDeadOrGhost() return false end
 function UnitAffectingCombat() return false end
@@ -368,7 +371,7 @@ function GetRealmName() return camelot and "ClassicBetaPvP" or "Realm" end
 function GetNormalizedRealmName() return camelot and "ClassicBetaPvP" or "Realm" end
 function GetLocale() return "enUS" end
 function GetBuildInfo() return camelot and "1.0.0" or "12.0.7", "1", "Oct 1 2026", camelot and 16001 or 120007 end
-function GetCVar() return "0" end
+function GetCVar(name) local c = stub.cvars[name]; return c and c.value or "0" end
 function GetCVarBool() return false end
 function IsInGroup() return false end
 function IsInRaid() return false end
@@ -458,7 +461,88 @@ C_PartyInfo = {}
 C_Map = {}
 C_Spell = {}
 C_Item = {}
-C_CVar = { GetCVar = function() return "0" end, GetCVarBool = function() return false end }
+C_CVar = { GetCVar = GetCVar, GetCVarBool = function() return false end }
+-- CVars and the console (3.5.0, graphics settings): stub.cvars[name] =
+-- {value, default, category, secure, readOnly, locked, noStick}; noStick
+-- accepts a write and keeps the old value (a client that clamps or ignores
+-- it). stub.SeedGfx() fills it on Camelot (about 20 entries). stub.cvarWrites
+-- lists every SetCVar call, accepted or not. PSS_GFX_SET sets values at
+-- login. PSS_GFX_OLDAPI=1 offers the
+-- console list as C_Console.GetAllCommands, PSS_GFX_NOAPI=1 offers neither.
+stub.cvars, stub.cvarWrites, stub.combat, stub.reloads = {}, {}, false, 0
+local function cvarRow(name, value, default, category, flags)
+	flags = flags or {}
+	stub.cvars[name] = { value = value, default = default, category = category,
+		secure = flags.secure, readOnly = flags.readOnly, locked = flags.locked, noStick = flags.noStick }
+end
+function stub.SeedGfx()
+	stub.cvars = {}
+	local G = 1
+	cvarRow("graphicsQuality", "7", "5", G)
+	cvarRow("graphicsViewDistance", "7", "5", G)
+	cvarRow("graphicsShadowQuality", "3", "3", G)
+	cvarRow("graphicsTextureResolution", "2", "2", G)
+	cvarRow("graphicsLiquidDetail", "2", "2", G)
+	cvarRow("ffxAntiAliasingMode", "2", "0", G)
+	cvarRow("renderScale", "1", "1", G)
+	cvarRow("farclip", "1300", "1300", G)
+	cvarRow("vsync", "1", "1", G)
+	cvarRow("particleDensity", "100", "100", G)
+	cvarRow("gxWindow", "1", "1", G)
+	cvarRow("gxMaximize", "1", "0", G)
+	cvarRow("gxFullscreenResolution", "1920x1080", "1280x720", G)
+	cvarRow("gxMonitor", "0", "0", G)
+	cvarRow("gxAdapter", "", "", G)
+	cvarRow("secureGfx", "1", "0", G, { secure = true })
+	cvarRow("readOnlyGfx", "1", "0", G, { readOnly = true })
+	cvarRow("lockedGfx", "1", "0", G, { locked = true })
+	cvarRow("stuckGfx", "1", "0", G, { noStick = true })
+	cvarRow("addonCombatRestrictionsForced", "0", "0", G)
+	cvarRow("Sound_MasterVolume", "1", "1", 7)
+	cvarRow("autoLootDefault", "0", "0", 4)
+	-- PSS_GFX_SET="name=value;name=value": values the client already holds at
+	-- login (a /reload keeps the CVars; a new harness run starts from the seed)
+	for pair in (os.getenv("PSS_GFX_SET") or ""):gmatch("[^;]+") do
+		local name, value = pair:match("^([^=]+)=(.*)$")
+		if name and stub.cvars[name] then stub.cvars[name].value = value end
+	end
+end
+function C_CVar.GetCVarInfo(name)
+	local c = stub.cvars[name]
+	if not c then return nil end
+	return c.value, c.default, false, false, c.locked == true, c.secure == true, c.readOnly == true
+end
+function C_CVar.GetCVarDefault(name) local c = stub.cvars[name]; return c and c.default end
+function C_CVar.SetCVar(name, value)
+	stub.cvarWrites[#stub.cvarWrites + 1] = { name, tostring(value) }
+	local c = stub.cvars[name]
+	if not c or c.secure or c.readOnly then return false end
+	if not c.noStick then c.value = tostring(value) end
+	return true
+end
+local function consoleList()
+	local names = {}
+	for n in pairs(stub.cvars) do names[#names + 1] = n end
+	table.sort(names, function(a, b) return a > b end)	-- not sorted, as the client
+	local out = {}
+	for _, n in ipairs(names) do
+		local c = stub.cvars[n]
+		out[#out + 1] = { command = n, help = "", category = c.category, commandType = 0 }
+	end
+	-- a console command (not a CVar) in the Graphics category
+	out[#out + 1] = { command = "gxRestart", help = "", category = 1, commandType = 1 }
+	return out
+end
+if os.getenv("PSS_GFX_NOAPI") ~= "1" then
+	if os.getenv("PSS_GFX_OLDAPI") == "1" then
+		C_Console = { GetAllCommands = consoleList }
+	else
+		function ConsoleGetAllCommands() return consoleList() end
+	end
+end
+function ReloadUI() stub.reloads = stub.reloads + 1 end
+if camelot then stub.SeedGfx() end
+
 C_DateAndTime = {}
 C_Texture = {}
 C_ClassColor = { GetClassColor = function() return { r = 1, g = 1, b = 1, GenerateHexColor = function() return "ffffffff" end } end }
