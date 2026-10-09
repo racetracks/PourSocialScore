@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.69 - Addon Profiles: ACP-style save, side menus, menus open down
+
+- Addon Profiles can be saved again, the way Addon Control Panel does it: the Profiles drop-down lists every place (Core Addon Profiles 1 to 5, a line, Layered Addon Profiles 6 to 25 and your class), a free one as "Profile N (empty)". Choose a place and its side menu offers Select or Deselect, Save (one question, "Save the current addon list to [name]?"), Load, Add to current selection, Remove from current selection, Rename and Delete; a free place offers Save and Rename. A selected place is marked with *, and any number can be selected together. This also fixes the places' menu closing at once, which hid Save and Rename.
+- The Profiles drop-down is wider so its titles show, opens downward in every look (Dark opened upward), and the addon count now sits at the right against the Undo button. Menus in the Dark look are as wide as their longest entry.
+
 => 3.6.0.68 - Addon Profiles: renamed, rename any, Core and Layered
 
 - "Sets" are now called Addon Profiles everywhere on the AddOns tab, and the drop-down at the bottom left reads "Profiles".

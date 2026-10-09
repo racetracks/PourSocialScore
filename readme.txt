@@ -300,16 +300,16 @@ AddOns
   its sums.
 * Addon Profiles (the drop-down "Profiles" at the bottom left): 25
   numbered places, each for this character or all characters (the choice at
-  the top), and one for your class. The first five are Core Addon Profiles,
-  then a line, then the Layered Addon Profiles. Tick any or all of them: the
-  addons that are on are every ticked profile together plus anything you
-  turned on by hand; unticking a profile turns off only what no other
-  profile or hand pick still wants, and protected addons stay on. Manage
-  Addon Profiles (the last entry) opens a place: Save puts the addons that
-  are on there (it asks first); a used place can also be loaded (replaces
-  what is on), added to what is on, taken off what is on or deleted; any
-  place, a free one and your class one too, can be renamed (up to 32
-  letters, not empty, not used twice in the list). Undo puts the addons back as they were
+  the top), and one for your class; the first five are Core Addon Profiles,
+  then a line, then the Layered Addon Profiles. Every place is listed (a free
+  one as "Profile N (empty)"); choose one for its side menu: Select or
+  Deselect, Save (puts the addons that are on there, after one question),
+  Load (replaces what is on), Add to current selection, Remove from current
+  selection, Rename (up to 32 letters, not empty, not used twice in the
+  list) and Delete; a free place offers Save and Rename. A selected place is
+  marked *; any number can be selected together: the addons that are on are
+  every selected profile plus anything you turned on by hand, and deselecting
+  turns off only what nothing else wants (protected addons stay on). Undo puts the addons back as they were
   at login; Enable All and Disable All (which asks first); Reload applies
   the changes and shows when one is waiting.
 * /pss acp or /acp opens the tab, and the key binding "Open AddOns"

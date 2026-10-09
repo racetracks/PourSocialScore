@@ -832,7 +832,7 @@ function phases.view()
 	p = V:Slots()[1]
 	check(not p.empty and p.n > 0, "a save into a free slot stores it")
 	local function acts(entries) local t = {} for _, e in ipairs(entries) do if e.act then t[#t + 1] = e.act end end return table.concat(t, ",") end
-	check(acts(V:PresetMenu(p)) == "load,add,remove,save,rename,delete", "the set's actions: " .. acts(V:PresetMenu(p)))
+	check(acts(V:PresetMenu(p)) == "select,save,load,add,remove,rename,delete", "the set's actions: " .. acts(V:PresetMenu(p)))
 	check(V:PresetAct(p, "rename", "Renamed"):find("renamed", 1, true), "rename")
 	check(V:Slots()[1].name == "Renamed", "renamed")
 	V:Act(k, "include", "char:1")
@@ -872,7 +872,7 @@ function phases.slots()
 	check(PSS_CharDB and PSS_CharDB.addonSets[3] and PSS_OptionsDB.addonSets == nil, "stored for this character")
 	slots = V:Slots()
 	check(not slots[3].empty and slots[3].text:match("^Profile 3 %(%d+%)$"), "the slot shows its count: " .. slots[3].text)
-	check(acts(V:PresetMenu(slots[3])) == "load,add,remove,save,rename,delete", "a used slot: " .. acts(V:PresetMenu(slots[3])))
+	check(acts(V:PresetMenu(slots[3])) == "select,save,load,add,remove,rename,delete", "a used slot: " .. acts(V:PresetMenu(slots[3])))
 	-- save over it keeps the name; rename gives one
 	V:PresetAct(slots[3], "rename", "Raid")
 	slots = V:Slots()
@@ -902,7 +902,7 @@ function phases.slots()
 	V:PresetAct(V:Slots()[26], "save")
 	check(PSS_OptionsDB.addonSets[cls], "the class set is account-wide")
 	local c = V:Slots()[26]
-	check(not c.empty and acts(V:PresetMenu(c)) == "load,add,remove,save,rename,delete", "the class profile's actions: " .. acts(V:PresetMenu(c)))
+	check(not c.empty and acts(V:PresetMenu(c)) == "select,save,load,add,remove,rename,delete", "the class profile's actions: " .. acts(V:PresetMenu(c)))
 	V.who = "all"
 	check(not V:Slots()[26].empty, "the class set shows in both scopes")
 	-- delete frees the slot
@@ -915,8 +915,9 @@ function phases.slots()
 	V:Release()
 end
 
--- The Addon Profiles menu in the window: bottom left, Core and Layered
--- profiles as ticks, then Manage (3.6.0.68; the places were 3.6.0.66)
+-- The Addon Profiles menu in the window (3.6.0.68 rework, issues 175 to 180):
+-- bottom left, every place in the drop-down, each a side menu of its actions
+-- (ACP's interface), the count anchored right
 function phases.setsmenu()
 	needLibraries()
 	SlashCmdList["PSS"]("acp")
@@ -926,41 +927,103 @@ function phases.setsmenu()
 	local dd = pg.setsDD
 	local point, rel, relPoint = dd:GetPoint(1)
 	check(point == "BOTTOMLEFT" and rel == pg and relPoint == "BOTTOMLEFT", "the drop-down is not bottom left: " .. tostring(point))
-	check(dd.label:GetText() == "Profiles", "the drop-down label: " .. tostring(dd.label:GetText()))
-	local fpoint, frel = pg.footer:GetPoint(1)
-	check(fpoint == "LEFT" and frel == dd, "the count is not beside the drop-down")
-	check(type(pg.setsBuild) == "function" and type(pg.manageBuild) == "function", "no menu builders")
+	check(dd.label:GetText() == "Profiles" and dd:GetWidth() == 190, "the drop-down label and width: " .. tostring(dd.label:GetText()))
+	local first = pg.footer._points[1]
+	check(first[1] == "LEFT" and first[2] == dd, "the count is not beside the drop-down")
+	check(type(pg.setsBuild) == "function" and pg.manageBuild == nil, "no menu builder, or the Manage menu is still there")
+	-- a recorder for the kit's entries: S:text opens a side menu with the entries under it
 	local function collect(build)
 		local list = {}
-		build({ Title = function(_, t) list[#list + 1] = "T:" .. t end, Button = function(_, t, fn) list[#list + 1] = "B:" .. t end,
-			Check = function(_, t, on, fn) list[#list + 1] = (on() and "X:" or "C:") .. t end, Divider = function() list[#list + 1] = "-" end })
+		local m = {}
+		m.Title = function(_, t) list[#list + 1] = "T:" .. t end
+		m.Button = function(_, t) list[#list + 1] = "B:" .. t end
+		m.Divider = function() list[#list + 1] = "-" end
+		m.Sub = function(_, t, b)
+			local inner = collect(b)
+			list[#list + 1] = "S:" .. t .. "{" .. table.concat(inner, ",") .. "}"
+		end
+		build(m)
 		return list
 	end
-	-- nothing saved: the headers, nothing to tick, Manage
 	local list = collect(pg.setsBuild)
-	check(table.concat(list, "|") == "T:Core Addon Profiles|T:None saved|-|T:Layered Addon Profiles|T:None saved|-|B:Manage Addon Profiles", "the empty menu: " .. table.concat(list, "|"))
-	-- the manage menu: every place, Core first, a line, Layered
-	list = collect(pg.manageBuild)
-	check(list[1] == "T:Core Addon Profiles" and list[2] == "B:Profile 1 (empty)" and list[6] == "B:Profile 5 (empty)" and list[7] == "-"
-		and list[8] == "T:Layered Addon Profiles" and list[9] == "B:Profile 6 (empty)" and list[#list - 1] == "B:Profile 25 (empty)", "the manage menu: " .. table.concat(list, "|", 1, 9))
+	check(list[1] == "T:Core Addon Profiles" and list[2] == "S:Profile 1 (empty){T:Profile 1 (this character),B:Save,B:Rename}", "level 1 starts: " .. tostring(list[2]))
+	check(list[7] == "-" and list[8] == "T:Layered Addon Profiles" and list[9]:find("^S:Profile 6 %(empty%)") and #list == 1 + 5 + 1 + 1 + 20 + 1, "headers, divider, 25 places and the class: " .. #list)
+	check(list[#list]:find("^S:[%u][%l]+ %(empty%)"), "the class place is last: " .. tostring(list[#list]))
 	local V = pg.state
 	M.PSS_AddonPresetSave(1, "Core one", "me")
 	M.PSS_AddonPresetSave(7, "", "me")
 	list = collect(pg.setsBuild)
-	check(list[2]:match("^C:Core one %(%d+%)$") and list[5]:match("^C:Profile 7 %(%d+%)$") and list[#list] == "B:Manage Addon Profiles", "the saved ones: " .. table.concat(list, "|"))
+	check(list[2]:find("^S:Core one %(%d+%)%{T:Core one %(this character%),B:Select,B:Save,B:Load,B:Add to current selection,B:Remove from current selection,B:Rename,%-,B:Delete%}$"), "a used place: " .. list[2])
 	V.who = "all"
 	list = collect(pg.setsBuild)
-	check(list[2] == "T:None saved", "the other scope has its own: " .. table.concat(list, "|", 1, 3))
+	check(list[2]:find("^S:Profile 1 %(empty%)"), "the other scope has its own places: " .. list[2])
 	V.who = "me"
-	-- a tick selects and stays ticked in the menu
-	local entries = V:ProfileMenu()
-	local first
-	for _, e in ipairs(entries) do if e.kind == "check" then first = first or e end end
-	check(first and not first.on(), "the check starts off")
-	V:ProfileSelect(first.p, true)
-	check(first.on(), "the check shows it selected")
+	M.PSS_AddonProfileSelect(1, true, "me")
 	list = collect(pg.setsBuild)
-	check(list[2]:match("^X:Core one"), "the menu shows the tick: " .. list[2])
+	check(list[2]:find("^S:%* Core one") and list[2]:find("B:Deselect", 1, true), "a selected place is marked and offers Deselect: " .. list[2])
+	win:Hide()
+end
+
+-- The menus through the kit, in the player's order (3.6.0.68, issue 180): a
+-- side menu must stay open when it is chosen (a menu opened from another
+-- menu's callback was closed again); Dark swaps to the place's entries under
+-- Back, Blizzard's menu gets a real submenu; Save asks once and saves
+function phases.menuflow()
+	needLibraries()
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local pg = win.pages[4]
+	M.PSS_SetOpt("uiSkin", "global", 1)
+	local dd = pg.setsDD
+	dd.dark._scripts.OnClick(dd.dark)
+	local menu = _G.PSS_Menu
+	check(menu and menu:IsShown(), "the Profiles menu did not open")
+	local function slot(text)
+		for _, sl in ipairs(menu.slots) do
+			if sl:IsShown() and sl.entry and sl.entry.text and sl.entry.text:find(text, 1, true) then return sl end
+		end
+	end
+	local sl = slot("Profile 1 (empty)")
+	check(sl, "place 1 is not in the menu")
+	sl._scripts.OnClick(sl)
+	check(menu:IsShown(), "choosing a place closed the menu")
+	check(slot("< Back") and slot("Save") and slot("Rename") and not slot("Select"), "the free place's entries")
+	local save = slot("Save")
+	save._scripts.OnClick(save)
+	check(not menu:IsShown(), "Save left the menu open")
+	local cf = _G.PSS_Confirm
+	check(cf and cf:IsShown(), "Save did not ask")
+	check(cf.text and cf.text:GetText():find("Save the current addon list to [Profile 1]?", 1, true), "the Save text: " .. tostring(cf.text and cf.text:GetText()))
+	cf.accept._scripts.OnClick(cf.accept)
+	check(PSS_CharDB and PSS_CharDB.addonSets and PSS_CharDB.addonSets[1], "Yes did not save place 1")
+	-- reopen: place 1 shows its count; Back returns to the list
+	dd.dark._scripts.OnClick(dd.dark)
+	sl = slot("Profile 1 (")
+	check(sl and not sl.entry.text:find("empty", 1, true), "place 1 still reads empty")
+	sl._scripts.OnClick(sl)
+	check(slot("Select") and slot("Load") and slot("Add to current selection") and slot("Remove from current selection") and slot("Delete"), "the used place's entries")
+	local back = slot("< Back")
+	back._scripts.OnClick(back)
+	check(menu:IsShown() and slot("Core Addon Profiles") and slot("Layered Addon Profiles"), "Back did not return to the list")
+	sl = slot("Profile 1 (")
+	sl._scripts.OnClick(sl)
+	local sel = slot("Select")
+	sel._scripts.OnClick(sel)
+	check(M.PSS_AddonProfileSelected(1, "me"), "Select did not select")
+	dd.dark._scripts.OnClick(dd.dark)
+	check(slot("* Profile 1 ("), "the selected place is not marked")
+	menu:Hide()
+	-- Modern and Classic: Blizzard's menu gets a real submenu per place
+	M.PSS_SetOpt("uiSkin", "global", 2)
+	check(dd.blizz and dd.blizz:IsShown(), "the Blizzard drop-down is not shown in Modern")
+	local tree = dd.blizz:MenuTree()
+	local items = tree.items
+	check(items[1].kind == "title" and items[1].text == "Core Addon Profiles" and tree.scroll, "Blizzard menu start: " .. tostring(items[1].text))
+	local place = items[2]
+	check(place.kind == "button" and place.sub and place.sub.items[1].kind == "title", "a place is not a submenu in Blizzard's menu")
+	local names = {}
+	for _, it in ipairs(place.sub.items) do if it.kind == "button" then names[#names + 1] = it.text end end
+	check(table.concat(names, ",") == "Deselect,Save,Load,Add to current selection,Remove from current selection,Rename,Delete", "the submenu's entries: " .. table.concat(names, ","))
 	win:Hide()
 end
 

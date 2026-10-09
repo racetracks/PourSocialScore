@@ -211,15 +211,14 @@ end
 
 -- Rename's popup: an addon profile's name (the kit's Confirm with a name field)
 local function AskName(p, run)
-	ns.Confirm({ title = "Rename Addon Profile?", text = "Give " .. p.label .. " a name (up to 32 letters).", accept = "Rename",
+	ns.Confirm({ title = "Rename Addon Profile?", text = "Enter the new name for [" .. p.label .. "]:", accept = "Rename",
 		name = { text = p.name or "", max = 32 }, onAccept = function(_, typed) run(typed or "") end })
 end
 
 -- one action on a place of the Addon Profiles menu; Save and Delete ask first
 local function SetAction(p, act)
 	if act == "save" then
-		ns.Confirm({ title = "Save Addon Profile?", text = (p.empty and "Save the addons that are on now as " or "Save the addons that are on now over ")
-			.. p.label .. "?", accept = "Save",
+		ns.Confirm({ title = "Save Addon Profile?", text = "Save the current addon list to [" .. p.label .. "]?", accept = "Yes",
 			onAccept = function()
 				Say(V:PresetAct(p, "save"))
 				Refresh()
@@ -234,40 +233,30 @@ local function SetAction(p, act)
 			onAccept = function() Say(V:PresetAct(p, "delete")) end })
 	else
 		Say(V:PresetAct(p, act))
+		Refresh()
 	end
 end
 
--- Manage Addon Profiles: every place, a free one shown as empty; a click on
--- one opens that place's actions
-local function BuildManage(m)
-	for _, e in ipairs(V:ManageMenu()) do
-		if e.kind == "title" then
-			m:Title(e.text)
-		elseif e.kind == "divider" then
-			m:Divider()
-		else
-			m:Button(e.text, function()
-				ns.RowMenu(setsDD, V:PresetMenu(e.p), function(act) SetAction(e.p, act) end)
-			end)
-		end
-	end
-end
-
--- the Addon Profiles menu: Core and Layered profiles, each a tick (any or
--- all at once, the menu stays open), then Manage
+-- the Addon Profiles menu: every place (Core, a line, Layered); a place is a
+-- side menu with its actions (Blizzard's submenu; under a Back line in Dark)
 local function BuildSets(m)
 	for _, e in ipairs(V:ProfileMenu()) do
 		if e.kind == "title" then
 			m:Title(e.text)
 		elseif e.kind == "divider" then
 			m:Divider()
-		elseif e.kind == "check" then
-			m:Check(e.text, e.on, function()
-				Say(V:ProfileSelect(e.p, not e.on()))
-				Refresh()
-			end)
 		else
-			m:Button(e.text, function() ns.ContextMenu(setsDD, BuildManage) end)
+			m:Sub(e.text, function(sm)
+				for _, a in ipairs(V:PresetMenu(e.p)) do
+					if a.kind == "title" then
+						sm:Title(a.text)
+					elseif a.kind == "divider" then
+						sm:Divider()
+					else
+						sm:Button(a.text, function() SetAction(e.p, a.act) end)
+					end
+				end
+			end)
 		end
 	end
 end
@@ -324,12 +313,14 @@ local function BuildToolbar()
 end
 
 local function BuildFooter()
-	-- the Addon Profiles drop-down, bottom left (its menu opens upward)
-	setsDD = ns.NewDropdown(page, 80, BuildSets, true)
+	-- the Addon Profiles drop-down, bottom left (its menu opens downward)
+	setsDD = ns.NewDropdown(page, 190, BuildSets, 420)
 	setsDD:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 10, 8)
 	setsDD:SetLabel("Profiles")
 	footer = ns.NewText(page, 12)
 	footer:SetPoint("LEFT", setsDD, "RIGHT", 12, 0)
+	footer:SetJustifyH("RIGHT")
+	footer:SetWordWrap(false)
 	footer:SetAlpha(0.8)
 
 	reload = ns.NewButton(page, "Reload", 90, function()
@@ -358,6 +349,8 @@ local function BuildFooter()
 	end)
 	undo:SetPoint("RIGHT", enableAll, "LEFT", -6, 0)
 	ns.TipOn(undo, undo, "Puts the addons back as they were when you logged in.")
+	-- the count is anchored to the leftmost button and builds leftward
+	footer:SetPoint("RIGHT", undo, "LEFT", -12, 0)
 end
 
 ns.TabBuilders.addons = function(pg)
@@ -395,7 +388,7 @@ ns.TabBuilders.addons = function(pg)
 		click = RowClick,
 	})
 	page.list, page.state, page.search = list, V, search
-	page.setsDD, page.footer, page.setsBuild, page.manageBuild = setsDD, footer, BuildSets, BuildManage
+	page.setsDD, page.footer, page.setsBuild, page.undoButton = setsDD, footer, BuildSets, undo
 	-- the window opened: memory is read once when this tab next shows
 	page.stale = function() V.needSample = true end
 	page.release = function()

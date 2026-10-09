@@ -14,10 +14,12 @@
 -- list has the port's 26 px items and is at most 200 tall; a right-click
 -- menu is compact (20 px items, a slim title and divider, as wide as its
 -- longest entry) and at most 400 tall, where Blizzard's menu scrolls.
---   ns.NewDropdown(parent, w, build, up)   dd:SetLabel(text)
---                                      (up: our list opens above it, for
---                                      a drop-down at the bottom)
+--   ns.NewDropdown(parent, w, build, cap)   dd:SetLabel(text)
+--                                      (cap: our list's height before it scrolls, default 200)
+--                                      (always opens downward; our list is
+--                                      as wide as its longest entry)
 --   ns.ContextMenu(owner, build)       at the cursor
+--   build(m): m:Title m:Button m:Radio m:Check m:Divider m:Sub(text, build)
 --   ns.RowMenu(owner, entries, run)    a row's right-click menu from the
 --                                      entries Libraries describes
 --                                      (PSS_RowMenus.lua); run(act, arg)
@@ -36,14 +38,18 @@ local floor, max, min = math.floor, math.max, math.min
 ------------------------------------------------------------------------
 local Entries = {}
 Entries.__index = Entries
+local Collect
 
 function Entries:Button(text, fn) self[#self + 1] = { kind = "button", text = text, fn = fn } end
 function Entries:Radio(text, isOn, fn) self[#self + 1] = { kind = "radio", text = text, on = isOn, fn = fn } end
 function Entries:Check(text, isOn, fn) self[#self + 1] = { kind = "check", text = text, on = isOn, fn = fn } end
 function Entries:Divider() self[#self + 1] = { kind = "divider" } end
 function Entries:Title(text) self[#self + 1] = { kind = "title", text = text } end
+-- a submenu: build(sm) fills its entries (Blizzard's menu opens it beside the
+-- entry; our list swaps to it under a "< Back" line)
+function Entries:Sub(text, build) self[#self + 1] = { kind = "sub", text = text, children = Collect(build) } end
 
-local function Collect(build)
+function Collect(build)
 	local list = setmetatable({}, Entries)
 	build(list)
 	return list
@@ -56,7 +62,8 @@ local function IsOn(e)
 end
 
 -- Blizzard's menu from the same entries
-local function FillBlizzard(root, list)
+local FillBlizzard
+function FillBlizzard(root, list)
 	for _, e in ipairs(list) do
 		if e.kind == "button" then
 			root:CreateButton(e.text, function() if e.fn then e.fn() end end)
@@ -68,6 +75,8 @@ local function FillBlizzard(root, list)
 				-- a tick keeps the menu open
 				return MenuResponse and MenuResponse.Refresh
 			end)
+		elseif e.kind == "sub" then
+			FillBlizzard(root:CreateButton(e.text), e.children)
 		elseif e.kind == "divider" and root.CreateDivider then
 			root:CreateDivider()
 		elseif e.kind == "title" and root.CreateTitle then
@@ -81,6 +90,7 @@ end
 -- Our menu list (one, shared)
 ------------------------------------------------------------------------
 local menu, slots, catcher
+local FitWidth, minWidth, upList
 local shown, offset, owner = nil, 0, nil
 
 -- Two sizes: a drop-down's list (the port's 26 px items) and a compact
@@ -144,8 +154,22 @@ local function MakeSlot(i)
 	sl:SetScript("OnClick", function(self)
 		local e = self.entry
 		if not e then return end
+		if e.kind == "sub" then
+			-- our list has no side menus: the menu shows the entries, under a Back line
+			upList = shown
+			local list = { { kind = "button", text = "< Back", keep = true, fn = function()
+				shown, offset = upList, 0
+				FitWidth(shown, minWidth)
+				ns.DrawMenu()
+			end } }
+			for _, c in ipairs(e.children) do list[#list + 1] = c end
+			shown, offset = list, 0
+			FitWidth(shown, minWidth)
+			ns.DrawMenu()
+			return
+		end
 		if e.fn then e.fn() end
-		if e.kind == "check" then ns.DrawMenu() else Close() end
+		if e.kind == "check" or e.keep then ns.DrawMenu() else Close() end
 	end)
 	slots[i] = sl
 	return sl
@@ -172,7 +196,7 @@ local function Draw()
 		sl:Show()
 		local title, divider = e.kind == "title", e.kind == "divider"
 		sl.text:SetFontObject(ns.Font(title and size.font - 1 or size.font))
-		sl.text:SetText(divider and "" or e.text or "")
+		sl.text:SetText(divider and "" or (e.kind == "sub" and (e.text or "") .. " >" or e.text) or "")
 		sl.text:ClearAllPoints()
 		sl.text:SetPoint("LEFT", sl, "LEFT", marks and 24 or size.inset, 0)
 		sl.text:SetPoint("RIGHT", sl, "RIGHT", -8, 0)
@@ -253,17 +277,33 @@ local function BuildMenu()
 end
 
 -- Show our list for the entries; anchor(frame) places it.
-local function OpenOurs(list, width, place, by, compact)
+local function OpenOurs(list, width, place, by, compact, cap)
 	if not menu then BuildMenu() end
 	if menu:IsShown() then Close() end
 	shown, offset, owner = list, 0, by
 	size = compact and SIZES.compact or SIZES.list
+	if cap then size = setmetatable({ cap = cap }, { __index = size }) end
 	menu:SetWidth(width)
 	menu:ClearAllPoints()
 	place(menu)
 	Draw()
 	menu:Show()
 	menu:Raise()
+end
+
+-- the menu as wide as its longest entry (every entry, also those below the
+-- height cap) and no narrower than minWidth
+function FitWidth(list, minW)
+	local widest, fs = 0, menu.measure
+	for _, e in ipairs(list) do
+		if e.kind ~= "divider" then
+			fs:SetFontObject(ns.Font(e.kind == "title" and size.font - 1 or size.font))
+			fs:SetText(e.text or "")
+			widest = max(widest, fs:GetStringWidth())
+		end
+	end
+	minWidth = minW
+	menu:SetWidth(max(minW, widest + 28))
 end
 
 ------------------------------------------------------------------------
@@ -285,7 +325,7 @@ local function Chevron(parent)
 	return { a, b }
 end
 
-function ns.NewDropdown(parent, w, build, up)
+function ns.NewDropdown(parent, w, build, cap)
 	local dd = CreateFrame("Frame", nil, parent)
 	dd:SetSize(w, 24)
 	local ok, blizz = pcall(CreateFrame, "DropdownButton", nil, dd, "WowStyle1DropdownTemplate")
@@ -310,13 +350,11 @@ function ns.NewDropdown(parent, w, build, up)
 	Chevron(dark)
 	dark:SetScript("OnClick", function(self)
 		if menu and menu:IsShown() and owner == self then Close() return end
-		OpenOurs(Collect(build), w, function(m)
-			if up then
-				m:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 0, 2)
-			else
-				m:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2)
-			end
-		end, self)
+		local list = Collect(build)
+		OpenOurs(list, w, function(m)
+			m:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -2)
+		end, self, false, cap)
+		FitWidth(list, w)
 	end)
 	dd.blizz, dd.dark, dd.label = blizz, dark, label
 	function dd:SetLabel(text)
@@ -349,17 +387,7 @@ function ns.ContextMenu(by, build)
 	OpenOurs(list, width, function(m)
 		m:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", (x or 0) / scale, (y or 0) / scale)
 	end, by, true)
-	-- as wide as its longest entry, no wider (every entry, also those below
-	-- the cap)
-	local widest, fs = 0, menu.measure
-	for _, e in ipairs(list) do
-		if e.kind ~= "divider" then
-			fs:SetFontObject(ns.Font(e.kind == "title" and size.font - 1 or size.font))
-			fs:SetText(e.text or "")
-			widest = max(widest, fs:GetStringWidth())
-		end
-	end
-	menu:SetWidth(max(width, widest + 28))
+	FitWidth(list, width)
 end
 
 -- A row's right-click menu: entries from Libraries (PSS_RowMenus.lua), each
