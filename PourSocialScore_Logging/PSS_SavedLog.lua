@@ -21,9 +21,12 @@
 --           before; one starting with "\2" gets another in front)
 -- When Logging loads, the log and the keep are rebuilt from it. Nothing
 -- here runs unless Logging was loaded this session.
+-- A log saved by a newer version (v above 2) is kept as it is (core uplift
+-- U3): this session's lines are counted as always but not added to it.
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
 local M = addon.M
+local L = addon.L
 local History = M.PSS_History
 local EVENT_LETTER, LETTER_EVENT = History.EventLetter, History.LetterEvent
 local usualChannel, pack, unpackLine = History.UsualChannel, History.PackLine, History.UnpackLine
@@ -64,11 +67,17 @@ local function saveLine(h, g, prevTs, prevMsg)
 	return out, ts, msg
 end
 
+local newerLog, newerKeep	-- a newer version's saved log, put back at logout
+
 -- the log and the keep -> blockLog v2 (at logout, only if Logging loaded)
 function History.PackForSave()
 	if not History.Loaded() then return end
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return end
+	if newerLog then
+		db.blockLog, db.blockKeep = newerLog, newerKeep
+		return
+	end
 	local log = db.blockLog
 	if type(log) ~= "table" or log.v == 2 then return end
 	local keep = db.blockKeep
@@ -147,6 +156,12 @@ function History.UnpackSaved()
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return end
 	local saved = db.blockLog
+	if type(saved) == "table" and type(saved.v) == "number" and saved.v > 2 then
+		newerLog, newerKeep = saved, db.blockKeep
+		db.blockLog, db.blockKeep = {}, {}
+		M.ShowMsg(L["NEWER_LOG"])
+		return
+	end
 	if type(saved) ~= "table" or saved.v ~= 2 then return end
 	local log, keep, n = {}, {}, 0
 	local order = {}

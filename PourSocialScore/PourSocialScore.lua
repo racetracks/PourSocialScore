@@ -31,7 +31,8 @@ V.groupWarning			= {}
 -- no longer on the Player Ignore List, of guild members in no guild rule
 -- (whose rule is gone too) and of chat filters that no longer exist are
 -- dropped; rule tags that point at a removed rule are cleared. Block counts
--- are not changed. Returns the number of lines removed.
+-- are not changed. A line of a kind of owner this version does not make is
+-- kept. Returns the number of lines removed.
 function M.PSS_TidyBlockHistory()
 	local db = PourSocialScoreDB
 	local History = M.PSS_History
@@ -66,8 +67,10 @@ function M.PSS_TidyBlockHistory()
 			local id = db.filterID[i]
 			if id and id ~= "" then ids[id] = true end
 		end
-		alive.f = function(o) return keys[o] == true end
-		alive.rule = function(id) return ids[id] == true end
+		-- an owner or rule tag of a form this version does not make (a newer
+		-- version's filter id) is kept (U3)
+		alive.f = function(o) return keys[o] == true or not (o:find("^f:t:") or o:find("^f:PSS%d+$")) end
+		alive.rule = function(id) return ids[id] == true or not tostring(id):find("^PSS%d+$") end
 	end
 	return History.Tidy(alive)
 end

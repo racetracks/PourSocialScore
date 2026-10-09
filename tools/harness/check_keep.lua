@@ -161,13 +161,17 @@ else
 	add("g:nobody-realm", "no such guild")
 	add("f:PSS9999")
 	local tagged = log[#log - 4]
-	tagged.r = "NOSUCHRULE"
+	tagged.r = "PSS9998"
+	-- a tag of a form this version never makes (a newer version's rule id) stays (U3)
+	local newer = log[#log - 5]
+	newer.r = 12
 	local n = #log
 	local removed = M.PSS_TidyBlockHistory()
 	eq("lines tidied", removed, 4)
 	eq("log after tidy", #log, n - 3)
 	eq("ghost keep after tidy", History.Keep()["p:ghost-realm"], nil)
 	eq("rule tag after tidy", tagged.r, nil)
+	eq("newer rule tag after tidy", newer.r, 12)
 	local after = counts()
 	eq("player total after tidy", after.p, want.p)
 	eq("filter total after tidy", after.f, want.f)

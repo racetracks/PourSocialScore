@@ -274,6 +274,17 @@ function M.PSS_SlashPSS (msg)
 
 		M.PSS_PrintValidation()
 
+	elseif msg == "export unused" then
+
+		-- the saved rules this version cannot use, to keep outside the game
+		-- (core uplift U3); the window's copy box, the window stays closed
+		local text = M.PSS_UnusedExportText()
+		if not text then
+			M.ShowMsg(L["UNUSED_NONE"])
+		elseif M.PSS_Need("GUI") and M.PSS_CopyTextBox then
+			M.PSS_CopyTextBox("Rules Not Used", ("Copy the string below (%d characters) and keep it: a version that knows these rules imports it"):format(#text), text)
+		end
+
 	elseif args[1] == "sync" then
 
 		M.SyncIgnoreList(false)
@@ -307,6 +318,7 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  " .. L["HELP_16"])
 		M.ShowMsg ("  " .. L["HELP_17"])
 		M.ShowMsg ("  " .. L["HELP_18"])
+		M.ShowMsg ("  " .. L["HELP_19"])
 		M.ShowMsg ("  " .. L["HELP_9"])
 		M.ShowMsg ("")
 		M.ShowMsg ("  " .. format(L["HELP_10"], OnOff(M.PSS_Opt("chatmsg"))))

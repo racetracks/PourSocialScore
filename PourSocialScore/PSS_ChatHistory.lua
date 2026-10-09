@@ -708,6 +708,8 @@ local function recent(cur, create)
 	local db = PourSocialScoreDB
 	if type(db) ~= "table" then return nil end
 	local r = rawget(db, "recent")
+	-- a newer version's layout is left as it is; nothing is counted in it (U3)
+	if type(r) == "table" and type(r.v) == "number" and r.v > 2 then return nil end
 	if type(r) ~= "table" or type(r.day) ~= "table" or r.v ~= 2 then
 		-- none yet, or the untyped layout of 3.2.0-dev1 (a day of test data)
 		if type(r) == "table" then rawset(db, "recent", nil) end
@@ -756,6 +758,7 @@ function History.CountRecent(owner, ts, cat)
 	if slot <= 0 or slot > cur then slot = cur end
 	if slot <= cur - DAY_SLOTS then return end
 	local r = recent(cur, true)
+	if not r then return end
 	local i = slot % DAY_SLOTS + 1
 	local t = r[i]
 	if not t then t = {}; r[i] = t end
@@ -858,7 +861,7 @@ function History.ForgetRecent(owner)
 	if type(se) == "table" then se[owner] = nil end
 	for _, c in pairs(sessionCat) do c[owner] = nil end
 	local r = rawget(db, "recent")
-	if type(r) ~= "table" or type(r.day) ~= "table" or not r.day[owner] then return end
+	if type(r) ~= "table" or r.v ~= 2 or type(r.day) ~= "table" or not r.day[owner] then return end
 	r.day[owner] = nil
 	for i = 1, DAY_SLOTS do
 		local t = r[i]
@@ -989,7 +992,8 @@ function History.MemberKey(m)
 	return c and ("g:" .. c) or nil
 end
 function History.FilterKey(id, text)
-	if type(id) == "string" and id ~= "" then return "f:" .. id end
+	-- (a number: a custom filter's id, from a newer version; kept as it is)
+	if (type(id) == "string" and id ~= "") or type(id) == "number" then return "f:" .. id end
 	return "f:t:" .. tostring(text or "")
 end
 

@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.4.1.47 - Core uplift U3: forward compatibility
+
+- Your saved data now works across versions in both directions. From this version on, going back to an older version and forward again keeps everything a newer version saved, even the parts the older one does not know.
+- A saved rule this version cannot use (a chat filter with a tag from a newer version, a guild rule from a newer version, or a setting it does not have) is not applied and is kept unchanged. The first login after a version change says how many there are, per feature. "/pss export unused" copies them so you can keep them outside the game; a version that knows them can import them.
+- Export strings now carry every field of a player, guild rule and member, including any from a newer version, and importing keeps them. Older versions still read the new strings.
+- Block history and 24-hour counts saved by a newer version are kept as they are. Blocks are still counted, but that session's lines are not added to the history.
+
 => 3.4.1.46 - Core uplift U2: the upgrade report
 
 - After an update, the first login now says in plain words what was upgraded in your saved data, all at once: a line "Updated from <old version> to <new version>. Upgrading your saved data:", one line for each feature that changed (Chat Filtering, Player Ignore List, Guild Ignore List, Managed Communities, Block History, Options), the "SavedVariables performance cleanup" line every time (what it tidied, or "nothing to tidy"), then "Saved data upgraded to <version> (step N)." as before. The next login says nothing. A brand new save says nothing either.

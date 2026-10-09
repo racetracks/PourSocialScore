@@ -210,7 +210,8 @@ end
 
 local function isDefFilterID (id)
 
-	if (id == nil or id == "") then return -1 end
+	-- (a custom filter: no id, or a newer version's number id, kept)
+	if (id == nil or id == "" or type(id) == "number") then return -1 end
 
 	for count = 1, #filterDefID do
 		if filterDefID[count] == id then
@@ -385,7 +386,7 @@ function M.PSS_ExpandFilters()
 			-- ID of a built-in that no longer exists: drop it (old auto-update did the same)
 		else
 			appendFilter(custom, db.filterDesc[i] or "Custom Filter", db.filterList[i] or "", db.filterActive[i],
-				"", db.filterCount[i], db.filterBlocked[i], db.filterBlockedLast[i])
+				id, db.filterCount[i], db.filterBlocked[i], db.filterBlockedLast[i])
 		end
 	end
 
@@ -399,7 +400,7 @@ function M.PSS_ExpandFilters()
 		appendFilter(runtime, filterDefDesc[count], filterDefFilter[count], active, id, st.count, st.blocked, st.blockedLast)
 	end
 	for i = 1, #custom.filterList do
-		appendFilter(runtime, custom.filterDesc[i], custom.filterList[i], custom.filterActive[i], "",
+		appendFilter(runtime, custom.filterDesc[i], custom.filterList[i], custom.filterActive[i], custom.filterID[i],
 			custom.filterCount[i], custom.filterBlocked[i], custom.filterBlockedLast[i])
 	end
 	for _, k in ipairs(FILTER_ARRAYS) do db[k] = runtime[k] end
@@ -413,7 +414,15 @@ function M.PSS_ExpandFilters()
 	for i = 1, #db.filterList do
 		local list = History.MigrateFilterList(db.filterBlocked[i], db.filterBlockedLast[i])
 		if #list > 0 then sources[#sources + 1] = { list = list, owner = M.PSS_FilterOwnerKey(i) } end
-		db.filterBlocked[i] = { counts = History.EnsureCounts(list.counts) }
+		local stat = { counts = History.EnsureCounts(list.counts) }
+		-- a field this version does not know stays (U3)
+		local old = db.filterBlocked[i]
+		if type(old) == "table" then
+			for k, v in pairs(old) do
+				if type(k) == "string" and k ~= "counts" and not M.PSS_SchemaKnows("filterStat", k) then stat[k] = v end
+			end
+		end
+		db.filterBlocked[i] = stat
 		db.filterBlockedLast[i] = 0
 	end
 	if #sources > 0 then History.Absorb(sources) end
@@ -426,6 +435,14 @@ function M.PSS_CollapseFilters()
 	local custom = {}
 	for _, k in ipairs(FILTER_ARRAYS) do custom[k] = {} end
 	local rules, stats = {}, {}
+	-- a built-in rule this version does not have (a newer version's) keeps
+	-- its saved state (U3)
+	for id, v in pairs(type(db.builtinRules) == "table" and db.builtinRules or {}) do
+		if not M.PSS_IsBuiltinFilterID(id) then rules[id] = v end
+	end
+	for id, v in pairs(type(db.builtinStats) == "table" and db.builtinStats or {}) do
+		if not M.PSS_IsBuiltinFilterID(id) then stats[id] = v end
+	end
 	for i = 1, #(db.filterList or {}) do
 		local id = db.filterID[i] or ""
 		if M.PSS_IsBuiltinFilterID(id) then
@@ -433,7 +450,7 @@ function M.PSS_CollapseFilters()
 			-- a guild rule counts nothing itself: no statistics to save
 			if not M.PSS_IsGuildRuleText(db.filterList[i]) then stats[id] = { count = tonumber(db.filterCount[i]) or 0, blocked = db.filterBlocked[i] or {}, blockedLast = tonumber(db.filterBlockedLast[i]) or 0 } end
 		else
-			appendFilter(custom, db.filterDesc[i], db.filterList[i], db.filterActive[i], "",
+			appendFilter(custom, db.filterDesc[i], db.filterList[i], db.filterActive[i], type(id) == "number" and id or "",
 				db.filterCount[i], db.filterBlocked[i], db.filterBlockedLast[i])
 		end
 	end
