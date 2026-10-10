@@ -46,7 +46,7 @@ function Entries:Check(text, isOn, fn) self[#self + 1] = { kind = "check", text 
 function Entries:Divider() self[#self + 1] = { kind = "divider" } end
 function Entries:Title(text) self[#self + 1] = { kind = "title", text = text } end
 -- a submenu: build(sm) fills its entries (Blizzard's menu opens it beside the
--- entry; our list swaps to it under a "< Back" line)
+-- entry; our list opens a side panel beside the row on hover or click, one level)
 -- tick = { on, fn }: a tick box next to the entry (its own click toggles it,
 -- fn(); anywhere else opens the submenu)
 function Entries:Sub(text, build, tick) self[#self + 1] = { kind = "sub", text = text, children = Collect(build), tick = tick } end
@@ -97,11 +97,15 @@ function FillBlizzard(root, list)
 end
 
 ------------------------------------------------------------------------
--- Our menu list (one, shared)
+-- Our menu list: panel 1 (PSS_Menu), and panel 2 (PSS_MenuSide), the side
+-- menu of a sub entry, built on its first hover. Both are drawn by the same
+-- code from a panel table { frame, slots, shown, offset, size }.
 ------------------------------------------------------------------------
-local menu, slots, catcher
-local FitWidth, minWidth, upList
-local shown, offset, owner = nil, 0, nil
+local menu, catcher
+local FitWidth, minWidth
+local owner = nil
+local main = { offset = 0 }
+local side
 
 -- Two sizes: a drop-down's list (the port's 26 px items) and a compact
 -- right-click menu. Titles and dividers take less room than items; cap is
@@ -110,20 +114,20 @@ local SIZES = {
 	list = { item = ITEM_H, title = 22, divider = 9, font = 13, inset = 10, cap = 200 },
 	compact = { item = 20, title = 18, divider = 7, font = 12, inset = 8, cap = 400 },
 }
-local size = SIZES.list
+main.size = SIZES.list
 
-local function HeightOf(e)
-	if e.kind == "title" then return size.title end
-	if e.kind == "divider" then return size.divider end
-	return size.item
+local function HeightOf(p, e)
+	if e.kind == "title" then return p.size.title end
+	if e.kind == "divider" then return p.size.divider end
+	return p.size.item
 end
 
--- do the entries from first on fit under the menu's height cap?
-local function FitsFrom(first)
+-- do the entries from first on fit under the panel's height cap?
+local function FitsFrom(p, first)
 	local h = 0
-	for i = first, #shown do
-		h = h + HeightOf(shown[i])
-		if h > size.cap - PAD * 2 then return false end
+	for i = first, #p.shown do
+		h = h + HeightOf(p, p.shown[i])
+		if h > p.size.cap - PAD * 2 then return false end
 	end
 	return true
 end
@@ -132,15 +136,26 @@ local function Close()
 	if menu then menu:Hide() end
 end
 
-local function MakeSlot(i)
-	local sl = CreateFrame("Button", nil, menu)
-	sl:SetPoint("RIGHT", menu, "RIGHT", -PAD, 0)
+local Draw, OpenSide
+
+-- the side panel goes; the sub row that opened it loses its mark
+local function HideSide()
+	main.open = nil
+	if side and side.frame:IsShown() then
+		side.frame:Hide()
+		if menu and menu:IsShown() then Draw(main) end
+	end
+end
+
+local function MakeSlot(p, i)
+	local sl = CreateFrame("Button", nil, p.frame)
+	sl:SetPoint("RIGHT", p.frame, "RIGHT", -PAD, 0)
 	sl.picked = sl:CreateTexture(nil, "BACKGROUND")
 	sl.picked:SetAllPoints()
 	sl.picked:SetColorTexture(1, 1, 1, 0.04)
-	local hl = sl:CreateTexture(nil, "HIGHLIGHT")
-	hl:SetAllPoints()
-	hl:SetColorTexture(1, 1, 1, 0.08)
+	sl.hl = sl:CreateTexture(nil, "HIGHLIGHT")
+	sl.hl:SetAllPoints()
+	sl.hl:SetColorTexture(1, 1, 1, 0.08)
 	sl.box = sl:CreateTexture(nil, "ARTWORK")
 	sl.box:SetSize(12, 12)
 	sl.box:SetPoint("LEFT", sl, "LEFT", 8, 0)
@@ -156,14 +171,19 @@ local function MakeSlot(i)
 	sl.line:SetPoint("LEFT", sl, "LEFT", 8, 0)
 	sl.line:SetPoint("RIGHT", sl, "RIGHT", -8, 0)
 	sl.line:SetColorTexture(1, 1, 1, 0.10)
-	sl:SetScript("OnEnter", function(self) self.text:SetAlpha(1) end)
+	sl:SetScript("OnEnter", function(self)
+		self.text:SetAlpha(1)
+		if p ~= main then return end
+		local e = self.entry
+		if e and e.kind == "sub" then OpenSide(self, e) else HideSide() end
+	end)
 	sl:SetScript("OnLeave", function(self)
 		local e = self.entry
 		self.text:SetAlpha(e and e.kind == "title" and 0.41 or 0.53)
 	end)
 	sl:SetScript("OnClick", function(self)
 		local e = self.entry
-		if not e then return end
+		if not e or e.kind == "title" or e.kind == "divider" then return end
 		if e.kind == "sub" and e.tick then
 			-- the tick box is the left edge of the row; a click there toggles
 			local x = GetCursorPosition() / self:GetEffectiveScale()
@@ -174,44 +194,36 @@ local function MakeSlot(i)
 			end
 		end
 		if e.kind == "sub" then
-			-- our list has no side menus: the menu shows the entries, under a Back line
-			upList = shown
-			local list = { { kind = "button", text = "< Back", keep = true, fn = function()
-				shown, offset = upList, 0
-				FitWidth(shown, minWidth)
-				ns.DrawMenu()
-			end } }
-			for _, c in ipairs(e.children) do list[#list + 1] = c end
-			shown, offset = list, 0
-			FitWidth(shown, minWidth)
-			ns.DrawMenu()
+			-- a click opens the side panel too (keyboard, touch)
+			OpenSide(self, e)
 			return
 		end
 		if e.fn then e.fn() end
 		if e.kind == "check" or e.keep then ns.DrawMenu() else Close() end
 	end)
-	slots[i] = sl
+	p.slots[i] = sl
 	return sl
 end
 
 -- Lay the entries from offset down until the height cap; returns how many.
-local function Draw()
+function Draw(p)
+	local shown, slots, frame, size = p.shown, p.slots, p.frame, p.size
 	local marks = false
 	for _, e in ipairs(shown) do
 		if e.kind == "radio" or e.kind == "check" or (e.kind == "sub" and e.tick) then marks = true break end
 	end
 	local y, n = PAD, 0
-	for i = offset + 1, #shown do
+	for i = p.offset + 1, #shown do
 		local e = shown[i]
-		local h = HeightOf(e)
+		local h = HeightOf(p, e)
 		if y + h > size.cap - PAD then break end
 		n = n + 1
-		local sl = slots[n] or MakeSlot(n)
+		local sl = slots[n] or MakeSlot(p, n)
 		sl.entry = e
 		sl:SetHeight(h)
 		sl:ClearAllPoints()
-		sl:SetPoint("TOPLEFT", menu, "TOPLEFT", PAD, -y)
-		sl:SetPoint("RIGHT", menu, "RIGHT", -PAD, 0)
+		sl:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -y)
+		sl:SetPoint("RIGHT", frame, "RIGHT", -PAD, 0)
 		sl:Show()
 		local title, divider = e.kind == "title", e.kind == "divider"
 		sl.text:SetFontObject(ns.Font(title and size.font - 1 or size.font))
@@ -227,52 +239,66 @@ local function Draw()
 		sl.mark:SetShown(on)
 		sl.mark:SetColorTexture(ns.Accent())
 		sl.box:SetShown(e.kind == "check" or (e.kind == "sub" and e.tick ~= nil))
-		sl.picked:SetShown(on and e.kind == "radio" and true or false)
-		sl:EnableMouse(not (title or divider))
+		sl.picked:SetShown((on and e.kind == "radio" or p.open == e) and true or false)
+		-- titles and dividers still hear the pointer (it closes a side panel)
+		sl.hl:SetShown(not (title or divider))
+		sl:EnableMouse(true)
 		y = y + h
 	end
 	for i = n + 1, #slots do
 		slots[i].entry = nil
 		slots[i]:Hide()
 	end
-	menu:SetHeight(y + PAD)
-	-- a list longer than the menu: a thin thumb on the right
+	frame:SetHeight(y + PAD)
+	-- a list longer than the panel: a thin thumb on the right
 	if n < #shown then
-		local h = max(20, (menu:GetHeight() - 8) * n / #shown)
+		local h = max(20, (frame:GetHeight() - 8) * n / #shown)
 		local room = #shown - n
-		menu.thumb:SetHeight(h)
-		menu.thumb:ClearAllPoints()
-		menu.thumb:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -2, -4 - (menu:GetHeight() - 8 - h) * min(1, offset / room))
-		menu.thumb:Show()
+		frame.thumb:SetHeight(h)
+		frame.thumb:ClearAllPoints()
+		frame.thumb:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -2, -4 - (frame:GetHeight() - 8 - h) * min(1, p.offset / room))
+		frame.thumb:Show()
 	else
-		menu.thumb:Hide()
+		frame.thumb:Hide()
 	end
 	return n
 end
-ns.DrawMenu = function() if menu and menu:IsShown() then Draw() end end
+ns.DrawMenu = function()
+	if menu and menu:IsShown() then
+		Draw(main)
+		if side and side.frame:IsShown() then Draw(side) end
+	end
+end
+
+local function MakePanel(p, name, level)
+	local f = CreateFrame("Frame", name, UIParent)
+	p.frame, p.slots = f, {}
+	f.slots = p.slots
+	f:SetFrameStrata("FULLSCREEN_DIALOG")
+	f:SetFrameLevel(level)
+	f:SetClampedToScreen(true)
+	f:EnableMouse(true)
+	f:EnableMouseWheel(true)
+	f:Hide()
+	ns.Fill(f, MENU_FILL, -6)
+	ns.PixelBorder(f, MENU_EDGE)
+	f.thumb = f:CreateTexture(nil, "OVERLAY")
+	f.thumb:SetWidth(4)
+	f.thumb:SetColorTexture(1, 1, 1, 0.27)
+	f:SetScript("OnMouseWheel", function(_, delta)
+		-- down only while the rest does not fit yet; up to the first entry
+		if delta < 0 and not FitsFrom(p, p.offset + 1) then
+			p.offset = p.offset + 1
+		elseif delta > 0 and p.offset > 0 then
+			p.offset = p.offset - 1
+		end
+		Draw(p)
+	end)
+	return f
+end
 
 local function BuildMenu()
-	menu = CreateFrame("Frame", "PSS_Menu", UIParent)
-	menu:SetFrameStrata("FULLSCREEN_DIALOG")
-	menu:SetFrameLevel(200)
-	menu:SetClampedToScreen(true)
-	menu:EnableMouse(true)
-	menu:EnableMouseWheel(true)
-	menu:Hide()
-	ns.Fill(menu, MENU_FILL, -6)
-	ns.PixelBorder(menu, MENU_EDGE)
-	menu.thumb = menu:CreateTexture(nil, "OVERLAY")
-	menu.thumb:SetWidth(4)
-	menu.thumb:SetColorTexture(1, 1, 1, 0.27)
-	menu:SetScript("OnMouseWheel", function(_, delta)
-		-- down only while the rest does not fit yet; up to the first entry
-		if delta < 0 and not FitsFrom(offset + 1) then
-			offset = offset + 1
-		elseif delta > 0 and offset > 0 then
-			offset = offset - 1
-		end
-		Draw()
-	end)
+	menu = MakePanel(main, "PSS_Menu", 200)
 	-- a click anywhere else closes the menu (a full-screen catcher under it)
 	catcher = CreateFrame("Button", nil, UIParent)
 	catcher:SetAllPoints(UIParent)
@@ -285,44 +311,69 @@ local function BuildMenu()
 	menu:SetScript("OnHide", function()
 		catcher:Hide()
 		owner = nil
+		HideSide()
 	end)
 	ns.EscapeCloses(menu, "PSS_Menu")	-- after its OnHide (SetScript drops hooks)
 	-- measures every entry for a right-click menu's width, shown or not
 	menu.measure = ns.NewText(menu, 13)
 	menu.measure:SetPoint("TOPLEFT")
 	menu.measure:SetAlpha(0)
-	slots = {}
-	menu.slots = slots
 end
 
--- Show our list for the entries; anchor(frame) places it.
+-- the side menu of a sub entry, beside its row (one level; a sub entry
+-- inside it opens nothing)
+function OpenSide(slot, e)
+	if main.open == e and side and side.frame:IsShown() then return end
+	if not side then
+		side = { offset = 0 }
+		MakePanel(side, "PSS_MenuSide", 201)
+	end
+	side.shown, side.offset, side.size = e.children, 0, main.size
+	FitWidth(e.children, 60, side)
+	local f = side.frame
+	f:ClearAllPoints()
+	f:SetPoint("TOPLEFT", slot, "TOPRIGHT", 2, 0)
+	if (slot:GetRight() or 0) + 2 + f:GetWidth() > (UIParent:GetRight() or UIParent:GetWidth()) then
+		f:ClearAllPoints()
+		f:SetPoint("TOPRIGHT", slot, "TOPLEFT", -2, 0)
+	end
+	main.open = e
+	Draw(side)
+	f:Show()
+	f:Raise()
+	Draw(main)
+end
+
+-- Show our list for the entries; place(frame) anchors it.
 local function OpenOurs(list, width, place, by, compact, cap)
 	if not menu then BuildMenu() end
 	if menu:IsShown() then Close() end
-	shown, offset, owner = list, 0, by
-	size = compact and SIZES.compact or SIZES.list
+	main.shown, main.offset, owner = list, 0, by
+	local size = compact and SIZES.compact or SIZES.list
 	if cap then size = setmetatable({ cap = cap }, { __index = size }) end
+	main.size = size
 	menu:SetWidth(width)
 	menu:ClearAllPoints()
 	place(menu)
-	Draw()
+	Draw(main)
 	menu:Show()
 	menu:Raise()
 end
 
--- the menu as wide as its longest entry (every entry, also those below the
--- height cap) and no narrower than minWidth
-function FitWidth(list, minW)
+-- the panel as wide as its longest entry (every entry, also those below the
+-- height cap) and no narrower than minW; p is panel 1 unless given
+function FitWidth(list, minW, p)
+	p = p or main
 	local widest, fs = 0, menu.measure
 	for _, e in ipairs(list) do
 		if e.kind ~= "divider" then
-			fs:SetFontObject(ns.Font(e.kind == "title" and size.font - 1 or size.font))
+			fs:SetFontObject(ns.Font(e.kind == "title" and p.size.font - 1 or p.size.font))
 			fs:SetText(e.text or "")
 			widest = max(widest, fs:GetStringWidth())
 		end
 	end
-	minWidth = minW
-	menu:SetWidth(max(minW, widest + 28))
+	if p == main then minWidth = minW end
+	p.frame:SetWidth(max(minW, widest + 28))
 end
 
 ------------------------------------------------------------------------

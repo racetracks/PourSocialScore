@@ -988,7 +988,15 @@ function phases.menuflow()
 	check(sl, "place 1 is not in the menu")
 	sl._scripts.OnClick(sl)
 	check(menu:IsShown(), "choosing a place closed the menu")
-	check(slot("< Back") and slot("Save") and slot("Rename") and slot("Load") and slot("Select"), "the free place's entries")
+	local side = _G.PSS_MenuSide
+	local function slot(text)
+		for _, pn in ipairs({ side, menu }) do
+			for _, s2 in ipairs(pn and pn.slots or {}) do
+				if s2:IsShown() and s2.entry and s2.entry.text and s2.entry.text:find(text, 1, true) then return s2 end
+			end
+		end
+	end
+	check(not slot("< Back") and slot("Save") and slot("Rename") and slot("Load") and slot("Select"), "the free place's entries")
 	local save = slot("Save")
 	save._scripts.OnClick(save)
 	check(not menu:IsShown(), "Save left the menu open")
@@ -1003,9 +1011,7 @@ function phases.menuflow()
 	check(sl and not sl.entry.text:find("empty", 1, true), "place 1 still reads empty")
 	sl._scripts.OnClick(sl)
 	check(slot("Select") and slot("Load") and slot("Enable all") and slot("Disable all") and slot("Delete"), "the used place's entries")
-	local back = slot("< Back")
-	back._scripts.OnClick(back)
-	check(menu:IsShown() and slot("Core Addon Profiles") and slot("Layered Addon Profiles"), "Back did not return to the list")
+	check(menu:IsShown() and slot("Core Addon Profiles") and slot("Layered Addon Profiles"), "the list stays beside the side panel")
 	sl = slot("Profile 1 (")
 	sl._scripts.OnClick(sl)
 	local sel = slot("Select")
@@ -1025,6 +1031,81 @@ function phases.menuflow()
 	local names = {}
 	for _, it in ipairs(place.sub.items) do if it.kind == "button" then names[#names + 1] = it.text end end
 	check(table.concat(names, ",") == "Deselect,Save,Load,Enable all,Disable all,Rename,Delete", "the submenu's entries: " .. table.concat(names, ","))
+	win:Hide()
+end
+
+-- Dark side menus open on hover (3.6.0.85, issue 203, TST-00075): a real
+-- second panel beside the row, no "< Back" swap, one level, built on first use
+function phases.menuhover()
+	needLibraries()
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local pg = win.pages[4]
+	M.PSS_SetOpt("uiSkin", "global", 1)
+	UIParent:SetSize(1920, 1080)
+	local dd = pg.setsDD
+	check(_G.PSS_MenuSide == nil, "(a) the side panel exists before any hover")
+	dd.dark._scripts.OnClick(dd.dark)
+	local menu = _G.PSS_Menu
+	local function find(pn, text)
+		for _, s2 in ipairs(pn and pn.slots or {}) do
+			if s2:IsShown() and s2.entry and s2.entry.text and s2.entry.text:find(text, 1, true) then return s2 end
+		end
+	end
+	local function kind(k)
+		for _, s2 in ipairs(menu.slots) do if s2:IsShown() and s2.entry and s2.entry.kind == k then return s2 end end
+	end
+	local p1, p2 = find(menu, "Profile 1 ("), find(menu, "Profile 2 (")
+	check(p1 and p2, "no places in the list")
+	p1._scripts.OnEnter(p1)
+	local side = _G.PSS_MenuSide
+	check(side and side:IsShown(), "(b) hover did not open the side panel")
+	check(find(side, "Save") and find(side, "Load") and find(side, "Rename") and find(side, "Delete"), "(b) the place's entries")
+	check(not find(menu, "< Back") and find(menu, "Layered Addon Profiles"), "(b) the list kept its place, no Back line")
+	local pt = side._point
+	check(pt and pt[1] == "TOPLEFT" and pt[2] == p1 and pt[3] == "TOPRIGHT", "(c) beside the row: " .. tostring(pt and pt[1]) .. tostring(pt and pt[3]) .. " w" .. tostring(side:GetWidth()) .. " up" .. tostring(UIParent:GetRight()))
+	local first = side
+	-- (d) a plain row hides it, another place refills it
+	local title = kind("title")
+	title._scripts.OnEnter(title)
+	check(not side:IsShown(), "(d) a heading did not close the side panel")
+	p2._scripts.OnEnter(p2)
+	check(side:IsShown() and side == first, "(d)(i) another place reopened the one frame")
+	p1._scripts.OnEnter(p1)
+	local sv = find(side, "Save")
+	check(sv, "(d) Save missing after refill")
+	-- (e) a choice runs and closes both
+	sv._scripts.OnClick(sv)
+	check(not menu:IsShown() and not side:IsShown(), "(e) Save left a panel open")
+	check(_G.PSS_Confirm and _G.PSS_Confirm:IsShown(), "(e) Save did not ask")
+	_G.PSS_Confirm.accept._scripts.OnClick(_G.PSS_Confirm.accept)
+	-- (f) outside click closes both; reopening shows no side panel
+	dd.dark._scripts.OnClick(dd.dark)
+	p1 = find(menu, "Profile 1 (")
+	p1._scripts.OnEnter(p1)
+	check(side:IsShown(), "(f) reopen then hover")
+	menu:Hide()
+	check(not side:IsShown(), "(f) hiding the menu left the side panel")
+	dd.dark._scripts.OnClick(dd.dark)
+	check(menu:IsShown() and not side:IsShown(), "(f) reopening shows a side panel")
+	-- (g) a click on a sub row opens it too
+	p2 = find(menu, "Profile 2 (")
+	p2._scripts.OnClick(p2)
+	check(side:IsShown() and find(side, "Save"), "(g) a click did not open the side panel")
+	-- (c) at the right edge it opens on the left
+	menu:Hide()
+	dd.dark._scripts.OnClick(dd.dark)
+	UIParent:SetWidth(150)
+	p1 = find(menu, "Profile 1 (")
+	p1._scripts.OnEnter(p1)
+	local pt2 = side._point
+	check(pt2 and pt2[1] == "TOPRIGHT" and pt2[3] == "TOPLEFT", "(c) near the screen edge it did not open on the left")
+	menu:Hide()
+	-- (h) Modern: Blizzard's own submenu
+	M.PSS_SetOpt("uiSkin", "global", 2)
+	local item
+	for _, it in ipairs(dd.blizz:MenuTree().items) do if it.text and it.text:find("Profile 1 (", 1, true) then item = it end end
+	check(item and item.sub and #item.sub.items > 0, "(h) Blizzard: the place keeps its side menu")
 	win:Hide()
 end
 
@@ -1099,6 +1180,7 @@ function phases.placetick()
 	H.cursorX = 500
 	sl._scripts.OnClick(sl)
 	check(menu:IsShown() and not (tick(2).on() == false), "(i) a click beside the box opened the side menu, not the tick")
+	check(_G.PSS_MenuSide and _G.PSS_MenuSide:IsShown(), "(i) the side panel shows")
 	H.cursorX = nil
 	menu:Hide()
 	-- Blizzard's menu: a checkbox with the side menu under it
