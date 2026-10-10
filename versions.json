@@ -28,12 +28,12 @@
 		{ "version": "3.6.0.89", "pr": 210 },
 		{ "version": "3.6.0.90", "pr": 210 },
 		{ "version": "3.6.0.91", "pr": 213 },
-		{ "version": "3.6.0.92", "pr": null },
-		{ "version": "3.6.1.93", "pr": null },
-		{ "version": "3.6.1.94", "pr": null },
-		{ "version": "3.6.1.95", "pr": null },
-		{ "version": "3.6.1.96", "pr": null },
-		{ "version": "3.6.1.97", "pr": null }
+		{ "version": "3.6.0.92", "pr": 214 },
+		{ "version": "3.6.1.93", "pr": 214 },
+		{ "version": "3.6.1.94", "pr": 214 },
+		{ "version": "3.6.1.95", "pr": 214 },
+		{ "version": "3.6.1.96", "pr": 214 },
+		{ "version": "3.6.1.97", "pr": 214 }
 	],
 	"releases": [
 		{
