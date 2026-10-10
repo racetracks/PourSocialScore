@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.81 - Docs: summaries end with a references table
+
+- Documentation only: every summary written for scratch ends with a table of its references, their titles and links (DEC-00074). No change in game.
+
 => 3.6.0.80 - Docs: CLAUDE.md import links, summaries are documents
 
 - CLAUDE.md: each pack it loads at session start now carries a GitHub link, and asking for a summary counts as asking for a document.

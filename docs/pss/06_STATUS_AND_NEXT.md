@@ -1,10 +1,11 @@
-# Status and next step (3.6.0.80, after release 3.5.0.62)
+# Status and next step (3.6.0.81, after release 3.5.0.62)
 
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. Earlier builds: `history.txt`, `versions.json` and the build records on scratch (`docs/components/addon-manager/03_BUILD_NOTES.md`). History: `reference/06_status-history-to-3.4.1.30.md` and `reference/combined-3.4.1.52/`.
 
 ## Now
-- **3.6.0.80, docs build:** `CLAUDE.md` links each imported pack beside its `@path` line, and a summary is a document (Reference framework section; scratch `CLAUDE.md` the same). The fixes move up one build: #189 3.6.0.81, #192 3.6.0.82.
-- **3.6.0.79, docs build (references):** `CLAUDE.md` and `11_PREFERENCES.md` gain [`DEC-00067`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/05_Detailed_Design.md#dec-00067) (every session output is recorded in the session's scratch temp root, merged from [PR #198](https://github.com/racetracks/PourSocialScore/pull/198); this PR controls that change from now and #198 is closed when it merges, [`DEC-00071`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/00_Decisions.md#dec-00071)) and [`DEC-00068`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/05_Detailed_Design.md#dec-00068): anything referenced (file, folder, key, issue, PR, commit, release, zip, page) is always a markdown link to it, never a bare path, number or name. The fixes move up one build: #189 3.6.0.80, #192 3.6.0.81.
+- **3.6.0.81, docs build:** `CLAUDE.md`, `11_PREFERENCES.md` and scratch `CLAUDE.md` gain [`DEC-00074`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/05_Detailed_Design.md#dec-00074): every summary prepared for scratch ends with a `## References` table (reference, title, link). The fixes move up one build: #189 3.6.0.82, #192 3.6.0.83.
+- **3.6.0.80, docs build:** `CLAUDE.md` links each imported pack beside its `@path` line, and a summary is a document (Reference framework section; scratch `CLAUDE.md` the same). The fixes move up one build: #189 3.6.0.82, #192 3.6.0.83.
+- **3.6.0.79, docs build (references):** `CLAUDE.md` and `11_PREFERENCES.md` gain [`DEC-00067`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/05_Detailed_Design.md#dec-00067) (every session output is recorded in the session's scratch temp root, merged from [PR #198](https://github.com/racetracks/PourSocialScore/pull/198); this PR controls that change from now and #198 is closed when it merges, [`DEC-00071`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/00_Decisions.md#dec-00071)) and [`DEC-00068`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/05_Detailed_Design.md#dec-00068): anything referenced (file, folder, key, issue, PR, commit, release, zip, page) is always a markdown link to it, never a bare path, number or name. The fixes move up one build: #189 3.6.0.80, #192 3.6.0.82.
 - **3.6.0.78, docs build (documentation rules):** `CLAUDE.md` gains `DEC-00059` (references link the session's temp root), `DEC-00060` (changelog rows link the version before), `DEC-00061` (the session's temp root), `DEC-00062` (temp READMEs carry decisions for the author and decisions made), `DEC-00063` (every quoted key links to its context, `link_keys.py`), `DEC-00064` (`00_Decisions.md` in every documentation folder); `11_PREFERENCES.md` the same. The addon manager is documented as the feature `addon-helper` (scratch `drafts/features/addon-helper-2026-10-10-draft1/`, its `00_Decisions.md` and `07_Roadmap.md`); the author answered `DEC-00055` (a), `DEC-00056` (a), `DEC-00057` Camelot only (Retail and other clients aborted for now), `DEC-00058` (a) 140 KB, and #148 (revert P3). The fixes move up one build: #189 3.6.0.79, #192 3.6.0.80.
 - **3.6.0.77, docs build (#194, `ISS-00020`):** the Mandatory Documentation Requirements in `CLAUDE.md` (root set per capability, changelogs, `claude.local.md` rules, prompt log, stakeholder inputs, credits, one-line headings with key anchors, fresh fetch at session start, the documentation process); `11_PREFERENCES.md` (temp summary table, prompt log, credits); `docs/scratch/03_LAYOUT.md` (documents, drafts groups, history). On scratch: the reference framework moved to `documents/reference-framework/` (registry `16_Registries/REGISTRY.md`, tool `08_Operations/registry-tool/refkey.py`) and the document migration ran (`CMP-00006`: drafts into groups, retired folders into `history/`). The fixes move up one build: #189 3.6.0.78, #192 3.6.0.79.
 - **3.6.0.76, docs build:** these next steps, #192 and the ACP review in the repo docs. The fixes move up one build: #189 3.6.0.77, #192 3.6.0.78. 3.6.0.75 merged as PR #191 (pre-release v3.6.0.75).
@@ -26,15 +27,15 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - **Re-test of 3.6.0.75 (the author, 2026-10-10):** #183 and #184 done and closed. #189: the side menus now show, but there is **no Load** in the menu (scratch `docs/components/addon-manager/06_PROFILE_MENU_NO_LOAD.md` section 12: hypotheses H6 to H10, `DEC-00015`, `TST-00008`, `CHK-00003`). In 3.6.0.75 Load shows only on a used place, so the place opened reads as free.
 - **Next steps (`DEC-00016`, scratch `docs/latest/next-steps/01_NEXT_STEPS.md`):**
   1. `STP-00017`: closed (the author: no profile can be saved on Camelot; the fault is the Save path).
-  2. `STP-00018`: the fix, build 3.6.0.81, built on the author's `DEC-00015` answers (2026-10-10): item 1 the side menu mimics AddonControlPanel's Sets menu (ACP's behaviour reviewed first, `ACPI`; logic copied, never code); item 2 Save says it saved and the menu turns used at once; phase `loadentry` (`TST-00008`); `CHK-00003`.
-  3. `STP-00011`: #179 re-test, `CHK-00001` (1 to 8) on 3.6.0.81; close #179 and #189 when they pass. From 3.6.0.81, Enable all / Disable all are listed on every place (`DEC-00015:12.8` changes `DEC-00012`).
-  4. `STP-00020`: #192 the Reload fix, build 3.6.0.82 (`DDS-00006:5.1`, phase `reloadpath` `TST-00009`, `CHK-00004`).
+  2. `STP-00018`: the fix, build 3.6.0.82, built on the author's `DEC-00015` answers (2026-10-10): item 1 the side menu mimics AddonControlPanel's Sets menu (ACP's behaviour reviewed first, `ACPI`; logic copied, never code); item 2 Save says it saved and the menu turns used at once; phase `loadentry` (`TST-00008`); `CHK-00003`.
+  3. `STP-00011`: #179 re-test, `CHK-00001` (1 to 8) on 3.6.0.82; close #179 and #189 when they pass. From 3.6.0.82, Enable all / Disable all are listed on every place (`DEC-00015:12.8` changes `DEC-00012`).
+  4. `STP-00020`: #192 the Reload fix, build 3.6.0.83 (`DDS-00006:5.1`, phase `reloadpath` `TST-00009`, `CHK-00004`).
   The author tests on Camelot only (`DEC-00057`, 2026-10-10): Retail and other clients are aborted for now.
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
 - #189: nothing to send (`STP-00017` closed); `DEC-00015` answered (2026-10-10).
-- Then test 3.6.0.81 (`CHK-00003`, `CHK-00001`, `CHK-00002`) and 3.6.0.82 (`CHK-00004`); close #179, #189 and #192 once tested.
+- Then test 3.6.0.82 (`CHK-00003`, `CHK-00001`, `CHK-00002`) and 3.6.0.83 (`CHK-00004`); close #179, #189 and #192 once tested.
 - Ask for macros from #159 when ready.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: answered 2026-10-10, revert P3 (watch targets, mouseovers, nameplates, group and /who in every state; never remove features); next: a code build, "build issue #148".
@@ -43,9 +44,9 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 None (02 section 12).
 
 ## Open issues (addon repo)
-- #189: no Load in the profile side menu; no profile can be saved on Camelot (`ISS-00002`; fix 3.6.0.81 `STP-00018`).
-- #179: Enable all / Disable all in a profile (built 3.6.0.74, `STP-00011`; blocked by #189; re-test on 3.6.0.81).
-- #192: the Reload prompt does nothing on Camelot (`ISS-00019`; fix 3.6.0.82 `STP-00020`).
+- #189: no Load in the profile side menu; no profile can be saved on Camelot (`ISS-00002`; fix 3.6.0.82 `STP-00018`).
+- #179: Enable all / Disable all in a profile (built 3.6.0.74, `STP-00011`; blocked by #189; re-test on 3.6.0.82).
+- #192: the Reload prompt does nothing on Camelot (`ISS-00019`; fix 3.6.0.83 `STP-00020`).
 - #159 to #169: Macro Helper macros, one issue per set (umbrella #159).
 - #152: window memory, build fewer frames (pane parts on first use, shared between tabs).
 - #37: the guild exclusion list is not saved (its intent needs defining).
