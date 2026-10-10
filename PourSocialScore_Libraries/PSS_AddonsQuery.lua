@@ -1056,12 +1056,14 @@ end
 
 -- the slots of the Sets menu for who ("me" or "all"): the 25 numbers of that
 -- scope, then your class's (always account-wide), each { id, name, scope, n,
--- class, label, empty }; an empty one is a free place to save into
+-- class, label, empty, elsewhere, hidden }; an empty one is a free place to
+-- save into (elsewhere: the other scope holds a profile with this id; hidden:
+-- a saved string this version cannot read, left alone)
 function M.PSS_AddonSlots(who)
 	local scope = who == "all" and "all" or "char"
-	local have = {}
+	local have, other = {}, {}
 	for _, p in ipairs(M.PSS_AddonPresets()) do
-		if p.class or p.scope == scope then have[p.id] = p end
+		if p.class or p.scope == scope then have[p.id] = p else other[p.id] = p.scope end
 	end
 	local out = {}
 	local function slot(id)
@@ -1069,7 +1071,10 @@ function M.PSS_AddonSlots(who)
 		if not p then
 			local class = type(id) == "string"
 			p = { id = id, name = "", scope = class and "all" or scope, n = 0, class = class,
-				label = presetLabel(id, ""), empty = true }
+				label = presetLabel(id, ""), empty = true, elsewhere = other[id] }
+			-- a string the list left out (a newer version's): not a free place
+			local tbl = presetTable(id, p.scope)
+			p.hidden = tbl ~= nil and tbl[id] ~= nil
 		end
 		out[#out + 1] = p
 	end

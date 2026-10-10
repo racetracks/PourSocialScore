@@ -33,6 +33,7 @@ local OPTIONS = {
 	{ key = "defexpire",		kind = "number", default = 0,		section = 1, label = L["OPT_5"] },
 	-- Blocking (people)
 	{ key = "ignoreResponse", kind = "bool",	default = false,	section = 2, label = L["OPT_24"], target = true },
+	{ key = "showIgnoreReplies",	kind = "bool",		default = true,		section = 2, label = "Show sent ignore replies (the \"To player\" line of the ignore response)" },
 	{ key = "showDeclines",		kind = "bool",		default = false,		section = 2, label = L["OPT_28"], target = true },
 	{ key = "declineDuel",		kind = "bool",		default = true,		section = 2, label = "Decline duels from blocked players", target = true },
 	{ key = "declineTrade",		kind = "bool",		default = true,		section = 2, label = "Decline trades from blocked players", target = true },

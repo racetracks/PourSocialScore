@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.75 - Profile places explained, ignore reply echo option
+
+- Addon profiles: a free place now reads "Not saved yet", a place whose profile is saved under the other character choice (This character or All characters) says so and offers "Show the saved profile", and a saved string this version cannot read shows as "(other version)" and is never overwritten. A place's menu is read again when you act on it, and Delete refreshes the window at once.
+- Ignore auto-reply: new option "Show sent ignore replies" (on by default, so nothing changes). Untick it to hide the "To player: [Pour Social Score] You are being ignored." line PSS's reply puts in your chat, and the "No player named" line when the sender has logged off; your own whispers still show and still warn.
+
 => 3.6.0.74 - Enable all and Disable all on an addon profile
 
 - Right-click a profile's place in the Profiles menu for Enable all and Disable all: they turn on or off every installed addon in that profile, as if you had ticked them yourself (required addons follow with the Dependencies tick; protected addons and Pour Social Score stay on). They replace Add to current selection and Remove from current selection. The profile, your selection and your saved profiles are not changed. A profile with no installed addon shows them greyed.

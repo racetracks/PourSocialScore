@@ -353,9 +353,24 @@ end
 function View:Slots()
 	local slots = M.PSS_AddonSlots(self.who)
 	for _, p in ipairs(slots) do
-		p.text = p.empty and (p.label .. " (empty)") or (p.label .. " (" .. p.n .. ")")
+		if not p.empty then
+			p.text = p.label .. " (" .. p.n .. ")"
+		elseif p.hidden then
+			p.text = p.label .. " (other version)"
+		elseif p.elsewhere then
+			p.text = p.label .. " (empty; saved " .. (p.elsewhere == "all" and "for all characters" or "for this character") .. ")"
+		else
+			p.text = p.label .. " (empty)"
+		end
 	end
 	return slots
+end
+
+-- one place read again now (a menu may have been built before a save)
+function View:Place(id)
+	for _, p in ipairs(self:Slots()) do
+		if p.id == id then return p end
+	end
 end
 
 -- the entries of one layer: a title, then a line per place; fn(p) says what
@@ -387,11 +402,14 @@ end
 -- the actions on one place p (an entry of Slots): a title, then (a used
 -- place) Select or Deselect, Save, Load, Enable all, Disable all (shown as
 -- titles, not clickable, when none of its addons is installed), Rename,
--- Delete; a free place only Save and Rename
+-- Delete; a free place says why (Not saved yet), may show a profile the other
+-- scope holds, Save and Rename
 function View:PresetMenu(p)
 	local e = { { kind = "title", text = p.label .. (p.class and "" or (p.scope == "all" and " (all characters)" or " (this character)")) } }
 	local function add(text, act) e[#e + 1] = { kind = "button", text = text, act = act } end
 	if p.empty then
+		e[#e + 1] = { kind = "title", text = p.hidden and "Saved by another version" or "Not saved yet" }
+		if p.elsewhere then add("Show the saved profile (" .. (p.elsewhere == "all" and "all characters" or "this character") .. ")", "show") end
 		add("Save", "save")
 		add("Rename", "rename")
 		return e
@@ -416,7 +434,10 @@ end
 -- one action on slot p; returns the line to say (a save keeps the name)
 function View:PresetAct(p, act, name)
 	local ok, text
-	if act == "select" then
+	if act == "show" then
+		self.who = p.elsewhere == "all" and "all" or "me"
+		return "Showing the profiles of " .. (self.who == "all" and "all characters." or "this character.")
+	elseif act == "select" then
 		ok, text = M.PSS_AddonProfileSelect(p.id, not M.PSS_AddonProfileSelected(p.id, self.who), self.who)
 	elseif act == "load" then
 		ok, text = M.PSS_AddonPresetLoad(p.id, p.scope, self.who)

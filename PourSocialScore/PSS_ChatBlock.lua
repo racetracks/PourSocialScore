@@ -542,6 +542,66 @@ local function replyAllowed(key)
 	return true
 end
 
+-- The echo of the auto-reply (issue 183): the client prints every whisper you
+-- send as "To <name>: <text>". With "Show sent ignore replies" off, the reply
+-- PSS just sent leaves one short-lived token; a CHAT_MSG_WHISPER_INFORM filter
+-- (added on the first such reply, so nothing is registered while the option is
+-- on) hides the echo that matches it, and the "No player named" line of a reply
+-- that could not be delivered. A hand-typed whisper never matches a token.
+local ECHO_LIFE = 10
+local pendingEcho, echoFilterAdded = {}, false
+
+local function echoPurge(now)
+	for k, t in pairs(pendingEcho) do
+		if now - t.at > ECHO_LIFE then pendingEcho[k] = nil end
+	end
+end
+
+-- Claim the token for an echo (by the filter or the frame handler, whichever
+-- runs first); the line id lets the other chat frames hide the same line.
+local function echoClaim(canon, text, lineID)
+	local t = pendingEcho[canon]
+	if not t or t.text ~= text or GetTime() - t.at > ECHO_LIFE then return false end
+	local id = (type(lineID) == "number" and not isSecret(lineID)) and lineID or nil
+	if t.line == nil then
+		if id then t.line = id else pendingEcho[canon] = nil end
+		return true
+	end
+	return id ~= nil and t.line == id
+end
+
+local NOT_FOUND = ERR_CHAT_PLAYER_NOT_FOUND_S or "No player named '%s' is currently playing."
+local function echoFilter(_, event, msg, target, ...)
+	if next(pendingEcho) == nil or type(msg) ~= "string" or isSecret(msg) then return false end
+	if event == "CHAT_MSG_SYSTEM" then
+		for k, t in pairs(pendingEcho) do
+			if msg == format(NOT_FOUND, t.name) then pendingEcho[k] = nil return true end
+		end
+		return false
+	end
+	if type(target) ~= "string" or isSecret(target) or target == "" then return false end
+	local canon = canonPlayer(target)
+	if not canon then return false end
+	return echoClaim(canon, msg, (select(9, ...))) and true or false
+end
+
+local function echoNote(ctx)
+	local name = ctx.author
+	if type(name) ~= "string" or isSecret(name) then return end
+	local canon = ctx.canon or canonPlayer(name)
+	if not canon then return end
+	local now = GetTime()
+	echoPurge(now)
+	pendingEcho[canon] = { text = L["MSG_1"], at = now, name = name }
+	if not echoFilterAdded then
+		local add = (type(ChatFrameUtil) == "table" and ChatFrameUtil.AddMessageEventFilter) or ChatFrame_AddMessageEventFilter
+		if type(add) ~= "function" then return end
+		echoFilterAdded = true
+		add("CHAT_MSG_WHISPER_INFORM", echoFilter)
+		add("CHAT_MSG_SYSTEM", echoFilter)
+	end
+end
+
 -- After a line is hidden (runs once per line).
 local function afterBlock(ctx)
 	stats.hidden = stats.hidden + 1
@@ -551,7 +611,10 @@ local function afterBlock(ctx)
 		local octx = ctx.hits and hitOptionContext(ctx.hits) or {}
 		if opt("ignoreResponse", octx) == true and replyAllowed(ctx.canon or ctx.author) then
 			local send = (C_ChatInfo and C_ChatInfo.SendChatMessage) or SendChatMessage
-			if send then pcall(send, L["MSG_1"], "WHISPER", nil, ctx.author) end
+			if send then
+				if opt("showIgnoreReplies", octx) == false then echoNote(ctx) end
+				pcall(send, L["MSG_1"], "WHISPER", nil, ctx.author)
+			end
 		end
 	end
 end
@@ -826,8 +889,13 @@ end
 -- list blocks their whispers (W ticked = allowed = no alert).
 local whisperWarned = {}
 
-local function handleWhisperSent(target)
+local function handleWhisperSent(target, text, lineID)
 	if not V.PSS_Loaded or type(target) ~= "string" or target == "" or isSecret(target) then return end
+	-- the echo of our own ignore reply raises no alert (issue 183)
+	if next(pendingEcho) ~= nil and type(text) == "string" and not isSecret(text) then
+		local c = canonPlayer(target)
+		if c and echoClaim(c, text, lineID) then return end
+	end
 	if opt("listWarnings", {}) == false then return end
 	local canon = canonPlayer(target)
 	if not canon or whisperWarned[canon] then return end
@@ -884,7 +952,7 @@ ev:SetScript("OnEvent", function(_, event, arg1, ...)
 		ok, err = pcall(handleTrade, nil)
 	elseif event == "CHAT_MSG_WHISPER_INFORM" then
 		local target = ...
-		ok, err = pcall(handleWhisperSent, target)
+		ok, err = pcall(handleWhisperSent, target, arg1, (select(10, ...)))
 	elseif event == "PARTY_INVITE_CANCEL" or event == "GROUP_ROSTER_UPDATE" then
 		pendingInvite = nil
 	end

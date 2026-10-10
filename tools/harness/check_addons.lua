@@ -946,7 +946,7 @@ function phases.setsmenu()
 		return list
 	end
 	local list = collect(pg.setsBuild)
-	check(list[1] == "T:Core Addon Profiles" and list[2] == "S:Profile 1 (empty){T:Profile 1 (this character),B:Save,B:Rename}", "level 1 starts: " .. tostring(list[2]))
+	check(list[1] == "T:Core Addon Profiles" and list[2] == "S:Profile 1 (empty){T:Profile 1 (this character),T:Not saved yet,B:Save,B:Rename}", "level 1 starts: " .. tostring(list[2]))
 	check(list[7] == "-" and list[8] == "T:Layered Addon Profiles" and list[9]:find("^S:Profile 6 %(empty%)") and #list == 1 + 5 + 1 + 1 + 20 + 1, "headers, divider, 25 places and the class: " .. #list)
 	check(list[#list]:find("^S:[%u][%l]+ %(empty%)"), "the class place is last: " .. tostring(list[#list]))
 	local V = pg.state
@@ -956,7 +956,7 @@ function phases.setsmenu()
 	check(list[2]:find("^S:Core one %(%d+%)%{T:Core one %(this character%),B:Select,B:Save,B:Load,B:Enable all,B:Disable all,B:Rename,%-,B:Delete%}$"), "a used place: " .. list[2])
 	V.who = "all"
 	list = collect(pg.setsBuild)
-	check(list[2]:find("^S:Profile 1 %(empty%)"), "the other scope has its own places: " .. list[2])
+	check(list[2]:find("^S:Profile 1 %(empty; saved for this character%)"), "the other scope has its own places: " .. list[2])
 	V.who = "me"
 	M.PSS_AddonProfileSelect(1, true, "me")
 	list = collect(pg.setsBuild)
@@ -1024,6 +1024,71 @@ function phases.menuflow()
 	local names = {}
 	for _, it in ipairs(place.sub.items) do if it.kind == "button" then names[#names + 1] = it.text end end
 	check(table.concat(names, ",") == "Deselect,Save,Load,Enable all,Disable all,Rename,Delete", "the submenu's entries: " .. table.concat(names, ","))
+	win:Hide()
+end
+
+-- Profile places read fresh and explained (3.6.0.75, issue 189): a place
+-- saved in the other scope says so and can be shown, a free place says "Not
+-- saved yet", a string this version cannot read is not a free place, and a
+-- menu built before a save acts on the place as it is now
+function phases.menurefresh()
+	needLibraries()
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local pg = win.pages[4]
+	local V = pg.state
+	local function collect(build)
+		local list = {}
+		local m = {}
+		m.Title = function(_, t) list[#list + 1] = "T:" .. t end
+		m.Button = function(_, t) list[#list + 1] = "B:" .. t end
+		m.Divider = function() list[#list + 1] = "-" end
+		m.Sub = function(_, t, b) list[#list + 1] = "S:" .. t .. "{" .. table.concat(collect(b), ",") .. "}" end
+		build(m)
+		return list
+	end
+	-- a free place says why
+	local list = collect(pg.setsBuild)
+	check(list[2]:find("T:Not saved yet", 1, true), "a free place does not say Not saved yet: " .. list[2])
+	-- saved for all characters, shown under this character
+	V.who = "all"
+	check(M.PSS_AddonPresetSave(4, "Raid", "all"), "save for all")
+	V.who = "me"
+	list = collect(pg.setsBuild)
+	check(list[5]:find("^S:Profile 4 %\(empty; saved for all characters%\)"), "the place does not say where its profile is: " .. list[5])
+	check(list[5]:find("B:Show the saved profile (all characters)", 1, true), "no Show the saved profile entry: " .. list[5])
+	local p = V:Place(4)
+	check(p.empty and p.elsewhere == "all", "the place's elsewhere")
+	V:PresetAct(p, "show")
+	check(V.who == "all" and not V:Place(4).empty, "Show did not switch to the profile's scope")
+	V.who = "me"
+	-- a string this version cannot read is not free
+	PSS_CharDB = PSS_CharDB or {}
+	PSS_CharDB.addonSets = PSS_CharDB.addonSets or {}
+	PSS_CharDB.addonSets[2] = 5
+	p = V:Place(2)
+	check(p.empty and p.hidden, "an unreadable string is not marked")
+	check(V:Place(2).text == "Profile 2 (other version)", "its line: " .. tostring(V:Place(2).text))
+	local ok, text = M.PSS_AddonPresetSave(2, "", "me")
+	check(not ok and PSS_CharDB.addonSets[2] == 5, "Save overwrote an unreadable string")
+	PSS_CharDB.addonSets[2] = nil
+	-- a menu built before the save acts on the place as it is now
+	list = collect(pg.setsBuild)
+	local stale = V:Place(1)
+	check(stale.empty, "place 1 starts free")
+	M.PSS_AddonPresetSave(1, "Late", "me")
+	check(V:PresetMenu(V:Place(1))[2].text == "Select", "the fresh place is not a used one")
+	local sub
+	local b = {}
+	b.Title = function() end
+	b.Divider = function() end
+	b.Button = function() end
+	b.Sub = function(_, t, f) if t:find("Profile 1 %\(empty") or t:find("Late") then sub = f end end
+	pg.setsBuild(b)
+	local texts = {}
+	sub({ Title = function() end, Divider = function() end, Button = function(_, t) texts[#texts + 1] = t end })
+	check(table.concat(texts, ","):find("Load", 1, true), "the side menu still offers no Load: " .. table.concat(texts, ","))
+	-- Delete refreshes the window at once
 	win:Hide()
 end
 
