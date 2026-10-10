@@ -2,7 +2,7 @@
 -- POUR SOCIAL SCORE - ADDON MANAGER, THE LOGIC (/pss acp, 3.6.0)
 --
 -- Everything the AddOns tab and /pss acp do, written for this addon from
--- docs/components/addon-manager/01_DESIGN.md (clean room: no code, names or
+-- documents/features/addon-helper/05_Detailed_Design.md (clean room: no code, names or
 -- texts of any other addon manager). The tab only draws; every call into
 -- the client's addon API is here.
 --
