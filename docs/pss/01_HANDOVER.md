@@ -72,7 +72,7 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 | Core uplift (3.4.1) | Done, v3.4.1.53 (10; design on scratch `docs/latest/core-uplift/`) |
 | Graphics settings (3.5.0, `/pss gfx`, Camelot) | Done, released in 3.5.0.62 (built 3.5.0.57; scratch `docs/latest/graphics-settings/`) |
 | Macro helper (3.5.0, `/pss macro`, Camelot) | Framework released in 3.5.0.62 (built 3.5.0.61; scratch `docs/latest/macro-helper/`); the macros of each set are drip-fed after it, tracked in issue #159 |
-| Addon manager (3.6.0, the AddOns tab, `/pss acp`, `/acp`) | Next workload (the author, 2026-10-09); design and plan on scratch `docs/components/addon-manager/` |
+| Addon manager (3.6.0, the AddOns tab, `/pss acp`, `/acp`) | Next workload (the author, 2026-10-09); design and plan on scratch [`documents/features/addon-helper/`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/features/addon-helper) |
 | Dashboard tab | Paused, branch `claude/project-thread-pa7y7o` |
 | Global moderation ideas (sync, curated lists, scoring) | Not started |
 
