@@ -18,7 +18,8 @@
 		{ "version": "3.6.0.77", "pr": 195 },
 		{ "version": "3.6.0.78", "pr": 196 },
 		{ "version": "3.6.0.79", "pr": 199 },
-		{ "version": "3.6.0.80", "pr": null }
+		{ "version": "3.6.0.80", "pr": null },
+		{ "version": "3.6.0.81", "pr": null }
 	],
 	"releases": [
 		{

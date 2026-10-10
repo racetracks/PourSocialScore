@@ -112,8 +112,8 @@ function phases.options()
 	before = H.reloads
 	H.combat = true
 	local c2 = _G.PSS_Confirm
-	c2.accept._scripts.OnClick(c2.accept)
-	check(H.reloads == before, "reloaded in combat")
+	if os.getenv("PSS_CAMELOT") == "1" then H.SecureClick(_G.PSS_ReloadClick) else c2.accept._scripts.OnClick(c2.accept) end
+	check(H.reloads == before + 1, "the player's reload in combat did not run")
 	H.combat = false
 end
 

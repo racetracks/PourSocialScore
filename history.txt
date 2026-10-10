@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.81 - Reload prompts work in combat
+
+- The Reload prompts can be opened and used in combat (your choice); on Camelot the button works in combat and Enter works once combat ends.
+
 => 3.6.0.80 - Profile menus list Load on every place; Reload works on Camelot
 
 - Addon Profiles: every place's side menu now lists the same actions (Select, Save, Load, Enable all, Disable all, Rename, Delete), as AddonControlPanel's sets menu; on a place with nothing saved they say so and change nothing. The class place has no Rename.

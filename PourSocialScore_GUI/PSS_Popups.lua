@@ -155,7 +155,7 @@ local function BuildConfirm()
 	-- addon code even inside a click, so the player's own click is the reload:
 	-- an action button over Accept (and a twin on Enter) runs the macro
 	-- "/reload"; the caller's onAccept runs as its post-click. Created once,
-	-- out of combat, armed only while a reload prompt shows
+	-- armed only while a reload prompt shows
 	confirm.hint = ns.NewText(confirm, 11)
 	confirm.hint:SetPoint("BOTTOM", confirm, "BOTTOM", 0, 48)
 	confirm.hint:SetAlpha(0.6)
@@ -163,26 +163,21 @@ local function BuildConfirm()
 	local overlay, twin
 	local function ReloadHint()
 		if not (confirmOpts and confirmOpts.reload and M.PSS_ReloadMode() == "press") then return end
-		local combat = InCombatLockdown and InCombatLockdown()
-		confirm.hint:SetText(combat and "Reload after combat." or "Press Enter to reload.")
+		confirm.hint:SetText("Press Enter to reload.")
 		confirm.hint:Show()
-		confirm.accept:SetEnabled(not combat)
 	end
 	local function ReloadArm()
 		if not (confirmOpts and confirmOpts.reload and M.PSS_ReloadMode() == "press") then return end
 		ReloadHint()
-		if InCombatLockdown and InCombatLockdown() then return end
 		if not overlay then
-			local macro = "/stopmacro [combat]\n/reload"
+			local macro = "/reload"
 			local function Make(name, down)
 				local b = CreateFrame("Button", name, confirm, "InsecureActionButtonTemplate")
 				b:SetAttribute("type", "macro")
 				b:SetAttribute("macrotext", macro)
 				b:SetAttribute("useOnKeyDown", down)
 				b:RegisterForClicks(down and "AnyDown" or "LeftButtonUp")
-				b:SetScript("PostClick", function()
-					if not (InCombatLockdown and InCombatLockdown()) then confirm.pssAccept() end
-				end)
+				b:SetScript("PostClick", function() confirm.pssAccept() end)
 				return b
 			end
 			overlay = Make("PSS_ReloadClick", false)
@@ -194,30 +189,25 @@ local function BuildConfirm()
 		end
 		overlay:Show()
 		twin:Show()
-		SetOverrideBindingClick(confirm, true, "ENTER", "PSS_ReloadKey")
-		SetOverrideBindingClick(confirm, true, "NUMPADENTER", "PSS_ReloadKey")
+		-- key bindings cannot be changed in combat: the click works, Enter waits
+		if not (InCombatLockdown and InCombatLockdown()) then
+			SetOverrideBindingClick(confirm, true, "ENTER", "PSS_ReloadKey")
+			SetOverrideBindingClick(confirm, true, "NUMPADENTER", "PSS_ReloadKey")
+		end
 	end
 	confirm.pssReloadDisarm = function()
 		confirm.hint:Hide()
-		confirm.accept:SetEnabled(true)
-		if ClearOverrideBindings then ClearOverrideBindings(confirm) end
-		if overlay and not (InCombatLockdown and InCombatLockdown()) then overlay:Hide(); twin:Hide() end
-		confirm:UnregisterEvent("PLAYER_REGEN_DISABLED")
+		if ClearOverrideBindings and not (InCombatLockdown and InCombatLockdown()) then ClearOverrideBindings(confirm) end
+		if overlay then overlay:Hide(); twin:Hide() end
 		confirm:UnregisterEvent("PLAYER_REGEN_ENABLED")
 	end
 	confirm.pssReloadArm = function()
 		if M.PSS_ReloadMode() ~= "press" then return end
-		confirm:RegisterEvent("PLAYER_REGEN_DISABLED")
 		confirm:RegisterEvent("PLAYER_REGEN_ENABLED")
 		ReloadArm()
 	end
 	confirm:SetScript("OnEvent", function(_, event)
-		if event == "PLAYER_REGEN_DISABLED" then
-			if ClearOverrideBindings then ClearOverrideBindings(confirm) end
-			ReloadHint()
-		else
-			ReloadArm()
-		end
+		if event == "PLAYER_REGEN_ENABLED" then ReloadArm() end
 	end)
 	local function Accept()
 		local o = confirmOpts

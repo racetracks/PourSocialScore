@@ -298,7 +298,8 @@ function phases.pending()
 	local before = H.reloads
 	H.combat = true
 	local ok = M.PSS_AddonReload()
-	check(not ok and H.reloads == before, "no reload in combat")
+	check(ok and H.reloads == before + (M.PSS_ReloadMode() == "press" and 0 or 1), "reload allowed in combat (the player chose it)")
+	before = H.reloads
 	H.combat = false
 	ok = M.PSS_AddonReload()
 	check(ok and H.reloads == before + (M.PSS_ReloadMode() == "press" and 0 or 1), "reload out of combat")
@@ -1129,16 +1130,16 @@ function phases.reloadpath()
 			check(H.reloads == rl + 1, "(b) Accept did not reload once through ReloadUI")
 		end
 		check(said[1] == "Reloading...", "(a) no status line: " .. tostring(said[1]))
-		-- (c) combat
+		-- (c) combat: the player opened it, it reloads
 		H.combat = true
 		cf = open()
 		rl = H.reloads
-		said = {}
 		cf.accept._scripts.OnClick(cf.accept)
-		check(H.reloads == rl and said[1] == "Not in combat.", "(c) combat: " .. tostring(said[1]))
+		check(H.reloads == rl + 1, "(c) combat: the prompt did not reload")
 		H.combat = false
 		-- (e) Cancel
 		cf = open()
+		rl = H.reloads
 		cf.cancel._scripts.OnClick(cf.cancel)
 		check(H.reloads == rl, "(e) Cancel reloaded")
 		check(not _G.PSS_ReloadClick, "Retail made the reload overlay")
@@ -1163,16 +1164,17 @@ function phases.reloadpath()
 		cf = open()
 		cf:Hide()
 		check(next(H.bindings) == nil, "(g) hiding left the Enter binding")
-		-- in combat: Accept waits, a click does nothing
+		-- in combat: the click reloads (the player chose it), Enter is bound when combat ends
 		H.combat = true
 		cf = open()
-		check(cf.hint:GetText() == "Reload after combat." and cf.accept:IsEnabled() == false, "(g) combat: Accept is not waiting")
+		check(cf.accept:IsEnabled() and next(H.bindings) == nil, "(g) combat: Accept is not usable or Enter was bound")
 		rl = H.reloads
-		H.SecureClick(ov)
-		check(H.reloads == rl and cf:IsShown(), "(g) reloaded in combat")
+		H.SecureClick(_G.PSS_ReloadClick)
+		check(H.reloads == rl + 1, "(g) the click did not reload in combat")
+		cf = open()
 		H.combat = false
 		H.Fire("PLAYER_REGEN_ENABLED")
-		check(cf.accept:IsEnabled() and cf.hint:GetText() == "Press Enter to reload." and H.bindings.ENTER == "PSS_ReloadKey", "(g) combat end did not arm the prompt")
+		check(H.bindings.ENTER == "PSS_ReloadKey", "(g) combat end did not bind Enter")
 		cf:Hide()
 		check(next(H.bindings) == nil and not cf.hint:IsShown(), "(g) Cancel left the prompt armed")
 	end
