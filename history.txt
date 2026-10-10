@@ -2,7 +2,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
 => 3.6.0.92 - Interface-helper groundwork: group titles, item list, disabled sections
-
+- Groundwork for the coming Drop Cheapest Thing options: a list control for items, group titles and a disabled-section line in Options. Nothing changes on screen.
 - What changed, in plain words.
 
 => 3.6.0.91 - Addon Manager tab with a collapsible navigation
