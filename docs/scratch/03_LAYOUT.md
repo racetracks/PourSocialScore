@@ -18,7 +18,7 @@ drafts/                                 drafts, same groups as documents/ (DEC-0
   addons/  features/  sub-features/     drafts/<group>/<name>-<YYYY-MM-DD>-draftN/
   <project-wide>-<date>-draftN/         project-wide drafts at the root
 history/<addon|feature|sub-feature|project>/YYYY-MM-DD-<folder>/   retired documentation and promoted drafts (DEC-00045, DEC-00046)
-temp/YYYY-MM-DD-<workspace>/            workspace memory, prompt log (the one exception to the documentation rules)
+temp/<YYYY-MM-DD-hh-mm-ss>-<workspace>/            workspace memory, prompt log (the one exception to the documentation rules)
 summary/                                <project>-<YYYY-MM-DD-hh-mm>.md  status summaries
 ```
 

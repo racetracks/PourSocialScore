@@ -3,7 +3,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 
 => 3.6.0.79 - Docs: session outputs recorded, anything referenced always has a link
 
-- Documentation only: every session output is recorded in the session's notes, and a new rule that anything the docs refer to always carries a link. No change in game.
+- Documentation only: every session output is recorded in the session's notes (new sessions get a time-stamped folder), and anything written for the author always carries links to what it refers to. No change in game.
 
 => 3.6.0.78 - Docs: linked keys, decisions documents, session references
 
