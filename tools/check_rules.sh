@@ -74,6 +74,13 @@ if grep -nE 'EUI|[Ee]llesmere' PourSocialScore_GUI/* PourSocialScore_Libraries/P
 	fail=1
 fi
 
+# one reload call (3.6.0.81): ReloadUI() is called only by the helper
+# M.PSS_ReloadUI in PSS_OptionsView.lua; every caller goes through it
+if grep -nE '(^|[^_.A-Za-z])ReloadUI\(|[^_A-Za-z]ReloadUI\)' PourSocialScore*/*.lua | grep -v 'PSS_OptionsView.lua'; then
+	echo "one reload: a ReloadUI call outside M.PSS_ReloadUI (PSS_OptionsView.lua) found above"
+	fail=1
+fi
+
 # the addon manager is written from its design, clean room (3.6.0): no
 # identifier of the addon manager it follows in behaviour may be copied
 if grep -nE 'ACP_|AddonList_|NoRecurse|NoChildren|ProtectedAddons|AddonSet|EnableRecurse|LocateEmbeds|FauxScrollFrame' PourSocialScore*/*.lua PourSocialScore*/*.xml 2>/dev/null; then

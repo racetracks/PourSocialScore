@@ -326,10 +326,10 @@ local function BuildFooter()
 	footer:SetAlpha(0.8)
 
 	reload = ns.NewButton(page, "Reload", 90, function()
-		ns.Confirm({ title = "Reload UI?", text = "Reloads the game's interface so the changes take effect.", accept = "Reload",
+		ns.Confirm({ title = "Reload UI?", text = "Reloads the game's interface so the changes take effect.", accept = "Reload", reload = true,
 			onAccept = function()
 				local ok, text = M.PSS_AddonReload()
-				if not ok then Say(text) end
+				if ok then Say("Reloading...") else Say(text) end
 			end })
 	end)
 	reload:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -10, 8)
@@ -390,7 +390,7 @@ ns.TabBuilders.addons = function(pg)
 		click = RowClick,
 	})
 	page.list, page.state, page.search = list, V, search
-	page.setsDD, page.footer, page.setsBuild, page.undoButton = setsDD, footer, BuildSets, undo
+	page.setsDD, page.footer, page.setsBuild, page.undoButton, page.reloadButton = setsDD, footer, BuildSets, undo, reload
 	-- the window opened: memory is read once when this tab next shows
 	page.stale = function() V.needSample = true end
 	page.release = function()

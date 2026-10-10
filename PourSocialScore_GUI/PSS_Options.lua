@@ -73,7 +73,7 @@ local function OptionRow(content, o, rows)
 			M.PSS_SetOpt(o.key, "global", on)
 			if o.reload and M.PSS_OptGate(o) then
 				ns.Confirm({ title = "Reload UI?", text = "Turning " .. o.label .. " on or off applies after a reload. Reload now?",
-					accept = "Reload", cancel = "Later", onAccept = M.PSS_ReloadNow })
+					accept = "Reload", cancel = "Later", reload = true, onAccept = M.PSS_ReloadNow })
 			end
 		end
 		c:SetScript("OnClick", function(self)

@@ -565,6 +565,8 @@ function phases.popup()
 
 		-- Reload UI
 		click(button(pop, "Reload UI"))
+		lcheck(_G.PSS_Confirm:IsShown() and _G.PSS_Confirm.title:GetText() == "Reload UI?", "Reload UI did not ask")
+		click(_G.PSS_Confirm.accept)
 		lcheck(H.reloads == 2, "Reload UI reloaded " .. H.reloads - 1 .. " times")
 
 		-- Escape closes it (one Escape), the box is emptied, GC requested

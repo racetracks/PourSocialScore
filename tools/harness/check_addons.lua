@@ -301,7 +301,7 @@ function phases.pending()
 	check(not ok and H.reloads == before, "no reload in combat")
 	H.combat = false
 	ok = M.PSS_AddonReload()
-	check(ok and H.reloads == before + 1, "reload out of combat")
+	check(ok and H.reloads == before + (M.PSS_ReloadMode() == "press" and 0 or 1), "reload out of combat")
 end
 
 ------------------------------------------------------------------------
@@ -863,7 +863,7 @@ function phases.slots()
 	end
 	check(slots[26].id == cls and slots[26].empty and slots[26].class and slots[26].text == cls:sub(1, 1) .. cls:sub(2):lower() .. " (empty)", "the class slot: " .. tostring(slots[26].text))
 	local function acts(entries) local t = {} for _, e in ipairs(entries) do if e.act then t[#t + 1] = e.act end end return table.concat(t, ",") end
-	check(acts(V:PresetMenu(slots[3])) == "save,rename", "a free slot saves or is named: " .. acts(V:PresetMenu(slots[3])))
+	check(acts(V:PresetMenu(slots[3])) == "select,save,load,enable,disable,rename,delete", "a free slot lists every action: " .. acts(V:PresetMenu(slots[3])))
 	check(PSS_CharDB == nil and PSS_OptionsDB.addonSets == nil, "listing writes nothing")
 	-- save into a free slot: this character
 	V.who = "me"
@@ -902,7 +902,7 @@ function phases.slots()
 	V:PresetAct(V:Slots()[26], "save")
 	check(PSS_OptionsDB.addonSets[cls], "the class set is account-wide")
 	local c = V:Slots()[26]
-	check(not c.empty and acts(V:PresetMenu(c)) == "select,save,load,rename,delete", "the class profile's actions: " .. acts(V:PresetMenu(c)))
+	check(not c.empty and acts(V:PresetMenu(c)) == "select,save,load,delete", "the class profile's actions (no Rename): " .. acts(V:PresetMenu(c)))
 	V.who = "all"
 	check(not V:Slots()[26].empty, "the class set shows in both scopes")
 	-- delete frees the slot
@@ -946,7 +946,7 @@ function phases.setsmenu()
 		return list
 	end
 	local list = collect(pg.setsBuild)
-	check(list[1] == "T:Core Addon Profiles" and list[2] == "S:Profile 1 (empty){T:Profile 1 (this character),T:Not saved yet,B:Save,B:Rename}", "level 1 starts: " .. tostring(list[2]))
+	check(list[1] == "T:Core Addon Profiles" and list[2] == "S:Profile 1 (empty){T:Profile 1 (this character),T:Not saved yet,B:Select,B:Save,B:Load,B:Enable all,B:Disable all,B:Rename,-,B:Delete}", "level 1 starts: " .. tostring(list[2]))
 	check(list[7] == "-" and list[8] == "T:Layered Addon Profiles" and list[9]:find("^S:Profile 6 %(empty%)") and #list == 1 + 5 + 1 + 1 + 20 + 1, "headers, divider, 25 places and the class: " .. #list)
 	check(list[#list]:find("^S:[%u][%l]+ %(empty%)"), "the class place is last: " .. tostring(list[#list]))
 	local V = pg.state
@@ -987,7 +987,7 @@ function phases.menuflow()
 	check(sl, "place 1 is not in the menu")
 	sl._scripts.OnClick(sl)
 	check(menu:IsShown(), "choosing a place closed the menu")
-	check(slot("< Back") and slot("Save") and slot("Rename") and not slot("Select"), "the free place's entries")
+	check(slot("< Back") and slot("Save") and slot("Rename") and slot("Load") and slot("Select"), "the free place's entries")
 	local save = slot("Save")
 	save._scripts.OnClick(save)
 	check(not menu:IsShown(), "Save left the menu open")
@@ -1024,6 +1024,159 @@ function phases.menuflow()
 	local names = {}
 	for _, it in ipairs(place.sub.items) do if it.kind == "button" then names[#names + 1] = it.text end end
 	check(table.concat(names, ",") == "Deselect,Save,Load,Enable all,Disable all,Rename,Delete", "the submenu's entries: " .. table.concat(names, ","))
+	win:Hide()
+end
+
+-- Load is on every place (3.6.0.80, issue 189, ACP's sets menu shape): a
+-- free place lists it and says there is nothing to load; Save through the
+-- real confirm says it saved and the place turns used; none installed or
+-- Delete turns the entries back (TST-00008)
+function phases.loadentry()
+	needLibraries()
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local pg = win.pages[4]
+	local V = pg.state
+	local said = {}
+	local show = M.ShowMsg
+	M.ShowMsg = function(t) said[#said + 1] = t end
+	local function place(id)
+		local sub
+		pg.setsBuild({ Title = function() end, Divider = function() end, Button = function() end,
+			Sub = function(_, t, f) if t:find("^%*? ?" .. V:Place(id).label .. " %(") then sub = f end end })
+		local items = {}
+		sub({ Title = function(_, t) items[t] = "title" end, Divider = function() end,
+			Button = function(_, t, f) items[t] = f end })
+		return items
+	end
+	local items = place(1)
+	check(type(items.Load) == "function" and type(items.Select) == "function" and type(items.Delete) == "function", "(a) a free place lists Load, Select and Delete")
+	check(type(items["Enable all"]) == "function" and type(items["Disable all"]) == "function", "(a) a free place lists Enable all and Disable all")
+	-- Load on a free place says why and changes nothing
+	local calls = H.calls.DisableAllAddOns or 0
+	items.Load()
+	check(#said == 1 and said[1]:find("no addon profile", 1, true) and (H.calls.DisableAllAddOns or 0) == calls, "(a) Load on a free place: " .. tostring(said[1]))
+	-- Save through the real confirm, then the place is used and Load a button
+	items.Save()
+	local cf = _G.PSS_Confirm
+	check(cf and cf:IsShown(), "(b) Save did not ask")
+	said = {}
+	cf.accept._scripts.OnClick(cf.accept)
+	check(#said == 1 and said[1]:find("saved", 1, true), "(b) Save did not say it saved: " .. tostring(said[1]))
+	check(not V:Place(1).empty, "(b) the place did not turn used")
+	items = place(1)
+	said = {}
+	items.Load()
+	check(#said == 1 and said[1]:find(" on, ", 1, true), "(b) Load on a used place: " .. tostring(said[1]))
+	-- (c) all characters
+	V.who = "all"
+	items = place(3)
+	check(type(items.Load) == "function", "(c) a free place under All characters lists Load")
+	items.Save()
+	said = {}
+	cf.accept._scripts.OnClick(cf.accept)
+	check(said[1] and said[1]:find("saved", 1, true) and not V:Place(3).empty, "(c) Save under All characters: " .. tostring(said[1]))
+	V.who = "me"
+	-- (d) a profile with no installed addon: the titles
+	PSS_CharDB.addonSets[5] = "\nGhost"
+	items = place(5)
+	check(type(items.Load) == "function", "(d) Load stays a button (it says why)")
+	check(items["Enable all"] == "title" and items["Disable all"] == "title", "(d) Enable all and Disable all are titles when none is installed")
+	-- (e) Delete: the place is free again, Load still listed
+	items = place(1)
+	items.Delete()
+	cf.accept._scripts.OnClick(cf.accept)
+	check(V:Place(1).empty, "(e) Delete did not free the place")
+	check(type(place(1).Load) == "function", "(e) Load is gone after Delete")
+	-- (f) the popup's controls sit above the frame art in every look
+	for _, skin in ipairs({ 2, 0, 1 }) do
+		M.PSS_SetOpt("uiSkin", "global", skin)
+		local lv = cf.pssTop
+		check(cf.accept:GetFrameLevel() > lv and cf.cancel:GetFrameLevel() > lv and cf.name:GetFrameLevel() > lv, "(f) the popup's controls are not above the art, look " .. skin)
+	end
+	M.ShowMsg = show
+	win:Hide()
+end
+
+-- The reload prompt (3.6.0.81, issue 192; TST-00009). Retail and clients with
+-- C_UI.Reload: the accept reloads once through the helper. Camelot
+-- (PSS_RELOAD_BLOCK=1 blocks ReloadUI from addon code, as the client does): an
+-- action button over Accept runs the macro /reload, Enter the same through a
+-- twin, in combat Accept waits for the end of combat
+function phases.reloadpath()
+	needLibraries()
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local pg = win.pages[4]
+	local said = {}
+	local show = M.ShowMsg
+	M.ShowMsg = function(t) said[#said + 1] = t end
+	local press = M.PSS_ReloadMode() == "press"
+	local function open()
+		said = {}
+		pg.reloadButton._scripts.OnClick(pg.reloadButton)
+		return _G.PSS_Confirm
+	end
+	local cf = open()
+	check(cf:IsShown() and cf.title:GetText() == "Reload UI?", "(a) the footer's Reload did not ask")
+	if not press then
+		-- Retail
+		local ui, rl = H.uiReloads, H.reloads
+		cf.accept._scripts.OnClick(cf.accept)
+		if C_UI and C_UI.Reload then
+			check(H.uiReloads == ui + 1 and H.reloads == rl + 1, "(a) Accept did not reload once through C_UI.Reload")
+		else
+			check(H.reloads == rl + 1, "(b) Accept did not reload once through ReloadUI")
+		end
+		check(said[1] == "Reloading...", "(a) no status line: " .. tostring(said[1]))
+		-- (c) combat
+		H.combat = true
+		cf = open()
+		rl = H.reloads
+		said = {}
+		cf.accept._scripts.OnClick(cf.accept)
+		check(H.reloads == rl and said[1] == "Not in combat.", "(c) combat: " .. tostring(said[1]))
+		H.combat = false
+		-- (e) Cancel
+		cf = open()
+		cf.cancel._scripts.OnClick(cf.cancel)
+		check(H.reloads == rl, "(e) Cancel reloaded")
+		check(not _G.PSS_ReloadClick, "Retail made the reload overlay")
+	else
+		-- Camelot
+		local ov = _G.PSS_ReloadClick
+		check(ov and ov:IsShown() and ov:GetAttribute("type") == "macro" and ov:GetAttribute("macrotext"):find("/reload", 1, true), "(g) no reload button over Accept")
+		check(ov:GetFrameLevel() > cf.accept:GetFrameLevel(), "(g) the overlay is not above Accept")
+		check(cf.hint:IsShown() and cf.hint:GetText() == "Press Enter to reload.", "(g) the Enter line: " .. tostring(cf.hint:GetText()))
+		check(H.bindings.ENTER == "PSS_ReloadKey" and H.bindings.NUMPADENTER == "PSS_ReloadKey", "(g) Enter is not bound to the twin")
+		local rl = H.reloads
+		H.SecureClick(ov)
+		check(H.reloads == rl + 1 and H.blockedReloads == 0 and said[1] == "Reloading..." and #said == 1, "(g) the click did not reload once with one status line: " .. #said)
+		check(not cf:IsShown() and next(H.bindings) == nil, "(g) the prompt or the Enter binding stayed after Accept")
+		-- Enter reloads once through the twin
+		cf = open()
+		rl = H.reloads
+		check(_G.PSS_ReloadClick == ov, "(i) the overlay was made again")
+		H.SecureClick(_G.PSS_ReloadKey)
+		check(H.reloads == rl + 1, "(g) Enter did not reload")
+		-- hiding clears the bindings
+		cf = open()
+		cf:Hide()
+		check(next(H.bindings) == nil, "(g) hiding left the Enter binding")
+		-- in combat: Accept waits, a click does nothing
+		H.combat = true
+		cf = open()
+		check(cf.hint:GetText() == "Reload after combat." and cf.accept:IsEnabled() == false, "(g) combat: Accept is not waiting")
+		rl = H.reloads
+		H.SecureClick(ov)
+		check(H.reloads == rl and cf:IsShown(), "(g) reloaded in combat")
+		H.combat = false
+		H.Fire("PLAYER_REGEN_ENABLED")
+		check(cf.accept:IsEnabled() and cf.hint:GetText() == "Press Enter to reload." and H.bindings.ENTER == "PSS_ReloadKey", "(g) combat end did not arm the prompt")
+		cf:Hide()
+		check(next(H.bindings) == nil and not cf.hint:IsShown(), "(g) Cancel left the prompt armed")
+	end
+	M.ShowMsg = show
 	win:Hide()
 end
 
@@ -1152,7 +1305,9 @@ function phases.profiletick()
 		return table.concat(t, ",")
 	end
 	check(kinds(2) == "button,button" and kinds(5) == "title,title", "entries: " .. kinds(2) .. " / " .. kinds(5))
-	check(not V:PresetMenu(V:Slots()[4])[3] or V:PresetMenu(V:Slots()[4])[3].text ~= "Enable all", "a free place keeps Save and Rename only")
+	local has = false
+	for _, e in ipairs(V:PresetMenu(V:Slots()[4])) do if e.act == "load" then has = true end end
+	check(has, "a free place lists Load")
 	-- the all-characters scope writes the all form
 	make(8, { "ZedOne" }, "all")
 	M.PSS_AddonAll(false, "all")
@@ -1310,7 +1465,7 @@ function phases.rename()
 	-- the menu of every kind of place offers Rename
 	local slots = V:Slots()
 	check(acts(V:PresetMenu(slots[1])):find("rename", 1, true), "a free place offers Rename")
-	check(acts(V:PresetMenu(slots[26])):find("rename", 1, true), "the class place offers Rename")
+	check(not acts(V:PresetMenu(slots[26])):find("rename", 1, true), "the class place has no Rename")
 	M.PSS_AddonPresetSave(2, "", "me")
 	check(acts(V:PresetMenu(V:Slots()[2])):find("rename", 1, true), "a used place offers Rename")
 	-- a free place named: kept, empty

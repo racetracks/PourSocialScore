@@ -97,14 +97,37 @@ function M.PSS_OptGate(o)
 	return enabled, note
 end
 
+-- how this client reloads: "press" on Camelot (it blocks ReloadUI from addon
+-- code even inside a click: only the player's own click on a secure "/reload"
+-- macro reloads, which ns.Confirm { reload = true } sets up), else "direct"
+function M.PSS_ReloadMode()
+	return M.PSS_IsCamelot and M.PSS_IsCamelot() and "press" or "direct"
+end
+
+-- the one reload call: refused in combat with a text; C_UI.Reload where
+-- the client has it, else ReloadUI. On "press" clients the call is blocked
+-- from addon code (the click's macro does the reload), so a reload prompt's
+-- accept skips it (M.PSS_ReloadPrompt)
+function M.PSS_ReloadUI()
+	if InCombatLockdown and InCombatLockdown() then return false, "Not in combat." end
+	local reload = C_UI and C_UI.Reload or ReloadUI
+	reload()
+	return true
+end
+
+-- what a reload prompt's accept runs: nothing to call on "press" (its click
+-- is the reload), else the reload
+function M.PSS_ReloadPrompt()
+	if InCombatLockdown and InCombatLockdown() then return false, "Not in combat." end
+	if M.PSS_ReloadMode() == "press" then return true, "press" end
+	return M.PSS_ReloadUI()
+end
+
 -- the reload now: refused in combat with a line
 function M.PSS_ReloadNow()
-	if InCombatLockdown and InCombatLockdown() then
-		M.ShowMsg("|cffff5555Not in combat.|r")
-		return false
-	end
-	ReloadUI()
-	return true
+	local ok = M.PSS_ReloadPrompt()
+	if not ok then M.ShowMsg("|cffff5555Not in combat.|r") end
+	return ok
 end
 
 function M.PSS_OptNumberText(o)

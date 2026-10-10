@@ -78,7 +78,12 @@ function phases.options()
 	local cf = _G.PSS_Confirm
 	check(cf and cf:IsShown() and cf.text:GetText():find("Reload now?", 1, true), "no reload question")
 	local before = H.reloads
-	cf.accept._scripts.OnClick(cf.accept)
+	if os.getenv("PSS_CAMELOT") == "1" then
+		check(_G.PSS_ReloadClick and _G.PSS_ReloadClick:IsShown(), "Camelot: no reload button over Accept")
+		H.SecureClick(_G.PSS_ReloadClick)
+	else
+		cf.accept._scripts.OnClick(cf.accept)
+	end
 	check(H.reloads == before + 1, "Reload did not reload")
 	row.check:SetChecked(false)
 	row.check._scripts.OnClick(row.check)
@@ -104,10 +109,11 @@ function phases.options()
 	_G.PSS_Confirm.cancel._scripts.OnClick(_G.PSS_Confirm.cancel)
 	row.check:SetChecked(true)
 	row.check._scripts.OnClick(row.check)
+	before = H.reloads
 	H.combat = true
 	local c2 = _G.PSS_Confirm
 	c2.accept._scripts.OnClick(c2.accept)
-	check(H.reloads == before + 1, "reloaded in combat")
+	check(H.reloads == before, "reloaded in combat")
 	H.combat = false
 end
 

@@ -169,7 +169,8 @@ function W:IsEnabled() return self._enabled ~= false end
 function W:Enable() self._enabled = true end
 function W:Disable() self._enabled = false end
 function W:SetEnabled(e) self._enabled = e and true or false end
-function W:GetFrameLevel() return 1 end
+function W:GetFrameLevel() return self._level or 1 end
+function W:SetFrameLevel(n) self._level = n end
 function W:GetFrameStrata() return "MEDIUM" end
 function W:GetID() return self._id or 0 end
 function W:SetID(i) self._id = i end
@@ -584,7 +585,31 @@ if os.getenv("PSS_GFX_NOAPI") ~= "1" then
 		function ConsoleGetAllCommands() return consoleList() end
 	end
 end
-function ReloadUI() stub.reloads = stub.reloads + 1 end
+-- Camelot (PSS_RELOAD_BLOCK=1) blocks ReloadUI() from addon code even inside a click; a secure
+-- click on a macro "/reload" (stub.SecureClick) is the player's own reload.
+-- Retail has C_UI.Reload.
+stub.uiReloads, stub.blockedReloads, stub.macroReloads = 0, 0, 0
+function ReloadUI()
+	if camelot and os.getenv("PSS_RELOAD_BLOCK") == "1" then stub.blockedReloads = stub.blockedReloads + 1 return end
+	stub.reloads = stub.reloads + 1
+end
+if not camelot and os.getenv("PSS_NO_CUI") ~= "1" then C_UI = { Reload = function() stub.uiReloads = stub.uiReloads + 1; stub.reloads = stub.reloads + 1 end } end
+stub.bindings = {}
+function SetOverrideBindingClick(owner, pri, key, btn) stub.bindings[key] = btn end
+function ClearOverrideBindings(owner) stub.bindings = {} end
+function W:SetAttribute(k, v) self._attr = self._attr or {}; self._attr[k] = v end
+function W:GetAttribute(k) return self._attr and self._attr[k] end
+-- a click on a secure action button: its macro runs first (out of combat; a
+-- "/stopmacro [combat]" line stops it in combat), then PostClick
+function stub.SecureClick(f)
+	local m = f:GetAttribute("type") == "macro" and f:GetAttribute("macrotext")
+	if m and m:find("/reload", 1, true) and not (stub.combat and m:find("/stopmacro [combat]", 1, true)) then
+		stub.macroReloads = stub.macroReloads + 1
+		stub.reloads = stub.reloads + 1
+	end
+	local post = f._scripts.PostClick
+	if post then post(f, "LeftButton") end
+end
 if camelot then stub.SeedGfx() end
 
 C_DateAndTime = {}

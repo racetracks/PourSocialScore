@@ -813,9 +813,7 @@ function M.PSS_AddonPending(who)
 end
 
 function M.PSS_AddonReload()
-	if InCombatLockdown() then return false, T.combat end
-	ReloadUI()
-	return true
+	return M.PSS_ReloadPrompt()
 end
 
 ------------------------------------------------------------------------
