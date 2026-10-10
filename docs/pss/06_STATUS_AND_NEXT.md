@@ -34,7 +34,7 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - Then test 3.6.0.78 (`CHK-00003`, `CHK-00001`, `CHK-00002`) and 3.6.0.79 (`CHK-00004`); close #179, #189 and #192 once tested.
 - Ask for macros from #159 when ready.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
-- #148: OK or revert P3 (inactive shipped lists no longer capture units or /who).
+- #148: answered 2026-10-10, revert P3 (watch targets, mouseovers, nameplates, group and /who in every state; never remove features); next: a code build, "build issue #148".
 
 ## Known breaches
 None (02 section 12).
@@ -56,7 +56,7 @@ None (02 section 12).
 - #145: leftovers from the combined build (dead `stats`, option cache, Events `TimeText`, Chat Filters pane redraw).
 - #146: the guild member cap only at logout; Camelot first-name-only names guessed.
 - #147: going back from 3.4.1.53 loses custom filters (3.4.0.29) and later list entries.
-- #148: P3, inactive shipped lists no longer capture units or /who; needs the author's OK or a revert.
+- #148: P3 to be reverted (the author, 2026-10-10): inactive shipped lists capture units and /who again; code build not started.
 
 Context for each open item: scratch `docs/latest/issues/` and `docs/latest/setup/`.
 
