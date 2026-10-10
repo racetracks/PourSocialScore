@@ -1021,10 +1021,94 @@ function phases.menuflow()
 	local items = tree.items
 	check(items[1].kind == "title" and items[1].text == "Core Addon Profiles" and tree.scroll, "Blizzard menu start: " .. tostring(items[1].text))
 	local place = items[2]
-	check(place.kind == "button" and place.sub and place.sub.items[1].kind == "title", "a place is not a submenu in Blizzard's menu")
+	check(place.kind == "checkbox" and place.sub and place.sub.items[1].kind == "title", "a place is not a checkbox with a submenu in Blizzard's menu")
 	local names = {}
 	for _, it in ipairs(place.sub.items) do if it.kind == "button" then names[#names + 1] = it.text end end
 	check(table.concat(names, ",") == "Deselect,Save,Load,Enable all,Disable all,Rename,Delete", "the submenu's entries: " .. table.concat(names, ","))
+	win:Hide()
+end
+
+-- The tick next to a profile, the tally and the Reload counts (3.6.0.82,
+-- issue 179): a tick turns all of the profile's addons on, an untick off, at
+-- once; the summary at the top, the Reload button's (+x/-y) and both hovers
+-- come from one count and update with each tick
+function phases.placetick()
+	needLibraries()
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local pg = win.pages[4]
+	local V = pg.state
+	local said = {}
+	local show = M.ShowMsg
+	M.ShowMsg = function(t) said[#said + 1] = t end
+	local function make(id, names)
+		M.PSS_AddonAll(false, "me")
+		for _, n in ipairs(names) do M.PSS_AddonTick(idx(n), true, "me", false) end
+		check(M.PSS_AddonPresetSave(id, "", "me"), "save " .. id)
+	end
+	make(2, { "ZedOne", "ZedTwo" })
+	M.PSS_AddonAll(false, "me")
+	V:Build()
+	-- the place's tick as the menu gives it
+	local function tick(id)
+		local found
+		pg.setsBuild({ Title = function() end, Divider = function() end, Button = function() end,
+			Sub = function(_, t, f, tk) if t:find("^%*? ?" .. V:Place(id).label .. " %(") then found = tk end end })
+		return found
+	end
+	local tk = tick(2)
+	check(tk and type(tk.on) == "function" and type(tk.fn) == "function", "(a) the place has a tick")
+	check(tk.on() == false, "(a) unticked while its addons are off")
+	tk.fn()
+	check(tick(2).on() == true and row("ZedOne").enabled and row("ZedTwo").enabled, "(b) a tick turned its addons on")
+	tk.fn()
+	check(tick(2).on() == false and not row("ZedOne").enabled and not row("ZedTwo").enabled, "(c) an untick turned them off")
+	-- a free place: the tick says why and stays off
+	said = {}
+	local free = tick(9)
+	free.fn()
+	check(free.on() == false and said[1] and said[1]:find("no addon profile", 1, true), "(d) a free place: " .. tostring(said[1]))
+	-- the count: one source for the summary, the button and the hover
+	local H2 = H
+	H.AddonList()[#H.AddonList() + 1] = { name = "NewOne", deps = {}, opt = {}, me = true, mem = 0 }
+	local adds, offs = M.PSS_AddonChanges("me")
+	local seen = false
+	for _, n in ipairs(adds) do if n == "NewOne" then seen = true end end
+	check(seen, "(e) an addon turned on and not loaded is counted as added")
+	M.PSS_AddonTick(idx("Atlas"), false, "me", false)
+	local a2, o2 = M.PSS_AddonChanges("me")
+	check(#a2 == #adds and (#o2 == #offs + 1 or #o2 >= #offs), "(e) a loaded addon turned off is counted as turned off")
+	M.Events.Fire("ADDONS_CHANGED")
+	H.RunTimers()
+	check(pg.tally:GetText() == "Enabling " .. #a2 .. ", disabling " .. #o2, "(h) the summary is drawn: " .. tostring(pg.tally:GetText()))
+	pg.reloadButton:GetScript("OnEnter")(pg.reloadButton)
+	check(GameTooltip._lines and GameTooltip._lines[1] and GameTooltip._lines[1]:find("Addon changes (+" .. #a2 .. "/-" .. #o2 .. ")", 1, true), "(g) the Reload hover title")
+	check(GameTooltip._lines[2] == "Reload Required" and GameTooltip._lines[3]:find("+ NewOne", 1, true), "(g) the hover: bold line, then the addons")
+	check(pg.reloadButton:GetText():find("%(%+" .. #a2 .. "/%-" .. #o2 .. "%)"), "(h) the Reload button shows the counts: " .. tostring(pg.reloadButton:GetText()))
+	-- Dark: the tick is the left edge of the row
+	M.PSS_SetOpt("uiSkin", "global", 1)
+	local dd = pg.setsDD
+	dd.dark._scripts.OnClick(dd.dark)
+	local menu = _G.PSS_Menu
+	local sl
+	for _, s2 in ipairs(menu.slots) do if s2:IsShown() and s2.entry and s2.entry.text and s2.entry.text:find("Profile 2 (", 1, true) then sl = s2 end end
+	check(sl and sl.entry.tick and sl.box:IsShown(), "(i) Dark draws a tick box on the place")
+	H.cursorX = 5
+	sl._scripts.OnClick(sl)
+	check(tick(2).on() == true and menu:IsShown(), "(i) a click on the box ticked it and kept the menu open")
+	H.cursorX = 500
+	sl._scripts.OnClick(sl)
+	check(menu:IsShown() and not (tick(2).on() == false), "(i) a click beside the box opened the side menu, not the tick")
+	H.cursorX = nil
+	menu:Hide()
+	-- Blizzard's menu: a checkbox with the side menu under it
+	M.PSS_SetOpt("uiSkin", "global", 2)
+	local tree = dd.blizz:MenuTree()
+	local item
+	for _, it in ipairs(tree.items) do if it.text and it.text:find("Profile 2 (", 1, true) then item = it end end
+	check(item and item.kind == "checkbox" and item.sub and #item.sub.items > 0, "(j) Blizzard: the place is a checkbox with a side menu")
+	check(item.isOn() == true, "(j) Blizzard: ticked state")
+	M.ShowMsg = show
 	win:Hide()
 end
 
@@ -1750,11 +1834,11 @@ function phases.coverage()
 	M.PSS_AddonTick(i, true, who, true)
 	M.PSS_AddonTickMany(L, 1, 2, true, who, true)
 	M.PSS_AddonLoad(idx("Atlas_Options"))
-	M.PSS_AddonAll(true, who) M.PSS_AddonPending(who)
+	M.PSS_AddonAll(true, who) M.PSS_AddonPending(who) M.PSS_AddonChanges(who)
 	M.PSS_AddonUndo()
 	M.PSS_AddonMemory() M.PSS_AddonMemOf(i) M.PSS_AddonMemGroup(L, 1)
 	M.PSS_AddonPresetSave(1, "Cov", "me") M.PSS_AddonPresets() M.PSS_AddonSlots(who) M.PSS_AddonPresetLoad(1, "char", who) M.PSS_AddonPresetTick(1, "char", true, who, true)
-	M.PSS_AddonPresetTick(1, "char", false, who, true) M.PSS_AddonPresetInstalled(1, "char") M.PSS_AddonPresetInclude(1, "char", "ZedOne") M.PSS_AddonPresetRename(1, "x", "char")
+	M.PSS_AddonPresetTick(1, "char", false, who, true) M.PSS_AddonPresetInstalled(1, "char") M.PSS_AddonPresetOn(1, "char", who) M.PSS_AddonPresetInclude(1, "char", "ZedOne") M.PSS_AddonPresetRename(1, "x", "char")
 	M.PSS_AddonProfileSelect(1, true, who) M.PSS_AddonProfileSelected(1, who) M.PSS_AddonProfileUnion(who) M.PSS_AddonProfileSelect(1, false, who)
 	M.PSS_AddonPresetDelete(1, "char")
 	M.PSS_AddonLock("LibFoo", true, who) M.PSS_AddonLocked("LibFoo") M.PSS_AddonLock("LibFoo", false, who)

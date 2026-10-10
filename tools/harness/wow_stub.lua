@@ -154,6 +154,14 @@ function W:MenuTree()
 			it.sub = child
 			return cr
 		end
+		function r:CreateCheckbox(text, isSelected, setSelected, data)
+			local it = { kind = "checkbox", text = text, on = isSelected(data) and true or false, isOn = isSelected,
+				fn = function() return setSelected(data) end }
+			n.items[#n.items + 1] = it
+			local child, cr = node()
+			it.sub = child
+			return cr
+		end
 		function r:CreateTitle(text) n.items[#n.items + 1] = { kind = "title", text = text } end
 		function r:CreateDivider() n.items[#n.items + 1] = { kind = "divider" } end
 		function r:SetScrollMode() n.scroll = true end
@@ -350,6 +358,10 @@ AddonCompartmentFrame = { registered = {} }
 function AddonCompartmentFrame:RegisterAddon(info) self.registered[#self.registered + 1] = info end
 GameTooltip = new("GameTooltip", "GameTooltip")
 ItemRefTooltip = new("GameTooltip", "ItemRefTooltip")
+-- the lines the tooltip was given (the first is the title)
+function GameTooltip:SetText(t) self._lines = { t } end
+function GameTooltip:AddLine(t) self._lines = self._lines or {}; self._lines[#self._lines + 1] = t end
+function GameTooltip:NumLines() return self._lines and #self._lines or 0 end
 DEFAULT_CHAT_FRAME = new("ScrollingMessageFrame", "DEFAULT_CHAT_FRAME")
 stub.chat = {}
 function DEFAULT_CHAT_FRAME:AddMessage(m) stub.chat[#stub.chat + 1] = tostring(m) end
@@ -427,7 +439,8 @@ function IsAddOnLoaded() return false end
 function GetAddOnMemoryUsage() return 0 end
 function UpdateAddOnMemoryUsage() end
 function collectgarbage_stub() end
-function GetCursorPosition() return 0, 0 end
+-- stub.cursorX: where the pointer is (a menu row's tick box is its left 24 px)
+function GetCursorPosition() return stub.cursorX or 1000, 0 end
 function GetScreenWidth() return 1920 end
 function GetScreenHeight() return 1080 end
 function PlaySound() end

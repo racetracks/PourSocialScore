@@ -24,7 +24,7 @@ if not M.PSS_On("addons") then return end	-- the Addon Manager is off: no AddOns
 
 local V = M.PSS_AddonView()
 local page, list, search, charDD, viewDD, setsDD
-local stats, footer, undo, enableAll, disableAll, reload, deps, oldCheck
+local stats, tally, footer, undo, enableAll, disableAll, reload, deps, oldCheck
 local rowBuf = {}
 
 local STAR = "Interface\\Glues\\CharacterSelect\\Glues-AddOn-Icons"
@@ -178,6 +178,26 @@ end
 ------------------------------------------------------------------------
 -- The tab
 ------------------------------------------------------------------------
+-- the texts of what a reload will do (the counts come from Libraries: V:Changes):
+-- the summary at the top, the Reload button's "(+x/-y)", and the hover of both
+local function Counts(adds, offs) return "+" .. #adds .. "/-" .. #offs end
+
+local TIP_MAX = 30
+
+local function ChangeTip()
+	local adds, offs = V:Changes()
+	if #adds == 0 and #offs == 0 then return nil end
+	local lines, n = {}, 0
+	for _, set in ipairs({ { "+ ", adds }, { "- ", offs } }) do
+		for _, name in ipairs(set[2]) do
+			n = n + 1
+			if n <= TIP_MAX then lines[#lines + 1] = set[1] .. name end
+		end
+	end
+	if n > TIP_MAX then lines[#lines + 1] = "... and " .. (n - TIP_MAX) .. " more" end
+	return { title = "Addon changes (" .. Counts(adds, offs) .. ")", bold = "Reload Required", text = table.concat(lines, "\n") }
+end
+
 local function AccentHex()
 	local r, g, b = ns.Accent()
 	if not r then return "ffffffff" end
@@ -196,6 +216,9 @@ function Refresh()
 	list:SetSort(V.sortMem and "mem" or nil, false)
 	footer:SetText(text)
 	stats:SetText(V:Stats())
+	local adds, offs = V:Changes()
+	local none = #adds == 0 and #offs == 0
+	tally:SetText(none and "No changes waiting for a reload" or ("Enabling " .. #adds .. ", disabling " .. #offs))
 	charDD:SetLabel(V.who == "all" and "All characters" or "This character")
 	viewDD:SetLabel(V.view == "az" and "A to Z" or (V.view == "lod" and "Load on demand apart" or "Grouped"))
 	deps:SetChecked(V.deps)
@@ -204,7 +227,7 @@ function Refresh()
 	local waits = V:Pending()
 	reload.pssPrimary = waits
 	if reload.pssPaint then reload.pssPaint() end
-	reload:SetText(waits and ("|c" .. AccentHex() .. "Reload|r") or "Reload")
+	reload:SetText(waits and ("|c" .. AccentHex() .. "Reload" .. (none and "" or (" (" .. Counts(adds, offs) .. ")")) .. "|r") or "Reload")
 	undo:SetEnabled(M.PSS_AddonCan("undo"))
 	enableAll:SetEnabled(M.PSS_AddonCan("all"))
 	disableAll:SetEnabled(M.PSS_AddonCan("all"))
@@ -248,6 +271,7 @@ local function BuildSets(m)
 		elseif e.kind == "divider" then
 			m:Divider()
 		else
+			local place = V:Place(e.p.id) or e.p
 			m:Sub(e.text, function(sm)
 				for _, a in ipairs(V:PresetMenu(V:Place(e.p.id) or e.p)) do
 					if a.kind == "title" then
@@ -258,7 +282,11 @@ local function BuildSets(m)
 						sm:Button(a.text, function() SetAction(e.p, a.act) end)
 					end
 				end
-			end)
+			end, {
+				-- the tick next to the place: ticked turns all of its addons on, unticked off
+				on = function() return V:PlaceOn(V:Place(e.p.id) or e.p) end,
+				fn = function() SetAction(e.p, V:PlaceOn(V:Place(e.p.id) or e.p) and "disable" or "enable") end,
+			})
 		end
 	end
 end
@@ -325,7 +353,7 @@ local function BuildFooter()
 	footer:SetWordWrap(false)
 	footer:SetAlpha(0.8)
 
-	reload = ns.NewButton(page, "Reload", 90, function()
+	reload = ns.NewButton(page, "Reload", 130, function()
 		ns.Confirm({ title = "Reload UI?", text = "Reloads the game's interface so the changes take effect.", accept = "Reload", reload = true,
 			onAccept = function()
 				local ok, text = M.PSS_AddonReload()
@@ -333,6 +361,8 @@ local function BuildFooter()
 			end })
 	end)
 	reload:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -10, 8)
+	-- hover: the same list as the summary at the top (nothing waiting: no tip)
+	ns.TipOn(reload, reload, ChangeTip)
 	disableAll = ns.NewButton(page, "Disable All", 96, function()
 		ns.Confirm({ title = "Disable All AddOns?", text = "Turns every addon off for "
 			.. (V.who == "all" and "all characters" or "this character")
@@ -360,7 +390,18 @@ ns.TabBuilders.addons = function(pg)
 	BuildToolbar()
 	stats = ns.NewText(page, 11)
 	stats:SetPoint("TOPLEFT", page, "TOPLEFT", 12, -TOP_H - 12)
-	stats:SetPoint("RIGHT", page, "RIGHT", -12, 0)
+	-- the summary of what a reload will do, top right of the stats line; its
+	-- hover lists the addons
+	local tf = CreateFrame("Frame", nil, page)
+	tf:SetPoint("TOPRIGHT", page, "TOPRIGHT", -12, -TOP_H - 8)
+	tf:SetSize(230, 20)
+	tf:EnableMouse(true)
+	tally = ns.NewText(tf, 11)
+	tally:SetPoint("RIGHT", tf, "RIGHT", 0, 0)
+	tally:SetJustifyH("RIGHT")
+	ns.TipOn(tf, tf, ChangeTip)
+	page.tally = tally
+	stats:SetPoint("RIGHT", tf, "LEFT", -8, 0)
 	stats:SetJustifyH("LEFT")
 	BuildFooter()
 

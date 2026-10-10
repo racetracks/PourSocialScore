@@ -452,6 +452,17 @@ function View:PresetAct(p, act, name)
 	return text
 end
 
+-- the tick next to a place in the Profiles menu
+function View:PlaceOn(p)
+	return not p.empty and M.PSS_AddonPresetOn(p.id, p.scope, self.who) or false
+end
+
+-- what a reload will do, counted once for the summary at the top, the Reload
+-- button and both tooltips: adds, offs (lists of names)
+function View:Changes()
+	return M.PSS_AddonChanges(self.who)
+end
+
 function View:Pending()
 	return M.PSS_AddonPending(self.who)
 end

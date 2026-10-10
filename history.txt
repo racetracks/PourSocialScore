@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.82 - Addon Profiles ticks, reload tally
+
+- Addon Profiles: each profile in the Profiles drop-down has a tick box. Ticking it turns all of that profile's addons on, unticking turns them off, at once; a profile with nothing saved says so.
+- The AddOns tab shows a summary (how many addons a reload will enable and disable) at the top right, and the Reload button shows (+x/-y). Hovering either lists the addons, with "Reload Required" in bold under the title.
+- Dark look: the drop-down tick box and the new tooltip match the other looks.
+
 => 3.6.0.81 - Reload prompts work in combat
 
 - The Reload prompts can be opened and used in combat (your choice); on Camelot the button works in combat and Enter works once combat ends.
