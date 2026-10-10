@@ -94,15 +94,16 @@ local T = {
 	everyone = "all characters",
 	listHead = "%d addons, %d on for %s:",
 	listRow = "  %s: %s",
-	presetUsage = "Addon profiles: /pss acp profile <1-25 or your class> [char|all] save [name] | load | add | remove | select | deselect | rename <name> | delete",
+	presetUsage = "Addon profiles: /pss acp profile <1-25 or your class> [char|all] save [name] | load | enable | disable | select | deselect | rename <name> | delete",
 	presetNone = "No addon profiles saved yet.",
 	presetHead = "Addon profiles (* selected):",
 	presetRow = "  %s%s %s (%s): %d addons",
 	presetSaved = "Addon profile %s saved: %d addons.",
 	presetLoaded = "Addon profile %s: %d on, %d not installed.",
-	presetAdded = "Addon profile %s added: %d on, %d not installed.",
+	presetEnabled = "Addon profile %s: %d enabled, %d not installed.",
+	presetDisabled = "Addon profile %s: %d disabled, %d not installed.",
+	presetEmpty = "Addon profile %s has no installed addon.",
 	presetAdded2 = "Addon profile %s now holds %s.",
-	presetRemoved = "Addon profile %s taken off: %d addons.",
 	presetDeleted = "Addon profile %s deleted.",
 	presetRenamed = "Addon profile %s renamed.",
 	presetSelected = "Addon profile %s selected: %d on, %d not installed.",
@@ -1163,7 +1164,11 @@ function M.PSS_AddonPresetLoad(id, scope, who)
 	return true, format(T.presetLoaded, msgLabel(pid, name), done, missing)
 end
 
-function M.PSS_AddonPresetAdd(id, scope, who)
+-- Enable all / Disable all on one profile, as a manual group tick: its
+-- installed addons only (protected ones and Pour Social Score stay on when
+-- turning off), dependencies when deps, hand picks noted; the profile, the
+-- selection and the saved profiles are not changed
+function M.PSS_AddonPresetTick(id, scope, on, who, deps)
 	M.PSS_AddonPrune()
 	local pid, str, name, pos = presetOf(id, scope)
 	if not pid then return false, str end
@@ -1171,26 +1176,26 @@ function M.PSS_AddonPresetAdd(id, scope, who)
 	who = scope == "all" and who == "all" and "all" or "me"
 	local c = charArg(who)
 	if c == false then return false, T.noChar end
-	local done, missing = eachInstalled(str, pos, function(i) EnableAddOn(i, c) end)
+	local turned, missing, picked = {}, {}, {}
+	local done, absent = eachInstalled(str, pos, function(i, n)
+		if on or not M.PSS_AddonLocked(n) then
+			applyOne(i, n, on, c, deps, turned, missing)
+			picked[#picked + 1] = n
+		end
+	end)
+	if done == 0 then return false, format(T.presetEmpty, msgLabel(pid, name)) end
+	notePicks(picked, on, who)
 	save()
 	fire()
-	return true, format(T.presetAdded, msgLabel(pid, name), done, missing)
+	return true, format(on and T.presetEnabled or T.presetDisabled, msgLabel(pid, name), #picked, absent)
 end
 
-function M.PSS_AddonPresetRemove(id, scope, who)
-	M.PSS_AddonPrune()
-	local pid, str, name, pos = presetOf(id, scope)
-	if not pid then return false, str end
-	if not CAN.tick() then return false, T.noApi end
-	who = scope == "all" and who == "all" and "all" or "me"
-	local c = charArg(who)
-	if c == false then return false, T.noChar end
-	local done = eachInstalled(str, pos, function(i, n)
-		if not M.PSS_AddonLocked(n) then DisableAddOn(i, c) end
-	end)
-	save()
-	fire()
-	return true, format(T.presetRemoved, msgLabel(pid, name), done)
+-- how many of a profile's addons are installed (the menu greys Enable all
+-- and Disable all at 0)
+function M.PSS_AddonPresetInstalled(id, scope)
+	local pid, str, _, pos = presetOf(id, scope)
+	if not pid then return 0 end
+	return (eachInstalled(str, pos, function() end))
 end
 
 -- one addon (by folder name) into a preset
@@ -1502,10 +1507,10 @@ local function presetCommand(args, raw)
 		report(M.PSS_AddonPresetSave(id, name, scope == "all" and "all" or "me"))
 	elseif act == "load" then
 		report(M.PSS_AddonPresetLoad(id, scope, "me"))
-	elseif act == "add" then
-		report(M.PSS_AddonPresetAdd(id, scope, "me"))
-	elseif act == "remove" then
-		report(M.PSS_AddonPresetRemove(id, scope, "me"))
+	elseif act == "enable" or act == "add" then
+		report(M.PSS_AddonPresetTick(id, scope, true, "me", true))
+	elseif act == "disable" or act == "remove" then
+		report(M.PSS_AddonPresetTick(id, scope, false, "me", true))
 	elseif act == "delete" then
 		report(M.PSS_AddonPresetDelete(id, scope))
 	elseif act == "rename" then
