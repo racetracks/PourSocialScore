@@ -237,6 +237,7 @@ function Draw(p)
 	end
 	for i = n + 1, #slots do
 		slots[i].entry = nil
+		slots[i].text:SetText("")
 		slots[i]:Hide()
 	end
 	f:SetHeight(y + PAD)
@@ -286,7 +287,7 @@ local function BuildPanel(p, name, level)
 	-- measures every entry for the panel's width, shown or not
 	f.measure = ns.NewText(f, 13)
 	f.measure:SetPoint("TOPLEFT")
-	f.measure:SetAlpha(0)
+	f.measure:Hide()	-- hidden, never faded: GetStringWidth still works (#201)
 	f.slots = p.slots
 	return f
 end
@@ -337,6 +338,7 @@ local function FitPanel(p, list, minW)
 			widest = max(widest, fs:GetStringWidth())
 		end
 	end
+	fs:SetText("")
 	p.f:SetWidth(max(minW, widest + 28))
 end
 local function FitWidth(list, minW) FitPanel(P1, list, minW) end

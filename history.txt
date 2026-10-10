@@ -5,6 +5,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 
 - In the Dark look, a drop-down entry with a side menu (the AddOns tab's Profiles places) now opens it beside the row when you hover it, as Classic and Modern do. The list no longer swaps to a "< Back" page.
 - Escape or a click elsewhere closes the whole menu.
+- Fixed a stray label (for example "Warrior (empty)") that showed at the top-left of an open drop-down in the Dark look (#201).
 
 => 3.6.0.86 - Revert PR 207: CLAUDE.md back to its 3.6.0.84 version
 

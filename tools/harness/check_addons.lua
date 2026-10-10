@@ -965,6 +965,28 @@ function phases.setsmenu()
 	win:Hide()
 end
 
+-- No stray measuring text in Dark menus (3.6.0.87, issue 201)
+function phases.menustray()
+	needLibraries()
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local pg = win.pages[4]
+	M.PSS_SetOpt("uiSkin", "global", 1)
+	local dd = pg.setsDD
+	dd.dark._scripts.OnClick(dd.dark)
+	local menu = _G.PSS_Menu
+	check(menu and menu:IsShown(), "(a) the Profiles menu did not open")
+	check(not menu.measure:IsShown(), "(a) the measure string is shown")
+	check((menu.measure:GetText() or "") == "", "(a) the measure string keeps text: " .. tostring(menu.measure:GetText()))
+	local shownText = 0
+	for _, sl in ipairs(menu.slots) do
+		if sl:IsShown() then shownText = shownText + 1 elseif (sl.text:GetText() or "") ~= "" then check(false, "(c) a hidden slot keeps text") end
+	end
+	check(shownText > 0, "(b) no slot shown")
+	menu:Hide()
+	win:Hide()
+end
+
 -- Dark side menus open beside the row on hover (3.6.0.85, issue 203)
 function phases.menuhover()
 	needLibraries()
