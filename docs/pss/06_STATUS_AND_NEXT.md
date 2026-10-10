@@ -17,11 +17,16 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
   - Enabled components: Options section first, `useAddons` / `useLogging` / `useGfx` / `useFiltering`, `M.PSS_On` read once per session (a change applies after a reload); the addon manager and graphics files return at the top when off; Event Logging off stores no line (counts unchanged) and drops the Events tab and the Event History page; Social Filtering off registers no chat filter, block events, ignore hooks, menus, capture or expiry and the list tabs say so. The C1/C2 breach is fixed.
   - Design: scratch `docs/components/addon-manager/04_PROFILES_REWORK.md` (in-game checks section 8) and `docs/components/enabled-components/`; build record `03_BUILD_NOTES.md`.
 - **Bug found testing 3.6.0.74 (the author, 2026-10-10):** the profile side menu shows only Save and Rename, no Load, Enable all or Disable all: [#189](https://github.com/racetracks/PourSocialScore/issues/189) (`ISS-00002`; design and plan scratch `docs/components/addon-manager/06_PROFILE_MENU_NO_LOAD.md`: `DDS-00002`, `IMP-00002`). It blocks the rest of `CHK-00001`.
-- **Next steps:** the author tests 3.6.0.75 (`CHK-00001`, `CHK-00002`, `IRE-C1` to `IRE-C6`); then close #179, #189, #183 and #184 as they pass.
+- **Re-test of 3.6.0.75 (the author, 2026-10-10):** #183 and #184 done and closed. #189: the side menus now show, but there is **no Load** in the menu (scratch `docs/components/addon-manager/06_PROFILE_MENU_NO_LOAD.md` section 12: hypotheses H6 to H10, `DEC-00015`, `TST-00008`, `CHK-00003`). In 3.6.0.75 Load shows only on a used place, so the place opened reads as free.
+- **Next steps (`DEC-00016`, scratch `docs/latest/next-steps/01_NEXT_STEPS.md`):**
+  1. `STP-00017`: name the cause of the missing Load (no build; needs the author's `/pss acp profiles` output after a Save into a free place, the look, client and character drop-down value).
+  2. `STP-00018`: the fix, build 3.6.0.76, built on the author's `DEC-00015` answers (2026-10-10): item 1 the side menu mimics AddonControlPanel's Sets menu (ACP's behaviour reviewed first, `ACPI`; logic copied, never code); item 2 Save says it saved and the menu turns used at once; phase `loadentry` (`TST-00008`); `CHK-00003`.
+  3. `STP-00011`: #179 re-test, `CHK-00001` (1 to 8) on 3.6.0.76; close #179 and #189 when they pass.
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
-- Test 3.6.0.75 (`CHK-00001`, `CHK-00002`, ignore echo checks); if #189's menu is still wrong, send `/pss acp profiles` output and the character drop-down value; close #179, #189, #183, #184 once tested.
+- #189: send `/pss acp profiles` output (after a Save into a free place), the look, client and character drop-down value; `DEC-00015` answered (2026-10-10): 1 mimic ACP, 2 yes, 3 send the line first, 4 yes (3.6.0.76).
+- Then test 3.6.0.76 (`CHK-00003`, `CHK-00001`, `CHK-00002`); close #179 and #189 once tested.
 - Ask for macros from #159 when ready.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: OK or revert P3 (inactive shipped lists no longer capture units or /who).
@@ -30,10 +35,8 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 None (02 section 12).
 
 ## Open issues (addon repo)
-- #189: the profile side menu (`ISS-00002`; built 3.6.0.75).
-- #179: Enable all / Disable all in a profile (built 3.6.0.74, `STP-00011`; blocked by #189).
-- #183: ignore auto-reply echo option (built 3.6.0.75, `STP-00012`).
-- #184: the reference framework (`ISS-00001`): steps done on scratch; close when the author agrees.
+- #189: no Load in the profile side menu (`ISS-00002`; 3.6.0.75 re-tested; next `STP-00017`, fix 3.6.0.76 `STP-00018`).
+- #179: Enable all / Disable all in a profile (built 3.6.0.74, `STP-00011`; blocked by #189; re-test on 3.6.0.76).
 - #159 to #169: Macro Helper macros, one issue per set (umbrella #159).
 - #152: window memory, build fewer frames (pane parts on first use, shared between tabs).
 - #37: the guild exclusion list is not saved (its intent needs defining).
