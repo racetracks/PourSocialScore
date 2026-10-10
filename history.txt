@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.89 - AddOns tab shows memory only, CPU removed
+
+- AddOns tab: the CPU is gone (top line, hover tips and the `/pss acp api` line); only memory is shown.
+
 => 3.6.0.88 - Dark menu rows take the label colour, a little fainter (#202)
 
 - Dark skin: the text in drop-down lists and right-click menus now uses the same white as the drop-down's own label, only a little fainter, so it reads clearly.

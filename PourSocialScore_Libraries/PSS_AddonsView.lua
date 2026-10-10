@@ -11,7 +11,7 @@
 --   V:Tick(k, on)  V:Toggle(k) V:CollapseAll(on)
 --   V:Tip(k)  V:Menu(k)  V:Act(k, act, arg)
 --   V:Sample()                 memory, once (never in combat)
---   V:Stats()                  the CPU and memory line at the top
+--   V:Stats()                  the memory line at the top
 --   V:Slots()  V:PresetMenu(p)  V:PresetAct(p, act, name)   (addon profiles)
 --   V:ProfileMenu()  (level 1: every place; PresetMenu is level 2)
 --   V:Release()                the window closed: the list is dropped
@@ -28,7 +28,6 @@ local concat = table.concat
 local Q = M.PSS_AddonText
 
 local COLORS = { ok = "ffffd100", off = "ff9d9d9d", lod = "ff71d5ff", warn = "ffff8000", bad = "ffff4040", reload = "ffc07fff" }
-local RED = "ffff4040"
 local ALERT = "|TInterface\\DialogFrame\\DialogIcon-AlertNew-16:14|t"
 local QUESTION = "Interface\\ICONS\\INV_Misc_QuestionMark"
 
@@ -36,11 +35,6 @@ local T = {
 	loaded = "%d of %d loaded",
 	footer = "%d addons, %d on for %s",
 	empty = "No addons match.",
-	performance = "AddOn Performance",
-	current = "Current CPU",
-	average = "Average CPU",
-	peak = "Peak CPU",
-	encounter = "Encounter CPU",
 	memory = "Memory",
 	notSampled = "not sampled",
 	notLoaded = "Not loaded.",
@@ -56,14 +50,6 @@ local T = {
 	mark = "*",
 }
 
-local function pct(v)
-	if v >= 1 then return format("%d%%", floor(v + 0.5)) end
-	if v >= 0.1 then return format("%.1f%%", v) end
-	if v >= 0.01 then return format("%.2f%%", v) end
-	return "0%"
-end
-M.PSS_AddonPct = pct
-
 local function kbText(kb)
 	if kb < 1024 then return format("%d KB", floor(kb + 0.5)) end
 	return format("%.1f MB", kb / 1024)
@@ -72,12 +58,6 @@ M.PSS_AddonKBText = kbText
 
 local function colored(key, text)
 	return "|c" .. (COLORS[key] or COLORS.ok) .. text .. "|r"
-end
-
--- a share, red with the alert mark above the client's warning share
-local function shareText(v, warn)
-	if v > warn then return "|c" .. RED .. pct(v) .. "|r " .. ALERT end
-	return pct(v)
 end
 
 -- an addon's own icon as text, the question mark when it has none
@@ -196,30 +176,18 @@ function View:Sample()
 	return self.sampled
 end
 
-local function cpuLines(lines, warn, avg, cur, peak, enc)
-	lines[#lines + 1] = format("%s: %s", T.average, shareText(avg, warn))
-	lines[#lines + 1] = format("%s: %s", T.current, shareText(cur, warn))
-	lines[#lines + 1] = format("%s: %s", T.peak, shareText(peak, warn))
-	lines[#lines + 1] = format("%s: %s", T.encounter, shareText(enc, warn))
-end
-
 -- the tooltip of line k
 function View:Tip(k)
 	local item = self.items[k]
 	local L = self.L
 	if not item or not L then return nil end
 	local lines = {}
-	local warn = M.PSS_AddonWarn()
 	if item < 0 then
 		local gi = -item
 		local g = L.groups[gi]
-		local avg, cur, peak, enc, loaded, total = M.PSS_AddonCPUGroup(L, gi)
+		local loaded, total = M.PSS_AddonGroupLoaded(L, gi)
 		lines[1] = g.name
-		lines[2] = format(T.loaded, loaded or 0, total or 0)
-		if avg then
-			lines[3] = ""
-			cpuLines(lines, warn, avg, cur, peak, enc)
-		end
+		lines[2] = format(T.loaded, loaded, total)
 		lines[#lines + 1] = ""
 		lines[#lines + 1] = format("%s: %s%s", T.memory, kbText(M.PSS_AddonMemGroup(L, gi)), self.sampled and "" or (" " .. T.lastRefresh))
 		return concat(lines, "\n")
@@ -246,8 +214,6 @@ function View:Tip(k)
 	if r.pss then lines[#lines + 1] = T.pssTip elseif r.locked then lines[#lines + 1] = T.protectedTip end
 	lines[#lines + 1] = ""
 	if r.loaded then
-		local avg, cur, peak, enc = M.PSS_AddonCPU(r.name)
-		if avg then cpuLines(lines, warn, avg, cur, peak, enc) end
 		lines[#lines + 1] = format("%s: %s%s", T.memory, kbText(M.PSS_AddonMemOf(i)), self.sampled and "" or (" " .. T.lastRefresh))
 	else
 		lines[#lines + 1] = T.notLoaded
@@ -255,20 +221,9 @@ function View:Tip(k)
 	return concat(lines, "\n")
 end
 
--- the line at the top: CPU as the client's own list shows it (when the
--- client's profiler is on) and the memory of the last sample
+-- the line at the top: the memory of the last sample
 function View:Stats()
-	local parts = {}
-	local cur, avg, peak = M.PSS_AddonCPUTotal()
-	local warn = M.PSS_AddonWarn()
-	if cur then
-		parts[1] = T.performance
-		parts[2] = format("%s %s", T.current, shareText(cur, warn))
-		parts[3] = format("%s %s", T.average, shareText(avg, warn))
-		parts[4] = format("%s %s", T.peak, shareText(peak, warn))
-	end
-	parts[#parts + 1] = format("%s %s", T.memory, self.total and kbText(self.total) or T.notSampled)
-	return concat(parts, "     ")
+	return format("%s %s", T.memory, self.total and kbText(self.total) or T.notSampled)
 end
 
 ------------------------------------------------------------------------

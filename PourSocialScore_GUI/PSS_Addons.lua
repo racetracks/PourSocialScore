@@ -4,8 +4,7 @@
 -- Every addon in one grouped, searchable list: a tick (on for this
 -- character or for all), the title in its state's colour, its status, a
 -- Load button for a load on demand addon, its memory and a protect mark.
--- A line at the top shows the CPU and memory of the client's own AddOn
--- list; hovering an addon shows its details and cost, a group header the
+-- A line at the top shows the memory of the AddOn list; hovering an addon shows its details and cost, a group header the
 -- group's sums. Addon Profiles (bottom left), Undo, Enable All, Disable All and
 -- Reload are under the list. Drawing only: Libraries (PSS_AddonsView.lua over
 -- PSS_AddonsQuery.lua) works out every text and does every change; the

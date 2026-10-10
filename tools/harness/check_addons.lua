@@ -4,7 +4,7 @@
 --   list group az lod tick deps all load undo pending sets profiles profiletick rename selforward lock prune
 --   noapi oldapi enum guid combat command slash saved charstore memory login
 --   big names forward coverage                     (stage 1: the logic)
---   perf perfgroup perftop perfcost                (stage 3: CPU and memory)
+--   nocpu perfcost                                 (memory only; no CPU)
 -- The stub's addon list is in wow_stub.lua (PSS_ADDONS, PSS_ADDON_*); its
 -- default list (H.AddonList) is the one these phases know.
 local phase = os.getenv("PSS_PHASE") or "list"
@@ -1851,81 +1851,33 @@ end
 ------------------------------------------------------------------------
 -- Resource usage (stage 3)
 ------------------------------------------------------------------------
-local function near(a, b) return a and math.abs(a - b) < 0.001 end
-
-function phases.perf()
+function phases.nocpu()
 	needLibraries()
-	-- DBM-Core 2/1/9/3 ms, Details 1/2/3/4 ms; the game adds 100 ms to the sums
-	local avg, cur, peak, enc = M.PSS_AddonCPU("DBM-Core")
-	local function share(v, metric) return 100 * v / (100 + v) end
-	check(near(avg, share(2)) and near(cur, share(1)) and near(peak, share(9)) and near(enc, share(3)), ("DBM-Core shares: %s %s %s %s"):format(tostring(avg), tostring(cur), tostring(peak), tostring(enc)))
-	check(M.PSS_AddonCPU("Details_Streamer") == nil, "a not loaded addon has no CPU")
-	-- the same for each metric (the stub's overall is the sum of every addon)
-	local pct = M.PSS_AddonPct
-	check(pct(12.4) == "12%" and pct(1) == "1%" and pct(0.5) == "0.5%" and pct(0.05) == "0.05%" and pct(0.001) == "0%", "share text: " .. pct(12.4) .. " " .. pct(0.5) .. " " .. pct(0.05) .. " " .. pct(0.001))
-	check(M.PSS_AddonKBText(500) == "500 KB" and M.PSS_AddonKBText(2048) == "2.0 MB", "memory text")
-	-- the warning share turns a line red with the alert mark
-	local V = M.PSS_AddonView()
-	V:Build()
-	V:Sample()
-	local function tip(name)
-		for k = 1, V:Count() do
-			local o = V:Row(k, {})
-			if o and o.name == name then return V:Tip(k) end
-		end
+	-- the CPU is gone from the interface and the code: no function, no profiler call, no text
+	for _, k in ipairs({ "PSS_AddonPerfOn", "PSS_AddonCPU", "PSS_AddonCPUGroup", "PSS_AddonCPUTotal", "PSS_AddonWarn", "PSS_AddonPct" }) do
+		check(M[k] == nil, k .. " still exists")
 	end
-	local t = tip("DBM-Core")
-	check(t:find("Average CPU: ", 1, true) and t:find("Current CPU: ", 1, true) and t:find("Peak CPU: ", 1, true) and t:find("Encounter CPU: ", 1, true), "all four CPU lines")
-	if not os.getenv("PSS_ADDON_WARN") then
-		check(t:find("AlertNew", 1, true) and t:find("ffff4040", 1, true), "a share over the warning share is red with the alert mark")
-	end
-	check(t:find("Memory: 3.9 MB", 1, true), "memory last: " .. tostring(t:match("Memory[^\n]*")))
-	t = tip("Atlas_Options")
-	check(t:find("Not loaded.", 1, true) and not t:find("CPU", 1, true), "not loaded: no numbers")
-	check(M.PSS_AddonWarn() == (tonumber(os.getenv("PSS_ADDON_WARN")) or 1), "the warning share is read from the CVar")
-	if os.getenv("PSS_ADDON_WARN") then
-		check(not tip("DBM-Core"):find("ffff4040", 1, true), "a high warning share: nothing red")
-	end
-end
-
-function phases.perfgroup()
-	needLibraries()
-	local L = M.PSS_AddonList("me", "group")
-	local gi = groupIndex(L, "DBM")
-	local avg, cur, peak, enc, loaded, total = M.PSS_AddonCPUGroup(L, gi)
-	check(loaded == 2 and total == 3, "2 of 3 loaded: " .. tostring(loaded) .. " of " .. tostring(total))
-	local single = M.PSS_AddonCPU("DBM-Core")
-	check(near(avg, single), "only loaded members count, the share formula on their sum")
-	local d = groupIndex(L, "Details")
-	local davg = M.PSS_AddonCPUGroup(L, d)
-	check(near(davg, (M.PSS_AddonCPU("Details"))), "a group of one loaded member equals the addon")
-	check(M.PSS_AddonMemGroup(L, gi) == 4600, "group memory: " .. M.PSS_AddonMemGroup(L, gi))
-	local V = M.PSS_AddonView()
-	V:Build()
-	local o = V:Row(1, {})
-	local tipText
-	for k = 1, V:Count() do
-		local r = V:Row(k, {})
-		if r.header and r.name == "DBM" then tipText = V:Tip(k) end
-	end
-	check(tipText and tipText:find("2 of 3 loaded", 1, true) and tipText:find("Average CPU:", 1, true), "the header tip: " .. tostring(tipText))
-end
-
-function phases.perftop()
-	needLibraries()
 	local V = M.PSS_AddonView()
 	V:Build()
 	V:Sample()
 	local text = V:Stats()
-	if os.getenv("PSS_ADDON_NOPROFILER") == "1" or os.getenv("PSS_ADDON_PROFILEROFF") == "1" then
-		check(not M.PSS_AddonPerfOn() and M.PSS_AddonCPUTotal() == nil, "no profiler: no CPU")
-		check(not text:find("CPU", 1, true) and text:find("Memory ", 1, true), "memory still shows: " .. text)
-		check(M.PSS_AddonCPU("DBM-Core") == nil, "no CPU per addon either")
-	else
-		local cur, avg, peak = M.PSS_AddonCPUTotal()
-		check(near(avg, 100 * 3 / 103) and near(cur, 100 * 3 / 103) and near(peak, 100 * 12 / 112), ("totals %s %s %s"):format(tostring(cur), tostring(avg), tostring(peak)))
-		check(text:find("AddOn Performance", 1, true) and text:find("Current CPU", 1, true) and text:find("Average CPU", 1, true) and text:find("Peak CPU", 1, true) and text:find("Memory ", 1, true), "the stats line: " .. text)
+	check(text == "Memory " .. M.PSS_AddonKBText(V.total), "the top line is memory only: " .. text)
+	check(not text:find("CPU", 1, true) and not text:find("Performance", 1, true), "CPU in the top line: " .. text)
+	local seen = 0
+	for k = 1, V:Count() do
+		local o = V:Row(k, {})
+		local t = V:Tip(k)
+		seen = seen + 1
+		check(t and not t:find("CPU", 1, true) and not t:find("AlertNew", 1, true), "CPU in a tip: " .. tostring(t))
+		if o.header and o.name == "DBM" then check(t:find("2 of 3 loaded", 1, true) and t:find("Memory: ", 1, true), "the group tip keeps loaded and memory: " .. t) end
+		if o.name == "DBM-Core" then check(t:find("Memory: 3.9 MB", 1, true), "memory last: " .. tostring(t:match("Memory[^\n]*"))) end
+		if o.name == "Atlas_Options" then check(t:find("Not loaded.", 1, true), "not loaded") end
 	end
+	check(seen > 0, "no rows")
+	check(M.PSS_AddonMemGroup(M.PSS_AddonList("me", "group"), groupIndex(M.PSS_AddonList("me", "group"), "DBM")) == 4600, "group memory")
+	check((H.calls.GetAddOnMetric or 0) == 0, "the profiler was read")
+	local l = pss("acp api")
+	for _, line in ipairs(l) do check(not tostring(line):lower():find("profiler", 1, true), "profiler in /pss acp api: " .. tostring(line)) end
 end
 
 function phases.perfcost()
@@ -1975,10 +1927,10 @@ function phases.coverage()
 	M.PSS_AddonPresetDelete(1, "char")
 	M.PSS_AddonLock("LibFoo", true, who) M.PSS_AddonLocked("LibFoo") M.PSS_AddonLock("LibFoo", false, who)
 	M.PSS_AddonViewMode("az") M.PSS_AddonViewMode("group") M.PSS_AddonLoadOld(true) M.PSS_AddonLoadOld(nil) M.PSS_AddonLoadOld(false)
-	M.PSS_AddonPerfOn() M.PSS_AddonCPU("DBM-Core") M.PSS_AddonCPUGroup(L, 1) M.PSS_AddonCPUTotal() M.PSS_AddonWarn()
+	M.PSS_AddonGroupLoaded(L, 1)
 	M.PSS_AddonPrune() M.PSS_AddonRelease()
 	M.PSS_AddonReload()
-	M.PSS_AddonPct(1) M.PSS_AddonKBText(1)
+	M.PSS_AddonKBText(1)
 	local V = M.PSS_AddonView()
 	V:Build()
 	for _, word in ipairs({ "list", "on zedone", "off zedone", "load atlas_options", "all on", "all off", "undo", "sets", "profiles", "set 1 save", "set 1 select", "set 1 deselect", "set 1 load",
