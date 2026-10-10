@@ -965,6 +965,54 @@ function phases.setsmenu()
 	win:Hide()
 end
 
+-- Dark side menus open beside the row on hover (3.6.0.85, issue 203)
+function phases.menuhover()
+	needLibraries()
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local pg = win.pages[4]
+	M.PSS_SetOpt("uiSkin", "global", 1)
+	local dd = pg.setsDD
+	check(not _G.PSS_MenuSide, "(a) the side panel exists before any hover")
+	dd.dark._scripts.OnClick(dd.dark)
+	local menu = _G.PSS_Menu
+	local function find(f, text)
+		for _, sl in ipairs(f and f.slots or {}) do
+			if sl:IsShown() and sl.entry and sl.entry.text and sl.entry.text:find(text, 1, true) then return sl end
+		end
+	end
+	check(not _G.PSS_MenuSide, "(a) opening the list built the side panel")
+	local p1 = find(menu, "Profile 1 (")
+	p1._scripts.OnEnter(p1)
+	local side = _G.PSS_MenuSide
+	check(side and side:IsShown(), "(b) hover did not open the side panel")
+	check(find(side, "Save") and find(side, "Load") and find(side, "Enable all") and find(side, "Disable all") and find(side, "Delete"), "(b) the side entries")
+	check(find(menu, "Profile 1 (") and not find(menu, "< Back") and not find(side, "< Back"), "(b) the list kept its rows, no Back line")
+	local pt = side._points and side._points[1]
+	check(pt and pt[1] == "TOPLEFT" and pt[2] == p1 and pt[3] == "TOPRIGHT", "(c) the side panel sits at the row's right")
+	local p2 = find(menu, "Profile 2 (")
+	p2._scripts.OnEnter(p2)
+	check(side:IsShown() and side.slots[1].entry ~= nil, "(d) another place refills it")
+	local title = find(menu, "Core Addon Profiles")
+	title._scripts.OnEnter(title)
+	check(not side:IsShown(), "(d) a heading closes it")
+	p1._scripts.OnClick(p1)
+	check(side:IsShown(), "(g) a click opens the side panel too")
+	local one = side
+	menu:Hide()
+	check(not side:IsShown(), "(f) closing the menu closes the side panel")
+	dd.dark._scripts.OnClick(dd.dark)
+	check(not _G.PSS_MenuSide:IsShown(), "(f) reopening shows no side panel")
+	p1 = find(menu, "Profile 1 (")
+	p1._scripts.OnEnter(p1)
+	check(_G.PSS_MenuSide == one, "(i) the side panel frame is reused")
+	local save = find(_G.PSS_MenuSide, "Save")
+	save._scripts.OnClick(save)
+	check(not menu:IsShown() and not _G.PSS_MenuSide:IsShown(), "(e) a choice closes both")
+	check(_G.PSS_Confirm and _G.PSS_Confirm:IsShown(), "(e) Save asked once")
+	win:Hide()
+end
+
 -- The menus through the kit, in the player's order (3.6.0.68, issue 180): a
 -- side menu must stay open when it is chosen (a menu opened from another
 -- menu's callback was closed again); Dark swaps to the place's entries under
@@ -984,12 +1032,18 @@ function phases.menuflow()
 			if sl:IsShown() and sl.entry and sl.entry.text and sl.entry.text:find(text, 1, true) then return sl end
 		end
 	end
+	local function sslot(text)
+		local sd = _G.PSS_MenuSide
+		for _, sl in ipairs(sd and sd.slots or {}) do
+			if sl:IsShown() and sl.entry and sl.entry.text and sl.entry.text:find(text, 1, true) then return sl end
+		end
+	end
 	local sl = slot("Profile 1 (empty)")
 	check(sl, "place 1 is not in the menu")
 	sl._scripts.OnClick(sl)
 	check(menu:IsShown(), "choosing a place closed the menu")
-	check(slot("< Back") and slot("Save") and slot("Rename") and slot("Load") and slot("Select"), "the free place's entries")
-	local save = slot("Save")
+	check(sslot("Save") and sslot("Rename") and sslot("Load") and sslot("Select") and not sslot("< Back"), "the free place's entries")
+	local save = sslot("Save")
 	save._scripts.OnClick(save)
 	check(not menu:IsShown(), "Save left the menu open")
 	local cf = _G.PSS_Confirm
@@ -1002,13 +1056,13 @@ function phases.menuflow()
 	sl = slot("Profile 1 (")
 	check(sl and not sl.entry.text:find("empty", 1, true), "place 1 still reads empty")
 	sl._scripts.OnClick(sl)
-	check(slot("Select") and slot("Load") and slot("Enable all") and slot("Disable all") and slot("Delete"), "the used place's entries")
-	local back = slot("< Back")
-	back._scripts.OnClick(back)
-	check(menu:IsShown() and slot("Core Addon Profiles") and slot("Layered Addon Profiles"), "Back did not return to the list")
+	check(sslot("Select") and sslot("Load") and sslot("Enable all") and sslot("Disable all") and sslot("Delete"), "the used place's entries")
+	local title = slot("Core Addon Profiles")
+	title._scripts.OnEnter(title)
+	check(menu:IsShown() and not _G.PSS_MenuSide:IsShown() and slot("Layered Addon Profiles"), "a heading did not close the side menu")
 	sl = slot("Profile 1 (")
 	sl._scripts.OnClick(sl)
-	local sel = slot("Select")
+	local sel = sslot("Select")
 	sel._scripts.OnClick(sel)
 	check(M.PSS_AddonProfileSelected(1, "me"), "Select did not select")
 	dd.dark._scripts.OnClick(dd.dark)
@@ -1098,7 +1152,7 @@ function phases.placetick()
 	check(tick(2).on() == true and menu:IsShown(), "(i) a click on the box ticked it and kept the menu open")
 	H.cursorX = 500
 	sl._scripts.OnClick(sl)
-	check(menu:IsShown() and not (tick(2).on() == false), "(i) a click beside the box opened the side menu, not the tick")
+	check(menu:IsShown() and not (tick(2).on() == false) and _G.PSS_MenuSide and _G.PSS_MenuSide:IsShown(), "(i) a click beside the box opened the side menu, not the tick")
 	H.cursorX = nil
 	menu:Hide()
 	-- Blizzard's menu: a checkbox with the side menu under it
