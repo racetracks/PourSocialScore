@@ -4,6 +4,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 => 3.6.0.89 - AddOns tab shows memory only, CPU removed
 
 - AddOns tab: the CPU is gone (top line, hover tips and the `/pss acp api` line); only memory is shown.
+- Dark skin: unselected tab labels (Player Ignore List, AddOns, ...) use the full label white, a little fainter than the selected tab.
 
 => 3.6.0.88 - Dark menu rows take the label colour, a little fainter (#202)
 

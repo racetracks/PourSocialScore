@@ -30,6 +30,8 @@ ns.DARK = {
 	closeHover = { 1, 1, 1, 1 },
 	text = { 1, 1, 1, 1 },
 	-- the alpha of a menu row and a menu title (the text colour is DARK.text)
+	-- an unselected tab's label: the label colour, one step fainter
+	tabText = 0.85,
 	menuText = 0.85,
 	menuTitle = 0.6,
 	disabledText = { 0.5, 0.5, 0.5, 1 },

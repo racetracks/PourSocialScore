@@ -429,7 +429,6 @@ local TAB_TEMPLATES = { "PanelTopTabButtonTemplate", "TabButtonTemplate" }
 -- the template's art for an unselected and a selected tab
 local TAB_IDLE = { "Left", "Middle", "Right" }
 local TAB_ACTIVE = { "LeftActive", "MiddleActive", "RightActive" }
-local TAB_DIM = 0.7
 
 function ns.NewTab(parent, text, onClick)
 	local tab
@@ -520,8 +519,8 @@ function ns.SetTabSelected(tab, selected)
 		tab:SetNormalFontObject(ns.Font(11, selected and "GameFontHighlightSmall" or "GameFontNormalSmall"))
 	elseif plain then
 		fs:SetPoint("CENTER", tab, "CENTER", 0, 0)
-		-- unselected: dimmed but easy to read on the dark plate (Dan, 2026-10-07)
-		fs:SetAlpha(selected and 1 or TAB_DIM)
+		-- unselected: the label colour, a little fainter, easy to read on the dark plate
+		fs:SetAlpha(selected and 1 or DARK.tabText)
 	else
 		fs:SetPoint("CENTER", tab, "CENTER", 0, selected and 0 or -1)
 		fs:SetAlpha(1)

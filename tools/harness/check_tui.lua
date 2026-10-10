@@ -334,7 +334,9 @@ check(darkShown(kit.page) and not kit.page.pssParts.art:IsShown(), "Dark panel n
 check(darkShown(kit.textArea) and darkShown(kit.boxes[4]), "Dark text area or hinted box not shown")
 check(darkShown(kit.buttons[3]) and darkShown(kit.menus.picker.saveButton), "Dark primary buttons not shown")
 check(tab1.pssLine:IsShown() and not tab2.pssLine:IsShown(), "Dark tab underline not on the selected tab only")
-check(tab2:GetFontString():GetAlpha() == 0.7 and tab1:GetFontString():GetAlpha() == 1, "Dark tab labels not faded to 0.7 by alpha")
+check(tab2:GetFontString():GetAlpha() == ui.DARK.tabText and tab1:GetFontString():GetAlpha() == 1 and ui.DARK.tabText > 0.7 and ui.DARK.tabText < 1, "Dark tab labels not the 0.85 step by alpha")
+local r2, g2, b2 = tab2:GetFontString():GetTextColor()
+check(r2 == 1 and g2 == 1 and b2 == 1, "Dark tab label is not the label white")
 kit.tabs[3]._scripts.OnClick(kit.tabs[3])
 check(kit.tabs[3].pssSelected and not tab1.pssSelected, "tab click did not select it")
 check(kit.pages[3]:IsShown() and not kit.pages[1]:IsShown(), "tab click did not show its page")
@@ -349,6 +351,7 @@ check(_G.PSS_Tooltip and _G.PSS_Tooltip:IsShown(), "Dark tooltip not shown")
 owner._scripts.OnLeave(owner)
 M.PSS_SetOpt("uiSkin", "global", 0)
 check(not darkShown(b1) and not c1.pssParts.box:IsShown(), "back to Blizzard: Dark parts still shown")
+check(tab2:GetFontString():GetAlpha() == 1, "Classic unselected tab label alpha changed")
 local tipOwner
 local realOwner = GameTooltip.SetOwner
 GameTooltip.SetOwner = function(_, o) tipOwner = o end
