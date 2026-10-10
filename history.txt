@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.86 - Revert PR 207: CLAUDE.md back to its 3.6.0.84 version
+
+- Reverts PR 207: CLAUDE.md is back to its 3.6.0.84 version. No addon change.
+
 => 3.6.0.84 - Addon Profiles: Load on every place, tick boxes, reload tally; Reload works on Camelot
 
 - Addon Profiles: each profile in the Profiles drop-down has a tick box. Ticking it turns all of that profile's addons on, unticking turns them off, at once; a profile with nothing saved says so.
@@ -14,7 +18,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 => 3.6.0.83 - Docs: addon-helper references repointed
 
 - Docs only: CLAUDE.md, the status, handover and rules docs and one code comment point at the addon-helper feature documentation on scratch instead of the retired addon-manager folder. Nothing in the addon changes.
-- 3.6.0.82 is the Addon Profiles build on its own branch; the later fixes move up one build: #192 3.6.0.84, #203 3.6.0.85.
+- 3.6.0.82 is the Addon Profiles build on its own branch; the later fixes move up one build: #192 3.6.0.84, #203 3.6.0.86.
 
 => 3.6.0.81 - Docs: summaries end with a references table
 
