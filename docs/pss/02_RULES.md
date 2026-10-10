@@ -104,7 +104,8 @@ The full rule set is the **Interface** section of `CLAUDE.md`; this is its short
 6. Window state and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` keys); no new SavedVariables (exception: `PSS_CharDB`, section 3).
 7. **Only the main window's title carries the addon's name.** Popup titles say what they ask ("Remove Player?").
 8. **Core's note and party warning popups stay Blizzard StaticPopups in every look** (1.4).
-9. **EllesmereUI is the reference framework for UI elements:** check out `EllesmereGaming/EllesmereUI` (read only) when building an element needs more information; ported code is rewritten to our rules, never copied verbatim (03 section 0).
+9. **Every page that draws options is on the redraw list** (`PSS_Options.lua`, `OPTION_CHANGED` listener), and an event-driven feature fixes its `M.Events` payloads with a test (`check_dtt.lua` phases `refresh`, `bus`): a new page or consumer adds both in its stage. A test looks at the drawn result of an event before reopening the page.
+10. **EllesmereUI is the reference framework for UI elements:** check out `EllesmereGaming/EllesmereUI` (read only) when building an element needs more information; ported code is rewritten to our rules, never copied verbatim (03 section 0).
 
 ## 12. Overrides of the baseline
 The only places PSS differs, each with the author's OK. Add a row (with the OK) before shipping anything else that differs; a difference not listed is a bug. A breach waiting for a fix is listed with the line that fixes it.
