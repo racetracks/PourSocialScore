@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.1.94 - Drop Cheapest Thing: shift-click an item into the item lists
+
+- Shift-click an item (from your bags or a chat link) while the cursor is in the "Always destroy" or "Never destroy" box of PSS Drop Cheapest Thing to add it, as in the old addon.
+
 => 3.6.1.93 - PSS Drop Cheapest Thing
 
 - New optional feature, PSS Drop Cheapest Thing (off by default; turn it on under Options, Enabled components, then reload): a minimap button and /pss dtt (also /dropcheap and /dtct) that destroy your cheapest junk item, or sell it when a merchant is open, one item at a time and only when you ask. The button shows the cheapest item's picture; Shift-click acts, right-click opens its options.

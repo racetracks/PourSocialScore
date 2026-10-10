@@ -250,6 +250,28 @@ end
 -- onRemove(id) report the player's change; the caller saves and redraws.
 -- Parsing and item text are Libraries (M.PSS_ItemIDFromText, M.PSS_ItemText).
 local ITEM_H = 22
+-- A link shift-clicked (a bag item, a chat link) while an item list's box is
+-- being edited goes into it, as the old addon did. A post-hook on the link
+-- insert (baseline 02 J3; PSS 02 10.3), made once, doing nothing unless a
+-- list's box has the focus.
+local itemBoxes = setmetatable({}, { __mode = "k" })
+local linkHooked
+local function OnInsertLink(text)
+	if type(text) ~= "string" or ns.M.PSS_IsSecret(text) then return end
+	for box, add in pairs(itemBoxes) do
+		if box:IsVisible() and box:HasFocus() then add(text) return end
+	end
+end
+local function HookItemLinks()
+	if linkHooked then return end
+	if ChatFrameUtil and type(ChatFrameUtil.InsertLink) == "function" then
+		hooksecurefunc(ChatFrameUtil, "InsertLink", OnInsertLink)
+		linkHooked = true
+	elseif type(ChatEdit_InsertLink) == "function" then
+		hooksecurefunc("ChatEdit_InsertLink", OnInsertLink)
+		linkHooked = true
+	end
+end
 function ns.NewItemList(parent, w, onAdd, onRemove)
 	local M = ns.M
 	local list = CreateFrame("Frame", nil, parent)
@@ -263,6 +285,8 @@ function ns.NewItemList(parent, w, onAdd, onRemove)
 	end
 	local box = ns.NewEditBox(list, w - 64, 256, "Paste a link, type an id or drop an item")
 	box:SetPoint("TOPLEFT", list, "TOPLEFT", 0, -2)
+	itemBoxes[box] = Add
+	HookItemLinks()
 	box:SetScript("OnEnterPressed", function(self) Add(self:GetText()); self:ClearFocus() end)
 	box:SetScript("OnEscapePressed", function(self) self:SetText(""); self:ClearFocus() end)
 	local add = ns.NewButton(list, "Add", 56, function() Add(box:GetText()) end)

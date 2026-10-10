@@ -456,6 +456,8 @@ function phases.options()
 	-- the group title, the toggle and the section: off here (the note, no rows),
 	-- on in the `optionson` run (disabled until the switch, live after the reload)
 	local on = M.PSS_On("dtt")
+	ChatFrameUtil = ChatFrameUtil or {}
+	ChatFrameUtil.InsertLink = function() return false end
 	SlashCmdList["PSS"]("gui")
 	local win = _G.PSS_Window
 	win.tabs[4]._scripts.OnClick(win.tabs[4])
@@ -476,8 +478,17 @@ function phases.options()
 		local lists = 0
 		for _, it in ipairs(g.items) do if it.row.itemlist then lists = lists + 1 end end
 		check(lists == 2, "item lists " .. lists)
+		-- a shift-clicked bag item goes into the focused box and is added
+		local l = g.items[#g.items - 1].row.itemlist
+		l.box._focus = true
+		ChatFrameUtil.InsertLink("|cffffffff|Hitem:4242::::::::|h[X]|h|r")
+		l.box._focus = nil
+		check(M.PSS_Opt("dttAlways") == "1;4242", "shift-click did not add: " .. tostring(M.PSS_Opt("dttAlways")))
+		ChatFrameUtil.InsertLink("|cffffffff|Hitem:5555::::::::|h[Y]|h|r")
+		check(M.PSS_Opt("dttAlways") == "1;4242", "added without focus")
+		M.PSS_OptItemRemove(M.PSS_OPTION_REG.dttAlways, 4242)
 		-- add by id through the list, then remove
-		local l = g.items[#g.items].row.itemlist
+		l = g.items[#g.items].row.itemlist
 		l.box:SetText("777")
 		l.box._scripts.OnEnterPressed(l.box)
 		check(M.PSS_Opt("dttNever") == "1;777", "list add saved " .. tostring(M.PSS_Opt("dttNever")))
