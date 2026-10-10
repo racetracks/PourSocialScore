@@ -1,10 +1,6 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
-=> 3.6.0.85 - CLAUDE.md: Reference framework block rewritten
-
-- Docs only: the Reference framework section of CLAUDE.md rewritten as one shorter block (same rules; current framework files and the refkey tool linked). No addon change.
-
 => 3.6.0.84 - Addon Profiles: Load on every place, tick boxes, reload tally; Reload works on Camelot
 
 - Addon Profiles: each profile in the Profiles drop-down has a tick box. Ticking it turns all of that profile's addons on, unticking turns them off, at once; a profile with nothing saved says so.
