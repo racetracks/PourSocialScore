@@ -75,6 +75,14 @@ function ns.BuildKitPage(win)
 	h1:SetPoint("LEFT", s1, "RIGHT", 12, 0)
 
 	y = y - 32
+	Label("Item list")
+	local il
+	il = ns.NewItemList(page, 360, function(id) il.added = id end, function(id) il.removed = id end)
+	il:SetPoint("TOPLEFT", page, "TOPLEFT", 120, y)
+	il:SetItems({ 6948, 2589 })
+	y = y - 26 - 2 * 22
+
+	y = y - 32
 	Label("Tooltip")
 	local hover = ns.NewText(page, 12)
 	hover:SetPoint("TOPLEFT", page, "TOPLEFT", 120, y - 4)
@@ -123,7 +131,7 @@ function ns.BuildKitPage(win)
 	local menus = ns.BuildKitMenus(pages[3])
 	Select(1)
 
-	win.kit = { tabs = tabs, pages = pages, page = page, lists = lists, menus = menus, buttons = { b1, b2, b3 }, checks = { c1, c2 }, boxes = { e1, n1, s1, h1 }, textArea = ta, allowed = allowed, line = line, label = lbl, scroll = sf, tipOwner = hit }
+	win.kit = { tabs = tabs, pages = pages, page = page, lists = lists, menus = menus, buttons = { b1, b2, b3 }, checks = { c1, c2 }, boxes = { e1, n1, s1, h1 }, itemList = il, textArea = ta, allowed = allowed, line = line, label = lbl, scroll = sf, tipOwner = hit }
 end
 
 -- Page 2: a sortable list of 200 sample entries and a pie

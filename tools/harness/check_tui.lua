@@ -289,6 +289,29 @@ local function darkShown(w) return w and w.pssParts and w.pssParts.fill:IsShown(
 check(b1 and not darkShown(b1) and not b1.pssParts.edge:IsShown(), "Blizzard button shows Dark parts")
 check(e1 and not darkShown(e1), "Blizzard edit box shows Dark parts")
 check(kit.page and kit.page.pssParts.art and kit.page.pssParts.art:IsShown(), "Blizzard panel not shown")
+-- interface-helper stage 1: the item list (add by id, link and drag; remove)
+local il = kit.itemList
+check(il and #il.rows == 2 and il.rows[1]:IsShown(), "item list did not draw its two rows")
+il.box:SetText("item:1234")
+il.box._scripts.OnEnterPressed(il.box)
+check(il.added == 1234 and il.box:GetText() == "", "item list: a pasted link was not added")
+il.box:SetText(" 777 ")
+il.add._scripts.OnClick(il.add)
+check(il.added == 777, "item list: a typed id was not added")
+il.box:SetText("not an item")
+il.added = nil
+il.add._scripts.OnClick(il.add)
+check(il.added == nil, "item list: text with no item was added")
+_G.GetCursorInfo = function() return "item", 4321, "|cffffffff|Hitem:4321::::|h[X]|h|r" end
+local cleared
+_G.ClearCursor = function() cleared = true end
+il.box._scripts.OnReceiveDrag(il.box)
+check(il.added == 4321 and cleared, "item list: a dropped item was not added or the cursor not cleared")
+_G.GetCursorInfo, _G.ClearCursor = nil, nil
+il.rows[1].remove._scripts.OnClick(il.rows[1].remove)
+check(il.removed == 6948, "item list: remove did not report the item")
+il:SetItems({ 1 })
+check(not il.rows[2]:IsShown() and il:GetHeight() == 26 + 22, "item list did not hide spare rows")
 -- W3: the kit additions, in the Classic look (the harness starts in it)
 local b3, h1 = kit.buttons[3], kit.boxes[4]
 check(b3.pssPrimary == true and kit.buttons[1].pssPrimary == nil, "NewButton's primary argument not kept")

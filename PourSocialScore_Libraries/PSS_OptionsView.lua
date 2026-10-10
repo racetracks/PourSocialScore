@@ -59,6 +59,36 @@ end
 
 -- every option under its section, in M.PSS_OPTIONS order (an inline
 -- number is drawn by its tick box), with the text the search looks in
+-- an item list entry (Drop The Cheapest Thing): an item link, "item:<id>" or
+-- a plain id, to the item id (nil for anything else)
+function M.PSS_ItemIDFromText(text)
+	if type(text) ~= "string" then return nil end
+	local id = text:match("item:(%d+)") or text:match("^%s*(%d+)%s*$")
+	id = tonumber(id)
+	if id and id > 0 then return floor(id) end
+end
+
+-- the name and icon a row of an item list shows: the item's own when the
+-- client knows it, else "item:<id>" and the question mark
+function M.PSS_ItemText(id)
+	local get = C_Item and C_Item.GetItemInfo or GetItemInfo
+	local name = get and get(id)
+	local geti = C_Item and C_Item.GetItemIconByID or GetItemIconByID
+	local icon = geti and geti(id)
+	return name or ("item:" .. id), icon or 134400
+end
+
+-- a section's group title ("Feature Options", the group the Options builder
+-- and the navigation draw once above its sections), and the line shown in
+-- place of its rows while its Enabled component is off (nil: always live)
+function M.PSS_OptSectionGroup(section)
+	return M.PSS_OPTION_SECTION_GROUP and M.PSS_OPTION_SECTION_GROUP[section]
+end
+function M.PSS_OptSectionOff(section)
+	local g = M.PSS_OPTION_SECTION_GATE and M.PSS_OPTION_SECTION_GATE[section]
+	if g and not M.PSS_On(g.on) then return g.text end
+end
+
 function M.PSS_OptGroups()
 	local groups = {}
 	local sections = M.PSS_OPTION_SECTIONS
@@ -67,7 +97,8 @@ function M.PSS_OptGroups()
 		for _, o in ipairs(M.PSS_OPTIONS) do
 			if o.section == section and not o.inline and not o.retired then
 				if not g then
-					g = { title = ((sections[section] or ""):gsub("[:%s]+$", "")), items = {} }
+					g = { title = ((sections[section] or ""):gsub("[:%s]+$", "")), items = {}, section = section,
+						group = M.PSS_OptSectionGroup(section), off = M.PSS_OptSectionOff(section) }
 					groups[#groups + 1] = g
 				end
 				g.items[#g.items + 1] = { o = o, find = lower(M.PSS_OptLabel(o) .. "\n" .. (o.tip or "")) }
@@ -124,6 +155,32 @@ end
 -- the reload now
 function M.PSS_ReloadNow()
 	return M.PSS_ReloadPrompt()
+end
+
+-- an itemlist option: its ids (the saved value is a packed string; the
+-- pack and parse arrive with the first option that uses the kind)
+function M.PSS_OptItems(o)
+	local v = M.PSS_Opt(o.key)
+	local ids = {}
+	if type(v) == "string" then
+		for n in v:gmatch("%d+") do ids[#ids + 1] = tonumber(n) end
+	end
+	return ids
+end
+local function SaveItems(o, ids)
+	M.PSS_SetOpt(o.key, "global", #ids > 0 and table.concat(ids, ",") or nil)
+end
+function M.PSS_OptItemAdd(o, id)
+	local ids = M.PSS_OptItems(o)
+	for _, v in ipairs(ids) do if v == id then return false end end
+	ids[#ids + 1] = id
+	SaveItems(o, ids)
+	return true
+end
+function M.PSS_OptItemRemove(o, id)
+	local ids, out = M.PSS_OptItems(o), {}
+	for _, v in ipairs(ids) do if v ~= id then out[#out + 1] = v end end
+	SaveItems(o, out)
 end
 
 function M.PSS_OptNumberText(o)

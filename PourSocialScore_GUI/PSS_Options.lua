@@ -97,6 +97,17 @@ local function OptionRow(content, o, rows)
 			end
 		end
 		row.check = c
+	elseif o.kind == "itemlist" then
+		-- the label above, the list below (Libraries packs and edits the ids)
+		label:ClearAllPoints()
+		label:SetPoint("TOPLEFT", row, "TOPLEFT", 14, -4)
+		local l = ns.NewItemList(row, 360, function(id) M.PSS_OptItemAdd(o, id) end, function(id) M.PSS_OptItemRemove(o, id) end)
+		l:SetPoint("TOPLEFT", row, "TOPLEFT", 14, -(ROW_H - 2))
+		refresh = function()
+			l:SetItems(M.PSS_OptItems(o))
+			row:SetHeight(ROW_H + l:GetHeight())
+		end
+		row.itemlist = l
 	elseif o.kind == "number" then
 		local e = ns.NewNumberBox(row, 60)
 		e:SetPoint("LEFT", row, "RIGHT", -CONTROL_X + 4, 0)
@@ -132,9 +143,20 @@ local function BuildOptions(page, only)
 	for _, g in ipairs(M.PSS_OptGroups()) do
 		if not only or g.title == only then groups[#groups + 1] = g end
 	end
+	local lastGroup
 	for _, g in ipairs(groups) do
 		g.heading = ns.NewHeading(content, g.title)
-		for _, it in ipairs(g.items) do it.row = OptionRow(content, it.o, rows) end
+		if g.group and g.group ~= lastGroup then
+			g.groupHeading = ns.NewHeading(content, g.group)
+		end
+		lastGroup = g.group
+		if g.off then
+			g.offNote = ns.NewText(content, 12)
+			g.offNote:SetAlpha(0.6)
+			g.offNote:SetText(g.off)
+		else
+			for _, it in ipairs(g.items) do it.row = OptionRow(content, it.o, rows) end
+		end
 	end
 	local note = ns.NewText(content, 11)
 	note:SetAlpha(0.6)
@@ -150,18 +172,34 @@ local function BuildOptions(page, only)
 			local n = 0
 			for _, it in ipairs(g.items) do
 				local on = M.PSS_OptMatches(g, it, q)
-				it.row:SetShown(on)
+				if it.row then it.row:SetShown(on) end
 				if on then
 					if n == 0 then
+						if g.groupHeading then
+							g.groupHeading:ClearAllPoints()
+							g.groupHeading:SetPoint("TOPLEFT", content, "TOPLEFT", 6, y - 4)
+							y = y - 28
+						end
 						g.heading:ClearAllPoints()
-						g.heading:SetPoint("TOPLEFT", content, "TOPLEFT", 6, y - 4)
+						g.heading:SetPoint("TOPLEFT", content, "TOPLEFT", g.group and 14 or 6, y - 4)
 						y = y - 28
 					end
-					it.row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
-					y = y - ROW_H
+					if it.row then
+						it.row:ClearAllPoints()
+						it.row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
+						it.row:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+						y = y - it.row:GetHeight()
+					elseif n == 0 then
+						g.offNote:ClearAllPoints()
+						g.offNote:SetPoint("TOPLEFT", content, "TOPLEFT", 14, y - 4)
+						y = y - 24
+					end
 					n = n + 1
+					if not it.row then break end
 				end
 			end
+			if g.groupHeading then g.groupHeading:SetShown(n > 0) end
+			if g.offNote then g.offNote:SetShown(n > 0) end
 			g.heading:SetShown(n > 0)
 			if n > 0 then y = y - 8 end
 			shown = shown + n
@@ -192,6 +230,12 @@ end
 ns.PageBuilders.options = function(page)
 	optionsPage = page
 	return BuildOptions(page)
+end
+
+-- the page of one grouped section (a nav entry with a section): only that
+-- section's rows
+function ns.SectionBuilder(row)
+	return function(page) return BuildOptions(page, (M.PSS_OPTION_SECTIONS[row.section]:gsub("[:%s]+$", ""))) end
 end
 
 ns.PageBuilders.features = function(page)

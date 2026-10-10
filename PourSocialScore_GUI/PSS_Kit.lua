@@ -242,6 +242,104 @@ function ns.NewEditBox(parent, w, maxLetters, hint)
 	return e
 end
 
+-- An item list (interface-helper, Drop The Cheapest Thing): ns.NewItemList(
+-- parent, w, onAdd, onRemove). An edit box that takes a pasted link, an
+-- item id or "item:<id>" (Enter or Add), or an item dropped on it (cursor
+-- read once, then cleared), above rows of icon, name and a remove button.
+-- list:SetItems(ids) draws them (the rows are a pool); onAdd(id) and
+-- onRemove(id) report the player's change; the caller saves and redraws.
+-- Parsing and item text are Libraries (M.PSS_ItemIDFromText, M.PSS_ItemText).
+local ITEM_H = 22
+function ns.NewItemList(parent, w, onAdd, onRemove)
+	local M = ns.M
+	local list = CreateFrame("Frame", nil, parent)
+	list:SetSize(w, 26)
+	list.rows, list.items = {}, {}
+	local function Add(text)
+		local id = M.PSS_ItemIDFromText(text)
+		if id and onAdd then onAdd(id) end
+		list.box:SetText("")
+		return id
+	end
+	local box = ns.NewEditBox(list, w - 64, 256, "Paste a link, type an id or drop an item")
+	box:SetPoint("TOPLEFT", list, "TOPLEFT", 0, -2)
+	box:SetScript("OnEnterPressed", function(self) Add(self:GetText()); self:ClearFocus() end)
+	box:SetScript("OnEscapePressed", function(self) self:SetText(""); self:ClearFocus() end)
+	local add = ns.NewButton(list, "Add", 56, function() Add(box:GetText()) end)
+	add:SetHeight(20)
+	add:SetPoint("LEFT", box, "RIGHT", 6, 0)
+	local function Drop()
+		local kind, id, link = GetCursorInfo()
+		if kind == "item" then
+			if ClearCursor then ClearCursor() end
+			Add(link or ("item:" .. tostring(id)))
+		end
+	end
+	for _, f in ipairs({ list, box }) do
+		f:SetScript("OnReceiveDrag", Drop)
+		f:EnableMouse(true)
+	end
+	list.box, list.add = box, add
+
+	local function Row(i)
+		local r = list.rows[i]
+		if r then return r end
+		r = CreateFrame("Frame", nil, list)
+		r:SetHeight(ITEM_H)
+		r:SetPoint("LEFT", list, "LEFT", 0, 0)
+		r:SetPoint("RIGHT", list, "RIGHT", 0, 0)
+		r:SetPoint("TOP", list, "TOP", 0, -(26 + (i - 1) * ITEM_H))
+		r.hl = r:CreateTexture(nil, "BACKGROUND")
+		r.hl:SetAllPoints(r)
+		r.icon = r:CreateTexture(nil, "ARTWORK")
+		r.icon:SetSize(18, 18)
+		r.icon:SetPoint("LEFT", r, "LEFT", 14, 0)
+		r.text = ns.NewText(r, 12)
+		r.text:SetPoint("LEFT", r.icon, "RIGHT", 6, 0)
+		r.text:SetPoint("RIGHT", r, "RIGHT", -34, 0)
+		r.text:SetJustifyH("LEFT")
+		r.text:SetWordWrap(false)
+		r.remove = ns.NewButton(r, "x", 24, function() if onRemove then onRemove(r.id) end end)
+		r.remove:SetHeight(18)
+		r.remove:SetPoint("RIGHT", r, "RIGHT", -4, 0)
+		r:EnableMouse(true)
+		r:SetScript("OnEnter", function(self) self.hot = true; self.paint() end)
+		r:SetScript("OnLeave", function(self) self.hot = nil; self.paint() end)
+		r.paint = function()
+			local hot = r.hot
+			r.hl:SetShown(hot == true)
+			if hot then
+				if not ns.IsDark() and ns.HasAtlas("Options_List_Hover") then
+					r.hl:SetAtlas("Options_List_Hover")
+					r.hl:SetVertexColor(1, 1, 1, 1)
+				else
+					r.hl:SetColorTexture(DARK.hover[1], DARK.hover[2], DARK.hover[3], DARK.hover[4])
+				end
+			end
+		end
+		list.rows[i] = r
+		return r
+	end
+
+	function list:SetItems(ids)
+		ids = ids or {}
+		self.items = ids
+		for i, id in ipairs(ids) do
+			local r = Row(i)
+			r.id = id
+			local name, icon = M.PSS_ItemText(id)
+			r.text:SetText(name)
+			r.icon:SetTexture(icon)
+			r:Show()
+			r.paint()
+		end
+		for i = #ids + 1, #self.rows do self.rows[i]:Hide() end
+		self:SetHeight(26 + #ids * ITEM_H)
+	end
+	list:SetItems({})
+	return list
+end
+
 function ns.NewNumberBox(parent, w)
 	local e = ns.NewEditBox(parent, w)
 	e:SetNumeric(true)

@@ -89,6 +89,11 @@ for _, o in ipairs(COMPONENTS) do OPTIONS[#OPTIONS + 1] = o end
 local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:", "Enabled components:" }
 -- the order the Options tab lists the sections in (Enabled components first)
 M.PSS_OPTION_SECTION_ORDER = { 6, 1, 2, 3, 4, 5 }
+-- sections drawn under a group title, and sections shown disabled (one line)
+-- while their Enabled component is off: { [section] = ... }; none yet
+M.PSS_OPTION_SECTION_GROUP = {}
+M.PSS_OPTION_SECTION_GATE = {}
+M.PSS_OPTION_SECTION_PAGE = {}	-- section -> its Addon Manager page key
 
 local REG = {}
 for _, o in ipairs(OPTIONS) do REG[o.key] = o end
