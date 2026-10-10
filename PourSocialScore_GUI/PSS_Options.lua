@@ -202,7 +202,7 @@ local function BuildOptions(page, only)
 			if g.offNote then g.offNote:SetShown(n > 0) end
 			g.heading:SetShown(n > 0)
 			if n > 0 then y = y - 8 end
-			shown = shown + n
+			shown = shown + (g.off and 0 or n)
 		end
 		none:SetShown(shown == 0)
 		none:ClearAllPoints()

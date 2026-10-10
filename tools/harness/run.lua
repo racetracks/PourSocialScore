@@ -42,7 +42,7 @@ end
 -- again once startup is done (a fresh install wipes the options table).
 local function injectComponents()
 	local want = os.getenv("PSS_COMPONENTS") or "addons,gfx"
-	local KEYS = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering" }
+	local KEYS = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering", dtt = "useDtt" }
 	if want == "none" then return end
 	PSS_OptionsDB = PSS_OptionsDB or {}
 	for tok in want:gmatch("[^,]+") do

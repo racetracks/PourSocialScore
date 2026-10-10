@@ -187,6 +187,11 @@ sh "$here/addons_phases.sh" "$work" || fail=1
 echo "== enabled components"
 sh "$here/components_phases.sh" "$work" || fail=1
 
+# PSS Drop Cheapest Thing (money-helper): scan, filters, act, command, button,
+# round trips, the log, the merchant button, off = zero cost (dtt_phases.sh)
+echo "== drop cheapest thing"
+sh "$here/dtt_phases.sh" || fail=1
+
 # the new window's Libraries maths (3.4.0-dev005): pane numbers equal the
 # core's counts, slices, back / forward, throttle
 echo "== new window maths"

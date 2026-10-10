@@ -116,7 +116,7 @@ end
 
 -- an Enabled components row: its label with a note, whether it can be ticked
 -- (Graphics is Camelot only), and whether the change waits for a reload
-local COMPONENT_NAME = { useAddons = "addons", useLogging = "logging", useGfx = "gfx", useFiltering = "filtering" }
+local COMPONENT_NAME = { useAddons = "addons", useLogging = "logging", useGfx = "gfx", useFiltering = "filtering", useDtt = "dtt" }
 function M.PSS_OptGate(o)
 	local name = COMPONENT_NAME[o.key]
 	if not name then return true, "" end
@@ -157,31 +157,57 @@ function M.PSS_ReloadNow()
 	return M.PSS_ReloadPrompt()
 end
 
--- an itemlist option: its ids (the saved value is a packed string; the
--- pack and parse arrive with the first option that uses the kind)
-function M.PSS_OptItems(o)
-	local v = M.PSS_Opt(o.key)
+-- Saved item lists (SAV-00018): "1;<id>,<id>,..." (layout 1, ids ascending,
+-- no repeats, at most 500). A string of another layout is kept untouched,
+-- not applied and not edited (PSS 02 section 3).
+local DTT_CAP = 500
+function M.PSS_DttPack(set)
 	local ids = {}
-	if type(v) == "string" then
-		for n in v:gmatch("%d+") do ids[#ids + 1] = tonumber(n) end
-	end
+	for id in pairs(set) do ids[#ids + 1] = id end
+	table.sort(ids)
+	return #ids > 0 and ("1;" .. table.concat(ids, ",")) or ""
+end
+-- set (id -> true), ok; ok is false for a layout this version cannot read
+function M.PSS_DttParse(text)
+	local set = {}
+	if text == nil or text == "" then return set, true end
+	if type(text) ~= "string" then return set, false end
+	local layout, body = text:match("^(%d+);(.*)$")
+	if layout ~= "1" then return set, false end
+	for n in body:gmatch("%d+") do set[tonumber(n)] = true end
+	return set, true
+end
+
+-- an itemlist option: its ids, ascending
+function M.PSS_OptItems(o)
+	local set = M.PSS_DttParse(M.PSS_Opt(o.key))
+	local ids = {}
+	for id in pairs(set) do ids[#ids + 1] = id end
+	table.sort(ids)
 	return ids
 end
-local function SaveItems(o, ids)
-	M.PSS_SetOpt(o.key, "global", #ids > 0 and table.concat(ids, ",") or nil)
-end
-function M.PSS_OptItemAdd(o, id)
-	local ids = M.PSS_OptItems(o)
-	for _, v in ipairs(ids) do if v == id then return false end end
-	ids[#ids + 1] = id
-	SaveItems(o, ids)
+local told
+local function Edit(o, id, remove)
+	local set, ok = M.PSS_DttParse(M.PSS_Opt(o.key))
+	if not ok then
+		if not told then told = true; M.ShowMsg("That list was saved by a newer version and is left as it is.") end
+		return false
+	end
+	if remove then
+		if not set[id] then return false end
+		set[id] = nil
+	else
+		if set[id] then return false end
+		local n = 0
+		for _ in pairs(set) do n = n + 1 end
+		if n >= DTT_CAP then return false end
+		set[id] = true
+	end
+	M.PSS_SetOpt(o.key, "global", M.PSS_DttPack(set))
 	return true
 end
-function M.PSS_OptItemRemove(o, id)
-	local ids, out = M.PSS_OptItems(o), {}
-	for _, v in ipairs(ids) do if v ~= id then out[#out + 1] = v end end
-	SaveItems(o, out)
-end
+function M.PSS_OptItemAdd(o, id) return Edit(o, id, false) end
+function M.PSS_OptItemRemove(o, id) return Edit(o, id, true) end
 
 function M.PSS_OptNumberText(o)
 	local n = M.PSS_Opt(o.key)

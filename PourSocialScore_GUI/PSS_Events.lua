@@ -140,7 +140,7 @@ ns.TabBuilders.events = function(pg)
 			view:AllTypes()
 			Changed()
 		end)
-		for _, cat in ipairs(History.ALL_CATS or {}) do
+		for _, cat in ipairs(History.FilterCats()) do
 			m:Check(History.CAT_LABEL[cat] or cat, function() return view:TypeOn(cat) end, function()
 				view:ToggleType(cat)
 				Changed()

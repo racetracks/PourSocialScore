@@ -857,7 +857,7 @@ do
 	-- navmodel: the rows as the ask, headings dropped with no entry
 	local keys = {}
 	for _, r in ipairs(M.PSS_MgrNav()) do keys[#keys + 1] = r.head and ("#" .. r.head) or r.key end
-	check(table.concat(keys, ",") == "#Global Settings,addons,features,importExport,#Social Services,players,guilds,filters,#Options,options", "nav rows: " .. table.concat(keys, ","))
+	check(table.concat(keys, ",") == "#Global Settings,addons,features,importExport,#Social Services,players,guilds,filters,#Feature Options,dtt,#Options,options", "nav rows: " .. table.concat(keys, ","))
 	local t1, p1 = M.PSS_ResolveTab("importExport")
 	local t2, p2 = M.PSS_ResolveTab("options")
 	local t3, p3 = M.PSS_ResolveTab("players")
@@ -867,12 +867,12 @@ do
 	host:SetSize(300, 300)
 	local picked
 	local nav = ui.NewNav(host, { width = 180, rows = M.PSS_MgrNav(), onSelect = function(k) picked = k end })
-	check(#nav.rows == 10 and #nav.pool == 10 and nav:GetWidth() == 180, "nav rows drawn")
+	check(#nav.rows == 12 and #nav.pool == 12 and nav:GetWidth() == 180, "nav rows drawn")
 	for _, look in ipairs({ 1, 0, 2 }) do
 		M.PSS_SetOpt("uiSkin", "global", look)
 		M.Events.Fire("OPTION_CHANGED", "uiSkin")
 		nav:Select("guilds")
-		check(#nav.pool == 10, "a repaint made rows (look " .. look .. ")")
+		check(#nav.pool == 12, "a repaint made rows (look " .. look .. ")")
 		check(nav.rows[7].data.key == "guilds" and nav.rows[7].bg:IsShown(), "the selected entry is not marked (look " .. look .. ")")
 		check(nav.rows[1].data.head and not nav.rows[1].data.key and nav.rows[6].bg:IsShown() == false, "heading or entry paint (look " .. look .. ")")
 	end
@@ -881,7 +881,7 @@ do
 	nav.rows[2]._scripts.OnClick(nav.rows[2])
 	check(picked == "addons", "a click did not report the entry")
 	nav:SetRows({ M.PSS_MgrNav()[1], M.PSS_MgrNav()[3] })
-	check(#nav.pool == 10 and not nav.pool[3]:IsShown() and nav.pool[2]:IsShown(), "SetRows did not reuse the pool")
+	check(#nav.pool == 12 and not nav.pool[3]:IsShown() and nav.pool[2]:IsShown(), "SetRows did not reuse the pool")
 	-- navcollapse: the fold is one call, no timer or OnUpdate
 	win:Hide()
 	SlashCmdList["PSS"]("acp")

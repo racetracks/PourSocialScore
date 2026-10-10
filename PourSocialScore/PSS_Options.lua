@@ -86,14 +86,48 @@ local COMPONENTS = {
 		tip = "Everything that blocks: chat filtering, invite, duel and trade declines, the party warning, the Blizzard ignore sync, the Block menu items and capture. Off: nothing is blocked; your lists, rules and counts are kept and editable. Applies after a reload." },
 }
 for _, o in ipairs(COMPONENTS) do OPTIONS[#OPTIONS + 1] = o end
-local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:", "Enabled components:" }
+
+-- PSS Drop Cheapest Thing (3.6.1, money-helper): section 6 holds the switch,
+-- section 7 its options under the group title "Feature Options" (shown
+-- disabled while the switch is off). Read through M.PSS_On("dtt") and M.PSS_Opt.
+OPTIONS[#OPTIONS + 1] = { key = "useDtt", kind = "bool", default = false, section = 6, reload = true, label = "PSS Drop Cheapest Thing",
+	tip = "A minimap button and /pss dtt that destroy or sell your cheapest junk. Off: nothing loads. Applies after a reload." }
+local DTT = {
+	{ key = "dttIcon",			kind = "bool",		default = true,		section = 7, label = "Show the minimap button" },
+	{ key = "dttQuality",		kind = "choice",	default = 0,		section = 7, label = "Highest quality to destroy",
+		choices = { { 0, "Poor (grey)" }, { 1, "Common (white)" }, { 2, "Uncommon (green)" }, { 3, "Rare (blue)" }, { 4, "Epic (purple)" }, { 5, "Legendary (orange)" }, { 6, "Artifact" }, { 7, "Heirloom" } } },
+	{ key = "dttSellQuality",	kind = "choice",	default = 0,		section = 7, label = "Highest quality to sell",
+		choices = { { 0, "Poor (grey)" }, { 1, "Common (white)" }, { 2, "Uncommon (green)" }, { 3, "Rare (blue)" }, { 4, "Epic (purple)" }, { 5, "Legendary (orange)" }, { 6, "Artifact" }, { 7, "Heirloom" } } },
+	{ key = "dttFood",			kind = "bool",		default = false,	section = 7, label = "Low-level food and drink" },
+	{ key = "dttPotion",		kind = "bool",		default = false,	section = 7, label = "Low-level potions" },
+	{ key = "dttBandage",		kind = "bool",		default = false,	section = 7, label = "Low-level bandages" },
+	{ key = "dttScroll",		kind = "bool",		default = false,	section = 7, label = "Low-level scrolls" },
+	{ key = "dttSoulbound",	kind = "bool",		default = false,	section = 7, label = "Include soulbound items" },
+	{ key = "dttValueless",	kind = "bool",		default = false,	section = 7, label = "Include items with no value",
+		tip = "Warning: this includes the hearthstone." },
+	{ key = "dttAppearance",	kind = "bool",		default = false,	section = 7, label = "Include unknown appearances",
+		tip = "Retail only: gear whose look you have not collected." },
+	{ key = "dttFullStacks",	kind = "bool",		default = false,	section = 7, label = "Compare by full stack value" },
+	{ key = "dttMerchantButton", kind = "bool",	default = false,	section = 7, label = "Show a Sell junk button on the merchant window",
+		tip = "Needs PSS Drop Cheapest Thing on. Sells what the sell quality marks as junk, only when you click it." },
+	{ key = "dttCautious",		kind = "bool",		default = true,		section = 7, label = "Sell at most 12 items at once",
+		tip = "So the buyback tab can undo it." },
+	{ key = "dttAuction",		kind = "bool",		default = false,	section = 7, label = "Use auction values",
+		tip = "Shows an auction price beside a vendor price when a price addon provides one. Never saved." },
+	{ key = "dttAuctionQuality", kind = "choice",	default = 1,		section = 7, label = "Lowest quality for auction values",
+		choices = { { 0, "Poor (grey)" }, { 1, "Common (white)" }, { 2, "Uncommon (green)" }, { 3, "Rare (blue)" }, { 4, "Epic (purple)" }, { 5, "Legendary (orange)" }, { 6, "Artifact" }, { 7, "Heirloom" } } },
+	{ key = "dttAlways",		kind = "itemlist",	default = "",		section = 7, label = "Always destroy these items" },
+	{ key = "dttNever",		kind = "itemlist",	default = "",		section = 7, label = "Never destroy these items" },
+}
+for _, o in ipairs(DTT) do OPTIONS[#OPTIONS + 1] = o end
+local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:", "Enabled components:", "Drop The Cheapest Thing:" }
 -- the order the Options tab lists the sections in (Enabled components first)
-M.PSS_OPTION_SECTION_ORDER = { 6, 1, 2, 3, 4, 5 }
+M.PSS_OPTION_SECTION_ORDER = { 6, 1, 2, 3, 4, 5, 7 }
 -- sections drawn under a group title, and sections shown disabled (one line)
 -- while their Enabled component is off: { [section] = ... }; none yet
-M.PSS_OPTION_SECTION_GROUP = {}
-M.PSS_OPTION_SECTION_GATE = {}
-M.PSS_OPTION_SECTION_PAGE = {}	-- section -> its Addon Manager page key
+M.PSS_OPTION_SECTION_GROUP = { [7] = "Feature Options" }
+M.PSS_OPTION_SECTION_GATE = { [7] = { on = "dtt", text = "Turn on PSS Drop Cheapest Thing in Enabled components, then reload." } }
+M.PSS_OPTION_SECTION_PAGE = { [7] = "dtt" }	-- section -> its Addon Manager page key
 
 local REG = {}
 for _, o in ipairs(OPTIONS) do REG[o.key] = o end
@@ -153,7 +187,7 @@ end
 -- started with (M.PSS_SnapComponents at ADDON_LOADED), so a change made in
 -- the Options tab applies after a reload and a session never has half a
 -- component. M.PSS_OnNow(name) is the option as set now (the Options tab).
-local COMPONENT_KEY = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering" }
+local COMPONENT_KEY = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering", dtt = "useDtt" }
 local snap
 
 local function camelot()
@@ -186,6 +220,7 @@ M.PSS_OFF_TEXT = {
 	gfx = "The Graphics Settings Exporter is off: Options, Enabled components.",
 	logging = "Event Logging is off: Options, Enabled components.",
 	filtering = "Social Filtering is off: nothing is blocked (Options, Enabled components).",
+	dtt = "PSS Drop Cheapest Thing is off: turn it on in Options, Enabled components, then reload.",
 }
 
 -- a component whose option was changed since the session started

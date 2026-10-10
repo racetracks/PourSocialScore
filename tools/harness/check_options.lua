@@ -112,7 +112,9 @@ check(rowOf.frameStrata:IsShown() and not rowOf[boolKey]:IsShown() and page.show
 search("zzzz no such option")
 check(page.shownCount == 0 and page.none:IsShown(), "no match not shown")
 search("")
-check(page.shownCount == n, "search not cleared")
+local nrows = 0
+for _, g in ipairs(page.groups) do for _, it in ipairs(g.items) do if it.row then nrows = nrows + 1 end end end
+check(page.shownCount == nrows, "search not cleared")
 check(page.search:IsVisible(), "search box hidden on the Options tab")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(not page.search:IsVisible(), "search box shown on another tab")

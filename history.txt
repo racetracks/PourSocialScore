@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.1.93 - PSS Drop Cheapest Thing
+
+- New optional feature, PSS Drop Cheapest Thing (off by default; turn it on under Options, Enabled components, then reload): a minimap button and /pss dtt (also /dropcheap and /dtct) that destroy your cheapest junk item, or sell it when a merchant is open, one item at a time and only when you ask. The button shows the cheapest item's picture; Shift-click acts, right-click opens its options.
+- Its options sit under a new "Feature Options" heading in the Addon Manager: how good an item may be to destroy or sell, low-level food, potions, bandages and scrolls, soulbound and valueless items, auction values, and "always" and "never" item lists you can fill by pasting a link, typing an id or dropping an item. An optional Sell junk button can be added to the merchant window.
+- /pss dtt list shows the ten cheapest items, /pss dtt log your last destroyed or sold items (kept with Event Logging).
+- Credit: the idea and rules follow DropTheCheapestThing by Kemayo (BSD licence, https://github.com/kemayo/wow-dropthecheapestthing); the code here is new.
+
 => 3.6.0.92 - Interface-helper groundwork: group titles, item list, disabled sections
 - Groundwork for the coming Drop Cheapest Thing options: a list control for items, group titles and a disabled-section line in Options. Nothing changes on screen.
 

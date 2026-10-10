@@ -323,7 +323,7 @@ function M.PSS_StartComponents()
 		if M.PSS_StartBlocking then M.PSS_StartBlocking() end
 		if M.PSS_StartIgnoreSync then M.PSS_StartIgnoreSync() end
 	end
-	M.PSS_StartCompartment(M.PSS_On("addons"))
+	M.PSS_StartCompartment(M.PSS_On("addons"), M.PSS_On("dtt"))
 	if M.PSS_On("addons") then
 		-- /acp is /pss acp (the AddOns tab, 3.6.0), under our own key and only
 		-- when no other addon owns /acp (the client runs the first it finds)
@@ -336,6 +336,21 @@ function M.PSS_StartComponents()
 		end
 	else
 		BINDING_NAME_PSS_OPEN_ADDONS = "Open Addon Manager (Addon Manager off)"
+	end
+	-- PSS Drop Cheapest Thing (money-helper): only the lines that start it;
+	-- every function is in Libraries, loaded now only when it is on
+	if M.PSS_On("dtt") then
+		if M.PSS_Need("Libraries") and M.PSS_DttStart then M.PSS_DttStart() end
+		local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+		if SlashCmdList["DROPTHECHEAPESTTHING"] == nil and not (isLoaded and isLoaded("DropTheCheapestThing")) then
+			SLASH_PSSDTT1 = "/dropcheap"
+			SLASH_PSSDTT2 = "/dtct"
+			SlashCmdList["PSSDTT"] = function(msg) M.PSS_SlashPSS("dtt " .. (msg or "")) end
+		else
+			M.PSS_DTTTaken = true
+		end
+	else
+		BINDING_NAME_PSS_DTT = "Drop the cheapest thing (PSS Drop Cheapest Thing off)"
 	end
 end
 
