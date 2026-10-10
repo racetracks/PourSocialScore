@@ -289,6 +289,39 @@ local function darkShown(w) return w and w.pssParts and w.pssParts.fill:IsShown(
 check(b1 and not darkShown(b1) and not b1.pssParts.edge:IsShown(), "Blizzard button shows Dark parts")
 check(e1 and not darkShown(e1), "Blizzard edit box shows Dark parts")
 check(kit.page and kit.page.pssParts.art and kit.page.pssParts.art:IsShown(), "Blizzard panel not shown")
+-- interface-helper stage 1: the item list (add by id, link and drag; remove)
+local il = kit.itemList
+check(il and #il.rows == 2 and il.rows[1]:IsShown(), "item list did not draw its two rows")
+il.box:SetText("item:1234")
+il.box._scripts.OnEnterPressed(il.box)
+check(il.added == 1234 and il.box:GetText() == "", "item list: a pasted link was not added")
+il.box:SetText(" 777 ")
+il.add._scripts.OnClick(il.add)
+check(il.added == 777, "item list: a typed id was not added")
+il.box:SetText("not an item")
+il.added = nil
+il.add._scripts.OnClick(il.add)
+check(il.added == nil, "item list: text with no item was added")
+_G.GetCursorInfo = function() return "item", 4321, "|cffffffff|Hitem:4321::::|h[X]|h|r" end
+local cleared
+_G.ClearCursor = function() cleared = true end
+il.box._scripts.OnReceiveDrag(il.box)
+check(il.added == 4321 and cleared, "item list: a dropped item was not added or the cursor not cleared")
+_G.GetCursorInfo, _G.ClearCursor = nil, nil
+il.rows[1].remove._scripts.OnClick(il.rows[1].remove)
+check(il.removed == 6948, "item list: remove did not report the item")
+il:SetItems({ 1 })
+check(not il.rows[2]:IsShown() and il:GetHeight() == 26 + 22, "item list did not hide spare rows")
+-- chips: the x sits just after the name, chips share a line and wrap
+il:SetItems({ 1, 2, 3 })
+local chip = il.rows[1]
+check(chip:GetWidth() < 150 and il.lines == 1 and chip.remove._point[2] == chip.text and chip.remove._point[1] == "LEFT", "chips are not short, side by side, with x after the name")
+local many = {}
+for i = 1, 12 do many[i] = i end
+il:SetItems(many)
+check(il.lines > 1 and il:GetHeight() == 26 + il.lines * 22, "chips did not wrap to a new line: " .. il.lines)
+il:SetItems({})
+check(il:GetHeight() == 26, "empty list height")
 -- W3: the kit additions, in the Classic look (the harness starts in it)
 local b3, h1 = kit.buttons[3], kit.boxes[4]
 check(b3.pssPrimary == true and kit.buttons[1].pssPrimary == nil, "NewButton's primary argument not kept")
@@ -834,7 +867,7 @@ do
 	-- navmodel: the rows as the ask, headings dropped with no entry
 	local keys = {}
 	for _, r in ipairs(M.PSS_MgrNav()) do keys[#keys + 1] = r.head and ("#" .. r.head) or r.key end
-	check(table.concat(keys, ",") == "#Global Settings,addons,features,importExport,#Social Services,players,guilds,filters,#Options,options", "nav rows: " .. table.concat(keys, ","))
+	check(table.concat(keys, ",") == "#Global Settings,addons,features,importExport,#Social Services,players,guilds,filters,#Feature Options,dtt,#Options,options", "nav rows: " .. table.concat(keys, ","))
 	local t1, p1 = M.PSS_ResolveTab("importExport")
 	local t2, p2 = M.PSS_ResolveTab("options")
 	local t3, p3 = M.PSS_ResolveTab("players")
@@ -844,12 +877,12 @@ do
 	host:SetSize(300, 300)
 	local picked
 	local nav = ui.NewNav(host, { width = 180, rows = M.PSS_MgrNav(), onSelect = function(k) picked = k end })
-	check(#nav.rows == 10 and #nav.pool == 10 and nav:GetWidth() == 180, "nav rows drawn")
+	check(#nav.rows == 12 and #nav.pool == 12 and nav:GetWidth() == 180, "nav rows drawn")
 	for _, look in ipairs({ 1, 0, 2 }) do
 		M.PSS_SetOpt("uiSkin", "global", look)
 		M.Events.Fire("OPTION_CHANGED", "uiSkin")
 		nav:Select("guilds")
-		check(#nav.pool == 10, "a repaint made rows (look " .. look .. ")")
+		check(#nav.pool == 12, "a repaint made rows (look " .. look .. ")")
 		check(nav.rows[7].data.key == "guilds" and nav.rows[7].bg:IsShown(), "the selected entry is not marked (look " .. look .. ")")
 		check(nav.rows[1].data.head and not nav.rows[1].data.key and nav.rows[6].bg:IsShown() == false, "heading or entry paint (look " .. look .. ")")
 	end
@@ -858,7 +891,7 @@ do
 	nav.rows[2]._scripts.OnClick(nav.rows[2])
 	check(picked == "addons", "a click did not report the entry")
 	nav:SetRows({ M.PSS_MgrNav()[1], M.PSS_MgrNav()[3] })
-	check(#nav.pool == 10 and not nav.pool[3]:IsShown() and nav.pool[2]:IsShown(), "SetRows did not reuse the pool")
+	check(#nav.pool == 12 and not nav.pool[3]:IsShown() and nav.pool[2]:IsShown(), "SetRows did not reuse the pool")
 	-- navcollapse: the fold is one call, no timer or OnUpdate
 	win:Hide()
 	SlashCmdList["PSS"]("acp")

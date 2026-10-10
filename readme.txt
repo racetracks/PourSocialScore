@@ -619,6 +619,12 @@ filter that mixes them without brackets may now behave differently.)
                           reload you have 15 seconds to keep the new
                           settings or revert. The last 5 sets are kept
                           to restore or export. Not in combat.
+/pss dtt                  PSS Drop Cheapest Thing (off by default: Options,
+                          Enabled components, then reload): destroy the
+                          cheapest junk item, or sell it at a merchant.
+                          list, sell, never <item>, always <item>, forget
+                          <item>, options, log, icon. Also /dropcheap and
+                          /dtct, a key binding and a minimap button.
 /pss macro [set] [create] [account|character]
                           Camelot: write the macros the addon carries,
                           each as an account-wide or a character macro.

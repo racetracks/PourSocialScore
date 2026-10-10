@@ -60,7 +60,7 @@ local function ShowPage(key)
 		pg:SetPoint("BOTTOMRIGHT", host.body, "BOTTOMRIGHT", 0, 0)
 		pg:Hide()
 		host.pages[key] = pg
-		local build = ns.PageBuilders[key]
+		local build = ns.PageBuilders[key] or (row.section and ns.SectionBuilder(row))
 		if build then
 			-- a page that fails to build reports its error and is shown empty
 			local ok, refresh = xpcall(function() return build(pg) end, geterrorhandler())

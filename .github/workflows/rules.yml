@@ -75,6 +75,8 @@ jobs:
         run: sh tools/harness/addons_phases.sh /tmp/pss-addons
       - name: Enabled components
         run: sh tools/harness/components_phases.sh /tmp/pss-components
+      - name: Drop Cheapest Thing
+        run: sh tools/harness/dtt_phases.sh
 
   upgrades:
     runs-on: ubuntu-latest

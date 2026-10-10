@@ -49,3 +49,7 @@ Other checks in `validate_all.sh`: `check_forget` (removals), `check_guildrule`,
 **PSS habits:** a check that needs Libraries calls `M.PSS_Need("Libraries")` first; read every diff line on a real save before claiming "intended only".
 
 **Tests bundle** (not hosted unless the author asks; 11_PREFERENCES): `sh tools/host_tests.sh <scratch checkout> [--no-commit | --no-push] [--log <file>]` builds `PourSocialScore-<version>-tests-<YYYY-MM-DD-hh-mm>.zip` from HEAD (`tools/`, `versions.json`, `.github/workflows`, `README_TESTS.txt`, and the validation log with `--log`; never real saves) into scratch `releases/`, adding its name to the index's releases row only (not `latest/`; the addon zip never holds `tools/`).
+
+## PSS Drop Cheapest Thing (3.6.1; `check_dtt.lua`, `dtt_phases.sh`)
+`sh tools/harness/dtt_phases.sh` runs every phase on Retail and Camelot (`off options scan filters act cmd icon roundtrip mapbutton dttlog merchant bus refresh`; `PSS_PHASE`, `PSS_COMPONENTS=dtt` or `none`); fixtures `tools/harness/fixtures/dtt_bags.lua`; the stub's bag, item, cursor and merchant model is in `wow_stub.lua` (`H.items`, `H.bags`, `H.OpenMerchant`). `bus` fixes the `M.Events` payloads (the service bus: `DTT_CHANGED`, `DTT_ACTED`, `OPTION_CHANGED`); `refresh` proves every options page redraws on `OPTION_CHANGED`, a shift-clicked link goes to the focused list only, and item lists lay out. Look at the result of an event (the drawn chip) before reopening a page: a test that reopens first hides a missing redraw.
+

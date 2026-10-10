@@ -1036,4 +1036,79 @@ function stub.AddonsReal(r)
 	end
 end
 
+------------------------------------------------------------------------
+-- Bags, items and the merchant (money-helper, PSS Drop Cheapest Thing).
+-- stub.items[id] = { name, quality, price, class, sub, minLevel, bind,
+-- equip, icon, stack }; stub.bags[bag][slot] = { id, count, bound, noValue };
+-- stub.cursor = { bag, slot }; stub.deleted, stub.sold list what happened.
+------------------------------------------------------------------------
+stub.items, stub.bags, stub.cursor, stub.deleted, stub.sold, stub.money = {}, {}, nil, {}, {}, 0
+NUM_BAG_SLOTS = 4
+local function itemLink(id)
+	local it = stub.items[id]
+	return ("|cffffffff|Hitem:%d::::::::|h[%s]|h|r"):format(id, it and it.name or "Item" .. id)
+end
+local function slotInfo(bag, slot)
+	local row = stub.bags[bag] and stub.bags[bag][slot]
+	if not row then return nil end
+	local it = stub.items[row.id] or {}
+	return { iconFileID = it.icon or 134400, stackCount = row.count or 1, quality = it.quality or 0,
+		hyperlink = itemLink(row.id), itemID = row.id, hasNoValue = row.noValue or (it.price or 0) == 0, isBound = row.bound == true }
+end
+C_Container = {
+	GetContainerNumSlots = function(bag) return stub.bags[bag] and (stub.bags[bag].size or 20) or 0 end,
+	GetContainerItemInfo = slotInfo,
+	PickupContainerItem = function(bag, slot)
+		if stub.cursor or not (stub.bags[bag] and stub.bags[bag][slot]) then return end
+		stub.cursor = { bag = bag, slot = slot }
+	end,
+	UseContainerItem = function(bag, slot)
+		local row = stub.bags[bag] and stub.bags[bag][slot]
+		if not row or not (MerchantFrame and MerchantFrame:IsShown()) then return end
+		local it = stub.items[row.id] or {}
+		stub.sold[#stub.sold + 1] = { id = row.id, count = row.count or 1 }
+		stub.money = stub.money + (it.price or 0) * (row.count or 1)
+		stub.bags[bag][slot] = nil
+	end,
+}
+function CursorHasItem() return stub.cursor ~= nil end
+function ClearCursor() stub.cursor = nil end
+function GetCursorInfo()
+	if not stub.cursor then return nil end
+	local row = stub.bags[stub.cursor.bag][stub.cursor.slot]
+	return "item", row.id, itemLink(row.id)
+end
+function DeleteCursorItem()
+	if not stub.cursor then return end
+	local row = stub.bags[stub.cursor.bag][stub.cursor.slot]
+	stub.deleted[#stub.deleted + 1] = { id = row.id, count = row.count or 1 }
+	stub.bags[stub.cursor.bag][stub.cursor.slot] = nil
+	stub.cursor = nil
+end
+C_Item.GetItemInfo = function(x)
+	local id = type(x) == "number" and x or tonumber(tostring(x):match("item:(%d+)"))
+	local it = id and stub.items[id]
+	if not it or it.unknown then return nil end
+	return it.name, itemLink(id), it.quality or 0, 1, it.minLevel or 0, "", "", it.stack or 1, it.equip or "", it.icon or 134400,
+		it.price or 0, it.class or 15, it.sub or 0, it.bind or 0
+end
+C_Item.GetItemIconByID = function(id) return stub.items[id] and stub.items[id].icon or 134400 end
+function GetMoneyString(c)
+	local g, sv, cc = math.floor(c / 10000), math.floor(c / 100) % 100, c % 100
+	return (g > 0 and (g .. "g ") or "") .. (sv > 0 and (sv .. "s ") or "") .. cc .. "c"
+end
+Minimap = new("Frame", "Minimap")
+Minimap._w, Minimap._h = 140, 140
+MerchantFrame = new("Frame", "MerchantFrame")
+MerchantFrame._shown = false
+MerchantFrame.selectedTab = 1
+new("Button", "MerchantFrameTab1", MerchantFrame)
+new("Button", "MerchantFrameTab2", MerchantFrame)
+function stub.OpenMerchant(tab)
+	MerchantFrame.selectedTab = tab or 1
+	MerchantFrame:Show()
+	stub.Fire("MERCHANT_SHOW")
+end
+function stub.CloseMerchant() MerchantFrame:Hide(); stub.Fire("MERCHANT_CLOSED") end
+
 return stub

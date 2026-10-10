@@ -1,6 +1,32 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.1.97 - Drop Cheapest Thing: item lists redraw when an item is added
+
+- Fixed: an item added to the Drop Cheapest Thing lists (shift-click, drag, Add or Enter) now shows at once instead of only after reopening the page.
+
+=> 3.6.1.96 - Drop Cheapest Thing: item list chips
+
+- The item lists of PSS Drop Cheapest Thing show each item as a small tag sized to its name, with the remove button just after it; tags sit side by side and wrap to the next line only when the row is full.
+
+=> 3.6.1.95 - Drop Cheapest Thing: item lists no longer overlap
+
+- The item lists of PSS Drop Cheapest Thing (Always destroy, Never destroy) now grow downward as items are added, each in its own group, instead of drawing over the list below.
+
+=> 3.6.1.94 - Drop Cheapest Thing: shift-click an item into the item lists
+
+- Shift-click an item (from your bags or a chat link) while the cursor is in the "Always destroy" or "Never destroy" box of PSS Drop Cheapest Thing to add it, as in the old addon.
+
+=> 3.6.1.93 - PSS Drop Cheapest Thing
+
+- New optional feature, PSS Drop Cheapest Thing (off by default; turn it on under Options, Enabled components, then reload): a minimap button and /pss dtt (also /dropcheap and /dtct) that destroy your cheapest junk item, or sell it when a merchant is open, one item at a time and only when you ask. The button shows the cheapest item's picture; Shift-click acts, right-click opens its options.
+- Its options sit under a new "Feature Options" heading in the Addon Manager: how good an item may be to destroy or sell, low-level food, potions, bandages and scrolls, soulbound and valueless items, auction values, and "always" and "never" item lists you can fill by pasting a link, typing an id or dropping an item. An optional Sell junk button can be added to the merchant window.
+- /pss dtt list shows the ten cheapest items, /pss dtt log your last destroyed or sold items (kept with Event Logging).
+- Credit: the idea and rules follow DropTheCheapestThing by Kemayo (BSD licence, https://github.com/kemayo/wow-dropthecheapestthing); the code here is new.
+
+=> 3.6.0.92 - Interface-helper groundwork: group titles, item list, disabled sections
+- Groundwork for the coming Drop Cheapest Thing options: a list control for items, group titles and a disabled-section line in Options. Nothing changes on screen.
+
 => 3.6.0.91 - Addon Manager tab with a collapsible navigation
 
 - The AddOns tab is now the Addon Manager tab, with a list of pages on the left like Blizzard's Options window: Addons, Optional Features, Import/Export, Player Ignore List, Guild Ignore List, Chat Filter Rules and All Options. The list folds with one click and the page fills the space at once.

@@ -273,7 +273,7 @@ end
 
 -- Called once by core's ADDON_LOADED handler (issue 181): the second entry,
 -- which opens the AddOns tab, exists only while the Addon Manager is on.
-function M.PSS_StartCompartment(addonsOn)
+function M.PSS_StartCompartment(addonsOn, dttOn)
 	if not (V.wowIsRetail == true and AddonCompartmentFrame and AddonCompartmentFrame.RegisterAddon) then return end
 	AddonCompartmentFrame:RegisterAddon({
 		text = "Pour Social Score",
@@ -290,6 +290,16 @@ function M.PSS_StartCompartment(addonsOn)
 			notCheckable = true,
 			func = function(button, menuInputData, menu)
 				M.PSS_OpenUI("addons", { page = "addons", collapse = true })
+			end,
+		})
+	end
+	if dttOn then
+		AddonCompartmentFrame:RegisterAddon({
+			text = "PSS Drop Cheapest Thing",
+			icon = "Interface\\Icons\\INV_Misc_Bag_22",
+			notCheckable = true,
+			func = function(button, menuInputData, menu)
+				M.PSS_SlashPSS("dtt options")
 			end,
 		})
 	end

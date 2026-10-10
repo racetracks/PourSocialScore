@@ -27,6 +27,19 @@ function M.PSS_MgrNav()
 	rows = {}
 	local head
 	for _, r in ipairs(NAV) do
+		if r.head == "Options" then
+			-- a group of Options sections (M.PSS_OPTION_SECTION_GROUP, key
+			-- M.PSS_OPTION_SECTION_PAGE) is a heading with an entry each
+			local sec = M.PSS_OPTION_SECTION_PAGE or {}
+			local gh
+			for _, section in ipairs(M.PSS_OPTION_SECTION_ORDER) do
+				local group, pg = M.PSS_OptSectionGroup(section), sec[section]
+				if group and pg then
+					if gh ~= group then rows[#rows + 1] = { head = group }; gh = group end
+					rows[#rows + 1] = { key = pg, text = (M.PSS_OPTION_SECTIONS[section]:gsub("[:%s]+$", "")), section = section }
+				end
+			end
+		end
 		if r.head then
 			head = r
 		elseif not r.on or M.PSS_On(r.on) then
