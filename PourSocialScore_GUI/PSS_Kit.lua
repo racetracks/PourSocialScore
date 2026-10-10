@@ -305,27 +305,25 @@ function ns.NewItemList(parent, w, onAdd, onRemove)
 	end
 	list.box, list.add = box, add
 
+	-- one chip per item: icon, name and the remove button just after the
+	-- name; the chips sit side by side and wrap to the next line
 	local function Row(i)
 		local r = list.rows[i]
 		if r then return r end
 		r = CreateFrame("Frame", nil, list)
-		r:SetHeight(ITEM_H)
-		r:SetPoint("LEFT", list, "LEFT", 0, 0)
-		r:SetPoint("RIGHT", list, "RIGHT", 0, 0)
-		r:SetPoint("TOP", list, "TOP", 0, -(26 + (i - 1) * ITEM_H))
+		r:SetHeight(ITEM_H - 2)
 		r.hl = r:CreateTexture(nil, "BACKGROUND")
 		r.hl:SetAllPoints(r)
 		r.icon = r:CreateTexture(nil, "ARTWORK")
 		r.icon:SetSize(18, 18)
-		r.icon:SetPoint("LEFT", r, "LEFT", 14, 0)
+		r.icon:SetPoint("LEFT", r, "LEFT", 4, 0)
 		r.text = ns.NewText(r, 12)
-		r.text:SetPoint("LEFT", r.icon, "RIGHT", 6, 0)
-		r.text:SetPoint("RIGHT", r, "RIGHT", -34, 0)
+		r.text:SetPoint("LEFT", r.icon, "RIGHT", 4, 0)
 		r.text:SetJustifyH("LEFT")
 		r.text:SetWordWrap(false)
-		r.remove = ns.NewButton(r, "x", 24, function() if onRemove then onRemove(r.id) end end)
+		r.remove = ns.NewButton(r, "x", 18, function() if onRemove then onRemove(r.id) end end)
 		r.remove:SetHeight(18)
-		r.remove:SetPoint("RIGHT", r, "RIGHT", -4, 0)
+		r.remove:SetPoint("LEFT", r.text, "RIGHT", 4, 0)
 		r:EnableMouse(true)
 		r:SetScript("OnEnter", function(self) self.hot = true; self.paint() end)
 		r:SetScript("OnLeave", function(self) self.hot = nil; self.paint() end)
@@ -345,20 +343,31 @@ function ns.NewItemList(parent, w, onAdd, onRemove)
 		return r
 	end
 
+	local CHIP_PAD, CHIP_GAP = 4, 6
 	function list:SetItems(ids)
 		ids = ids or {}
 		self.items = ids
+		local x, line = 0, 0
 		for i, id in ipairs(ids) do
 			local r = Row(i)
 			r.id = id
 			local name, icon = M.PSS_ItemText(id)
 			r.text:SetText(name)
 			r.icon:SetTexture(icon)
+			-- icon + name + a small space + x, with a little padding
+			local cw = CHIP_PAD + 18 + 4 + math.ceil(r.text:GetStringWidth()) + 4 + 18 + CHIP_PAD
+			if cw > w then cw = w end
+			if x > 0 and x + cw > w then x, line = 0, line + 1 end
+			r:SetWidth(cw)
+			r:ClearAllPoints()
+			r:SetPoint("TOPLEFT", self, "TOPLEFT", x, -(26 + line * ITEM_H))
+			x = x + cw + CHIP_GAP
 			r:Show()
 			r.paint()
 		end
 		for i = #ids + 1, #self.rows do self.rows[i]:Hide() end
-		self:SetHeight(26 + #ids * ITEM_H)
+		self.lines = #ids > 0 and (line + 1) or 0
+		self:SetHeight(26 + self.lines * ITEM_H)
 	end
 	list:SetItems({})
 	return list

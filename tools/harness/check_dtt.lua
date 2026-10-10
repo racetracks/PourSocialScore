@@ -494,7 +494,7 @@ function phases.options()
 		local ra, rb = g.items[#g.items - 1].row, g.items[#g.items].row
 		local function top(f) local y for _, p in ipairs(f._points) do if p[1] == "TOPLEFT" and p[2] == ra:GetParent() then y = p[5] end end return y end
 		local ya, yb = top(ra), top(rb)
-		check(ra:GetHeight() == 26 + 26 + 3 * 22, "list row height " .. ra:GetHeight())
+		check(ra:GetHeight() == 26 + 26 + 22, "three short chips share one line: " .. ra:GetHeight())
 		check(yb <= ya - ra:GetHeight(), "the next list overlaps: " .. ya .. " " .. yb .. " " .. ra:GetHeight())
 		M.PSS_OptItemRemove(M.PSS_OPTION_REG.dttAlways, 4242)
 		M.PSS_OptItemRemove(M.PSS_OPTION_REG.dttAlways, 4243)

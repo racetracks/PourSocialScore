@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.1.96 - Drop Cheapest Thing: item list chips
+
+- The item lists of PSS Drop Cheapest Thing show each item as a small tag sized to its name, with the remove button just after it; tags sit side by side and wrap to the next line only when the row is full.
+
 => 3.6.1.95 - Drop Cheapest Thing: item lists no longer overlap
 
 - The item lists of PSS Drop Cheapest Thing (Always destroy, Never destroy) now grow downward as items are added, each in its own group, instead of drawing over the list below.

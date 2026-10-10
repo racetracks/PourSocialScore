@@ -312,6 +312,16 @@ il.rows[1].remove._scripts.OnClick(il.rows[1].remove)
 check(il.removed == 6948, "item list: remove did not report the item")
 il:SetItems({ 1 })
 check(not il.rows[2]:IsShown() and il:GetHeight() == 26 + 22, "item list did not hide spare rows")
+-- chips: the x sits just after the name, chips share a line and wrap
+il:SetItems({ 1, 2, 3 })
+local chip = il.rows[1]
+check(chip:GetWidth() < 150 and il.lines == 1 and chip.remove._point[2] == chip.text and chip.remove._point[1] == "LEFT", "chips are not short, side by side, with x after the name")
+local many = {}
+for i = 1, 12 do many[i] = i end
+il:SetItems(many)
+check(il.lines > 1 and il:GetHeight() == 26 + il.lines * 22, "chips did not wrap to a new line: " .. il.lines)
+il:SetItems({})
+check(il:GetHeight() == 26, "empty list height")
 -- W3: the kit additions, in the Classic look (the harness starts in it)
 local b3, h1 = kit.buttons[3], kit.boxes[4]
 check(b3.pssPrimary == true and kit.buttons[1].pssPrimary == nil, "NewButton's primary argument not kept")
