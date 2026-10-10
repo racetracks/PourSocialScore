@@ -298,7 +298,7 @@ function M.PSS_SlashPSS (msg)
 		-- the addon manager (3.6.0): on its own the AddOns tab, else
 		-- PSS_AddonsQuery.lua
 		if not M.PSS_On("addons") or not M.PSS_AddonCommand then M.ShowMsg(M.PSS_OFF_TEXT.addons)
-		elseif not args[2] then M.PSS_OpenUI("addons") else M.PSS_AddonCommand(args, rawArgs) end
+		elseif not args[2] then M.PSS_OpenUI("addons", { page = "addons", collapse = true }) else M.PSS_AddonCommand(args, rawArgs) end
 
 	elseif args[1] == "sync" then
 

@@ -163,9 +163,9 @@ SlashCmdList["PSS"]("gui")
 check(win:IsShown(), "window did not open again")
 local names = {}
 for i, t in ipairs(win.tabs or {}) do names[i] = t:GetText() end
-check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,AddOns,Events,Import/Export,Options", "tabs are not the seven (the six of the port and AddOns)")
+check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,Addon Manager,Events", "tabs are not the five")
 check(win.tabs[1].pssSelected and win.pages[1]:IsShown() and not win.pages[2]:IsShown(), "first tab not shown first")
-check(win.pages[7].note == nil and not win.pages[7].refresh, "a tab not opened yet is not built, and has no placeholder note")
+check(win.pages[4].note == nil and not win.pages[4].refresh, "a tab not opened yet is not built, and has no placeholder note")
 check(win.where:GetText() == "Player Ignore List", "the line by the arrows does not name the tab")
 check(win.where:GetAlpha() == 0.9, "the line by the arrows is not at 0.9")
 check(not win.back:IsEnabled() and not win.forward:IsEnabled(), "arrows enabled with nowhere to go")
@@ -175,28 +175,28 @@ win.tabs[3]._scripts.OnClick(win.tabs[3])
 check(win.tabs[3].pssSelected and win.pages[3]:IsShown() and not win.pages[1]:IsShown(), "tab click did not show the tab")
 check(PourSocialScoreDB.windowPoints.PSS_WindowTab == "filters", "tab shown not saved")
 check(win.back:IsEnabled() and win.where:GetText() == "Chat Filters", "tab click is not a step back")
--- a page with a sub-view (as the Guilds tab's members view): the Options
--- page, not built yet, stands in
-local pg = win.pages[7]
+-- a page with a sub-view (as the Guilds tab's members view): the Addon Manager tab
+-- page, not built yet, stands in (the Addon Manager tab)
+local pg = win.pages[4]
 local sub
 pg.navState = function() return sub end
 pg.navApply = function(v) sub = v end
 pg.navUp = function() if sub then sub = nil return true end return false end
 pg.navTitle = function(v) return "Members of " .. v end
-win.tabs[7]._scripts.OnClick(win.tabs[7])
+win.tabs[4]._scripts.OnClick(win.tabs[4])
 sub = "Badguild"
 local ui = H.Private("PourSocialScore_GUI")
 ui.NavRecord()
-check(win.where:GetText() == "Options  >  Members of Badguild", "the line does not name the sub-view")
-check(win.crumbs[1] and win.crumbs[1]:IsShown() and win.crumbs[1].tipText == "Back to Options.", "no link back to the tab")
+check(win.where:GetText() == "Addon Manager  >  Members of Badguild", "the line does not name the sub-view")
+check(win.crumbs[1] and win.crumbs[1]:IsShown() and win.crumbs[1].tipText == "Back to Addon Manager.", "no link back to the tab")
 -- back, back, forward
 ui.NavBack()
-check(sub == nil and win.where:GetText() == "Options", "back did not leave the sub-view")
+check(sub == nil and win.where:GetText() == "Addon Manager", "back did not leave the sub-view")
 ui.NavBack()
 check(win.pages[3]:IsShown() and win.forward:IsEnabled(), "back did not return to the tab before")
 ui.NavForward()
 ui.NavForward()
-check(win.pages[7]:IsShown() and sub == "Badguild", "forward did not return to the sub-view")
+check(win.pages[4]:IsShown() and sub == "Badguild", "forward did not return to the sub-view")
 -- mouse buttons 4 / 5 over the window only
 win._mouseOver = true
 win._scripts.OnEvent(win, "GLOBAL_MOUSE_UP", "Button4")
@@ -208,7 +208,7 @@ win._scripts.OnEvent(win, "GLOBAL_MOUSE_UP", "Button4")
 check(sub == "Badguild", "mouse button 4 away from the window stepped back")
 -- the link back to the tab, and Escape up one level, then closed
 win.crumbs[1]._scripts.OnClick(win.crumbs[1])
-check(sub == nil and win.where:GetText() == "Options", "the link did not reset the tab")
+check(sub == nil and win.where:GetText() == "Addon Manager", "the link did not reset the tab")
 sub = "Badguild"
 ui.NavRecord()
 _G.PSS_WindowEscape:Hide()
@@ -234,36 +234,38 @@ check(sub == nil and win:IsShown(), "the next Escape did not step up one level")
 win.tabs[5]._scripts.OnClick(win.tabs[5])
 check(win.pages[5]:IsShown(), "Events tab not shown")
 _G.PSS_WindowEscape:Hide()
-check(win:IsShown() and win.pages[7]:IsShown(), "Escape on Events did not go back to the tab before")
+check(win:IsShown() and win.pages[4]:IsShown(), "Escape on Events did not go back to the tab before")
 _G.PSS_WindowEscape:Hide()
 check(not win:IsShown(), "Escape at the top did not close the window")
 pg.navState, pg.navApply, pg.navUp, pg.navTitle = nil, nil, nil, nil
 -- the tab shown last opens next time; the first tab clears the saved one
 SlashCmdList["PSS"]("gui")
-check(win.pages[7]:IsShown() and M.PSS_UITab() == 7, "saved tab not reopened")
+check(win.pages[4]:IsShown() and M.PSS_UITab() == 4, "saved tab not reopened")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(PourSocialScoreDB.windowPoints.PSS_WindowTab == nil, "the first tab was saved")
 -- (3.4.0.15) Events is never the tab the window opens on (it would load
 -- Logging before any click): the tab before it stays saved
-win.tabs[7]._scripts.OnClick(win.tabs[7])
+win.tabs[4]._scripts.OnClick(win.tabs[4])
 win.tabs[5]._scripts.OnClick(win.tabs[5])
-check(M.PSS_UITab() == 7, "the Events tab was saved: " .. tostring(M.PSS_UITab()))
+check(M.PSS_UITab() == 4, "the Events tab was saved: " .. tostring(M.PSS_UITab()))
 PourSocialScoreDB.windowPoints.PSS_WindowTab = "events"
 check(M.PSS_UITab() == 1, "a saved Events tab was reopened")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
--- a tab with a builder is built on first open and redrawn when shown
--- (the Import/Export tab's own builder, counted)
+-- a page with a builder is built on first select and redrawn when shown
+-- (the Import/Export page's own builder, counted)
 local built, drawn = 0, 0
-local realBuild = ui.TabBuilders.importExport
-ui.TabBuilders.importExport = function(page)
+local realBuild = ui.PageBuilders.importExport
+ui.PageBuilders.importExport = function(page)
 	built = built + 1
 	local redraw = realBuild(page)
 	return function() drawn = drawn + 1 redraw() end
 end
-win.tabs[6]._scripts.OnClick(win.tabs[6])
-win.tabs[6]._scripts.OnClick(win.tabs[6])
-check(built == 1 and drawn == 2 and win.pages[6].refresh, "a tab builder did not build once and redraw")
-ui.TabBuilders.importExport = realBuild
+win.tabs[4]._scripts.OnClick(win.tabs[4])
+ui.ManagerShow("importExport")
+ui.ManagerShow("importExport")
+check(built == 1 and drawn == 2 and win.pages[4].pages.importExport.refresh, "a page builder did not build once and redraw")
+ui.PageBuilders.importExport = realBuild
+ui.ManagerShow("addons")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 -- frame strata follows the option
 local strata
@@ -705,10 +707,10 @@ end
 do
 	local ui = H.Private("PourSocialScore_GUI")
 	win:Hide()
-	check(not win.pages[4].refresh, "the AddOns tab is built before it is opened")
 	SlashCmdList["PSS"]("acp")
-	local pg = win.pages[4]
-	check(win:IsShown() and pg:IsShown() and pg.refresh, "/pss acp did not open the AddOns tab")
+	local pg = win.pages[4].pages.addons
+	check(win:IsShown() and win.pages[4]:IsShown() and pg:IsShown() and pg.refresh, "/pss acp did not open the AddOns tab")
+	check(M.PSS_MgrCollapsed() and not win.pages[4].nav:IsShown(), "/pss acp did not open with the navigation collapsed")
 	SlashCmdList["PSS"]("acp")
 	check(not win:IsShown(), "/pss acp again did not close the window")
 	win.tabs[1]._scripts.OnClick(win.tabs[1])
@@ -716,21 +718,20 @@ do
 	M.PSS_OpenUI("addons")
 	check(win:IsShown() and pg:IsShown(), "M.PSS_OpenUI(\"addons\") did not select the tab")
 	check(PourSocialScoreDB.windowPoints.PSS_WindowTab == "addons", "the AddOns tab is not remembered as the last tab")
-	-- the tab row clears the Options search box (real fonts run wider than the stub's: 15 percent)
-	local right = 10
-	for _, t in ipairs(win.tabs) do right = right + t:GetWidth() + 2 end
-	local opts = win.pages[7]
-	if not opts.search then win.tabs[7]._scripts.OnClick(win.tabs[7]) end
-	local boxW = win.pages[7].search and win.pages[7].search:GetWidth() or 0
-	check(boxW >= 160, "the Options search box is narrower than 160")
-	check(right * 1.15 < 960 - 12 - boxW, ("the tab row (%d) reaches the Options search box (from %d)"):format(right * 1.15, 960 - 12 - boxW))
+	-- the Options page's search box (in its header row)
+	ui.ManagerShow("options")
+	local sb = win.pages[4].pages.options.search
+	check(sb and sb:GetWidth() >= 160, "the Options search box is narrower than 160")
+	ui.ManagerShow("addons")
 	win.tabs[4]._scripts.OnClick(win.tabs[4])
-	-- (3.6.0.66) the AddOns tab is the fourth, after Chat Filters; the last tab is saved by its key,
-	-- so an old save's tab still opens the same tab whatever its number
-	check(M.PSS_UI_TABS[4].key == "addons" and M.PSS_UI_TABS[5].key == "events" and M.PSS_UI_EVENTS_TAB == 5, "the tab order is not Chat Filters, AddOns, Events")
-	for key, id in pairs({ players = 1, guilds = 2, filters = 3, addons = 4, importExport = 6, options = 7 }) do
+	-- (3.6.0.91) the tabs are Players, Guilds, Chat Filters, Addon Manager, Events; Import/Export and
+	-- Options are pages of the Addon Manager. The last tab is saved by its key, so an old save's
+	-- tab (and its page) still opens
+	check(M.PSS_UI_TABS[4].key == "addons" and M.PSS_UI_TABS[5].key == "events" and M.PSS_UI_EVENTS_TAB == 5 and #M.PSS_UI_TABS == 5, "the tab order is not Chat Filters, Addon Manager, Events")
+	for key, id in pairs({ players = 1, guilds = 2, filters = 3, addons = 4, importExport = 4, options = 4 }) do
 		PourSocialScoreDB.windowPoints.PSS_WindowTab = key
 		check(M.PSS_UITab() == id, "the saved tab " .. key .. " opens tab " .. M.PSS_UITab() .. ", not " .. id)
+		check(key ~= "importExport" and key ~= "options" or M.PSS_MgrPage() == key, "the saved " .. key .. " did not open its page")
 	end
 	PourSocialScoreDB.windowPoints.PSS_WindowTab = "addons"
 	-- the Profiles drop-down is bottom left, the count beside it, the buttons on the right
@@ -822,6 +823,79 @@ do
 	local coords
 	t = { SetTexture = function() return true end, SetTexCoord = function(_, ...) coords = { ... } end }
 	check(ui.FileTexture(t, "x", { 0.75, 1, 0, 1 }) == true and coords[1] == 0.75, "FileTexture does not set the coords")
+end
+
+------------------------------------------------------------------------
+-- (3.6.0.91) the Addon Manager's navigation: model, kit in every look,
+-- collapse, entry points, old keys
+------------------------------------------------------------------------
+do
+	local ui = H.Private("PourSocialScore_GUI")
+	-- navmodel: the rows as the ask, headings dropped with no entry
+	local keys = {}
+	for _, r in ipairs(M.PSS_MgrNav()) do keys[#keys + 1] = r.head and ("#" .. r.head) or r.key end
+	check(table.concat(keys, ",") == "#Global Settings,addons,features,importExport,#Social Services,players,guilds,filters,#Options,options", "nav rows: " .. table.concat(keys, ","))
+	local t1, p1 = M.PSS_ResolveTab("importExport")
+	local t2, p2 = M.PSS_ResolveTab("options")
+	local t3, p3 = M.PSS_ResolveTab("players")
+	check(t1 == "addons" and p1 == "importExport" and t2 == "addons" and p2 == "options" and t3 == "players" and p3 == nil, "PSS_ResolveTab")
+	-- navkit: three looks, no new frames on a repaint, the pool reused
+	local host = CreateFrame("Frame", nil, UIParent)
+	host:SetSize(300, 300)
+	local picked
+	local nav = ui.NewNav(host, { width = 180, rows = M.PSS_MgrNav(), onSelect = function(k) picked = k end })
+	check(#nav.rows == 10 and #nav.pool == 10 and nav:GetWidth() == 180, "nav rows drawn")
+	for _, look in ipairs({ 1, 0, 2 }) do
+		M.PSS_SetOpt("uiSkin", "global", look)
+		M.Events.Fire("OPTION_CHANGED", "uiSkin")
+		nav:Select("guilds")
+		check(#nav.pool == 10, "a repaint made rows (look " .. look .. ")")
+		check(nav.rows[7].data.key == "guilds" and nav.rows[7].bg:IsShown(), "the selected entry is not marked (look " .. look .. ")")
+		check(nav.rows[1].data.head and not nav.rows[1].data.key and nav.rows[6].bg:IsShown() == false, "heading or entry paint (look " .. look .. ")")
+	end
+	M.PSS_SetOpt("uiSkin", "global", 2)
+	M.Events.Fire("OPTION_CHANGED", "uiSkin")
+	nav.rows[2]._scripts.OnClick(nav.rows[2])
+	check(picked == "addons", "a click did not report the entry")
+	nav:SetRows({ M.PSS_MgrNav()[1], M.PSS_MgrNav()[3] })
+	check(#nav.pool == 10 and not nav.pool[3]:IsShown() and nav.pool[2]:IsShown(), "SetRows did not reuse the pool")
+	-- navcollapse: the fold is one call, no timer or OnUpdate
+	win:Hide()
+	SlashCmdList["PSS"]("acp")
+	local h = win.pages[4]
+	-- the stub keeps every anchor ever set: the newest TOPLEFT is the one in force
+	local function left()
+		for i = #h.body._points, 1, -1 do
+			if h.body._points[i][1] == "TOPLEFT" then return h.body._points[i] end
+		end
+	end
+	check(win:IsShown() and h:IsShown() and M.PSS_MgrCollapsed() and not h.nav:IsShown(), "/pss acp: window, tab or collapsed state")
+	check(left()[2] == h and left()[4] == 0, "the page does not fill the left edge when collapsed")
+	check(h.toggle:GetText() == ">>", "toggle arrow when collapsed")
+	h.toggle._scripts.OnClick(h.toggle)
+	check(not M.PSS_MgrCollapsed() and h.nav:IsShown() and left()[4] == 192, "expand did not show the list")
+	check(h.toggle._scripts.OnUpdate == nil and h.body._scripts.OnUpdate == nil, "the fold set an OnUpdate")
+	h.toggle._scripts.OnClick(h.toggle)
+	-- acpentry: every entry opens Addons collapsed; the same call closes
+	ui.ManagerShow("options", false)
+	M.PSS_OpenUI("addons", { page = "addons", collapse = true })
+	check(win:IsShown() and M.PSS_MgrPage() == "addons" and M.PSS_MgrCollapsed(), "an entry did not open Addons collapsed")
+	M.PSS_OpenUI("addons", { page = "addons", collapse = true })
+	check(not win:IsShown(), "the second call did not close the window")
+	-- navcompat: the old two-argument calls
+	M.PSS_OpenUI(true, "players")
+	check(win:IsShown() and win.tabs[1].pssSelected, "M.PSS_OpenUI(true, tab)")
+	M.PSS_OpenUI("filters")
+	check(win:IsShown() and win.tabs[3].pssSelected, "M.PSS_OpenUI(tab)")
+	win:Hide()
+	-- the social pages: a note and a button that opens the tab
+	ui.ManagerShow("guilds")
+	local sp = win.pages[4].pages.guilds
+	win:Show()
+	check(sp.open and sp.open:GetText() == "Open Guild Ignore List", "social page button")
+	sp.open._scripts.OnClick(sp.open)
+	check(win.tabs[2].pssSelected, "the Open button did not select the tab")
+	win:Hide()
 end
 
 if not fail then print("PASS tui") end

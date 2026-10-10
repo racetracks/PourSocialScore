@@ -8,7 +8,7 @@
 -- elsewhere it remembers the place (Libraries M.PSS_UIPlace) and the tab
 -- shown (M.PSS_UITab).
 --
--- Seven tabs (M.PSS_UI_TABS); each is built on first open by its builder,
+-- Five tabs (M.PSS_UI_TABS); each is built on first open by its builder,
 -- ns.TabBuilders[key](page), which returns the function that redraws it.
 -- A tab without a builder yet shows a note. Back / forward arrows above the
 -- tabs (and mouse buttons 4 / 5) step through the views shown; the line by
@@ -515,7 +515,7 @@ end
 
 -- /pss gui, /pss ui, the Addon Compartment (core M.PSS_OpenUI); show true
 -- opens without toggling. Opened this way the window is at its own place.
-function M.PSS_OpenWindow(show, tab)
+function M.PSS_OpenWindow(show, tab, how)
 	if not win then Build() end
 	-- a tab key (/pss acp, the key binding): open on that tab; the same call
 	-- with that tab shown closes it
@@ -525,9 +525,16 @@ function M.PSS_OpenWindow(show, tab)
 			if t.key == tab then id = i end
 		end
 	end
-	if win:IsShown() and not show and (not id or id == curTab) then
+	-- how = { page, collapse } (the Addon Manager's entry points): the same
+	-- call with that page shown closes the window
+	if win:IsShown() and not show and (not id or id == curTab)
+		and not (how and how.page and M.PSS_MgrPage() ~= how.page) then
 		win:Hide()
 		return
+	end
+	if how then
+		if how.page then M.PSS_SetMgrPage(how.page) end
+		if how.collapse ~= nil then M.PSS_SetMgrCollapsed(how.collapse) end
 	end
 	win.byFriends = nil
 	RestorePlace()
@@ -537,6 +544,7 @@ function M.PSS_OpenWindow(show, tab)
 		SelectTab(id)
 		ns.NavRecord()
 	end
+	if how and ns.ManagerShow then ns.ManagerShow() end
 	win:Show()
 	win:Raise()
 end

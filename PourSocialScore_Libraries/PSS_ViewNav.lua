@@ -52,16 +52,15 @@ local ALL_TABS = {
 	{ key = "players", text = "Player Ignore List" },
 	{ key = "guilds", text = "Guild Ignore List" },
 	{ key = "filters", text = "Chat Filters" },
-	{ key = "addons", text = "AddOns" },
+	{ key = "addons", text = "Addon Manager" },
 	{ key = "events", text = "Events" },
-	{ key = "importExport", text = "Import/Export" },
-	{ key = "options", text = "Options" },
 }
--- built once per session (issue 181): AddOns only while the Addon Manager is
--- on, Events only while Event Logging is on; a tab is found by its key
+-- built once per session: Addon Manager always (3.6.0.91; it also holds
+-- Import/Export and Options, PSS_ManagerNav.lua), Events only while Event
+-- Logging is on; a tab is found by its key
 local tabs = {}
 for _, t in ipairs(ALL_TABS) do
-	if (t.key ~= "addons" or M.PSS_On("addons")) and (t.key ~= "events" or M.PSS_On("logging")) then tabs[#tabs + 1] = t end
+	if (t.key ~= "events" or M.PSS_On("logging")) then tabs[#tabs + 1] = t end
 end
 M.PSS_UI_TABS = tabs
 function M.PSS_UITabIndex(key)
@@ -81,6 +80,10 @@ local TAB_KEY = "PSS_WindowTab"
 function M.PSS_UITab()
 	local db = PourSocialScoreDB
 	local key = type(db) == "table" and type(db.windowPoints) == "table" and db.windowPoints[TAB_KEY]
+	-- a key an older build saved (Import/Export, Options) opens its page
+	local tab, page = M.PSS_ResolveTab(key)
+	if page then M.PSS_SetMgrPage(page) end
+	key = tab
 	for i, t in ipairs(M.PSS_UI_TABS) do
 		if t.key == key and i ~= M.PSS_UI_EVENTS_TAB then return i end
 	end

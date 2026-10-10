@@ -66,10 +66,9 @@ function phases.options()
 	SlashCmdList["PSS"]("gui")
 	local win = _G.PSS_Window
 	local ui = H.Private("PourSocialScore_GUI")
-	local idx
-	for i, t in ipairs(M.PSS_UI_TABS) do if t.key == "options" then idx = i end end
-	win.tabs[idx]._scripts.OnClick(win.tabs[idx])
-	local page = win.pages[idx]
+	win.tabs[4]._scripts.OnClick(win.tabs[4])
+	H.Private("PourSocialScore_GUI").ManagerShow("options")
+	local page = win.pages[4].pages.options
 	local row
 	for _, it in ipairs(page.groups[1].items) do if it.o.key == "useAddons" then row = it.row end end
 	check(row and row.check, "no Addon Manager row")
@@ -122,7 +121,7 @@ function phases.addonsoff()
 	check(#AddonCompartmentFrame.registered == 1, "compartment entries: " .. #AddonCompartmentFrame.registered)
 	check(M.PSS_Need("Libraries"), "Libraries")
 	check(M.PSS_AddonList == nil and M.PSS_AddonView == nil and M.PSS_AddonCommand == nil, "the addon manager files loaded")
-	check(not keysOf(M.PSS_UI_TABS):find("addons", 1, true), "the AddOns tab is listed: " .. keysOf(M.PSS_UI_TABS))
+	check(keysOf(M.PSS_UI_TABS):find("addons", 1, true) and not M.PSS_MgrHas("addons") and M.PSS_MgrPage() == "features", "the Addon Manager tab or its pages: " .. keysOf(M.PSS_UI_TABS))
 	check(has(pss("acp"), "The Addon Manager is off"), "/pss acp")
 	check(has(pss("acp list"), "The Addon Manager is off"), "/pss acp list")
 	local l = {}
@@ -131,20 +130,20 @@ function phases.addonsoff()
 	PSS_AddonsBinding()
 	print = realPrint
 	check(has(said, "The Addon Manager is off"), "the key")
-	check(BINDING_NAME_PSS_OPEN_ADDONS == "Open AddOns (Addon Manager off)", "the key's label: " .. tostring(BINDING_NAME_PSS_OPEN_ADDONS))
+	check(BINDING_NAME_PSS_OPEN_ADDONS == "Open Addon Manager (Addon Manager off)", "the key's label: " .. tostring(BINDING_NAME_PSS_OPEN_ADDONS))
 	check(has(pss("help"), "(off)"), "help marks it off")
 	-- the window opens without the tab
 	SlashCmdList["PSS"]("gui")
-	check(_G.PSS_Window and #_G.PSS_Window.tabs == 6, "tabs: " .. tostring(_G.PSS_Window and #_G.PSS_Window.tabs))
-	check(H.Private("PourSocialScore_GUI").TabBuilders.addons == nil, "the AddOns tab builder exists")
+	check(_G.PSS_Window and #_G.PSS_Window.tabs == 5, "tabs: " .. tostring(_G.PSS_Window and #_G.PSS_Window.tabs))
+	check(H.Private("PourSocialScore_GUI").PageBuilders.addons == nil, "the Addons page builder exists")
 end
 
 function phases.addonson()
 	check(type(SlashCmdList["PSSACP"]) == "function", "no /acp")
 	check(#AddonCompartmentFrame.registered == 2, "compartment entries: " .. #AddonCompartmentFrame.registered)
 	check(M.PSS_Need("Libraries") and type(M.PSS_AddonList) == "function" and type(M.PSS_AddonCommand) == "function", "the addon manager did not load")
-	check(keysOf(M.PSS_UI_TABS) == "players,guilds,filters,addons,events,importExport,options", "tabs: " .. keysOf(M.PSS_UI_TABS))
-	check(BINDING_NAME_PSS_OPEN_ADDONS == "Open AddOns", "the key's label")
+	check(keysOf(M.PSS_UI_TABS) == "players,guilds,filters,addons,events", "tabs: " .. keysOf(M.PSS_UI_TABS))
+	check(BINDING_NAME_PSS_OPEN_ADDONS == "Open Addon Manager", "the key's label")
 	check(not has(pss("acp api"), "The Addon Manager is off"), "/pss acp says off")
 end
 
@@ -181,10 +180,8 @@ function phases.filteringoff()
 	SlashCmdList["PSS"]("gui")
 	local win = _G.PSS_Window
 	check(win.offNote and win.offNote:IsShown() and win.offNote:GetText():find("nothing is blocked", 1, true), "the list tab does not say it")
-	local idx
-	for i, t in ipairs(M.PSS_UI_TABS) do if t.key == "options" then idx = i end end
-	win.tabs[idx]._scripts.OnClick(win.tabs[idx])
-	check(not win.offNote:IsShown(), "the note shows on Options")
+	win.tabs[4]._scripts.OnClick(win.tabs[4])
+	check(not win.offNote:IsShown(), "the note shows on the Addon Manager")
 	check(keysOf(M.PSS_UI_TABS):find("events", 1, true), "Events tab gone with filtering off (logging is independent)")
 end
 

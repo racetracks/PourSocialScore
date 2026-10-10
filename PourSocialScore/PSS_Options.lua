@@ -76,7 +76,7 @@ local OPTIONS = {
 -- applies after a reload (reload = true). Read through M.PSS_On, never directly.
 local COMPONENTS = {
 	{ key = "useAddons",		kind = "bool",		default = false, section = 6, reload = true, label = "Addon Manager",
-		tip = "The AddOns tab, /pss acp and /acp, the Open AddOns key and the AddOns entry in the Addon Compartment. Off: none of it exists and nothing of it is loaded. Applies after a reload." },
+		tip = "The AddOns tab, /pss acp and /acp, the Open Addon Manager key and the Addon Manager entry in the Addon Compartment. Off: none of it exists and nothing of it is loaded. Applies after a reload." },
 	{ key = "useLogging",		kind = "bool",		default = true,		section = 6, reload = true, label = "Event Logging",
 		tip = "Keeps a line for every blocked chat line or request (the Events tab, Block History). Off: no line is stored and the Events tab goes; every count stays as it is. Applies after a reload.",
 		warn = "Turn off Event Logging? From now on nothing is recorded about what Pour Social Score blocks: the Events tab and every Event History page go, and you will not be able to track or review anything in the addon (the counts still run). OK turns it off after a reload; Cancel keeps it on." },

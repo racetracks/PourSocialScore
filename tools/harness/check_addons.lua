@@ -908,7 +908,7 @@ function phases.setsmenu()
 	needLibraries()
 	SlashCmdList["PSS"]("acp")
 	local win = _G.PSS_Window
-	local pg = win.pages[4]
+	local pg = win.pages[4].pages.addons
 	check(win:IsShown() and pg:IsShown() and pg.setsDD, "the tab has no Addon Profiles drop-down")
 	local dd = pg.setsDD
 	local point, rel, relPoint = dd:GetPoint(1)
@@ -955,7 +955,7 @@ function phases.menustray()
 	needLibraries()
 	SlashCmdList["PSS"]("acp")
 	local win = _G.PSS_Window
-	local pg = win.pages[4]
+	local pg = win.pages[4].pages.addons
 	M.PSS_SetOpt("uiSkin", "global", 1)
 	local dd = pg.setsDD
 	dd.dark._scripts.OnClick(dd.dark)
@@ -990,7 +990,7 @@ function phases.menufade()
 	check(ok, "(a) the profile did not save")
 	SlashCmdList["PSS"]("acp")
 	local win = _G.PSS_Window
-	local dd = win.pages[4].setsDD
+	local dd = win.pages[4].pages.addons.setsDD
 	local before = saves()
 	check(PSS_CharDB.addonSets[1]:find("Raid", 1, true), "(a) the saved string holds the name")
 	local ui = H.Private("PourSocialScore_GUI")
@@ -1033,7 +1033,7 @@ function phases.menuhover()
 	needLibraries()
 	SlashCmdList["PSS"]("acp")
 	local win = _G.PSS_Window
-	local pg = win.pages[4]
+	local pg = win.pages[4].pages.addons
 	M.PSS_SetOpt("uiSkin", "global", 1)
 	local dd = pg.setsDD
 	check(not _G.PSS_MenuSide, "(a) the side panel exists before any hover")
@@ -1084,7 +1084,7 @@ function phases.menuflow()
 	needLibraries()
 	SlashCmdList["PSS"]("acp")
 	local win = _G.PSS_Window
-	local pg = win.pages[4]
+	local pg = win.pages[4].pages.addons
 	M.PSS_SetOpt("uiSkin", "global", 1)
 	local dd = pg.setsDD
 	dd.dark._scripts.OnClick(dd.dark)
@@ -1153,7 +1153,7 @@ function phases.placetick()
 	needLibraries()
 	SlashCmdList["PSS"]("acp")
 	local win = _G.PSS_Window
-	local pg = win.pages[4]
+	local pg = win.pages[4].pages.addons
 	local V = pg.state
 	local said = {}
 	local show = M.ShowMsg
@@ -1237,7 +1237,7 @@ function phases.loadentry()
 	needLibraries()
 	SlashCmdList["PSS"]("acp")
 	local win = _G.PSS_Window
-	local pg = win.pages[4]
+	local pg = win.pages[4].pages.addons
 	local V = pg.state
 	local said = {}
 	local show = M.ShowMsg
@@ -1309,7 +1309,7 @@ function phases.reloadpath()
 	needLibraries()
 	SlashCmdList["PSS"]("acp")
 	local win = _G.PSS_Window
-	local pg = win.pages[4]
+	local pg = win.pages[4].pages.addons
 	local said = {}
 	local show = M.ShowMsg
 	M.ShowMsg = function(t) said[#said + 1] = t end
@@ -1391,7 +1391,7 @@ function phases.menurefresh()
 	needLibraries()
 	SlashCmdList["PSS"]("acp")
 	local win = _G.PSS_Window
-	local pg = win.pages[4]
+	local pg = win.pages[4].pages.addons
 	local V = pg.state
 	local function collect(build)
 		local list = {}
@@ -1707,7 +1707,7 @@ function phases.rename()
 end
 
 function phases.access()
-	check(BINDING_NAME_PSS_OPEN_ADDONS == "Open AddOns" and BINDING_HEADER_POURSOCIALSCORE == "Pour Social Score", "the binding texts")
+	check(BINDING_NAME_PSS_OPEN_ADDONS == "Open Addon Manager" and BINDING_HEADER_POURSOCIALSCORE == "Pour Social Score", "the binding texts")
 	check(type(_G.PSS_AddonsBinding) == "function", "the binding function exists")
 	local f = io.open("PourSocialScore/Bindings.xml")
 	local xml = f:read("*a")
@@ -1716,7 +1716,7 @@ function phases.access()
 	check(not loaded("PourSocialScore_Libraries") and not loaded("PourSocialScore_GUI"), "nothing built at login")
 	local entry
 	for _, info in ipairs(AddonCompartmentFrame.registered) do
-		if info.text == "Pour Social Score: AddOns" then entry = info end
+		if info.text == "Pour Social Score: Addon Manager" then entry = info end
 	end
 	-- (the stub is always the Retail project: a Camelot client has no compartment)
 	check(entry ~= nil, "no second Addon Compartment entry")
@@ -1745,7 +1745,7 @@ local function openTab()
 	M.PSS_OpenUI("addons")
 	local win = _G.PSS_Window
 	local ui = H.Private("PourSocialScore_GUI")
-	local pg = win.pages[4]
+	local pg = win.pages[4].pages.addons
 	pg.list.scroll:SetSize(900, 300)
 	pg.list:Layout()
 	-- the search "pour" brings Pour Social Score's own group (a header and its
@@ -1867,7 +1867,7 @@ function phases.nomem()
 	end
 	-- the window: no memory column, no Refresh button, no top line
 	SlashCmdList["PSS"]("acp")
-	local pg = _G.PSS_Window.pages[4]
+	local pg = _G.PSS_Window.pages[4].pages.addons
 	check(pg.refreshButton == nil and pg.stale == nil, "the tab still has a Refresh button or a sample hook")
 	for _, c in ipairs(pg.list.spec and pg.list.spec.cols or {}) do check(c.key ~= "mem", "a Memory column is left") end
 	_G.PSS_Window:Hide()

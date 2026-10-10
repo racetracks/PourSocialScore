@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.91 - Addon Manager tab with a collapsible navigation
+
+- The AddOns tab is now the Addon Manager tab, with a list of pages on the left like Blizzard's Options window: Addons, Optional Features, Import/Export, Player Ignore List, Guild Ignore List, Chat Filter Rules and All Options. The list folds with one click and the page fills the space at once.
+- Import/Export and Options are no longer tabs of their own; they are pages of the Addon Manager. The Optional Features page holds the Enabled components options.
+- /acp, /pss acp, the key binding and the Addon Compartment entry open the Addons page with the list folded. They are renamed "Addon Manager".
+- No saved data changes; a window left on the old Import/Export or Options tab reopens on that page.
+
 => 3.6.0.90 - AddOns tab: all memory usage removed
 
 - AddOns tab: all memory usage is gone (the Memory column, the top line, the Refresh button, the hover lines and sorting by memory); the figures did not add up.

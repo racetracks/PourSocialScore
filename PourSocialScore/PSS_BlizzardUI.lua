@@ -18,11 +18,13 @@ V.nameUI = ""		-- the player the note and expiry popups are for
 -- it. show true: open, never toggle shut.
 -- a tab key ("addons") opens the window on that tab (the first argument
 -- may be the key, or the second after show)
-function M.PSS_OpenUI(show, tab)
-	if type(show) == "string" then show, tab = nil, show end
+function M.PSS_OpenUI(show, tab, how)
+	-- ("addons", { page, collapse }): a tab key first, then how
+	if type(show) == "string" then show, tab, how = nil, show, tab end
+	if type(tab) == "table" then tab, how = nil, tab end
 	-- the list shown has no expired entries (N40)
 	M.PSS_ExpireEntries()
-	if M.PSS_Need("GUI") and M.PSS_OpenWindow then M.PSS_OpenWindow(show, tab) end
+	if M.PSS_Need("GUI") and M.PSS_OpenWindow then M.PSS_OpenWindow(show, tab, how) end
 end
 
 -- The window opens beside the Friends window when the option
@@ -283,11 +285,11 @@ function M.PSS_StartCompartment(addonsOn)
 	})
 	if addonsOn then
 		AddonCompartmentFrame:RegisterAddon({
-			text = "Pour Social Score: AddOns",
+			text = "Pour Social Score: Addon Manager",
 			icon = "Interface\\Icons\\ui_chat.blp",
 			notCheckable = true,
 			func = function(button, menuInputData, menu)
-				M.PSS_OpenUI("addons")
+				M.PSS_OpenUI("addons", { page = "addons", collapse = true })
 			end,
 		})
 	end
