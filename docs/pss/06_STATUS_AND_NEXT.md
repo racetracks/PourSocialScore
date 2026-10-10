@@ -1,8 +1,10 @@
-# Status and next step (3.6.0.75, after release 3.5.0.62)
+# Status and next step (3.6.0.76, after release 3.5.0.62)
 
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. Earlier builds: `history.txt`, `versions.json` and the build records on scratch (`docs/components/addon-manager/03_BUILD_NOTES.md`). History: `reference/06_status-history-to-3.4.1.30.md` and `reference/combined-3.4.1.52/`.
 
 ## Now
+- **3.6.0.76, docs build:** these next steps, #192 and the ACP review in the repo docs. The fixes move up one build: #189 3.6.0.77, #192 3.6.0.78. 3.6.0.75 merged as PR #191 (pre-release v3.6.0.75).
+- **#192 found testing 3.6.0.75 on Camelot (the author, 2026-10-10):** the AddOns tab's Reload prompt does nothing ([#192](https://github.com/racetracks/PourSocialScore/issues/192), `ISS-00019`; scratch `docs/components/addon-manager/07_RELOAD_DOES_NOTHING.md`). Cause (`DDS-00006:4.2`): Camelot blocks `ReloadUI()` from addon code even inside a click. Fix (`DDS-00006:5.1`, `DEC-00017:4.1`, the author's answers): EllesmereUI's logic, rewritten. An action-button overlay with macro `/reload` sits over Accept and Enter; in combat Accept is greyed until combat ends; no typing; every reload prompt uses it. This needs an Overrides row for 10.5 in its build.
 - **3.6.0.75 (built, awaiting the author's in-game checks):** the author's "resolve all in one attempt" (Overrides row, 02 section 12): #189 and #183 in one build, #184 done on scratch.
   - #189 (`ISS-00002`, `DDS-00002`): the cause was not confirmed (the harness's menus rebuild fresh on every open; `menuflow` passes), so the build covers every ranked cause: a free place reads "Not saved yet"; a place whose profile is saved under the other character choice reads "(empty; saved for all characters)" and offers "Show the saved profile"; an unreadable saved string reads "(other version)" and is never overwritten; each menu action re-reads the place (`View:Place`); Delete refreshes the window. Harness phase `menurefresh` (`TST-00007`) fails on `origin/main`. If the side menu still shows only Save and Rename, send `/pss acp profiles` output and the character drop-down value (`STP-00014`).
   - #183 (`STP-00012`): option `showIgnoreReplies` (default on, nothing changes); off hides the "To player" echo of PSS's ignore auto-reply and the "No player named" line; lazy chat filters, nothing registered while on; `check_ignorereply.lua` (Retail and Camelot, 28 checks each, fails on `origin/main`).
@@ -20,13 +22,15 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - **Re-test of 3.6.0.75 (the author, 2026-10-10):** #183 and #184 done and closed. #189: the side menus now show, but there is **no Load** in the menu (scratch `docs/components/addon-manager/06_PROFILE_MENU_NO_LOAD.md` section 12: hypotheses H6 to H10, `DEC-00015`, `TST-00008`, `CHK-00003`). In 3.6.0.75 Load shows only on a used place, so the place opened reads as free.
 - **Next steps (`DEC-00016`, scratch `docs/latest/next-steps/01_NEXT_STEPS.md`):**
   1. `STP-00017`: name the cause of the missing Load (no build; needs the author's `/pss acp profiles` output after a Save into a free place, the look, client and character drop-down value).
-  2. `STP-00018`: the fix, build 3.6.0.76, built on the author's `DEC-00015` answers (2026-10-10): item 1 the side menu mimics AddonControlPanel's Sets menu (ACP's behaviour reviewed first, `ACPI`; logic copied, never code); item 2 Save says it saved and the menu turns used at once; phase `loadentry` (`TST-00008`); `CHK-00003`.
-  3. `STP-00011`: #179 re-test, `CHK-00001` (1 to 8) on 3.6.0.76; close #179 and #189 when they pass.
+  2. `STP-00018`: the fix, build 3.6.0.77, built on the author's `DEC-00015` answers (2026-10-10): item 1 the side menu mimics AddonControlPanel's Sets menu (ACP's behaviour reviewed first, `ACPI`; logic copied, never code); item 2 Save says it saved and the menu turns used at once; phase `loadentry` (`TST-00008`); `CHK-00003`.
+  3. `STP-00011`: #179 re-test, `CHK-00001` (1 to 8) on 3.6.0.77; close #179 and #189 when they pass. From 3.6.0.77, Enable all / Disable all are listed on every place (`DEC-00015:12.8` changes `DEC-00012`).
+  4. `STP-00020`: #192 the Reload fix, build 3.6.0.78 (`DDS-00006:5.1`, phase `reloadpath` `TST-00009`, `CHK-00004`).
+  The author tests on Camelot only for now (2026-10-10); Retail checks wait.
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
-- #189: send `/pss acp profiles` output (after a Save into a free place), the look, client and character drop-down value; `DEC-00015` answered (2026-10-10): 1 mimic ACP, 2 yes, 3 send the line first, 4 yes (3.6.0.76).
-- Then test 3.6.0.76 (`CHK-00003`, `CHK-00001`, `CHK-00002`); close #179 and #189 once tested.
+- #189: send `/pss acp profiles` output (after a Save into a free place), the look, client and character drop-down value; `DEC-00015` answered (2026-10-10): 1 mimic ACP, 2 yes, 3 send the line first, 4 yes (now 3.6.0.77).
+- Then test 3.6.0.77 (`CHK-00003`, `CHK-00001`, `CHK-00002`) and 3.6.0.78 (`CHK-00004`); close #179, #189 and #192 once tested.
 - Ask for macros from #159 when ready.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: OK or revert P3 (inactive shipped lists no longer capture units or /who).
@@ -35,8 +39,9 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 None (02 section 12).
 
 ## Open issues (addon repo)
-- #189: no Load in the profile side menu (`ISS-00002`; 3.6.0.75 re-tested; next `STP-00017`, fix 3.6.0.76 `STP-00018`).
-- #179: Enable all / Disable all in a profile (built 3.6.0.74, `STP-00011`; blocked by #189; re-test on 3.6.0.76).
+- #189: no Load in the profile side menu (`ISS-00002`; 3.6.0.75 re-tested; next `STP-00017`, fix 3.6.0.77 `STP-00018`).
+- #179: Enable all / Disable all in a profile (built 3.6.0.74, `STP-00011`; blocked by #189; re-test on 3.6.0.77).
+- #192: the Reload prompt does nothing on Camelot (`ISS-00019`; fix 3.6.0.78 `STP-00020`).
 - #159 to #169: Macro Helper macros, one issue per set (umbrella #159).
 - #152: window memory, build fewer frames (pane parts on first use, shared between tabs).
 - #37: the guild exclusion list is not saved (its intent needs defining).

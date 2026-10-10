@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.76 - Docs: next steps for #189, #179 and #192
+
+- Documentation only: next steps for the addon profiles fixes and the Reload button fix. No change in game.
+
 => 3.6.0.75 - Profile places explained, ignore reply echo option
 
 - Addon profiles: a free place now reads "Not saved yet", a place whose profile is saved under the other character choice (This character or All characters) says so and offers "Show the saved profile", and a saved string this version cannot read shows as "(other version)" and is never overwritten. A place's menu is read again when you act on it, and Delete refreshes the window at once.
