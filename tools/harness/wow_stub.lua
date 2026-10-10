@@ -199,7 +199,12 @@ function W:SetValue(v) self._value = v end
 function W:GetMaxLetters() return 255 end
 function W:SetAlpha(a) self._alpha = a end
 function W:GetAlpha() return self._alpha or 1 end
-function W:GetTextColor() return 1, 1, 1, 1 end
+function W:SetTextColor(r, g, b, a) self._tc = { r, g, b, a } end
+function W:GetTextColor()
+	local c = self._tc
+	if c then return c[1], c[2], c[3], c[4] or 1 end
+	return 1, 1, 1, 1
+end
 function W:GetFont()
 	if self._font then return self._font[1], self._font[2], self._font[3] end
 	return "Fonts\\FRIZQT__.TTF", 12, ""

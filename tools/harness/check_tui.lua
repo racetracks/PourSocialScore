@@ -334,7 +334,9 @@ check(darkShown(kit.page) and not kit.page.pssParts.art:IsShown(), "Dark panel n
 check(darkShown(kit.textArea) and darkShown(kit.boxes[4]), "Dark text area or hinted box not shown")
 check(darkShown(kit.buttons[3]) and darkShown(kit.menus.picker.saveButton), "Dark primary buttons not shown")
 check(tab1.pssLine:IsShown() and not tab2.pssLine:IsShown(), "Dark tab underline not on the selected tab only")
-check(tab2:GetFontString():GetAlpha() == 0.7 and tab1:GetFontString():GetAlpha() == 1, "Dark tab labels not faded to 0.7 by alpha")
+check(tab2:GetFontString():GetAlpha() == ui.DARK.tabText and tab1:GetFontString():GetAlpha() == 1 and ui.DARK.tabText > 0.7 and ui.DARK.tabText < 1, "Dark tab labels not the 0.85 step by alpha")
+local r2, g2, b2 = tab2:GetFontString():GetTextColor()
+check(r2 == 1 and g2 == 1 and b2 == 1, "Dark tab label is not the label white")
 kit.tabs[3]._scripts.OnClick(kit.tabs[3])
 check(kit.tabs[3].pssSelected and not tab1.pssSelected, "tab click did not select it")
 check(kit.pages[3]:IsShown() and not kit.pages[1]:IsShown(), "tab click did not show its page")
@@ -349,6 +351,7 @@ check(_G.PSS_Tooltip and _G.PSS_Tooltip:IsShown(), "Dark tooltip not shown")
 owner._scripts.OnLeave(owner)
 M.PSS_SetOpt("uiSkin", "global", 0)
 check(not darkShown(b1) and not c1.pssParts.box:IsShown(), "back to Blizzard: Dark parts still shown")
+check(tab2:GetFontString():GetAlpha() == 1, "Classic unselected tab label alpha changed")
 local tipOwner
 local realOwner = GameTooltip.SetOwner
 GameTooltip.SetOwner = function(_, o) tipOwner = o end
@@ -459,6 +462,26 @@ mk.ticks.dark._scripts.OnClick(mk.ticks.dark)
 check(menu.slots[1].entry.kind == "title", "tick menu has no title")
 menu.slots[2]._scripts.OnClick(menu.slots[2])
 check(menu:IsShown() and mk.types[1] == false, "a tick did not stay open or did not toggle")
+-- issue 202 (3.6.0.88): Dark rows take the label's colour, one alpha step fainter; titles fainter again
+do
+	local lr, lg, lb = dd.label:GetTextColor()
+	local la = dd.label:GetAlpha()
+	local title, row = menu.slots[1], menu.slots[2]
+	local D = ui.DARK
+	check(D.menuText < la and D.menuTitle < D.menuText, "menu alphas not ordered label > row > title")
+	for _, sl in ipairs({ title, row }) do
+		local r, g, b = sl.text:GetTextColor()
+		check(r == lr and g == lg and b == lb, "a Dark menu row is not the label's colour")
+	end
+	check(row.text:GetAlpha() == D.menuText and row.text:GetAlpha() < la, "Dark row alpha not the menu step")
+	check(title.text:GetAlpha() == D.menuTitle and title.text:GetAlpha() < row.text:GetAlpha(), "Dark title not fainter than a row")
+	row._scripts.OnEnter(row)
+	check(row.text:GetAlpha() == 1, "hover does not brighten the row")
+	row._scripts.OnLeave(row)
+	check(row.text:GetAlpha() == D.menuText, "leaving does not restore the row alpha")
+	title._scripts.OnLeave(title)
+	check(title.text:GetAlpha() == D.menuTitle, "leaving does not restore the title alpha")
+end
 menu:Hide()
 mk.long.dark._scripts.OnClick(mk.long.dark)
 local longShown = 0
@@ -743,8 +766,8 @@ do
 			if row.tick:IsShown() and not row.arrow:IsShown() and text ~= "" then plain = plain or row end
 		end
 		check(header and withLoad and plain, name .. ": no header, Load button or addon row")
-		-- the stats row and the footer say what they must
-		check(pg.refresh and tostring(V:Stats()):find("Memory", 1, true), name .. ": no memory in the stats line")
+		-- no CPU or memory: no stats line, no Refresh button
+		check(pg.refreshButton == nil and V.Stats == nil, name .. ": the tab still has a stats line or Refresh button")
 	end
 	M.PSS_SetOpt("uiSkin", "global", 0)
 	-- a search narrows the list; a tick turns an addon on; Escape of the search clears it

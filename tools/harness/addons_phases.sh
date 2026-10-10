@@ -27,7 +27,7 @@ adphase() {
 		fi
 	done
 }
-for ph in list group az lod tick deps all load undo sets lock prune guid combat command slash saved charstore login forward coverage view slots setsmenu menurefresh loadentry placetick menustray menuhover menuflow profiles rename selforward access perf perfgroup perftop perfcost profiletick; do
+for ph in list group az lod tick deps all load undo sets lock prune guid combat command slash saved charstore login forward coverage view slots setsmenu menurefresh loadentry placetick menustray menufade menuhover menuflow profiles rename selforward access nomem profiletick; do
 	adphase $ph
 done
 adphase reloadpath PSS_RELOAD_BLOCK=1
@@ -44,9 +44,6 @@ adphase noapi PSS_ADDON_NOAPI=EnableAddOn,DisableAddOn
 adphase noapi PSS_ADDON_NOAPI=GetNumAddOns
 adphase noapi PSS_ADDON_NOAPI=SaveAddOns,ResetAddOns,UpdateAddOnMemoryUsage
 adphase slash PSS_ACP_TAKEN=1
-adphase perftop PSS_ADDON_NOPROFILER=1
-adphase perftop PSS_ADDON_PROFILEROFF=1
-adphase perf PSS_ADDON_WARN=20
 adphase big PSS_ADDONS=big
 adphase names PSS_ADDONS='My Addon:e;a.b-c_d:e;!Bang:e,L;_Under:e;+Plus:e;Tiny:e,t=|cffff0000Red|r |TInterface\x:16|t Title'
 adphase memory PSS_ADDONS=150

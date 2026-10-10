@@ -4,7 +4,7 @@
 --   list group az lod tick deps all load undo pending sets profiles profiletick rename selforward lock prune
 --   noapi oldapi enum guid combat command slash saved charstore memory login
 --   big names forward coverage                     (stage 1: the logic)
---   perf perfgroup perftop perfcost                (stage 3: CPU and memory)
+--   nomem                                          (no CPU, no memory)
 -- The stub's addon list is in wow_stub.lua (PSS_ADDONS, PSS_ADDON_*); its
 -- default list (H.AddonList) is the one these phases know.
 local phase = os.getenv("PSS_PHASE") or "list"
@@ -429,11 +429,10 @@ function phases.noapi()
 		check(has(pss("acp list"), "not available"), "the command says so")
 		check(has(pss("acp api"), "GetNumAddOns"), "api names it")
 	else
-		-- SaveAddOns, ResetAddOns, UpdateAddOnMemoryUsage missing
+		-- SaveAddOns, ResetAddOns, UpdateAddOnMemoryUsage missing (the last is not used any more)
 		local ok = M.PSS_AddonTick(idx("ZedOne"), true, "me", false)
 		check(ok, "a tick works without SaveAddOns")
 		check(not M.PSS_AddonCan("undo") and not M.PSS_AddonUndo(), "no undo without ResetAddOns")
-		check(M.PSS_AddonMemory() == nil, "no memory without UpdateAddOnMemoryUsage")
 	end
 	check(has(pss("acp api"), "missing"), "/pss acp api lists the missing ones")
 end
@@ -475,14 +474,11 @@ end
 function phases.combat()
 	needLibraries()
 	H.combat = true
-	check(M.PSS_AddonMemory() == nil, "no memory in combat")
-	check((H.calls.UpdateAddOnMemoryUsage or 0) == 0, "the client is not asked in combat")
 	local ok = M.PSS_AddonTick(idx("ZedOne"), true, "me", false)
 	check(ok and row("ZedOne").enabled, "ticks work in combat")
 	local ok2, text = M.PSS_AddonLoad(idx("Atlas_Options"))
 	check(not ok2 and text == "Not in combat.", "load refused")
 	H.combat = false
-	check(M.PSS_AddonMemory() ~= nil and H.calls.UpdateAddOnMemoryUsage == 1, "out of combat: sampled once")
 end
 
 ------------------------------------------------------------------------
@@ -584,8 +580,7 @@ function phases.saved()
 	V:Build()
 	V:CollapseAll(true)
 	V.deps, V.who, V.find = false, "all", "x"
-	M.PSS_AddonMemory()
-	check(PSS_CharDB == nil, "ticking, collapsing, the character, the search and memory save nothing")
+	check(PSS_CharDB == nil, "ticking, collapsing, the character and the search save nothing")
 	check(PSS_OptionsDB.addonSets == nil and PSS_OptionsDB.addonLock == nil and PSS_OptionsDB.addonView == nil, "no account key either")
 	-- a view, a lock and a set are saved, packed and sparse
 	M.PSS_AddonViewMode("az")
@@ -687,7 +682,6 @@ function phases.memory()
 	check(build < 32, "garbage per build " .. build .. " KB is over the 32 KB budget (150 addons)")
 	-- kept after the window closes (the first build above warmed the scratch)
 	V:Build()
-	V:Sample()
 	V:Tip(1)
 	V:Release()
 	V, L = nil, nil
@@ -787,14 +781,6 @@ function phases.view()
 	check(V:Count() < n - 8, "collapse all")
 	V:CollapseAll(false)
 	V:Build()
-	-- the memory column and its order
-	V:Sample()
-	V.sortMem = true
-	V:Build()
-	local first = V:Row(1, {})
-	check(not first.header and first.name == "DBM-Core", "most memory first: " .. tostring(first.name))
-	V.sortMem = false
-	V:Build()
 	-- ticks: a group, an addon
 	hk = lineOf(V, function(o) return o.header and o.name == "Zeds" end)
 	check(V:Tick(hk, true), "a group tick")
@@ -803,7 +789,6 @@ function phases.view()
 	local zk = lineOf(V, function(o) return o.name == "ZedOne" end)
 	check(V:Tick(zk, false) and not row("ZedOne").enabled, "an addon tick")
 	-- tips
-	V:Sample()
 	local tk = lineOf(V, function(o) return o.name == "DBM-GUI" end)
 	local tip = V:Tip(tk)
 	check(tip:find("Author: Tester", 1, true) and tip:find("Version: 1.0", 1, true) and tip:find("Notes of DBM-GUI", 1, true), "tip: author, version, notes")
@@ -984,6 +969,62 @@ function phases.menustray()
 	end
 	check(shownText > 0, "(b) no slot shown")
 	menu:Hide()
+	win:Hide()
+end
+
+-- Dark menu rows take the label's colour, a little fainter (3.6.0.88, issue 202);
+-- the profile saves in the SavedVariables are not touched by painting or hovering
+function phases.menufade()
+	needLibraries()
+	local function dump(t, seen)
+		if type(t) ~= "table" then return tostring(t) end
+		local keys = {}
+		for k in pairs(t) do keys[#keys + 1] = k end
+		table.sort(keys, function(x, y) return tostring(x) < tostring(y) end)
+		local out = {}
+		for _, k in ipairs(keys) do out[#out + 1] = tostring(k) .. "=" .. dump(t[k]) end
+		return "{" .. table.concat(out, ",") .. "}"
+	end
+	local function saves() return dump(PSS_OptionsDB.addonSets) .. "|" .. dump(PSS_CharDB and PSS_CharDB.addonSets) end
+	local ok = M.PSS_AddonPresetSave(1, "Raid", "me")
+	check(ok, "(a) the profile did not save")
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local dd = win.pages[4].setsDD
+	local before = saves()
+	check(PSS_CharDB.addonSets[1]:find("Raid", 1, true), "(a) the saved string holds the name")
+	local ui = H.Private("PourSocialScore_GUI")
+	for _, skin in ipairs({ 1, 0, 2, 1 }) do
+		M.PSS_SetOpt("uiSkin", "global", skin)
+		if skin == 1 then
+			dd.dark._scripts.OnClick(dd.dark)
+			local menu = _G.PSS_Menu
+			local la = dd.label:GetAlpha()
+			local lr, lg, lb = dd.label:GetTextColor()
+			local rows, titles = 0, 0
+			for _, sl in ipairs(menu.slots) do
+				if sl:IsShown() and sl.entry then
+					local k = sl.entry.kind
+					local r, g, b = sl.text:GetTextColor()
+					if k == "title" then
+						titles = titles + 1
+						check(sl.text:GetAlpha() == ui.DARK.menuTitle, "(b) a title's alpha")
+					elseif k ~= "divider" then
+						rows = rows + 1
+						check(sl.text:GetAlpha() == ui.DARK.menuText and sl.text:GetAlpha() < la, "(b) a row's alpha: " .. tostring(sl.text:GetAlpha()))
+						check(r == lr and g == lg and b == lb, "(c) a row is not the label's colour")
+						sl._scripts.OnEnter(sl)
+						check(sl.text:GetAlpha() == 1, "(d) hover")
+						sl._scripts.OnLeave(sl)
+						check(sl.text:GetAlpha() == ui.DARK.menuText, "(d) leave")
+					end
+				end
+			end
+			check(rows > 0 and titles > 0, "(b) no rows or no titles")
+			menu:Hide()
+		end
+		check(saves() == before, "(e) the saved profiles changed on skin " .. skin)
+	end
 	win:Hide()
 end
 
@@ -1795,99 +1836,41 @@ end
 ------------------------------------------------------------------------
 -- Resource usage (stage 3)
 ------------------------------------------------------------------------
-local function near(a, b) return a and math.abs(a - b) < 0.001 end
-
-function phases.perf()
+function phases.nomem()
 	needLibraries()
-	-- DBM-Core 2/1/9/3 ms, Details 1/2/3/4 ms; the game adds 100 ms to the sums
-	local avg, cur, peak, enc = M.PSS_AddonCPU("DBM-Core")
-	local function share(v, metric) return 100 * v / (100 + v) end
-	check(near(avg, share(2)) and near(cur, share(1)) and near(peak, share(9)) and near(enc, share(3)), ("DBM-Core shares: %s %s %s %s"):format(tostring(avg), tostring(cur), tostring(peak), tostring(enc)))
-	check(M.PSS_AddonCPU("Details_Streamer") == nil, "a not loaded addon has no CPU")
-	-- the same for each metric (the stub's overall is the sum of every addon)
-	local pct = M.PSS_AddonPct
-	check(pct(12.4) == "12%" and pct(1) == "1%" and pct(0.5) == "0.5%" and pct(0.05) == "0.05%" and pct(0.001) == "0%", "share text: " .. pct(12.4) .. " " .. pct(0.5) .. " " .. pct(0.05) .. " " .. pct(0.001))
-	check(M.PSS_AddonKBText(500) == "500 KB" and M.PSS_AddonKBText(2048) == "2.0 MB", "memory text")
-	-- the warning share turns a line red with the alert mark
+	-- CPU and memory are gone from the interface and the code: no function, no client call, no text
+	for _, k in ipairs({ "PSS_AddonPerfOn", "PSS_AddonCPU", "PSS_AddonCPUGroup", "PSS_AddonCPUTotal", "PSS_AddonWarn", "PSS_AddonPct",
+		"PSS_AddonMemory", "PSS_AddonMemOf", "PSS_AddonMemGroup", "PSS_AddonKBText" }) do
+		check(M[k] == nil, k .. " still exists")
+	end
+	check((H.calls.UpdateAddOnMemoryUsage or 0) == 0 and (H.calls.GetAddOnMemoryUsage or 0) == 0 and (H.calls.GetAddOnMetric or 0) == 0, "no memory or profiler call at login")
 	local V = M.PSS_AddonView()
 	V:Build()
-	V:Sample()
-	local function tip(name)
-		for k = 1, V:Count() do
-			local o = V:Row(k, {})
-			if o and o.name == name then return V:Tip(k) end
-		end
-	end
-	local t = tip("DBM-Core")
-	check(t:find("Average CPU: ", 1, true) and t:find("Current CPU: ", 1, true) and t:find("Peak CPU: ", 1, true) and t:find("Encounter CPU: ", 1, true), "all four CPU lines")
-	if not os.getenv("PSS_ADDON_WARN") then
-		check(t:find("AlertNew", 1, true) and t:find("ffff4040", 1, true), "a share over the warning share is red with the alert mark")
-	end
-	check(t:find("Memory: 3.9 MB", 1, true), "memory last: " .. tostring(t:match("Memory[^\n]*")))
-	t = tip("Atlas_Options")
-	check(t:find("Not loaded.", 1, true) and not t:find("CPU", 1, true), "not loaded: no numbers")
-	check(M.PSS_AddonWarn() == (tonumber(os.getenv("PSS_ADDON_WARN")) or 1), "the warning share is read from the CVar")
-	if os.getenv("PSS_ADDON_WARN") then
-		check(not tip("DBM-Core"):find("ffff4040", 1, true), "a high warning share: nothing red")
-	end
-end
-
-function phases.perfgroup()
-	needLibraries()
-	local L = M.PSS_AddonList("me", "group")
-	local gi = groupIndex(L, "DBM")
-	local avg, cur, peak, enc, loaded, total = M.PSS_AddonCPUGroup(L, gi)
-	check(loaded == 2 and total == 3, "2 of 3 loaded: " .. tostring(loaded) .. " of " .. tostring(total))
-	local single = M.PSS_AddonCPU("DBM-Core")
-	check(near(avg, single), "only loaded members count, the share formula on their sum")
-	local d = groupIndex(L, "Details")
-	local davg = M.PSS_AddonCPUGroup(L, d)
-	check(near(davg, (M.PSS_AddonCPU("Details"))), "a group of one loaded member equals the addon")
-	check(M.PSS_AddonMemGroup(L, gi) == 4600, "group memory: " .. M.PSS_AddonMemGroup(L, gi))
-	local V = M.PSS_AddonView()
-	V:Build()
-	local o = V:Row(1, {})
-	local tipText
+	check(V.Sample == nil and V.Stats == nil, "the view still samples or has a stats line")
+	local L = M.PSS_AddonList("me", "mem")
+	check(L.n > 0, "an unknown view still lists")
+	local seen = 0
 	for k = 1, V:Count() do
-		local r = V:Row(k, {})
-		if r.header and r.name == "DBM" then tipText = V:Tip(k) end
+		local o = V:Row(k, {})
+		local t = V:Tip(k)
+		seen = seen + 1
+		check(o.mem == nil and o.dim == nil, "a row still carries memory")
+		check(t and not t:find("CPU", 1, true) and not t:find("Memory", 1, true) and not t:find("AlertNew", 1, true), "CPU or memory in a tip: " .. tostring(t))
+		if o.header and o.name == "DBM" then check(t:find("2 of 3 loaded", 1, true), "the group tip keeps loaded: " .. t) end
+		if o.name == "Atlas_Options" then check(t:find("Not loaded.", 1, true), "not loaded") end
 	end
-	check(tipText and tipText:find("2 of 3 loaded", 1, true) and tipText:find("Average CPU:", 1, true), "the header tip: " .. tostring(tipText))
-end
-
-function phases.perftop()
-	needLibraries()
-	local V = M.PSS_AddonView()
-	V:Build()
-	V:Sample()
-	local text = V:Stats()
-	if os.getenv("PSS_ADDON_NOPROFILER") == "1" or os.getenv("PSS_ADDON_PROFILEROFF") == "1" then
-		check(not M.PSS_AddonPerfOn() and M.PSS_AddonCPUTotal() == nil, "no profiler: no CPU")
-		check(not text:find("CPU", 1, true) and text:find("Memory ", 1, true), "memory still shows: " .. text)
-		check(M.PSS_AddonCPU("DBM-Core") == nil, "no CPU per addon either")
-	else
-		local cur, avg, peak = M.PSS_AddonCPUTotal()
-		check(near(avg, 100 * 3 / 103) and near(cur, 100 * 3 / 103) and near(peak, 100 * 12 / 112), ("totals %s %s %s"):format(tostring(cur), tostring(avg), tostring(peak)))
-		check(text:find("AddOn Performance", 1, true) and text:find("Current CPU", 1, true) and text:find("Average CPU", 1, true) and text:find("Peak CPU", 1, true) and text:find("Memory ", 1, true), "the stats line: " .. text)
+	check(seen > 0, "no rows")
+	check((H.calls.UpdateAddOnMemoryUsage or 0) == 0 and (H.calls.GetAddOnMemoryUsage or 0) == 0 and (H.calls.GetAddOnMetric or 0) == 0, "building and hovering read neither")
+	for _, line in ipairs(pss("acp api")) do
+		local l = tostring(line):lower()
+		check(not l:find("profiler", 1, true) and not l:find("memory", 1, true), "profiler or memory in /pss acp api: " .. tostring(line))
 	end
-end
-
-function phases.perfcost()
-	-- nothing is read until the tab asks
-	check((H.calls.GetAddOnMetric or 0) == 0 and (H.calls.UpdateAddOnMemoryUsage or 0) == 0, "no profiler or memory call at login")
-	needLibraries()
-	local V = M.PSS_AddonView()
-	V:Build()
-	check((H.calls.UpdateAddOnMemoryUsage or 0) == 0 and (H.calls.GetAddOnMetric or 0) == 0, "building the list reads neither")
-	V:Sample()
-	check(H.calls.UpdateAddOnMemoryUsage == 1, "one sample on open")
-	V:Sample()
-	check(H.calls.UpdateAddOnMemoryUsage == 2, "one more on Refresh")
-	H.combat = true
-	check(not V:Sample() and H.calls.UpdateAddOnMemoryUsage == 2, "none in combat")
-	H.combat = false
-	V:Release()
-	check(V:Count() == 0, "release drops the list")
+	-- the window: no memory column, no Refresh button, no top line
+	SlashCmdList["PSS"]("acp")
+	local pg = _G.PSS_Window.pages[4]
+	check(pg.refreshButton == nil and pg.stale == nil, "the tab still has a Refresh button or a sample hook")
+	for _, c in ipairs(pg.list.spec and pg.list.spec.cols or {}) do check(c.key ~= "mem", "a Memory column is left") end
+	_G.PSS_Window:Hide()
 end
 
 ------------------------------------------------------------------------
@@ -1912,17 +1895,15 @@ function phases.coverage()
 	M.PSS_AddonLoad(idx("Atlas_Options"))
 	M.PSS_AddonAll(true, who) M.PSS_AddonPending(who) M.PSS_AddonChanges(who)
 	M.PSS_AddonUndo()
-	M.PSS_AddonMemory() M.PSS_AddonMemOf(i) M.PSS_AddonMemGroup(L, 1)
 	M.PSS_AddonPresetSave(1, "Cov", "me") M.PSS_AddonPresets() M.PSS_AddonSlots(who) M.PSS_AddonPresetLoad(1, "char", who) M.PSS_AddonPresetTick(1, "char", true, who, true)
 	M.PSS_AddonPresetTick(1, "char", false, who, true) M.PSS_AddonPresetInstalled(1, "char") M.PSS_AddonPresetOn(1, "char", who) M.PSS_AddonPresetInclude(1, "char", "ZedOne") M.PSS_AddonPresetRename(1, "x", "char")
 	M.PSS_AddonProfileSelect(1, true, who) M.PSS_AddonProfileSelected(1, who) M.PSS_AddonProfileUnion(who) M.PSS_AddonProfileSelect(1, false, who)
 	M.PSS_AddonPresetDelete(1, "char")
 	M.PSS_AddonLock("LibFoo", true, who) M.PSS_AddonLocked("LibFoo") M.PSS_AddonLock("LibFoo", false, who)
 	M.PSS_AddonViewMode("az") M.PSS_AddonViewMode("group") M.PSS_AddonLoadOld(true) M.PSS_AddonLoadOld(nil) M.PSS_AddonLoadOld(false)
-	M.PSS_AddonPerfOn() M.PSS_AddonCPU("DBM-Core") M.PSS_AddonCPUGroup(L, 1) M.PSS_AddonCPUTotal() M.PSS_AddonWarn()
+	M.PSS_AddonGroupLoaded(L, 1)
 	M.PSS_AddonPrune() M.PSS_AddonRelease()
 	M.PSS_AddonReload()
-	M.PSS_AddonPct(1) M.PSS_AddonKBText(1)
 	local V = M.PSS_AddonView()
 	V:Build()
 	for _, word in ipairs({ "list", "on zedone", "off zedone", "load atlas_options", "all on", "all off", "undo", "sets", "profiles", "set 1 save", "set 1 select", "set 1 deselect", "set 1 load",

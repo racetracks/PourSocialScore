@@ -24,7 +24,6 @@
 --   M.PSS_AddonLoad(i)                 load a load-on-demand addon
 --   M.PSS_AddonAll(on, who)            Enable All / Disable All
 --   M.PSS_AddonUndo()  M.PSS_AddonPending(who)  M.PSS_AddonReload()
---   M.PSS_AddonMemory()  M.PSS_AddonMemOf(i)  M.PSS_AddonMemGroup(L, gi)
 --   M.PSS_AddonDeps(i, who)            required and optional, with state
 --   M.PSS_AddonPresets(), M.PSS_AddonSlots(who) and ...PresetSave / Load / Add / Remove / Rename / Delete
 --                                      (the addon profiles; "presets" in code)
@@ -32,8 +31,6 @@
 --   M.PSS_AddonProfileUnion(who)       the names selected profiles and hand picks want on
 --   M.PSS_AddonLock(name, on, who)  M.PSS_AddonLocked(name)
 --   M.PSS_AddonViewMode(v)  M.PSS_AddonLoadOld(on)
---   M.PSS_AddonPerfOn()  M.PSS_AddonCPU(name)  M.PSS_AddonCPUGroup(L, gi)
---   M.PSS_AddonCPUTotal()  M.PSS_AddonWarn()
 --   M.PSS_AddonPrune()  M.PSS_AddonRelease()  M.PSS_AddonCommand(args, raw)
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
@@ -63,7 +60,6 @@ local EnableAddOn, DisableAddOn = api("EnableAddOn"), api("DisableAddOn")
 local EnableAllAddOns, DisableAllAddOns = api("EnableAllAddOns"), api("DisableAllAddOns")
 local GetDeps, GetOptDeps = api("GetAddOnDependencies"), api("GetAddOnOptionalDependencies")
 local IsLoaded, IsLoD, LoadAddOn = api("IsAddOnLoaded"), api("IsAddOnLoadOnDemand"), api("LoadAddOn")
-local UpdateMem, GetMem = api("UpdateAddOnMemoryUsage"), api("GetAddOnMemoryUsage")
 local SaveAddOns, ResetAddOns = api("SaveAddOns"), api("ResetAddOns")
 local GetVersionCheck, SetVersionCheck = api("IsAddonVersionCheckEnabled"), api("SetAddonVersionCheck")
 -- GetAddOnEnableState(name, character) on 11.0 and later, (character, name) before
@@ -132,7 +128,6 @@ local CAN = {
 	load = function() return LoadAddOn end,
 	undo = function() return ResetAddOns end,
 	loadold = function() return GetVersionCheck and SetVersionCheck end,
-	memory = function() return UpdateMem and GetMem end,
 }
 function M.PSS_AddonCan(what)
 	local f = CAN[what]
@@ -147,7 +142,7 @@ function M.PSS_AddonCount() return count() end
 -- (the full API list for /pss acp api: label, present)
 local API_NAMES = { "GetNumAddOns", "GetAddOnInfo", "GetAddOnMetadata", "EnableAddOn", "DisableAddOn", "EnableAllAddOns",
 	"DisableAllAddOns", "GetAddOnDependencies", "GetAddOnOptionalDependencies", "IsAddOnLoaded", "IsAddOnLoadOnDemand",
-	"LoadAddOn", "UpdateAddOnMemoryUsage", "GetAddOnMemoryUsage", "SaveAddOns", "ResetAddOns",
+	"LoadAddOn", "SaveAddOns", "ResetAddOns",
 	"IsAddonVersionCheckEnabled", "SetAddonVersionCheck" }
 
 ------------------------------------------------------------------------
@@ -484,8 +479,7 @@ local function groupName(i, name)
 	return s:match("^([^_%-]+)[_%-]") or s
 end
 
--- who: "me" or "all". view: "group" (default), "az", "lod" or "mem" (most
--- memory first). search: text
+-- who: "me" or "all". view: "group" (default), "az" or "lod". search: text
 -- in the name or title. Returns L = { n, idx = {addon indexes in order},
 -- gi = { [position] = group number }, groups = { { name, from, to } } }.
 function M.PSS_AddonList(who, view, search)
@@ -494,7 +488,7 @@ function M.PSS_AddonList(who, view, search)
 	if not CAN.list() then return L end
 	local needle = search and search ~= "" and lower(search) or nil
 	local idx, n = L.idx, 0
-	local byGroup = view ~= "az" and view ~= "lod" and view ~= "mem"
+	local byGroup = view ~= "az" and view ~= "lod"
 	for i = 1, count() do
 		local name, title = info(i)
 		if type(name) == "string" and not hidden(name) then
@@ -513,8 +507,6 @@ function M.PSS_AddonList(who, view, search)
 					X1[i] = (IsLoD and IsLoD(i)) and "b" or "a"
 					X2[i] = key
 					X3[i] = ""
-				elseif view == "mem" then
-					X1[i], X2[i], X3[i] = -M.PSS_AddonMemOf(i), 0, key
 				else
 					X1[i], X2[i], X3[i] = key, 0, ""
 				end
@@ -826,123 +818,15 @@ function M.PSS_AddonReload()
 	return M.PSS_ReloadPrompt()
 end
 
-------------------------------------------------------------------------
--- Memory: the client keeps the last sample; ours reads it. Sampled once
--- per call of PSS_AddonMemory (a window open or Refresh), never in combat.
-------------------------------------------------------------------------
-function M.PSS_AddonMemory()
-	if InCombatLockdown() or not CAN.memory() then return nil end
-	if not pcall(UpdateMem) then return nil end
-	local total = 0
-	for i = 1, count() do
-		local ok, kb = pcall(GetMem, i)
-		if ok and type(kb) == "number" then total = total + kb end
-	end
-	return total
-end
-
-function M.PSS_AddonMemOf(i)
-	if not GetMem then return 0 end
-	local ok, kb = pcall(GetMem, i)
-	return ok and type(kb) == "number" and kb or 0
-end
-
-function M.PSS_AddonMemGroup(L, gi)
+-- how many of a group's addons are loaded, and how many it has
+function M.PSS_AddonGroupLoaded(L, gi)
 	local g = L.groups[gi]
-	if not g then return 0 end
-	local sum = 0
-	for p = g.from, g.to do sum = sum + M.PSS_AddonMemOf(L.idx[p]) end
-	return sum
-end
-
-------------------------------------------------------------------------
--- CPU: the client's addon profiler (feature-detected; the parts hide
--- without it). Shares are percentages of the game's time.
-------------------------------------------------------------------------
-local METRICS = { "SessionAverageTime", "RecentAverageTime", "PeakTime", "EncounterAverageTime" }
-
-local function profiler()
-	local p, e = C_AddOnProfiler, Enum and Enum.AddOnProfilerMetric
-	if type(p) ~= "table" or type(e) ~= "table" then return nil end
-	if type(p.IsEnabled) ~= "function" or not p.IsEnabled() then return nil end
-	if type(p.GetAddOnMetric) ~= "function" or type(p.GetOverallMetric) ~= "function" or type(p.GetApplicationMetric) ~= "function" then return nil end
-	return p, e
-end
-
-function M.PSS_AddonPerfOn()
-	return profiler() ~= nil
-end
-
-local function share(v, app, overall)
-	local d = (app or 0) - (overall or 0) + v
-	if d <= 0 or v <= 0 then return 0 end
-	return 100 * v / d
-end
-
--- one addon's average, current, peak and encounter share, or nil
-function M.PSS_AddonCPU(name)
-	local p, e = profiler()
-	if not p or not IsLoaded or not IsLoaded(name) then return nil end
-	local v1, v2, v3, v4
-	for k = 1, 4 do
-		local m = e[METRICS[k]]
-		local v = m and share(p.GetAddOnMetric(name, m) or 0, p.GetApplicationMetric(m), p.GetOverallMetric(m)) or 0
-		if k == 1 then v1 = v elseif k == 2 then v2 = v elseif k == 3 then v3 = v else v4 = v end
-	end
-	return v1, v2, v3, v4
-end
-
--- a group as if it were one addon: its loaded members' times added up, then
--- the same share; also how many of its addons are loaded
-function M.PSS_AddonCPUGroup(L, gi)
-	local g = L.groups[gi]
-	local p, e = profiler()
-	if not g then return nil end
+	if not g then return 0, 0 end
 	local loaded = 0
 	for q = g.from, g.to do
-		local i = L.idx[q]
-		if IsLoaded and IsLoaded(i) then loaded = loaded + 1 end
+		if IsLoaded and IsLoaded(L.idx[q]) then loaded = loaded + 1 end
 	end
-	if not p then return nil, nil, nil, nil, loaded, g.to - g.from + 1 end
-	local out = {}
-	for k = 1, 4 do
-		local m = e[METRICS[k]]
-		local sum = 0
-		if m then
-			for q = g.from, g.to do
-				local i = L.idx[q]
-				if IsLoaded and IsLoaded(i) then
-					local n = info(i)
-					sum = sum + (p.GetAddOnMetric(n, m) or 0)
-				end
-			end
-			out[k] = share(sum, p.GetApplicationMetric(m), p.GetOverallMetric(m))
-		else
-			out[k] = 0
-		end
-	end
-	return out[1], out[2], out[3], out[4], loaded, g.to - g.from + 1
-end
-
--- all addons together: current, average, peak
-function M.PSS_AddonCPUTotal()
-	local p, e = profiler()
-	if not p then return nil end
-	local res = {}
-	for k, name in ipairs({ "RecentAverageTime", "SessionAverageTime", "PeakTime" }) do
-		local m = e[name]
-		local app = m and p.GetApplicationMetric(m) or 0
-		local over = m and p.GetOverallMetric(m) or 0
-		res[k] = app > 0 and 100 * over / app or 0
-	end
-	return res[1], res[2], res[3]
-end
-
--- the share above which a line is shown red (percent)
-function M.PSS_AddonWarn()
-	local get = (GetCVarNumberOrDefault) or (C_CVar and C_CVar.GetCVar) or GetCVar
-	local v = get and tonumber((get("addonPerformanceMsgWarning")))
-	return v and v > 0 and v or 1
+	return loaded, g.to - g.from + 1
 end
 
 ------------------------------------------------------------------------
@@ -1514,7 +1398,6 @@ local function apiCommand()
 	note((stateNew or stateOld) ~= nil, "GetAddOnEnableState")
 	say(format(T.apiHave, #have > 0 and concat(have, ", ") or T.apiNone))
 	say(format(T.apiLack, #lack > 0 and concat(lack, ", ") or T.apiNone))
-	say(format("Addon profiler: %s.", M.PSS_AddonPerfOn() and "on" or "off or missing"))
 end
 
 local function presetCommand(args, raw)

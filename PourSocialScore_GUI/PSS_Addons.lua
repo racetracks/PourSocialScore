@@ -3,10 +3,9 @@
 --
 -- Every addon in one grouped, searchable list: a tick (on for this
 -- character or for all), the title in its state's colour, its status, a
--- Load button for a load on demand addon, its memory and a protect mark.
--- A line at the top shows the CPU and memory of the client's own AddOn
--- list; hovering an addon shows its details and cost, a group header the
--- group's sums. Addon Profiles (bottom left), Undo, Enable All, Disable All and
+-- Load button for a load on demand addon and a protect mark.
+-- Hovering an addon shows its details, a group header how many of its
+-- addons are loaded. Addon Profiles (bottom left), Undo, Enable All, Disable All and
 -- Reload are under the list. Drawing only: Libraries (PSS_AddonsView.lua over
 -- PSS_AddonsQuery.lua) works out every text and does every change; the
 -- tab redraws when core fires ADDONS_CHANGED. Built on first open; closing
@@ -24,7 +23,7 @@ if not M.PSS_On("addons") then return end	-- the Addon Manager is off: no AddOns
 
 local V = M.PSS_AddonView()
 local page, list, search, charDD, viewDD, setsDD
-local stats, tally, footer, undo, enableAll, disableAll, reload, deps, oldCheck
+local tally, footer, undo, enableAll, disableAll, reload, deps, oldCheck
 local rowBuf = {}
 
 local STAR = "Interface\\Glues\\CharacterSelect\\Glues-AddOn-Icons"
@@ -128,8 +127,6 @@ local function DrawRow(row, k)
 	row.tick:SetChecked(o.tick ~= 0)
 	row.tick:SetAlpha(o.tick == 1 and 0.6 or 1)
 	row.tick:SetEnabled(not o.pss)
-	c.mem:SetText(o.mem)
-	c.mem:SetAlpha(o.dim and 0.5 or 1)
 	if o.header then
 		local arrow = ns.HasAtlas(ARROW)
 		row.arrow:SetShown(arrow)
@@ -206,16 +203,10 @@ end
 
 function Refresh()
 	if not page then return end
-	if V.needSample then
-		V.needSample = false
-		V:Sample()
-	end
 	local n, text, empty = V:Build()
 	list:SetCount(n)
 	list:SetEmptyText(n == 0 and empty or nil)
-	list:SetSort(V.sortMem and "mem" or nil, false)
 	footer:SetText(text)
-	stats:SetText(V:Stats())
 	local adds, offs = V:Changes()
 	local none = #adds == 0 and #offs == 0
 	tally:SetText(none and "No changes waiting for a reload" or ("Enabling " .. #adds .. ", disabling " .. #offs))
@@ -307,7 +298,6 @@ local function BuildToolbar()
 		for _, v in ipairs({ { "group", "Grouped" }, { "az", "A to Z" }, { "lod", "Load on demand apart" } }) do
 			m:Radio(v[2], function() return V.view == v[1] end, function()
 				M.PSS_AddonViewMode(v[1])
-				V.sortMem = false
 				Refresh()
 			end)
 		end
@@ -332,14 +322,6 @@ local function BuildToolbar()
 	local can = M.PSS_AddonCan("loadold")
 	oldCheck:SetShown(can)
 	oldText:SetShown(can)
-
-	local refresh = ns.NewButton(page, "Refresh", 76, function()
-		V:Sample()
-		Refresh()
-	end)
-	refresh:SetPoint("TOPRIGHT", page, "TOPRIGHT", -10, -8)
-	ns.TipOn(refresh, refresh, "Reads the memory in use again.")
-	page.refreshButton = refresh
 end
 
 local function BuildFooter()
@@ -388,10 +370,7 @@ end
 ns.TabBuilders.addons = function(pg)
 	page = pg
 	BuildToolbar()
-	stats = ns.NewText(page, 11)
-	stats:SetPoint("TOPLEFT", page, "TOPLEFT", 12, -TOP_H - 12)
-	-- the summary of what a reload will do, top right of the stats line; its
-	-- hover lists the addons
+	-- the summary of what a reload will do, top right; its hover lists the addons
 	local tf = CreateFrame("Frame", nil, page)
 	tf:SetPoint("TOPRIGHT", page, "TOPRIGHT", -12, -TOP_H - 8)
 	tf:SetSize(230, 20)
@@ -401,8 +380,6 @@ ns.TabBuilders.addons = function(pg)
 	tally:SetJustifyH("RIGHT")
 	ns.TipOn(tf, tf, ChangeTip)
 	page.tally = tally
-	stats:SetPoint("RIGHT", tf, "LEFT", -8, 0)
-	stats:SetJustifyH("LEFT")
 	BuildFooter()
 
 	local lf = CreateFrame("Frame", nil, page)
@@ -415,16 +392,8 @@ ns.TabBuilders.addons = function(pg)
 			{ key = "title", text = "AddOn", sort = false },
 			{ key = "status", text = "Status", width = 170, sort = false },
 			{ key = "load", text = "", width = 64, sort = false },
-			{ key = "mem", text = "Memory", width = 80, justify = "RIGHT",
-				tip = "The memory each addon uses now. Click to list the biggest first." },
 			{ key = "lock", text = "", width = 30, sort = false },
 		},
-		sort = function(key)
-			if key == "mem" then
-				V.sortMem = not V.sortMem
-				Refresh()
-			end
-		end,
 		make = MakeRow,
 		draw = DrawRow,
 		enter = RowTip,
@@ -432,13 +401,10 @@ ns.TabBuilders.addons = function(pg)
 	})
 	page.list, page.state, page.search = list, V, search
 	page.setsDD, page.footer, page.setsBuild, page.undoButton, page.reloadButton = setsDD, footer, BuildSets, undo, reload
-	-- the window opened: memory is read once when this tab next shows
-	page.stale = function() V.needSample = true end
 	page.release = function()
 		V:Release()
 		if list then list:SetCount(0) end
 	end
-	V.needSample = true
 	return Refresh
 end
 
