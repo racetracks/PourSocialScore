@@ -797,25 +797,33 @@ end
 -- a change waits for a reload: an addon that is loaded and turned off, or
 -- turned on and not loaded (a load on demand addon loads when asked)
 function M.PSS_AddonPending(who)
-	if not CAN.list() then return false end
+	local adds, offs = M.PSS_AddonChanges(who)
+	return #adds > 0 or #offs > 0
+end
+
+-- what a reload will do: the names turned on and not loaded yet (a load on
+-- demand addon loads when asked: not counted) and the names loaded and turned
+-- off; the same rule as PSS_AddonPending. Returns two lists (added, turned off)
+function M.PSS_AddonChanges(who)
+	local adds, offs = {}, {}
+	if not CAN.list() then return adds, offs end
 	for i = 1, count() do
 		local name, _, _, _, reason = info(i)
 		if type(name) == "string" then
 			local on = enableState(i, who) ~= NONE
 			local loaded = IsLoaded and IsLoaded(i)
-			if loaded and not on then return true end
-			if on and not loaded and not (IsLoD and IsLoD(i)) and (reason == nil or reason == "" or reason == "DISABLED") then
-				return true
+			if loaded and not on then
+				offs[#offs + 1] = name
+			elseif on and not loaded and not (IsLoD and IsLoD(i)) and (reason == nil or reason == "" or reason == "DISABLED") then
+				adds[#adds + 1] = name
 			end
 		end
 	end
-	return false
+	return adds, offs
 end
 
 function M.PSS_AddonReload()
-	if InCombatLockdown() then return false, T.combat end
-	ReloadUI()
-	return true
+	return M.PSS_ReloadPrompt()
 end
 
 ------------------------------------------------------------------------
@@ -1201,6 +1209,21 @@ function M.PSS_AddonPresetInstalled(id, scope)
 	local pid, str, _, pos = presetOf(id, scope)
 	if not pid then return 0 end
 	return (eachInstalled(str, pos, function() end))
+end
+
+-- the tick next to a profile in the Profiles menu: true when it has an
+-- installed addon and every installed addon of it is on (Enable all / Disable
+-- all are what ticking and unticking do)
+function M.PSS_AddonPresetOn(id, scope, who)
+	local pid, str, _, pos = presetOf(id, scope)
+	if not pid then return false end
+	who = scope == "all" and who == "all" and "all" or "me"
+	local n, off = 0, 0
+	eachInstalled(str, pos, function(i)
+		n = n + 1
+		if enableState(i, who) == NONE then off = off + 1 end
+	end)
+	return n > 0 and off == 0
 end
 
 -- one addon (by folder name) into a preset

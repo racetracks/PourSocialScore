@@ -154,6 +154,14 @@ function W:MenuTree()
 			it.sub = child
 			return cr
 		end
+		function r:CreateCheckbox(text, isSelected, setSelected, data)
+			local it = { kind = "checkbox", text = text, on = isSelected(data) and true or false, isOn = isSelected,
+				fn = function() return setSelected(data) end }
+			n.items[#n.items + 1] = it
+			local child, cr = node()
+			it.sub = child
+			return cr
+		end
 		function r:CreateTitle(text) n.items[#n.items + 1] = { kind = "title", text = text } end
 		function r:CreateDivider() n.items[#n.items + 1] = { kind = "divider" } end
 		function r:SetScrollMode() n.scroll = true end
@@ -169,7 +177,8 @@ function W:IsEnabled() return self._enabled ~= false end
 function W:Enable() self._enabled = true end
 function W:Disable() self._enabled = false end
 function W:SetEnabled(e) self._enabled = e and true or false end
-function W:GetFrameLevel() return 1 end
+function W:GetFrameLevel() return self._level or 1 end
+function W:SetFrameLevel(n) self._level = n end
 function W:GetFrameStrata() return "MEDIUM" end
 function W:GetID() return self._id or 0 end
 function W:SetID(i) self._id = i end
@@ -349,6 +358,10 @@ AddonCompartmentFrame = { registered = {} }
 function AddonCompartmentFrame:RegisterAddon(info) self.registered[#self.registered + 1] = info end
 GameTooltip = new("GameTooltip", "GameTooltip")
 ItemRefTooltip = new("GameTooltip", "ItemRefTooltip")
+-- the lines the tooltip was given (the first is the title)
+function GameTooltip:SetText(t) self._lines = { t } end
+function GameTooltip:AddLine(t) self._lines = self._lines or {}; self._lines[#self._lines + 1] = t end
+function GameTooltip:NumLines() return self._lines and #self._lines or 0 end
 DEFAULT_CHAT_FRAME = new("ScrollingMessageFrame", "DEFAULT_CHAT_FRAME")
 stub.chat = {}
 function DEFAULT_CHAT_FRAME:AddMessage(m) stub.chat[#stub.chat + 1] = tostring(m) end
@@ -426,7 +439,8 @@ function IsAddOnLoaded() return false end
 function GetAddOnMemoryUsage() return 0 end
 function UpdateAddOnMemoryUsage() end
 function collectgarbage_stub() end
-function GetCursorPosition() return 0, 0 end
+-- stub.cursorX: where the pointer is (a menu row's tick box is its left 24 px)
+function GetCursorPosition() return stub.cursorX or 1000, 0 end
 function GetScreenWidth() return 1920 end
 function GetScreenHeight() return 1080 end
 function PlaySound() end
@@ -584,7 +598,31 @@ if os.getenv("PSS_GFX_NOAPI") ~= "1" then
 		function ConsoleGetAllCommands() return consoleList() end
 	end
 end
-function ReloadUI() stub.reloads = stub.reloads + 1 end
+-- Camelot (PSS_RELOAD_BLOCK=1) blocks ReloadUI() from addon code even inside a click; a secure
+-- click on a macro "/reload" (stub.SecureClick) is the player's own reload.
+-- Retail has C_UI.Reload.
+stub.uiReloads, stub.blockedReloads, stub.macroReloads = 0, 0, 0
+function ReloadUI()
+	if camelot and os.getenv("PSS_RELOAD_BLOCK") == "1" then stub.blockedReloads = stub.blockedReloads + 1 return end
+	stub.reloads = stub.reloads + 1
+end
+if not camelot and os.getenv("PSS_NO_CUI") ~= "1" then C_UI = { Reload = function() stub.uiReloads = stub.uiReloads + 1; stub.reloads = stub.reloads + 1 end } end
+stub.bindings = {}
+function SetOverrideBindingClick(owner, pri, key, btn) stub.bindings[key] = btn end
+function ClearOverrideBindings(owner) stub.bindings = {} end
+function W:SetAttribute(k, v) self._attr = self._attr or {}; self._attr[k] = v end
+function W:GetAttribute(k) return self._attr and self._attr[k] end
+-- a click on a secure action button: its macro runs first (out of combat; a
+-- "/stopmacro [combat]" line stops it in combat), then PostClick
+function stub.SecureClick(f)
+	local m = f:GetAttribute("type") == "macro" and f:GetAttribute("macrotext")
+	if m and m:find("/reload", 1, true) and not (stub.combat and m:find("/stopmacro [combat]", 1, true)) then
+		stub.macroReloads = stub.macroReloads + 1
+		stub.reloads = stub.reloads + 1
+	end
+	local post = f._scripts.PostClick
+	if post then post(f, "LeftButton") end
+end
 if camelot then stub.SeedGfx() end
 
 C_DateAndTime = {}

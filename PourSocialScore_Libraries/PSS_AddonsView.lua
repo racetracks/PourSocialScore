@@ -399,25 +399,24 @@ function View:ProfileMenu()
 	return e
 end
 
--- the actions on one place p (an entry of Slots): a title, then (a used
--- place) Select or Deselect, Save, Load, Enable all, Disable all (shown as
--- titles, not clickable, when none of its addons is installed), Rename,
--- Delete; a free place says why (Not saved yet), may show a profile the other
--- scope holds, Save and Rename
+-- the actions on one place p (an entry of Slots), the same rows for every
+-- place as AddonControlPanel's sets menu (behaviour only): a title, Select or
+-- Deselect, Save, Load, Enable all, Disable all, Rename (not the class
+-- place), a divider, Delete. A free place also says why (Not saved yet) and
+-- may show a profile the other scope holds; its Load, Select, Enable all,
+-- Disable all and Delete are listed and say there is nothing there. Enable all
+-- and Disable all are titles when none of the profile's addons is installed
 function View:PresetMenu(p)
 	local e = { { kind = "title", text = p.label .. (p.class and "" or (p.scope == "all" and " (all characters)" or " (this character)")) } }
 	local function add(text, act) e[#e + 1] = { kind = "button", text = text, act = act } end
 	if p.empty then
 		e[#e + 1] = { kind = "title", text = p.hidden and "Saved by another version" or "Not saved yet" }
 		if p.elsewhere then add("Show the saved profile (" .. (p.elsewhere == "all" and "all characters" or "this character") .. ")", "show") end
-		add("Save", "save")
-		add("Rename", "rename")
-		return e
 	end
-	add(M.PSS_AddonProfileSelected(p.id, self.who) and "Deselect" or "Select", "select")
+	add((not p.empty and M.PSS_AddonProfileSelected(p.id, self.who)) and "Deselect" or "Select", "select")
 	add("Save", "save")
 	add("Load", "load")
-	local none = M.PSS_AddonPresetInstalled(p.id, p.scope) == 0
+	local none = not p.empty and M.PSS_AddonPresetInstalled(p.id, p.scope) == 0
 	for _, a in ipairs({ { "Enable all", "enable" }, { "Disable all", "disable" } }) do
 		if none then
 			e[#e + 1] = { kind = "title", text = a[1] }
@@ -425,7 +424,7 @@ function View:PresetMenu(p)
 			add(a[1], a[2])
 		end
 	end
-	add("Rename", "rename")
+	if not p.class then add("Rename", "rename") end
 	e[#e + 1] = { kind = "divider" }
 	add("Delete", "delete")
 	return e
@@ -451,6 +450,17 @@ function View:PresetAct(p, act, name)
 		ok, text = M.PSS_AddonPresetDelete(p.id, p.scope)
 	end
 	return text
+end
+
+-- the tick next to a place in the Profiles menu
+function View:PlaceOn(p)
+	return not p.empty and M.PSS_AddonPresetOn(p.id, p.scope, self.who) or false
+end
+
+-- what a reload will do, counted once for the summary at the top, the Reload
+-- button and both tooltips: adds, offs (lists of names)
+function View:Changes()
+	return M.PSS_AddonChanges(self.who)
 end
 
 function View:Pending()

@@ -623,6 +623,8 @@ do
 		c.accept._scripts.OnClick(c)
 		check(glog[#glog] == "apply", look .. " Apply did not call Libraries")
 		g.reload._scripts.OnClick(g.reload)
+		check(c:IsShown() and c.title:GetText() == "Reload UI?", look .. " Reload UI asks")
+		c.accept._scripts.OnClick(c)
 		check(glog[#glog] == "reload", look .. " Reload UI")
 		-- History
 		g.history._scripts.OnClick(g.history)

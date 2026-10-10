@@ -47,7 +47,9 @@ function Entries:Divider() self[#self + 1] = { kind = "divider" } end
 function Entries:Title(text) self[#self + 1] = { kind = "title", text = text } end
 -- a submenu: build(sm) fills its entries (Blizzard's menu opens it beside the
 -- entry; our list swaps to it under a "< Back" line)
-function Entries:Sub(text, build) self[#self + 1] = { kind = "sub", text = text, children = Collect(build) } end
+-- tick = { on, fn }: a tick box next to the entry (its own click toggles it,
+-- fn(); anywhere else opens the submenu)
+function Entries:Sub(text, build, tick) self[#self + 1] = { kind = "sub", text = text, children = Collect(build), tick = tick } end
 
 function Collect(build)
 	local list = setmetatable({}, Entries)
@@ -76,7 +78,15 @@ function FillBlizzard(root, list)
 				return MenuResponse and MenuResponse.Refresh
 			end)
 		elseif e.kind == "sub" then
-			FillBlizzard(root:CreateButton(e.text), e.children)
+			if e.tick then
+				local t = e.tick
+				FillBlizzard(root:CreateCheckbox(e.text, function() return IsOn(t) end, function()
+					if t.fn then t.fn() end
+					return MenuResponse and MenuResponse.Refresh
+				end), e.children)
+			else
+				FillBlizzard(root:CreateButton(e.text), e.children)
+			end
 		elseif e.kind == "divider" and root.CreateDivider then
 			root:CreateDivider()
 		elseif e.kind == "title" and root.CreateTitle then
@@ -154,6 +164,15 @@ local function MakeSlot(i)
 	sl:SetScript("OnClick", function(self)
 		local e = self.entry
 		if not e then return end
+		if e.kind == "sub" and e.tick then
+			-- the tick box is the left edge of the row; a click there toggles
+			local x = GetCursorPosition() / self:GetEffectiveScale()
+			if x - (self:GetLeft() or 0) < 24 then
+				if e.tick.fn then e.tick.fn() end
+				ns.DrawMenu()
+				return
+			end
+		end
 		if e.kind == "sub" then
 			-- our list has no side menus: the menu shows the entries, under a Back line
 			upList = shown
@@ -179,7 +198,7 @@ end
 local function Draw()
 	local marks = false
 	for _, e in ipairs(shown) do
-		if e.kind == "radio" or e.kind == "check" then marks = true break end
+		if e.kind == "radio" or e.kind == "check" or (e.kind == "sub" and e.tick) then marks = true break end
 	end
 	local y, n = PAD, 0
 	for i = offset + 1, #shown do
@@ -204,11 +223,11 @@ local function Draw()
 		sl.text:SetAlpha(title and 0.41 or 0.53)
 		sl.line:SetShown(divider)
 		if divider then sl.line:SetHeight(ns.OnePixel(sl)) end
-		local on = (e.kind == "radio" or e.kind == "check") and IsOn(e)
+		local on = ((e.kind == "radio" or e.kind == "check") and IsOn(e) or (e.kind == "sub" and e.tick and IsOn(e.tick))) and true or false
 		sl.mark:SetShown(on)
 		sl.mark:SetColorTexture(ns.Accent())
-		sl.box:SetShown(e.kind == "check")
-		sl.picked:SetShown(on and e.kind == "radio")
+		sl.box:SetShown(e.kind == "check" or (e.kind == "sub" and e.tick ~= nil))
+		sl.picked:SetShown(on and e.kind == "radio" and true or false)
 		sl:EnableMouse(not (title or divider))
 		y = y + h
 	end
