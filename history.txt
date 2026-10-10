@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.83 - Docs: addon-helper references repointed
+
+- Docs only: CLAUDE.md, the status, handover and rules docs and one code comment point at the addon-helper feature documentation on scratch instead of the retired addon-manager folder. Nothing in the addon changes.
+- 3.6.0.82 is the Addon Profiles build on its own branch; the later fixes move up one build: #192 3.6.0.84, #203 3.6.0.85.
+
 => 3.6.0.81 - Docs: summaries end with a references table
 
 - Documentation only: every summary written for scratch ends with a table of its references, their titles and links (DEC-00074). No change in game.
