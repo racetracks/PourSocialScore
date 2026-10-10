@@ -15,15 +15,15 @@ Three packs, read in layer order. **The baseline's rules are mandatory:** PSS ov
 | 2 | `docs/scratch/` | Scratch repo usage: how `racetracks/Pour-Social-Score_Scratch` hosts builds, saves, docs and summaries. Live copy on scratch `docs/latest/scratch-repo-usage/`, criteria in its `CLAUDE.md` |
 | 3 | `docs/pss/` | PSS pack, only what is true of PSS: 01 the addon as it works, 02 PSS rules (section 12 Overrides), 06 status, 10 the closed core uplift, 11 the author's preferences. Newest copies on scratch `docs/latest/pss-docs/` |
 
-Loaded in every session (everything else is read when a step needs it):
+Loaded in every session that opens this repo (Claude Code imports: each `@path` line is read into the session's memory at start; on GitHub it shows as plain text, so each carries a link; everything else is read when a step needs it):
 
-@docs/pss/11_PREFERENCES.md
-@docs/baseline/02_RULES.md
-@docs/baseline/10_FEATURE_DESIGN_AND_DELIVERY.md
-@docs/scratch/05_RULES.md
-@docs/pss/01_HANDOVER.md
-@docs/pss/02_RULES.md
-@docs/pss/06_STATUS_AND_NEXT.md
+@docs/pss/11_PREFERENCES.md ([open](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/11_PREFERENCES.md))
+@docs/baseline/02_RULES.md ([open](https://github.com/racetracks/PourSocialScore/blob/main/docs/baseline/02_RULES.md))
+@docs/baseline/10_FEATURE_DESIGN_AND_DELIVERY.md ([open](https://github.com/racetracks/PourSocialScore/blob/main/docs/baseline/10_FEATURE_DESIGN_AND_DELIVERY.md))
+@docs/scratch/05_RULES.md ([open](https://github.com/racetracks/PourSocialScore/blob/main/docs/scratch/05_RULES.md))
+@docs/pss/01_HANDOVER.md ([open](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/01_HANDOVER.md))
+@docs/pss/02_RULES.md ([open](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/02_RULES.md))
+@docs/pss/06_STATUS_AND_NEXT.md ([open](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/06_STATUS_AND_NEXT.md))
 
 ## Read when the task touches the topic
 Scratch links: `https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/<path>` (folder), `/blob/main/<path>` (file).
@@ -77,6 +77,7 @@ No exceptions without the author's OK. Read before writing any document: scratch
 - **Every component** lives in scratch `docs/components/<slug>/` with `README.md`, `00_APPENDIX.md` (`APX`), `01_ARCHITECTURE.md` (`ARC`), `02_HIGH_LEVEL_DESIGN.md` (`HLD`), `03_DETAILED_DESIGN.md` (`DDS`), `04_IMPLEMENTATION_PLAN.md` (`IMP`, steps `STP`, tests `TST`, checks `CHK`) and `issues/ISS-<NNNNN>.md`; decisions are `DEC`; every saved key, layout, migration, cap or retirement is a `SAV`. The appendix lists every key of the component, from the registry.
 - **Every documentation folder carries `00_APPENDIX.md` (its keys) and `00_References.md` (its retirements and mappings; an empty table until the first)**, created with the folder's first document.
 - **Retire, never delete (`RET`, scratch `DDS-00001:7`):** when an item is replaced, merged, split or dropped, allocate the replacement first, then `python3 documents/reference-framework/08_Operations/registry-tool/refkey.py retire <OLD> <NEW|-> <CMP-key> <folder>/00_References.md "<reason>"` (next `RET`, old ledger row marked "(retired, RET-n)", mapping row in the registry); push the registry, copy the row into that folder's `00_References.md`, mark the old definition "(retired, RET-n)" (keep its text), add both keys to `00_APPENDIX.md` and point live documents at the new key. Legacy keys are retired the same way when their component is backfilled. Out-of-date context then still says what replaced it and why.
+- **A summary is a document** (the author, 2026-10-10): asking for a summary (a status, session, project, review or release summary, wherever it is kept) is asking for a document; every rule in this section and in **Mandatory Documentation Requirements** applies to it.
 - **A key is defined once** (its row or heading starts with it) and quoted everywhere else; a place in a document is `KEY:section`. PRs, commits, issues, history and code comments quote keys, never allocate them; the addon repo never holds a registry.
 - Legacy series (`ADM-*`, `APR-*`, `ACPI-*`, `EC-*`, `IRE-*`, `ISS-<n>`) are frozen aliases in the registry: read them, never extend them.
 - Put this block in every subagent's brief that writes a document.
