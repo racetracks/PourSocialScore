@@ -3,7 +3,7 @@
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. Earlier builds: `history.txt`, `versions.json` and the build records on scratch ([`16_02_Build_Ledger.md`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/addon-helper/16_Registries/16_02_Build_Ledger.md)). History: `reference/06_status-history-to-3.4.1.30.md` and `reference/combined-3.4.1.52/`.
 
 ## Now
-- **3.6.0.84 (this PR, adopts branch `claude/charming-carson-j6q7wr`):** its three builds (labelled 3.6.0.80 to 3.6.0.82 there, never merged; those numbers are taken on main by docs builds and stay unused for code) shipped as one build: #189, #192, #179 rework and the in-combat reload, below. Next free build 3.6.0.85 (#203).
+- **3.6.0.84 ([PR #206](https://github.com/racetracks/PourSocialScore/pull/206), adopts branch `claude/charming-carson-j6q7wr`):** its three builds (labelled 3.6.0.80 to 3.6.0.82 there, never merged; those numbers are taken on main by docs builds and stay unused for code) shipped as one build: #189, #192, #179 rework and the in-combat reload, below. Next free build 3.6.0.85 (#203).
 - **branch 3.6.0.82, in 3.6.0.84 (built, awaiting the author's in-game checks):** [#179](https://github.com/racetracks/PourSocialScore/issues/179) rework (the author's answers on the issue): a tick box next to each place in the Profiles drop-down (tick = Enable all of it, untick = Disable all, at once; kit `m:Sub(text, build, tick)`: Blizzard's checkbox with a submenu, Dark's left 24 px of the row); `M.PSS_AddonChanges` / `M.PSS_AddonPresetOn` / `View:Changes` / `View:PlaceOn` (Libraries); the summary at the top right of the AddOns tab, the Reload button's `(+x/-y)` and both hovers from one count; `ns.Tip` takes `{ title, bold, text }` (bold line = the tooltip header font; J: a font object on one tooltip line, nothing else). Phase `placetick` (a to j). Not shown by the simulation: the real Blizzard checkbox-with-submenu, the bold line, tooltip placement, client art. Open: #201 to #203 (Dark issues).
 - **branch 3.6.0.81, in 3.6.0.84 (built):** the author's test of 3.6.0.80 passed steps 1 to 8 (menus, Save, Load, Reload click and Enter); step 9 changed: the reload prompt works in combat (the player chose it; no greyed Accept, no "Reload after combat", no `/stopmacro [combat]`; Enter binds when combat ends). New issues from that test: see scratch `docs/latest/issues/` (#179 rework, Dark drop-down fixes).
 - **branch 3.6.0.80, in 3.6.0.84 (built, awaiting the author's in-game checks):** [#189](https://github.com/racetracks/PourSocialScore/issues/189) (`STP-00018`, `TST-00008`) and [#192](https://github.com/racetracks/PourSocialScore/issues/192) (`STP-00020`, `TST-00009`) in one build (Overrides row, 02 section 12: "do `TST-00008`, `TST-00009`"; #192 moves from 3.6.0.81 into this build).
@@ -43,7 +43,7 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 
 ## Waiting on the author
 - #189: nothing to send (`STP-00017` closed); `DEC-00015` answered (2026-10-10).
-- Then test 3.6.0.82 (`CHK-00003`, `CHK-00001`, `CHK-00002`) and 3.6.0.83 (`CHK-00004`); close #179, #189 and #192 once tested.
+- Then test 3.6.0.84 (`CHK-00003`, `CHK-00001`, `CHK-00002`, `CHK-00004`; [PR #206](https://github.com/racetracks/PourSocialScore/pull/206)); close #179, #189 and #192 once tested.
 - Ask for macros from #159 when ready.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: answered 2026-10-10, revert P3 (watch targets, mouseovers, nameplates, group and /who in every state; never remove features); next: a code build, "build issue #148".
@@ -52,9 +52,9 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 None (02 section 12).
 
 ## Open issues (addon repo)
-- #189: no Load in the profile side menu; no profile can be saved on Camelot (`ISS-00002`; fix 3.6.0.82 `STP-00018`).
-- #179: Enable all / Disable all in a profile (built 3.6.0.74, `STP-00011`; blocked by #189; re-test on 3.6.0.82).
-- #192: the Reload prompt does nothing on Camelot (`ISS-00019`; fix 3.6.0.83 `STP-00020`).
+- #189: no Load in the profile side menu; no profile can be saved on Camelot (`ISS-00002`; fixed in 3.6.0.84 `STP-00018`, awaiting checks).
+- #179: Enable all / Disable all in a profile (built 3.6.0.74, `STP-00011`; blocked by #189; re-test on 3.6.0.84).
+- #192: the Reload prompt does nothing on Camelot (`ISS-00019`; fixed in 3.6.0.84 `STP-00020`, awaiting checks).
 - #159 to #169: Macro Helper macros, one issue per set (umbrella #159).
 - #152: window memory, build fewer frames (pane parts on first use, shared between tabs).
 - #37: the guild exclusion list is not saved (its intent needs defining).
