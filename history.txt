@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.79 - Docs: session outputs recorded, anything referenced always has a link
+
+- Documentation only: every session output is recorded in the session's notes (new sessions get a time-stamped folder), and anything written for the author always carries links to what it refers to. No change in game.
+
 => 3.6.0.78 - Docs: linked keys, decisions documents, session references
 
 - Documentation rules only (no addon change): every key in the project documents links to where it is explained, every documentation folder gets a decisions page, references link the session's notes, and changelogs link the version before each change.
