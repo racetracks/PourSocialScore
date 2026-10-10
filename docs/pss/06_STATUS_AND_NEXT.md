@@ -9,7 +9,14 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
   - Profiles are saved ACP's way: every place in the Profiles drop-down (Core 1 to 5, a line, Layered 6 to 25 and the class one), a place's side menu (Select or Deselect, Save with one confirm, Load, Add to current selection, Remove from current selection, Rename, Delete; a selected place marked `*`), any selected together (union plus hand picks; keys `addonSel`, `addonPick`); the kit's `m:Sub` (Blizzard submenu; a swap under "< Back" in Dark) fixed the menu closing; the drop-down is 190 wide and opens down in every look; the count is right-anchored to Undo. Not built (kept different from ACP): Default set, silent no-ops, empty-name reset. #177's decisions were built on the recommended options (core 1 to 5, union only, manual picks kept apart, load on the existing flow, class place under Layered).
   - Enabled components: Options section first, `useAddons` / `useLogging` / `useGfx` / `useFiltering`, `M.PSS_On` read once per session (a change applies after a reload); the addon manager and graphics files return at the top when off; Event Logging off stores no line (counts unchanged) and drops the Events tab and the Event History page; Social Filtering off registers no chat filter, block events, ignore hooks, menus, capture or expiry and the list tabs say so. The C1/C2 breach is fixed.
   - Design: scratch `docs/components/addon-manager/04_PROFILES_REWORK.md` (in-game checks section 8) and `docs/components/enabled-components/`; build record `03_BUILD_NOTES.md`.
-- **Next:** [#179](https://github.com/racetracks/PourSocialScore/issues/179) Enable all / Disable all in a profile's side menu (3.6.0.73; context scratch `docs/latest/issues/addon-profiles-enable-disable-all.md`, `docs/components/addon-manager/04_ENABLE_DISABLE_ALL.md`).
+- **Next steps (the author, 2026-10-10; order `DEC-00011`, plan scratch `docs/latest/next-steps/01_NEXT_STEPS.md`):**
+  1. `STP-00009`: the author tests 3.6.0.69 profiles; close #176, #177, #180, or a fix takes the next build.
+  2. `STP-00010`: the author tests Enabled components; close #181, or a fix as above.
+  3. `STP-00011`: [#179](https://github.com/racetracks/PourSocialScore/issues/179) Enable all / Disable all in a profile's side menu (3.6.0.73; scratch `docs/components/addon-manager/04_ENABLE_DISABLE_ALL.md`).
+  4. `STP-00012`: [#183](https://github.com/racetracks/PourSocialScore/issues/183) hide the ignore auto-reply echo, option `showIgnoreReplies` (3.6.0.74; scratch `docs/latest/issues/ignore-reply-echo/`).
+  5. `STP-00013`: [#184](https://github.com/racetracks/PourSocialScore/issues/184) finish the reference framework (`STP-00003` to `STP-00006`; docs build 3.6.0.75).
+
+  A fix build moves every later build up by one.
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
@@ -17,17 +24,16 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - Ask for macros from #159 when ready.
 - #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
 - #148: OK or revert P3 (inactive shipped lists no longer capture units or /who).
-- #184: close it (the reference framework rule shipped in 3.6.0.70, PR #185) unless work remains.
 
 ## Known breaches
 None (02 section 12).
 
 ## Open issues (addon repo)
 - #176, #177, #180: addon profiles (reworked in 3.6.0.69; close once tested).
-- #179: Enable all / Disable all in a profile (next, 3.6.0.73).
+- #179: Enable all / Disable all in a profile (3.6.0.73, `STP-00011`).
 - #181: Enabled components (built in 3.6.0.69; close once tested).
-- #183: ignore auto-reply, option to hide the "To player: ..." echo of the reply PSS sends.
-- #184: the reference framework (`ISS-00001`); shipped in 3.6.0.70.
+- #183: ignore auto-reply, option to hide the "To player: ..." echo of the reply PSS sends (3.6.0.74, `STP-00012`).
+- #184: the reference framework (`ISS-00001`); rule shipped in 3.6.0.70, remaining steps 3.6.0.75 (`STP-00013`).
 - #159 to #169: Macro Helper macros, one issue per set (umbrella #159).
 - #152: window memory, build fewer frames (pane parts on first use, shared between tabs).
 - #37: the guild exclusion list is not saved (its intent needs defining).
