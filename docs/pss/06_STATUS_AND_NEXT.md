@@ -3,6 +3,7 @@
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. Earlier builds: `history.txt`, `versions.json` and the build records on scratch ([`16_02_Build_Ledger.md`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/addon-helper/16_Registries/16_02_Build_Ledger.md)). History: `reference/06_status-history-to-3.4.1.30.md` and `reference/combined-3.4.1.52/`.
 
 ## Now
+- **3.6.1.97 (built):** the Feature Options page was not refreshed on OPTION_CHANGED, so an added item showed only after reopening (`sectionPages`, `PSS_Options.lua`; `check_dtt.lua` options checks the chip after a shift-click).
 - **3.6.1.96 (built):** item list rows are chips sized to the name, x after it, wrapping (`ns.NewItemList`, `PSS_Kit.lua`; `check_tui.lua` chips block).
 - **3.6.1.95 (built):** the item lists grow downward without overlapping (Options page re-lays out after each refresh, `PSS_Options.lua`; `check_dtt.lua` options fails on 3.6.1.94).
 - **3.6.1.94 (built):** shift-click an item into the Drop Cheapest Thing item lists (post-hook on the link insert in `ns.NewItemList`, `PSS_Kit.lua`; `check_dtt.lua` options).

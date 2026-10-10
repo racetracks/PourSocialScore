@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.1.97 - Drop Cheapest Thing: item lists redraw when an item is added
+
+- Fixed: an item added to the Drop Cheapest Thing lists (shift-click, drag, Add or Enter) now shows at once instead of only after reopening the page.
+
 => 3.6.1.96 - Drop Cheapest Thing: item list chips
 
 - The item lists of PSS Drop Cheapest Thing show each item as a small tag sized to its name, with the remove button just after it; tags sit side by side and wrap to the next line only when the row is full.

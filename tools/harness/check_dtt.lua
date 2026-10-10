@@ -484,6 +484,8 @@ function phases.options()
 		ChatFrameUtil.InsertLink("|cffffffff|Hitem:4242::::::::|h[X]|h|r")
 		l.box._focus = nil
 		check(M.PSS_Opt("dttAlways") == "1;4242", "shift-click did not add: " .. tostring(M.PSS_Opt("dttAlways")))
+		check(#l.items == 1 and l.rows[1] and l.rows[1]:IsShown() and l.rows[1].id == 4242 and l.lines == 1, "the added item has no chip: " .. #l.items)
+		check(l.box:GetText() == "", "box not cleared")
 		ChatFrameUtil.InsertLink("|cffffffff|Hitem:5555::::::::|h[Y]|h|r")
 		check(M.PSS_Opt("dttAlways") == "1;4242", "added without focus")
 		-- the lists grow down in separate groups: the next row starts below

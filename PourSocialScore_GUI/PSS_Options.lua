@@ -19,6 +19,7 @@ local ROW_H = 26
 local CONTROL_X = 210
 
 local optionsPage, featuresPage, ioPage
+local sectionPages = {}	-- the pages of grouped sections (Feature Options)
 
 ns.PageBuilders = ns.PageBuilders or {}
 
@@ -243,7 +244,10 @@ end
 -- the page of one grouped section (a nav entry with a section): only that
 -- section's rows
 function ns.SectionBuilder(row)
-	return function(page) return BuildOptions(page, (M.PSS_OPTION_SECTIONS[row.section]:gsub("[:%s]+$", ""))) end
+	return function(page)
+		sectionPages[#sectionPages + 1] = page
+		return BuildOptions(page, (M.PSS_OPTION_SECTIONS[row.section]:gsub("[:%s]+$", "")))
+	end
 end
 
 ns.PageBuilders.features = function(page)
@@ -329,5 +333,7 @@ end
 -- an option changed (here, by a command, or by another window): the tab
 -- shown again
 ns.Listen("OPTION_CHANGED", function()
-	if (optionsPage and optionsPage:IsVisible()) or (featuresPage and featuresPage:IsVisible()) or (ioPage and ioPage:IsVisible()) then ns.RefreshTab() end
+	local shown = (optionsPage and optionsPage:IsVisible()) or (featuresPage and featuresPage:IsVisible()) or (ioPage and ioPage:IsVisible())
+	for i = 1, #sectionPages do if sectionPages[i]:IsVisible() then shown = true end end
+	if shown then ns.RefreshTab() end
 end)
