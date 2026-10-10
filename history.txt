@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.78 - Docs: linked keys, decisions documents, session references
+
+- Documentation rules only (no addon change): every key in the project documents links to where it is explained, every documentation folder gets a decisions page, references link the session's notes, and changelogs link the version before each change.
+- The addon manager's fixes move up one build: #189 to 3.6.0.79, #192 to 3.6.0.80.
+
 => 3.6.0.77 - Docs: documentation standard, reference framework and document migration
 
 - Documentation only; the addon does not change.

@@ -10,6 +10,8 @@ These outrank every other rule in every pack; where one conflicts, this wins.
 - **Tell the author where to look, in one line,** and tell the author to review it in the markdowns.
 - **Every output has its own subfolder with a summary and a reference** (`temp/YYYY-MM-DD-<workspace>/<output>/README.md`: what it is, the summary, the reference links). The memory context holds only that folder's link, never the content.
 - **Summaries end with a prompt table (2026-10-10, `DEC-00038`):** every temp output `README.md` ends with a table of the recent prompts, answers and outputs (#, prompt, answer, output), with every link reference-style and collected at the bottom of the file.
+- **Current temp READMEs with decisions (2026-10-10, `DEC-00062`):** every README in the session's temp workspace is kept at the latest state, with the decisions the author has to make (linked, with a recommendation) and a table of the decisions made in the current context.
+- **Keys link to their context; one decisions document (2026-10-10, `DEC-00063`, `DEC-00064`, critical):** every quoted key links to where the author finds how to respond to it, and every documentation folder's `00_Decisions.md` lists what waits on the author, open decisions and decisions made, each linked.
 - **Prompt log (2026-10-10, `DEC-00036`):** every prompt and its output are logged in `temp/YYYY-MM-DD-<workspace>/prompts/` (one `NN.md` each, input verbatim, and an index `README.md`); documentation treats the summarized prompts as stakeholder input (`STK`).
 - **Credit other developers (2026-10-10, `DEC-00040`):** whenever another developer's code, logic or media shaped the work, credit them by name and link in the documentation and in the release notes.
 
