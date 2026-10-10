@@ -45,6 +45,10 @@ jobs:
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_options.lua | tee /tmp/op.txt && grep -q "PASS options" /tmp/op.txt
       - name: Secret values
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_secrets.lua | tee /tmp/se.txt && grep -q "PASS secrets" /tmp/se.txt
+      - name: Ignore reply echo
+        run: |
+          lua5.1 tools/harness/run.lua . - - tools/harness/check_ignorereply.lua | tee /tmp/ire.txt && grep -q "PASS ignorereply" /tmp/ire.txt
+          PSS_CAMELOT=1 lua5.1 tools/harness/run.lua . - - tools/harness/check_ignorereply.lua | tee /tmp/ire.txt && grep -q "PASS ignorereply" /tmp/ire.txt
       - name: Graphics settings
         run: |
           for ph in logic history keep popup history_ui; do
