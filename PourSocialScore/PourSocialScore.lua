@@ -335,7 +335,7 @@ function M.PSS_StartComponents()
 			M.PSS_ACPTaken = true
 		end
 	else
-		BINDING_NAME_PSS_OPEN_ADDONS = "Open AddOns (Addon Manager off)"
+		BINDING_NAME_PSS_OPEN_ADDONS = "Open Addon Manager (Addon Manager off)"
 	end
 end
 

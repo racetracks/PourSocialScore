@@ -31,7 +31,7 @@ local STAR_COORDS = { 0.75, 1, 0, 1 }
 local ARROW = "bag-arrow"
 local TOP_H = 28
 
-ns.TabBuilders = ns.TabBuilders or {}
+ns.PageBuilders = ns.PageBuilders or {}
 
 local Refresh
 
@@ -367,7 +367,7 @@ local function BuildFooter()
 	footer:SetPoint("RIGHT", undo, "LEFT", -12, 0)
 end
 
-ns.TabBuilders.addons = function(pg)
+ns.PageBuilders.addons = function(pg)
 	page = pg
 	BuildToolbar()
 	-- the summary of what a reload will do, top right; its hover lists the addons

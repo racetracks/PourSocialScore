@@ -18,9 +18,9 @@ local ROW_H = 26
 -- the controls sit this far left of the row's right edge
 local CONTROL_X = 210
 
-local optionsPage, ioPage
+local optionsPage, featuresPage, ioPage
 
-ns.TabBuilders = ns.TabBuilders or {}
+ns.PageBuilders = ns.PageBuilders or {}
 
 local function Scroll(page)
 	local scroll = ns.NewScrollFrame(page)
@@ -121,11 +121,17 @@ local function OptionRow(content, o, rows)
 	return row
 end
 
-ns.TabBuilders.options = function(page)
-	optionsPage = page
+-- All Options (every section, with its search box) and Optional Features
+-- (the Enabled components section only) are one builder; both are pages of
+-- the Addon Manager tab (PSS_Manager.lua)
+local FEATURES = "Enabled components"
+local function BuildOptions(page, only)
 	local content, scroll = Scroll(page)
 	local rows = {}
-	local groups = M.PSS_OptGroups()
+	local groups = {}
+	for _, g in ipairs(M.PSS_OptGroups()) do
+		if not only or g.title == only then groups[#groups + 1] = g end
+	end
 	for _, g in ipairs(groups) do
 		g.heading = ns.NewHeading(content, g.title)
 		for _, it in ipairs(g.items) do it.row = OptionRow(content, it.o, rows) end
@@ -133,6 +139,7 @@ ns.TabBuilders.options = function(page)
 	local note = ns.NewText(content, 11)
 	note:SetAlpha(0.6)
 	note:SetText("* can also be set per guild or per player.")
+	note:SetShown(not only)
 	local none = ns.NewText(content, 12)
 	none:SetAlpha(0.6)
 	none:SetText("No options match.")
@@ -171,12 +178,25 @@ ns.TabBuilders.options = function(page)
 	end
 	Layout("")
 
-	-- the search box sits at the right end of the tab row, over the window,
-	-- and shows and hides with this page
-	local search = ns.NewSearchBox(page, 170, "Search options", Layout)
-	search:SetPoint("TOPRIGHT", page:GetParent(), "TOPRIGHT", -12, ns.TAB_ROW_Y - 2)
-	page.search, page.groups, page.none = search, groups, none
+	-- the search box sits at the right end of the page's header row (over
+	-- the page's top edge) and shows and hides with this page
+	if not only then
+		local search = ns.NewSearchBox(page, 170, "Search options", Layout)
+		search:SetPoint("TOPRIGHT", page, "TOPRIGHT", -12, 24)
+		page.search = search
+	end
+	page.groups, page.none = groups, none
 	return function() for i = 1, #rows do rows[i]() end end
+end
+
+ns.PageBuilders.options = function(page)
+	optionsPage = page
+	return BuildOptions(page)
+end
+
+ns.PageBuilders.features = function(page)
+	featuresPage = page
+	return BuildOptions(page, FEATURES)
 end
 
 ------------------------------------------------------------------------
@@ -201,7 +221,7 @@ local function Import()
 		end })
 end
 
-ns.TabBuilders.importExport = function(page)
+ns.PageBuilders.importExport = function(page)
 	ioPage = page
 	local checks = {}
 	local help = ns.NewText(page, 12)
@@ -257,5 +277,5 @@ end
 -- an option changed (here, by a command, or by another window): the tab
 -- shown again
 ns.Listen("OPTION_CHANGED", function()
-	if (optionsPage and optionsPage:IsVisible()) or (ioPage and ioPage:IsVisible()) then ns.RefreshTab() end
+	if (optionsPage and optionsPage:IsVisible()) or (featuresPage and featuresPage:IsVisible()) or (ioPage and ioPage:IsVisible()) then ns.RefreshTab() end
 end)
