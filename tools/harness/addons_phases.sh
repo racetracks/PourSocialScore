@@ -27,7 +27,7 @@ adphase() {
 		fi
 	done
 }
-for ph in list group az lod tick deps all load undo sets lock prune guid combat command slash saved charstore login forward coverage view slots setsmenu menurefresh loadentry placetick menustray menuhover menuflow profiles rename selforward access perf perfgroup perftop perfcost profiletick; do
+for ph in list group az lod tick deps all load undo sets lock prune guid combat command slash saved charstore login forward coverage view slots setsmenu menurefresh loadentry placetick menustray menufade menuhover menuflow profiles rename selforward access perf perfgroup perftop perfcost profiletick; do
 	adphase $ph
 done
 adphase reloadpath PSS_RELOAD_BLOCK=1

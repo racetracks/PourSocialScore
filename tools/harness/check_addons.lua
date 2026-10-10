@@ -987,6 +987,62 @@ function phases.menustray()
 	win:Hide()
 end
 
+-- Dark menu rows take the label's colour, a little fainter (3.6.0.88, issue 202);
+-- the profile saves in the SavedVariables are not touched by painting or hovering
+function phases.menufade()
+	needLibraries()
+	local function dump(t, seen)
+		if type(t) ~= "table" then return tostring(t) end
+		local keys = {}
+		for k in pairs(t) do keys[#keys + 1] = k end
+		table.sort(keys, function(x, y) return tostring(x) < tostring(y) end)
+		local out = {}
+		for _, k in ipairs(keys) do out[#out + 1] = tostring(k) .. "=" .. dump(t[k]) end
+		return "{" .. table.concat(out, ",") .. "}"
+	end
+	local function saves() return dump(PSS_OptionsDB.addonSets) .. "|" .. dump(PSS_CharDB and PSS_CharDB.addonSets) end
+	local ok = M.PSS_AddonPresetSave(1, "Raid", "me")
+	check(ok, "(a) the profile did not save")
+	SlashCmdList["PSS"]("acp")
+	local win = _G.PSS_Window
+	local dd = win.pages[4].setsDD
+	local before = saves()
+	check(PSS_CharDB.addonSets[1]:find("Raid", 1, true), "(a) the saved string holds the name")
+	local ui = H.Private("PourSocialScore_GUI")
+	for _, skin in ipairs({ 1, 0, 2, 1 }) do
+		M.PSS_SetOpt("uiSkin", "global", skin)
+		if skin == 1 then
+			dd.dark._scripts.OnClick(dd.dark)
+			local menu = _G.PSS_Menu
+			local la = dd.label:GetAlpha()
+			local lr, lg, lb = dd.label:GetTextColor()
+			local rows, titles = 0, 0
+			for _, sl in ipairs(menu.slots) do
+				if sl:IsShown() and sl.entry then
+					local k = sl.entry.kind
+					local r, g, b = sl.text:GetTextColor()
+					if k == "title" then
+						titles = titles + 1
+						check(sl.text:GetAlpha() == ui.DARK.menuTitle, "(b) a title's alpha")
+					elseif k ~= "divider" then
+						rows = rows + 1
+						check(sl.text:GetAlpha() == ui.DARK.menuText and sl.text:GetAlpha() < la, "(b) a row's alpha: " .. tostring(sl.text:GetAlpha()))
+						check(r == lr and g == lg and b == lb, "(c) a row is not the label's colour")
+						sl._scripts.OnEnter(sl)
+						check(sl.text:GetAlpha() == 1, "(d) hover")
+						sl._scripts.OnLeave(sl)
+						check(sl.text:GetAlpha() == ui.DARK.menuText, "(d) leave")
+					end
+				end
+			end
+			check(rows > 0 and titles > 0, "(b) no rows or no titles")
+			menu:Hide()
+		end
+		check(saves() == before, "(e) the saved profiles changed on skin " .. skin)
+	end
+	win:Hide()
+end
+
 -- Dark side menus open beside the row on hover (3.6.0.85, issue 203)
 function phases.menuhover()
 	needLibraries()

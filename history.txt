@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.88 - Dark menu rows take the label colour, a little fainter (#202)
+
+- Dark skin: the text in drop-down lists and right-click menus now uses the same white as the drop-down's own label, only a little fainter, so it reads clearly.
+- Hovering a side-menu entry keeps it bright while its side panel is open.
+- Modern and Classic are unchanged; no saved data changes.
+
 => 3.6.0.87 - Dark side menus open on hover
 
 - In the Dark look, a drop-down entry with a side menu (the AddOns tab's Profiles places) now opens it beside the row when you hover it, as Classic and Modern do. The list no longer swaps to a "< Back" page.

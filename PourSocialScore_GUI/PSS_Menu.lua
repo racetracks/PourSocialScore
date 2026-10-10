@@ -137,6 +137,11 @@ end
 
 local Draw, OpenSide
 
+-- a row's text alpha: the label's colour, one step fainter; a title fainter again
+local function RowAlpha(e)
+	return e and e.kind == "title" and DARK.menuTitle or DARK.menuText
+end
+
 local function MakeSlot(p, i)
 	local f = p.f
 	local sl = CreateFrame("Button", nil, f)
@@ -171,7 +176,7 @@ local function MakeSlot(p, i)
 	end)
 	sl:SetScript("OnLeave", function(self)
 		local e = self.entry
-		self.text:SetAlpha(e and e.kind == "title" and 0.41 or 0.53)
+		self.text:SetAlpha(RowAlpha(e))
 	end)
 	sl:SetScript("OnClick", function(self)
 		local e = self.entry
@@ -223,8 +228,8 @@ function Draw(p)
 		sl.text:ClearAllPoints()
 		sl.text:SetPoint("LEFT", sl, "LEFT", marks and 24 or size.inset, 0)
 		sl.text:SetPoint("RIGHT", sl, "RIGHT", -8, 0)
-		sl.text:SetTextColor(1, 1, 1)
-		sl.text:SetAlpha(title and 0.41 or 0.53)
+		sl.text:SetTextColor(DARK.text[1], DARK.text[2], DARK.text[3])
+		sl.text:SetAlpha(RowAlpha(e))
 		sl.line:SetShown(divider)
 		if divider then sl.line:SetHeight(ns.OnePixel(sl)) end
 		local on = ((e.kind == "radio" or e.kind == "check") and IsOn(e) or (e.kind == "sub" and e.tick and IsOn(e.tick))) and true or false
@@ -368,6 +373,7 @@ function OpenSide(slot)
 	f:Show()
 	f:Raise()
 	Draw(P1)
+	slot.text:SetAlpha(1)
 end
 
 ------------------------------------------------------------------------

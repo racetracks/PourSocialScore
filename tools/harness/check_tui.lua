@@ -459,6 +459,26 @@ mk.ticks.dark._scripts.OnClick(mk.ticks.dark)
 check(menu.slots[1].entry.kind == "title", "tick menu has no title")
 menu.slots[2]._scripts.OnClick(menu.slots[2])
 check(menu:IsShown() and mk.types[1] == false, "a tick did not stay open or did not toggle")
+-- issue 202 (3.6.0.88): Dark rows take the label's colour, one alpha step fainter; titles fainter again
+do
+	local lr, lg, lb = dd.label:GetTextColor()
+	local la = dd.label:GetAlpha()
+	local title, row = menu.slots[1], menu.slots[2]
+	local D = ui.DARK
+	check(D.menuText < la and D.menuTitle < D.menuText, "menu alphas not ordered label > row > title")
+	for _, sl in ipairs({ title, row }) do
+		local r, g, b = sl.text:GetTextColor()
+		check(r == lr and g == lg and b == lb, "a Dark menu row is not the label's colour")
+	end
+	check(row.text:GetAlpha() == D.menuText and row.text:GetAlpha() < la, "Dark row alpha not the menu step")
+	check(title.text:GetAlpha() == D.menuTitle and title.text:GetAlpha() < row.text:GetAlpha(), "Dark title not fainter than a row")
+	row._scripts.OnEnter(row)
+	check(row.text:GetAlpha() == 1, "hover does not brighten the row")
+	row._scripts.OnLeave(row)
+	check(row.text:GetAlpha() == D.menuText, "leaving does not restore the row alpha")
+	title._scripts.OnLeave(title)
+	check(title.text:GetAlpha() == D.menuTitle, "leaving does not restore the title alpha")
+end
 menu:Hide()
 mk.long.dark._scripts.OnClick(mk.long.dark)
 local longShown = 0
