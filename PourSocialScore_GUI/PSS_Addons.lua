@@ -218,6 +218,7 @@ end
 
 -- one action on a place of the Addon Profiles menu; Save and Delete ask first
 local function SetAction(p, act)
+	p = V:Place(p.id) or p
 	if act == "save" then
 		ns.Confirm({ title = "Save Addon Profile?", text = "Save the current addon list to [" .. p.label .. "]?", accept = "Yes",
 			onAccept = function()
@@ -231,7 +232,7 @@ local function SetAction(p, act)
 		end)
 	elseif act == "delete" then
 		ns.Confirm({ title = "Delete Addon Profile?", text = "Delete the addon profile " .. p.label .. "? The addons stay as they are.", accept = "Delete",
-			onAccept = function() Say(V:PresetAct(p, "delete")) end })
+			onAccept = function() Say(V:PresetAct(p, "delete")); Refresh() end })
 	else
 		Say(V:PresetAct(p, act))
 		Refresh()
@@ -248,7 +249,7 @@ local function BuildSets(m)
 			m:Divider()
 		else
 			m:Sub(e.text, function(sm)
-				for _, a in ipairs(V:PresetMenu(e.p)) do
+				for _, a in ipairs(V:PresetMenu(V:Place(e.p.id) or e.p)) do
 					if a.kind == "title" then
 						sm:Title(a.text)
 					elseif a.kind == "divider" then
