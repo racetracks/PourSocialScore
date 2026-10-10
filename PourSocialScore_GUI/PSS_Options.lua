@@ -166,7 +166,9 @@ local function BuildOptions(page, only)
 	none:SetAlpha(0.6)
 	none:SetText("No options match.")
 
-	local function Layout(q)
+	local curQ = ""
+	local function Layout(q, keep)
+		curQ = q or ""
 		local y, shown = -4, 0
 		for _, g in ipairs(groups) do
 			local n = 0
@@ -211,7 +213,7 @@ local function BuildOptions(page, only)
 		note:ClearAllPoints()
 		note:SetPoint("TOPLEFT", content, "TOPLEFT", 6, y - 4)
 		content:SetHeight(-y + 30)
-		scroll:SetVerticalScroll(0)
+		if not keep then scroll:SetVerticalScroll(0) end
 		page.shownCount = shown
 	end
 	Layout("")
@@ -219,12 +221,18 @@ local function BuildOptions(page, only)
 	-- the search box sits at the right end of the page's header row (over
 	-- the page's top edge) and shows and hides with this page
 	if not only then
-		local search = ns.NewSearchBox(page, 170, "Search options", Layout)
+		local search = ns.NewSearchBox(page, 170, "Search options", function(q) Layout(q) end)
 		search:SetPoint("TOPRIGHT", page, "TOPRIGHT", -12, 24)
 		page.search = search
 	end
 	page.groups, page.none = groups, none
-	return function() for i = 1, #rows do rows[i]() end end
+	-- an item list grows and shrinks with its items: the rows below follow
+	local lists = false
+	for _, g in ipairs(groups) do for _, it in ipairs(g.items) do if it.o.kind == "itemlist" then lists = true end end end
+	return function()
+		for i = 1, #rows do rows[i]() end
+		if lists then Layout(curQ, true) end
+	end
 end
 
 ns.PageBuilders.options = function(page)

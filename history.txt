@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.1.95 - Drop Cheapest Thing: item lists no longer overlap
+
+- The item lists of PSS Drop Cheapest Thing (Always destroy, Never destroy) now grow downward as items are added, each in its own group, instead of drawing over the list below.
+
 => 3.6.1.94 - Drop Cheapest Thing: shift-click an item into the item lists
 
 - Shift-click an item (from your bags or a chat link) while the cursor is in the "Always destroy" or "Never destroy" box of PSS Drop Cheapest Thing to add it, as in the old addon.

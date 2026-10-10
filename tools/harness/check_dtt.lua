@@ -486,7 +486,19 @@ function phases.options()
 		check(M.PSS_Opt("dttAlways") == "1;4242", "shift-click did not add: " .. tostring(M.PSS_Opt("dttAlways")))
 		ChatFrameUtil.InsertLink("|cffffffff|Hitem:5555::::::::|h[Y]|h|r")
 		check(M.PSS_Opt("dttAlways") == "1;4242", "added without focus")
+		-- the lists grow down in separate groups: the next row starts below
+		M.PSS_OptItemAdd(M.PSS_OPTION_REG.dttAlways, 4242)
+		M.PSS_OptItemAdd(M.PSS_OPTION_REG.dttAlways, 4243)
+		M.PSS_OptItemAdd(M.PSS_OPTION_REG.dttAlways, 4244)
+		ui.ManagerShow("dtt")
+		local ra, rb = g.items[#g.items - 1].row, g.items[#g.items].row
+		local function top(f) local y for _, p in ipairs(f._points) do if p[1] == "TOPLEFT" and p[2] == ra:GetParent() then y = p[5] end end return y end
+		local ya, yb = top(ra), top(rb)
+		check(ra:GetHeight() == 26 + 26 + 3 * 22, "list row height " .. ra:GetHeight())
+		check(yb <= ya - ra:GetHeight(), "the next list overlaps: " .. ya .. " " .. yb .. " " .. ra:GetHeight())
 		M.PSS_OptItemRemove(M.PSS_OPTION_REG.dttAlways, 4242)
+		M.PSS_OptItemRemove(M.PSS_OPTION_REG.dttAlways, 4243)
+		M.PSS_OptItemRemove(M.PSS_OPTION_REG.dttAlways, 4244)
 		-- add by id through the list, then remove
 		l = g.items[#g.items].row.itemlist
 		l.box:SetText("777")
