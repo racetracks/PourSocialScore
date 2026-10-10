@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.80 - Docs: CLAUDE.md import links, summaries are documents
+
+- CLAUDE.md: each pack it loads at session start now carries a GitHub link, and asking for a summary counts as asking for a document.
+- The fixes move up one build: #189 3.6.0.81, #192 3.6.0.82.
+
 => 3.6.0.79 - Docs: session outputs recorded, anything referenced always has a link
 
 - Documentation only: every session output is recorded in the session's notes (new sessions get a time-stamped folder), and anything written for the author always carries links to what it refers to. No change in game.
