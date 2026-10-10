@@ -6,9 +6,12 @@ Everything about how the author works and what the author wants from Claude live
 These outrank every other rule in every pack; where one conflicts, this wins.
 - **Be as strict and lean as possible with tokens; spend must be sparse.** Read only what the step needs, delegate wide reading, keep conclusions only.
 - **Aggressively recycle tokens and tools:** reuse a running thread (subagent or session) that already holds the tools and context, never start a new one for it.
-- **Generate as few messages as possible.** When a message is required, do not put it in the session: put it in the scratch repo under `temp/<workspace>/` (one subfolder per workspace), as markdown.
+- **Generate as few messages as possible.** When a message is required, do not put it in the session: put it in the scratch repo under `temp/YYYY-MM-DD-<workspace>/` (one subfolder per workspace), as markdown.
 - **Tell the author where to look, in one line,** and tell the author to review it in the markdowns.
-- **Every output has its own subfolder with a summary and a reference** (`temp/<workspace>/<output>/README.md`: what it is, the summary, the reference links). The memory context holds only that folder's link, never the content.
+- **Every output has its own subfolder with a summary and a reference** (`temp/YYYY-MM-DD-<workspace>/<output>/README.md`: what it is, the summary, the reference links). The memory context holds only that folder's link, never the content.
+- **Summaries end with a prompt table (2026-10-10, `DEC-00038`):** every temp output `README.md` ends with a table of the recent prompts, answers and outputs (#, prompt, answer, output), with every link reference-style and collected at the bottom of the file.
+- **Prompt log (2026-10-10, `DEC-00036`):** every prompt and its output are logged in `temp/YYYY-MM-DD-<workspace>/prompts/` (one `NN.md` each, input verbatim, and an index `README.md`); documentation treats the summarized prompts as stakeholder input (`STK`).
+- **Credit other developers (2026-10-10, `DEC-00040`):** whenever another developer's code, logic or media shaped the work, credit them by name and link in the documentation and in the release notes.
 
 ## Sessions and context
 - **One step per session (2026-10-08).** The author resets the session after each step of every implementation plan. Build only the named step, then stop.

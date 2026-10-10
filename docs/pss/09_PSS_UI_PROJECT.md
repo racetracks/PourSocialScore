@@ -14,7 +14,7 @@ code map is on scratch `docs/latest/code-map/` (`D_GUI.md`, `C_LIBRARIES.md`).
 
 **Project data on scratch:** the plan in `docs/latest/ui uplift/` (01_ANALYSIS,
 02_PLAN, 03_CODE_CHANGES, 04_LOOK_SPEC: the look numbers); history in
-`docs/ui uplift/`, zips `docs/ui-uplift-<date>-vN.zip`.
+`history/addon/2026-10-08-PourSocialScore_GUI-ui-uplift/`, zips `docs/ui-uplift-<date>-vN.zip`.
 
 ## The author's brief and decisions (2026-10-07)
 1. Every element of the EllesmereUI port becomes native. No EllesmereUI dependency and no EllesmereUI names: PSS names only (`check_rules.sh` fails on `EUI` or `Ellesmere` in `PourSocialScore_GUI` and the Libraries view files `PSS_ViewNav`, `PSS_DetailQuery`, `PSS_PlayerView`, `PSS_GuildView`, `PSS_FilterView`, `PSS_EventsView`, `PSS_OptionsView`).
@@ -38,7 +38,7 @@ code map is on scratch `docs/latest/code-map/` (`D_GUI.md`, `C_LIBRARIES.md`).
 12. Version line **3.4.0**; released as 3.4.0.29.
 
 ## Stages (ids cited elsewhere)
-Kit and looks A1, A2, A2b, Modern; Libraries groundwork A3; tabs B1 to B7; code review fixes R1 to R3; old-GUI features C1 (Player Search, target, Prune) and C2 (row menus, exceptions); switch-over D1 (3.4.0.23); one window D2 (3.4.0.25); docs D3. PRs #88 to #116, release #117. Stage detail: git history and scratch `docs/ui uplift/`.
+Kit and looks A1, A2, A2b, Modern; Libraries groundwork A3; tabs B1 to B7; code review fixes R1 to R3; old-GUI features C1 (Player Search, target, Prune) and C2 (row menus, exceptions); switch-over D1 (3.4.0.23); one window D2 (3.4.0.25); docs D3. PRs #88 to #116, release #117. Stage detail: git history and scratch `history/addon/2026-10-08-PourSocialScore_GUI-ui-uplift/`.
 
 ## Code map
 Current file names; the full map with every function is on scratch `docs/latest/code-map/`.

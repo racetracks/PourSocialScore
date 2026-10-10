@@ -10,6 +10,7 @@
 5. **Guild member fields are read through their accessors (core uplift S2):** `M.PSS_MemberCanon`, `M.PSS_MemberName`, `M.PSS_MemberGuildName`, `M.PSS_MemberWhenBlocked`, `M.PSS_MemberShipped`, `M.PSS_MemberPlayerKey`, and `History.CountTotal` (or `History.EnsureCounts`) for a saved counts table's total; a rule's member count from `M.PSS_GuildMemberCount`, never the saved `memberCount`. `tools/check_fields.lua` (rules check) fails the runtime fields or `memberCount` outside the accessor block.
 6. **Simulate the client while coding:** every change is driven through the harness's simulated WoW client as it is written, its real output read; changed behaviour gets a check that fails on `origin/main`; the PR names what a simulation cannot show (full text in 11).
 7. **Every feature's design and implementation plan name its tests:** per stage, the rules check, the harness checks, the upgrade and data checks, the window compare (`tui_compare.sh`, all three looks) and the real-save run; the release stage also names every release workflow job it needs (`release.yml`, the mirror, the scratch record) and checks it at release.
+8. **Credit other developers (#194, `DEC-00040`):** code, logic or media learned from or used from another developer is credited by name, licence and link in its documentation (`00_References.md`, Credits) and in the release notes (history section and scratch release notes) of every release that ships it.
 
 ## 2. TOCs
 - Title `|cff69ccf0PourSocialScore|r <Part>`.

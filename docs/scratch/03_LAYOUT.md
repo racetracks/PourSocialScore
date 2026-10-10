@@ -11,13 +11,19 @@ docs/
   <name>-<date>-vN.zip                  every docs release / handover pack, zipped
   <project-or-feature>/                 history for a project or feature release
   latest/<project-or-feature>/          the newest markdown, unzipped
-  components/<component>/               live component designs and plans, promoted from drafts/components/
-drafts/<name>-<date>-draftN/           drafts for the author to read before they replace anything in docs/ (moved from docs/drafts/, 2026-10-09)
-drafts/components/                      drafts of components, promoted to docs/components/ on the author's OK
+  components/<component>/               live component designs and plans (until moved to documents/, DEC-00043)
+documents/                              approved documentation (the source of truth), from 2026-10-10
+  addons/<addon folder>/  features/<feature>/  sub-features/<sub-feature>/  <project-wide>/ (reference-framework)
+drafts/                                 drafts, same groups as documents/ (DEC-00044)
+  addons/  features/  sub-features/     drafts/<group>/<name>-<YYYY-MM-DD>-draftN/
+  <project-wide>-<date>-draftN/         project-wide drafts at the root
+history/<addon|feature|sub-feature|project>/YYYY-MM-DD-<folder>/   retired documentation and promoted drafts (DEC-00045, DEC-00046)
+temp/YYYY-MM-DD-<workspace>/            workspace memory, prompt log (the one exception to the documentation rules)
 summary/                                <project>-<YYYY-MM-DD-hh-mm>.md  status summaries
 ```
 
 ## Naming
+- A moved folder leaves a pointer at its old path: a `Readme.md` and a one-line stub for every markdown file, so old links keep working (DEC-00048).
 - Folder names are plain words, not codes.
 - Timestamps are `YYYY-MM-DD-hh-mm`; pack versions are `<date>-v1`, `-v2`, ...
 - Zip names carry the version: `<Name>-1.4.0.4-2026-10-07-21-44.zip`, `<pack>-2026-10-07-v3.zip`.
