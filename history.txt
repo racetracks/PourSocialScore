@@ -1,14 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
-=> 3.6.0.86 - Dark side menus open on hover
+=> 3.6.0.87 - Dark side menus open on hover
 
 - In the Dark look, a drop-down entry with a side menu (the AddOns tab's Profiles places) now opens it beside the row when you hover it, as Classic and Modern do. The list no longer swaps to a "< Back" page.
 - Escape or a click elsewhere closes the whole menu.
 
-=> 3.6.0.85 - CLAUDE.md: Reference framework block rewritten
+=> 3.6.0.86 - Revert PR 207: CLAUDE.md back to its 3.6.0.84 version
 
-- Docs only: the Reference framework section of CLAUDE.md rewritten as one shorter block (same rules; current framework files and the refkey tool linked). No addon change.
+- Reverts PR 207: CLAUDE.md is back to its 3.6.0.84 version. No addon change.
 
 => 3.6.0.84 - Addon Profiles: Load on every place, tick boxes, reload tally; Reload works on Camelot
 
@@ -23,7 +23,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 => 3.6.0.83 - Docs: addon-helper references repointed
 
 - Docs only: CLAUDE.md, the status, handover and rules docs and one code comment point at the addon-helper feature documentation on scratch instead of the retired addon-manager folder. Nothing in the addon changes.
-- 3.6.0.82 is the Addon Profiles build on its own branch; the later fixes move up one build: #192 3.6.0.84, #203 3.6.0.85.
+- 3.6.0.82 is the Addon Profiles build on its own branch; the later fixes move up one build: #192 3.6.0.84, #203 3.6.0.86.
 
 => 3.6.0.81 - Docs: summaries end with a references table
 
