@@ -321,8 +321,9 @@ AddOns
   then a line, then the Layered Addon Profiles. Every place is listed (a free
   one as "Profile N (empty)"); choose one for its side menu: Select or
   Deselect, Save (puts the addons that are on there, after one question),
-  Load (replaces what is on), Add to current selection, Remove from current
-  selection, Rename (up to 32 letters, not empty, not used twice in the
+  Load (replaces what is on), Enable all and Disable all (every installed
+  addon of that profile on or off, as a tick; protected addons stay on),
+  Rename (up to 32 letters, not empty, not used twice in the
   list) and Delete; a free place offers Save and Rename. A selected place is
   marked *; any number can be selected together: the addons that are on are
   every selected profile plus anything you turned on by hand, and deselecting
@@ -641,8 +642,8 @@ filter that mixes them without brackets may now behave differently.)
                           protected addons stay on)
 /pss acp undo             Put the addons back as at login
 /pss acp profiles         List the saved addon profiles (* = selected)
-/pss acp profile 1-25|class [char|all] save [name]|load|add|remove|select|
-                          deselect|rename name|delete
+/pss acp profile 1-25|class [char|all] save [name]|load|enable|disable|
+                          select|deselect|rename name|delete
                           Addon profiles: char (the default) is this
                           character's, all is shared by every character
                           (set and sets still work as well)

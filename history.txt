@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.6.0.74 - Enable all and Disable all on an addon profile
+
+- Right-click a profile's place in the Profiles menu for Enable all and Disable all: they turn on or off every installed addon in that profile, as if you had ticked them yourself (required addons follow with the Dependencies tick; protected addons and Pour Social Score stay on). They replace Add to current selection and Remove from current selection. The profile, your selection and your saved profiles are not changed. A profile with no installed addon shows them greyed.
+- /pss acp profile <id> enable and disable do the same (add and remove still work).
+
 => 3.6.0.73 - Docs: next steps for #176 to #184
 
 - The next steps are set to issues #176, #177, #179, #180, #181, #183 and #184, in order: test 3.6.0.69, then #179, #183 and the rest of #184 (docs only, no change in game).

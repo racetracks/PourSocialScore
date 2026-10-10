@@ -385,8 +385,9 @@ function View:ProfileMenu()
 end
 
 -- the actions on one place p (an entry of Slots): a title, then (a used
--- place) Select or Deselect, Save, Load, Add to current selection, Remove
--- from current selection, Rename, Delete; a free place only Save and Rename
+-- place) Select or Deselect, Save, Load, Enable all, Disable all (shown as
+-- titles, not clickable, when none of its addons is installed), Rename,
+-- Delete; a free place only Save and Rename
 function View:PresetMenu(p)
 	local e = { { kind = "title", text = p.label .. (p.class and "" or (p.scope == "all" and " (all characters)" or " (this character)")) } }
 	local function add(text, act) e[#e + 1] = { kind = "button", text = text, act = act } end
@@ -398,8 +399,14 @@ function View:PresetMenu(p)
 	add(M.PSS_AddonProfileSelected(p.id, self.who) and "Deselect" or "Select", "select")
 	add("Save", "save")
 	add("Load", "load")
-	add("Add to current selection", "add")
-	add("Remove from current selection", "remove")
+	local none = M.PSS_AddonPresetInstalled(p.id, p.scope) == 0
+	for _, a in ipairs({ { "Enable all", "enable" }, { "Disable all", "disable" } }) do
+		if none then
+			e[#e + 1] = { kind = "title", text = a[1] }
+		else
+			add(a[1], a[2])
+		end
+	end
 	add("Rename", "rename")
 	e[#e + 1] = { kind = "divider" }
 	add("Delete", "delete")
@@ -413,10 +420,8 @@ function View:PresetAct(p, act, name)
 		ok, text = M.PSS_AddonProfileSelect(p.id, not M.PSS_AddonProfileSelected(p.id, self.who), self.who)
 	elseif act == "load" then
 		ok, text = M.PSS_AddonPresetLoad(p.id, p.scope, self.who)
-	elseif act == "add" then
-		ok, text = M.PSS_AddonPresetAdd(p.id, p.scope, self.who)
-	elseif act == "remove" then
-		ok, text = M.PSS_AddonPresetRemove(p.id, p.scope, self.who)
+	elseif act == "enable" or act == "disable" then
+		ok, text = M.PSS_AddonPresetTick(p.id, p.scope, act == "enable", self.who, self.deps)
 	elseif act == "save" then
 		ok, text = M.PSS_AddonPresetSave(p.id, p.name, self.who)
 	elseif act == "rename" then
