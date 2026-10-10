@@ -15,7 +15,7 @@
 12. **Bugfix builds are hosted** like any build: the next build number, zipped, on scratch, with a link.
 13. **Real saves live here (this repo is the project files), never in an addon repo:** `SavedVariables/<version>/`.
 14. **Always reply with links**, never only a path.
-15. **No pull requests on scratch (2026-10-09):** commit and push straight to `main`, even when a session is given a working branch for this repo; a delivery waiting on a PR is not hosted.
+15. **No pull requests on scratch (2026-10-09):** commit and push straight to `main`, even when a session is given a working branch for this repo; a delivery waiting on a PR is not hosted. If a PR is requested for scratch work, it is opened in the primary (addon) repository `racetracks/PourSocialScore` instead (the author, 2026-10-10).
 
 ## Rules to add
 <!-- The author adds further scratch rules here. -->

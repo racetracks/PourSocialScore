@@ -65,6 +65,6 @@ These outrank every other rule in every pack; where one conflicts, this wins.
 - **User systems must be intuitive (2026-10-08):** one action does the obvious whole thing; removing someone from one list removes them from every list they are on.
 - **PSS is authoritative (2026-10-08):** PSS never acts through Blizzard's systems (its ignore list) unless the player asked for it for that person.
 - **One plain merge flow:** one PR per step, based on main, never stacked.
-- **Scratch never gets a PR (2026-10-09):** every scratch delivery is committed and pushed straight to scratch `main`, whatever branch the session names. PRs are for the addon repo only.
+- **Scratch never gets a PR (2026-10-09):** every scratch delivery is committed and pushed straight to scratch `main`, whatever branch the session names. PRs are for the addon repo only. If a PR is requested for scratch work, it is opened in the primary (addon) repository `racetracks/PourSocialScore` instead (the author, 2026-10-10).
 - **Every update says it happened (2026-10-09):** the upgrade report prints at the first login after any version change, even when nothing in the save changed, so the player always sees that an upgrade occurred (U2's behaviour; keep it). In-game checks expect it.
 - **Ask before anything hard to undo:** save layout, deleting data, production releases.
