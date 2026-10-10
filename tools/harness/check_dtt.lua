@@ -523,6 +523,93 @@ function phases.options()
 	check(found and found.check, "no switch on Optional Features")
 end
 
+-- The feature talks over M.Events (the addon's bus): the payloads other
+-- addons or windows may depend on are fixed (DDS-00009 section 6): fields are
+-- only added at the end, never reordered or retyped.
+function phases.bus()
+	bags()
+	local changed, acted, optionHeard = nil, nil, {}
+	local a = M.Events.Register("DTT_CHANGED", function(...) changed = { n = select("#", ...), ... } end)
+	local b = M.Events.Register("DTT_ACTED", function(...) acted = { n = select("#", ...), ... } end)
+	local c = M.Events.Register("OPTION_CHANGED", function(...) optionHeard[#optionHeard + 1] = { n = select("#", ...), ... } end)
+	H.Fire("BAG_UPDATE_DELAYED")
+	check(changed and changed.n == 3, "DTT_CHANGED carries (n, total, icon): " .. tostring(changed and changed.n))
+	check(type(changed[1]) == "number" and type(changed[2]) == "number" and (changed[3] == nil or type(changed[3]) == "number"), "DTT_CHANGED types")
+	check(changed[1] == 4 and changed[2] == 110 and changed[3] == 1101, "DTT_CHANGED values " .. tostring(changed[1]) .. "," .. tostring(changed[2]) .. "," .. tostring(changed[3]))
+	say(M.PSS_DttAct, "auto")
+	check(acted and acted.n == 4, "DTT_ACTED carries (mode, link, count, value)")
+	check(acted[1] == "drop" and type(acted[2]) == "string" and acted[2]:find("item:101") and acted[3] == 1 and acted[4] == 5, "DTT_ACTED values")
+	H.OpenMerchant(1)
+	say(M.PSS_DttAct, "auto")
+	check(acted[1] == "sell", "DTT_ACTED mode sell")
+	H.CloseMerchant()
+	-- a refused act fires nothing
+	acted = nil
+	H.combat = true
+	say(M.PSS_DttAct, "auto")
+	H.combat = false
+	check(acted == nil, "a refused act fired DTT_ACTED")
+	-- an option change fires OPTION_CHANGED(key), once, with the key first
+	optionHeard = {}
+	set("dttFood", true)
+	check(#optionHeard == 1 and optionHeard[1][1] == "dttFood", "OPTION_CHANGED payload")
+	set("dttFood", nil)
+	-- a listener that errors does not stop the others (a service on the bus must not break the feature)
+	local seen
+	local e1 = M.Events.Register("DTT_CHANGED", function() error("a bad listener") end)
+	local e2 = M.Events.Register("DTT_CHANGED", function() seen = true end)
+	H.bags[0][1] = nil
+	H.Fire("BAG_UPDATE_DELAYED")
+	check(seen == true, "a failing listener stopped the next one")
+	for _, id in ipairs({ a, b, c, e1, e2 }) do M.Events.Unregister(id and "DTT_CHANGED", id) end
+end
+
+-- Every page the Options builder draws redraws when an option changes, and a
+-- shift-clicked link goes only into the focused list (Feature Options page).
+function phases.refresh()
+	ChatFrameUtil = ChatFrameUtil or {}
+	ChatFrameUtil.InsertLink = function() return false end
+	SlashCmdList["PSS"]("gui")
+	local win = _G.PSS_Window
+	win.tabs[4]._scripts.OnClick(win.tabs[4])
+	local ui = H.Private("PourSocialScore_GUI")
+	-- every nav entry that draws options (a section page, Optional Features, All Options)
+	for _, key in ipairs({ "features", "options", "dtt" }) do
+		ui.ManagerShow(key)
+		local pg = win.pages[4].pages[key]
+		check(pg and pg:IsShown() and pg.groups, key .. ": page not built")
+		local calls = 0
+		local old = pg.refresh
+		pg.refresh = function(...) calls = calls + 1 return old and old(...) end
+		M.PSS_SetOpt("dttIcon", "global", false)
+		check(calls >= 1, key .. ": the page did not redraw on OPTION_CHANGED")
+		M.PSS_SetOpt("dttIcon", "global", nil)
+		pg.refresh = old
+	end
+	-- two lists, one focused: only that one takes the link; none focused: nothing
+	ui.ManagerShow("dtt")
+	local g = win.pages[4].pages.dtt.groups[1]
+	local la, lb = g.items[#g.items - 1].row.itemlist, g.items[#g.items].row.itemlist
+	lb.box._focus = true
+	ChatFrameUtil.InsertLink("|Hitem:9001::::|h[A]|h")
+	lb.box._focus = nil
+	check((M.PSS_Opt("dttAlways") or "") == "" and M.PSS_Opt("dttNever") == "1;9001", "the link went to the wrong list")
+	ChatFrameUtil.InsertLink("|Hitem:9002::::|h[B]|h")
+	check(M.PSS_Opt("dttNever") == "1;9001", "a link was added with no box focused")
+	-- a link of another kind (a spell) is not an item
+	lb.box._focus = true
+	ChatFrameUtil.InsertLink("|Hspell:133|h[Fireball]|h")
+	lb.box._focus = nil
+	check(M.PSS_Opt("dttNever") == "1;9001", "a spell link was added")
+	-- every list's chips and the rows below do not overlap, however many items
+	for i = 1, 40 do M.PSS_OptItemAdd(M.PSS_OPTION_REG.dttAlways, 7000 + i) end
+	ui.ManagerShow("dtt")
+	local ra, rb = g.items[#g.items - 1].row, g.items[#g.items].row
+	local function top(f) local y for _, p in ipairs(f._points) do if p[1] == "TOPLEFT" and p[2] == ra:GetParent() then y = p[5] end end return y end
+	check(top(rb) <= top(ra) - ra:GetHeight(), "40 items: the next list overlaps")
+	check(la.lines > 1, "40 chips did not wrap")
+end
+
 if not phases[phase] then print("FAIL dtt: unknown phase " .. phase) os.exit(1) end
 phases[phase]()
 if not fail then print("PASS dtt " .. phase) end
