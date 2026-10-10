@@ -766,8 +766,8 @@ do
 			if row.tick:IsShown() and not row.arrow:IsShown() and text ~= "" then plain = plain or row end
 		end
 		check(header and withLoad and plain, name .. ": no header, Load button or addon row")
-		-- the stats row and the footer say what they must
-		check(pg.refresh and tostring(V:Stats()):find("Memory", 1, true), name .. ": no memory in the stats line")
+		-- no CPU or memory: no stats line, no Refresh button
+		check(pg.refreshButton == nil and V.Stats == nil, name .. ": the tab still has a stats line or Refresh button")
 	end
 	M.PSS_SetOpt("uiSkin", "global", 0)
 	-- a search narrows the list; a tick turns an addon on; Escape of the search clears it

@@ -24,7 +24,6 @@
 --   M.PSS_AddonLoad(i)                 load a load-on-demand addon
 --   M.PSS_AddonAll(on, who)            Enable All / Disable All
 --   M.PSS_AddonUndo()  M.PSS_AddonPending(who)  M.PSS_AddonReload()
---   M.PSS_AddonMemory()  M.PSS_AddonMemOf(i)  M.PSS_AddonMemGroup(L, gi)
 --   M.PSS_AddonDeps(i, who)            required and optional, with state
 --   M.PSS_AddonPresets(), M.PSS_AddonSlots(who) and ...PresetSave / Load / Add / Remove / Rename / Delete
 --                                      (the addon profiles; "presets" in code)
@@ -61,7 +60,6 @@ local EnableAddOn, DisableAddOn = api("EnableAddOn"), api("DisableAddOn")
 local EnableAllAddOns, DisableAllAddOns = api("EnableAllAddOns"), api("DisableAllAddOns")
 local GetDeps, GetOptDeps = api("GetAddOnDependencies"), api("GetAddOnOptionalDependencies")
 local IsLoaded, IsLoD, LoadAddOn = api("IsAddOnLoaded"), api("IsAddOnLoadOnDemand"), api("LoadAddOn")
-local UpdateMem, GetMem = api("UpdateAddOnMemoryUsage"), api("GetAddOnMemoryUsage")
 local SaveAddOns, ResetAddOns = api("SaveAddOns"), api("ResetAddOns")
 local GetVersionCheck, SetVersionCheck = api("IsAddonVersionCheckEnabled"), api("SetAddonVersionCheck")
 -- GetAddOnEnableState(name, character) on 11.0 and later, (character, name) before
@@ -130,7 +128,6 @@ local CAN = {
 	load = function() return LoadAddOn end,
 	undo = function() return ResetAddOns end,
 	loadold = function() return GetVersionCheck and SetVersionCheck end,
-	memory = function() return UpdateMem and GetMem end,
 }
 function M.PSS_AddonCan(what)
 	local f = CAN[what]
@@ -145,7 +142,7 @@ function M.PSS_AddonCount() return count() end
 -- (the full API list for /pss acp api: label, present)
 local API_NAMES = { "GetNumAddOns", "GetAddOnInfo", "GetAddOnMetadata", "EnableAddOn", "DisableAddOn", "EnableAllAddOns",
 	"DisableAllAddOns", "GetAddOnDependencies", "GetAddOnOptionalDependencies", "IsAddOnLoaded", "IsAddOnLoadOnDemand",
-	"LoadAddOn", "UpdateAddOnMemoryUsage", "GetAddOnMemoryUsage", "SaveAddOns", "ResetAddOns",
+	"LoadAddOn", "SaveAddOns", "ResetAddOns",
 	"IsAddonVersionCheckEnabled", "SetAddonVersionCheck" }
 
 ------------------------------------------------------------------------
@@ -482,8 +479,7 @@ local function groupName(i, name)
 	return s:match("^([^_%-]+)[_%-]") or s
 end
 
--- who: "me" or "all". view: "group" (default), "az", "lod" or "mem" (most
--- memory first). search: text
+-- who: "me" or "all". view: "group" (default), "az" or "lod". search: text
 -- in the name or title. Returns L = { n, idx = {addon indexes in order},
 -- gi = { [position] = group number }, groups = { { name, from, to } } }.
 function M.PSS_AddonList(who, view, search)
@@ -492,7 +488,7 @@ function M.PSS_AddonList(who, view, search)
 	if not CAN.list() then return L end
 	local needle = search and search ~= "" and lower(search) or nil
 	local idx, n = L.idx, 0
-	local byGroup = view ~= "az" and view ~= "lod" and view ~= "mem"
+	local byGroup = view ~= "az" and view ~= "lod"
 	for i = 1, count() do
 		local name, title = info(i)
 		if type(name) == "string" and not hidden(name) then
@@ -511,8 +507,6 @@ function M.PSS_AddonList(who, view, search)
 					X1[i] = (IsLoD and IsLoD(i)) and "b" or "a"
 					X2[i] = key
 					X3[i] = ""
-				elseif view == "mem" then
-					X1[i], X2[i], X3[i] = -M.PSS_AddonMemOf(i), 0, key
 				else
 					X1[i], X2[i], X3[i] = key, 0, ""
 				end
@@ -822,35 +816,6 @@ end
 
 function M.PSS_AddonReload()
 	return M.PSS_ReloadPrompt()
-end
-
-------------------------------------------------------------------------
--- Memory: the client keeps the last sample; ours reads it. Sampled once
--- per call of PSS_AddonMemory (a window open or Refresh), never in combat.
-------------------------------------------------------------------------
-function M.PSS_AddonMemory()
-	if InCombatLockdown() or not CAN.memory() then return nil end
-	if not pcall(UpdateMem) then return nil end
-	local total = 0
-	for i = 1, count() do
-		local ok, kb = pcall(GetMem, i)
-		if ok and type(kb) == "number" then total = total + kb end
-	end
-	return total
-end
-
-function M.PSS_AddonMemOf(i)
-	if not GetMem then return 0 end
-	local ok, kb = pcall(GetMem, i)
-	return ok and type(kb) == "number" and kb or 0
-end
-
-function M.PSS_AddonMemGroup(L, gi)
-	local g = L.groups[gi]
-	if not g then return 0 end
-	local sum = 0
-	for p = g.from, g.to do sum = sum + M.PSS_AddonMemOf(L.idx[p]) end
-	return sum
 end
 
 -- how many of a group's addons are loaded, and how many it has
