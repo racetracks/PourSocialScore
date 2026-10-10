@@ -1,8 +1,9 @@
-# Status and next step (3.6.0.72, after release 3.5.0.62)
+# Status and next step (3.6.0.73, after release 3.5.0.62)
 
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. Earlier builds: `history.txt`, `versions.json` and the build records on scratch (`docs/components/addon-manager/03_BUILD_NOTES.md`). History: `reference/06_status-history-to-3.4.1.30.md` and `reference/combined-3.4.1.52/`.
 
 ## Now
+- **3.6.0.73, docs build:** the next steps are set to #176, #177, #179, #180, #181, #183, #184 (`DEC-00011`, `STP-00009` to `STP-00013`); #179 moves to 3.6.0.74, #183 to 3.6.0.75, #184 to 3.6.0.76.
 - **3.6.0.72, docs build:** the reference framework gains the type `RET` (Retired, own counter from `00001`; scratch `DEC-00009`) and a `00_References.md` in every documentation folder (`DEC-00010`): `refkey.py retire` maps an old key to its replacement; `CLAUDE.md` says how (`STP-00007`, `STP-00008`). #179 moves from 3.6.0.72 to 3.6.0.73.
 - **3.6.0.71, docs build:** `CLAUDE.md`, PSS 02 and baseline 02 consolidated (same rules, no dates or build history; build history lives in `history.txt` and the build records) and this file trimmed. #179 moves from 3.6.0.71 to 3.6.0.72.
 - **3.6.0.69 (PR #182, merged; awaiting the author's in-game test):** the Addon Profiles rework for #176, #177, #180 (#175 closed) and Enabled components #181.
@@ -12,9 +13,9 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - **Next steps (the author, 2026-10-10; order `DEC-00011`, plan scratch `docs/latest/next-steps/01_NEXT_STEPS.md`):**
   1. `STP-00009`: the author tests 3.6.0.69 profiles; close #176, #177, #180, or a fix takes the next build.
   2. `STP-00010`: the author tests Enabled components; close #181, or a fix as above.
-  3. `STP-00011`: [#179](https://github.com/racetracks/PourSocialScore/issues/179) Enable all / Disable all in a profile's side menu (3.6.0.73; scratch `docs/components/addon-manager/04_ENABLE_DISABLE_ALL.md`).
-  4. `STP-00012`: [#183](https://github.com/racetracks/PourSocialScore/issues/183) hide the ignore auto-reply echo, option `showIgnoreReplies` (3.6.0.74; scratch `docs/latest/issues/ignore-reply-echo/`).
-  5. `STP-00013`: [#184](https://github.com/racetracks/PourSocialScore/issues/184) finish the reference framework (`STP-00003` to `STP-00006`; docs build 3.6.0.75).
+  3. `STP-00011`: [#179](https://github.com/racetracks/PourSocialScore/issues/179) Enable all / Disable all in a profile's side menu (3.6.0.74; scratch `docs/components/addon-manager/04_ENABLE_DISABLE_ALL.md`).
+  4. `STP-00012`: [#183](https://github.com/racetracks/PourSocialScore/issues/183) hide the ignore auto-reply echo, option `showIgnoreReplies` (3.6.0.75; scratch `docs/latest/issues/ignore-reply-echo/`).
+  5. `STP-00013`: [#184](https://github.com/racetracks/PourSocialScore/issues/184) finish the reference framework (`STP-00003` to `STP-00006`; docs build 3.6.0.76).
 
   A fix build moves every later build up by one.
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
@@ -30,10 +31,10 @@ None (02 section 12).
 
 ## Open issues (addon repo)
 - #176, #177, #180: addon profiles (reworked in 3.6.0.69; close once tested).
-- #179: Enable all / Disable all in a profile (3.6.0.73, `STP-00011`).
+- #179: Enable all / Disable all in a profile (3.6.0.74, `STP-00011`).
 - #181: Enabled components (built in 3.6.0.69; close once tested).
-- #183: ignore auto-reply, option to hide the "To player: ..." echo of the reply PSS sends (3.6.0.74, `STP-00012`).
-- #184: the reference framework (`ISS-00001`); rule shipped in 3.6.0.70, remaining steps 3.6.0.75 (`STP-00013`).
+- #183: ignore auto-reply, option to hide the "To player: ..." echo of the reply PSS sends (3.6.0.75, `STP-00012`).
+- #184: the reference framework (`ISS-00001`); rule shipped in 3.6.0.70, remaining steps 3.6.0.76 (`STP-00013`).
 - #159 to #169: Macro Helper macros, one issue per set (umbrella #159).
 - #152: window memory, build fewer frames (pane parts on first use, shared between tabs).
 - #37: the guild exclusion list is not saved (its intent needs defining).
