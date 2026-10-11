@@ -196,7 +196,12 @@ elseif phase == "gate" then
 	-- TST-00190, TST-00193, TST-00195, TST-00199: the scratch design-proof gate on this checkout
 	local scratch = os.getenv("PSS_SCRATCH")
 	if not scratch or scratch == "" then
-		print("NOTE bus gate: PSS_SCRATCH not set, the parity, catalogue and build gate did not run (CI sets it with the SCRATCH_TOKEN secret)")
+		-- a scratch checkout beside this repo is used when none is named
+		local fh = io.open("../Pour-Social-Score_Scratch/.git/HEAD")
+		if fh then fh:close() scratch = "../Pour-Social-Score_Scratch" end
+	end
+	if not scratch or scratch == "" then
+		print("NOTE bus gate: PSS_SCRATCH not set, the parity, catalogue and build gate did not run (CI sets it with the SCRATCH_TOKEN secret; a scratch checkout beside this repo is found without it)")
 		print("SKIP bus gate")
 		os.exit(0)
 	end
