@@ -32,7 +32,7 @@ local oldFolders	-- folders the window no longer uses, named on the cleanup line
 local newer	-- the save's version when it is newer than this one (a downgrade)
 
 -- The report's groups, in print order.
-local FEATURES = { "filters", "players", "guilds", "managed", "history", "options", "cleanup" }
+local FEATURES = { "filters", "players", "guilds", "managed", "history", "options", "addons", "cleanup" }
 M.PSS_UPGRADE_FEATURES = FEATURES
 
 -- Adds n to out[feature][key]. Nothing is counted (or built) on a login
@@ -190,6 +190,20 @@ local function camelotRepair()
 	tally("guilds", "camelot", members)
 	tally("players", "camelot", players)
 	if #maybe > 0 then M.ShowMsg(L["UPG_CAMELOT_MAYBE"]:format(#maybe, table.concat(maybe, ", "))) end
+end
+
+-- Step 11's move of PSS_CharDB (3.6.x, this character's addon profiles) into the
+-- account-wide owned keys (PourSocialScore_Libraries, PSS_AddonsQuery.lua)
+local function moveCharDB()
+	local c = _G["PSS_CharDB"]
+	if type(c) ~= "table" then return end
+	if next(c) ~= nil then
+		if not (M.PSS_Need and M.PSS_Need("Libraries") and M.PSS_AddonCharMove) then return end
+		local moved, kept = M.PSS_AddonCharMove(c)
+		tally("addons", "moved", moved)
+		tally("addons", "kept", kept)
+	end
+	if next(c) == nil then _G["PSS_CharDB"] = nil end
 end
 
 local STEPS = {
@@ -548,6 +562,19 @@ local STEPS = {
 			},
 		},
 	},
+	-- 11 (3.7.0.102, S2b): this character's addon profiles (PSS_CharDB, 3.6.x)
+	-- move into the account-wide owned keys under its entity id (SAV-00036). A
+	-- per-character file is read only when that character logs in, so the
+	-- step runs at every login (one type check when there is nothing to move);
+	-- a slot that already holds data wins and its old value stays; newer fields
+	-- stay in PSS_CharDB. Safe to run twice; nothing is in RETIRED.
+	{
+		id = 11,
+		always = true,
+		parts = {
+			{ feature = "addons", data = moveCharDB },
+		},
+	},
 }
 
 M.PSS_UPGRADE_STEPS = #STEPS
@@ -636,6 +663,7 @@ local PHRASES = {
 	managed = { "rules" },
 	history = { "formats", "tidied" },
 	options = { "switchedOff", "places", "unusable" },
+	addons = { "moved", "kept" },
 	cleanup = { "defaults", "retired", "sparse" },
 }
 M.PSS_UPGRADE_PHRASES = PHRASES	-- read only (the harness checks every count has a phrase)

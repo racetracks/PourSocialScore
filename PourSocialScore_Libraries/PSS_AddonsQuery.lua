@@ -235,18 +235,111 @@ local function acct()
 	return type(db) == "table" and db or nil
 end
 
-local function chr(create)
-	local c = _G["PSS_CharDB"]
-	if type(c) ~= "table" and create then
-		c = {}
-		_G["PSS_CharDB"] = c
+-- This character's keys are account-wide owned keys from 3.7.0.102 (SAV-00036):
+-- addonSetsOf, addonLockOf, addonSelOf and addonPickOf in PSS_OptionsDB, a packed
+-- string under this character's entity id (M.PSS_Owned). chr() decodes them
+-- into one table with the old PSS_CharDB shape (addonSets a table), kept
+-- until tidyChar() writes it back, so the code below reads and writes as before.
+local CHAR = { addonSets = "addonSetsOf", addonLock = "addonLockOf", addonSel = "addonSelOf", addonPick = "addonPickOf" }
+local RS, US = "\30", "\31"	-- between profiles, between a number and its string
+local view, viewId, viewRaw, viewOther
+
+-- { [number] = string } to one string; nil when it holds anything else
+local function packSets(t)
+	local keys = {}
+	for k, v in pairs(t) do
+		if type(k) ~= "number" or type(v) ~= "string" or v:find(RS, 1, true) or v:find(US, 1, true) then return nil end
+		keys[#keys + 1] = k
 	end
-	return type(c) == "table" and c or nil
+	sort(keys)
+	for i = 1, #keys do keys[i] = keys[i] .. US .. t[keys[i]] end
+	return concat(keys, RS)
 end
 
+local function unpackSets(s)
+	local t = {}
+	for part in (s .. RS):gmatch("(.-)" .. RS) do
+		local k, v = part:match("^(%d+)" .. US .. "(.*)$")
+		if k then t[tonumber(k)] = v end
+	end
+	return t
+end
+
+local function slot(key)
+	return M.PSS_Owned and M.PSS_Owned(CHAR[key])
+end
+
+local function chr(create)
+	if not M.PSS_Me then return nil end
+	local id = M.PSS_Me(create and true or nil)
+	if not id then return nil end
+	local stale = view == nil or viewId ~= id
+	local raw = {}
+	for key in pairs(CHAR) do
+		local o = slot(key)
+		raw[key] = o and o:Get(id) or nil
+		if viewRaw and raw[key] ~= viewRaw[key] then stale = true end
+	end
+	if stale then
+		view, viewId, viewRaw, viewOther = {}, id, raw, {}
+		for key, v in pairs(raw) do
+			if type(v) ~= "string" then
+				viewOther[key] = true	-- another shape (a newer version's): never read, never replaced
+			elseif key == "addonSets" then
+				view[key] = unpackSets(v)
+			else
+				view[key] = v
+			end
+		end
+	end
+	return view
+end
+
+-- write the character's table back to the owned keys (and drop the empty ones)
 local function tidyChar()
-	local c = chr()
-	if c and next(c) == nil then _G["PSS_CharDB"] = nil end
+	if not view then return end
+	for key in pairs(CHAR) do
+		if not viewOther[key] then
+			local v, str = view[key], nil
+			if key == "addonSets" then
+				if type(v) == "table" and next(v) ~= nil then
+					str = packSets(v)
+					if not str then str = viewRaw[key] end
+				end
+			elseif type(v) == "string" and v ~= "" then
+				str = v
+			end
+			local o = slot(key)
+			if o and str ~= viewRaw[key] and o:Set(viewId, str) then viewRaw[key] = str end
+		end
+	end
+end
+
+-- upgrade step 11: move the four keys of a 3.6.x PSS_CharDB c under this
+-- character; a slot that already holds data wins (that key stays in c);
+-- returns the keys moved and the keys kept
+function M.PSS_AddonCharMove(c)
+	local id = M.PSS_Me and M.PSS_Me(true)
+	if not id or type(c) ~= "table" then return 0, 0 end
+	local moved, kept = 0, 0
+	for key in pairs(CHAR) do
+		local v, o = c[key], slot(key)
+		if v ~= nil and o then
+			local str = type(v) == "string" and v or (type(v) == "table" and packSets(v)) or nil
+			if str and str ~= "" then
+				if o:Get(id) ~= nil then
+					kept = kept + 1
+				elseif o:Set(id, str) then
+					c[key] = nil
+					moved = moved + 1
+				end
+			elseif type(v) == "table" and next(v) == nil then
+				c[key] = nil
+			end
+		end
+	end
+	view = nil
+	return moved, kept
 end
 
 -- "a\nb\nc" from a sorted list
@@ -873,7 +966,7 @@ local function presetTable(id, scope, create)
 		return type(db.addonSets) == "table" and db.addonSets or nil, "all"
 	end
 	local c = chr(create)
-	if not c then return nil end
+	if not c or viewOther.addonSets then return nil end	-- a newer version's shape is not replaced
 	if type(c.addonSets) ~= "table" and create then c.addonSets = {} end
 	return type(c.addonSets) == "table" and c.addonSets or nil, "char"
 end
@@ -1008,6 +1101,7 @@ function M.PSS_AddonPresetSave(id, name, who)
 	local list = enabledNames(who)
 	local head = (scope == "all" and DIGIT or "") .. cleanName(name)
 	tbl[pid] = #list > 0 and (head .. NL .. packNames(list)) or head
+	dropEmpty(scope)
 	return true, format(T.presetSaved, msgLabel(pid, cleanName(name)), #list)
 end
 
@@ -1124,6 +1218,7 @@ function M.PSS_AddonPresetInclude(id, scope, name)
 	if not have then list[#list + 1] = name end
 	local tbl = presetTable(pid, scope)
 	tbl[pid] = (sc == "all" and DIGIT or "") .. label .. NL .. packNames(list)
+	dropEmpty(sc)
 	return true, format(T.presetAdded2, msgLabel(pid, label), name)
 end
 
@@ -1168,6 +1263,7 @@ function M.PSS_AddonPresetRename(id, name, scope)
 	end
 	local rest = (str and pos <= #str) and sub(str, pos - 1) or ""
 	tbl[pid] = (withDigit and DIGIT or "") .. clean .. rest
+	dropEmpty(sc)
 	return true, format(T.presetRenamed, msgLabel(pid, clean))
 end
 

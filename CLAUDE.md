@@ -131,7 +131,7 @@ The saved values never change (old saves keep their look). Nothing ships that wo
 - **Logic in `PourSocialScore_Libraries`, drawing only in `PourSocialScore_GUI`.** No state, query, validation or flow in a drawing file; UIs write through core setters (`check_layers.lua`). No `EUI` or `Ellesmere` names in new code (`check_rules.sh`).
 - **Zero cost until opened:** `/pss gui` loads Libraries and the GUI folder; each tab is built on first open; core events are heard only while the window shows (`ns.Listen`); the window drops what it read and requests a GC on close.
 - **Taint and secrets:** baseline 02 J and PSS 02 section 10 apply to every UI hook and every unit or chat value the window shows or acts on.
-- **Saved state:** window place, last tab and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` UI keys); no new SavedVariables for the window. The one exception: the addon manager's per-character profiles and protected addons live in `PSS_CharDB` (`SavedVariablesPerCharacter` in `PourSocialScore_Options`, nil until used).
+- **Saved state:** window place, last tab and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` UI keys); no new SavedVariables for the window. `PSS_CharDB` (the addon manager's per-character profiles up to 3.7.0.101) is read only by upgrade step 11 (3.7.0.102): they are now the owned keys `addonSetsOf`, `addonLockOf`, `addonSelOf`, `addonPickOf` in `PSS_OptionsDB`.
 
 ## Working in a Claude Code session
 Style, file hosting and messages: `11_PREFERENCES.md` (call the user "the author"; files go on scratch, never in the session, replies give links).
