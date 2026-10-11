@@ -446,6 +446,7 @@ end
 -- Right-click menu at the cursor
 ------------------------------------------------------------------------
 function ns.ContextMenu(by, build)
+	ns.Fresh()
 	if not ns.IsDark() and MenuUtil and MenuUtil.CreateContextMenu then
 		MenuUtil.CreateContextMenu(by, function(_, root) FillBlizzard(root, Collect(build)) end)
 		return

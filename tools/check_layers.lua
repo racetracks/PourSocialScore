@@ -95,6 +95,60 @@ local function where(path)
 	return "PourSocialScore/" .. path
 end
 for _, path in ipairs(CORE) do checkFile(where(path)) end
+
+------------------------------------------------------------------------
+-- The GUI boundary (service-bus-helper DEC-00195, TST-00195, TST-00196):
+-- the window opens only from a listed user entry, and the GUI folder
+-- listens to core events only through ns.Listen (while shown).
+------------------------------------------------------------------------
+-- file -> { enclosing function = the user entry it serves }
+local ENTRIES = {
+	["PourSocialScore/PSS_BlizzardUI.lua"] = { ["M.PSS_OpenUI"] = "the dispatcher of every user entry", hostShow = "the Friends window shown, option openWithFriends", func = "an AddOns compartment click" },
+	["PourSocialScore/PSS_Whois.lua"] = { PSS_AddonsBinding = "the key binding Open Addon Manager" },
+	["PourSocialScore_Libraries/PSS_Commands.lua"] = { ["M.PSS_SlashPSS"] = "/pss, /acp" },
+	["PourSocialScore_Libraries/PSS_DttView.lua"] = { ["M.PSS_DttCommand"] = "/pss dtt options" },
+	["PourSocialScore_Libraries/PSS_Graphics.lua"] = { ["M.PSS_GfxOpen"] = "/pss gfx", ["M.PSS_GfxAsk"] = "the keep prompt after the player's import and reload" },
+}
+
+local function enclosing(ls, i)
+	for j = i, 1, -1 do
+		local name = ls[j]:match("^%s*function%s+([%w_%.:]+)%s*%(") or ls[j]:match("^%s*local%s+function%s+([%w_]+)%s*%(")
+			or ls[j]:match("^%s*([%w_%.]+)%s*=%s*function%s*%(")
+		if name then return name end
+	end
+	return "(file level)"
+end
+
+local find = io.popen('find PourSocialScore PourSocialScore_* -name "*.lua" 2>/dev/null | sort')
+local seen, bad = 0, 0
+for path in find:lines() do
+	local ls = {}
+	local fh = io.open(path, "rb")
+	for l in fh:lines() do ls[#ls + 1] = l end
+	fh:close()
+	local inGui = path:find("^PourSocialScore_GUI/") ~= nil
+	for i = 1, #ls do
+		local l = ls[i]:gsub("%-%-.*$", "")
+		if not inGui then
+			local call = (l:find('PSS_Need%(%s*"GUI"%s*%)') and 'PSS_Need("GUI")')
+				or (l:find("PSS_OpenUI%(") and not l:find("^%s*function%s+M%.PSS_OpenUI") and "M.PSS_OpenUI")
+			if call then
+				seen = seen + 1
+				local fn = enclosing(ls, i)
+				if not (ENTRIES[path] and ENTRIES[path][fn]) then
+					print(("%s:%d: %s in %s is not a listed user entry (the window opens only as the player asks; list it in ENTRIES with its entry and in the catalogue)"):format(path, i, call, fn))
+					bad = bad + 1
+				end
+			end
+		elseif l:find('M%.Events%.Register%(%s*"') then
+			print(("%s:%d: the window listens outside ns.Listen (it must hear core events only while shown)"):format(path, i))
+			bad = bad + 1
+		end
+	end
+end
+find:close()
+if seen == 0 then print("boundary scan found no GUI open at all: the scan is broken") bad = bad + 1 end
+problems = problems + bad
 if problems > 0 then
 	print("Core files must not hold UI code (rule 6). Move it to a UI file and fire an event from the core.")
 	os.exit(1)

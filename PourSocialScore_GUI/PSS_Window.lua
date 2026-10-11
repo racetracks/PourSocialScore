@@ -479,6 +479,10 @@ local function Build()
 	-- have changed while it was closed
 	win:HookScript("OnShow", function(self)
 		ns.ListenStart()
+		-- a look, font or strata change made while closed is applied now
+		-- (the listener below hears them only while shown)
+		win:SetFrameStrata(M.PSS_FrameStrataName())
+		if ns.Fresh() then UpdateNav() end
 		for _, page in ipairs(self.pages) do
 			if page.stale then page.stale() end
 		end
@@ -500,9 +504,9 @@ local function Build()
 	SelectTab(M.PSS_UITab())
 	ns.NavRecord()
 
-	-- the look and strata: always heard (a rare event, and the kit, popups
-	-- and tooltips repaint with it), unlike the tabs' ns.Listen events
-	M.Events.Register("OPTION_CHANGED", function(key)
+	-- the look and strata: heard only while the window shows (ns.Listen);
+	-- OnShow above applies what changed while it was closed
+	ns.Listen("OPTION_CHANGED", function(key)
 		if key == "frameStrata" then
 			win:SetFrameStrata(M.PSS_FrameStrataName())
 		elseif key == "uiSkin" or key == "uiFont" then

@@ -263,6 +263,7 @@ local function Countdown(opts, left)
 end
 
 function ns.Confirm(opts)
+	ns.Fresh()
 	if not confirm then BuildConfirm() end
 	if confirm:IsShown() then confirm:Hide() end
 	confirmOpts = opts
@@ -350,6 +351,7 @@ local function BuildText()
 end
 
 local function ShowText(opts, readOnly)
+	ns.Fresh()
 	if not textPop then BuildText() end
 	if textPop:IsShown() then textPop:Hide() end
 	opts.readOnly = readOnly
