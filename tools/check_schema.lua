@@ -49,6 +49,8 @@ local src = read("PourSocialScore/PSS_SavedData.lua")
 local layout = src:match("local LAYOUT = (%b{})")
 assert(layout, "PSS_SavedData.lua: no LAYOUT")
 for key in layout:gmatch('"([%a_][%w_]*)"') do top[key] = true end
+-- the owned keys (<key>Of, PSS_Entity.lua) are Options keys too
+for word in (SCHEMA.owned or ""):gmatch("%S+") do top[word:match("^[%a_][%w_]*")] = true end
 for key in read("PourSocialScore/PSS_Options.lua"):gmatch('{ key = "([%a_][%w_]*)"') do top[key] = true end
 
 if arg[1] ~= "--saves" then
@@ -91,7 +93,7 @@ end
 -- --saves: walk the saved files
 ------------------------------------------------------------------------
 local KIND = {}
-for _, k in ipairs({ "upgrade", "player", "guild", "member", "block", "counts", "filterStat", "builtinStat", "line", "logGroup" }) do
+for _, k in ipairs({ "upgrade", "player", "guild", "member", "block", "counts", "filterStat", "builtinStat", "line", "logGroup", "ent" }) do
 	KIND[k] = fields(k)
 end
 for _, c in ipairs({ "guildChat", "unknown" }) do KIND.counts[c] = true end
@@ -136,6 +138,7 @@ for i = 2, #arg do
 	local db = PourSocialScoreDB or {}
 	local P, G, C, Lg = PSS_PlayersDB or db, PSS_GuildsDB or db, PSS_CountsDB or db, PSS_LoggingDB or db
 	check(db.upgrade, "upgrade", path)
+	if type(PSS_OptionsDB) == "table" then check(PSS_OptionsDB.ent, "ent", path .. " ent") end
 	for key, p in pairs(type(P.playerData) == "table" and P.playerData or {}) do
 		check(p, "player", path .. " player " .. tostring(key))
 		if type(p) == "table" then counts(p.blockCounts, path) end

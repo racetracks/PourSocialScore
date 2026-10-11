@@ -70,4 +70,10 @@ M.PSS_SCHEMA = {
 	-- adds addonSel (the selected addon profiles) and addonPick (the addons
 	-- turned on by hand while profiles are selected) in both stores
 	charDB = "addonSets addonLock addonSel addonPick",
+	-- the entity dictionary (S2, 3.7.0.100): PSS_OptionsDB.ent = { v, n, rec = { [id] = "kind;name;realm;faction;class;race;sex;flags" } }
+	-- (PSS_Entity.lua, PSS_Store.lua; SAV-00034)
+	ent = "v n dn rec dict",
+	-- the owned keys: PSS_OptionsDB.<key> = { [entity id] = packed value } (SAV-00035); "name=default"
+	-- when a value equal to the default is not stored. The addon manager's four come in S2b.
+	owned = "bagProfileOf",
 }
