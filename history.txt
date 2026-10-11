@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.99 - Docs: the code map moves to documents/code-map
+
+- Documentation only: the code map now lives on scratch in documents/code-map (framework layout, a generated API, test and registry reference, and the code rules for developers). Nothing in the addon changes.
+
 => 3.7.0.98 - Service bus foundation (S1)
 
 - Under the hood, nothing visible: a small service bus (record sets, named services, one-call lookups) for the coming Warehouse, Bag Manager and Journal features, a build gate that keeps budgets and the list of every way in and out of the addon, and a guard that only the player can open the window.

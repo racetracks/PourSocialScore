@@ -10,7 +10,7 @@ PRs #88 to #117).
 **Rules:** the window's rules are the **Interface** section of `CLAUDE.md`
 (the one place for them). This file holds the decisions behind them, the code
 map and the lessons; it stays the reference for any window change. The full
-code map is on scratch `docs/latest/code-map/` (`D_GUI.md`, `C_LIBRARIES.md`).
+code map is on scratch [`documents/code-map/`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/code-map) ([`05_Detailed_Design.md`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/05_Detailed_Design.md) section 9, [`14_04_GUI_API.md`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/14_Code_Reference/14_04_GUI_API.md)).
 
 **Project data on scratch:** the plan in `docs/latest/ui uplift/` (01_ANALYSIS,
 02_PLAN, 03_CODE_CHANGES, 04_LOOK_SPEC: the look numbers); history in
@@ -41,7 +41,7 @@ code map is on scratch `docs/latest/code-map/` (`D_GUI.md`, `C_LIBRARIES.md`).
 Kit and looks A1, A2, A2b, Modern; Libraries groundwork A3; tabs B1 to B7; code review fixes R1 to R3; old-GUI features C1 (Player Search, target, Prune) and C2 (row menus, exceptions); switch-over D1 (3.4.0.23); one window D2 (3.4.0.25); docs D3. PRs #88 to #116, release #117. Stage detail: git history and scratch `history/addon/2026-10-08-PourSocialScore_GUI-ui-uplift/`.
 
 ## Code map
-Current file names; the full map with every function is on scratch `docs/latest/code-map/`.
+Current file names; the full map with every function is on scratch [`documents/code-map/14_Code_Reference/`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/code-map/14_Code_Reference).
 
 | Where | What |
 | --- | --- |
