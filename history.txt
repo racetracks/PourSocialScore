@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.101 - Docs: roadmaps pointer in CLAUDE.md
+
+- Nothing changes in the game. The project's instructions now point at the new roadmap documents, so planning work starts from the roadmap's Next Steps.
+
 => 3.7.0.100 - S2: queries, key/value stores, entity ids and owned keys
 
 - Nothing changes in the game yet. Behind the scenes the addon gains the tools later features will share: a query helper for lists of records, a small store for saved data that keeps it compact, and a way to save things per character in the one account-wide save. Nothing is saved or run until a feature uses them.
