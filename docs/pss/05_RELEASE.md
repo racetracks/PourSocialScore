@@ -33,7 +33,7 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
   1. The release's history section: the one summary (above).
   2. Scratch `docs/latest/release-notes/<version>.md`: the summary, every change in shipping order with build and PR, and a "Technical notes" section linking the design, findings and issue notes behind the changes; its row in `docs/latest/release-notes/README.md`.
   3. Scratch `docs/latest/summary-of-changes/SUMMARY_OF_CHANGES.md`: the release's row in the Releases table and its own table, each change linked to its release notes and its most specific technical notes.
-  4. The code map, refreshed in full: scratch `docs/latest/code-map/` (`CODE_MAP.md` and the appendices checked against the code), its `README.md` naming the release's build.
+  4. The code map, refreshed in full: scratch [`documents/code-map/`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/code-map): rerun its [`gen_codemap.py`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/08_Operations/code-map-generator/gen_codemap.py) at the release commit, refresh 04, 05, 06 and 09 against the code, and name the release's build in its `01_Summary.md`.
   5. `01_HANDOVER.md` re-summarized, `13_CHANGES_IN_TRAIN.md` refreshed, `06_STATUS_AND_NEXT.md`, `CLAUDE.md`'s short form, and the copies on scratch `docs/latest/pss-docs/`.
 - **These are context for later work:** a change or a regression check reads the summary of changes for the area, then the release notes and technical notes it links (`CLAUDE.md`, Read when the task touches the topic).
 

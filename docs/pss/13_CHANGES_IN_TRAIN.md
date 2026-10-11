@@ -1,6 +1,6 @@
 # PourSocialScore: changes in train (state at release 3.5.0.62)
 
-**What this is.** What the core uplift changed and what is still open, so a later session (Claude or GPT) can tell shipped from open. Read it with the code map (scratch `docs/latest/code-map/`, https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/docs/latest/code-map). The design and decisions are in `10_CORE_UPLIFT.md` (scratch `docs/latest/core-uplift/`); per-stage notes of the combined build in `reference/combined-3.4.1.52/`. Where this file and the plan differ, the plan wins; where either differs from the code, the code wins. Refreshed at each full release.
+**What this is.** What the core uplift changed and what is still open, so a later session (Claude or GPT) can tell shipped from open. Read it with the code map (scratch [`documents/code-map/`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/code-map)). The design and decisions are in `10_CORE_UPLIFT.md` (scratch `docs/latest/core-uplift/`); per-stage notes of the combined build in `reference/combined-3.4.1.52/`. Where this file and the plan differ, the plan wins; where either differs from the code, the code wins. Refreshed at each full release.
 
 ## 0. In one screen
 
