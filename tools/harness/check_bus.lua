@@ -2,7 +2,8 @@
 -- script. The phase is PSS_PHASE; each prints "PASS bus <phase>" or "FAIL
 -- bus: <phase>: <what>". Phases (expected results from DDS-00010 sections 2,
 -- 3, 11 and 12, not from the code):
---   sets calls chain errors act budget gui listen gate
+--   sets calls chain errors act budget gui listen store query strict gate
+-- (store: TST-00192, query: TST-00115, strict: TST-00204)
 local phase = os.getenv("PSS_PHASE") or "sets"
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL bus: " .. phase .. ": " .. msg) fail = true end return ok end
@@ -124,23 +125,34 @@ elseif phase == "act" then
 elseif phase == "budget" then
 	-- TST-00191 for this stage's files
 	local B = dofile(here .. "/bus_budgets.lua")
-	local path = "PourSocialScore_Libraries/PSS_Bus.lua"
-	local chunk = assert(loadfile(path))
-	collectgarbage("collect"); collectgarbage("collect")
-	local a = collectgarbage("count")
-	chunk()
-	collectgarbage("collect"); collectgarbage("collect")
-	local kb = collectgarbage("count") - a
-	local gate = B.kb["PSS_Bus.lua"].gate
-	check(kb <= gate, string.format("PSS_Bus.lua resident %.2f KB over its gate %d KB", kb, gate))
-	M.PSS_Provide("t.n", function(i) return i end, {})
+	local note = {}
+	for _, name in ipairs({ "PSS_Bus.lua", "PSS_Store.lua", "PSS_Query.lua", "PSS_Entity.lua" }) do
+		local chunk = assert(loadfile("PourSocialScore_Libraries/" .. name))
+		collectgarbage("collect"); collectgarbage("collect")
+		local a = collectgarbage("count")
+		chunk()
+		collectgarbage("collect"); collectgarbage("collect")
+		local kb = collectgarbage("count") - a
+		local gate = B.kb[name].gate
+		check(kb <= gate, string.format("%s resident %.2f KB over its gate %d KB", name, kb, gate))
+		note[#note + 1] = string.format("%s %.2f KB (gate %d)", name, kb, gate)
+	end
 	M.PSS_Provide("t.n", function(i) return i end, {})
 	local N = 100000
 	local t0 = os.clock()
 	for i = 1, N do M.PSS_Call("t.n", i) end
 	local us = (os.clock() - t0) / N * 1e6
 	check(us <= B.us.call.gate, string.format("a bus call %.2f us over its gate %d us", us, B.us.call.gate))
-	print(string.format("NOTE bus budget: PSS_Bus.lua %.2f KB (gate %d), a call %.2f us (gate %d)", kb, gate, us, B.us.call.gate))
+	-- a store read by key (DEC-00192: 3 us)
+	local S = M.PSS_Store("tbudget", { key = "tbudget", v = 1, fields = { { "a", "s" }, { "b", "n" } } })
+	for i = 1, 1000 do S.Set(i, { a = "x" .. i, b = i }) end
+	t0 = os.clock()
+	for i = 1, N do S.Get(i % 1000 + 1, "b") end
+	local rus = (os.clock() - t0) / N * 1e6
+	check(rus <= B.us.read.gate, string.format("a store read %.2f us over its gate %d us", rus, B.us.read.gate))
+	PourSocialScoreDB.tbudget = nil
+	print(string.format("NOTE bus budget: %s; a call %.2f us (gate %d), a store read %.2f us (gate %d)",
+		table.concat(note, ", "), us, B.us.call.gate, rus, B.us.read.gate))
 elseif phase == "gui" then
 	-- TST-00194: nothing but the player loads the GUI
 	libs()
@@ -192,25 +204,143 @@ elseif phase == "listen" then
 	win.SetFrameStrata = nil
 	win:Hide()
 	check(count() == 0, "closed again: no listeners")
+elseif phase == "store" then
+	-- TST-00192: the key/value store
+	libs()
+	local db = PourSocialScoreDB
+	local S = M.PSS_Store("tstore", { key = "tstore", v = 1, cap = 4, fields = { { "name", "d" }, { "count", "n", 0 }, { "flag", "b", false }, { "note", "s" } } })
+	check(db.tstore == nil and S.Get(1, "name") == nil and S.Count() == 0, "a read writes nothing")
+	local a = S.Add({ name = "Guild Bank", count = 5 })
+	local b = S.Add({ name = "Guild Bank", count = 0, flag = false })
+	check(a == 1 and b == 2, "ids count up from 1")
+	check(db.tstore.rec[2] == "1", "defaults are not stored: " .. tostring(db.tstore.rec[2]))
+	check(db.tstore.rec[1] == "1;5", "trailing empty fields are dropped: " .. tostring(db.tstore.rec[1]))
+	check(db.tstore.dict[1] == "Guild Bank" and db.tstore.dict[2] == nil, "a repeated string is saved once")
+	check(S.Get(1, "name") == "Guild Bank" and S.Get(1, "count") == 5 and S.Get(2, "count") == 0 and S.Get(2, "flag") == false and S.Get(1, "nope") == nil, "reads give values or the default")
+	S.Set(3, { name = "Bank", note = "a;b" })
+	check(S.Get(3, "note") == "a,b", "a separator in a string is replaced")
+	S.Delete(2)
+	local c = S.Add({ count = 9 })
+	check(c == 4, "an id is never reused: " .. tostring(c))
+	check(S.Add({ count = 2 }) == 5 and S.Count() == 4, "the fourth record fits the cap")
+	local d, why = S.Add({ count = 1 })
+	check(d == nil and why == "cap" and S.Count() == 4, "the cap refuses the fifth record")
+	db.tstore.extra = "kept"
+	S.Set(1, { name = "Other", count = 6 })
+	check(db.tstore.extra == "kept" and S.Get(1, "name") == "Other", "an unknown key is kept")
+	check(db.tstore.dict[1] == "Guild Bank" and db.tstore.dict[3] == "Other", "another string is a new dictionary entry")
+	local rows = S.Rows({ "count" }, { n = 2, { 1 }, { 9 } })
+	check(M.PSS_IsSet(rows) and rows.n == 1 and rows[1][1] == 1 and rows[1][2] == 6 and M.PSS_SetCol(rows, "id") == 1, "Rows is a record set on id")
+	local top = M.PSS_Query({ from = S.Rows({ "count" }), order = { "count", "desc" }, limit = 1 })
+	check(top and top.n == 1 and top[1][2] == 9, "rows feed a query")
+	db.tstore.v = 2
+	check(S.ReadOnly() and S.Set(1, { count = 1 }) == false and S.Add({ count = 1 }) == nil and S.Delete(1) == nil and S.Get(1, "count") == 6, "a newer layout is read only")
+	db.tstore.v = 1
+	db.tstore = nil
+	local big = M.PSS_Store("tbig", { key = "tbig", v = 1, fields = { { "name", "d" }, { "n", "n" }, { "on", "b" } } })
+	for i = 1, 10000 do big.Set(i, { name = "Character " .. (i % 12), n = i, on = i % 3 == 0 }) end
+	local len = 0
+	for _, str in pairs(db.tbig.rec) do len = len + #str end
+	local dl = 0
+	for _, str in pairs(db.tbig.dict) do dl = dl + #str end
+	check(len + dl < 150000, "10,000 records pack small: " .. (len + dl) .. " bytes")
+	check(db.tbig.dn == 12, "twelve distinct strings are saved once each")
+	db.tbig = nil
+elseif phase == "query" then
+	-- TST-00115: where, join, by, order, limit against hand-written rows
+	libs()
+	local function sample()
+		local s = M.PSS_Set({ "tent", "item", "cont", "count" })
+		M.PSS_SetAdd(s, { 17, 2, "b", 20 }); M.PSS_SetAdd(s, { 17, 5, "k", 4 }); M.PSS_SetAdd(s, { 31, 2, "b", 1 })
+		M.PSS_SetAdd(s, { 31, 9, "m", 7 })
+		return s
+	end
+	M.PSS_QueryDict("tent", { "name" }, function(id, dest, at) dest[at] = "E" .. id end)
+	local function rowsOf(s) local t = {} for i = 1, s.n do t[i] = table.concat(s[i], ",") end return table.concat(t, "|") end
+	local w = M.PSS_Query({ from = sample(), where = { cont = { "b", "k" } } })
+	check(w and rowsOf(w) == "17,2,b,20|17,5,k,4|31,2,b,1", "where, a list: " .. tostring(w and rowsOf(w)))
+	w = M.PSS_Query({ from = sample(), where = { cont = "b", tent = 17 } })
+	check(w and rowsOf(w) == "17,2,b,20", "where, two columns: " .. tostring(w and rowsOf(w)))
+	local j = M.PSS_Query({ from = sample(), join = { "tent" }, limit = 1 })
+	check(j and j.cols[5] == "tent_name" and j[1][5] == "E17" and j.n == 1, "join adds the dictionary column")
+	local g = M.PSS_Query({ from = sample(), by = "tent", sum = "count" })
+	check(g and rowsOf(g) == "17,24,2|31,8,2", "by and sum, first-seen order: " .. tostring(g and rowsOf(g)))
+	local chain = M.PSS_Query({ from = sample(), where = { cont = { "b", "k" } }, by = "tent", sum = "count", order = { "total", "desc" }, limit = 1 })
+	check(chain and rowsOf(chain) == "17,24,2", "the whole chain: " .. tostring(chain and rowsOf(chain)))
+	local asc = M.PSS_Query({ from = sample(), order = { "count", "asc" } })
+	check(asc and rowsOf(asc) == "31,2,b,1|17,5,k,4|31,9,m,7|17,2,b,20" or asc and asc[1][4] == 1 and asc[4][4] == 20, "order ascending")
+	local from = M.PSS_Query({ from = "ent.get", key = 12345 })
+	check(from and from.n == 0, "from a service")
+	local r1, e1 = M.PSS_Query({ from = sample(), where = { nope = 1 } })
+	check(r1 == nil and e1 and e1:find("no column", 1, true), "a bad column is nil, err: " .. tostring(e1))
+	local r2, e2 = M.PSS_Query({ from = sample(), join = { "zzz" } })
+	check(r2 == nil and e2 and e2:find("no dictionary", 1, true), "a bad dictionary is nil, err")
+	local r3, e3 = M.PSS_Query({ from = "no.such" })
+	check(r3 == nil and e3 and e3:find("no.such", 1, true), "a missing service is nil, err")
+	-- reuse: a warm pool allocates nothing per row
+	local big = M.PSS_Set({ "tent", "item", "cont", "count" })
+	for i = 1, 10000 do M.PSS_SetAdd(big, { i % 50, i, "b", 1 }) end
+	local spec = { from = big, join = { "tent" }, reuse = true }
+	local first = M.PSS_Query(spec)
+	local row1 = first[1]
+	collectgarbage("collect"); collectgarbage("collect")
+	local before = collectgarbage("count")
+	for _ = 1, 5 do M.PSS_Query(spec) end
+	local reused = (collectgarbage("count") - before) / 5
+	check(M.PSS_Query(spec)[1] == row1, "reuse hands the same row tables back")
+	spec.reuse = nil
+	collectgarbage("collect"); collectgarbage("collect")
+	before = collectgarbage("count")
+	for _ = 1, 5 do M.PSS_Query(spec) end
+	local fresh = (collectgarbage("count") - before) / 5
+	check(reused < 20 and fresh > 200, string.format("allocation per call: %.1f KB with reuse, %.1f KB without", reused, fresh))
+	-- a join on 10,000 rows under its budget
+	local B = dofile(here .. "/bus_budgets.lua")
+	spec.reuse = true
+	local t0 = os.clock()
+	for _ = 1, 20 do M.PSS_Query(spec) end
+	local ms = (os.clock() - t0) / 20 * 1000
+	check(ms <= B.us.join10k.gate / 1000, string.format("a join on 10,000 rows %.2f ms over its gate %d ms", ms, B.us.join10k.gate / 1000))
+	print(string.format("NOTE bus query: a join on 10,000 rows %.2f ms (gate %d), %.1f KB allocated per call with reuse", ms, B.us.join10k.gate / 1000, reused))
+elseif phase == "strict" then
+	-- TST-00204: a SKIP of the scratch gate is not a pass under PSS_GATE_STRICT
+	local function gate(strict)
+		local p = io.popen("PSS_PHASE=gate PSS_SCRATCH=- " .. (strict and "PSS_GATE_STRICT=1 " or "PSS_GATE_STRICT=0 ") .. 'lua5.1 "' .. here .. '/run.lua" . - - "' .. here .. '/check_bus.lua" 2>&1')
+		local out = p:read("*a")
+		p:close()
+		return out
+	end
+	local lax, strict = gate(false), gate(true)
+	check(lax:find("SKIP bus gate", 1, true) and lax:find("NOTE bus gate", 1, true) and not lax:find("FAIL", 1, true), "without strict mode a missing scratch is a SKIP and a NOTE")
+	check(strict:find("FAIL bus: gate", 1, true) and not strict:find("SKIP bus gate", 1, true), "with PSS_GATE_STRICT=1 a missing scratch fails")
 elseif phase == "gate" then
 	-- TST-00190, TST-00193, TST-00195, TST-00199: the scratch design-proof gate on this checkout
 	local scratch = os.getenv("PSS_SCRATCH")
-	if not scratch or scratch == "" then
+	local strict = os.getenv("PSS_GATE_STRICT") == "1"
+	if scratch == "-" then
+		scratch = nil		-- none on purpose (the strict-mode test)
+	elseif not scratch or scratch == "" then
 		-- a scratch checkout beside this repo is used when none is named
 		local fh = io.open("../Pour-Social-Score_Scratch/.git/HEAD")
 		if fh then fh:close() scratch = "../Pour-Social-Score_Scratch" end
 	end
 	if not scratch or scratch == "" then
 		print("NOTE bus gate: PSS_SCRATCH not set, the parity, catalogue and build gate did not run (CI sets it with the SCRATCH_TOKEN secret; a scratch checkout beside this repo is found without it)")
-		print("SKIP bus gate")
-		os.exit(0)
+		if strict then
+			check(false, "PSS_GATE_STRICT=1 and no scratch checkout: a SKIP is not a pass")
+		else
+			print("SKIP bus gate")
+			os.exit(0)
+		end
 	end
-	local dir = scratch .. "/documents/features/service-bus-helper/08_Operations/design-proof"
-	local p = io.popen('cd "' .. dir .. '" && PSS_REPO="' .. os.getenv("PWD") .. '" lua5.1 run_all.lua 2>&1')
-	local out = p:read("*a")
-	p:close()
-	print((out:gsub("\n$", "")))
-	check(out:find("GATE %d+ phases, 0 failed, 0 not listed") ~= nil, "the design-proof gate failed")
+	if scratch and scratch ~= "" then
+		local dir = scratch .. "/documents/features/service-bus-helper/08_Operations/design-proof"
+		local p = io.popen('cd "' .. dir .. '" && PSS_REPO="' .. os.getenv("PWD") .. '" lua5.1 run_all.lua 2>&1')
+		local out = p:read("*a")
+		p:close()
+		print((out:gsub("\n$", "")))
+		check(out:find("GATE %d+ phases, 0 failed, 0 not listed") ~= nil, "the design-proof gate failed")
+	end
 else
 	check(false, "unknown phase " .. phase)
 end

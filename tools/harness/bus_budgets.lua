@@ -8,9 +8,14 @@ return {
 	-- the stage that adds the file
 	kb = {
 		["PSS_Bus.lua"] = { measured = 1.3, gate = 8, stage = "S1 (3.7.0.98)" },
+		["PSS_Store.lua"] = { measured = 1.5, gate = 12, stage = "S2 (3.7.0.100)" },
+		["PSS_Query.lua"] = { measured = 3.7, gate = 8, stage = "S2 (3.7.0.100)" },
+		["PSS_Entity.lua"] = { measured = 6.3, gate = 10, stage = "S2 (3.7.0.100)" },
 	},
 	-- microseconds per hot call
 	us = {
 		call = { measured = 1.4, gate = 6, stage = "S1 (3.7.0.98)" },
+		read = { measured = 0.8, gate = 3, stage = "S2 (3.7.0.100)" },
+		join10k = { measured = 5900, gate = 20000, stage = "S2 (3.7.0.100)" },
 	},
 }

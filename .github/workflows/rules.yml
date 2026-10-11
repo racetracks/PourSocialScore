@@ -27,6 +27,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Lua 5.1
         run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Scratch for the service bus gate
+        env:
+          SCRATCH_TOKEN: ${{ secrets.SCRATCH_TOKEN }}
+        run: |
+          rc=0
+          sh tools/ci_scratch.sh "$RUNNER_TEMP/scratch" || rc=$?
+          if [ "$rc" = 2 ]; then echo "::notice::No SCRATCH_TOKEN secret (a fork?): the service bus gate is a SKIP here, which is not a pass"; exit 0; fi
+          [ "$rc" = 0 ] || exit 1
+          echo "PSS_SCRATCH=$RUNNER_TEMP/scratch" >> "$GITHUB_ENV"
+          echo "PSS_GATE_STRICT=1" >> "$GITHUB_ENV"
       - name: New window checks
         run: lua5.1 tools/harness/run.lua . - - tools/harness/check_tui.lua | tee /tmp/tui.txt && grep -q "PASS tui" /tmp/tui.txt
       - name: New window maths
@@ -88,6 +98,16 @@ jobs:
           fetch-depth: 0
       - name: Install Lua 5.1
         run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Scratch for the service bus gate
+        env:
+          SCRATCH_TOKEN: ${{ secrets.SCRATCH_TOKEN }}
+        run: |
+          rc=0
+          sh tools/ci_scratch.sh "$RUNNER_TEMP/scratch" || rc=$?
+          if [ "$rc" = 2 ]; then echo "::notice::No SCRATCH_TOKEN secret (a fork?): the service bus gate is a SKIP here, which is not a pass"; exit 0; fi
+          [ "$rc" = 0 ] || exit 1
+          echo "PSS_SCRATCH=$RUNNER_TEMP/scratch" >> "$GITHUB_ENV"
+          echo "PSS_GATE_STRICT=1" >> "$GITHUB_ENV"
       - name: Upgrades and data checks
         run: PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh
 
@@ -137,8 +157,8 @@ jobs:
         env:
           T: ${{ secrets.SCRATCH_TOKEN }}
         run: |
-          git clone -q --depth 1 "https://x-access-token:${T}@github.com/racetracks/Pour-Social-Score_Scratch" "$RUNNER_TEMP/scratch"
+          SCRATCH_TOKEN="$T" sh tools/ci_scratch.sh "$RUNNER_TEMP/scratch"
           sh tools/harness/build_saves.sh "$RUNNER_TEMP/scratch" "$RUNNER_TEMP/saves"
       - name: Full harness on the real saves
         if: steps.t.outputs.have == 'true'
-        run: PSS_SCRATCH="$RUNNER_TEMP/scratch" PSS_REAL_SAVES="$RUNNER_TEMP/saves" PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh
+        run: PSS_GATE_STRICT=1 PSS_SCRATCH="$RUNNER_TEMP/scratch" PSS_REAL_SAVES="$RUNNER_TEMP/saves" PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh

@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.100 - S2: queries, key/value stores, entity ids and owned keys
+
+- Nothing changes in the game yet. Behind the scenes the addon gains the tools later features will share: a query helper for lists of records, a small store for saved data that keeps it compact, and a way to save things per character in the one account-wide save. Nothing is saved or run until a feature uses them.
+- The automatic checks on GitHub now fail when the extra service bus checks could not run.
+
 => 3.7.0.99 - Docs: the code map moves to documents/code-map
 
 - Documentation only: the code map now lives on scratch in documents/code-map (framework layout, a generated API, test and registry reference, and the code rules for developers). Nothing in the addon changes.

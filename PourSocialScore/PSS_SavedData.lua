@@ -64,7 +64,7 @@ local ON_DEMAND = { PourSocialScore_Logging = "Logging" }
 -- in 3.4.1.51).
 local LAYOUT = {
 	options	= { "showIgnoreDebug", "windowSizes", "windowPoints", "columnWidths", "charOptions", "optionsV2012",
-				"euiIntegration", "blizzardSync", "gfxSets", "gfxPending", "addonSets", "addonLock", "addonView", "addonSel", "addonPick", "mapButtons" },
+				"euiIntegration", "blizzardSync", "gfxSets", "gfxPending", "addonSets", "addonLock", "addonView", "addonSel", "addonPick", "mapButtons", "ent" },
 	players	= { "list", "delList", "playerData",
 				"ignoreList", "typeList", "factionList", "dateList", "notes", "expList", "syncInfo" },
 	guilds	= { "guildData", "guildExclusions", "guildGroupOpen", "scanFieldsDefaultV1", "guildPlayerCleanupV3" },
@@ -85,6 +85,8 @@ local function buildRoute()
 		for _, k in ipairs(keys) do ROUTE[k] = g end
 	end
 	for _, o in ipairs(M.PSS_OPTIONS or {}) do ROUTE[o.key] = "options" end
+	-- an owned key (<key>Of, PSS_Entity.lua) is an account-wide Options key
+	for word in (M.PSS_SCHEMA and M.PSS_SCHEMA.owned or ""):gmatch("%S+") do ROUTE[word:match("^[%a_][%w_]*")] = "options" end
 end
 
 -- addon -> loaded (its tables are saved). A key is routed only while the
