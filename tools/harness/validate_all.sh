@@ -192,6 +192,12 @@ sh "$here/components_phases.sh" "$work" || fail=1
 echo "== drop cheapest thing"
 sh "$here/dtt_phases.sh" || fail=1
 
+# the service bus and its gates (service-bus-helper): record sets, calls,
+# isolation, budgets, the GUI boundary, the scratch design-proof gate when
+# PSS_SCRATCH names a scratch checkout (bus_phases.sh)
+echo "== service bus"
+sh "$here/bus_phases.sh" || fail=1
+
 # the new window's Libraries maths (3.4.0-dev005): pane numbers equal the
 # core's counts, slices, back / forward, throttle
 echo "== new window maths"

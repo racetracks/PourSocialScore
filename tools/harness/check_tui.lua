@@ -276,6 +276,18 @@ win.SetFrameStrata = nil
 M.PSS_SetOpt("frameStrata", "global", 3)
 win:Hide()
 
+-- the window is closed from here, so it hears no option: the kit follows a
+-- look or font change when something shows (ns.Fresh: the window, a popup, a
+-- menu, a tooltip); the check drives that moment right after each change
+do
+	local setOpt = M.PSS_SetOpt
+	M.PSS_SetOpt = function(k, ...)
+		local r = setOpt(k, ...)
+		if k == "uiSkin" or k == "uiFont" then ui.Fresh() end
+		return r
+	end
+end
+
 -- the kit preview (tools/harness/kit_page.lua, on a frame of its own), in every look
 local dir = debug.getinfo(1, "S").source:match("^@(.*)/[^/]*$") or "."
 assert(loadfile(dir .. "/kit_page.lua"))("PourSocialScore_GUI", ui)
@@ -598,6 +610,7 @@ check(dd.blizz:IsShown() and not dd.dark:IsShown(), "Modern drop-down is not Bli
 -- without the art (Camelot) Modern is the Blizzard look
 C_Texture.GetAtlasInfo = realAtlas
 M.PSS_SetOpt("uiSkin", "global", 2)
+ui.Repaint()	-- the atlas changed, not an option
 check(not win.art.streaks:IsShown() and art.blizzard.TopTileStreaks:GetAlpha() == 1, "without the art the template's own streaks are not shown")
 check(not tert.texture:IsShown() and not c1.pssParts.modernBox:IsShown() and not win.art.black:IsShown() and kit.pages[1].pssParts.art:IsShown() and not kit.tabs[1].pssSide.plate:IsShown(), "Modern without the art is not the Blizzard look")
 kit.tabs[1]._scripts.OnClick(kit.tabs[1])

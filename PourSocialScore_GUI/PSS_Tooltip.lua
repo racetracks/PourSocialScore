@@ -61,6 +61,7 @@ local function TextOf(text)
 end
 
 function ns.Tip(owner, text)
+	ns.Fresh()
 	text = TextOf(text)
 	local rich = type(text) == "table" and text or nil
 	if not owner or not text or text == "" then return end

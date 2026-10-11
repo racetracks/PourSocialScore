@@ -160,12 +160,24 @@ function ns.Font(size, blizz)
 	return f.obj
 end
 
+local paintedFont
 function ns.Repaint()
 	skin = M.PSS_UISkin()
+	paintedFont = M.PSS_Opt("uiFont") or ""
 	modernArt = nil	-- looked up again on the next paint
 	local dark = skin == "dark"
 	for _, key in ipairs(fontList) do PaintFont(fonts[key], dark) end
 	for _, fn in ipairs(painters) do fn(dark) end
+end
+
+-- The window hears the look and font options only while it shows, so every
+-- GUI frame that can show without it (the window, a popup, a menu) calls
+-- this first: repaints when the look or font changed since the last paint.
+function ns.Fresh()
+	if skin and (skin ~= M.PSS_UISkin() or (M.PSS_Opt("uiFont") or "") ~= paintedFont) then
+		ns.Repaint()
+		return true
+	end
 end
 
 -- A FontString on a shared font object; colour set on it stays its own.

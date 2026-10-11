@@ -698,10 +698,12 @@ function History.FilterCats()
 	end
 	return FILTER_ON
 end
-function History.Act(event, message)
+-- cat and label default to Drop Cheapest Thing's; a later component names its own
+function History.Act(event, message, cat, label)
 	if not M.PSS_On("logging") then return end
-	local entry = History.NewEntry("dtt", event, message, "Drop Cheapest Thing", nil)
-	entry.o = "dtt"
+	cat = cat or "dtt"
+	local entry = History.NewEntry(cat, event, message, label or "Drop Cheapest Thing", nil)
+	entry.o = cat
 	Store(entry)
 	return entry
 end

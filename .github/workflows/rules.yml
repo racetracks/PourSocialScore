@@ -77,6 +77,8 @@ jobs:
         run: sh tools/harness/components_phases.sh /tmp/pss-components
       - name: Drop Cheapest Thing
         run: sh tools/harness/dtt_phases.sh
+      - name: Service bus
+        run: sh tools/harness/bus_phases.sh
 
   upgrades:
     runs-on: ubuntu-latest
@@ -139,4 +141,4 @@ jobs:
           sh tools/harness/build_saves.sh "$RUNNER_TEMP/scratch" "$RUNNER_TEMP/saves"
       - name: Full harness on the real saves
         if: steps.t.outputs.have == 'true'
-        run: PSS_REAL_SAVES="$RUNNER_TEMP/saves" PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh
+        run: PSS_SCRATCH="$RUNNER_TEMP/scratch" PSS_REAL_SAVES="$RUNNER_TEMP/saves" PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh
