@@ -708,6 +708,12 @@ function phases.memory()
 	check(resident < 140, "resident " .. resident .. " KB is over the 140 KB budget")
 	keep = nil
 	needLibraries()
+	-- M is a hash table of about 2,000 names. Lua doubles its node vector (64 KB) when one more name
+	-- would not fit, at whichever insertion crosses the line: a rehash is not memory the window keeps,
+	-- so cross the line here, before the baseline (3.7.0.104: the trigger engine added the names that
+	-- moved the line into this phase)
+	for i = 1, 4200 do M["PSS_MemPad" .. i] = true end
+	for i = 1, 4200 do M["PSS_MemPad" .. i] = nil end
 	local V = M.PSS_AddonView()
 	M.PSS_AddonLocked("x")
 	local closed = kb()

@@ -93,6 +93,7 @@ end
 function M.PSS_Call(name, input, opts)
 	local svc = services[name]
 	if not svc then return nil, "no service " .. tostring(name) end
+	if M.PSS_WatchPull then M.PSS_WatchPull(name) end		-- a reader's trigger rows settle first (pull)
 	local secret = M.PSS_IsSecret
 	if secret then
 		local t = type(input)
@@ -120,3 +121,29 @@ function M.PSS_Services()
 	end
 	return set
 end
+
+------------------------------------------------------------------------
+-- Signals and trigger rows (core PSS_Watch.lua, the engine PSS_Trig.lua)
+------------------------------------------------------------------------
+-- our own acts (a move done, a sale, a scan finished, a window opened)
+-- wake the trigger rows and the needs that list "@name"; nothing runs on a clock
+function M.PSS_Signal(name, set)
+	if type(name) ~= "string" then return end
+	if M.PSS_WatchSignal then M.PSS_WatchSignal(name, set) end
+	if M.PSS_TrigSignal then M.PSS_TrigSignal(name, set) end
+end
+
+-- every declared trigger row as a record set: id, gate, on, settle, run, live
+function M.PSS_Triggers()
+	local rows, live = M.PSS_WatchRows()
+	local set = { cols = { "id", "gate", "on", "settle", "run", "live" }, n = #rows }
+	for i = 1, #rows do
+		local r = rows[i]
+		local settle = r.settle
+		if type(settle) == "table" then settle = concat(settle, ",") end
+		set[i] = { r.id, r.gate or "", concat(r.on, ","), settle or "", r.run, live[r.id] ~= nil }
+	end
+	return set
+end
+
+M.PSS_Provide("trig.rows", function() return M.PSS_Triggers() end, { returns = { "id", "gate", "on", "settle", "run", "live" }, doc = "every trigger row" })

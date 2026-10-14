@@ -9,6 +9,8 @@
 #   Every top-level key the code saves is in the schema map
 #   (PourSocialScore/PSS_Schema.lua, tools/check_schema.lua)
 #   Every addon file that uses M declares a local M (tools/check_locals.lua)
+#   Every OnUpdate and timer call is on the approved list; the trigger engine
+#   has no OnUpdate and one timer call (tools/check_timers.lua)
 #   The member fields S3 stops saving are read only through their accessors
 #   (tools/check_fields.lua)
 #   Every PourSocialScore_* folder's three TOCs agree (tools/check_toc.sh)
@@ -45,6 +47,8 @@ lua5.1 tools/check_layers.lua || fail=1
 lua5.1 tools/check_schema.lua > /dev/null || { lua5.1 tools/check_schema.lua; fail=1; }
 
 lua5.1 tools/check_locals.lua || fail=1
+
+lua5.1 tools/check_timers.lua || fail=1
 
 lua5.1 tools/check_fields.lua || fail=1
 

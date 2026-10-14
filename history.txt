@@ -1,6 +1,14 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.104 - Trigger engine (service bus stage S3)
+
+- Under the hood, nothing visible: the engine that will replace every per-frame and timer wake-up in the addon, and the trigger rows that the warehouse and bag windows will use, are in place and switched off until a feature needs them.
+- Trigger rows (core) wait for the game's own events, collect what changed, and do the work once when the game says it has settled; nothing is registered, and no frame exists, while a feature is off.
+- The trigger engine (loads with the shared library folder) meets every kind of wait on the cheapest way the game offers: an event, a settle, one of our own signals, a read, a widget, a short step on the next event, or one timer for the earliest deadline. No per-frame script anywhere.
+- The query steps now say what they take and return, so a step can follow any other.
+- The rules check now lists every per-frame script and timer in the addon against an approved list that can only shrink.
+
 => 3.7.0.103 - Docs: Overrides rows for the trigger engine clock and L1 with W2; the author's risk review answers
 
 - Documentation only: two approved exceptions to the baseline rules, the trigger engine's one one-shot timer and the shared item layer with persisted bags in one build, and the author's answers to the warehousing risk review. Nothing in the addon changes.

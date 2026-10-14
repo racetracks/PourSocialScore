@@ -11,11 +11,15 @@ return {
 		["PSS_Store.lua"] = { measured = 1.5, gate = 12, stage = "S2 (3.7.0.100)" },
 		["PSS_Query.lua"] = { measured = 3.7, gate = 8, stage = "S2 (3.7.0.100)" },
 		["PSS_Entity.lua"] = { measured = 6.3, gate = 10, stage = "S2 (3.7.0.100)" },
+		["PSS_Watch.lua"] = { measured = 13.4, gate = 16, stage = "S3 (3.7.0.104), core" },
+		["PSS_Trig.lua"] = { measured = 48.8, gate = 56, stage = "S3 (3.7.0.104)" },
 	},
 	-- microseconds per hot call
 	us = {
 		call = { measured = 1.4, gate = 6, stage = "S1 (3.7.0.98)" },
 		read = { measured = 0.8, gate = 3, stage = "S2 (3.7.0.100)" },
+		settle = { measured = 6.9, gate = 20, stage = "S3 (3.7.0.104)" },
+		signal = { measured = 0.14, gate = 2, stage = "S3 (3.7.0.104)" },
 		join10k = { measured = 5900, gate = 20000, stage = "S2 (3.7.0.100)" },
 	},
 }
