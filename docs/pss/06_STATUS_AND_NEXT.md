@@ -60,33 +60,22 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
-- #189: nothing to send (`STP-00017` closed); `DEC-00015` answered (2026-10-10).
-- Then test 3.6.0.84 (`CHK-00003`, `CHK-00001`, `CHK-00002`, `CHK-00004`; [PR #206](https://github.com/racetracks/PourSocialScore/pull/206)); close #179, #189 and #192 once tested.
-- Ask for macros from #159 when ready.
-- #144: add the `SCRATCH_TOKEN` secret so CI runs the real-save tests.
-- #148: answered 2026-10-10, revert P3 (watch targets, mouseovers, nameplates, group and /who in every state; never remove features); next: a code build, "build issue #148".
+- Say "build S3" (3.7.0.103; the S3 PR carries this branch's Overrides rows; brief: [Stage_Briefs](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/Roadmaps/In_Progress/Warehousing_and_Journaling/Stage_Briefs.md)).
+- On request before or with S3: move the superseded drafts to history, the decisions lint and contents writer, the planned-builds registry ([`DEC-00234`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/00_Decisions.md#dec-00234) to [`DEC-00236`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/00_Decisions.md#dec-00236)).
+- Drop Cheapest Thing stage 7; macros from [#159](https://github.com/racetracks/PourSocialScore/issues/159) when ready.
+- Closed on GitHub since the last update (sweep 2026-10-14): [#144](https://github.com/racetracks/PourSocialScore/issues/144), [#148](https://github.com/racetracks/PourSocialScore/issues/148), [#179](https://github.com/racetracks/PourSocialScore/issues/179), [#189](https://github.com/racetracks/PourSocialScore/issues/189), [#192](https://github.com/racetracks/PourSocialScore/issues/192).
 
 ## Known breaches
 None (02 section 12).
 
-## Open issues (addon repo)
-- #189: no Load in the profile side menu; no profile can be saved on Camelot (`ISS-00002`; fixed in 3.6.0.84 `STP-00018`, awaiting checks).
-- #179: Enable all / Disable all in a profile (built 3.6.0.74, `STP-00011`; blocked by #189; re-test on 3.6.0.84).
-- #192: the Reload prompt does nothing on Camelot (`ISS-00019`; fixed in 3.6.0.84 `STP-00020`, awaiting checks).
-- #159 to #169: Macro Helper macros, one issue per set (umbrella #159).
-- #152: window memory, build fewer frames (pane parts on first use, shared between tabs).
-- #37: the guild exclusion list is not saved (its intent needs defining).
-- #38: seeing a shipped-guild member loads the lists.
-- #39: unload the GUI on close.
-- #44: clean up console output.
-- #125: right-click "Unblock Guild" on a shipped guild should turn the group's rule off instead of refusing.
-- #132: test later, the Group Finder option without a /reload (needs a character that can use the Group Finder).
-- #133: test later, the party warning names only who is in the group now.
-- #144: CI real-save tests need the `SCRATCH_TOKEN` secret.
-- #145: leftovers from the combined build (dead `stats`, option cache, Events `TimeText`, Chat Filters pane redraw).
-- #146: the guild member cap only at logout; Camelot first-name-only names guessed.
-- #147: going back from 3.4.1.53 loses custom filters (3.4.0.29) and later list entries.
-- #148: P3 to be reverted (the author, 2026-10-10): inactive shipped lists capture units and /who again; code build not started.
+## Open issues (addon repo, checked 2026-10-14)
+- [#224](https://github.com/racetracks/PourSocialScore/issues/224): queue upgrade step 11 retries through the events service (with S3).
+- [#215](https://github.com/racetracks/PourSocialScore/issues/215): the scratch gate runs everywhere; strict gate green on `main` ([run 38573450333](https://github.com/racetracks/PourSocialScore/actions/runs/38573450333)).
+- [#217](https://github.com/racetracks/PourSocialScore/issues/217) to [#220](https://github.com/racetracks/PourSocialScore/issues/220): code map findings and files to add.
+- [#212](https://github.com/racetracks/PourSocialScore/issues/212): Drop Cheapest Thing as an opt-in integration.
+- [#197](https://github.com/racetracks/PourSocialScore/issues/197): rename "Addon Manager" to "Addon Helper" (later).
+- [#159](https://github.com/racetracks/PourSocialScore/issues/159) to [#169](https://github.com/racetracks/PourSocialScore/issues/169): Macro Helper macros, one issue per set.
+- [#152](https://github.com/racetracks/PourSocialScore/issues/152), [#147](https://github.com/racetracks/PourSocialScore/issues/147), [#146](https://github.com/racetracks/PourSocialScore/issues/146), [#145](https://github.com/racetracks/PourSocialScore/issues/145), [#133](https://github.com/racetracks/PourSocialScore/issues/133), [#132](https://github.com/racetracks/PourSocialScore/issues/132), [#125](https://github.com/racetracks/PourSocialScore/issues/125), [#44](https://github.com/racetracks/PourSocialScore/issues/44), [#39](https://github.com/racetracks/PourSocialScore/issues/39), [#38](https://github.com/racetracks/PourSocialScore/issues/38), [#37](https://github.com/racetracks/PourSocialScore/issues/37): as before (window memory, downgrade loss, member cap, leftovers, tests later, unblock guild, console output, memory on close, shipped members, guild exclusion list).
 
 Context for each open item: scratch `docs/latest/issues/` and `docs/latest/setup/`.
 
