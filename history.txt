@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.103 - Docs: Overrides rows for the trigger engine clock and L1 with W2; the author's risk review answers
+
+- Documentation only: two approved exceptions to the baseline rules, the trigger engine's one one-shot timer and the shared item layer with persisted bags in one build, and the author's answers to the warehousing risk review. Nothing in the addon changes.
+
 => 3.7.0.102 - Addon profiles move to account-wide storage (S2b)
 
 - Your character's addon profiles (the saved lists, protected addons and selection of the Addon Manager) move into the account-wide save at the first login of each character, and the old per-character file is emptied. Nothing looks different. A character whose account-wide profile already holds data keeps its old file and a note says so. Older versions of the addon do not read the moved profiles.
