@@ -7,7 +7,7 @@
 | _Options | `PSS_OptionsDB`, `PSS_PlayersDB`, `PSS_GuildsDB`, `PSS_RulesDB`, `PSS_CountsDB` | options (non-defaults), lists, rules, all-time counts |
 | _Logging | `PSS_LoggingDB` | `blockLog`, `blockKeep` |
 
-Every saved field is in the schema map (`PSS_Schema.lua`, 02 section 3). Upgrades: numbered steps in `PSS_Upgrade.lua` (10_CORE_UPLIFT), run once, tracked in the upgrade record; Logging-side cleanups run when Logging loads. Window state lives in `PSS_OptionsDB`; the addon manager's per-character sets and protected addons live in `PSS_CharDB` (a `SavedVariablesPerCharacter` of `PourSocialScore_Options`, nil until used, 3.6.0); an old save's `PSS_EllesmereUIDB` is no longer read.
+Every saved field is in the schema map (`PSS_Schema.lua`, 02 section 3). Upgrades: numbered steps in `PSS_Upgrade.lua` (10_CORE_UPLIFT), run once, tracked in the upgrade record; Logging-side cleanups run when Logging loads. Window state lives in `PSS_OptionsDB`; the addon manager's per-character sets and protected addons are the owned keys `addonSetsOf`, `addonLockOf`, `addonSelOf`, `addonPickOf` in `PSS_OptionsDB` (3.7.0.102; they were in `PSS_CharDB`, a `SavedVariablesPerCharacter` of `PourSocialScore_Options`, which upgrade step 11 now only reads and empties); an old save's `PSS_EllesmereUIDB` is no longer read.
 
 ## 2. Logging loads only when called
 `PourSocialScore_Logging` holds PSS_LoggingDB (blockLog, blockKeep), `PSS_SavedLog.lua` (packs the log at logout, rebuilds it on load) and `PSS_LoggingData.lua`. Keeping the folder unloaded keeps its SavedVariables out of memory.

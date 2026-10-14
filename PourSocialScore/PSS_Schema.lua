@@ -74,6 +74,7 @@ M.PSS_SCHEMA = {
 	-- (PSS_Entity.lua, PSS_Store.lua; SAV-00034)
 	ent = "v n dn rec dict",
 	-- the owned keys: PSS_OptionsDB.<key> = { [entity id] = packed value } (SAV-00035); "name=default"
-	-- when a value equal to the default is not stored. The addon manager's four come in S2b.
-	owned = "bagProfileOf",
+	-- when a value equal to the default is not stored. The addon manager's four (3.7.0.102, S2b; SAV-00036)
+	-- are packed strings; PSS_CharDB is read only, by upgrade step 11.
+	owned = "bagProfileOf addonSetsOf addonLockOf addonSelOf addonPickOf",
 }

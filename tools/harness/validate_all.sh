@@ -597,13 +597,16 @@ reportsaves="- $work/sv-gr-2.0.44.lua"
 [ -n "$PSS_REAL_SAVES" ] && reportsaves="$reportsaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua')"
 for sv in $reportsaves; do
 	login=""
+	same=""
+	# a save this version wrote: its first login prints no report (case 3)
+	[ "$sv" != "-" ] && grep -q "\"version\"\] = \"$(sed -n 's/^## Version: //p' PourSocialScore/PourSocialScore.toc | tr -d '\r')\"" "$sv" && same=1
 	if [ "$sv" != "-" ]; then
 		lua5.1 "$here/run.lua" . "$sv" "$work/ur-1.lua" > "$work/ur-1.out" 2>&1
 		login="$work/ur-1.out"
 	else
 		lua5.1 "$here/run.lua" . - "$work/ur-1.lua" > /dev/null 2>&1
 	fi
-	out=$(PSS_LOGIN_OUT="$login" lua5.1 "$here/run.lua" . "$work/ur-1.lua" - "$here/check_upgrade_report.lua" 2>&1 | grep -v '^|cff')
+	out=$(PSS_LOGIN_SAME="$same" PSS_LOGIN_OUT="$login" lua5.1 "$here/run.lua" . "$work/ur-1.lua" - "$here/check_upgrade_report.lua" 2>&1 | grep -v '^|cff')
 	echo "$out ($sv)"
 	echo "$out" | grep -q "PASS upgrade report" || fail=1
 done

@@ -16,7 +16,7 @@ local db = PourSocialScoreDB
 ------------------------------------------------------------------------
 local steps, features = M.PSS_UPGRADE_REGISTRY, {}
 for _, f in ipairs(M.PSS_UPGRADE_FEATURES) do features[f] = true end
-check(#M.PSS_UPGRADE_FEATURES == 7 and features.cleanup, "seven features, cleanup among them")
+check(#M.PSS_UPGRADE_FEATURES == 8 and features.cleanup and features.addons, "eight features, cleanup and addons among them")
 check(#steps == M.PSS_UPGRADE_STEPS and #steps >= 8, "M.PSS_UPGRADE_STEPS is the registry's length")
 check(steps[1].always == true, "step 1 runs every login")
 for i, step in ipairs(steps) do
@@ -26,7 +26,7 @@ for i, step in ipairs(steps) do
 		check(features[part.feature], ("step %d part %d: feature %s"):format(i, j, tostring(part.feature)))
 		check(type(part.fields) == "function" or type(part.data) == "function", ("step %d part %d does nothing"):format(i, j))
 	end
-	check(i == 1 or not step.always, ("step %d runs every login"):format(i))
+	check(i == 1 or i == 11 or not step.always, ("step %d runs every login"):format(i))
 end
 local retired = {}
 for _, k in ipairs(M.PSS_UPGRADE_RETIRED) do
