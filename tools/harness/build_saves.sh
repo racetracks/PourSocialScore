@@ -4,7 +4,8 @@
 #   sh tools/harness/build_saves.sh <scratch checkout> [out dir]
 # out dir defaults to /tmp/pss-baselines. Each version becomes
 # <out>/<version>/PourSocialScore.lua: a 2.0 save is copied as is, a 3.x set
-# is joined core first, then Options, Logging and EllesmereUI.
+# is joined core first, then Options, the per-character Options
+# (PourSocialScore_Options.char.lua, PSS_CharDB), Logging and EllesmereUI.
 # Then: PSS_REAL_SAVES=<out dir> sh tools/harness/validate_all.sh
 src=$1
 out=${2:-/tmp/pss-baselines}
@@ -18,7 +19,7 @@ for d in "$src"/SavedVariables/*/; do
 	[ -f "$d/PourSocialScore.lua" ] || continue
 	mkdir -p "$out/$v"
 	: > "$out/$v/PourSocialScore.lua"
-	for part in "" _Options _Logging _EllesmereUI; do
+	for part in "" _Options _Options.char _Logging _EllesmereUI; do
 		f="$d/PourSocialScore$part.lua"
 		[ -f "$f" ] && cat "$f" >> "$out/$v/PourSocialScore.lua"
 	done

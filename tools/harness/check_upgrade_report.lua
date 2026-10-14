@@ -8,7 +8,8 @@
 --   7  a save from a newer version: one line, the record keeps its version
 --   8  a paused step: the red line, the step not recorded, reported again
 --   9  a real login's output (PSS_LOGIN_OUT, a file): the same shape as 2,
---      and M.PSS_Validate finds no problems
+--      and M.PSS_Validate finds no problems; a save this version wrote
+--      (PSS_LOGIN_SAME=1) prints no report, as in 3
 --   10 a login that does not report builds next to nothing
 -- As a run.lua script, on any save (validate_all.sh runs it on a new save,
 -- the 2.0.44 test save and every real save):
@@ -21,7 +22,7 @@ local steps_n = M.PSS_UPGRADE_STEPS
 
 local LABELS = {
 	"Chat Filtering", "Player Ignore List", "Guild Ignore List", "Managed Communities",
-	"Block History", "Options", "SavedVariables performance cleanup",
+	"Block History", "Options", "Addon Profiles", "SavedVariables performance cleanup",
 }
 local PREFIX = "Pour Social Score: "
 local CLEANUP = PREFIX .. "  SavedVariables performance cleanup: "
@@ -191,7 +192,11 @@ local path = os.getenv("PSS_LOGIN_OUT")
 if path and path ~= "" then
 	local real = {}
 	for s in io.lines(path) do real[#real + 1] = (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
-	shape(real, path)
+	if os.getenv("PSS_LOGIN_SAME") == "1" then
+		check(not find(real, "Upgrading your saved data:"), path .. ": a report at the same version")
+	else
+		shape(real, path)
+	end
 	local r = M.PSS_Validate()
 	check(#r.problems == 0, path .. ": " .. tostring(r.problems[1]))
 end
