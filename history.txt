@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.102 - Docs: table of contents rule
+
+- Documentation rule: every summary, report and document has a table of contents (DEC-00224).
+
 => 3.7.0.101 - Docs: roadmaps pointer in CLAUDE.md
 
 - Nothing changes in the game. The project's instructions now point at the new roadmap documents, so planning work starts from the roadmap's Next Steps.
