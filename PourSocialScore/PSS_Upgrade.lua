@@ -194,11 +194,24 @@ end
 
 -- Step 11's move of PSS_CharDB (3.6.x, this character's addon profiles) into the
 -- account-wide owned keys (PourSocialScore_Libraries, PSS_AddonsQuery.lua)
+local retryDeclared = false
 local function moveCharDB()
 	local c = _G["PSS_CharDB"]
 	if type(c) ~= "table" then return end
 	if next(c) ~= nil then
-		if not (M.PSS_Need and M.PSS_Need("Libraries") and M.PSS_AddonCharMove) then return end
+		local loaded = M.PSS_Need and M.PSS_Need("Libraries")
+		if not (loaded and M.PSS_AddonCharMove) then
+			-- Libraries cannot load now (issue 224, DEC-00238): one trigger row retries on the
+			-- next moment the load can succeed, runs once and takes itself down; PSS_CharDB is
+			-- untouched until the move completes, and the next login still retries
+			-- (Libraries loaded without the move: the addon manager is off, nothing to wait for)
+			if not loaded and not retryDeclared and M.PSS_Trigger then
+				retryDeclared = true
+				M.PSS_Trigger({ id = "charmove", on = { "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA" },
+					settle = "now", run = "upg.charmove" })
+			end
+			return
+		end
 		local moved, kept = M.PSS_AddonCharMove(c)
 		tally("addons", "moved", moved)
 		tally("addons", "kept", kept)

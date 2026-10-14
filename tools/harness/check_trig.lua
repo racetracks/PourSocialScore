@@ -2,7 +2,7 @@
 -- STP-00126, STP-00135, STP-00149), as a run.lua script. The phase is PSS_PHASE; each
 -- prints "PASS trig <phase>" or "FAIL trig: <phase>: <what>". Expected results come from
 -- DDS-00010 sections 5, 7 and 10 and the test keys in 15_Tests.md, not from the code.
--- Phases: off rows engine rules shipped cost
+-- Phases: off rows engine rules shipped retry cost
 --   off      TST-00116, TST-00149   nothing registered, no frame, with every gate off
 --   rows     TST-00150 to TST-00154 the core trigger rows (PSS_Watch.lua) on the stub client
 --   engine   TST-00177 to TST-00186, TST-00188, TST-00200, TST-00201: every class, rung and
@@ -581,6 +581,41 @@ elseif phase == "shipped" then
 	check(names["trig.needs"] and names["trig.cards"] and names["trig.rows"], "the engine's services are on the bus")
 	-- the combined AFK wake: PLAYER_FLAGS_CHANGED is heard only while an afk need waits
 	check(H.Listeners("PLAYER_FLAGS_CHANGED") == 0, "PLAYER_FLAGS_CHANGED is not heard without an afk need")
+elseif phase == "retry" then
+	-- issue 224, DEC-00238: a failed upgrade step 11 retries through a trigger row, in the same session
+	local step = M.PSS_UPGRADE_REGISTRY[11]
+	local run = step.parts[1].data
+	local evs = { "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA" }
+	local base = {}
+	for i = 1, #evs do base[i] = H.Listeners(evs[i]) end
+	run()
+	check(PSS_CharDB == nil and M.PSS_Triggers == nil, "nothing to move declares nothing (Libraries not loaded: no triggers service)")
+	for i = 1, #evs do check(H.Listeners(evs[i]) == base[i], evs[i] .. " registered with nothing to move") end
+	local need = M.PSS_Need
+	M.PSS_Need = function() return false end
+	_G["PSS_CharDB"] = { addonLock = "LibFoo", addonPick = "ZedOne" }
+	run(); run()
+	check(PSS_CharDB and PSS_CharDB.addonLock == "LibFoo", "the old file is untouched while Libraries cannot load")
+	for i = 1, #evs do check(H.Listeners(evs[i]) == base[i] + 1, evs[i] .. " not registered once by the retry row") end
+	M.PSS_Need = need
+	H.Fire("PLAYER_REGEN_ENABLED")
+	check(PSS_CharDB == nil, "the move completed in the same session: " .. tostring(PSS_CharDB))
+	check(PSS_OptionsDB.addonLockOf ~= nil and PSS_OptionsDB.addonPickOf ~= nil, "the owned keys hold the profiles")
+	for i = 1, #evs do check(H.Listeners(evs[i]) == base[i], evs[i] .. " still registered after the retry ran") end
+	local rows = M.PSS_Triggers()
+	local left = 0
+	for i = 1, rows.n do if rows[i][1] == "charmove" then left = left + 1 end end
+	check(left == 0, "the charmove row is gone")
+	H.Fire("PLAYER_REGEN_ENABLED")
+	check(PSS_CharDB == nil, "a later event does nothing")
+	-- a file with only newer fields: tried once, kept, the row is taken down
+	M.PSS_Need = function() return false end
+	_G["PSS_CharDB"] = { newerKey = { 1 } }
+	run()
+	M.PSS_Need = need
+	H.Fire("PLAYER_REGEN_ENABLED")
+	check(PSS_CharDB and PSS_CharDB.newerKey, "a newer field is kept")
+	for i = 1, #evs do check(H.Listeners(evs[i]) == base[i], evs[i] .. " registered after a kept-only file") end
 elseif phase == "cost" then
 	-- TST-00191 for this stage's files, from bus_budgets.lua
 	local B = dofile(here .. "/bus_budgets.lua")

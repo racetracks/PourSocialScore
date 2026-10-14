@@ -93,6 +93,31 @@ local function enable(row)
 	for i = 1, #(row.reads or {}) do index(byService, row.reads[i], row.id) end
 end
 
+-- take a row down for good (a one-shot row after it has run): its events are
+-- released, so nothing stays registered for it
+function M.PSS_TriggerOff(id)
+	local row = live[id]
+	if not row then return end
+	live[id] = nil
+	dirty[id] = nil
+	local settle = "!" .. id
+	for e, t in pairs(byEvent) do
+		for i = #t, 1, -1 do
+			if t[i] == id or t[i] == settle then
+				table.remove(t, i)
+				refs[e] = refs[e] - 1
+				if refs[e] <= 0 then refs[e] = nil; src:UnregisterEvent(e) end
+			end
+		end
+	end
+	for _, map in pairs({ bySignal, byService }) do
+		for _, t in pairs(map) do
+			for i = #t, 1, -1 do if t[i] == id then table.remove(t, i) end end
+		end
+	end
+	for i = #rows, 1, -1 do if rows[i] == row then table.remove(rows, i) end end
+end
+
 -- declare a row; it goes live now when the watch has started, else at start
 function M.PSS_Trigger(row)
 	if type(row) ~= "table" or type(row.id) ~= "string" or type(row.run) ~= "string" or type(row.on) ~= "table" then return end

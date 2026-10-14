@@ -16,9 +16,9 @@ for ph in sets calls chain errors act budget gui listen store query strict; do
 		echo "$out" | grep -q "FAIL" && fail=1
 	done
 done
-for ph in off rows engine rules shipped cost; do
+for ph in off rows engine rules shipped retry cost; do
 	for cam in "" "PSS_CAMELOT=1"; do
-		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=logging $cam lua5.1 "$here/run.lua" . - - "$here/check_trig.lua" 2>&1 | grep -v '^|cff')
+		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=addons,logging $cam lua5.1 "$here/run.lua" . - - "$here/check_trig.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | sed "s/^PASS trig $ph/PASS trig $ph ${cam:+(Camelot)}/"
 		echo "$out" | grep -q "PASS trig $ph" || { fail=1; echo "$out" | head -5; }
 		echo "$out" | grep -q "FAIL" && fail=1
