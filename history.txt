@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.105 - Docs: dated temp folders, token rule for threads, graphs in reports
+
+- Docs only: session temp folders on scratch are dated by year, month and day (temp/YYYY/MM/DD/hh-mm-ss-Ddd-<name>/); older folders stay where they are. The author's token rule is passed verbatim to every sub-agent and thread, and summaries and reports carry graphs and heat maps where they help. Every planned build after S3 moves up one (W1 is 3.7.0.106).
+
 => 3.7.0.103 - Docs: Overrides rows for the trigger engine clock and L1 with W2; the author's risk review answers
 
 - Documentation only: two approved exceptions to the baseline rules, the trigger engine's one one-shot timer and the shared item layer with persisted bags in one build, and the author's answers to the warehousing risk review. Nothing in the addon changes.
