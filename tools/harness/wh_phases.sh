@@ -7,7 +7,7 @@ here=$(dirname "$0")
 fail=0
 n=0
 bad=0
-for ph in stub; do
+for ph in stub err codec codecprop; do
 	for cam in "" "PSS_CAMELOT=1"; do
 		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=logging $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | sed "s/^PASS wh $ph/PASS wh $ph ${cam:+(Camelot)}/"

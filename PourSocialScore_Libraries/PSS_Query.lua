@@ -24,7 +24,7 @@
 local addon = PourSocialScore_NS
 local M = addon.M
 
-local type, pairs, ipairs, error, tostring = type, pairs, ipairs, error, tostring
+local type, pairs, ipairs, error, tostring, pcall = type, pairs, ipairs, error, tostring, pcall
 local sort = table.sort
 
 local dicts = {}		-- [name] = { fields = { names }, get = function(id) -> values }
@@ -189,20 +189,29 @@ end, { accepts = { "*" }, returns = { "*" }, doc = "the first opts.limit rows" }
 
 local STEPS = { "where", "join", "by", "order", "limit" }
 
+-- every step runs unguarded inside this one pcall (PSS_Bus M.PSS_CallRaw), so a
+-- failing step is one ring entry and one answer, not one guard per step
+local function steps(q, set)
+	local opts = { where = q.where, join = q.join, by = q.by, sum = q.sum, order = q.order, limit = q.limit, reuse = q.reuse }
+	for _, step in ipairs(STEPS) do
+		if q[step] ~= nil then set = M.PSS_CallRaw("q." .. step, set, opts) end
+	end
+	return set
+end
+
 function M.PSS_Query(q)
 	local set, err = q.from, nil
 	if type(set) == "string" then
 		set, err = M.PSS_Call(set, q.key, q.opts)
 		if not set then return nil, err end
 	elseif not M.PSS_IsSet(set) then
-		return nil, "from is not a service or a record set"
+		return nil, "arg: from is not a service or a record set"
 	end
-	for _, step in ipairs(STEPS) do
-		if q[step] ~= nil then
-			local opts = { where = q.where, join = q.join, by = q.by, sum = q.sum, order = q.order, limit = q.limit, reuse = q.reuse }
-			set, err = M.PSS_Call("q." .. step, set, opts)
-			if not set then return nil, err end
-		end
+	local ok, out = pcall(steps, q, set)
+	if not ok then
+		out = M.PSS_ErrFail("q.query", out)
+		if M.PSS_NoteListenerError then M.PSS_NoteListenerError("service q.query", out, true) end
+		return nil, out
 	end
-	return set
+	return out, err
 end

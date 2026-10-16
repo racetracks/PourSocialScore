@@ -60,6 +60,7 @@ local function flush(id)
 	if not M.PSS_Need("Libraries") then return end
 	local out = M.PSS_Call(row.run, set)
 	if out and M.PSS_Signal then M.PSS_Signal("@" .. id, out) end
+	if M.PSS_ErrSettle then M.PSS_ErrSettle() end		-- a settle half-opens open breakers and runs waiting retries
 	return out
 end
 

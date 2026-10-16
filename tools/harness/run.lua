@@ -170,7 +170,13 @@ local function load(name)
 	end
 	loading[name] = nil
 	loaded[name] = true
-	if name == CORE then injectComponents() end
+	if name == CORE then
+		injectComponents()
+		-- the harness reaches the addon through its namespace (baseline 02 A11):
+		-- loud = the red error line shows (the older checks read it); strict =
+		-- a bad service declaration raises; fault = a service name or * that fails
+		coreAddon.M.PSS_Test = { loud = os.getenv("PSS_QUIET") ~= "1", strict = os.getenv("PSS_STRICT") == "1", fault = os.getenv("PSS_FAULT") }
+	end
 	H.Fire("ADDON_LOADED", name)
 	return true
 end

@@ -9,7 +9,9 @@
 ## LoadOnDemand: 1
 ## Dependencies: PourSocialScore
 
+PSS_Err.lua
 PSS_Bus.lua
+PSS_Codec.lua
 PSS_Store.lua
 PSS_Query.lua
 PSS_Entity.lua

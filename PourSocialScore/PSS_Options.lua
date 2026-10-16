@@ -53,6 +53,7 @@ local OPTIONS = {
 	{ key = "openWithFriends", kind = "bool",	default = true,		section = 4, label = L["OPT_2"] },
 	{ key = "useUnitHacks",		kind = "bool",		default = true,		section = 4, label = L["OPT_16"] },
 	{ key = "useLFGHacks",		kind = "bool",		default = true,		section = 4, label = L["OPT_17"] },
+	{ key = "showErrors",		kind = "bool",		default = false,		section = 4, label = "Show addon errors in chat (otherwise /pss status lists them)" },
 	{ key = "gcEnabled",		kind = "bool",		default = true,		section = 4, label = "Background memory cleanup (out of combat, never causes a hitch)" },
 	{ key = "frameStrata",		kind = "choice", default = 3,		section = 4, label = L["OPT_25"],
 		choices = { { 0, "LOW" }, { 1, "MEDIUM" }, { 2, "HIGH" }, { 3, "DIALOG" } } },

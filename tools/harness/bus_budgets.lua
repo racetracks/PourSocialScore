@@ -7,16 +7,17 @@ return {
 	-- resident KB of a Libraries file after it runs on the stub; measured at
 	-- the stage that adds the file
 	kb = {
-		["PSS_Bus.lua"] = { measured = 1.3, gate = 8, stage = "S1 (3.7.0.98)" },
+		["PSS_Err.lua"] = { measured = 1.7, gate = 4, stage = "p01 (3.7.0.106)" },
+		["PSS_Bus.lua"] = { measured = 4.5, gate = 8, stage = "p01 (3.7.0.106)" },
 		["PSS_Store.lua"] = { measured = 1.5, gate = 12, stage = "S2 (3.7.0.100)" },
-		["PSS_Query.lua"] = { measured = 3.7, gate = 8, stage = "S2 (3.7.0.100)" },
+		["PSS_Query.lua"] = { measured = 6.3, gate = 8, stage = "p01 (3.7.0.106)" },
 		["PSS_Entity.lua"] = { measured = 6.3, gate = 10, stage = "S2 (3.7.0.100)" },
 		["PSS_Watch.lua"] = { measured = 15.2, gate = 16, stage = "S3 (3.7.0.104), core" },
 		["PSS_Trig.lua"] = { measured = 48.8, gate = 56, stage = "S3 (3.7.0.104)" },
 	},
 	-- microseconds per hot call
 	us = {
-		call = { measured = 1.4, gate = 6, stage = "S1 (3.7.0.98)" },
+		call = { measured = 1.1, gate = 1.6, stage = "p01 (3.7.0.106)" },
 		read = { measured = 0.8, gate = 3, stage = "S2 (3.7.0.100)" },
 		settle = { measured = 6.9, gate = 20, stage = "S3 (3.7.0.104)" },
 		signal = { measured = 0.14, gate = 2, stage = "S3 (3.7.0.104)" },
