@@ -27,10 +27,13 @@ F.items = {
 	[5512] = { name = "Healthstone", quality = 1, price = 0, icon = 538745 },
 }
 
--- id, link, expected key for every variant
+-- id, link, expected key for every variant (the real field order of an item link:
+-- id, enchant, 4 gems, suffix, unique id, level, spec, modifiers mask, context, number of bonus ids, bonus ids)
 local function iv(id, bonus, lvl, spec)
-	local link = ("|cffa335ee|Hitem:%d::::::::%d:%d::::%d:%s|h[%s]|h|r"):format(id, lvl or 80, spec or 0, #bonus, table.concat(bonus, ":"), F.items[id].name)
-	local key = ("item:%d::::::::::::%d:%s"):format(id, #bonus, table.concat(bonus, ":"))
+	local f = { "", "", "", "", "", "", "", tostring(lvl or 80), tostring(spec or 0), "", "", tostring(#bonus) }
+	for _, b in ipairs(bonus) do f[#f + 1] = tostring(b) end
+	local link = ("|cffa335ee|Hitem:%d:%s|h[%s]|h|r"):format(id, table.concat(f, ":"), F.items[id].name)
+	local key = ("%d:0:0:0:0:0:0:%s"):format(id, table.concat(bonus, ":"))
 	return { id = id, link = link, key = key }
 end
 F.V = {

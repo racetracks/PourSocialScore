@@ -3,7 +3,7 @@
 -- wh: <phase>: <what>". Run on Retail and on Camelot (PSS_CAMELOT=1) by
 -- wh_phases.sh. Expected results come from the plan (03_Design, 05_Tests),
 -- not from the code. Phases are added with their packages:
---   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)  store2 (TST-p031..p036)  mapstore (TST-p037..p039, p061, p062)  idx (TST-p042..p049)  watch (TST-p064, p065, p069, p218, p219)  upg (TST-p030, p160..p169, p228..p230)  registry (TST-p007, p008)  schema (TST-p009, p214)  off (TST-00119, p142)  layers (TST-p225)
+--   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)  store2 (TST-p031..p036)  mapstore (TST-p037..p039, p061, p062)  idx (TST-p042..p049)  watch (TST-p064, p065, p069, p218, p219)  upg (TST-p030, p160..p169, p228..p230)  registry (TST-p007, p008)  schema (TST-p009, p214)  off (TST-00119, p142)  layers (TST-p225)  dict (TST-p050..p057, p215..p217)  live (TST-p040, p041, p058, p059)  name (TST-p224)
 local phase = os.getenv("PSS_PHASE") or "stub"
 local camelot = os.getenv("PSS_CAMELOT") == "1"
 local fail = false
@@ -24,7 +24,7 @@ if phase == "stub" then
 	check(UnitName("player") == "Alpha" and GetRealmName() == "Realm" and GetMoney() == 12345678, "TST-p002: identity and money")
 	check(C_Container.GetContainerNumSlots(0) == 16 and C_Container.GetContainerItemInfo(0, 1).stackCount == 120, "TST-p002: bag 0 slot 1 holds 120")
 	local blade = C_Container.GetContainerItemInfo(0, 5)
-	check(blade and blade.itemID == 207791 and blade.hyperlink:find("bonus", 1, true) == nil and blade.hyperlink:find("|Hitem:207791:", 1, true) and blade.isBound, "TST-p002: variant link and bound flag")
+	check(blade and blade.itemID == 207791 and blade.hyperlink:find("|Hitem:207791:", 1, true) and blade.isBound, "TST-p002: variant link and bound flag")
 	check(C_Item.DoesItemExist({ bagID = 0, slotIndex = 5 }) and C_Item.GetItemID({ bagID = 0, slotIndex = 5 }) == 207791 and not C_Item.DoesItemExist({ bagID = 0, slotIndex = 3 }), "TST-p002: item locations")
 	check(GetInventoryItemID("player", 16) == 207791 and GetInventoryItemLink("player", 3):find("210001", 1, true), "TST-p002: equipped")
 	check(GetInboxNumItems() == 2 and GetInboxItem(1, 1) == "Crystal Vial" and select(2, GetInboxItem(1, 1)) == 3371 and select(4, GetInboxItem(1, 1)) == 3, "TST-p002: mail attachment")
@@ -790,6 +790,181 @@ if phase == "layers" then
 	p = io.popen("lua5.1 tools/check_layers.lua --services " .. tmp2 .. " 2>&1; echo EXIT$?"); o = p:read("*a"); p:close()
 	os.remove(tmp2)
 	check(o:find("EXIT0", 1, true), "TST-p225: a services file that calls only services passes: " .. o)
+end
+
+if phase == "dict" then
+	libs()
+	local V = WORLD.V
+	-- TST-p050: keys per the grammar; level, spec, unique id and crafter are cleared
+	local plain = "|cffffffff|Hitem:2589::::::::80:262:::::|h[Linen Cloth]|h|r"
+	check(M.PSS_ItemKey(plain) == "2589", "TST-p050: a plain item is its id (" .. tostring(M.PSS_ItemKey(plain)) .. ")")
+	check(M.PSS_ItemKey(V.blade_a.link) == V.blade_a.key and V.blade_a.key == "207791:0:0:0:0:0:0:6652:1540", "TST-p050: bonus ids make a variant (" .. tostring(M.PSS_ItemKey(V.blade_a.link)) .. ")")
+	local lvl2 = V.blade_a.link:gsub("::::::::80:0:", "::::::::123:66:"):gsub("(:6652:1540)", "%1:1:9:99:GUID-1-2:")
+	local other = "|cffa335ee|Hitem:207791::::::::" .. "x:" .. "|h[x]|h|r"
+	local changedLevelSpecUnique = "|cffa335ee|Hitem:207791:::::::999:71:63:::2:6652:1540:1:9:99:Player-1-ABC|h[Harbinger's Blade]|h|r"
+	check(M.PSS_ItemKey(changedLevelSpecUnique) == V.blade_a.key, "TST-p050: unique id, level, spec and crafter do not change the key (" .. tostring(M.PSS_ItemKey(changedLevelSpecUnique)) .. ")")
+	check(M.PSS_ItemKey(V.blade_b.link) ~= V.blade_a.key and M.PSS_ItemKey(V.blade_b.link) == V.blade_b.key, "TST-p050: another bonus id is another variant")
+	check(M.PSS_ItemKey(V.pet.link) == "p:1234:25:3" and M.PSS_ItemKey(V.keystone.link) == "k:375:10", "TST-p050: a pet and a keystone")
+	check(M.PSS_ItemKey("|cffffffff|Hitem:190000:5400:::::::::::|h[x]|h|r") == "190000:5400:0:0:0:0:0", "TST-p050: an enchant makes a variant")
+	check(M.PSS_ItemId("207791:0:0:0:0:0:0:6652") == 207791 and M.PSS_ItemId("p:1:2:3") == 82800 and M.PSS_ItemId("2589") == 2589, "TST-p050: M.PSS_ItemId")
+	-- TST-p051: a plain item is never in the dictionary
+	check(M.PSS_ItemRef("2589") == "2589" and M.PSS_ItemRef("2589", true) == "2589" and PSS_WarehouseDB == nil, "TST-p051: the ref of a plain item is its id and nothing is saved")
+	-- TST-p052: a variant is added once
+	local r1 = M.PSS_ItemRef(V.blade_a.key, true)
+	local r2 = M.PSS_ItemRef(V.blade_a.key, true)
+	local r3 = M.PSS_ItemRef(V.blade_b.key, true)
+	check(r1 == "x1" and r2 == "x1" and r3 == "x2" and PSS_WarehouseDB.item[1] == V.blade_a.key and PSS_WarehouseDB.itemN == 2, "TST-p052: x<id> refs, one id per key, saved once")
+	check(M.PSS_ItemRef(V.mantle.key) == nil, "TST-p052: without create an unknown variant has no ref and nothing is added")
+	-- TST-p053: Unref(Ref(k)) == k
+	for _, k in ipairs({ "2589", V.blade_a.key, V.blade_b.key, V.mantle.key, V.pet.key, V.keystone.key }) do
+		check(M.PSS_ItemUnref(M.PSS_ItemRef(k, true)) == k, "TST-p053: round trip of " .. k)
+	end
+	-- TST-p054: a link is parsed once per session
+	M.PSS_ItemKey(V.keystone.link)
+	local p0 = M.PSS_ItemParses()
+	for _ = 1, 50 do M.PSS_ItemKey(V.keystone.link); M.PSS_ItemKey(V.pet.link) end
+	check(M.PSS_ItemParses() == p0, "TST-p054: no link is parsed twice (" .. (M.PSS_ItemParses() - p0) .. " more)")
+	-- TST-p057: a secret link is refused, nothing stored
+	local realSecret = issecretvalue
+	_G.issecretvalue = function(v) return v == "SECRETLINK" end
+	check(M.PSS_ItemKey("SECRETLINK") == nil, "TST-p057: a secret link has no key")
+	_G.issecretvalue = realSecret
+	-- TST-p215 and p216: a holder registers, a compaction remaps it
+	PSS_WarehouseDB = { v = 1, item = {}, itemN = 0 }
+	M.PSS_ItemDictDrop()
+	local keys, refs = {}, {}
+	for i = 1, 10 do keys[i] = "700" .. i .. ":0:0:0:0:0:0:" .. i; refs[i] = M.PSS_ItemRef(keys[i], true) end
+	local holder = { refs[2], refs[5], refs[9], refs[10] }		-- 4 of 10 used: 60% free
+	local expect = {}
+	for i, r in ipairs(holder) do expect[i] = M.PSS_ItemUnref(r) end
+	local journal = { "2026-10|" .. refs[2] .. "|3|g", "2026-10|2589|1|c" }		-- a journal-shaped line: the one grammar (plain id or x<dict>)
+	M.PSS_ItemRefs("fake", { used = function(add) for _, r in ipairs(holder) do add(r) end end,
+		remap = function(map)
+			local new = {}
+			for i, r in ipairs(holder) do
+				local n = r:match("^x(%d+)$")
+				if n and not map[tonumber(n)] then return false end
+				new[i] = n and ("x" .. map[tonumber(n)]) or r
+			end
+			return function() for i = 1, #holder do holder[i] = new[i] end end
+		end })
+	-- TST-p217: an unregistered holder is found
+	PSS_WarehouseDB.rogue = { [1] = "x3" }
+	local orphans = M.PSS_ItemOrphans()
+	check(#orphans == 1 and orphans[1] == "rogue", "TST-p217: an unregistered holder of refs is reported (" .. table.concat(orphans, ",") .. ")")
+	PSS_WarehouseDB.rogue = nil
+	check(#M.PSS_ItemOrphans() == 0, "TST-p217: none left after it is removed")
+	-- TST-p056: below 25% free: tombstones only
+	local d = PSS_WarehouseDB
+	local freed, remapped = M.PSS_ItemSweep()
+	check(freed == 6 and remapped == 4 and d.itemFree == nil, "TST-p055: six freed, 60% free, so compacted to 4 (" .. freed .. ", " .. remapped .. ")")
+	check(d.itemN == 4 and #d.item == 4, "TST-p055: the dictionary is dense again")
+	for i, r in ipairs(holder) do check(M.PSS_ItemUnref(r) == expect[i], "TST-p216: the holder's ref " .. i .. " still names its key") end
+	check(M.PSS_ItemRef(keys[2]) == holder[1], "TST-p055: the key index finds the new id")
+	-- TST-p056: 10% free: tombstones, no compaction
+	PSS_WarehouseDB = { v = 1, item = {}, itemN = 0 }
+	M.PSS_ItemDictDrop()
+	holder = {}
+	for i = 1, 20 do holder[i] = M.PSS_ItemRef("800" .. i .. ":0:0:0:0:0:0:" .. i, true) end
+	local kept = {}
+	for i = 3, 20 do kept[#kept + 1] = holder[i] end
+	holder = kept
+	local f2, r2b = M.PSS_ItemSweep()
+	check(f2 == 2 and r2b == 0 and PSS_WarehouseDB.itemFree == 2 and PSS_WarehouseDB.item[1] == "" and PSS_WarehouseDB.itemN == 20, "TST-p056: 10% free leaves tombstones (" .. f2 .. ", " .. r2b .. ")")
+	check(M.PSS_ItemUnref("x1") == nil and M.PSS_ItemUnref("x3") ~= nil, "TST-p056: a freed id resolves to nothing")
+	-- a failing holder stops the compaction and changes nothing
+	for i = 1, 20 do M.PSS_ItemRef("900" .. i .. ":0:0:0:0:0:0:" .. i, true) end
+	M.PSS_Test.compactFail = true
+	local before = { N = PSS_WarehouseDB.itemN, free = PSS_WarehouseDB.itemFree, first = PSS_WarehouseDB.item[3] }
+	local f3, r3b = M.PSS_ItemSweep(true)
+	M.PSS_Test.compactFail = nil
+	check(r3b == 0 and PSS_WarehouseDB.itemN == before.N and PSS_WarehouseDB.item[3] == before.first, "TST-p071: a holder that cannot be rewritten leaves everything as it was")
+	-- TST-p215: a line in the one grammar
+	PSS_WarehouseDB = nil
+	check(journal[1]:match("|(x%d+)|") == refs[2] and journal[2]:match("|(%d+)|") == "2589", "TST-p215: refs in a saved line are a plain id or x<dict>")
+	PSS_WarehouseDB = nil
+elseif phase == "live" then
+	libs()
+	local w = WORLD.world()
+	WORLD.apply(H, w, 1, client)
+	H.Interact("bank", true)
+	-- TST-p040: item.live equals the fixture; bags only: nothing is saved
+	local live = M.PSS_Call("item.live")
+	check(live and live.n > 0 and live.cols[4] == "item" and PSS_WarehouseDB == nil, "TST-p040: the live read works and saves nothing")
+	local got = {}
+	for i = 1, live.n do got[live[i][2] .. ":" .. live[i][3]] = live[i] end
+	local want, nwant = {}, 0
+	for code, rows in pairs(w.chars[1].cont) do
+		if code:find("^[bke]") then
+			for slot, row in pairs(rows) do want[code .. ":" .. slot] = row; nwant = nwant + 1 end
+		end
+	end
+	local missing, extra = 0, 0
+	for k, row in pairs(want) do
+		local g = got[k]
+		if not (g and g[4] == WORLD.keyOf(row) and g[5] == (row.count or 1)) then missing = missing + 1; print("missing " .. k) end
+	end
+	for k in pairs(got) do if not want[k] then extra = extra + 1; print("extra " .. k) end end
+	check(missing == 0 and extra == 0, "TST-p040: the rows are the fixture's bags, bank tabs and equipped (" .. missing .. " missing, " .. extra .. " extra)")
+	check(got["b0:5"][6]:find("b", 1, true) and got["e0:16"][6]:find("b", 1, true), "TST-p040: bound items carry the b flag")
+	check(live.conts.b0 ~= nil and live.conts.k1 ~= nil and live.conts.e0 ~= nil and live.conts.m0 == nil and live.conts.a0 == nil and live.conts.t1 == nil, "TST-p040: bags only reads bags, bank, equipped (no mail, auctions, guild)")
+	-- the bank closed: its tabs are not read
+	H.Interact("bank", false)
+	local closed = M.PSS_Call("item.live")
+	check(closed.conts.k1 == nil and closed.conts.b0 ~= nil, "TST-p040: a closed bank is not read, so its saved copy is never emptied")
+	H.Interact("bank", true)
+	-- one container asked for
+	local one = M.PSS_Call("item.live", "b0")
+	check(one.n == 4 and one.conts.b0 ~= nil and one.conts.b1 == nil, "TST-p040: one container asked for (" .. one.n .. " rows)")
+	local tabs = M.PSS_Call("item.live", "k*")
+	check(tabs.conts.k1 ~= nil and tabs.conts.k2 ~= nil and tabs.conts.b0 == nil, "TST-p040: k* is every bank tab")
+	-- TST-p041
+	local sl = M.PSS_Call("item.slots", 0)
+	check(sl and sl[1][2] == 16 and M.PSS_Call("item.slots", 1)[1][2] == 18, "TST-p041: item.slots is the client's slot count")
+	-- TST-p058: an uncached item is saved at once; its name is awaited
+	local row230
+	for i = 1, live.n do if live[i][4] == "230000" then row230 = live[i] end end
+	check(row230 and row230[2] == "k1" and row230[3] == 30 and row230[5] == 1, "TST-p058: the uncached item is a row at once with its id and count")
+	check(H.PendingItemData() == 1, "TST-p058: its data was asked for once")
+	local needs = M.PSS_Needs()
+	local seen
+	for i = 1, needs.n do if needs[i][1] == "item.data" then seen = true end end
+	check(seen, "TST-p058: a need of class await-data waits for it")
+	local heard = {}
+	M.PSS_Trigger({ id = "t.heard", on = { "@item.data" }, settle = "now", run = "t.heard.run", key = function(_, set) return set[1][1] end })
+	M.PSS_Provide("t.heard.run", function(set) heard[#heard + 1] = set[1][1] return set end, { returns = { "key" } })
+	H.LoadItemData()
+	check(#heard == 1 and heard[1] == 230000, "TST-p058: @item.data is raised with the item when its data arrives")
+	needs = M.PSS_Needs()
+	seen = false
+	for i = 1, needs.n do if needs[i][1] == "item.data" then seen = true end end
+	check(not seen, "TST-p058: the need is gone when nothing is awaited")
+	-- TST-p059: the events that change a container map to the container
+	local bagsRow, bankRow = M.PSS_WhRow("b0"), M.PSS_WhRow("k1")
+	local kb, kk = M.PSS_ItemKeyFn(bagsRow), M.PSS_ItemKeyFn(bankRow)
+	check(kb("ITEM_CHANGED") == "b*" and kb("BAG_CONTAINER_UPDATE") == "b*" and kb("BAG_UPDATE", 2) == "b2" and kb("BAG_UPDATE", 40) == nil, "TST-p059: ITEM_CHANGED, a crafted item and a bag change re-read the bags")
+	check(kk("PLAYERBANKSLOTS_CHANGED", 2) == "k2" and kk("BANK_TABS_CHANGED") == "k*" and kk("BAG_UPDATE", 6) == "k1", "TST-p059: a bank slot, a bought tab and a bank bag change re-read the bank")
+	H.Interact("bank", false)
+	check(kk("BAG_UPDATE", 6) == nil, "TST-p059: a closed bank is not re-read")
+	check(kk("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", Enum.PlayerInteractionType.Banker) == "k*", "TST-p059: opening the bank re-reads it")
+	H.Interact("bank", false)
+end
+
+if phase == "name" then
+	libs()
+	-- TST-p224: name.norm and name.ent agree with the one normaliser and the entity ids
+	local names = camelot and { "Alpha-ClassicBetaPvP", "Von Echo-ClassicBetaPvP", "First Last-OtherRealm" } or { "Alpha-Realm", "Beta-OtherRealm", "gamma-realm" }
+	for _, key in ipairs(names) do
+		local want = M.PSS_NormName((key:match("^(.*)-[^-]*$")), (key:match("^.*-([^-]*)$")))
+		local got = M.PSS_Call("name.norm", key)
+		check(got and got.n == 1 and got[1][1] == want, "TST-p224: name.norm of " .. key .. " is " .. tostring(want) .. " (got " .. tostring(got and got[1] and got[1][1]) .. ")")
+		local ent = M.PSS_Call("name.ent", key, { create = true })
+		local direct = M.PSS_EntityId("c", key:match("^(.*)-[^-]*$"), key:match("^.*-([^-]*)$"), false)
+		check(ent and ent.n == 1 and ent[1][1] == direct and direct ~= nil, "TST-p224: name.ent of " .. key .. " is the entity id")
+	end
+	local g = M.PSS_Call("name.ent", { key = "Guild One-Realm" }, { kind = "g", create = true })
+	check(g and g.n == 1 and g[1][1] == M.PSS_EntityId("g", "Guild One", "Realm", false), "TST-p224: a guild")
+	check(M.PSS_Call("name.ent", "Nobody-Realm").n == 0, "TST-p224: an unknown name without create has no entity")
 end
 
 local WHFILES = { "PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua",

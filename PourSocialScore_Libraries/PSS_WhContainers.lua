@@ -70,7 +70,7 @@ local ROWS = {
 			if tab == 0 then return bagIndex("Bank") end
 			return bagIndex("BankBag_" .. tab)
 		end,
-		events = { "PLAYERBANKSLOTS_CHANGED", "BANK_TABS_CHANGED", "BANK_TAB_SETTINGS_UPDATED", "PLAYERBANKBAGSLOTS_CHANGED", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "BANKFRAME_OPENED" },
+		events = { "PLAYERBANKSLOTS_CHANGED", "BANK_TABS_CHANGED", "BANK_TAB_SETTINGS_UPDATED", "PLAYERBANKBAGSLOTS_CHANGED", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE", "BANKFRAME_OPENED", "BANKFRAME_CLOSED" },
 		settle = { "BAG_UPDATE_DELAYED" }, persist = true },
 	{ code = "r", kind = "reagent", owner = "c", gate = "warehouse", shim = "bank", cb = "BagCacheUpdate", sum = "reagent", ["while"] = "bank",
 		has = function() return bagIndex("Reagentbank") ~= nil and IsReagentBankUnlocked ~= nil end,
@@ -87,11 +87,11 @@ local ROWS = {
 			return data and range(1, #data) or {}
 		end,
 		bagId = function(tab) return bagIndex("AccountBankTab_" .. tab) end,
-		events = { "BANK_TABS_CHANGED", "PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" }, settle = { "BAG_UPDATE_DELAYED" }, persist = true },
+		events = { "BANK_TABS_CHANGED", "PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE" }, settle = { "BAG_UPDATE_DELAYED" }, persist = true },
 	{ code = "e", kind = "equipped", owner = "c", gate = "bags", shim = "equipped", cb = "EquippedCacheUpdate", sum = "equipped",
 		has = function() return GetInventoryItemID ~= nil end,
 		tabs = function() return { 0 } end,
-		events = { "PLAYER_EQUIPMENT_CHANGED" }, settle = "pull", persist = true },
+		events = { "PLAYER_EQUIPMENT_CHANGED" }, settle = { "PLAYER_LOGOUT" }, reads = { "wh.sum", "wh.find", "wh.cont" }, persist = true },
 	{ code = "m", kind = "mail", owner = "c", gate = "warehouse", shim = "mail", cb = "MailCacheUpdate", sum = "mail", ["while"] = "mail", expires = true, cap = 100,
 		has = function() return GetInboxNumItems ~= nil end,
 		tabs = function() return { 0 } end,
@@ -99,16 +99,16 @@ local ROWS = {
 	{ code = "v", kind = "void", owner = "c", gate = "warehouse", shim = "void", cb = "VoidCacheUpdate", sum = "void", ["while"] = "void",
 		has = function() return CanUseVoidStorage ~= nil end,
 		tabs = function() return { 1, 2 } end,
-		events = { "VOID_STORAGE_UPDATE", "VOID_STORAGE_CONTENTS_UPDATE", "VOID_TRANSFER_DONE", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" }, settle = { "VOID_STORAGE_CONTENTS_UPDATE", "VOID_TRANSFER_DONE" }, persist = true },
+		events = { "VOID_STORAGE_UPDATE", "VOID_STORAGE_CONTENTS_UPDATE", "VOID_TRANSFER_DONE", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE" }, settle = { "VOID_STORAGE_CONTENTS_UPDATE", "VOID_TRANSFER_DONE" }, persist = true },
 	{ code = "a", kind = "auctions", owner = "c", gate = "warehouse", shim = "auctions", cb = "AuctionsCacheUpdate", sum = "auctions", ["while"] = "auction", expires = true, cap = 400,
 		has = function() return C_AuctionHouse ~= nil or GetNumAuctionItems ~= nil end,
 		tabs = function() return { 0 } end,
-		events = { "OWNED_AUCTIONS_UPDATED", "AUCTION_HOUSE_AUCTION_CREATED", "AUCTION_CANCELED", "AUCTION_OWNED_LIST_UPDATE", "AUCTION_HOUSE_AUCTIONS_EXPIRED", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" },
+		events = { "OWNED_AUCTIONS_UPDATED", "AUCTION_HOUSE_AUCTION_CREATED", "AUCTION_CANCELED", "AUCTION_OWNED_LIST_UPDATE", "AUCTION_HOUSE_AUCTIONS_EXPIRED", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE" },
 		settle = { "OWNED_AUCTIONS_UPDATED", "AUCTION_OWNED_LIST_UPDATE" }, persist = true },
 	{ code = "t", kind = "guild", owner = "g", gate = "warehouse", shim = "guild", cb = "GuildCacheUpdate", sum = "guild", ["while"] = "guildbank",
 		has = function() return GetNumGuildBankTabs ~= nil end,
 		tabs = function() return range(1, GetNumGuildBankTabs()) end,
-		events = { "GUILDBANKBAGSLOTS_CHANGED", "GUILDBANK_UPDATE_TABS", "GUILDBANK_UPDATE_MONEY", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" }, settle = { "GUILDBANKBAGSLOTS_CHANGED" }, persist = true },
+		events = { "GUILDBANKBAGSLOTS_CHANGED", "GUILDBANK_UPDATE_TABS", "GUILDBANK_UPDATE_MONEY", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE" }, settle = { "GUILDBANKBAGSLOTS_CHANGED" }, persist = true },
 }
 M.PSS_WH_CONTAINERS = ROWS
 

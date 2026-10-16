@@ -225,7 +225,9 @@ local function camelot()
 end
 M.PSS_IsCamelot = camelot
 
-local function liveOn(name)
+local liveOn
+function liveOn(name)
+	if name == "items" then return liveOn("bags") or liveOn("warehouse") end		-- the shared item layer runs for either
 	local key = COMPONENT_KEY[name]
 	if not key then return false end
 	if name == "gfx" and not camelot() then return false end
@@ -235,6 +237,7 @@ end
 function M.PSS_SnapComponents()
 	snap = {}
 	for name in pairs(COMPONENT_KEY) do snap[name] = liveOn(name) end
+	snap.items = snap.bags or snap.warehouse
 end
 
 function M.PSS_On(name)
