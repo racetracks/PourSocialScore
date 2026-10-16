@@ -353,6 +353,11 @@ function M.PSS_StartComponents()
 	else
 		BINDING_NAME_PSS_DTT = "Drop the cheapest thing (PSS Drop Cheapest Thing off)"
 	end
+	-- The Warehouse and the shared item layer (warehouse-helper): everything is in
+	-- Libraries; with both switches off nothing loads and nothing is registered
+	if M.PSS_On("warehouse") or M.PSS_On("bags") then
+		if M.PSS_Need("Libraries") and M.PSS_WhStart then M.PSS_WhStart() end
+	end
 end
 
 PSSFRAME:SetScript("OnEvent", EventHandler)

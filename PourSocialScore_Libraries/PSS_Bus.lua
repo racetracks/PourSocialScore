@@ -85,6 +85,25 @@ function M.PSS_Provide(name, fn, spec)
 		retry = spec.retry, critical = spec.critical }
 end
 
+-- a service declared now and built on its first call (one-build plan A10): the
+-- name and the contract are known to discovery at once, `load()` returns the
+-- real function and nothing of it is built until someone calls
+function M.PSS_ProvideStub(name, spec, load)
+	M.PSS_Provide(name, function(set, opts)
+		local real = load()
+		if type(real) ~= "function" then error("missing: " .. name .. " could not be built", 0) end
+		local svc = services[name]
+		if svc then svc.fn = real; svc.stub = nil end
+		return real(set, opts)
+	end, spec)
+	if services[name] then services[name].stub = true end
+end
+
+function M.PSS_ServiceIsStub(name)
+	local s = services[name]
+	return s ~= nil and s.stub == true
+end
+
 -- what a service declares (a copy; nil when it does not exist)
 function M.PSS_ServiceInfo(name)
 	local s = services[name]

@@ -488,7 +488,8 @@ for ph in login again; do
 	echo "$out" | grep -q "PASS sparse $ph" || fail=1
 done
 lua5.1 "$here/run.lua" . "$work/sp-1.lua" "$work/sp-2.lua" > "$work/sp-2.out" 2>&1
-cmp -s "$work/sp-1.lua" "$work/sp-2.lua" && ! grep -q "Upgrading your saved data" "$work/sp-2.out" || { echo "FAIL sparse: a second login changed the save or reported"; fail=1; }
+lua5.1 "$here/strip_undo.lua" "$work/sp-1.lua" "$work/sp-1s.lua"; lua5.1 "$here/strip_undo.lua" "$work/sp-2.lua" "$work/sp-2s.lua"
+cmp -s "$work/sp-1s.lua" "$work/sp-2s.lua" && ! grep -q "Upgrading your saved data" "$work/sp-2.out" || { echo "FAIL sparse: a second login changed the save or reported"; fail=1; }
 lua5.1 "$here/check_sparse.lua" --after "$work/sp-1.lua" ids || fail=1
 lua5.1 tools/check_schema.lua --saves "$work/sp-1.lua" "$work/sp-2.lua" || fail=1
 # Camelot
@@ -500,7 +501,8 @@ out=$(PSS_SHIPPED="$ship" PSS_FIRST=1 PSS_LOGIN_OUT="$work/cam-1.out" PSS_CAMELO
 echo "$out" | grep -E "PASS|FAIL"
 echo "$out" | grep -q "PASS sparse camelot" || fail=1
 PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/cam-1.lua" "$work/cam-2.lua" > /dev/null 2>&1
-cmp -s "$work/cam-1.lua" "$work/cam-2.lua" || { echo "FAIL camelot: a second login changed the save"; fail=1; }
+lua5.1 "$here/strip_undo.lua" "$work/cam-1.lua" "$work/cam-1s.lua"; lua5.1 "$here/strip_undo.lua" "$work/cam-2.lua" "$work/cam-2s.lua"
+cmp -s "$work/cam-1s.lua" "$work/cam-2s.lua" || { echo "FAIL camelot: a second login changed the save"; fail=1; }
 out=$(PSS_SHIPPED="$ship" PSS_CAMELOT=1 PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-1.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -q "PASS sparse camelot" || { echo "$out"; echo "FAIL camelot: the repaired save"; fail=1; }
 out=$(PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-plant.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')

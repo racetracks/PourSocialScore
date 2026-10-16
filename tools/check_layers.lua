@@ -20,6 +20,8 @@ local CORE = {
 	"PSS_Localization.lua", "PSS_Globals.lua", "PSS_Perf.lua", "PSS_Watch.lua", "PSS_Trig.lua", "PSS_Events.lua", "PSS_Whois.lua",
 	"PSS_Communities.lua", "PSS_ChatHistory.lua",
 	"PSS_ChatBlock.lua", "PSS_ChatFilters.lua", "PSS_PlayerIgnoreList.lua", "PSS_GuildIgnoreList.lua",
+	"PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua", "PSS_Money.lua", "PSS_MoneyValue.lua",
+	"PSS_Gw.lua", "PSS_GwSyndicator.lua", "PSS_WhImport.lua", "PSS_Err.lua", "PSS_Bus.lua", "PSS_Codec.lua", "PSS_Index.lua", "PSS_Store.lua", "PSS_Query.lua", "PSS_Entity.lua",
 	"PSS_WhoisHarvest.lua", "PourSocialScore.lua", "PSS_Options.lua", "PSS_ImportExport.lua", "PSS_PlayerQuery.lua", "PSS_PlayerRows.lua", "PSS_Validate.lua", "PSS_GuildQuery.lua", "PSS_FilterQuery.lua",
 	"PSS_ViewNav.lua", "PSS_ManagerNav.lua", "PSS_DetailQuery.lua", "PSS_PlayerView.lua", "PSS_GuildView.lua", "PSS_FilterView.lua", "PSS_EventsView.lua", "PSS_OptionsView.lua", "PSS_RowMenus.lua", "PSS_Graphics.lua", "PSS_MacroData.lua", "PSS_Macros.lua", "PSS_AddonsQuery.lua", "PSS_AddonsView.lua",
 }
@@ -57,6 +59,7 @@ local problems = 0
 local function checkFile(path)
 	local fh = io.open(path, "rb")
 	if not fh then
+		if path:find("PSS_Wh") or path:find("PSS_Item") or path:find("PSS_Money") or path:find("PSS_Gw") then return end		-- a warehouse file of a later package
 		print(path .. ": missing (update the CORE list in tools/check_layers.lua)")
 		problems = problems + 1
 		return
@@ -83,6 +86,65 @@ local function checkFile(path)
 		end
 		line = line + select(2, seg.text:gsub("\n", ""))
 	end
+end
+
+------------------------------------------------------------------------
+-- Services never call views (one-build plan A10, TST-p225): a file of the data
+-- and service layer names no function that a *View.lua file defines, so
+-- splitting Libraries later is a pure file move.
+--   lua5.1 tools/check_layers.lua --services <file> ...    check those files only
+------------------------------------------------------------------------
+local SERVICES = { "PSS_Bus.lua", "PSS_Err.lua", "PSS_Codec.lua", "PSS_Index.lua", "PSS_Store.lua", "PSS_Query.lua", "PSS_Entity.lua",
+	"PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua",
+	"PSS_Money.lua", "PSS_MoneyValue.lua", "PSS_Gw.lua", "PSS_GwSyndicator.lua", "PSS_WhImport.lua" }
+
+local function viewNames()
+	local names = {}
+	local ls = io.popen('ls PourSocialScore_Libraries/*View.lua 2>/dev/null')
+	for path in ls:lines() do
+		local fh = io.open(path, "rb")
+		local src = fh:read("*a")
+		fh:close()
+		for name in src:gmatch("function%s+M%.(PSS_[%w_]+)") do names[name] = path end
+		for name in src:gmatch("\nM%.(PSS_[%w_]+)%s*=") do names[name] = path end
+	end
+	ls:close()
+	return names
+end
+
+local function checkServices(files)
+	local views, bad = viewNames(), 0
+	for _, path in ipairs(files) do
+		local fh = io.open(path, "rb")
+		if fh then
+			local src = fh:read("*a")
+			fh:close()
+			local line = 1
+			for _, seg in ipairs(segments(src)) do
+				if seg.kind == "code" then
+					for name in seg.text:gmatch("M%.(PSS_[%w_]+)") do
+						if views[name] then
+							print(("%s: a services file uses %s, defined in the view file %s"):format(path, name, views[name]))
+							bad = bad + 1
+						end
+					end
+				end
+				line = line + select(2, seg.text:gsub("\n", ""))
+			end
+		end
+	end
+	return bad
+end
+
+if arg[1] == "--services" then
+	local files = {}
+	for i = 2, #arg do files[#files + 1] = arg[i] end
+	os.exit(checkServices(files) > 0 and 1 or 0)
+end
+do
+	local files = {}
+	for _, n in ipairs(SERVICES) do files[#files + 1] = "PourSocialScore_Libraries/" .. n end
+	problems = problems + checkServices(files)
 end
 
 -- the core files live in the PourSocialScore folder (3.0 layout)

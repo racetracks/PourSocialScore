@@ -7,9 +7,11 @@ here=$(dirname "$0")
 fail=0
 n=0
 bad=0
-for ph in stub err codec codecprop store2 mapstore integrity idx watch upg; do
+for ph in stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers; do
+	comp=logging
+	case $ph in registry|schema) comp=logging,warehouse,bags ;; off) comp=none ;; esac
 	for cam in "" "PSS_CAMELOT=1"; do
-		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=logging $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
+		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=$comp $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | sed "s/^PASS wh $ph/PASS wh $ph ${cam:+(Camelot)}/"
 		n=$((n + 1))
 		if ! echo "$out" | grep -q "PASS wh $ph" || echo "$out" | grep -q "FAIL"; then

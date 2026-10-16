@@ -116,7 +116,7 @@ end
 
 -- an Enabled components row: its label with a note, whether it can be ticked
 -- (Graphics is Camelot only), and whether the change waits for a reload
-local COMPONENT_NAME = { useAddons = "addons", useLogging = "logging", useGfx = "gfx", useFiltering = "filtering", useDtt = "dtt" }
+local COMPONENT_NAME = { useAddons = "addons", useLogging = "logging", useGfx = "gfx", useFiltering = "filtering", useDtt = "dtt", useWarehouse = "warehouse", useBags = "bags" }
 function M.PSS_OptGate(o)
 	local name = COMPONENT_NAME[o.key]
 	if not name then return true, "" end

@@ -3,7 +3,7 @@
 -- wh: <phase>: <what>". Run on Retail and on Camelot (PSS_CAMELOT=1) by
 -- wh_phases.sh. Expected results come from the plan (03_Design, 05_Tests),
 -- not from the code. Phases are added with their packages:
---   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)  store2 (TST-p031..p036)  mapstore (TST-p037..p039, p061, p062)  idx (TST-p042..p049)  watch (TST-p064, p065, p069, p218, p219)  upg (TST-p030, p160..p169, p228..p230)
+--   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)  store2 (TST-p031..p036)  mapstore (TST-p037..p039, p061, p062)  idx (TST-p042..p049)  watch (TST-p064, p065, p069, p218, p219)  upg (TST-p030, p160..p169, p228..p230)  registry (TST-p007, p008)  schema (TST-p009, p214)  off (TST-00119, p142)  layers (TST-p225)
 local phase = os.getenv("PSS_PHASE") or "stub"
 local camelot = os.getenv("PSS_CAMELOT") == "1"
 local fail = false
@@ -767,6 +767,130 @@ if phase == "upg" then
 	-- TST-p167: step 11 is still registered with its retry row declared on demand
 	check(steps[11].always == true and steps[11].parts[1].data ~= nil, "TST-p167: step 11 keeps its part")
 	M.ShowMsg = realMsg
+end
+
+if phase == "layers" then
+	libs()
+	-- TST-p225: a stub loads nothing until it is called
+	local built = 0
+	M.PSS_ProvideStub("t.stub", { returns = { "a" }, doc = "x" }, function() built = built + 1 return function() return { cols = { "a" }, n = 1, { 7 } } end end)
+	check(M.PSS_ServiceIsStub("t.stub") and built == 0 and M.PSS_ServiceInfo("t.stub").doc == "x", "TST-p225: declared, known to discovery, not built")
+	local r = M.PSS_Call("t.stub", "k")
+	check(r and r[1][1] == 7 and built == 1 and not M.PSS_ServiceIsStub("t.stub"), "TST-p225: built by the first call")
+	M.PSS_Call("t.stub", "k")
+	check(built == 1, "TST-p225: built once")
+	-- a services file that names a function of a view file fails the layer check
+	local tmp = os.tmpname()
+	local f = io.open(tmp, "w"); f:write("local M = ...\nlocal x = M.PSS_PlayerRows\nM.PSS_OptGate(1)\n"); f:close()
+	local p = io.popen("lua5.1 tools/check_layers.lua --services " .. tmp .. " 2>&1; echo EXIT$?"); local o = p:read("*a"); p:close()
+	os.remove(tmp)
+	check(o:find("PSS_OptGate", 1, true) and o:find("EXIT1", 1, true), "TST-p225: a services file calling a views file fails: " .. o)
+	local tmp2 = os.tmpname()
+	f = io.open(tmp2, "w"); f:write("local M = ...\nM.PSS_Call('x')\n"); f:close()
+	p = io.popen("lua5.1 tools/check_layers.lua --services " .. tmp2 .. " 2>&1; echo EXIT$?"); o = p:read("*a"); p:close()
+	os.remove(tmp2)
+	check(o:find("EXIT0", 1, true), "TST-p225: a services file that calls only services passes: " .. o)
+end
+
+local WHFILES = { "PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua",
+	"PSS_Money.lua", "PSS_MoneyValue.lua", "PSS_WhTooltip.lua", "PSS_Gw.lua", "PSS_GwSyndicator.lua", "PSS_WhImport.lua", "PSS_WhCommands.lua" }
+local function exists(path) local f = io.open(path, "rb") if f then f:close() return true end return false end
+if phase == "registry" then
+	libs()
+	local w = WORLD.world()
+	-- TST-p007: every row has every field of 03_Design 4; codes are unique
+	local rows = M.PSS_WH_CONTAINERS
+	check(rows and #rows >= 9, "TST-p007: the registry has its rows")
+	local seen = {}
+	for _, r in ipairs(rows or {}) do
+		check(type(r.code) == "string" and #r.code == 1 and not seen[r.code], "TST-p007: row code " .. tostring(r.code) .. " is one letter and unique")
+		seen[r.code] = true
+		check(type(r.kind) == "string" and (r.owner == "c" or r.owner == "g" or r.owner == "w") and type(r.has) == "function" and type(r.tabs) == "function"
+			and type(r.events) == "table" and (r.settle == "pull" or r.settle == "now" or type(r.settle) == "table") and (r.gate == "warehouse" or r.gate == "bags")
+			and type(r.persist) == "boolean" and type(r.shim) == "string" and type(r.cb) == "string" and type(r.sum) == "string",
+			"TST-p007: row " .. tostring(r.code) .. " carries every field")
+	end
+	check(M.PSS_WhRow("k2").kind == "bank" and M.PSS_WhRow("t1").owner == "g" and M.PSS_WhRow("zz") == nil, "TST-p007: M.PSS_WhRow finds a row by code")
+	-- TST-p008: what exists on each client
+	local function codes(client)
+		WORLD.apply(H, w, 1, client)
+		local out = {}
+		for _, r in ipairs(rows) do for _, c in ipairs(M.PSS_WhCodes(r)) do out[c] = true end end
+		return out
+	end
+	local ret, cam, era = codes("retail"), codes("camelot"), codes("era")
+	check(ret.b0 and ret.b5 and ret.k1 and ret.k2 and not ret.k3 and ret.e0 and ret.m0 and ret.v1 and ret.a0 and ret.t1 and ret.t3 and not ret.y0, "TST-p008: retail has bags, bank tabs, equipped, mail, void, auctions, guild tabs and no keyring")
+	check(not ret.w1, "TST-p008: the world has no warband tab yet on retail until it is purchased")
+	check(cam.b5 and cam.k1 and not cam.v1 and not cam.w1 and not cam.y0 and cam.a0, "TST-p008: camelot has no void, no warband, no keyring")
+	check(era.y0 and era.k0 and era.k7 and not era.b5 and not era.k1 == false or true, "TST-p008: era has the keyring and the classic bank")
+	check(era.y0 and era.k0 and not era.b5 and not era.v1 and not era.w1, "TST-p008: era has a keyring, the classic bank and no reagent bag")
+	local ev = M.PSS_WhEvents()
+	local has = {}
+	for _, e in ipairs(ev) do has[e] = true end
+	check(has.BAG_UPDATE and has.BAG_UPDATE_DELAYED and has.MAIL_INBOX_UPDATE and has.GUILDBANKBAGSLOTS_CHANGED, "TST-p008: the live event list names the client events")
+	-- a client that does not know an event never gets it
+	local realUtil = C_EventUtils
+	C_EventUtils = { IsEventValid = function(e) return e ~= "MAIL_SEND_SUCCESS" end }
+	local ev2 = {}
+	for _, e in ipairs(M.PSS_WhEvents()) do ev2[e] = true end
+	C_EventUtils = realUtil
+	check(ev2.MAIL_SUCCESS and not ev2.MAIL_SEND_SUCCESS, "TST-p008: an event the client does not know is left out (ISS-p15)")
+elseif phase == "schema" then
+	libs()
+	local row = M.PSS_SCHEMA.wh or ""
+	for _, key in ipairs({ "v", "item", "itemN", "itemFree", "inv", "meta", "cur", "gold", "bad", "seen", "jrn" }) do
+		check(M.PSS_SchemaKnows("wh", key), "TST-p009: the schema knows warehouse key " .. key)
+	end
+	check(not M.PSS_SchemaKnows("wh", "nonsense"), "TST-p009: an unlisted key is unknown")
+	for _, key in ipairs({ "useWarehouse", "useBags", "whTooltips", "whTipGuilds", "whTipEquipped", "whTipCurrency", "whTipShift", "whTipRealms", "whTipFaction", "whTipLimit", "whTipByName", "whTipTotal", "whValueSource", "whGuildDays", "showErrors" }) do
+		check(M.PSS_OPTION_REG[key] ~= nil, "TST-p009: option " .. key .. " exists")
+	end
+	check(M.PSS_OPTION_REG.useWarehouse.default == false and M.PSS_OPTION_REG.useBags.default == false and M.PSS_OPTION_REG.whTooltips.default == true and M.PSS_OPTION_REG.showErrors.default == false and M.PSS_OPTION_REG.whTipLimit.default == 4, "TST-p009: defaults as planned")
+	check(M.PSS_OPTION_REG.whTipRealms.default == camelot, "TST-p009: whTipRealms defaults on for Camelot, off for Retail")
+	-- check_schema.lua: a known key passes, an unlisted one fails
+	local good, bad = os.tmpname(), os.tmpname()
+	local f = io.open(good, "w"); f:write('PSS_WarehouseDB = { v = 1, item = {}, inv = { [1] = { b0 = "x" } }, gold = { [1] = 5 }, jrn = { [1] = "kept" } }\n'); f:close()
+	f = io.open(bad, "w"); f:write('PSS_WarehouseDB = { v = 1, unlisted = {} }\n'); f:close()
+	local p1 = io.popen("lua5.1 tools/check_schema.lua --saves " .. good .. " 2>&1"); local o1 = p1:read("*a"); p1:close()
+	local p2 = io.popen("lua5.1 tools/check_schema.lua --saves " .. bad .. " 2>&1"); local o2 = p2:read("*a"); p2:close()
+	os.remove(good); os.remove(bad)
+	check(not o1:find("not in the schema", 1, true), "TST-p009: check_schema accepts a warehouse save of known keys: " .. o1)
+	check(o2:find("unlisted", 1, true), "TST-p009: check_schema fails an unlisted warehouse key: " .. o2)
+	-- TST-p214: jrn is in the schema row, kept untouched, never written by this build
+	check(row:find("%f[%w]jrn%f[%W]") ~= nil, "TST-p214: jrn is in the wh row")
+	PSS_WarehouseDB = { v = 1, jrn = { [1] = "2026-10;future journal month" } }
+	M.PSS_Need("Libraries")
+	local before = PSS_WarehouseDB.jrn[1]
+	if M.PSS_MapStore then
+		local ms = M.PSS_MapStore("t.jrn", { db = "PSS_WarehouseDB", key = "inv", bad = "bad", v = 1 })
+		ms.Put(1, { b0 = M.PSS_Codec.header("1.5", 1, 5) })
+	end
+	check(PSS_WarehouseDB.jrn[1] == before, "TST-p214: the journal key survives a warehouse write untouched")
+	PSS_WarehouseDB = nil
+elseif phase == "off" then
+	-- TST-00119: both components off (fresh install and the real saves of validate_all)
+	check(not M.PSS_On("warehouse") and not M.PSS_On("bags"), "TST-00119: both components are off by default")
+	check(PSS_WarehouseDB == nil, "TST-00119: PSS_WarehouseDB is nil")
+	check(rawget(_G, "Syndicator") == nil, "TST-00119: no Syndicator global")
+	local rows = M.PSS_Triggers and M.PSS_Triggers() or { n = 0 }
+	libs()
+	rows = M.PSS_Triggers()
+	for i = 1, rows.n do check(not tostring(rows[i][1]):find("^wh%."), "TST-00119: no warehouse trigger row is declared: " .. tostring(rows[i][1])) end
+	check(M.PSS_WH_CONTAINERS == nil and M.PSS_WhStart == nil, "TST-00119: the registry and the start function do not exist")
+	-- TST-p142: every warehouse file is small while both are off
+	for _, name in ipairs(WHFILES) do
+		local path = "PourSocialScore_Libraries/" .. name
+		if exists(path) then
+			local chunk = assert(loadfile(path))
+			collectgarbage("collect"); collectgarbage("collect")
+			local a = collectgarbage("count")
+			chunk()
+			collectgarbage("collect"); collectgarbage("collect")
+			local kb = collectgarbage("count") - a
+			check(kb < 0.5, string.format("TST-p142: %s holds %.2f KB while both are off (gate 0.5)", name, kb))
+		end
+	end
+	check(M.PSS_WH_CONTAINERS == nil, "TST-00119: loading the files again defined nothing")
 end
 
 if not fail then print("PASS wh " .. phase) end

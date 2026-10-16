@@ -16,6 +16,7 @@ PSS_Store.lua
 PSS_Index.lua
 PSS_Query.lua
 PSS_Entity.lua
+PSS_WhContainers.lua
 PSS_Trig.lua
 PSS_ImportExport.lua
 PSS_PlayerRows.lua
