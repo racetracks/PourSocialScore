@@ -880,7 +880,7 @@ do
 	-- navmodel: the rows as the ask, headings dropped with no entry
 	local keys = {}
 	for _, r in ipairs(M.PSS_MgrNav()) do keys[#keys + 1] = r.head and ("#" .. r.head) or r.key end
-	check(table.concat(keys, ",") == "#Global Settings,addons,features,importExport,#Social Services,players,guilds,filters,#Feature Options,dtt,#Options,options", "nav rows: " .. table.concat(keys, ","))
+	check(table.concat(keys, ",") == "#Global Settings,addons,features,importExport,#Social Services,players,guilds,filters,#Feature Options,dtt,warehouse,#Options,options", "nav rows: " .. table.concat(keys, ","))
 	local t1, p1 = M.PSS_ResolveTab("importExport")
 	local t2, p2 = M.PSS_ResolveTab("options")
 	local t3, p3 = M.PSS_ResolveTab("players")
