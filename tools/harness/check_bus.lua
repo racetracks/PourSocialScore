@@ -95,6 +95,36 @@ elseif phase == "chain" then
 	check(pairsRun == 1 and chained["t.item"] and chained["t.total"], "the one covering pair ran")
 	check(not chained["t.alone"], "a service with no partner is found (the check would fail it unless its spec names the alternate)")
 	check(M.PSS_Call("t.total", M.PSS_Call("t.item", "7"))[1][1] == 3, "chained values are right")
+	-- TST-00207: the query steps declare contracts and chain with each other
+	local steps = { "q.where", "q.join", "q.by", "q.order", "q.limit" }
+	local sv2 = M.PSS_Services()
+	local byName = {}
+	for i = 1, sv2.n do byName[sv2[i][1]] = sv2[i] end
+	for _, name in ipairs(steps) do
+		local row = byName[name]
+		check(row ~= nil, name .. " is not on the bus")
+		if row then
+			check(row[2] == "*" or row[2] ~= "", name .. " declares no accepts")
+			check(row[3] == "*" or row[3] ~= "", name .. " declares no returns")
+		end
+	end
+	check(byName["q.where"][3] == "*" and byName["q.order"][3] == "*" and byName["q.limit"][3] == "*" and byName["q.join"][3] == "*", "steps whose columns follow their input return *")
+	check(byName["q.by"][3] == "total,n", "q.by returns its own columns")
+	local fixture = M.PSS_Set({ "item", "count" })
+	for i = 1, 6 do M.PSS_SetAdd(fixture, { i, i * 2 }) end
+	M.PSS_QueryDict("item", { "name" }, function(id, row, at) row[at] = "n" .. tostring(id) end)
+	local opts = { ["q.where"] = { where = { item = { 1, 2, 3, 4 } } }, ["q.join"] = { join = { "item" } }, ["q.by"] = { by = "item" },
+		["q.order"] = { order = { "item", "desc" } }, ["q.limit"] = { limit = 3 } }
+	local pairsRun = 0
+	for _, a in ipairs(steps) do
+		for _, b in ipairs(steps) do
+			local mid = M.PSS_Call(a, fixture, opts[a])
+			local out = mid and M.PSS_Call(b, mid, opts[b])
+			check(M.PSS_IsSet(out), a .. " into " .. b .. " did not return a record set")
+			pairsRun = pairsRun + 1
+		end
+	end
+	check(pairsRun == 25, "twenty-five query pairs ran, got " .. pairsRun)
 elseif phase == "errors" then
 	-- TST-00117: isolation
 	libs()
