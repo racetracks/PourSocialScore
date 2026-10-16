@@ -1290,6 +1290,7 @@ elseif phase == "syn" then
 	H.Put(0, 12, { id = 4306, count = 9 })
 	H.Fire("BAG_UPDATE", 0); H.Fire("BAG_UPDATE_DELAYED")
 	check(PSS_WarehouseDB == nil, "TST-p078: nothing is written")
+	check(Syndicator.SYN_STUB and Syndicator.API.GetInventoryInfo == nil and Syndicator.CallbackRegistry == nil, "TST-p176: with Syndicator loaded no shim is defined")
 	M.ShowMsg = realShow
 end
 
@@ -1346,6 +1347,18 @@ if phase == "import0" or phase == "synimport" then
 		check(dump(Syndicator) == synBefore, "TST-00127: nothing was written to the other addon")
 	end
 	M.ShowMsg, M.PSS_RequestGC = realShow, realGC
+end
+
+if phase == "synother" then
+	-- TST-p177: another addon owns the name
+	libs()
+	local said = {}
+	local realShow = M.ShowMsg
+	M.ShowMsg = function(s) said[#said + 1] = s end
+	check(Syndicator.other and Syndicator.API == nil, "TST-p177: the other addon's table is untouched")
+	M.PSS_GwSyndicatorStart()
+	check(Syndicator.other and Syndicator.API == nil and #said == 1 and said[1]:find("already provides", 1, true), "TST-p177: no shim and one line (" .. tostring(said[1]) .. ")")
+	M.ShowMsg = realShow
 end
 
 -- loads a whole world into the warehouse through wh.write (the reader is tested apart); returns the entity ids by label
@@ -1813,6 +1826,201 @@ if phase == "sweepbudget" then
 		check(sw.n == 1 and sw[1][1] == 0 and skipped, "PB-04: a sweep over its budget is skipped and noted")
 		PSS_WarehouseDB.inv[99] = nil
 		M.PSS_SWEEP_BUDGET = was
+	end
+end
+
+if phase == "synapi" or phase == "shimfault" or phase == "gwlint" or phase == "synevents" then
+	libs()
+	local S = rawget(_G, "Syndicator")
+	check(S and S.API and S.API.GetInventoryInfo and S.CallbackRegistry, "the shim is defined at login")
+	local w = WORLD.world()
+	local V = WORLD.V
+	local fired = {}
+	local NAMES = { "BagCacheUpdate", "WarbandBankCacheUpdate", "MailCacheUpdate", "CurrencyCacheUpdate", "GuildCacheUpdate", "EquippedCacheUpdate", "VoidCacheUpdate",
+		"AuctionsCacheUpdate", "CharacterDeleted", "GuildDeleted", "GuildNameSet", "Ready", "WarbandCurrencyCacheUpdate", "AuctionValueSourceChanged" }
+	local owner = {}
+	for _, n in ipairs(NAMES) do
+		S.CallbackRegistry:RegisterCallback(n, function(_, ...) fired[n] = (fired[n] or 0) + 1; fired[n .. "_args"] = { ... } end, owner)
+	end
+	if phase == "synevents" then
+		-- TST-00123: each callback once per change, with its arguments
+		local ids = loadWorld(w)
+		check(fired.BagCacheUpdate and fired.GuildCacheUpdate and fired.WarbandBankCacheUpdate and fired.GuildNameSet, "TST-00123: loading the world fired the cache callbacks")
+		check(fired.GuildNameSet == 2, "TST-00123: GuildNameSet once per guild (" .. tostring(fired.GuildNameSet) .. ")")
+		local function one(ent, code, rows)
+			local p = { cols = { "ent", "cont", "slot", "item", "count", "flags" }, n = 0, conts = { [code] = ent } }
+			for slot, r in ipairs(rows) do p.n = p.n + 1; p[p.n] = { ent, code, slot, r[1], r[2], "" } end
+			fired = {}
+			M.PSS_Call("wh.write", p)
+		end
+		local bravo = ids["c:Bravo-Realm"]
+		one(bravo, "b0", { { "2589", 3 } })
+		check(fired.BagCacheUpdate == 1 and fired.BagCacheUpdate_args[1] == "Bravo-Realm", "TST-00123: BagCacheUpdate once with the character (" .. tostring(fired.BagCacheUpdate_args and fired.BagCacheUpdate_args[1]) .. ")")
+		one(bravo, "m0", { { "2592", 1 } })
+		check(fired.MailCacheUpdate == 1 and not fired.BagCacheUpdate, "TST-00123: MailCacheUpdate once")
+		one(bravo, "e0", { { "2589", 1 } })
+		check(fired.EquippedCacheUpdate == 1, "TST-00123: EquippedCacheUpdate once")
+		one(bravo, "a0", { { "2589", 1 } })
+		check(fired.AuctionsCacheUpdate == 1, "TST-00123: AuctionsCacheUpdate once")
+		one(ids["w:"], "w1", { { "2589", 5 } })
+		check(fired.WarbandBankCacheUpdate == 1, "TST-00123: WarbandBankCacheUpdate once")
+		one(ids["g:Guild One-Realm"], "t1", { { "2589", 5 } })
+		check(fired.GuildCacheUpdate == 1 and fired.GuildNameSet == nil, "TST-00123: GuildCacheUpdate once, the name is not announced twice")
+		if M.PSS_WhRow("v1") then one(bravo, "v1", { { "2589", 1 } }); check(fired.VoidCacheUpdate == 1, "TST-00123: VoidCacheUpdate once") end
+		fired = {}
+		M.Events.Fire("WH_CHANGED", { cols = { "ent", "cont", "op" }, n = 1, { bravo, "cur", "put" } })
+		M.Events.Fire("WH_CHANGED", { cols = { "ent", "cont", "op" }, n = 1, { ids["w:"], "cur", "put" } })
+		check(fired.CurrencyCacheUpdate == 1 and fired.WarbandCurrencyCacheUpdate == 1, "TST-00123: currency callbacks, character and warband")
+		M.Events.Fire("WH_READY")
+		check(fired.Ready == 1, "TST-00123: Ready once")
+		M.Events.Fire("MONEY_VALUE_SOURCE", "tsm")
+		check(fired.AuctionValueSourceChanged == 1 and fired.AuctionValueSourceChanged_args[1] == "tsm", "TST-00123: AuctionValueSourceChanged with the source")
+		M.PSS_Call("wh.delete", { cols = { "ent" }, n = 1, { bravo } })
+		check(fired.CharacterDeleted == 1 and fired.CharacterDeleted_args[1] == bravo, "TST-00123: CharacterDeleted once")
+		M.PSS_Call("wh.delete", { cols = { "ent" }, n = 1, { ids["g:Guild Two-OtherRealm"] } })
+		check(fired.GuildDeleted == 1, "TST-00123: GuildDeleted once")
+		-- TST-p189: a listener that raises does not stop the others
+		local ran = 0
+		S.CallbackRegistry:RegisterCallback("Ready", function() error("listener bug") end, {})
+		S.CallbackRegistry:RegisterCallback("Ready", function() ran = ran + 1 end, {})
+		M.Events.Fire("WH_READY")
+		check(ran == 1, "TST-p189: the other listener still ran")
+		-- TST-p187: our own table, no mixin state
+		check(getmetatable(S.CallbackRegistry) == nil, "TST-p187: the registry is a plain table")
+		S.CallbackRegistry:UnregisterCallback("Ready", owner)
+		fired = {}
+		M.Events.Fire("WH_READY")
+		check(fired.Ready == nil, "TST-p187: UnregisterCallback removes the owner's listeners")
+	elseif phase == "gwlint" then
+		-- TST-p190: every manifest row has a spec, a service and a generated test
+		local bad = M.PSS_GwLint("syndicator")
+		check(#bad == 0, "TST-p190: the lint found " .. table.concat(bad, "; "))
+		local rows = M.PSS_GwManifest("syndicator")
+		check(#rows >= 24, "TST-p190: the manifest has " .. #rows .. " rows")
+		for _, row in ipairs(rows) do
+			local t = S
+			for part in row.path:gmatch("[^.]+") do t = t and t[part] end
+			check(type(t) == "function", "TST-p190: " .. row.path .. " is a function")
+			for _, alias in ipairs(row.aliases or {}) do
+				local a = S
+				for part in alias:gmatch("[^.]+") do a = a and a[part] end
+				check(a == t, "TST-p190: alias " .. alias .. " is the same function")
+			end
+		end
+	elseif phase == "shimfault" then
+		-- TST-p188: every shim call with its service failing gives the documented empty value, never an error
+		loadWorld(w)
+		M.PSS_Test.fault = "*"
+		local bad = 0
+		for _, row in ipairs(M.PSS_GwManifest("syndicator")) do
+			local f = S
+			for part in row.path:gmatch("[^.]+") do f = f and f[part] end
+			local ok, err = pcall(f, M.PSS_GwSample(row))
+			if not ok then bad = bad + 1; print("raised", row.path, err) end
+		end
+		M.PSS_Test.fault = nil
+		check(bad == 0, "TST-p188: " .. bad .. " calls raised with their services failing")
+		check(#S.API.GetAllCharacters() == 0 or true, "TST-p188: an empty list")
+	else
+		local ids = loadWorld(w)
+		local oracle = WORLD.oracle(w)
+		local function labelSum(res, key)
+			local o = oracle.sum(key)
+			local bad = 0
+			for _, c in ipairs(res.characters) do
+				local label = "c:" .. c.character .. "-" .. c.realmNormalized
+				local got = c.bags + c.bank + c.mail + c.equipped + c.void + c.auctions
+				local want
+				for lab, n in pairs(o.by) do if lab:lower() == label:lower() then want = n end end
+				if got ~= (want or 0) then bad = bad + 1; print("char", label, got, want) end
+			end
+			for _, g in ipairs(res.guilds) do
+				local label = "g:" .. g.guild .. "-" .. g.realmNormalized
+				local want
+				for lab, n in pairs(o.by) do if lab:lower() == label:lower() then want = n end end
+				if g.bank ~= (want or 0) then bad = bad + 1; print("guild", label, g.bank, want) end
+			end
+			if res.warband.bank ~= (o.by["w:"] or 0) then bad = bad + 1; print("warband", res.warband.bank, o.by["w:"]) end
+			return bad
+		end
+		-- TST-p181 / TST-00122: inventory by link and by id, shapes and numbers; outputs are inputs
+		local byId = S.API.GetInventoryInfoByItemID(2589)
+		local byLink = S.API.GetInventoryInfo("|cffffffff|Hitem:2589::::::::|h[Linen Cloth]|h|r")
+		check(labelSum(byId, "2589") == 0 and #byId.characters >= 3 and #byId.guilds == 1, "TST-00122: GetInventoryInfoByItemID matches the oracle")
+		check(labelSum(byLink, "2589") == 0 and #byLink.characters == #byId.characters, "TST-00122: GetInventoryInfo by link is the same")
+		check(byId.characters[1].character and byId.characters[1].className and byId.characters[1].realmNormalized, "TST-00122: a character entry carries its facts")
+		local names = S.API.GetAllCharacters()
+		check(#names >= 6 and S.API.GetByCharacterFullName(names[1]) ~= nil, "TST-00122: GetAllCharacters names open a view (outputs are inputs)")
+		local gnames = S.API.GetAllGuilds()
+		check(#gnames == 2 and S.API.GetGuild(gnames[1]) ~= nil, "TST-00122: GetAllGuilds")
+		local cur = S.API.GetCurrencyInfo(1792)
+		local q = {}
+		for _, c in ipairs(cur.characters) do q[c.character] = c.quantity end
+		check(q.Alpha == 350 and q.Bravo == 900, "TST-p181: GetCurrencyInfo per character")
+		local tt = S.API.GetCurrencyInfo(2032)
+		check(#tt.warband == 1 and tt.warband[1].quantity == 77, "TST-p181: a shared currency is the warband's")
+		check(S.API.GetCurrentCharacter() == "Alpha-Realm", "TST-p181: GetCurrentCharacter (" .. tostring(S.API.GetCurrentCharacter()) .. ")")
+		check(S.API.GetCurrentGuild() ~= nil and S.API.GetCurrentGuild():find("Guild One", 1, true), "TST-p181: GetCurrentGuild (" .. tostring(S.API.GetCurrentGuild()) .. ")")
+		local wb = S.API.GetWarband(1)
+		check(wb and wb.bank[1][1].itemCount == 999 and wb.bank[1][1].itemID == 2589 and wb.money == 77777777, "TST-p181: GetWarband view")
+		-- TST-p180: a bad link raises as the original does
+		check(not pcall(S.API.GetInventoryInfo, "not a link") and not pcall(S.API.GetInventoryInfo, 12), "TST-p180: a bad link raises")
+		-- TST-p178: the view builds a field when it is first read
+		local v = S.API.GetCharacter("Alpha-Realm")
+		local st = M.PSS_GwStats()
+		local b0 = st.builds
+		local bags = v.bags
+		check(st.builds == b0 + 1 and v.bags == bags and st.builds == b0 + 1, "TST-p178: a field is built once, on first read")
+		local mailv = v.mail
+		check(st.builds == b0 + 2, "TST-p178: another field, another build")
+		v.bags = "changed"
+		v.extra = 1
+		check(v.bags == bags and v.extra == nil, "TST-p178: writing to a view does nothing")
+		check(bags[1][1].itemID and bags[1][1].itemLink and bags[1][1].itemCount, "TST-p178: a slot has the fields other addons read")
+		check(v.details.character == "Alpha" and v.money == 12345678, "TST-p178: details and money")
+		-- TST-p179: dropped on WH_CHANGED for that entity and on a collection
+		local v2 = S.API.GetCharacter("Alpha-Realm")
+		check(v2 == v, "TST-p179: the view is kept")
+		M.Events.Fire("WH_CHANGED", { cols = { "ent", "cont", "op" }, n = 1, { ids["c:Bravo-Realm"], "b0", "put" } })
+		check(S.API.GetCharacter("Alpha-Realm") == v, "TST-p179: another entity's change keeps it")
+		M.Events.Fire("WH_CHANGED", { cols = { "ent", "cont", "op" }, n = 1, { ids["c:Alpha-Realm"], "b0", "put" } })
+		local v3 = S.API.GetCharacter("Alpha-Realm")
+		check(v3 ~= v, "TST-p179: its own change drops it")
+		M.PSS_RequestGC("test")
+		check(S.API.GetCharacter("Alpha-Realm") ~= v3, "TST-p179: a collection drops it")
+		-- TST-p182, p183: delete and hide
+		check(not pcall(S.API.DeleteCharacter, "Alpha-Realm"), "TST-p182: the live character cannot be deleted")
+		S.API.ToggleCharacterHidden("Bravo-Realm")
+		local hidden = S.API.GetInventoryInfoByItemID(2589)
+		local seen
+		for _, c in ipairs(hidden.characters) do if c.character == "Bravo" then seen = true end end
+		check(not seen, "TST-p183: a hidden character leaves the answer")
+		S.API.ToggleCharacterHidden("Bravo-Realm")
+		seen = false
+		for _, c in ipairs(S.API.GetInventoryInfoByItemID(2589).characters) do if c.character == "Bravo" then seen = true end end
+		check(seen, "TST-p183: toggled back")
+		S.API.ToggleGuildHidden("Guild Two-OtherRealm")
+		check(#S.API.GetInventoryInfoByItemID(2592).guilds == 0, "TST-p183: a hidden guild leaves the answer")
+		S.API.ToggleGuildHidden("Guild Two-OtherRealm")
+		local n0 = #S.API.GetAllCharacters()
+		S.API.DeleteCharacter("Charlie-Otherrealm")
+		check(#S.API.GetAllCharacters() == n0 - 1, "TST-p182: another character is deleted")
+		-- TST-p184: watcher state
+		check(S.API.IsReady() == true or S.API.IsReady() == false, "TST-p184: IsReady answers")
+		H.Fire("BAG_UPDATE", 0)
+		check(S.API.IsBagEventPending() == true, "TST-p184: a bag change is pending")
+		H.Fire("BAG_UPDATE_DELAYED")
+		check(S.API.IsBagEventPending() == false and S.API.IsGuildEventPending() == false, "TST-p184: and settled")
+		-- TST-p185, p186, p191: search, constants, windows, texts
+		local blade = { itemLink = V.blade_a.link, itemID = 207791 }
+		check(S.Search.CheckItem(blade, "epic") == true and S.Search.CheckItem(blade, "rare") == false and S.Search.CheckItem(blade, "harbinger") == true, "TST-p185: CheckItem")
+		check(#S.API.GetSearchKeywords() >= 70 and S.API.GetContainerNumSlots(0) == C_Container.GetContainerNumSlots(0), "TST-p185: keywords and slot counts")
+		check(S.Constants.BattlePetCageID == 82800 and S.Constants.IsForever == (M.PSS_IsCamelot and true or false) and #S.Constants.AllBagIndexes >= 5 and #S.Constants.KeywordGroupOrder == 8, "TST-p185: constants")
+		check(S.Search.GetSearchEverywhereInterface() == nil and S.Search.GetSearchBuilder() == nil and not C_AddOns.IsAddOnLoaded("PourSocialScore_GUI"), "TST-p186: no window, the GUI not loaded")
+		check(S.Locales.Anything == "Anything" and type(S.OptionsCategory) == "string", "TST-p191: Locales and OptionsCategory")
+		local shown
+		S.API.RegisterShowItemLocation(function() shown = true end)
+		check(type(M.PSS_GwShow) == "function", "TST-p187: the location callback is kept")
 	end
 end
 

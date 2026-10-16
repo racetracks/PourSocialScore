@@ -172,7 +172,7 @@ function M.PSS_WatchPull(service)
 	for i = 1, #ids do flush(ids[i]) end
 end
 
--- the declared rows and whether each is live (read by M.PSS_Triggers)
+-- the declared rows, whether each is live and the changes waiting (read by M.PSS_Triggers and the Syndicator shim)
 function M.PSS_WatchRows()
-	return rows, live
+	return rows, live, dirty
 end

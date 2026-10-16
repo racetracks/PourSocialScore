@@ -81,6 +81,7 @@ end
 M.PSS_Provide("wh.import", function(_, opts)
 	local out = { cols = { "kind", "name", "conts", "slots", "skipped" }, n = 0 }
 	local api = rawget(_G, "Syndicator")
+	if type(api) == "table" and api.PSS_SHIM then api = nil end		-- our own shim is not Syndicator
 	api = type(api) == "table" and api.API
 	if not (api and api.GetAllCharacters) then
 		M.ShowMsg("Syndicator is not loaded, so there is nothing to import.")
