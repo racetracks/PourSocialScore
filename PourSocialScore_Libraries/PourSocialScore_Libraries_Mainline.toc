@@ -13,6 +13,7 @@ PSS_Bus.lua
 PSS_Store.lua
 PSS_Query.lua
 PSS_Entity.lua
+PSS_Trig.lua
 PSS_ImportExport.lua
 PSS_PlayerRows.lua
 PSS_Validate.lua

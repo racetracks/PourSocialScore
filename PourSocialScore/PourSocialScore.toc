@@ -15,6 +15,7 @@ PSS_Loader.lua
 PSS_SavedData.lua
 PSS_Schema.lua
 PSS_Perf.lua
+PSS_Watch.lua
 PSS_Events.lua
 PSS_Whois.lua
 PSS_Communities.lua
