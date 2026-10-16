@@ -708,6 +708,13 @@ function phases.memory()
 	check(resident < 140, "resident " .. resident .. " KB is over the 140 KB budget")
 	keep = nil
 	needLibraries()
+	-- Lua keeps every string in one hash table and doubles it (64 KB on a 64-bit build) when one more
+	-- string would not fit, at whichever string crosses the line. That growth is not memory the window
+	-- keeps, so cross the line here, before the baseline, with throw-away strings (3.7.0.104: the
+	-- trigger engine's names moved the line into the middle of this phase)
+	local pad = {}
+	for i = 1, 4200 do pad["PSS_MemPad" .. i] = true end
+	pad = nil
 	local V = M.PSS_AddonView()
 	M.PSS_AddonLocked("x")
 	local closed = kb()

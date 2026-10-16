@@ -100,7 +100,7 @@ M.PSS_Provide("q.where", function(set, opts)
 		end
 	end
 	return o
-end, { accepts = {}, returns = {}, doc = "rows whose columns match opts.where" })
+end, { accepts = { "*" }, returns = { "*" }, doc = "rows whose columns match opts.where" })
 
 M.PSS_Provide("q.join", function(set, opts)
 	local list = opts and opts.join
@@ -131,7 +131,7 @@ M.PSS_Provide("q.join", function(set, opts)
 		if not pooled then M.PSS_SetAdd(o, new) end
 	end
 	return o
-end, { accepts = {}, returns = {}, doc = "adds a dictionary's columns by id (opts.join)" })
+end, { accepts = { "*" }, returns = { "*" }, doc = "adds a dictionary's columns by id (opts.join)" })
 
 M.PSS_Provide("q.by", function(set, opts)
 	local by, sum = opts and opts.by, opts and opts.sum
@@ -156,7 +156,7 @@ M.PSS_Provide("q.by", function(set, opts)
 		g[3] = g[3] + 1
 	end
 	return o
-end, { accepts = {}, returns = { "total", "n" }, doc = "groups by opts.by, totals opts.sum" })
+end, { accepts = { "*" }, returns = { "total", "n" }, doc = "groups by opts.by, totals opts.sum" })
 
 M.PSS_Provide("q.order", function(set, opts)
 	local spec = opts and opts.order
@@ -175,7 +175,7 @@ M.PSS_Provide("q.order", function(set, opts)
 		put(o, pooled, rows[i])
 	end
 	return o
-end, { accepts = {}, returns = {}, doc = "sorts by opts.order" })
+end, { accepts = { "*" }, returns = { "*" }, doc = "sorts by opts.order" })
 
 M.PSS_Provide("q.limit", function(set, opts)
 	local n = opts and opts.limit
@@ -185,7 +185,7 @@ M.PSS_Provide("q.limit", function(set, opts)
 		put(o, pooled, set[i])
 	end
 	return o
-end, { accepts = {}, returns = {}, doc = "the first opts.limit rows" })
+end, { accepts = { "*" }, returns = { "*" }, doc = "the first opts.limit rows" })
 
 local STEPS = { "where", "join", "by", "order", "limit" }
 

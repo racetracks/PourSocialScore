@@ -319,6 +319,7 @@ SlashCmdList["PSSGUILD"] = function(msg) M.PSS_SlashGuild(msg) end
 -- change applies after a reload (hooks cannot be removed).
 function M.PSS_StartComponents()
 	M.PSS_SnapComponents()
+	M.PSS_WatchStart()
 	if M.PSS_On("filtering") then
 		if M.PSS_StartBlocking then M.PSS_StartBlocking() end
 		if M.PSS_StartIgnoreSync then M.PSS_StartIgnoreSync() end

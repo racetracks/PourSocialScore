@@ -342,6 +342,20 @@ function M.PSS_AddonCharMove(c)
 	return moved, kept
 end
 
+-- the retry of upgrade step 11 (issue 224): called by the core trigger row "charmove"
+-- once Libraries has loaded; moves what can move, then takes the row down
+M.PSS_Provide("upg.charmove", function()
+	local c = _G["PSS_CharDB"]
+	if type(c) == "table" and M.PSS_Me and M.PSS_Me(true) then
+		if next(c) ~= nil then M.PSS_AddonCharMove(c) end
+		if next(c) == nil then _G["PSS_CharDB"] = nil end
+		if M.PSS_TriggerOff then M.PSS_TriggerOff("charmove") end
+	elseif type(c) ~= "table" and M.PSS_TriggerOff then
+		M.PSS_TriggerOff("charmove")
+	end
+	return M.PSS_Set({ "moved" })
+end, { returns = { "moved" }, doc = "step 11 retry: move PSS_CharDB into the owned keys" })
+
 -- "a\nb\nc" from a sorted list
 local function packNames(list)
 	sort(list)
