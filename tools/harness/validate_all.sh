@@ -463,6 +463,10 @@ for sv in $lrsaves; do
 		echo "$out" | grep -q "PASS list records $ph" || { echo "$out"; echo "FAIL list records $ph ($sv)"; lrfail=1; }
 	done
 	lua5.1 tools/check_schema.lua --saves "$work/lr-1.lua" "$work/lr-2.lua" || lrfail=1
+	# the unstripped undo guarantee (A13): login 2 differs from login 1 only by the undo slot, login 3 equals login 2
+	lua5.1 "$here/run.lua" . "$work/lr-2.lua" "$work/lr-3.lua" > /dev/null 2>&1
+	lua5.1 "$here/undo_check.lua" 1-to-2 "$work/lr-1.lua" "$work/lr-2.lua" > /dev/null || { echo "FAIL undo 1-to-2 ($sv)"; lrfail=1; }
+	lua5.1 "$here/undo_check.lua" same "$work/lr-2.lua" "$work/lr-3.lua" > /dev/null || { echo "FAIL undo same ($sv)"; lrfail=1; }
 done
 [ $lrfail -eq 0 ] && echo "PASS list records ($(echo $lrsaves | wc -w) saves)" || { echo "FAIL list records"; fail=1; }
 
@@ -488,6 +492,9 @@ for ph in login again; do
 	echo "$out" | grep -q "PASS sparse $ph" || fail=1
 done
 lua5.1 "$here/run.lua" . "$work/sp-1.lua" "$work/sp-2.lua" > "$work/sp-2.out" 2>&1
+lua5.1 "$here/run.lua" . "$work/sp-2.lua" "$work/sp-3.lua" > "$work/sp-3.out" 2>&1
+lua5.1 "$here/undo_check.lua" 1-to-2 "$work/sp-1.lua" "$work/sp-2.lua" || fail=1
+lua5.1 "$here/undo_check.lua" same "$work/sp-2.lua" "$work/sp-3.lua" || fail=1
 lua5.1 "$here/strip_undo.lua" "$work/sp-1.lua" "$work/sp-1s.lua"; lua5.1 "$here/strip_undo.lua" "$work/sp-2.lua" "$work/sp-2s.lua"
 cmp -s "$work/sp-1s.lua" "$work/sp-2s.lua" && ! grep -q "Upgrading your saved data" "$work/sp-2.out" || { echo "FAIL sparse: a second login changed the save or reported"; fail=1; }
 lua5.1 "$here/check_sparse.lua" --after "$work/sp-1.lua" ids || fail=1
@@ -501,6 +508,9 @@ out=$(PSS_SHIPPED="$ship" PSS_FIRST=1 PSS_LOGIN_OUT="$work/cam-1.out" PSS_CAMELO
 echo "$out" | grep -E "PASS|FAIL"
 echo "$out" | grep -q "PASS sparse camelot" || fail=1
 PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/cam-1.lua" "$work/cam-2.lua" > /dev/null 2>&1
+PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/cam-2.lua" "$work/cam-3.lua" > /dev/null 2>&1
+lua5.1 "$here/undo_check.lua" 1-to-2 "$work/cam-1.lua" "$work/cam-2.lua" || fail=1
+lua5.1 "$here/undo_check.lua" same "$work/cam-2.lua" "$work/cam-3.lua" || fail=1
 lua5.1 "$here/strip_undo.lua" "$work/cam-1.lua" "$work/cam-1s.lua"; lua5.1 "$here/strip_undo.lua" "$work/cam-2.lua" "$work/cam-2s.lua"
 cmp -s "$work/cam-1s.lua" "$work/cam-2s.lua" || { echo "FAIL camelot: a second login changed the save"; fail=1; }
 out=$(PSS_SHIPPED="$ship" PSS_CAMELOT=1 PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-1.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')

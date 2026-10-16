@@ -99,7 +99,7 @@ OPTIONS[#OPTIONS + 1] = { key = "useDtt", kind = "bool", default = false, sectio
 -- windows come in a later line). Both off by default; off means no file, event or table.
 OPTIONS[#OPTIONS + 1] = { key = "useWarehouse", kind = "bool", default = false, section = 6, reload = true, label = "Warehouse",
 	tip = "Keeps every character's, guild's and warband's items, currencies and gold, shows them in item tooltips and in search (/pss wh). Off: nothing loads and nothing is saved. Applies after a reload." }
-OPTIONS[#OPTIONS + 1] = { key = "useBags", kind = "bool", default = false, section = 6, reload = true, label = "Bag manager (item layer)",
+OPTIONS[#OPTIONS + 1] = { key = "useBags", kind = "bool", default = false, section = 6, reserved = true, reload = true, label = "Bag manager (item layer)",
 	tip = "Reads your bags, bank and equipped items live for other features. The bag windows come later. Off: nothing loads. Applies after a reload." }
 local DTT = {
 	{ key = "dttIcon",			kind = "bool",		default = true,		section = 7, label = "Show the minimap button" },

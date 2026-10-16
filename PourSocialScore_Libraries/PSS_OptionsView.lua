@@ -95,7 +95,7 @@ function M.PSS_OptGroups()
 	for _, section in ipairs(M.PSS_OPTION_SECTION_ORDER) do
 		local g
 		for _, o in ipairs(M.PSS_OPTIONS) do
-			if o.section == section and not o.inline and not o.retired then
+			if o.section == section and not o.inline and not o.retired and not o.reserved then
 				if not g then
 					g = { title = ((sections[section] or ""):gsub("[:%s]+$", "")), items = {}, section = section,
 						group = M.PSS_OptSectionGroup(section), off = M.PSS_OptSectionOff(section) }

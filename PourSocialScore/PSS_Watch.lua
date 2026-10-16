@@ -63,7 +63,9 @@ local function flush(id)
 		set.n = n
 		set[n] = { k }
 	end
+	M.PSS_InRow = true		-- the bus does not retry this call: the row keeps its keys
 	local out, err = M.PSS_Call(row.run, set)
+	M.PSS_InRow = nil
 	if M.PSS_ErrSettle then M.PSS_ErrSettle() end		-- a settle half-opens open breakers and runs waiting retries
 	if err then return end		-- the keys stay
 	for i = 1, set.n do d[set[i][1]] = nil end

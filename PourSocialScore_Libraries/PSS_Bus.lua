@@ -115,7 +115,7 @@ end
 local KEYCOLS = { "key" }
 local pool = {}			-- [depth] = a one-row key set, reused (a key call allocates nothing once warm)
 local depth = 0
-local retryQ = {}		-- [service] = { input, opts } (one retry each)
+local retryQ = {}		-- [service] = { { input, opts }, ... } : a direct call's failed inputs, key sets merged (a trigger row keeps its own keys)
 
 local function keySet(v)
 	local s = pool[depth]
@@ -169,23 +169,37 @@ local function fallback(svc, input, err)
 	return nil, err
 end
 
-local function Fail(name, svc, input, err)
+local function Fail(name, svc, input, err, opts)
 	err = M.PSS_ErrFail(name, err)		-- ring, breaker; the text starts with its code
 	if M.PSS_NoteListenerError then M.PSS_NoteListenerError("service " .. name, err, true) end
-	if svc.retry and not retryQ[name] and M.PSS_IsSet(input) then
-		retryQ[name] = { input = copySet(input) }
+	if svc.retry and not M.PSS_InRow and M.PSS_IsSet(input) then
+		local q = retryQ[name]
+		if not q then q = {}; retryQ[name] = q end
+		local last = q[#q]
+		if last and last.opts == opts and #input.cols == 1 and input.cols[1] == "key" and #last.input.cols == 1 and last.input.cols[1] == "key" then
+			local have = {}
+			for i = 1, last.input.n do have[last.input[i][1]] = true end
+			for i = 1, input.n do
+				local k = input[i][1]
+				if not have[k] then have[k] = true; last.input.n = last.input.n + 1; last.input[last.input.n] = { k } end
+			end
+		elseif #q < 8 then
+			q[#q + 1] = { input = copySet(input), opts = opts }
+		end
 	end
 	return fallback(svc, input, err)
 end
 
 local function runRetries()
-	for name, r in pairs(retryQ) do
+	for name, q in pairs(retryQ) do
 		retryQ[name] = nil
 		local svc = services[name]
 		if svc then
-			local ok, out = pcall(svc.fn, r.input, r.opts)
-			if ok and M.PSS_IsSet(out) then M.PSS_ErrOk(name)
-			else M.PSS_ErrFail(name, ok and "fail: retry returned no record set" or out) end
+			for _, r in ipairs(q) do
+				local ok, out = pcall(svc.fn, r.input, r.opts)
+				if ok and M.PSS_IsSet(out) then M.PSS_ErrOk(name)
+				else M.PSS_ErrFail(name, ok and "fail: retry returned no record set" or out) end
+			end
 		end
 	end
 end
@@ -227,7 +241,7 @@ function M.PSS_Call(name, input, opts)
 		ok, out = pcall(svc.fn, set, opts)
 	end
 	depth = depth - 1
-	if not ok then return Fail(name, svc, set, out) end
+	if not ok then return Fail(name, svc, set, out, opts) end
 	if out ~= nil and not M.PSS_IsSet(out) then return Fail(name, svc, set, "fail: returned a value that is not a record set") end
 	if out == set and set == pool[depth + 1] then out = copySet(out) end		-- never hand out the reused key set
 	if svc.onError == "last" and out then svc.last = { set = out, ver = svc.ver and svc.ver() } end

@@ -189,6 +189,39 @@ if phase == "err" then
 	H.combat = false
 	H.Fire("PLAYER_REGEN_ENABLED")
 	check(runs == 2, "TST-p021: runs when combat ends (" .. runs .. ")")
+	-- R1-02: a direct call keeps every failed input (key sets merged, opts kept); a trigger row retries only through its own keys
+	local seenKeys, fails = {}, 3
+	M.PSS_Provide("t.w2", function(set, opts)
+		if fails > 0 then fails = fails - 1 error("busy") end
+		for i = 1, set.n do seenKeys[#seenKeys + 1] = set[i][1] .. (opts and opts.tag or "") end
+		return set
+	end, { returns = { "*" }, retry = 1, writes = true })
+	local tag = { tag = "!" }
+	M.PSS_Call("t.w2", "a", tag)
+	M.PSS_Call("t.w2", "b", tag)
+	M.PSS_Call("t.w2", "a", tag)
+	fails = 0
+	M.PSS_ErrSettle()
+	table.sort(seenKeys)
+	check(#seenKeys == 2 and seenKeys[1] == "a!" and seenKeys[2] == "b!", "R1-02: both failed direct calls applied once after one settle, with their opts (" .. table.concat(seenKeys, ",") .. ")")
+	local applied, rfails = {}, 2
+	M.PSS_Provide("t.w3", function(set)
+		if rfails > 0 then rfails = rfails - 1 error("busy") end
+		for i = 1, set.n do applied[#applied + 1] = set[i][1] end
+		return set
+	end, { returns = { "*" }, retry = 1, writes = true })
+	M.PSS_Trigger({ id = "t.row3", gate = "logging", on = { "BAG_UPDATE" }, settle = { "BAG_UPDATE_DELAYED" }, run = "t.w3", key = function(_, b) return "k" .. tostring(b) end })
+	H.Fire("BAG_UPDATE", 1)
+	H.Fire("BAG_UPDATE", 2)
+	H.Fire("BAG_UPDATE_DELAYED")		-- fails, the row keeps k1 and k2
+	check(#applied == 0, "R1-02: the first settle failed")
+	M.PSS_ErrSettle()
+	check(#applied == 0, "R1-02: the bus did not retry a row's write")
+	H.Fire("BAG_UPDATE_DELAYED")		-- the second failure
+	H.Fire("BAG_UPDATE", 3)
+	H.Fire("BAG_UPDATE_DELAYED")
+	table.sort(applied)
+	check(#applied == 3 and applied[1] == "k1" and applied[2] == "k2" and applied[3] == "k3", "R1-02: every kept key applied once on the next settle (" .. table.concat(applied, ",") .. ")")
 	-- TST-p022: a bad provide
 	T.strict = true
 	check(not pcall(M.PSS_Provide, "bad name", function() end), "TST-p022: raises under strict")
