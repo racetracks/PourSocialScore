@@ -70,6 +70,12 @@ return function(stub)
 			isBound = row.bound == true, hasLoot = row.hasLoot }
 	end
 
+	function stub.SetMoney(c, account, guild)
+		if c ~= nil then W.money = c end
+		if account ~= nil then W.accountMoney = account end
+		if guild ~= nil and W.guildbank then W.guildbank.money = guild end
+	end
+
 	function stub.SeedWorld(spec)
 		spec = spec or {}
 		local f = flags(spec.client or (camelotEnv and "camelot" or "retail"))

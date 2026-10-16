@@ -16,4 +16,8 @@ phase() {
 phase off none
 phase options none
 for ph in scan filters act cmd icon roundtrip mapbutton dttlog merchant options bus refresh; do phase $ph dtt; done
+phase shared dtt,bags
+phase scan dtt,bags
+phase act dtt,warehouse,bags
+phase filters dtt,bags
 exit $fail

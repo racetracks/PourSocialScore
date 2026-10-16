@@ -118,6 +118,9 @@ function M.PSS_EntityId(kind, name, realm, create, unit)
 		if not name then return nil end
 	elseif kind == "w" then
 		realm = ""
+	elseif type(realm) == "string" and realm ~= "" then
+		local _, r = split("X", realm)		-- a guild's realm is spelled the way a character's is
+		if r and r ~= "" then realm = r end
 	end
 	local k = indexKey(kind, name, realm)
 	local id = byName:get(k)

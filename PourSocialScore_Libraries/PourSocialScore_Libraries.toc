@@ -22,6 +22,8 @@ PSS_ItemDict.lua
 PSS_ItemRead.lua
 PSS_WhStore.lua
 PSS_WhMeta.lua
+PSS_Money.lua
+PSS_MoneyValue.lua
 PSS_WhIndex.lua
 PSS_Trig.lua
 PSS_ImportExport.lua

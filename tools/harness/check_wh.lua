@@ -1409,6 +1409,108 @@ elseif phase == "numbers" then
 	check(parts > 100, "TST-p095: the changes were applied in part (" .. parts .. ")")
 end
 
+if phase == "money" then
+	libs()
+	local me = M.PSS_Me(false)
+	local wb = M.PSS_EntityId("w", "Warband", "", true)
+	local d = PSS_WarehouseDB
+	local fired = {}
+	M.Events.Register("MONEY_CHANGED", function(set) fired[#fired + 1] = set end)
+	-- TST-p100: the first read saved this character's and the warband's gold; 0 is not stored
+	check(d.gold and d.gold[me] == 12345678 and d.gold[wb] == 77777777, "TST-p100: the first read saved the character's and the warband's gold")
+	H.SetMoney(0)
+	H.Fire("PLAYER_MONEY")
+	check(d.gold[me] == nil, "TST-p100: 0 gold is not stored")
+	H.SetMoney(500)
+	fired = {}
+	H.Fire("PLAYER_MONEY")
+	check(d.gold[me] == 500 and #fired == 1 and fired[1].cols[1] == "ent" and fired[1][1][1] == me and fired[1][1][2] == 500, "TST-p100: PLAYER_MONEY saved 500 and MONEY_CHANGED named (ent, copper)")
+	fired = {}
+	H.Fire("PLAYER_MONEY")
+	check(#fired == 0, "TST-p100: no change, no event")
+	H.SetMoney(nil, 5)
+	H.Fire("ACCOUNT_MONEY")
+	check(d.gold[wb] == 5, "TST-p100: ACCOUNT_MONEY saved the warband's gold")
+	M.PSS_ErrReset()
+	H.SetMoney(1.5)
+	H.Fire("PLAYER_MONEY")
+	local rr = M.PSS_Call("err.rows")
+	local noted
+	for i = 1, rr.n do if rr[i][1] == "arg" and rr[i][2] == "money.write" then noted = true end end
+	check(d.gold[me] == 500 and noted, "TST-p100: a gold value that is not whole copper is refused and noted")
+	d.gold[me] = "junk"
+	local g = M.PSS_Call("money.gold")
+	check(d.gold[me] == nil and not (g.n > 0 and g[1][1] == me), "TST-p100: a bad saved value is dropped on read")
+	H.SetMoney(12345678, 77777777)
+	H.Fire("PLAYER_MONEY")
+	-- the guild's gold, read at the guild bank
+	H.Interact("guildbank", true)
+	H.SetMoney(nil, nil, 2000000)
+	H.Fire("GUILDBANK_UPDATE_MONEY")
+	local gent = M.PSS_EntityId("g", "Guild One", "Realm", false)
+	check(gent and d.gold[gent] == 2000000, "TST-p100: the guild bank's gold is saved on the guild")
+	-- TST-p101: totals by realm, faction, all; hidden gold left out
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	d.gold = {}
+	for _, c in ipairs(w.chars) do if c.money > 0 then d.gold[ids["c:" .. c.name .. "-" .. c.realm]] = c.money end end
+	for _, gd in ipairs(w.guilds) do d.gold[ids["g:" .. gd.name .. "-" .. gd.realm]] = gd.money end
+	d.gold[ids["w:"]] = w.warband.money
+	local function totals(by)
+		local set = M.PSS_Call("money.gold")
+		local t = M.PSS_Call("money.total", set, { by = by })
+		local m = {}
+		for i = 1, t.n do m[t[i][1]] = t[i][2] end
+		return m
+	end
+	local all = totals("all")
+	local want = 0
+	for _, c in ipairs(w.chars) do if not c.hidden then want = want + c.money end end
+	for _, gd in ipairs(w.guilds) do want = want + gd.money end
+	want = want + w.warband.money
+	check(all.all == want, "TST-p101: the total equals the oracle, the hidden character left out (" .. tostring(all.all) .. " vs " .. want .. ")")
+	local byRealm = totals("realm")
+	check(byRealm.Realm == 12345678 + 500000 + 2000000 and byRealm.Otherrealm == 99 + 10, "TST-p101: by realm (characters and guilds)")
+	local byFaction = totals("faction")
+	check(byFaction.Alliance == 12345678 + 500000 + 0 + 1000 and byFaction.Horde == 99, "TST-p101: by faction (hidden Foxtrot left out)")
+	local hid = M.PSS_Call("money.gold", nil, { hidden = true })
+	check(hid.n == M.PSS_Call("money.gold").n + 1, "TST-p101: hidden gold only when asked for")
+	-- TST-p102: the text is the client's
+	local tx = M.PSS_Call("money.text", { cols = { "copper" }, n = 2, { 12345678 }, { 0 } })
+	check(tx[1][2] == GetMoneyString(12345678) and tx[2][2] == GetMoneyString(0), "TST-p102: money.text is the client's money string")
+	-- TST-p103: the vendor value
+	local v = M.PSS_Call("money.value", { cols = { "item", "count" }, n = 3, { "2589", 10 }, { WORLD.V.blade_a.key, 1 }, { "230000", 1 } }, { source = "" })
+	check(v[1][2] == 130 and v[1][3] == false and v[2][2] == 5600 and v[3][2] == 0, "TST-p103: the vendor value times the count, 0 for an unknown item")
+	-- TST-p104: price addons, read only
+	local asked = {}
+	_G.TSM_API = { GetCustomPriceValue = function(src, str) asked[#asked + 1] = src .. "|" .. str; return src == "DBMinBuyout" and 700 or 500 end, RawWrite = nil }
+	local t1 = M.PSS_Call("money.value", { cols = { "item" }, n = 1, { "2589" } }, { source = "tsm" })
+	local t2 = M.PSS_Call("money.value", { cols = { "item" }, n = 1, { "2589" } }, { source = "tsm", tsm = "DBMinBuyout" })
+	check(t1[1][3] == 500 and t1[1][4] == "tsm" and t2[1][3] == 700 and asked[1] == "DBMarket|i:2589" and asked[2] == "DBMinBuyout|i:2589", "TST-p104: TSM, default DBMarket and a chosen source")
+	_G.TSM_API = nil
+	_G.RECrystallize_PriceCheck = function(id) return id == 2589 and 321 or nil end
+	local r1 = M.PSS_Call("money.value", { cols = { "item", "count" }, n = 1, { "2589", 2 } }, { source = "recrystallize" })
+	check(r1[1][3] == 642 and r1[1][4] == "recrystallize", "TST-p104: RECrystallize, times the count")
+	_G.RECrystallize_PriceCheck = nil
+	_G.Auctionator = { API = { v1 = { GetAuctionPriceByItemID = function(caller, id) return caller == "PourSocialScore" and 99 or nil end } } }
+	local a1 = M.PSS_Call("money.value", { cols = { "item" }, n = 1, { "2589" } }, { source = "auctionator" })
+	local au = M.PSS_Call("money.value", { cols = { "item" }, n = 1, { "2589" } }, { source = "auto" })
+	check(a1[1][3] == 99 and au[1][3] == 99 and au[1][4] == "auctionator", "TST-p104: Auctionator, and auto finds the first addon that answers")
+	_G.Auctionator = nil
+	local none = M.PSS_Call("money.value", { cols = { "item" }, n = 1, { "2589" } }, { source = "auto" })
+	local no2 = M.PSS_Call("money.value", { cols = { "item" }, n = 1, { "2589" } }, { source = "tsm" })
+	check(none[1][3] == false and none[1][4] == "" and no2[1][3] == false and none[1][2] == 13, "TST-p104: with no price addon the auction value is absent and the vendor value stays")
+	-- TST-p105: the source option fires once
+	local seen = {}
+	M.Events.Register("MONEY_VALUE_SOURCE", function(s) seen[#seen + 1] = s end)
+	M.PSS_SetOpt("whValueSource", "global", "tsm")
+	M.PSS_SetOpt("whValueSource", "global", "auto")
+	M.PSS_SetOpt("whValueSource", "global", "")
+	check(#seen == 3 and seen[1] == "tsm" and seen[2] == "auto", "TST-p105: MONEY_VALUE_SOURCE once per change (" .. table.concat(seen, ",") .. ")")
+	-- TST-p227: the journal reads MONEY_CHANGED sets and values through money.value, no second gold store
+	check(d.gold ~= nil and PSS_JournalDB == nil, "TST-p227: gold is stored once")
+end
+
 local WHFILES = { "PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua",
 	"PSS_Money.lua", "PSS_MoneyValue.lua", "PSS_WhTooltip.lua", "PSS_Gw.lua", "PSS_GwSyndicator.lua", "PSS_WhImport.lua", "PSS_WhCommands.lua" }
 local function exists(path) local f = io.open(path, "rb") if f then f:close() return true end return false end
