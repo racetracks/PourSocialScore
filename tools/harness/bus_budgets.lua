@@ -9,9 +9,10 @@ return {
 	kb = {
 		["PSS_Err.lua"] = { measured = 1.7, gate = 4, stage = "p01 (3.7.0.106)" },
 		["PSS_Bus.lua"] = { measured = 4.5, gate = 8, stage = "p01 (3.7.0.106)" },
-		["PSS_Store.lua"] = { measured = 1.5, gate = 12, stage = "S2 (3.7.0.100)" },
-		["PSS_Query.lua"] = { measured = 6.3, gate = 8, stage = "p01 (3.7.0.106)" },
-		["PSS_Entity.lua"] = { measured = 6.3, gate = 10, stage = "S2 (3.7.0.100)" },
+		["PSS_Store.lua"] = { measured = 1.8, gate = 12, stage = "p03 (3.7.0.106)" },
+		["PSS_Index.lua"] = { measured = 2.6, gate = 4, stage = "p04 (3.7.0.106)" },
+		["PSS_Query.lua"] = { measured = 6.6, gate = 8, stage = "p04 (3.7.0.106)" },
+		["PSS_Entity.lua"] = { measured = 8.2, gate = 10, stage = "p04 (3.7.0.106)" },
 		["PSS_Watch.lua"] = { measured = 15.2, gate = 16, stage = "S3 (3.7.0.104), core" },
 		["PSS_Trig.lua"] = { measured = 48.8, gate = 56, stage = "S3 (3.7.0.104)" },
 	},

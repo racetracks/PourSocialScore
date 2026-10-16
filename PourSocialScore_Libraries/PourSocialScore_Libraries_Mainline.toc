@@ -13,6 +13,7 @@ PSS_Err.lua
 PSS_Bus.lua
 PSS_Codec.lua
 PSS_Store.lua
+PSS_Index.lua
 PSS_Query.lua
 PSS_Entity.lua
 PSS_Trig.lua

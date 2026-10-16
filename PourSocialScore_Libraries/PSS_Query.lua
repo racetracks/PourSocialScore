@@ -24,16 +24,24 @@
 local addon = PourSocialScore_NS
 local M = addon.M
 
-local type, pairs, ipairs, error, tostring, pcall = type, pairs, ipairs, error, tostring, pcall
+local type, pairs, ipairs, error, tostring, pcall, next = type, pairs, ipairs, error, tostring, pcall, next
 local sort = table.sort
 
 local dicts = {}		-- [name] = { fields = { names }, get = function(id) -> values }
+local pushdown = {}		-- [service] = { col, fn }: a service that answers where[col] == value from an index
+M.PSS_QueryStats = { scanned = 0 }		-- rows q.where walked (the harness proves a pushdown reads none)
 local pools = {}		-- [step name] = a record set kept for opts.reuse
 
 -- a dictionary the join step can read: get(id, dest, at) writes one value per
 -- field into dest[at], dest[at + 1], ... (nothing when the id is unknown)
 function M.PSS_QueryDict(name, fields, get)
 	dicts[name] = { fields = fields, get = get }
+end
+
+-- a service answers where[col] == value straight from a declared index:
+-- fn(value, key, opts) returns the rows of the set it would have returned
+function M.PSS_QueryIndexed(service, column, fn)
+	pushdown[service] = { col = column, fn = fn }
 end
 
 local function col(set, name)
@@ -90,6 +98,7 @@ M.PSS_Provide("q.where", function(set, opts)
 		ws[#ws + 1] = want
 	end
 	local o, pooled = out("q.where", set.cols, opts)
+	M.PSS_QueryStats.scanned = M.PSS_QueryStats.scanned + set.n
 	for i = 1, set.n do
 		local row, keep = set[i], true
 		for j = 1, #cs do
@@ -201,13 +210,35 @@ end
 
 function M.PSS_Query(q)
 	local set, err = q.from, nil
+	local where = q.where
 	if type(set) == "string" then
-		set, err = M.PSS_Call(set, q.key, q.opts)
-		if not set then return nil, err end
+		local pd = pushdown[set]
+		local got
+		if pd and type(where) == "table" and where[pd.col] ~= nil and type(where[pd.col]) ~= "table" then
+			local ok, res = pcall(pd.fn, where[pd.col], q.key, q.opts)
+			if ok and M.PSS_IsSet(res) then
+				got = res
+				where = {}
+				for k, v in pairs(q.where) do if k ~= pd.col then where[k] = v end end
+				if next(where) == nil then where = nil end
+			end
+		end
+		if got then
+			set = got
+		else
+			set, err = M.PSS_Call(q.from, q.key, q.opts)
+			if not set then return nil, err end
+		end
 	elseif not M.PSS_IsSet(set) then
 		return nil, "arg: from is not a service or a record set"
 	end
-	local ok, out = pcall(steps, q, set)
+	local qq = q
+	if where ~= q.where then
+		qq = {}
+		for k, v in pairs(q) do qq[k] = v end
+		qq.where = where
+	end
+	local ok, out = pcall(steps, qq, set)
 	if not ok then
 		out = M.PSS_ErrFail("q.query", out)
 		if M.PSS_NoteListenerError then M.PSS_NoteListenerError("service q.query", out, true) end

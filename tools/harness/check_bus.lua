@@ -156,7 +156,7 @@ elseif phase == "budget" then
 	-- TST-00191 for this stage's files
 	local B = dofile(here .. "/bus_budgets.lua")
 	local note = {}
-	for _, name in ipairs({ "PSS_Err.lua", "PSS_Bus.lua", "PSS_Store.lua", "PSS_Query.lua", "PSS_Entity.lua" }) do
+	for _, name in ipairs({ "PSS_Err.lua", "PSS_Bus.lua", "PSS_Store.lua", "PSS_Index.lua", "PSS_Query.lua", "PSS_Entity.lua" }) do
 		local chunk = assert(loadfile("PourSocialScore_Libraries/" .. name))
 		collectgarbage("collect"); collectgarbage("collect")
 		local a = collectgarbage("count")

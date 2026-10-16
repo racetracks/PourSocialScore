@@ -3,7 +3,7 @@
 -- wh: <phase>: <what>". Run on Retail and on Camelot (PSS_CAMELOT=1) by
 -- wh_phases.sh. Expected results come from the plan (03_Design, 05_Tests),
 -- not from the code. Phases are added with their packages:
---   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)
+--   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)  store2 (TST-p031..p036)  mapstore (TST-p037..p039, p061, p062)  idx (TST-p042..p049)
 local phase = os.getenv("PSS_PHASE") or "stub"
 local camelot = os.getenv("PSS_CAMELOT") == "1"
 local fail = false
@@ -347,6 +347,227 @@ elseif phase == "codecprop" then
 	check(C.check(full), "TST-p134: the whole string passes")
 	-- TST-p135: deterministic
 	check(C.header(b, n, 7) == C.header(b, n, 7), "TST-p135: the same body gives the same header")
+end
+
+local FIELDS3 = { { "name", "s" }, { "n", "n", 0 }, { "flag", "b" }, { "tag", "d" } }
+if phase == "store2" then
+	libs()
+	-- TST-p031: schema.db puts the rows in another saved table
+	local S = M.PSS_Store("t.own", { db = "T_OwnDB", key = "r", v = 1, fields = FIELDS3 })
+	check(S.Set(1, { name = "a", n = 5, flag = true, tag = "x" }), "TST-p031: a write")
+	check(T_OwnDB and T_OwnDB.r and T_OwnDB.r.rec[1] and PourSocialScoreDB.r == nil, "TST-p031: the rows live in T_OwnDB, nothing in PourSocialScoreDB")
+	-- TST-p032: Read equals Get per field, the row split once
+	S.Set(2, { name = "bb", tag = "x" })
+	S.Set(3, {})
+	for id = 1, 3 do
+		local out = {}
+		check(S.Read(id, out, 1, { "name", "n", "flag", "tag" }), "TST-p032: row " .. id .. " read")
+		check(out[1] == S.Get(id, "name") and out[2] == S.Get(id, "n") and out[3] == S.Get(id, "flag") and out[4] == S.Get(id, "tag"), "TST-p032: Read equals Get for row " .. id)
+	end
+	local all = {}
+	S.Read(1, all, 3, nil)
+	check(all[3] == "a" and all[4] == 5 and all[5] == true and all[6] == "x", "TST-p032: all fields in order from position 3")
+	check(S.Read(99, {}, 1, { "name" }) == false, "TST-p032: an unknown id reads false")
+	-- TST-p033: Col
+	local col = S.Col("name")
+	check(col[1] == "a" and col[2] == "bb" and col[3] == nil, "TST-p033: map of every id with a value")
+	check(S.Col("name") == col, "TST-p033: the same map until something changes")
+	S.Set(4, { name = "d" })
+	check(S.Col("name") ~= col and S.Col("name")[4] == "d", "TST-p033: rebuilt after a write")
+	local before = S.Col("name")
+	S.Drop()
+	check(S.Col("name") ~= before, "TST-p033: dropped by S.Drop")
+	-- TST-p034: Ver
+	local v0 = S.Ver()
+	S.Set(5, { name = "e" }); local v1 = S.Ver()
+	S.Add({ name = "f" }); local v2 = S.Ver()
+	S.Delete(5); local v3 = S.Ver()
+	check(v1 == v0 + 1 and v2 == v1 + 1 and v3 == v2 + 1, "TST-p034: one step per Set, Add and Delete")
+	S.Delete(12345)
+	check(S.Ver() == v3, "TST-p034: a Delete that found nothing does not bump it")
+	local C = M.PSS_Store("t.cap", { db = "T_OwnDB", key = "cap", v = 1, cap = 1, fields = FIELDS3 })
+	C.Set(1, { name = "x" }); local cv = C.Ver()
+	check(C.Set(2, { name = "y" }) == false and C.Ver() == cv, "TST-p034: a refused write does not bump it")
+	-- TST-p035: Rows reuse
+	local names = { "name", "n" }
+	local r1 = S.Rows(names, nil, { reuse = true })
+	local rows1 = {}
+	for i = 1, r1.n do rows1[r1[i]] = true end
+	local r2 = S.Rows(names, nil, { reuse = true })
+	local same = r2.n == r1.n
+	for i = 1, r2.n do if not rows1[r2[i]] then same = false end end
+	check(same and r2 == r1, "TST-p035: the second call hands back the same set and rows")
+	local r3 = S.Rows(names, nil, nil)
+	check(r3 ~= r1 and r3.n == r1.n and r3.cols[2] == "name", "TST-p035: without reuse a new set")
+	-- TST-p036: the ent store keeps its saved text (golden)
+	local E = M.PSS_Store("t.entgold", { key = "t_entgold", v = 1, cap = 500, fields = { { "kind", "s" }, { "name", "s" }, { "realm", "s" }, { "faction", "s" }, { "class", "s" }, { "race", "s" }, { "sex", "n" }, { "flags", "s" } } })
+	E.Set(1, { kind = "c", name = "Alpha", realm = "Realm", faction = "Alliance", class = "MAGE", race = "Human", sex = 2 })
+	check(PourSocialScoreDB.t_entgold.rec[1] == "c;Alpha;Realm;Alliance;MAGE;Human;2", "TST-p036: the v1 saved text is byte for byte as before: " .. tostring(PourSocialScoreDB.t_entgold.rec[1]))
+	PourSocialScoreDB.t_entgold = nil
+	T_OwnDB = nil
+elseif phase == "mapstore" or phase == "integrity" then
+	libs()
+	local C = M.PSS_Codec
+	local function cont(body, n) return C.header(body, n or 1, 1) end
+	local ms = M.PSS_MapStore("t.map", { db = "T_MapDB", key = "inv", bad = "bad", v = 1, cap = 3, badCap = 32 })
+	local good1, good2 = cont("1.100", 1), cont("1.200,2.300", 2)
+	if phase == "mapstore" then
+		-- TST-p037: verify all, then swap all
+		local bad2 = good2:gsub("2%.300", "2.301")
+		local ok, why = ms.Put(7, { b0 = good1, b1 = bad2 })
+		check(ok == false and why and why:find("^integrity: ") and T_MapDB == nil, "TST-p037: one bad string stops the whole write; nothing exists")
+		check(ms.Put(7, { b0 = good1, b1 = good2 }) and T_MapDB.inv[7].b0 == good1 and T_MapDB.inv[7].b1 == good2, "TST-p037: two good strings are both written")
+		local snap = T_MapDB.inv[7].b0
+		local ok2 = ms.Put(7, { b0 = cont("1.999", 1), b1 = good2:sub(1, #good2 - 2) })
+		check(ok2 == false and T_MapDB.inv[7].b0 == snap, "TST-p037: a later bad string leaves the earlier ones as they were")
+		-- cap
+		ms.Put(8, { b0 = good1 }); ms.Put(9, { b0 = good1 })
+		local capOk, capWhy = ms.Put(10, { b0 = good1 })
+		check(capOk == false and capWhy:find("^cap: ") and T_MapDB.inv[10] == nil, "TST-p037: the entity cap refuses a fourth entity")
+		-- TST-p038: a newer table is read-only
+		T_MapDB.v = 2
+		local before = T_MapDB.inv[7].b0
+		local nOk, nWhy = ms.Put(7, { b0 = good1 })
+		check(nOk == false and nWhy:find("^newer: ") and T_MapDB.inv[7].b0 == before and T_MapDB.v == 2, "TST-p038: refused with newer, table untouched")
+		T_MapDB.v = 1
+		-- TST-p039: unknown code and unknown layout kept
+		T_MapDB.inv[7].z9 = good1
+		T_MapDB.inv[7].b2 = "9;" .. good1
+		check(ms.Put(7, { b0 = cont("1.111", 1) }), "TST-p039: another code is written")
+		check(T_MapDB.inv[7].z9 == good1 and T_MapDB.inv[7].b2 == "9;" .. good1, "TST-p039: the unknown code and the unknown layout are still there, unchanged")
+		local got, why2 = ms.Get(7, "b2")
+		check(got == nil and why2 == "newer" and T_MapDB.inv[7].b2 == "9;" .. good1 and next(ms.Bad(7)) == nil, "TST-p039: the unknown layout is not read and not quarantined")
+		local codes = ms.Codes(7)
+		check(#codes == 4 and codes[1] == "b0" and codes[4] == "z9", "TST-p039: Codes lists every code")
+		check(ms.Put(7, { b0 = false }) and T_MapDB.inv[7].b0 == nil, "TST-p037: false removes a code")
+		T_MapDB = nil
+	else
+		-- TST-p061: the header is checked once per session per string
+		ms.Put(3, { b0 = good1, b1 = good2 })
+		ms.Drop()
+		local c0 = ms.Checks()
+		ms.Get(3, "b0"); ms.Get(3, "b0"); ms.Get(3, "b0")
+		check(ms.Checks() == c0 + 1, "TST-p061: three reads of one string checked it once (" .. (ms.Checks() - c0) .. ")")
+		ms.Get(3, "b1")
+		check(ms.Checks() == c0 + 2, "TST-p061: another string is checked on its own first read")
+		-- TST-p062: a wrong hash is quarantined, never deleted
+		local damaged = good2:gsub("^(%d+;%d+;%d+;)%d+", "%1123")
+		T_MapDB.inv[3].b1 = damaged
+		ms.Drop()
+		M.PSS_ErrReset()
+		local g, why = ms.Get(3, "b1")
+		check(g == nil and why == "bad", "TST-p062: the damaged string is not returned")
+		check(T_MapDB.inv[3].b1 == nil and T_MapDB.bad[3].b1 == damaged, "TST-p062: it is in the quarantine, whole")
+		check(ms.Get(3, "b0") == good1, "TST-p062: the other codes are untouched")
+		local rr = M.PSS_Call("err.rows")
+		local found
+		for i = 1, rr.n do if rr[i][1] == "integrity" then found = true end end
+		check(found, "TST-p062: an integrity entry in the ring")
+		-- TST-p074 (cap of the quarantine): 33 bad strings keep 32
+		for e = 20, 52 do
+			ms.Put(e, { b0 = good1 })
+			T_MapDB.inv[e].b0 = good1:gsub("^(%d+;%d+;%d+;)%d+", "%1777")
+			ms.Drop()
+			ms.Get(e, "b0")
+		end
+		local nbad = 0
+		for _, codes in pairs(T_MapDB.bad) do for _ in pairs(codes) do nbad = nbad + 1 end end
+		check(nbad == 32 and T_MapDB.bad[3] == nil, "TST-p074: 32 quarantined strings kept, the oldest dropped (" .. nbad .. ")")
+		T_MapDB = nil
+	end
+elseif phase == "idx" then
+	libs()
+	local data, ver = { a = 1, b = 2, c = 3 }, 1
+	local buildCalls = 0
+	local I = M.PSS_Index("t.idx", {
+		sourceVer = function() return ver end,
+		build = function(add) buildCalls = buildCalls + 1; for k, v in pairs(data) do add(k, v) end end,
+		partial = function(add, drop, ids)
+			for id in pairs(ids) do if data[id] ~= nil then add(id, data[id]) else drop(id) end end
+		end,
+	})
+	-- TST-p042
+	check(I:get("a") == 1 and I:has("b") and not I:has("zz") and I:size() == 3, "TST-p042: lookups")
+	check(buildCalls == 1 and I:builds() == 1, "TST-p042: built once for four lookups (" .. buildCalls .. ")")
+	-- TST-p043: a version change rebuilds; a dirty set rebuilds in part
+	data.d = 4; ver = 2
+	check(I:get("d") == 4 and buildCalls == 2, "TST-p043: a new version rebuilds")
+	data.e = 5; data.a = nil; ver = 3
+	M.PSS_IndexDirty("t.idx", { "e", "a" })
+	check(I:get("e") == 5 and I:get("a") == nil and buildCalls == 2 and I:partials() == 1, "TST-p043: a dirty set rebuilds only those ids (" .. buildCalls .. " builds, " .. I:partials() .. " partial)")
+	-- TST-p044: the partial result equals a full rebuild
+	local keysPartial = I:list()
+	I:drop()
+	local keysFull = I:list()
+	check(table.concat(keysPartial, ",") == table.concat(keysFull, ","), "TST-p044: partial equals full (" .. table.concat(keysPartial, ",") .. " vs " .. table.concat(keysFull, ",") .. ")")
+	check(table.concat(I:range("b", "d"), ",") == "b,c,d", "TST-p044: range")
+	-- TST-p045: released on a drop, a GC request
+	check(I:resident(), "TST-p045: resident after a lookup")
+	M.PSS_IndexDrop("t.idx")
+	check(not I:resident(), "TST-p045: released by M.PSS_IndexDrop")
+	I:get("b")
+	M.PSS_RequestGC("test")
+	check(not I:resident(), "TST-p045: released by a GC request")
+	-- TST-p046: cap
+	M.PSS_ErrReset()
+	local big = M.PSS_Index("t.cap", { build = function(add) for i = 1, 20 do add(i, i) end end, cap = 10 })
+	check(big:size() == 10 and big:get(5) == 5 and big:get(15) == nil, "TST-p046: serves what fits")
+	local rr = M.PSS_Call("err.rows")
+	local capNote
+	for i = 1, rr.n do if rr[i][1] == "cap" and rr[i][2] == "index t.cap" then capNote = true end end
+	check(capNote, "TST-p046: a cap entry in the ring, no error")
+	-- TST-p047: a sliced build
+	local clockN, realClock = 0, debugprofilestop
+	debugprofilestop = function() clockN = clockN + 1; return clockN end		-- 1 ms per call
+	local order = {}
+	local units = {}
+	for i = 1, 40 do units[i] = i end
+	local S = M.PSS_Index("t.slice", { units = function() return units end, each = function(u, add) order[#order + 1] = u; add(u, u * 2) end, sliceMs = 4 })
+	check(S:warm() == true and not S:built(), "TST-p047: warm starts a build that is not done")
+	local needs = M.PSS_Needs()
+	local seen
+	for i = 1, needs.n do if needs[i][1] == "index.t.slice" then seen = true end end
+	check(seen, "TST-p047: the slice waits on the trigger engine")
+	local steps = 0
+	while not S:step() do steps = steps + 1; check(#order <= steps * 5 + 5, "TST-p047: a slice does little") ; if steps > 100 then break end end
+	check(steps >= 5 and S:built() and S:get(40) == 80, "TST-p047: the build took several slices (" .. steps .. ") and is complete")
+	check(#order == 40, "TST-p047: each unit ran once")
+	-- a lookup in the middle of a build finishes it
+	S:drop(); order = {}
+	S:warm(); S:step()
+	check(S:get(7) == 14 and S:built() and #order == 40, "TST-p047: a lookup mid-build finishes it at once")
+	debugprofilestop = realClock
+	M.PSS_Unwant("index.t.slice")
+	-- TST-p048: ent.byName agrees with the entity rows
+	local ids = {}
+	for i, nm in ipairs({ "Idx1", "Idx2", "Idx3" }) do ids[i] = M.PSS_EntityId("c", nm, "Realm", true) end
+	M.PSS_EntityDrop()
+	local ok = true
+	for i, nm in ipairs({ "Idx1", "Idx2", "Idx3" }) do if M.PSS_EntityId("c", nm, "Realm", false) ~= ids[i] then ok = false end end
+	check(ok and M.PSS_EntityId("c", "Nobody", "Realm", false) == nil, "TST-p048: names map to the same ids after the index is rebuilt")
+	-- TST-p049: pushdown
+	local rowsN = 10000
+	local table_ = M.PSS_Set({ "item", "ent" })
+	local byItem = {}
+	for i = 1, rowsN do M.PSS_SetAdd(table_, { i, i % 7 }); byItem[i] = table_[i] end
+	M.PSS_Provide("t.all", function() return table_ end, { returns = { "item", "ent" } })
+	M.PSS_QueryIndexed("t.all", "item", function(value)
+		local out = M.PSS_Set({ "item", "ent" })
+		if byItem[value] then M.PSS_SetAdd(out, byItem[value]) end
+		return out
+	end)
+	local st = M.PSS_QueryStats
+	local s0 = st.scanned
+	local viaIndex = M.PSS_Query({ from = "t.all", where = { item = 4242 } })
+	check(viaIndex and viaIndex.n == 1 and viaIndex[1][1] == 4242 and st.scanned == s0, "TST-p049: the indexed column reads the index, no rows scanned")
+	local viaScan = M.PSS_Query({ from = table_, where = { item = 4242 } })
+	check(viaScan.n == 1 and viaScan[1][1] == 4242 and st.scanned == s0 + rowsN, "TST-p049: the same rows by a scan (" .. (st.scanned - s0) .. " scanned)")
+	local both = M.PSS_Query({ from = "t.all", where = { item = 4243, ent = 99 } })
+	check(both and both.n == 0 and st.scanned == s0 + rowsN + 1, "TST-p049: another column is still filtered after the index")
+	local t0 = os.clock()
+	for _ = 1, 200 do M.PSS_Query({ from = "t.all", where = { item = 4242 } }) end
+	local us = (os.clock() - t0) / 200 * 1e6
+	check(us < 50, string.format("TST-p049: a pushdown of one match in 10,000 took %.1f us", us))
 end
 
 if not fail then print("PASS wh " .. phase) end

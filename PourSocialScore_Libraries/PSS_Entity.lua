@@ -34,25 +34,25 @@ local ent = M.PSS_Store("ent", {
 local KINDS = { c = true, g = true, w = true }
 
 local me				-- this character's id, once per session
-local byName			-- [kind .. ":" .. lower name] = id, built on first need
 
 local function indexKey(kind, name, realm)
 	local full = realm and realm ~= "" and (name .. "-" .. realm) or name
 	return kind .. ":" .. full:lower()
 end
 
-local function index()
-	if not byName then
-		byName = {}
+-- [kind .. ":" .. lower name] = id, a declared index (PSS_Index.lua): built on the
+-- first lookup with one row split per entity, released on a GC request
+local NAMEF, tmp = { "kind", "name", "realm" }, {}
+local byName = M.PSS_Index("ent.byName", {
+	sourceVer = ent.Ver,
+	build = function(add)
 		ent.Each(function(id)
-			local kind = ent.Get(id, "kind")
-			if KINDS[kind] then byName[indexKey(kind, ent.Get(id, "name") or "", ent.Get(id, "realm"))] = id end
+			if ent.Read(id, tmp, 1, NAMEF) and KINDS[tmp[1]] then add(indexKey(tmp[1], tmp[2] or "", tmp[3]), id) end
 		end)
-	end
-	return byName
-end
+	end,
+})
 
-function M.PSS_EntityDrop() byName = nil; ent.Drop() end
+function M.PSS_EntityDrop() byName:drop(); ent.Drop() end
 
 -- a character is "Name" and "Realm" (the one name builder, with Camelot surnames)
 local function split(name, realm, unit)
@@ -78,7 +78,7 @@ function M.PSS_EntityId(kind, name, realm, create, unit)
 		realm = ""
 	end
 	local k = indexKey(kind, name, realm)
-	local id = index()[k]
+	local id = byName:get(k)
 	if id or not create then return id end
 	local rec = { kind = kind, name = name, realm = realm }
 	if unit then
@@ -89,7 +89,7 @@ function M.PSS_EntityId(kind, name, realm, create, unit)
 	end
 	local new, why = ent.Add(rec)
 	if not new then return nil, why end
-	byName[k] = new
+	byName:put(k, new)
 	return new
 end
 
@@ -110,9 +110,11 @@ function M.PSS_Entity(id)
 	return ent.Rows(FIELDS, { n = 1, { id } })
 end
 
-M.PSS_QueryDict("ent", { "name", "realm", "kind" }, function(id, dest, at)
-	if KINDS[ent.Get(id, "kind")] then
-		dest[at], dest[at + 1], dest[at + 2] = ent.Get(id, "name"), ent.Get(id, "realm"), ent.Get(id, "kind")
+local DICTF = { "name", "realm", "kind" }
+M.PSS_QueryDict("ent", DICTF, function(id, dest, at)
+	-- one split of the row; an entity of a kind this version does not know reads as absent
+	if ent.Read(id, dest, at, DICTF) and not KINDS[dest[at + 2]] then
+		dest[at], dest[at + 1], dest[at + 2] = nil, nil, nil
 	end
 end)
 
@@ -189,9 +191,7 @@ function M.PSS_EntityRemove(id)
 		end
 	end
 	ent.Delete(id)
-	if byName then
-		for k, v in pairs(byName) do if v == id then byName[k] = nil end end
-	end
+	byName:drop()
 	if me == id then me = nil end
 	return true
 end
