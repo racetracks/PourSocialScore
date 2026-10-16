@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.105 - Docs: dated temp folders, token rule for threads, graphs in reports
+
+- Docs only: session temp folders on scratch are dated by year, month and day (temp/YYYY/MM/DD/hh-mm-ss-Ddd-<name>/); older folders stay where they are. The author's token rule is passed verbatim to every sub-agent and thread, and summaries and reports carry graphs and heat maps where they help. Every planned build after S3 moves up one (W1 is 3.7.0.106).
+
 => 3.7.0.104 - Trigger engine (service bus stage S3)
 
 - Under the hood, nothing visible: the engine that will replace every per-frame and timer wake-up in the addon, and the trigger rows that the warehouse and bag windows will use, are in place and switched off until a feature needs them.
