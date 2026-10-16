@@ -2147,6 +2147,96 @@ if phase == "tooltip" then
 	check(sums == 1, "TST-p197: one wh.sum for two hovers (" .. sums .. ")")
 end
 
+if phase == "everywhere" or phase == "whoptions" then
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	if phase == "everywhere" then
+		check(M.PSS_Need("GUI"), "the window folder loads")
+		local V = WORLD.V
+		local sig, geom
+		local said = {}
+		local realShow = M.ShowMsg
+		M.ShowMsg = function(x) said[#said + 1] = tostring(x) end
+		for _, look in ipairs({ 2, 0, 1 }) do
+			M.PSS_SetOpt("uiSkin", "global", look)
+			local win = M.PSS_WhOpenEverywhere("epic")
+			local tag = "look " .. look .. ": "
+			check(win and win:IsShown() and _G.PSS_Everywhere == win, tag .. "the window shows")
+			local rows = {}
+			for i = 1, #win.rows do rows[#rows + 1] = win.rows[i].key .. "=" .. win.rows[i].total end
+			local s2 = table.concat(rows, ",")
+			sig = sig or s2
+			check(s2 == sig and #win.rows == 3, tag .. "the same results in every look (" .. s2 .. ")")
+			local g = win:GetWidth() .. "x" .. win:GetHeight() .. ":" .. win.list.rows[1]:GetHeight() .. ":" .. #win.list.rows
+			geom = geom or g
+			check(g == geom, tag .. "the same layout in every look (" .. g .. " vs " .. geom .. ")")
+			check(win.list.rows[1].cells.name:GetText() ~= "" and win.list.rows[1].cells.total:GetText() ~= "", tag .. "a row is drawn")
+			check(win.money.copper and win.money.text:GetText() ~= "", tag .. "the gold line is drawn")
+			local dark = look == 1
+			check(win.pssParts.fill:IsShown() == (dark or not win.pssParts.art), tag .. "the panel follows the look")
+			-- TST-p201: a click on a row says where the item is
+			said = {}
+			win.list.rows[1]._scripts.OnClick(win.list.rows[1], "LeftButton")
+			check(#said >= 2 and said[1]:find(":", 1, true), tag .. "a click prints the location (" .. tostring(said[1]) .. ")")
+			-- a location click handed to an addon that asked
+			local got
+			M.PSS_GwShow = function(key) got = key end
+			win.list.rows[1]._scripts.OnClick(win.list.rows[1], "LeftButton")
+			check(got == win.rows[1].key, tag .. "the registered addon is told the item")
+			M.PSS_GwShow = nil
+			-- TST-p200: Escape closes it
+			local listed
+			for _, n in ipairs(UISpecialFrames) do if n == "PSS_Everywhere" then listed = true end end
+			check(listed, tag .. "Escape is registered")
+			win:Hide()
+			check(not win:IsShown(), tag .. "closed")
+			-- TST-p205: a look or font change while shown repaints in place
+			M.PSS_WhOpenEverywhere("epic")
+			M.PSS_SetOpt("uiSkin", "global", (look + 1) % 3)
+			M.Events.Fire("OPTION_CHANGED", "uiSkin")
+			check(win:IsShown(), tag .. "still shown after a look change")
+			win:Hide()
+			M.PSS_SetOpt("uiSkin", "global", look)
+		end
+		-- TST-p202: every service failing gives the empty state in all three looks
+		M.PSS_Test.fault = "*"
+		for _, look in ipairs({ 2, 0, 1 }) do
+			M.PSS_SetOpt("uiSkin", "global", look)
+			local ok, win = pcall(M.PSS_WhOpenEverywhere, "epic")
+			check(ok and win and win:IsShown() and #win.rows == 0, "TST-p202: look " .. look .. " shows the empty state")
+			if ok and win then win:Hide() end
+		end
+		M.PSS_Test.fault = nil
+		M.PSS_SetOpt("uiSkin", "global", 2)
+		M.ShowMsg = realShow
+	else
+		-- TST-p203: the Warehouse page has every wh* row and redraws on a change
+		SlashCmdList["PSS"]("gui")
+		local win = _G.PSS_Window
+		win.tabs[4]._scripts.OnClick(win.tabs[4])
+		local ui = H.Private("PourSocialScore_GUI")
+		check(M.PSS_MgrHas("warehouse"), "the nav has the Warehouse page")
+		ui.ManagerShow("warehouse")
+		local pg = win.pages[4].pages.warehouse
+		check(pg and pg:IsShown() and pg.groups and #pg.groups == 1, "the page is built")
+		local have = {}
+		for _, it in ipairs(pg.groups[1].items) do have[it.o.key] = it.row end
+		local missing = {}
+		for _, o in ipairs(M.PSS_OPTIONS) do if o.key:find("^wh%u") and not have[o.key] then missing[#missing + 1] = o.key end end
+		check(#missing == 0, "every wh option has a row (missing " .. table.concat(missing, ",") .. ")")
+		local row = have.whTipTotal
+		check(row and row.check, "a tick box row")
+		local before = row.check:GetChecked()
+		M.PSS_SetOpt("whTipTotal", "global", not before)
+		M.Events.Fire("OPTION_CHANGED", "whTipTotal")
+		local row2
+		for _, it in ipairs(pg.groups[1].items) do if it.o.key == "whTipTotal" then row2 = it.row end end
+		check(row2 and row2.check:GetChecked() == (not before), "a change redraws the open page")
+		M.PSS_SetOpt("whTipTotal", "global", nil)
+	end
+end
+
 local WHFILES = { "PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua",
 	"PSS_Money.lua", "PSS_MoneyValue.lua", "PSS_WhTooltip.lua", "PSS_Gw.lua", "PSS_GwSyndicator.lua", "PSS_WhImport.lua", "PSS_WhCommands.lua" }
 local function exists(path) local f = io.open(path, "rb") if f then f:close() return true end return false end

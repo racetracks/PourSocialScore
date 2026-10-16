@@ -7,12 +7,12 @@ here=$(dirname "$0")
 fail=0
 n=0
 bad=0
-phases=${*:-stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip synapi shimfault gwlint synevents}
+phases=${*:-stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip everywhere whoptions synapi shimfault gwlint synevents}
 for ph in $phases; do
 	comp=logging
 	seed=
 	case $ph in registry|schema) comp=logging,warehouse,bags ;; dict) comp=logging,bags ;; live) comp=logging,bags ;;
-		track|caps|delete|money|search|searchloc|sweepbudget|import0|tooltip|synapi|shimfault|gwlint|synevents) comp=logging,warehouse,bags; seed=PSS_WH_SEED=1 ;; ent|numbers) comp=logging,warehouse,bags ;; off) comp=none ;; esac
+		track|caps|delete|money|search|searchloc|sweepbudget|import0|tooltip|everywhere|whoptions|synapi|shimfault|gwlint|synevents) comp=logging,warehouse,bags; seed=PSS_WH_SEED=1 ;; ent|numbers) comp=logging,warehouse,bags ;; off) comp=none ;; esac
 	for cam in "" "PSS_CAMELOT=1"; do
 		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=$comp $seed $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | sed "s/^PASS wh $ph/PASS wh $ph ${cam:+(Camelot)}/"
@@ -24,7 +24,7 @@ for ph in $phases; do
 done
 
 # TST-00121: write, reload, save again; a newer table layout is only read
-if [ "$phases" = "stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip synapi shimfault gwlint synevents" ] || echo " $phases " | grep -q " sv "; then
+if [ "$phases" = "stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip everywhere whoptions synapi shimfault gwlint synevents" ] || echo " $phases " | grep -q " sv "; then
 	for cam in "" "PSS_CAMELOT=1"; do
 		w=$(mktemp -d)
 		run() { env PSS_PHASE=$1 PSS_COMPONENTS=logging,warehouse,bags PSS_WH_SEED=1 $cam lua5.1 "$here/run.lua" . "$2" "$3" "$here/check_wh.lua" 2>&1 | grep -v '^|cff'; }
@@ -47,7 +47,7 @@ if [ "$phases" = "stub err codec codecprop store2 mapstore integrity idx watch u
 fi
 # TST-p078: Syndicator loaded
 for cam in "" "PSS_CAMELOT=1"; do
-	if [ "$phases" = "stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip synapi shimfault gwlint synevents" ] || echo " $phases " | grep -q " syn "; then
+	if [ "$phases" = "stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip everywhere whoptions synapi shimfault gwlint synevents" ] || echo " $phases " | grep -q " syn "; then
 		out=$(env PSS_PHASE=syn PSS_COMPONENTS=logging,warehouse,bags PSS_WH_SEED=1 PSS_EXTRA_ADDONS="$here/fixtures/Syndicator" $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | sed "s/^PASS wh syn/PASS wh syn ${cam:+(Camelot)}/"
 		n=$((n + 1))
@@ -55,7 +55,7 @@ for cam in "" "PSS_CAMELOT=1"; do
 	fi
 done
 for cam in "" "PSS_CAMELOT=1"; do
-	if [ "$phases" = "stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip synapi shimfault gwlint synevents" ] || echo " $phases " | grep -q " synimport "; then
+	if [ "$phases" = "stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip everywhere whoptions synapi shimfault gwlint synevents" ] || echo " $phases " | grep -q " synimport "; then
 		out=$(env PSS_PHASE=synimport PSS_COMPONENTS=logging,warehouse,bags PSS_EXTRA_ADDONS="$here/fixtures/Syndicator" $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | sed "s/^PASS wh synimport/PASS wh synimport ${cam:+(Camelot)}/"
 		n=$((n + 1))
@@ -63,7 +63,7 @@ for cam in "" "PSS_CAMELOT=1"; do
 	fi
 done
 for cam in "" "PSS_CAMELOT=1"; do
-	if [ "$phases" = "stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip synapi shimfault gwlint synevents" ] || echo " $phases " | grep -q " synother "; then
+	if [ "$phases" = "stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip everywhere whoptions synapi shimfault gwlint synevents" ] || echo " $phases " | grep -q " synother "; then
 		out=$(env PSS_PHASE=synother PSS_COMPONENTS=logging,warehouse,bags PSS_WH_SEED=1 PSS_EXTRA_ADDONS="$here/fixtures/OtherSyn" $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | sed "s/^PASS wh synother/PASS wh synother ${cam:+(Camelot)}/"
 		n=$((n + 1))

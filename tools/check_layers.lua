@@ -169,6 +169,7 @@ local ENTRIES = {
 	["PourSocialScore/PSS_Whois.lua"] = { PSS_AddonsBinding = "the key binding Open Addon Manager" },
 	["PourSocialScore_Libraries/PSS_Commands.lua"] = { ["M.PSS_SlashPSS"] = "/pss, /acp" },
 	["PourSocialScore_Libraries/PSS_DttView.lua"] = { ["M.PSS_DttCommand"] = "/pss dtt options" },
+	["PourSocialScore_Libraries/PSS_WhView.lua"] = { ["M.PSS_WhOpenEverywhere"] = "/pss wh" },
 	["PourSocialScore_Libraries/PSS_Graphics.lua"] = { ["M.PSS_GfxOpen"] = "/pss gfx", ["M.PSS_GfxAsk"] = "the keep prompt after the player's import and reload" },
 }
 
@@ -210,6 +211,27 @@ for path in find:lines() do
 end
 find:close()
 if seen == 0 then print("boundary scan found no GUI open at all: the scan is broken") bad = bad + 1 end
+-- a window or a tooltip never takes a nil from a service (one-build plan TST-p204): the GUI folder asks through
+-- M.PSS_CallSet (a record set always); the tooltip file checks the second value of every M.PSS_Call
+local lint = io.popen('find PourSocialScore_GUI -name "*.lua" 2>/dev/null; echo PourSocialScore_Libraries/PSS_WhTooltip.lua')
+for path in lint:lines() do
+	local fh = io.open(path, "rb")
+	if fh then
+		local n = 0
+		for l in fh:lines() do
+			n = n + 1
+			if l:find("M%.PSS_Call%(") and not l:match("^%s*%-%-") then
+				local ok = path:find("PSS_WhTooltip") and (l:find("local [%w_]+, %w*err = M%.PSS_Call%(") or l:find("add%(tip, M%.PSS_Call%("))
+				if not ok then
+					print(("%s:%d: an unchecked M.PSS_Call in a window or tooltip file (use M.PSS_CallSet, or check the second value)"):format(path, n))
+					bad = bad + 1
+				end
+			end
+		end
+		fh:close()
+	end
+end
+lint:close()
 problems = problems + bad
 if problems > 0 then
 	print("Core files must not hold UI code (rule 6). Move it to a UI file and fire an event from the core.")

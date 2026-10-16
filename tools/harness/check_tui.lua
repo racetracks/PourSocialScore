@@ -324,6 +324,20 @@ il.rows[1].remove._scripts.OnClick(il.rows[1].remove)
 check(il.removed == 6948, "item list: remove did not report the item")
 il:SetItems({ 1 })
 check(not il.rows[2]:IsShown() and il:GetHeight() == 26 + 22, "item list did not hide spare rows")
+-- warehouse-helper: the money line (TST-p198), drawn the same in every look
+local ml = kit.moneyLine
+check(ml and ml.text:GetText() and ml.text:GetText() ~= "" and ml.label:GetText() == "Gold" and ml.breakdown == "Alpha  1234g\nBravo  50g", "money line did not draw its amount, label and breakdown")
+check(ml:GetWidth() == 360 and ml:GetHeight() == 18, "money line size")
+ml._scripts.OnEnter(ml)
+check(ml._scripts.OnLeave ~= nil, "money line has no hover leave")
+ml:SetMoney(0)
+check(ml.text:GetText() ~= nil and ml.breakdown == nil, "money line SetMoney(0) clears the breakdown")
+ml:SetMoney(12345678, "Alpha  1234g\nBravo  50g")
+for _, look in ipairs({ 1, 2, 0 }) do
+	M.PSS_SetOpt("uiSkin", "global", look)
+	check(ml.label:GetAlpha() == (look == 1 and 0.7 or 0.85) and ml.text:GetAlpha() == 1, "money line label fade in look " .. look)
+end
+M.PSS_SetOpt("uiSkin", "global", 0)
 -- chips: the x sits just after the name, chips share a line and wrap
 il:SetItems({ 1, 2, 3 })
 local chip = il.rows[1]

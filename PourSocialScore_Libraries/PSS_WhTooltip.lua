@@ -70,19 +70,13 @@ local function limited(list, out)
 	if shown < #list then out.n = out.n + 1; out[out.n] = { "more", "and " .. (#list - shown) .. " more", "" } end
 end
 
-M.PSS_Provide("wh.tip", function(input)
-	local out = { cols = { "kind", "left", "right" }, n = 0 }
-	local key = input and input.n > 0 and input[1][1]
-	if type(key) == "number" then key = tostring(key) end
-	if type(key) ~= "string" then return out end
-	local ckey = key .. (M.PSS_Opt("whTipByName") and "*" or "")
-	local hit = cache[ckey]
-	if hit then return hit end
+-- the holders of one item as { kind, left, right, n } sorted by count, and their total; nil when a read failed
+local function holderList(key)
 	local keys = M.PSS_Opt("whTipByName") and sameId(key) or { key }
 	local set = { cols = { "item" }, n = #keys }
 	for i, k in ipairs(keys) do set[i] = { k } end
 	local sum, err = M.PSS_Call("wh.sum", set, { faction = M.PSS_Opt("whTipFaction") and myFaction() or nil })
-	if err or not sum then return out end		-- a failed read never shows another item's holders
+	if err or not sum then return nil end		-- a failed read never shows another item's holders
 	local by, ids, total = {}, {}, 0
 	for i = 1, sum.n do
 		local r = sum[i]
@@ -93,7 +87,7 @@ M.PSS_Provide("wh.tip", function(input)
 	local entSet = { cols = { "ent" }, n = #ids }
 	for i, v in ipairs(ids) do entSet[i] = v end
 	local ents, eerr = M.PSS_Call("wh.ent", entSet)
-	if eerr or not ents then return out end
+	if eerr or not ents then return nil end
 	local mineRealm = GetRealmName and GetRealmName() or ""
 	local list = {}
 	for i = 1, ents.n do
@@ -115,6 +109,20 @@ M.PSS_Provide("wh.tip", function(input)
 		end
 	end
 	sort(list, function(a, b) if a[4] ~= b[4] then return a[4] > b[4] end return a[2] < b[2] end)
+	return list, total
+end
+M.PSS_WhHolderList = holderList
+
+M.PSS_Provide("wh.tip", function(input)
+	local out = { cols = { "kind", "left", "right" }, n = 0 }
+	local key = input and input.n > 0 and input[1][1]
+	if type(key) == "number" then key = tostring(key) end
+	if type(key) ~= "string" then return out end
+	local ckey = key .. (M.PSS_Opt("whTipByName") and "*" or "")
+	local hit = cache[ckey]
+	if hit then return hit end
+	local list, total = holderList(key)
+	if not list then return out end
 	limited(list, out)
 	if M.PSS_Opt("whTipTotal") and total > 0 then out.n = out.n + 1; out[out.n] = { "total", "Total", tostring(total) } end
 	cache[ckey] = out

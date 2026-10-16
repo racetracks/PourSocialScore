@@ -14,6 +14,7 @@ PSS_Kit.lua
 PSS_Tooltip.lua
 PSS_Menu.lua
 PSS_Popups.lua
+PSS_SearchEverywhere.lua
 PSS_Rows.lua
 PSS_Pie.lua
 PSS_Detail.lua
