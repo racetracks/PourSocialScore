@@ -1511,6 +1511,181 @@ if phase == "money" then
 	check(d.gold ~= nil and PSS_JournalDB == nil, "TST-p227: gold is stored once")
 end
 
+if phase == "search" or phase == "searchloc" then
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	local V = WORLD.V
+	local BA, BB, MA, PE, KE = V.blade_a.key, V.blade_b.key, V.mantle.key, V.pet.key, V.keystone.key
+	local function find(text, opts)
+		opts = opts or {}
+		opts.text = text
+		local set = M.PSS_Call("item.search", nil, opts)
+		local t = {}
+		for i = 1, set.n do t[#t + 1] = set[i][1] end
+		table.sort(t)
+		return t, set
+	end
+	local function eq(a, b)
+		local x = {}
+		for _, k in ipairs(b) do x[#x + 1] = k end
+		table.sort(x)
+		if #a ~= #x then return false end
+		for i = 1, #a do if a[i] ~= x[i] then return false end end
+		return true
+	end
+	local function show(t) return table.concat(t, ",") end
+	local function expect(text, want, tst)
+		local got = find(text)
+		check(eq(got, want), (tst or "TST-p110") .. ": '" .. text .. "' gave " .. show(got))
+	end
+	if phase == "searchloc" then
+		-- TST-p118: the client's own word and the English word, a hyphen for a space
+		_G.ITEM_QUALITY4_DESC = "Episch"
+		_G.INVTYPE_WEAPON = "Ein-Hand"
+		expect("episch", { BA, BB, KE }, "TST-p118")
+		expect("epic", { BA, BB, KE }, "TST-p118")
+		expect("ein hand", { BA, BB }, "TST-p118")
+		expect("ein-hand", { BA, BB }, "TST-p118")
+		local kw = M.PSS_Call("item.keywords")
+		local found
+		for i = 1, kw.n do if kw[i][3] == "epic" and kw[i][1] == "Episch" then found = true end end
+		check(found, "TST-p118: item.keywords lists the client's word beside the English one")
+	else
+		expect("epic", { BA, BB, KE })
+		expect("rare", { MA, PE })
+		expect("uncommon", { "190000" })
+		expect("poor", {})
+		expect("shoulder", { MA })
+		expect("onehand", { BA, BB })
+		expect("cloth", { MA })
+		expect("weapon", { BA, BB })
+		expect("tradegoods", { "2589", "2592", "4306" })
+		expect("reagent", { "2589", "2592", "4306" })
+		expect("potion", { "190000" })
+		expect("bop", { MA, KE }, "TST-p116")
+		expect("boe", { BA, BB }, "TST-p116")
+		expect("equipment", { BA, BB, MA }, "TST-p116")
+		expect("stackable", { "190000", "2589", "2592", "4306" }, "TST-p116")
+		expect("novalue", { "5512", "6265", "6948", KE, PE }, "TST-p116")
+		expect("crafted", { BA, BB }, "TST-p116")
+		expect("dragonflight", { "190000" }, "TST-p116")
+		expect("warwithin", { BA, BB, MA }, "TST-p116")
+		-- every keyword answers without an error
+		local kw = M.PSS_Call("item.keywords")
+		local bad = 0
+		for i = 1, kw.n do
+			local ok = pcall(find, kw[i][3])
+			if not ok then bad = bad + 1 end
+		end
+		check(bad == 0, "TST-p110: every keyword searches without an error")
+		-- TST-p111: the keyword table
+		local groups, order = {}, {}
+		for i = 1, kw.n do
+			local g = kw[i][2]
+			if not groups[g] then groups[g] = 0; order[#order + 1] = g end
+			groups[g] = groups[g] + 1
+		end
+		check(kw.n >= 70 and kw.n <= 90, "TST-p111: about 79 keywords (" .. kw.n .. ")")
+		check(table.concat(order, ",") == "quality,binding,slot,armor,class,consumable,other,expansion", "TST-p111: group order (" .. table.concat(order, ",") .. ")")
+		-- TST-p112: operators
+		expect("epic & weapon", { BA, BB }, "TST-p112")
+		expect("epic | rare", { BA, BB, KE, MA, PE }, "TST-p112")
+		expect("!epic & equipment", { MA }, "TST-p112")
+		expect("~epic & equipment", { MA }, "TST-p112")
+		expect("(epic | rare) & equipment", { BA, BB, MA }, "TST-p112")
+		expect("epic & ~weapon", { KE }, "TST-p112")
+		-- TST-p113: item level
+		expect(">400", { BA, BB }, "TST-p113")
+		expect("=372", { MA }, "TST-p113")
+		expect("400-420", { BA, BB }, "TST-p113")
+		expect(">=372 & <=415", { BA, BB, MA }, "TST-p113")
+		-- TST-p114: value (copper in the fixture: the blade is 56 silver)
+		expect(">50s", { BA, BB }, "TST-p114")
+		expect("5s-2g", { BA, BB, MA, "190000" }, "TST-p114")
+		expect("<=13c", { "2589", "3371", "5512", "6265", "6948", KE, PE }, "TST-p114")
+		-- TST-p115: appearance
+		expect("collected", { MA }, "TST-p115")
+		expect("uncollected", { BA, BB }, "TST-p115")
+		-- TST-p117: engraving (a line of the tooltip)
+		expect("engraving", { BA, BB }, "TST-p117")
+		-- TST-p119: the name, then the tooltip
+		expect("silk", { "4306" }, "TST-p119")
+		expect("linen", { "2589" }, "TST-p119")
+		expect("spellthread", { MA }, "TST-p119")
+		-- TST-p120: an item the client has not told us about yet
+		local un = find("unseen")
+		check(#un == 0 and not M.PSS_ItemSearchDone("unseen"), "TST-p120: the uncached item is waiting")
+		local needs, queued = M.PSS_Needs(), false
+		for i = 1, needs.n do if needs[i][1] == "item.search" and needs[i][2] == "slice" then queued = true end end
+		check(queued, "TST-p120: the search waits as a slice need (no OnUpdate)")
+		check(H.PendingItemData() > 0, "TST-p120: the client was asked for the item")
+		H.LoadItemData()
+		local steps = 0
+		while not M.PSS_ItemSearchStep() and steps < 20 do steps = steps + 1 end
+		check(M.PSS_ItemSearchDone("unseen"), "TST-p120: the search finished")
+		check(eq(find("unseen"), { "230000" }), "TST-p120: the item is found after its data arrived")
+		M.Events.Fire("WH_CHANGED", { cols = { "ent" }, n = 0 })
+		check(eq(find("unseen"), { "230000" }), "TST-p120: the final list equals a fresh run")
+		-- TST-p121: one row per item key
+		local all = find("a | e | i | o | u")
+		local seen, dup = {}, 0
+		for _, k in ipairs(all) do if seen[k] then dup = dup + 1 end seen[k] = true end
+		check(dup == 0 and #all > 5, "TST-p121: results are grouped by item key (" .. #all .. ", " .. dup .. " duplicates)")
+		-- TST-p122: nothing to search
+		local ring0 = M.PSS_Call("err.rows").n
+		check(#find("") == 0 and #find("     ") == 0 and #find("zzzunknownword") == 0, "TST-p122: empty, spaces and an unknown word give nothing")
+		-- TST-p123: malformed text
+		M.PSS_ErrReset()
+		for _, bad in ipairs({ "((a", "& &", "a &", ")", "a | | b" }) do
+			local ok, got = pcall(find, bad)
+			check(ok and #got == 0, "TST-p123: '" .. bad .. "' is an empty set, not an error")
+		end
+		local rr, argSeen = M.PSS_Call("err.rows"), false
+		for i = 1, rr.n do if rr[i][1] == "arg" and rr[i][2] == "item.search" then argSeen = true end end
+		check(argSeen, "TST-p123: a malformed search is noted as arg")
+		check(not M.PSS_ErrOpen("item.search"), "TST-p123: a malformed search does not open the breaker")
+		-- TST-p124: item.search > wh.find
+		local _, set = find("epic")
+		local holders = M.PSS_Call("wh.find", set)
+		local inFind = {}
+		for i = 1, holders.n do inFind[holders[i][1]] = true end
+		check(inFind[BA] and inFind[BB] and inFind[KE], "TST-p124: wh.find gives holders for every match")
+		-- TST-p125: paging
+		local full = find("a | e | i | o | u")
+		local paged = {}
+		for page = 1, 20 do
+			local _, s2 = find("a | e | i | o | u", { page = page, pageSize = 3 })
+			if s2.n == 0 then break end
+			for i = 1, s2.n do paged[#paged + 1] = s2[i][1] end
+		end
+		local sf, sp = {}, {}
+		for _, k in ipairs(full) do sf[#sf + 1] = k end
+		for _, k in ipairs(paged) do sp[#sp + 1] = k end
+		table.sort(sf); table.sort(sp)
+		check(#paged == #full and eq(sp, sf), "TST-p125: pages of 3 give every result once (" .. #paged .. " of " .. #full .. ")")
+		-- TST-p127: a search is kept until the warehouse changes
+		local st = M.PSS_ItemSearchStats()
+		find("cache probe"); local c1 = st.computed
+		find("cache probe")
+		check(st.computed == c1, "TST-p127: the same text twice computes once")
+		M.Events.Fire("WH_CHANGED", { cols = { "ent" }, n = 0 })
+		find("cache probe")
+		check(st.computed == c1 + 1, "TST-p127: WH_CHANGED drops the kept searches")
+		-- TST-p126: 1000 random queries never raise
+		local rnd = GEN.rng(11)
+		local atoms = { "epic", "rare", "a", ">400", "<300", "400-420", ">10g", "5s-2g", "silk", "cloth", "weapon", "~", "!", "&", "|", "(", ")", " ", "zz", "boe", "collected", "x-y", "1g50s", "=", ">", "-", "7" }
+		local bad = 0
+		for _ = 1, 1000 do
+			local parts = {}
+			for _ = 1, rnd(6) do parts[#parts + 1] = atoms[rnd(#atoms)] end
+			local ok, got = pcall(find, table.concat(parts, rnd(2) == 1 and " " or ""))
+			if not ok then bad = bad + 1 end
+		end
+		check(bad == 0, "TST-p126: 1000 random searches raised " .. bad .. " errors")
+	end
+end
+
 local WHFILES = { "PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua",
 	"PSS_Money.lua", "PSS_MoneyValue.lua", "PSS_WhTooltip.lua", "PSS_Gw.lua", "PSS_GwSyndicator.lua", "PSS_WhImport.lua", "PSS_WhCommands.lua" }
 local function exists(path) local f = io.open(path, "rb") if f then f:close() return true end return false end

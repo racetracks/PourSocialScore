@@ -148,6 +148,29 @@ return function(stub)
 			return r and r.id
 		end
 		C_Item.IsItemDataCachedByID = cached
+		-- what the search reads: the client's words, an item's level, its tooltip and its appearance
+		local WORDS = { ITEM_QUALITY0_DESC = "Poor", ITEM_QUALITY1_DESC = "Common", ITEM_QUALITY2_DESC = "Uncommon", ITEM_QUALITY3_DESC = "Rare", ITEM_QUALITY4_DESC = "Epic",
+			ITEM_QUALITY5_DESC = "Legendary", ITEM_QUALITY6_DESC = "Artifact", ITEM_QUALITY7_DESC = "Heirloom", INVTYPE_HEAD = "Head", INVTYPE_SHOULDER = "Shoulder",
+			INVTYPE_WEAPON = "One-Hand" }
+		for k, v in pairs(WORDS) do if rawget(_G, k) == nil then _G[k] = v end end
+		local function idOfX(x) return type(x) == "number" and x or tonumber(tostring(x):match("item:(%d+)")) end
+		function GetDetailedItemLevelInfo(x)
+			local it = stub.items[idOfX(x) or 0]
+			return it and it.ilvl or nil
+		end
+		C_TooltipInfo = C_TooltipInfo or {}
+		C_TooltipInfo.GetItemByID = function(id)
+			local it = stub.items[id]
+			if not it or not it.tip then return nil end
+			local lines = {}
+			for l in (it.tip .. "\n"):gmatch("([^\n]*)\n") do lines[#lines + 1] = { leftText = l } end
+			return { lines = lines }
+		end
+		C_TransmogCollection = C_TransmogCollection or {}
+		C_TransmogCollection.PlayerHasTransmogByItemInfo = function(x)
+			local it = stub.items[idOfX(x) or 0]
+			return it and it.collected == true or false
+		end
 		C_Item.IsBound = function(loc)
 			local r = loc.bagID and stub.bags[loc.bagID] and stub.bags[loc.bagID][loc.slotIndex] or W.equipped[loc.equipmentSlotIndex]
 			return r and r.bound == true or false

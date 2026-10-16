@@ -1097,8 +1097,8 @@ C_Item.GetItemInfo = function(x)
 	local id = type(x) == "number" and x or tonumber(tostring(x):match("item:(%d+)"))
 	local it = id and stub.items[id]
 	if not it or it.unknown then return nil end
-	return it.name, itemLink(id), it.quality or 0, 1, it.minLevel or 0, "", "", it.stack or 1, it.equip or "", it.icon or 134400,
-		it.price or 0, it.class or 15, it.sub or 0, it.bind or 0
+	return it.name, itemLink(id), it.quality or 0, it.ilvl or 1, it.minLevel or 0, "", "", it.stack or 1, it.equip or "", it.icon or 134400,
+		it.price or 0, it.class or 15, it.sub or 0, it.bind or 0, it.exp or 0
 end
 C_Item.GetItemIconByID = function(id) return stub.items[id] and stub.items[id].icon or 134400 end
 function GetMoneyString(c)

@@ -243,11 +243,12 @@ local function valueOf(p)
 end
 
 local function atom(text)
-	local t = norm(gsub(text, "^%s+", ""))
-	t = gsub(t, "%s+$", "")
-	if t == "" then return nil, "empty" end
+	local raw = lower(text)
+	raw = gsub(gsub(raw, "^%s+", ""), "%s+$", "")
+	if raw == "" then return nil, "empty" end
+	local t = norm(raw)
 	-- item level: >400 <300 =415 400-420
-	local op, n = match(t, "^([<>=]=?)%s*(%d+)$")
+	local op, n = match(raw, "^([<>=]=?)%s*(%d+)$")
 	if op then
 		n = tonumber(n)
 		if op == "=" or op == "==" then return function(p) return p.ilvl == n end end
@@ -256,10 +257,10 @@ local function atom(text)
 		if op == ">=" then return function(p) return p.ilvl >= n end end
 		return function(p) return p.ilvl <= n end
 	end
-	local lo, hi = match(t, "^(%d+)%s*%-%s*(%d+)$")
+	local lo, hi = match(raw, "^(%d+)%s*%-%s*(%d+)$")
 	if lo then lo, hi = tonumber(lo), tonumber(hi); return function(p) return p.ilvl >= lo and p.ilvl <= hi end end
 	-- value: >10g  <=5s  5s-2g  1g50s
-	local vop, rest = match(t, "^([<>=]=?)%s*(.+)$")
+	local vop, rest = match(raw, "^([<>=]=?)%s*(.+)$")
 	if vop and money(rest) then
 		local c = money(rest)
 		if vop == ">" then return function(p) return valueOf(p) > c end end
@@ -268,13 +269,13 @@ local function atom(text)
 		if vop == "<=" then return function(p) return valueOf(p) <= c end end
 		return function(p) return valueOf(p) == c end
 	end
-	local a, b = match(t, "^(.-)%s*%-%s*(.+)$")
+	local a, b = match(raw, "^(.-)%s*%-%s*(.+)$")
 	if a and money(a) and money(b) then
 		local x, y = money(a), money(b)
 		if x > y then x, y = y, x end
 		return function(p) local v = valueOf(p); return v >= x and v <= y end
 	end
-	if money(t) then local c = money(t); return function(p) return valueOf(p) == c end end
+	if money(raw) then local c = money(raw); return function(p) return valueOf(p) == c end end
 	local kw = wordTable()[t]
 	if kw then return kw.test end
 	return function(p)
@@ -437,7 +438,10 @@ local function build(text, input)
 	if #pending > 0 then
 		entry.pending = pending
 		if M.PSS_ItemAwait then M.PSS_ItemAwait(ask) end
-		if M.PSS_Want then M.PSS_Want({ id = needId, class = "slice", once = false, step = step }) end
+		if M.PSS_Want then
+			M.PSS_Unwant(needId)		-- one need for all searches
+			M.PSS_Want({ id = needId, class = "slice", step = step })
+		end
 	end
 	return entry
 end

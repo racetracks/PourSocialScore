@@ -13,12 +13,12 @@ local F = {}
 -- item pool: plain items, variants (bonus ids), a pet, a keystone, an uncached item
 F.items = {
 	[6948] = { name = "Hearthstone", quality = 1, price = 0, icon = 134414 },
-	[2589] = { name = "Linen Cloth", quality = 1, price = 13, icon = 132889, stack = 200, class = 7 },
+	[2589] = { name = "Linen Cloth", quality = 1, price = 13, icon = 132889, stack = 200, class = 7, sub = 5 },
 	[2592] = { name = "Wool Cloth", quality = 1, price = 41, icon = 132889, stack = 200, class = 7 },
 	[4306] = { name = "Silk Cloth", quality = 1, price = 120, icon = 132889, stack = 200, class = 7 },
-	[207791] = { name = "Harbinger's Blade", quality = 4, price = 5600, icon = 135349, equip = "INVTYPE_WEAPON", class = 2, ilvl = 415 },
-	[210001] = { name = "Weaver's Mantle", quality = 3, price = 2100, icon = 132500, equip = "INVTYPE_SHOULDER", class = 4, ilvl = 372 },
-	[190000] = { name = "Potion of Odd; Name, With.Dots%", quality = 2, price = 900, icon = 134823, class = 0, stack = 20 },
+	[207791] = { name = "Harbinger's Blade", quality = 4, price = 5600, icon = 135349, equip = "INVTYPE_WEAPON", class = 2, sub = 7, bind = 2, exp = 10, ilvl = 415, collected = false, tip = "Crafted by hand\nEngravable" },
+	[210001] = { name = "Weaver's Mantle", quality = 3, price = 2100, icon = 132500, equip = "INVTYPE_SHOULDER", class = 4, sub = 1, bind = 1, exp = 10, ilvl = 372, collected = true, tip = "Woven with Spellthread" },
+	[190000] = { name = "Potion of Odd; Name, With.Dots%", quality = 2, price = 900, icon = 134823, class = 0, sub = 1, stack = 20, exp = 9 },
 	[82800] = { name = "Pet Cage", quality = 1, price = 0, icon = 132599 },
 	[180653] = { name = "Mythic Keystone", quality = 4, price = 0, icon = 525134 },
 	[230000] = { name = "Unseen Trinket", quality = 3, price = 7000, icon = 133440, unknown = true, class = 4 },
