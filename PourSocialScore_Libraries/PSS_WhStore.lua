@@ -271,6 +271,7 @@ M.PSS_Provide("wh.delete", function(input)
 		if d then
 			for _, key in ipairs({ "meta", "cur", "gold", "seen" }) do if d[key] then d[key][ent] = nil end end
 			if d.bad then d.bad[ent] = nil end
+			if M.PSS_WhCurBump then M.PSS_WhCurBump() end
 		end
 		ms.Drop(ent)
 		M.PSS_EntityRemove(ent)

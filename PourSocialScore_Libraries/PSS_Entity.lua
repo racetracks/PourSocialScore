@@ -53,6 +53,25 @@ local byName = M.PSS_Index("ent.byName", {
 })
 
 function M.PSS_EntityDrop() byName:drop(); ent.Drop() end
+function M.PSS_MeReset() me = nil end		-- the harness plays another character
+
+-- every entity id of a kind ("c", "g", "w"), unsorted
+function M.PSS_EntityList(kind)
+	local out = {}
+	ent.Each(function(id) if ent.Get(id, "kind") == kind then out[#out + 1] = id end end)
+	return out
+end
+
+-- sets the descriptive fields of an entity (faction, class, race, sex), for rows a feature
+-- knows from another source (an import); a nil field stays as it is
+function M.PSS_EntitySetInfo(id, info)
+	if ent.ReadOnly() or not KINDS[ent.Get(id, "kind")] then return false end
+	local v = {}
+	ent.Read(id, v, 1, { "kind", "name", "realm", "faction", "class", "race", "sex", "flags" })
+	ent.Set(id, { kind = v[1], name = v[2], realm = v[3], faction = info.faction or v[4], class = info.class or v[5], race = info.race or v[6],
+		sex = info.sex or v[7], flags = v[8] })
+	return true
+end
 
 -- the flags of an entity (one letter each: h hidden from tooltips and search, g its gold hidden too)
 function M.PSS_EntityFlags(id)
@@ -111,7 +130,10 @@ function M.PSS_EntityId(kind, name, realm, create, unit)
 		rec.sex = api(UnitSex, unit)
 	end
 	local new, why = ent.Add(rec)
-	if not new then return nil, why end
+	if not new then
+		if M.PSS_ErrNote then M.PSS_ErrNote(why == "cap" and "cap" or "newer", "ent", why == "cap" and "500 entities: no room for another" or tostring(why)) end
+		return nil, why
+	end
 	byName:put(k, new)
 	return new
 end

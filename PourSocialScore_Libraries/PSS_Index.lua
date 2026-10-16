@@ -7,7 +7,7 @@
 --       build = function(add) ... add(key, value) ... end,   -- the whole build
 --       -- or, for a build that can be cut in slices:
 --       units = function() return array end,  each = function(unit, add) ... end,
---       partial = function(add, drop, ids) ... end,     -- rebuild only the dirty ids
+--       partial = function(add, drop, ids, data) ... end,     -- rebuild only the dirty ids (data: the index's table, read only)
 --       cap = 20000, sliceMs = 4 })
 --   idx:get(key) idx:has(key) idx:list() idx:range(lo, hi) idx:count()
 --   idx:put(key, value)            keep the index in step with a write you just made
@@ -99,7 +99,7 @@ local function fresh(self)
 		if self.dirtyIds and spec.partial then
 			spec.partial(function(k, v) add(self, k, v) end, function(k)
 				if self.data[k] ~= nil then self.data[k] = nil; self.count = self.count - 1 end
-			end, self.dirtyIds)
+			end, self.dirtyIds, self.data)
 			self.builtVer, self.sorted, self.dirtyIds = ver(self), nil, nil
 			self.nPartials = self.nPartials + 1
 		else

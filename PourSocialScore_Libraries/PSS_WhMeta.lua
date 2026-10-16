@@ -59,7 +59,7 @@ M.PSS_WhMetaPack, M.PSS_WhMetaUnpack = packList, unpackList
 
 local function guildMeta(ent)
 	local m = metaOf(ent)
-	if not m then return end
+	if not (m and GetNumGuildBankTabs and GetGuildBankTabInfo) then return end
 	local old = {}
 	for _, r in ipairs(unpackList(m.t)) do old[tonumber(r[1])] = r end
 	local rows = {}
@@ -137,6 +137,10 @@ local function readCurrencies()
 	return mine, shared
 end
 
+local curVer = 0
+function M.PSS_WhCurVer() return curVer end
+function M.PSS_WhCurBump() curVer = curVer + 1 end
+
 local function packCur(map)
 	local ids = {}
 	for id in pairs(map) do ids[#ids + 1] = id end
@@ -174,6 +178,7 @@ local function putCur(ent, map)
 	end
 	d.seen = d.seen or {}
 	d.seen[ent] = GetServerTime and GetServerTime() or time()
+	curVer = curVer + 1
 	return true
 end
 

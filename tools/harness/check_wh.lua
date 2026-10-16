@@ -3,7 +3,7 @@
 -- wh: <phase>: <what>". Run on Retail and on Camelot (PSS_CAMELOT=1) by
 -- wh_phases.sh. Expected results come from the plan (03_Design, 05_Tests),
 -- not from the code. Phases are added with their packages:
---   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)  store2 (TST-p031..p036)  mapstore (TST-p037..p039, p061, p062)  idx (TST-p042..p049)  watch (TST-p064, p065, p069, p218, p219)  upg (TST-p030, p160..p169, p228..p230)  registry (TST-p007, p008)  schema (TST-p009, p214)  off (TST-00119, p142)  layers (TST-p225)  dict (TST-p050..p057, p215..p217)  live (TST-p040, p041, p058, p059)  name (TST-p224)  track (TST-p060, p063, p066..p068, p077, p079, TST-00120)  caps (TST-p070..p074, TST-00124)  delete (TST-p075, p076)  sv1 sv2 sv3 (TST-00121)  syn (TST-p078)
+--   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)  store2 (TST-p031..p036)  mapstore (TST-p037..p039, p061, p062)  idx (TST-p042..p049)  watch (TST-p064, p065, p069, p218, p219)  upg (TST-p030, p160..p169, p228..p230)  registry (TST-p007, p008)  schema (TST-p009, p214)  off (TST-00119, p142)  layers (TST-p225)  dict (TST-p050..p057, p215..p217)  live (TST-p040, p041, p058, p059)  name (TST-p224)  track (TST-p060, p063, p066..p068, p077, p079, TST-00120)  caps (TST-p070..p074, TST-00124)  delete (TST-p075, p076)  ent (TST-p080..p082)  numbers (TST-p090..p095, TST-00125 part)  sv1 sv2 sv3 (TST-00121)  syn (TST-p078)
 local phase = os.getenv("PSS_PHASE") or "stub"
 local camelot = os.getenv("PSS_CAMELOT") == "1"
 local fail = false
@@ -1235,6 +1235,178 @@ elseif phase == "syn" then
 	H.Fire("BAG_UPDATE", 0); H.Fire("BAG_UPDATE_DELAYED")
 	check(PSS_WarehouseDB == nil, "TST-p078: nothing is written")
 	M.ShowMsg = realShow
+end
+
+-- loads a whole world into the warehouse through wh.write (the reader is tested apart); returns the entity ids by label
+local function loadWorld(w)
+	local ids = { world = w }
+	local function payload(ent, cont)
+		local p = { cols = { "ent", "cont", "slot", "item", "count", "flags" }, n = 0, conts = {} }
+		for code, rows in pairs(cont) do
+			p.conts[code] = ent
+			for slot, r in pairs(rows) do
+				p.n = p.n + 1
+				p[p.n] = { ent, code, slot, WORLD.keyOf(r), r.count or 1, r.bound and "b" or "" }
+				if r.link and M.PSS_ItemKey(r.link) ~= WORLD.keyOf(r) then error("fixture key mismatch for " .. r.link) end
+			end
+		end
+		return p
+	end
+	for i, c in ipairs(w.chars) do
+		local ent = M.PSS_EntityId("c", c.name, c.realm, true)
+		M.PSS_EntitySetInfo(ent, { faction = c.faction, class = c.class, race = c.race, sex = c.sex })
+		ids["c:" .. c.name .. "-" .. c.realm] = ent
+		local keep = {}
+		for code, rows in pairs(c.cont) do if code:find("^[bkeam]") then keep[code] = rows end end
+		local r, err = M.PSS_Call("wh.write", payload(ent, keep))
+		if r == nil then error("wh.write failed for " .. c.name .. ": " .. tostring(err)) end
+		local mine, shared = {}, {}
+		for _, cur in ipairs(c.currencies or {}) do if cur.shared then shared[cur.id] = cur.quantity else mine[cur.id] = cur.quantity end end
+		if next(mine) then PSS_WarehouseDB.cur = PSS_WarehouseDB.cur or {}; PSS_WarehouseDB.cur[ent] = M.PSS_WhCurPack(mine) end
+		if c.hidden then M.PSS_Call("wh.hide", { cols = { "ent" }, n = 1, { ent } }) end
+		ids["shared"] = ids["shared"] or {}
+		for id, q in pairs(shared) do ids.shared[id] = q end
+	end
+	for _, g in ipairs(w.guilds) do
+		local ent = M.PSS_EntityId("g", g.name, g.realm, true)
+		ids["g:" .. g.name .. "-" .. g.realm] = ent
+		local cont = {}
+		for i, tab in ipairs(g.tabs) do if tab.viewable then cont["t" .. i] = tab.cont end end
+		M.PSS_Call("wh.write", payload(ent, cont))
+	end
+	local wb = M.PSS_EntityId("w", "Warband", "", true)
+	ids["w:"] = wb
+	local cont = {}
+	for i, tab in ipairs(w.warband.tabs) do cont["w" .. i] = tab.cont end
+	M.PSS_Call("wh.write", payload(wb, cont))
+	if ids.shared and next(ids.shared) then PSS_WarehouseDB.cur = PSS_WarehouseDB.cur or {}; PSS_WarehouseDB.cur[wb] = M.PSS_WhCurPack(ids.shared) end
+	return ids
+end
+
+local function sumRow(set, ent)
+	for i = 1, set.n do if set[i][2] == ent then return set[i] end end
+end
+
+if phase == "ent" then
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	-- TST-p080: filters
+	local mineIds = {}
+	for k, v in pairs(ids) do if type(v) == "number" then mineIds[v] = true end end
+	local function cnt(set) local n = 0 for i = 1, set.n do if mineIds[set[i][1]] then n = n + 1 end end return n end
+	local all = M.PSS_Call("wh.ent")
+	check(cnt(all) == #w.chars + #w.guilds + 1, "TST-p080: every entity (" .. cnt(all) .. ")")
+	check(M.PSS_Call("wh.ent", nil, { kind = "g" }).n == 2 and M.PSS_Call("wh.ent", nil, { kind = "w" }).n == 1, "TST-p080: by kind")
+	check(cnt(M.PSS_Call("wh.ent", nil, { kind = "c", realm = "Realm" })) == 3, "TST-p080: by realm (Alpha, Bravo, Foxtrot)")
+	check(cnt(M.PSS_Call("wh.ent", nil, { kind = "c", faction = "Horde" })) == 2, "TST-p080: by faction")
+	check(cnt(M.PSS_Call("wh.ent", nil, { kind = "c", shown = true })) == 5, "TST-p080: a hidden character is left out when asked for the shown ones")
+	local one = M.PSS_Call("wh.ent", { cols = { "ent" }, n = 1, { ids["c:Alpha-Realm"] } })
+	check(one.n == 1 and one[1][3] == "Alpha" and one[1][5] == "Alliance" and one[1][9] == false, "TST-p080: one entity by id with its facts")
+	-- TST-p081: the 501st entity
+	M.PSS_ErrReset()
+	local made, refused = 0, nil
+	for i = 1, 510 do
+		local id, why = M.PSS_EntityId("c", "Fill" .. i, "Realm", true)
+		if id then made = made + 1 else refused = refused or why end
+	end
+	local total = M.PSS_Call("wh.ent").n
+	check(refused == "cap" and total == 500, "TST-p081: the cap holds at 500 entities (" .. total .. ", " .. tostring(refused) .. ")")
+	local rr = M.PSS_Call("err.rows")
+	local capNote
+	for i = 1, rr.n do if rr[i][1] == "cap" and rr[i][2] == "ent" then capNote = true end end
+	check(capNote, "TST-p081: a cap entry in the error ring")
+	-- TST-p082: a surname is one entity
+	if camelot then
+		local a = M.PSS_EntityId("c", "Von Echo", "ClassicBetaPvP", false)
+		local b = M.PSS_EntityId("c", "Von Echo-ClassicBetaPvP", nil, false)
+		check(a == b, "TST-p082: the same character spelled two ways is one entity")
+	end
+elseif phase == "numbers" then
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	local oracle = WORLD.oracle(w)
+	local function label(ent)
+		for k, v in pairs(ids) do if v == ent and type(k) == "string" then return k end end
+	end
+	-- TST-p090: wh.sum equals the oracle for every fixture item
+	local KINDS = { "bags", "bank", "reagent", "mail", "equipped", "void", "auctions", "guild", "warband" }
+	local bad = 0
+	for key, o in pairs(oracle.rows) do
+		local sum = M.PSS_Call("wh.sum", { cols = { "item" }, n = 1, { key } }, { hidden = true })
+		local got, total = {}, 0
+		for i = 1, sum.n do
+			got[label(sum[i][2])] = sum[i]
+			total = total + sum[i][12]
+		end
+		if total ~= o.total then bad = bad + 1; print("total", key, total, o.total) end
+		for lab, n in pairs(o.by) do
+			local row = got[lab]
+			if not row or row[12] ~= n then bad = bad + 1; print("ent", key, lab, row and row[12], n) end
+		end
+		for k, col in ipairs(KINDS) do
+			local sumKind = 0
+			for i = 1, sum.n do sumKind = sumKind + sum[i][2 + k] end
+			if sumKind ~= (o.kinds[col] or 0) then bad = bad + 1; print("kind", key, col, sumKind, o.kinds[col]) end
+		end
+	end
+	check(bad == 0, "TST-p090: wh.sum equals the oracle for every item (" .. bad .. " differences)")
+	-- TST-p094: a hidden entity is left out unless asked
+	local lin = M.PSS_Call("wh.sum", { cols = { "item" }, n = 1, { "2589" } })
+	local linAll = M.PSS_Call("wh.sum", { cols = { "item" }, n = 1, { "2589" } }, { hidden = true })
+	check(sumRow(lin, ids["c:Foxtrot-Realm"]) == nil and sumRow(linAll, ids["c:Foxtrot-Realm"]) ~= nil and linAll.n == lin.n + 1, "TST-p094: the hidden character is left out unless asked")
+	-- TST-p091: wh.find with realm and faction filters
+	local fAll = M.PSS_Call("wh.find", { cols = { "item" }, n = 1, { "2589" } })
+	local fAlliance = M.PSS_Call("wh.find", { cols = { "item" }, n = 1, { "2589" } }, { faction = "Alliance" })
+	local fRealms = M.PSS_Call("wh.find", { cols = { "item" }, n = 1, { "2589" } }, { realms = { Realm = true, ConnectedRealm = true } })
+	local function has(set, ent) for i = 1, set.n do if set[i][2] == ent then return true end end return false end
+	check(has(fAll, ids["c:Charlie-OtherRealm"]) and not has(fAlliance, ids["c:Charlie-OtherRealm"]) and has(fAlliance, ids["c:Alpha-Realm"]), "TST-p091: the faction filter drops the Horde character")
+	check(not has(fRealms, ids["c:Charlie-OtherRealm"]) and has(fRealms, ids["c:Bravo-Realm"]) and has(fRealms, ids["g:Guild One-Realm"]), "TST-p091: the realm filter keeps connected realms and guilds")
+	local cont = {}
+	for i = 1, fAll.n do if fAll[i][2] == ids["c:Alpha-Realm"] then cont[fAll[i][3]] = fAll[i][4] end end
+	check(cont.b0 == 200 and cont.k1 == 200 and next(cont) ~= nil, "TST-p091: containers of one holder (" .. tostring(cont.b0) .. ")")
+	-- TST-p092: currencies, the shared one left out of each character
+	local cur = M.PSS_Call("wh.cur", 1792)
+	local honor = {}
+	for i = 1, cur.n do honor[cur[i][1]] = cur[i][3] end
+	check(honor[ids["c:Alpha-Realm"]] == 350 and honor[ids["c:Bravo-Realm"]] == 900, "TST-p092: Honor per character")
+	local tt = M.PSS_Call("wh.cur", 2032)
+	check(tt.n == 1 and tt[1][1] == ids["w:"] and tt[1][3] == 77, "TST-p092: Trader's Tender is the warband's, not each character's")
+	local mine = M.PSS_Call("wh.cur", { cols = { "ent" }, n = 1, { ids["c:Alpha-Realm"] } })
+	check(mine.n == 2 and mine[1][2] == 1792, "TST-p092: what one character holds")
+	-- TST-p093: outputs are inputs
+	local joined = M.PSS_Query({ from = "wh.sum", key = nil, opts = nil, join = { "ent" } })
+	local sumSet = M.PSS_Call("wh.sum", { cols = { "item" }, n = 1, { "2589" } })
+	local q = M.PSS_Query({ from = sumSet, join = { "ent" } })
+	check(q and q.n == sumSet.n and q.cols[#q.cols] == "ent_kind", "TST-p093: wh.sum accepts q.join(ent)")
+	local found = M.PSS_Call("wh.find", { cols = { "item" }, n = 1, { "2589" } })
+	local ents = M.PSS_Call("wh.ent", found)
+	check(ents and ents.n >= 1, "TST-p093: wh.find output feeds wh.ent")
+	-- TST-p095: the partial index equals a full rebuild after random changes
+	local rnd = GEN.rng(7)
+	local pool = { "2589", "2592", "4306", "3371", "5512", WORLD.V.blade_a.key, WORLD.V.mantle.key, WORLD.V.pet.key }
+	local players = { ids["c:Alpha-Realm"], ids["c:Bravo-Realm"], ids["c:Charlie-OtherRealm"], ids["g:Guild One-Realm"] }
+	local mismatch, parts = 0, 0
+	for step = 1, 300 do
+		local ent = players[rnd(#players)]
+		local code = ({ "b0", "b1", "k1", "m0", "a0" })[rnd(5)]
+		if ent == ids["g:Guild One-Realm"] then code = "t1" end
+		local p = { cols = { "ent", "cont", "slot", "item", "count", "flags" }, n = 0, conts = { [code] = ent } }
+		for slot = 1, rnd(6) - 1 do p.n = p.n + 1; p[p.n] = { ent, code, slot, pool[rnd(#pool)], rnd(9), "" } end
+		M.PSS_WhHolders:size()		-- the index is built and in use
+		local wr, werr = M.PSS_Call("wh.write", p)
+		local partial = {}
+		for _, ref in ipairs(M.PSS_WhHolders:list()) do partial[ref] = M.PSS_WhHolders:get(ref) end
+		parts = parts + M.PSS_WhHolders:partials()
+		M.PSS_IndexDrop("wh.holders")
+		for _, ref in ipairs(M.PSS_WhHolders:list()) do
+			if partial[ref] ~= M.PSS_WhHolders:get(ref) then mismatch = mismatch + 1 end
+		end
+		if M.PSS_WhHolders:size() ~= (function() local n = 0 for _ in pairs(partial) do n = n + 1 end return n end)() then mismatch = mismatch + 1 end
+	end
+	check(mismatch == 0, "TST-p095: the partial index equals a full rebuild after 300 random changes (" .. mismatch .. " differences)")
+	check(parts > 100, "TST-p095: the changes were applied in part (" .. parts .. ")")
 end
 
 local WHFILES = { "PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua",
