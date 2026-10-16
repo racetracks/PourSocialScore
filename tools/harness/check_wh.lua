@@ -2814,6 +2814,50 @@ if phase == "perf" then
 	print("NOTE wh perf: " .. table.concat(note, "; "))
 end
 
+if phase == "parity" then
+	-- TST-p213: every call the shim answers has a row in the scratch parity registry (and so a test key there)
+	libs()
+	local root = os.getenv("PSS_SCRATCH")
+	local path = root and (root .. "/documents/features/service-bus-helper/16_Registries/16_03_Regression_Parity.md")
+	local fh = path and io.open(path, "r")
+	if not fh then
+		if os.getenv("PSS_GATE_STRICT") == "1" then check(false, "TST-p213: no scratch checkout to read the parity registry from (set PSS_SCRATCH)") else print("NOTE wh parity: skipped, no PSS_SCRATCH") end
+	else
+		local text = fh:read("*a")
+		fh:close()
+		local missing = {}
+		for _, row in ipairs(M.PSS_GwManifest("syndicator")) do
+			if not text:find("`Syndicator." .. row.path .. "`", 1, true) then missing[#missing + 1] = row.path end		-- (the aliases are in 16_05)
+		end
+		check(#missing == 0, "TST-p213: not in the parity registry: " .. table.concat(missing, ", "))
+	end
+end
+
+if phase == "base36" then
+	-- TST-p226 (A11): what the slot lists would save written in base 36 instead of base 10 (measured, not estimated)
+	libs()
+	local function b36(n)
+		local digits, out = "0123456789abcdefghijklmnopqrstuvwxyz", ""
+		if n == 0 then return "0" end
+		while n > 0 do local r = n % 36; out = digits:sub(r + 1, r + 1) .. out; n = (n - r) / 36 end
+		return out
+	end
+	local big = GEN.world(3, "account")
+	loadWorld(big)
+	local ten, thirty6 = 0, 0
+	for _, codes in pairs(PSS_WarehouseDB.inv) do
+		for _, str in pairs(codes) do
+			local body = str:match("^%d+;%d+;%d+;%d+;(.*)$") or ""
+			ten = ten + #body
+			-- slot.ref.count.flags: every run of digits (after the x of a dictionary ref too) in base 36
+			thirty6 = thirty6 + #(body:gsub("%d+", function(d) return b36(tonumber(d)) end))
+		end
+	end
+	local saved = (ten - thirty6) / ten * 100
+	print(("NOTE wh base36: the slot lists are %d bytes in base 10 and %d in base 36 (%.1f%% smaller; gate to change: 20%%)"):format(ten, thirty6, saved))
+	check(saved < 20, ("TST-p226: base 36 would save %.1f%%, under the 20%% that would justify it"):format(saved))
+end
+
 local WHFILES = { "PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua",
 	"PSS_Money.lua", "PSS_MoneyValue.lua", "PSS_WhTooltip.lua", "PSS_Gw.lua", "PSS_GwSyndicator.lua", "PSS_WhImport.lua", "PSS_WhCommands.lua" }
 local function exists(path) local f = io.open(path, "rb") if f then f:close() return true end return false end

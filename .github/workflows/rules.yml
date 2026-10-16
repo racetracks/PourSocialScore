@@ -91,6 +91,10 @@ jobs:
         run: sh tools/harness/bus_phases.sh
       - name: Warehouse
         run: sh tools/harness/wh_phases.sh
+      - name: Warehouse faults and mutants
+        run: |
+          sh tools/harness/wh_faults.sh
+          sh tools/harness/wh_mutants.sh
 
   upgrades:
     runs-on: ubuntu-latest

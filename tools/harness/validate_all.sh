@@ -202,6 +202,12 @@ sh "$here/bus_phases.sh" || fail=1
 # check_wh.lua on Retail and Camelot (wh_phases.sh)
 echo "== warehouse"
 sh "$here/wh_phases.sh" || fail=1
+# more of it: 200 random worlds, every service failing (also at the login of each real save), the 34
+# mutants (each must fail a check), and the real saves with the Warehouse on and off again
+PSS_MODEL_SEEDS=${PSS_MODEL_SEEDS:-200} sh "$here/wh_phases.sh" model || fail=1
+sh "$here/wh_faults.sh" ${PSS_REAL_SAVES:+"$PSS_REAL_SAVES"} || fail=1
+sh "$here/wh_mutants.sh" || fail=1
+[ -n "$PSS_REAL_SAVES" ] && { sh "$here/wh_realsaves.sh" "${PSS_SAME_AS:-origin/main}" "$PSS_REAL_SAVES" || fail=1; }
 
 # the new window's Libraries maths (3.4.0-dev005): pane numbers equal the
 # core's counts, slices, back / forward, throttle
