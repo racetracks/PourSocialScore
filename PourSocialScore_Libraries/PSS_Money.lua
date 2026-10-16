@@ -49,6 +49,7 @@ local function put(ent, copper)
 	return true
 end
 function M.PSS_MoneyVer() return ver end
+M.PSS_MoneyPut = put		-- the import writes gold through the same checks
 
 local function changed(out)
 	if out.n > 0 and M.Events and M.Events.Fire then M.Events.Fire("MONEY_CHANGED", out) end

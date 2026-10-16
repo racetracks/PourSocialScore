@@ -26,6 +26,7 @@ PSS_Money.lua
 PSS_MoneyValue.lua
 PSS_WhIndex.lua
 PSS_ItemSearch.lua
+PSS_WhImport.lua
 PSS_Trig.lua
 PSS_ImportExport.lua
 PSS_PlayerRows.lua

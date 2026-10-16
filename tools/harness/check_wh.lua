@@ -1293,6 +1293,61 @@ elseif phase == "syn" then
 	M.ShowMsg = realShow
 end
 
+if phase == "import0" or phase == "synimport" then
+	libs()
+	local W0 = WORLD.world()
+	local oracle = WORLD.oracle(W0)
+	local said = {}
+	local realShow = M.ShowMsg
+	M.ShowMsg = function(s) said[#said + 1] = s end
+	local gcWhy
+	local realGC = M.PSS_RequestGC
+	M.PSS_RequestGC = function(why) gcWhy = why end
+	local function dump(v) return H.serialize(v) end
+	if phase == "import0" then
+		-- TST-p174: Syndicator is not loaded
+		local before = dump(PSS_WarehouseDB)
+		local r = M.PSS_Call("wh.import")
+		check(r.n == 0 and #said == 1 and said[1]:find("not loaded", 1, true) and dump(PSS_WarehouseDB) == before, "TST-p174: one line, nothing done")
+	else
+		local synBefore = dump(Syndicator)
+		-- TST-p171: a dry run counts and writes nothing
+		local before = dump(PSS_WarehouseDB)
+		local dry = M.PSS_Call("wh.import", nil, { dry = true })
+		local slots = 0
+		for i = 1, dry.n do slots = slots + dry[i][4] end
+		check(dry.n == #W0.chars + #W0.guilds + 1 and slots > 0 and dump(PSS_WarehouseDB) == before and gcWhy == nil, "TST-p171: a dry run counts (" .. dry.n .. " sources, " .. slots .. " slots) and writes nothing")
+		-- TST-p173: a character that raises is skipped and counted
+		local realGet = Syndicator.API.GetCharacter
+		Syndicator.API.GetCharacter = function(n) if n == "Charlie-OtherRealm" then error("boom") end return realGet(n) end
+		local r1 = M.PSS_Call("wh.import")
+		local skipped = 0
+		for i = 1, r1.n do skipped = skipped + r1[i][5] end
+		check(skipped == 1 and r1.n == #W0.chars + #W0.guilds + 1, "TST-p173: the failing character is skipped and counted (" .. skipped .. ")")
+		Syndicator.API.GetCharacter = realGet
+		-- TST-p175: a collection is requested after the import
+		check(gcWhy == "import", "TST-p175: M.PSS_RequestGC('import') was requested")
+		-- TST-00127: the same numbers as the data in the stand-in
+		local r2 = M.PSS_Call("wh.import")
+		local bad = 0
+		for key, o in pairs(oracle.rows) do
+			local sum = M.PSS_Call("wh.sum", { cols = { "item" }, n = 1, { key } }, { hidden = true })
+			local total = 0
+			for i = 1, sum.n do total = total + sum[i][12] end
+			if total ~= o.total then bad = bad + 1; print("total", key, total, o.total) end
+		end
+		check(bad == 0, "TST-00127: wh.sum equals the stand-in's data for every item (" .. bad .. " differences)")
+		local alpha = M.PSS_EntityId("c", "Alpha", "Realm", false)
+		check(alpha and PSS_WarehouseDB.gold[alpha] == 12345678, "TST-00127: gold is imported")
+		-- TST-p172: the second import changes nothing
+		local after1 = dump(PSS_WarehouseDB)
+		M.PSS_Call("wh.import")
+		check(dump(PSS_WarehouseDB) == after1, "TST-p172: a second import changes nothing")
+		check(dump(Syndicator) == synBefore, "TST-00127: nothing was written to the other addon")
+	end
+	M.ShowMsg, M.PSS_RequestGC = realShow, realGC
+end
+
 -- loads a whole world into the warehouse through wh.write (the reader is tested apart); returns the entity ids by label
 local function loadWorld(w)
 	local ids = { world = w }

@@ -213,7 +213,10 @@ M.PSS_Provide("wh.write", function(input)
 			for code, ent in pairs(p.conts or {}) do
 				if ent and ent ~= 0 then byEnt[ent] = byEnt[ent] or {}; byEnt[ent][code] = true end
 			end
-			for ent, codes in pairs(byEnt) do M.PSS_WhMeta(ent, codes) end
+			for ent, codes in pairs(byEnt) do
+				local ok, why = pcall(M.PSS_WhMeta, ent, codes)		-- the notes beside a container never fail the write
+				if not ok then M.PSS_ErrNote("fail", "wh.write", "meta: " .. tostring(why)) end
+			end
 		end
 	end
 	if out.n > 0 then

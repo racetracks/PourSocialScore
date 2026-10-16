@@ -86,7 +86,7 @@ end
 
 local function bagMeta(ent)
 	local m = metaOf(ent)
-	if not m then return end
+	if not (m and GetInventoryItemLink and C_Container and C_Container.ContainerIDToInventoryID) then return end
 	local keys = {}
 	for i = 1, 5 do
 		local link = GetInventoryItemLink("player", C_Container.ContainerIDToInventoryID(i))
