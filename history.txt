@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.106 - Warehouse: every character's items, currencies and gold
+
+- Work in progress: the warehouse (every character's, guild's and warband's items, currencies and gold) is being built in packages; this section is rewritten when it is done.
+
 => 3.7.0.105 - Docs: dated temp folders, token rule for threads, graphs in reports
 
 - Docs only: session temp folders on scratch are dated by year, month and day (temp/YYYY/MM/DD/hh-mm-ss-Ddd-<name>/); older folders stay where they are. The author's token rule is passed verbatim to every sub-agent and thread, and summaries and reports carry graphs and heat maps where they help. Every planned build after S3 moves up one (W1 is 3.7.0.106).

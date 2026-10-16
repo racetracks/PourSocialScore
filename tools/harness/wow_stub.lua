@@ -1052,8 +1052,9 @@ local function slotInfo(bag, slot)
 	local row = stub.bags[bag] and stub.bags[bag][slot]
 	if not row then return nil end
 	local it = stub.items[row.id] or {}
-	return { iconFileID = it.icon or 134400, stackCount = row.count or 1, quality = it.quality or 0,
-		hyperlink = itemLink(row.id), itemID = row.id, hasNoValue = row.noValue or (it.price or 0) == 0, isBound = row.bound == true }
+	return { iconFileID = it.icon or 134400, stackCount = row.count or 1, quality = row.quality or it.quality or 0,
+		hyperlink = row.link or itemLink(row.id), itemID = row.id, hasNoValue = row.noValue or (it.price or 0) == 0, isBound = row.bound == true,
+		hasLoot = row.hasLoot }
 end
 C_Container = {
 	GetContainerNumSlots = function(bag) return stub.bags[bag] and (stub.bags[bag].size or 20) or 0 end,
@@ -1110,5 +1111,9 @@ function stub.OpenMerchant(tab)
 	stub.Fire("MERCHANT_SHOW")
 end
 function stub.CloseMerchant() MerchantFrame:Hide(); stub.Fire("MERCHANT_CLOSED") end
+
+-- the warehouse client APIs (one-build plan, STP-p00): stub.SeedWorld(spec)
+local here = debug.getinfo(1, "S").source:match("^@(.*)/[^/]*$") or "."
+dofile(here .. "/wh_stub.lua")(stub)
 
 return stub

@@ -198,6 +198,11 @@ sh "$here/dtt_phases.sh" || fail=1
 echo "== service bus"
 sh "$here/bus_phases.sh" || fail=1
 
+# the warehouse (warehouse-helper, one build 3.7.0.106): every phase of
+# check_wh.lua on Retail and Camelot (wh_phases.sh)
+echo "== warehouse"
+sh "$here/wh_phases.sh" || fail=1
+
 # the new window's Libraries maths (3.4.0-dev005): pane numbers equal the
 # core's counts, slices, back / forward, throttle
 echo "== new window maths"
