@@ -183,7 +183,9 @@ end
 
 local function isLoaded(name) return loaded[name] == true end
 C_AddOns.IsAddOnLoaded = isLoaded
+H.loadFail = {}		-- H.loadFail[name] = true: that addon fails to load (a client that cannot)
 C_AddOns.LoadAddOn = function(name)
+	if H.loadFail[name] then return false, "CORRUPT" end
 	local ok, why = load(name)
 	if ok then return true end
 	return false, why

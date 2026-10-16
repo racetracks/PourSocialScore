@@ -266,3 +266,21 @@ M.PSS_Provide("trig.rows", function() return M.PSS_Triggers() end, { returns = {
 
 M.PSS_Provide("err.rows", function() return M.PSS_ErrRows() end, { returns = { "code", "service", "message", "count", "first", "last" },
 	doc = "the last distinct service errors", cost = "O(50)", writes = false, onError = "empty" })
+
+-- the upgrade helper's services (core PSS_Upgrade.lua holds the work): the plan,
+-- the state, and the one retry that the trigger row upgretry runs
+M.PSS_Provide("upg.plan", function()
+	local set = { cols = { "step", "feature", "state" }, n = 0 }
+	for _, r in ipairs(M.PSS_UpgradePlan()) do M.PSS_SetAdd(set, r) end
+	return set
+end, { returns = { "step", "feature", "state" }, doc = "the upgrade steps and whether each is done, due or always", cost = "O(steps)", writes = false, onError = "empty" })
+
+M.PSS_Provide("upg.status", function()
+	local rec = type(PourSocialScoreDB) == "table" and PourSocialScoreDB.upgrade or {}
+	return { cols = { "step", "version", "fail", "undo" }, n = 1, { tonumber(rec.step) or 0, tostring(rec.version or ""), tostring(rec.fail or ""), rec.undo ~= nil } }
+end, { returns = { "step", "version", "fail", "undo" }, doc = "where the upgrade stands", cost = "O(1)", writes = false, onError = "empty" })
+
+M.PSS_Provide("upg.retry", function(set)
+	M.PSS_UpgradeRetry()
+	return set
+end, { accepts = { "key" }, returns = { "key" }, doc = "the one retry of a paused upgrade, out of combat", writes = true, onError = "empty" })

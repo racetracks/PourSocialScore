@@ -30,6 +30,11 @@ local blocked	-- first step whose part returned false this login (not recorded)
 local out	-- counts per feature, only on a login that reports (see tally)
 local oldFolders	-- folders the window no longer uses, named on the cleanup line
 local newer	-- the save's version when it is newer than this one (a downgrade)
+local snap	-- the stores as they were before a due step ran (the guard restores them; the undo slot keeps them)
+local skipSnap	-- a new save: nothing to keep
+local failed	-- { step, feature, code, text } when a step part raised or failed its check this login
+local retryAt	-- the step to try again once this session
+local retrying	-- a retry is running
 
 -- The report's groups, in print order.
 local FEATURES = { "filters", "players", "guilds", "managed", "history", "options", "addons", "cleanup" }
@@ -639,6 +644,134 @@ function M.PSS_VersionOrder(a, b)
 	return compareLists(na, nb, math.max(#na, #nb))
 end
 
+------------------------------------------------------------------------
+-- THE GUARD (one-build plan STP-p06, ISS-p02, A13). A step part runs inside a
+-- pcall; before the first part of a due step that is not "always" the stores
+-- it may change are copied (take), and a part that raises, or whose optional
+-- `check` fails, puts them back (put): the step and every later one wait, the
+-- record says so (upgrade.fail), one retry runs this session, and the player
+-- sees a plain line, never a Lua error. After a clean pass the copy is packed
+-- into upgrade.undo (one slot) for /pss upgrade undo; the next login with
+-- nothing due drops it.
+------------------------------------------------------------------------
+local STORES = { "PourSocialScoreDB", "PSS_OptionsDB", "PSS_PlayersDB", "PSS_GuildsDB", "PSS_RulesDB", "PSS_CountsDB", "PSS_CharDB" }
+
+local function copy(v)
+	if type(v) ~= "table" then return v end
+	local c = {}
+	for k, x in pairs(v) do c[k] = copy(x) end
+	return c
+end
+
+local function take()
+	local s = {}
+	for i = 1, #STORES do
+		local name = STORES[i]
+		local t = rawget(_G, name)
+		if type(t) == "table" then
+			local c = {}
+			for k, x in pairs(t) do
+				if not (name == "PourSocialScoreDB" and k == "upgrade") then c[k] = copy(x) end
+			end
+			s[name] = c
+		end
+	end
+	return s
+end
+
+local function put(s)
+	for name, c in pairs(s) do
+		local t = rawget(_G, name)
+		if type(t) == "table" then
+			local keep = name == "PourSocialScoreDB" and rawget(t, "upgrade") or nil
+			for k in pairs(t) do t[k] = nil end
+			for k, x in pairs(c) do rawset(t, k, copy(x)) end
+			if keep then rawset(t, "upgrade", keep) end
+		end
+	end
+end
+
+-- a compact text of the stores: "{" entries "}", s<len>:<bytes>, n<number>;, t, f
+local function pack(v, out)
+	local t = type(v)
+	if t == "table" then
+		out[#out + 1] = "{"
+		for k, x in pairs(v) do pack(k, out); pack(x, out) end
+		out[#out + 1] = "}"
+	elseif t == "string" then
+		out[#out + 1] = "s" .. #v .. ":" .. v
+	elseif t == "number" then
+		out[#out + 1] = ("n%.17g;"):format(v)
+	elseif t == "boolean" then
+		out[#out + 1] = v and "t" or "f"
+	else
+		out[#out + 1] = "f"
+	end
+end
+
+local function unpack_(str, pos)
+	local c = str:sub(pos, pos)
+	if c == "{" then
+		local t = {}
+		pos = pos + 1
+		while str:sub(pos, pos) ~= "}" do
+			if pos > #str then error("truncated", 0) end
+			local k, v
+			k, pos = unpack_(str, pos)
+			v, pos = unpack_(str, pos)
+			t[k] = v
+		end
+		return t, pos + 1
+	elseif c == "s" then
+		local len, colon = str:match("^s(%d+):()", pos)
+		len = tonumber(len)
+		return str:sub(colon, colon + len - 1), colon + len
+	elseif c == "n" then
+		local num, after = str:match("^n([^;]*);()", pos)
+		return tonumber(num), after
+	elseif c == "t" then
+		return true, pos + 1
+	elseif c == "f" then
+		return false, pos + 1
+	end
+	error("bad token at " .. pos, 0)
+end
+
+function M.PSS_UpgradePack(s)
+	local out = {}
+	pack(s, out)
+	return table.concat(out)
+end
+
+function M.PSS_UpgradeUnpack(str)
+	local ok, t = pcall(unpack_, str, 1)
+	if ok and type(t) == "table" then return t end
+	return nil
+end
+
+local function guard(i, p, part, f)
+	local T = M.PSS_Test
+	local ok, res, code
+	if T and T.fault and (T.fault == "*" or T.fault == "upg" .. i) then
+		ok, res = false, "injected fault"
+	else
+		ok, res = pcall(f)
+	end
+	if ok and res ~= false and p.check then
+		local cok, good = pcall(p.check)
+		if not cok or good == false then ok, res, code = false, cok and "its check failed" or good, "integrity" end
+	end
+	if ok then
+		if res == false then blocked = i return false end		-- the part paused itself (as before)
+		return true
+	end
+	failed = { step = i, feature = p.feature, code = code or "fail", text = tostring(res) }
+	if snap then put(snap) end
+	blocked = i
+	if M.PSS_ErrFail then M.PSS_ErrFail("upgrade", failed.code .. ": step " .. i .. ": " .. failed.text) end
+	return false
+end
+
 local function runPart(part)
 	db = PourSocialScoreDB
 	if type(db) ~= "table" then return end
@@ -647,13 +780,11 @@ local function runPart(part)
 		local step = STEPS[i]
 		if blocked and i >= blocked then break end
 		if i > done or step.always then
+			if i > done and not step.always and not snap and not skipSnap then snap = take() end
 			local parts = step.parts
 			for j = 1, #parts do
 				local f = parts[j][part]
-				if f and f() == false then
-					blocked = i
-					break
-				end
+				if f and not guard(i, parts[j], part, f) then break end
 			end
 		end
 	end
@@ -727,7 +858,9 @@ local function printReport(c)
 	text = "  " .. L["UPG_cleanup"] .. ": " .. text .. "."
 	if oldFolders then text = text .. " " .. L["OLD_FOLDERS"]:format(oldFolders) end
 	M.ShowMsg(text)
-	if c.paused then
+	if c.paused and failed then
+		M.ShowMsg("|cffff3333" .. L["UPG_PAUSED_FEATURE"]:format(L["UPG_" .. (failed.feature or "cleanup")] or "saved data", failed.step) .. "|r")
+	elseif c.paused then
 		M.ShowMsg("|cffff3333" .. L["UPG_PAUSED"]:format(c.paused) .. "|r")
 	else
 		M.ShowMsg(L["UPG_DONE"]:format(c.to, c.step))
@@ -743,6 +876,7 @@ end
 function M.PSS_RunUpgradeFields(fresh, defaults)
 	local sv = PourSocialScoreDB
 	out, oldFolders, newer = nil, nil, nil
+	snap, failed, skipSnap = nil, nil, fresh == true
 	if not fresh and type(sv) == "table" then
 		local rec = type(sv.upgrade) == "table" and sv.upgrade or nil
 		local from = rec and rec.version
@@ -770,7 +904,7 @@ function M.PSS_RunUpgradeData(fresh)
 	runPart("data")
 	local sv = PourSocialScoreDB
 	if type(sv) ~= "table" then
-		out = nil
+		out, snap = nil, nil
 		return
 	end
 	db = sv
@@ -783,11 +917,26 @@ function M.PSS_RunUpgradeData(fresh)
 	local rec = type(sv.upgrade) == "table" and sv.upgrade or {}
 	sv.upgrade = rec
 	local version = addonVersion()
+	local priorVersion = rec.version
 	if done < reached or (rec.version ~= version and not newer) then
 		rec.step = math.max(done, reached)
 		if not newer then rec.version = version end
 		rec.at = (GetServerTime and GetServerTime()) or time()
 	end
+	-- the failure record and the undo slot (one slot; a login with nothing due drops it)
+	if failed then
+		rec.fail = failed.step .. ":" .. failed.code
+		retryAt = retryAt == nil and failed.step or retryAt
+		M.PSS_UpgradeRetryRow()
+	else
+		rec.fail = nil
+		if snap and not skipSnap and done < reached then
+			rec.undo = { at = rec.at, step = done, version = priorVersion, blob = M.PSS_UpgradePack(snap) }
+		elseif not snap and rec.undo and not retrying then
+			rec.undo = nil
+		end
+	end
+	snap = nil
 	if newer then
 		-- a downgrade: one line, then what this version cannot use
 		M.ShowMsg(L["UPG_NEWER"]:format(version, newer))
@@ -801,9 +950,104 @@ function M.PSS_RunUpgradeData(fresh)
 		counts.to, counts.step, counts.paused = version, math.max(done, reached), paused
 		countUnusable(counts)
 		printReport(counts)
+	elseif failed then		-- a login that does not report still tells the player
+		M.ShowMsg("|cffff3333" .. L["UPG_PAUSED_FEATURE"]:format(L["UPG_" .. (failed.feature or "cleanup")] or "saved data", failed.step) .. "|r")
 	end
 	oldFolders = nil
 	return counts
+end
+
+-- one retry per session, on the next moment the work can run (generalises the
+-- charmove row of step 11): a trigger row that runs the service upg.retry
+function M.PSS_UpgradeRetryRow()
+	if retryAt and M.PSS_Trigger and not retrying then
+		M.PSS_Trigger({ id = "upgretry", on = { "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA" },
+			settle = "now", run = "upg.retry" })
+	end
+end
+
+-- the retry: out of combat, every due step again (the others stay done), once
+function M.PSS_UpgradeRetry()
+	if not retryAt or retrying then return false end
+	if InCombatLockdown and InCombatLockdown() then return false end		-- the row stays and tries at the next event
+	retrying = true
+	retryAt = nil
+	if M.PSS_TriggerOff then M.PSS_TriggerOff("upgretry") end
+	snap, failed, blocked = nil, nil, nil
+	runPart("fields")
+	runPart("data")
+	local sv = PourSocialScoreDB
+	local rec = type(sv) == "table" and sv.upgrade
+	if type(rec) ~= "table" then retrying = false return false end
+	if failed then
+		rec.fail = failed.step .. ":" .. failed.code
+		M.ShowMsg("|cffff3333" .. L["UPG_PAUSED_FEATURE"]:format(L["UPG_" .. (failed.feature or "cleanup")] or "saved data", failed.step) .. "|r")
+		blocked, snap, retrying = nil, nil, false
+		return false
+	end
+	local reached = blocked and blocked - 1 or #STEPS
+	local prior = rec.step
+	if (tonumber(prior) or 0) < reached then
+		rec.step = reached
+		rec.at = (GetServerTime and GetServerTime()) or time()
+		if snap then rec.undo = { at = rec.at, step = prior, version = rec.version, blob = M.PSS_UpgradePack(snap) } end
+	end
+	rec.fail = nil
+	M.ShowMsg(L["UPG_RETRY_DONE"]:format(rec.step))
+	blocked, snap, retrying = nil, nil, false
+	return true
+end
+
+-- the steps and what each would do, read only: { step, feature, state } rows
+function M.PSS_UpgradePlan()
+	local done = stepsDone()
+	local rows = {}
+	for i = 1, #STEPS do
+		local step = STEPS[i]
+		local state = step.always and "always" or (i <= done and "done" or "due")
+		for j = 1, #step.parts do
+			rows[#rows + 1] = { i, step.parts[j].feature or "", state }
+		end
+	end
+	return rows
+end
+
+-- /pss status: the upgrade in one plain line
+function M.PSS_UpgradeStatusLine()
+	local rec = type(PourSocialScoreDB) == "table" and PourSocialScoreDB.upgrade
+	if type(rec) ~= "table" then return "Upgrade: none yet." end
+	local fail = rec.fail and ("failed at step " .. tostring(rec.fail) .. (retryAt and ", one retry waits" or "")) or "no failure"
+	return ("Upgrade: step %s of %d, version %s, %s%s."):format(tostring(rec.step), #STEPS, tostring(rec.version), fail,
+		rec.undo and ", an undo copy is kept until the next clean login" or "")
+end
+
+-- /pss upgrade undo: the stores as they were before the last upgrade
+function M.PSS_UpgradeUndo()
+	local rec = type(PourSocialScoreDB) == "table" and PourSocialScoreDB.upgrade
+	if type(rec) ~= "table" or type(rec.undo) ~= "table" then M.ShowMsg(L["UPG_NO_UNDO"]) return false end
+	if InCombatLockdown and InCombatLockdown() then M.ShowMsg(L["UPG_UNDO_COMBAT"]) return false end
+	local s = M.PSS_UpgradeUnpack(rec.undo.blob)
+	if not s then M.ShowMsg(L["UPG_NO_UNDO"]) return false end
+	local u = rec.undo
+	put(s)
+	rec = rawget(PourSocialScoreDB, "upgrade")
+	if type(rec) ~= "table" then rec = {}; rawset(PourSocialScoreDB, "upgrade", rec) end
+	rec.undo, rec.fail = nil, nil
+	rec.step = u.step or 0
+	rec.version = u.version
+	M.ShowMsg(L["UPG_UNDONE"]:format(tostring(u.version or "?")))
+	return true
+end
+
+-- /pss upgrade [plan | undo]
+function M.PSS_UpgradeCommand(args)
+	if args[2] == "undo" then
+		M.PSS_UpgradeUndo()
+	elseif args[2] == "plan" then
+		for _, r in ipairs(M.PSS_UpgradePlan()) do M.ShowMsg(("  step %d  %s  %s"):format(r[1], r[2], r[3])) end
+	else
+		M.ShowMsg(M.PSS_UpgradeStatusLine())
+	end
 end
 
 -- For /pss mem: "step 1, version 3.0.0-dev4, 04 Oct 2026 07:40".

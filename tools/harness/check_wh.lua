@@ -3,7 +3,7 @@
 -- wh: <phase>: <what>". Run on Retail and on Camelot (PSS_CAMELOT=1) by
 -- wh_phases.sh. Expected results come from the plan (03_Design, 05_Tests),
 -- not from the code. Phases are added with their packages:
---   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)  store2 (TST-p031..p036)  mapstore (TST-p037..p039, p061, p062)  idx (TST-p042..p049)
+--   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)  store2 (TST-p031..p036)  mapstore (TST-p037..p039, p061, p062)  idx (TST-p042..p049)  watch (TST-p064, p065, p069, p218, p219)  upg (TST-p030, p160..p169, p228..p230)
 local phase = os.getenv("PSS_PHASE") or "stub"
 local camelot = os.getenv("PSS_CAMELOT") == "1"
 local fail = false
@@ -568,6 +568,205 @@ elseif phase == "idx" then
 	for _ = 1, 200 do M.PSS_Query({ from = "t.all", where = { item = 4242 } }) end
 	local us = (os.clock() - t0) / 200 * 1e6
 	check(us < 50, string.format("TST-p049: a pushdown of one match in 10,000 took %.1f us", us))
+end
+
+if phase == "watch" then
+	local PART = "PourSocialScore_Libraries"
+	local seen, fails = {}, 0
+	local function keysOf(set)
+		local k = {}
+		for i = 1, set.n do k[#k + 1] = set[i][1] end
+		table.sort(k)
+		return table.concat(k, ",")
+	end
+	M.PSS_Trigger({ id = "t.w", on = { "BAG_UPDATE" }, settle = { "BAG_UPDATE_DELAYED" }, run = "t.w.run", key = function(_, bag) return bag end })
+	-- TST-p064: Libraries cannot load during a flush: the keys are kept
+	H.loadFail[PART] = true
+	check(not C_AddOns.IsAddOnLoaded(PART), "TST-p064: Libraries are not loaded yet")
+	H.Fire("BAG_UPDATE", 1); H.Fire("BAG_UPDATE", 2)
+	H.Fire("BAG_UPDATE_DELAYED")
+	check(not C_AddOns.IsAddOnLoaded(PART), "TST-p064: the load failed")
+	H.loadFail[PART] = nil
+	libs()
+	local writes = {}
+	M.PSS_Provide("t.w.run", function(set) writes[#writes + 1] = keysOf(set) return set end, { returns = { "key" }, onError = "empty" })
+	H.Fire("BAG_UPDATE", 3)
+	H.Fire("BAG_UPDATE_DELAYED")
+	check(#writes == 1 and writes[1] == "1,2,3", "TST-p064: the next settle writes the kept keys with the new one (" .. table.concat(writes, " | ") .. ")")
+	H.Fire("BAG_UPDATE_DELAYED")
+	check(#writes == 1, "TST-p064: nothing is written twice (" .. #writes .. ")")
+	-- TST-p065: the service fails once: the keys are kept and written at the next settle
+	writes = {}
+	local boom = true
+	M.PSS_Provide("t.w.run", function(set) if boom then boom = false error("busy") end writes[#writes + 1] = keysOf(set) return set end, { returns = { "key" }, onError = "empty" })
+	H.Fire("BAG_UPDATE", 5)
+	H.Fire("BAG_UPDATE_DELAYED")
+	check(#writes == 0, "TST-p065: the first call failed")
+	H.Fire("BAG_UPDATE", 6)
+	H.Fire("BAG_UPDATE_DELAYED")
+	check(#writes == 1 and writes[1] == "5,6", "TST-p065: the next settle wrote both (" .. table.concat(writes, " | ") .. ")")
+	-- TST-p069 and TST-p218: a burst of 40 changes is one read, shared by two followers
+	local reads, followA, followB = 0, {}, {}
+	M.PSS_Provide("t.read", function(set) reads = reads + 1 return set end, { returns = { "key" }, onError = "empty" })
+	M.PSS_Provide("t.a", function(set) followA[#followA + 1] = keysOf(set) return set end, { returns = { "key" }, onError = "empty" })
+	M.PSS_Provide("t.b", function(set) followB[#followB + 1] = keysOf(set) return set end, { returns = { "key" }, onError = "empty" })
+	M.PSS_Trigger({ id = "t.bags", on = { "BAG_UPDATE" }, settle = { "BAG_UPDATE_DELAYED" }, run = "t.read", key = function(_, bag) return bag end })
+	M.PSS_Trigger({ id = "t.fa", on = { "@t.bags" }, settle = "now", run = "t.a", key = function(_, set) return set and set.n and keysOf(set) or "x" end })
+	M.PSS_Trigger({ id = "t.fb", on = { "@t.bags" }, settle = "now", run = "t.b", key = function(_, set) return set and set.n and keysOf(set) or "x" end })
+	for i = 1, 40 do H.Fire("BAG_UPDATE", i % 5 + 1) end
+	H.Fire("BAG_UPDATE_DELAYED")
+	check(reads == 1, "TST-p069: the bags were read once for a burst of 40 (" .. reads .. ")")
+	check(#followA == 1 and #followB == 1, "TST-p218: both followers ran once on the one settle (" .. #followA .. ", " .. #followB .. ")")
+	-- TST-p219: the signal carries the changed ids as a record set
+	local got
+	M.PSS_Provide("t.p", function(set) got = set return set end, { returns = { "key" }, onError = "empty" })
+	M.PSS_Trigger({ id = "t.fp", on = { "@t.bags" }, settle = "now", run = "t.p", key = function(_, set) return "k" end })
+	H.Fire("BAG_UPDATE", 9)
+	H.Fire("BAG_UPDATE_DELAYED")
+	check(M.PSS_IsSet(got) and got.cols[1] == "key", "TST-p219: a follower receives a record set of keys")
+end
+
+if phase == "upg" then
+	libs()
+	local said = {}
+	local realMsg = M.ShowMsg
+	M.ShowMsg = function(str) said[#said + 1] = str end
+	local steps = M.PSS_UPGRADE_REGISTRY
+	local N = #steps
+	local STORES = { "PourSocialScoreDB", "PSS_OptionsDB", "PSS_PlayersDB", "PSS_GuildsDB", "PSS_RulesDB", "PSS_CountsDB" }
+	local function deep(a, b, path)
+		if type(a) ~= type(b) then return false, path end
+		if type(a) ~= "table" then return a == b, path end
+		for k, v in pairs(a) do
+			if not (path == "PourSocialScoreDB" and k == "upgrade") then
+				local ok, where = deep(v, b[k], path .. "." .. tostring(k))
+				if not ok then return false, where end
+			end
+		end
+		for k in pairs(b) do
+			if not (path == "PourSocialScoreDB" and k == "upgrade") and rawget(a, k) == nil and a[k] == nil then return false, path .. "." .. tostring(k) end
+		end
+		return true
+	end
+	local function snapshot()
+		local s = {}
+		for _, n in ipairs(STORES) do
+			local t = rawget(_G, n)
+			if type(t) == "table" then
+				local c = {}
+				local function cp(v) if type(v) ~= "table" then return v end local r = {} for k, x in pairs(v) do r[k] = cp(x) end return r end
+				for k, v in pairs(t) do c[k] = cp(v) end
+				s[n] = c
+			end
+		end
+		return s
+	end
+	local function same(a, b)
+		for _, n in ipairs(STORES) do
+			if a[n] or b[n] then
+				local ok, where = deep(a[n] or {}, b[n] or {}, n)
+				if not ok then return false, where end
+			end
+		end
+		return true
+	end
+	local function rec() return PourSocialScoreDB.upgrade end
+	local function run() M.PSS_RunUpgradeFields(false, 0); M.PSS_RunUpgradeData(false) end
+	local function addStep(parts) steps[#steps + 1] = { id = #steps + 1, parts = parts } return #steps end
+	local function dropSteps() while #steps > N do steps[#steps] = nil end end
+	-- TST-p030: the plan reads and writes nothing
+	local before = snapshot()
+	local plan = M.PSS_Call("upg.plan")
+	check(plan and plan.n >= N and plan.cols[3] == "state" and same(before, snapshot()), "TST-p030: upg.plan lists the steps and changes nothing")
+	local states = {}
+	for i = 1, plan.n do states[plan[i][3]] = true end
+	check(states.always and states.done, "TST-p030: always and done steps are told apart")
+	-- TST-p160: a part that throws pauses, no Lua error
+	local boom = true
+	local s12 = addStep({ { feature = "options", data = function() PSS_OptionsDB.tprobe = 1; PSS_PlayersDB.tprobe = { 1, 2 }; if boom then error("kaboom") end end } })
+	rec().step = N
+	said = {}
+	local pre = snapshot()
+	run()
+	check(rec().fail == s12 .. ":fail" and rec().step == N, "TST-p160: upgrade.fail names the step and the code (" .. tostring(rec().fail) .. ")")
+	-- TST-p161: nothing the part wrote is left
+	check(same(pre, snapshot()), "TST-p161: the stores are as they were before the part ran")
+	-- TST-p165: the line is plain words
+	local line = table.concat(said, "\n")
+	check(line:find("did not finish", 1, true) and line:find("Options", 1, true) and not line:find("kaboom", 1, true) and not line:find(".lua", 1, true) and not line:find("traceback", 1, true), "TST-p165: a plain line that names the feature (" .. line .. ")")
+	-- TST-p169: the state is readable
+	local st = M.PSS_Call("upg.status")
+	check(st and st[1][3] == s12 .. ":fail" and M.PSS_UpgradeStatusLine():find("failed at step", 1, true), "TST-p169: upg.status and the status line show the failure")
+	-- TST-p164: the retry waits in combat
+	local live
+	local rows = M.PSS_Triggers()
+	for i = 1, rows.n do if rows[i][1] == "upgretry" then live = rows[i][6] end end
+	check(live == true, "TST-p164: the retry row is live")
+	boom = false
+	H.combat = true
+	H.Fire("PLAYER_REGEN_ENABLED")
+	check(rec().fail == s12 .. ":fail" and rec().step == N, "TST-p164: nothing runs in combat")
+	H.combat = false
+	said = {}
+	-- TST-p163: one retry, the fault gone
+	H.Fire("ZONE_CHANGED_NEW_AREA")
+	check(rec().step == s12 and rec().fail == nil and PSS_OptionsDB.tprobe == 1, "TST-p163: the retry finished the step (" .. tostring(rec().step) .. ")")
+	check(table.concat(said, "\n"):find("second try", 1, true), "TST-p163: the line says it was the second try")
+	rows = M.PSS_Triggers()
+	local still
+	for i = 1, rows.n do if rows[i][1] == "upgretry" then still = true end end
+	check(not still, "TST-p163: the retry row took itself down")
+	check(type(rec().undo) == "table", "TST-p228: the finished retry keeps the undo copy")
+	-- TST-p229: undo puts the pre-upgrade stores back
+	PSS_OptionsDB.tprobe, PSS_PlayersDB.tprobe = nil, nil
+	said = {}
+	check(M.PSS_UpgradeUndo() and rec().step == N and rec().undo == nil, "TST-p229: undo moved the record back")
+	check(PSS_OptionsDB.tprobe == nil and PSS_PlayersDB.tprobe == nil, "TST-p229: the stores are as before the step")
+	check(M.PSS_UpgradeUndo() == false, "TST-p229: a second undo has nothing")
+	dropSteps()
+	-- TST-p162: a check that fails restores and pauses
+	local s12b = addStep({ { feature = "players", data = function() PSS_PlayersDB.tprobe2 = "x" end, check = function() return false end } })
+	rec().step = N
+	pre = snapshot()
+	said = {}
+	run()
+	check(rec().fail == s12b .. ":integrity" and PSS_PlayersDB.tprobe2 == nil and same(pre, snapshot()), "TST-p162: a failed check swaps nothing (" .. tostring(rec().fail) .. ")")
+	dropSteps(); rec().fail = nil
+	-- TST-p230: the slot is dropped by the next clean login and never doubled
+	local s12c = addStep({ { feature = "options", data = function() PSS_OptionsDB.tprobe3 = 1 end } })
+	rec().step = N
+	run()
+	check(rec().step == s12c and type(rec().undo) == "table", "TST-p230: a due step leaves one undo slot")
+	local firstAt = rec().undo.at
+	local s12d = addStep({ { feature = "options", data = function() PSS_OptionsDB.tprobe4 = 1 end } })
+	run()
+	check(rec().step == s12d and type(rec().undo) == "table" and rec().undo.step == s12c, "TST-p230: the next step replaces the slot, never two")
+	run()
+	check(rec().undo == nil, "TST-p230: a login with nothing due drops it")
+	PSS_OptionsDB.tprobe3, PSS_OptionsDB.tprobe4 = nil, nil
+	dropSteps(); rec().step = N
+	-- TST-p166: every step is safe to run twice
+	for i = 1, N do
+		rec().step = i - 1
+		run()
+		local one = snapshot()
+		rec().step = i - 1
+		run()
+		local ok, where = same(one, snapshot())
+		check(ok, "TST-p166: step " .. i .. " run twice differs at " .. tostring(where))
+	end
+	rec().step = N
+	-- TST-p168: a newer save with a forced fault is left alone
+	rec().version = "9.9.9.9"
+	pre = snapshot()
+	local T = M.PSS_Test
+	T.fault = "*"
+	run()
+	T.fault = nil
+	check(same(pre, snapshot()) and rec().version == "9.9.9.9", "TST-p168: a newer save is kept untouched under a fault")
+	-- TST-p167: step 11 is still registered with its retry row declared on demand
+	check(steps[11].always == true and steps[11].parts[1].data ~= nil, "TST-p167: step 11 keeps its part")
+	M.ShowMsg = realMsg
 end
 
 if not fail then print("PASS wh " .. phase) end

@@ -46,21 +46,28 @@ local function need(e)
 	src:RegisterEvent(e)
 end
 
+-- A change is forgotten only after the service took it (one-build plan
+-- STP-p05, ISS-p01): Libraries load first, the keys are cleared one by one
+-- after the call returned without an error. A failed load or a failed
+-- service keeps every key; the next settle (or the next pull) writes them.
+-- The output set raises "@<row id>", so a second reader (the bag window, Drop
+-- Cheapest Thing, a journal monitor) follows the one settled read.
 local function flush(id)
 	local d = dirty[id]
 	if not d or not next(d) then return end
 	local row = live[id]
+	if not M.PSS_Need("Libraries") then return end
 	local set = { cols = { "key" }, n = 0 }
 	for k in pairs(d) do
 		local n = set.n + 1
 		set.n = n
 		set[n] = { k }
-		d[k] = nil
 	end
-	if not M.PSS_Need("Libraries") then return end
-	local out = M.PSS_Call(row.run, set)
-	if out and M.PSS_Signal then M.PSS_Signal("@" .. id, out) end
+	local out, err = M.PSS_Call(row.run, set)
 	if M.PSS_ErrSettle then M.PSS_ErrSettle() end		-- a settle half-opens open breakers and runs waiting retries
+	if err then return end		-- the keys stay
+	for i = 1, set.n do d[set[i][1]] = nil end
+	if out and M.PSS_Signal then M.PSS_Signal("@" .. id, out) end
 	return out
 end
 
