@@ -1,9 +1,16 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
-=> 3.7.0.106 - Warehouse: every character's items, currencies and gold
+=> 3.7.0.106 - The Warehouse: what every character, guild and your warband holds (optional, off by default)
 
-- Work in progress: the warehouse (every character's, guild's and warband's items, currencies and gold) is being built in packages; this section is rewritten when it is done.
+- New optional Warehouse (Options, Enabled components, then reload). It remembers the items every character carries, keeps in the bank, mail, void storage, auctions and has equipped, each guild bank and your warband bank, the currencies each character holds and everyone's gold. Everything is saved account wide, only while the Warehouse is on, and nothing loads while it is off.
+- Item and currency tooltips list who holds them. The Warehouse page in Options (Feature Options) chooses what is shown: guild banks, equipped items, other realms, your faction only, how many holders before "and n more", a total line, Shift only, and joining variants of an item by name.
+- Search Everywhere: /pss wh opens one window that searches every character, guild bank and the warband in all three looks. /pss wh search <text> prints the matches. You can search by name, quality, slot, item class, binding, expansion, item level (>400, 400-420) and value (>10g, 5s-2g), and combine words with & | ~ ! and brackets. Click a result to see where it is.
+- /pss money lists gold per character, per realm and the total. /pss wh status, hide, remove, sweep and import manage what is saved; /syn and /syndicator open the search when no other addon owns them.
+- Moving from Syndicator: /pss wh import copies what Syndicator saved (it must be loaded, and it is only read), then you can turn it off. When Syndicator is not installed, addons that ask for it (such as Baganator) get their answers from the Warehouse.
+- Drop Cheapest Thing uses the same bag reader and item values when the Warehouse is on; its choices do not change.
+- Safer upgrades: a saved-data upgrade that fails is undone and tried once more, /pss upgrade undo puts the data back as it was before the last upgrade, and /pss status shows recent errors and the upgrade state.
+- Thanks: Syndicator by plusmouse (https://www.curseforge.com/wow/addons/syndicator) showed what a warehouse should do; its behaviour was studied and no code was copied. Item prices come read-only from TradeSkillMaster, RECrystallize and Auctionator through their documented interfaces.
 
 => 3.7.0.105 - Docs: dated temp folders, token rule for threads, graphs in reports
 

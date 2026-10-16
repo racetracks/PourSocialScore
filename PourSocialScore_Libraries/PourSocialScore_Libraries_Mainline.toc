@@ -31,6 +31,7 @@ PSS_Gw.lua
 PSS_GwSyndicator.lua
 PSS_WhTooltip.lua
 PSS_WhView.lua
+PSS_WhCommands.lua
 PSS_Trig.lua
 PSS_ImportExport.lua
 PSS_PlayerRows.lua

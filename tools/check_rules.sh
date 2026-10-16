@@ -69,6 +69,12 @@ if awk 'NR > 1 && /^=> / { n++ } n == 1' history.txt | grep -qE '^- (What change
 	fail=1
 fi
 
+# the 3.7.0.106 section credits Syndicator by name and says so in plain words (no code notes)
+if [ "$ver" = "3.7.0.106" ] && ! awk 'NR > 1 && /^=> / { n++ } n == 1' history.txt | grep -q 'Syndicator by plusmouse'; then
+	echo "history.txt: the 3.7.0.106 section must credit Syndicator by plusmouse"
+	fail=1
+fi
+
 strict=""
 [ -n "$CI" ] && strict="--strict"
 python3 tools/versions.py check --toc "$ver" $strict ${PSS_PR:+--pr "$PSS_PR"} || fail=1

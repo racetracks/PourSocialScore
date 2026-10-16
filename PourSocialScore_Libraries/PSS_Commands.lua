@@ -299,6 +299,17 @@ function M.PSS_SlashPSS (msg)
 		if not M.PSS_On("dtt") or not M.PSS_DttCommand then M.ShowMsg(M.PSS_OFF_TEXT.dtt)
 		else M.PSS_DttCommand(args, rawArgs) end
 
+	elseif args[1] == "wh" or args[1] == "warehouse" then
+
+		-- the Warehouse (warehouse-helper; PSS_WhCommands.lua)
+		if not M.PSS_On("warehouse") or not M.PSS_WhCommand then M.ShowMsg(M.PSS_OFF_TEXT.warehouse)
+		else M.PSS_WhCommand(args) end
+
+	elseif args[1] == "money" then
+
+		if not M.PSS_On("warehouse") or not M.PSS_MoneyCommand then M.ShowMsg(M.PSS_OFF_TEXT.warehouse)
+		else M.PSS_MoneyCommand() end
+
 	elseif args[1] == "acp" then
 
 		-- the addon manager (3.6.0): on its own the AddOns tab, else
@@ -352,6 +363,7 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  |cffffff00gfx|cffffffff: Export, import and restore graphics settings (Camelot)" .. (M.PSS_On("gfx") and "" or " (off)"))
 		M.ShowMsg ("  |cffffff00macro|cffffffff: Create the preloaded macros (Camelot): /pss macro global create, /pss macro <class> create [account|character]")
 		M.ShowMsg ("  |cffffff00dtt|cffffffff: Destroy or sell the cheapest junk item: /pss dtt | list | sell | never | always | forget | options | log | icon" .. (M.PSS_On("dtt") and "" or " (off)"))
+		M.ShowMsg ("  |cffffff00wh|cffffffff: Search every character, guild bank and the warband: /pss wh | search <text> | status | import | sweep | hide | delete; /pss money" .. (M.PSS_On("warehouse") and "" or " (off)"))
 		M.ShowMsg ("  |cffffff00acp|cffffffff: Turn addons on and off, see what they cost, addon profiles: /pss acp (the AddOns tab), /pss acp list | on | off | load | all | undo | profiles | profile | lock | api" .. (M.PSS_On("addons") and "" or " (off)"))
 		if M.PSS_On("addons") then M.ShowMsg ("  " .. (M.PSS_ACPTaken and "/acp is used by another addon; use /pss acp" or "/acp = /pss acp")) end
 		M.ShowMsg ("  " .. L["HELP_9"])

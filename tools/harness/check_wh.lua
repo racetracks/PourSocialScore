@@ -2237,6 +2237,61 @@ if phase == "everywhere" or phase == "whoptions" then
 	end
 end
 
+if phase == "cmd" or phase == "cmdtaken" then
+	libs()
+	local said = {}
+	local realShow = M.ShowMsg
+	M.ShowMsg = function(x) said[#said + 1] = tostring(x):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "") end
+	local function run(cmd) said = {}; M.PSS_SlashPSS(cmd); return table.concat(said, "\n") end
+	if phase == "cmdtaken" then
+		-- TST-p207: /syn is taken by another addon
+		check(SlashCmdList["PSSSYN"] == nil and SLASH_PSSSYN1 == nil, "TST-p207: /syn is not registered over another addon's")
+	else
+		local w = WORLD.world()
+		local ids = loadWorld(w)
+		check(SlashCmdList["PSSSYN"] ~= nil and SLASH_PSSSYN1 == "/syn", "/syn is ours when free")
+		-- TST-p206: the commands print the expected lines
+		local out = run("wh search epic")
+		check(out:find("3 found for 'epic'", 1, true) and out:find("Harbinger", 1, true), "TST-p206: search: " .. out)
+		out = run("wh search")
+		check(out:find("Type what to look for", 1, true), "TST-p206: search without text")
+		out = run("wh search zzzzqq")
+		check(out:find("Nothing found", 1, true), "TST-p206: nothing found")
+		out = run("wh status")
+		check(out:find("Alpha", 1, true) and out:find("Warband", 1, true), "TST-p206: status: " .. out)
+		out = run("money")
+		check(out:find("Alpha", 1, true) and out:find("Total", 1, true) and out:find("(realm)", 1, true), "TST-p206: money lines per character, realm and total")
+		local before = PSS_WarehouseDB.gold and 1
+		out = run("wh hide Bravo-Realm")
+		check(out:find("is hidden", 1, true), "TST-p206: hide: " .. out)
+		out = run("wh hide Bravo-Realm")
+		check(out:find("is shown", 1, true), "TST-p206: hide again shows")
+		out = run("wh remove Alpha-Realm")
+		check(out:find("Could not remove", 1, true), "TST-p206: the live character cannot be removed: " .. out)
+		out = run("wh remove Charlie-Otherrealm")
+		check(out:find("was removed", 1, true), "TST-p206: remove: " .. out)
+		out = run("wh remove Nobody-Nowhere")
+		check(out:find("knows", 1, true), "TST-p206: an unknown name")
+		out = run("wh import")
+		check(out:find("not loaded", 1, true), "TST-p206: import without Syndicator")
+		out = run("wh sweep")
+		check(out:find("Freed", 1, true) or out:find("Nothing to free", 1, true), "TST-p206: sweep")
+		out = run("wh bogus")
+		check(out:find("/pss wh", 1, true), "TST-p206: usage")
+		-- TST-p208: /pss help lists the new words
+		out = run("help")
+		check(out:find("wh", 1, true) and out:find("/pss money", 1, true), "TST-p208: help lists wh and money")
+		-- /syn does what /pss wh does
+		SlashCmdList["PSSSYN"]("epic")
+		check(#said > 0 and table.concat(said, "\n"):find("found for 'epic'", 1, true), "/syn <text> searches")
+		-- the open command loads the window
+		local win = M.PSS_WhOpenEverywhere()
+		check(win and win:IsShown(), "/pss wh opens Search Everywhere")
+		if win then win:Hide() end
+	end
+	M.ShowMsg = realShow
+end
+
 local WHFILES = { "PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua",
 	"PSS_Money.lua", "PSS_MoneyValue.lua", "PSS_WhTooltip.lua", "PSS_Gw.lua", "PSS_GwSyndicator.lua", "PSS_WhImport.lua", "PSS_WhCommands.lua" }
 local function exists(path) local f = io.open(path, "rb") if f then f:close() return true end return false end
