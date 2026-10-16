@@ -123,7 +123,7 @@ return function(stub)
 		end }))
 		rawset(Enum, "BankType", { Character = 0, Guild = 1, Account = 2 })
 		rawset(Enum, "PlayerInteractionType", { Banker = 8, MailInfo = 17, GuildBanker = 10, VoidStorageBanker = 26, Auctioneer = 21, AccountBanker = 68 })
-		rawset(Enum, "TooltipDataType", { Item = 0, Currency = 5, Unit = 2, Spell = 1 })
+		rawset(Enum, "TooltipDataType", { Item = 0, Currency = 5, Unit = 2, Spell = 1, BattlePet = 7 })
 		rawset(Enum, "ItemQuality", { Poor = 0, Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5 })
 		NUM_BAG_SLOTS = 4
 		ATTACHMENTS_MAX_RECEIVE = 16
@@ -338,6 +338,11 @@ return function(stub)
 		GetCurrencyListSize, GetCurrencyListInfo, ExpandCurrencyList = nil, nil, nil
 
 		-- tooltip data
+		function GameTooltip:AddDoubleLine(l, r) self._lines = self._lines or {}; self._lines[#self._lines + 1] = tostring(l) .. "\t" .. tostring(r) end
+		function GameTooltip:IsForbidden() return self._forbidden == true end
+		function GameTooltip:ClearLines() self._lines = {} end
+		function ItemRefTooltip:AddDoubleLine(l, r) GameTooltip.AddDoubleLine(self, l, r) end
+		function ItemRefTooltip:IsForbidden() return self._forbidden == true end
 		stub.tooltipPost = {}
 		TooltipDataProcessor = {
 			AddTooltipPostCall = function(kind, fn)

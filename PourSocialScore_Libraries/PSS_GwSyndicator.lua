@@ -23,7 +23,8 @@ local type, pairs, ipairs, tonumber, tostring, error, setmetatable = type, pairs
 local sort = table.sort
 local floor = math.floor
 
-local Call = function(...) return M.PSS_Call(...) end
+-- a failed service call is nil here, never another call's last result; the wrapper turns the breach into the documented empty value
+local Call = function(...) local r, err = M.PSS_Call(...); if err then return nil end return r end
 local stats = { builds = 0 }
 function M.PSS_GwStats() return stats end
 

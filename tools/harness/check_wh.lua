@@ -1895,6 +1895,12 @@ if phase == "synapi" or phase == "shimfault" or phase == "gwlint" or phase == "s
 		-- TST-p190: every manifest row has a spec, a service and a generated test
 		local bad = M.PSS_GwLint("syndicator")
 		check(#bad == 0, "TST-p190: the lint found " .. table.concat(bad, "; "))
+		-- the shim is an adapter: no saved table, no PSS store and no Syndicator data model is touched in its file
+		local fh = io.open("PourSocialScore_Libraries/PSS_GwSyndicator.lua", "r")
+		local text = fh and fh:read("*a") or ""
+		if fh then fh:close() end
+		check(#text > 1000 and not text:find("PSS_WarehouseDB", 1, true) and not text:find("PSS_Store", 1, true) and not text:find("PSS_MapStore", 1, true) and not text:find("rawget(_G, \"PSS_", 1, true),
+			"the shim file reaches PSS only through services")
 		local rows = M.PSS_GwManifest("syndicator")
 		check(#rows >= 24, "TST-p190: the manifest has " .. #rows .. " rows")
 		for _, row in ipairs(rows) do
@@ -2022,6 +2028,123 @@ if phase == "synapi" or phase == "shimfault" or phase == "gwlint" or phase == "s
 		S.API.RegisterShowItemLocation(function() shown = true end)
 		check(type(M.PSS_GwShow) == "function", "TST-p187: the location callback is kept")
 	end
+end
+
+if phase == "tooltip" then
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	local oracle = WORLD.oracle(w)
+	local V = WORLD.V
+	local T = Enum.TooltipDataType
+	local function hover(tip, kind, data)
+		tip._lines = nil
+		tip._forbidden = nil
+		H.RunTooltip(kind, tip, data)
+		return tip._lines or {}
+	end
+	local shift = false
+	_G.IsShiftKeyDown = function() return shift end
+	local function opt(k, v) M.PSS_SetOpt(k, "global", v) end
+	local linen = { id = 2589, hyperlink = "|cffffffff|Hitem:2589::::::::|h[Linen Cloth]|h|r" }
+	-- holders of linen the tooltip should list: everyone visible, by oracle
+	local o = oracle.sum("2589")
+	local holders = 0
+	for lab in pairs(o.by) do if lab ~= "c:Foxtrot-Realm" then holders = holders + 1 end end
+	-- TST-p192: one line per holder, the limit, "and n more", the total
+	local lines = hover(GameTooltip, T.Item, linen)
+	check(#lines == 1 + 4 + 1 and lines[1] == " " and lines[2]:find("Warband bank", 1, true) and lines[3]:find("Alpha", 1, true) and lines[4]:find("Guild One", 1, true), "TST-p192: blank, four holders, 'and n more' (" .. #lines .. ")")
+	check(lines[#lines]:find("and " .. (holders - 4) .. " more", 1, true), "TST-p192: and n more: " .. tostring(lines[#lines]))
+	opt("whTipTotal", true)
+	lines = hover(GameTooltip, T.Item, linen)
+	check(lines[#lines]:find("^Total\t" .. o.total - 1 .. "$") or lines[#lines]:find("^Total\t%d+$"), "TST-p192: the total line: " .. tostring(lines[#lines]))
+	opt("whTipTotal", nil)
+	-- TST-p193: each option changes only its line
+	opt("whTipLimit", 0)
+	lines = hover(GameTooltip, T.Item, linen)
+	check(#lines == 1 + holders, "TST-p193: limit 0 lists every holder (" .. #lines .. " vs " .. 1 + holders .. ")")
+	opt("whTipLimit", nil)
+	opt("whTipGuilds", false)
+	lines = hover(GameTooltip, T.Item, linen)
+	local anyGuild
+	for _, l in ipairs(lines) do if l:find("guild bank", 1, true) then anyGuild = true end end
+	check(not anyGuild, "TST-p193: no guild line with guilds off")
+	opt("whTipGuilds", nil)
+	local blade = { id = 207791, hyperlink = V.blade_a.link }
+	lines = hover(GameTooltip, T.Item, blade)
+	local eq
+	for _, l in ipairs(lines) do if l:find("Equipped", 1, true) then eq = true end end
+	check(eq, "TST-p193: equipped is listed")
+	opt("whTipEquipped", false)
+	lines = hover(GameTooltip, T.Item, blade)
+	eq = false
+	for _, l in ipairs(lines) do if l:find("Equipped", 1, true) then eq = true end end
+	check(not eq and #lines >= 2, "TST-p193: equipped left out")
+	opt("whTipEquipped", nil)
+	opt("whTipFaction", true)
+	opt("whTipLimit", 0)
+	lines = hover(GameTooltip, T.Item, linen)
+	local horde
+	for _, l in ipairs(lines) do if l:find("Charlie", 1, true) then horde = true end end
+	check(not horde and #lines >= 3, "TST-p193: only your faction")
+	opt("whTipFaction", nil)
+	lines = hover(GameTooltip, T.Item, linen)
+	horde = false
+	for _, l in ipairs(lines) do if l:find("Charlie", 1, true) then horde = true end end
+	check(horde, "TST-p193: both factions by default")
+	opt("whTipRealms", true)
+	lines = hover(GameTooltip, T.Item, linen)
+	local realmShown
+	for _, l in ipairs(lines) do if l:find("Charlie-", 1, true) then realmShown = true end end
+	check(realmShown, "TST-p193: another realm's character shows its realm")
+	opt("whTipRealms", nil)
+	opt("whTipLimit", nil)
+	shift = false
+	opt("whTipShift", true)
+	check(#hover(GameTooltip, T.Item, linen) == 0, "TST-p193: nothing without Shift")
+	shift = true
+	check(#hover(GameTooltip, T.Item, linen) > 0, "TST-p193: lines with Shift")
+	opt("whTipShift", nil)
+	shift = false
+	local exact = hover(GameTooltip, T.Item, { id = 207791, hyperlink = "|cffffffff|Hitem:207791::::::::|h[x]|h|r" })
+	opt("whTipByName", true)
+	local joined = hover(GameTooltip, T.Item, { id = 207791, hyperlink = "|cffffffff|Hitem:207791::::::::|h[x]|h|r" })
+	opt("whTipByName", nil)
+	check(#exact == 0 and #joined > 0, "TST-p193: variants joined by name (" .. #exact .. ", " .. #joined .. ")")
+	opt("whTooltips", false)
+	check(#hover(GameTooltip, T.Item, linen) == 0, "TST-p193: the switch off adds nothing")
+	opt("whTooltips", nil)
+	-- TST-p194: the link tooltip, a battle pet, a currency
+	check(#hover(ItemRefTooltip, T.Item, linen) > 0, "TST-p194: ItemRefTooltip")
+	check(#hover(GameTooltip, T.BattlePet, { id = 1234 }) > 0, "TST-p194: a battle pet")
+	lines = hover(GameTooltip, T.Currency, { id = 1792 })
+	check(#lines == 3 and lines[2]:find("Bravo", 1, true) and lines[2]:find("900", 1, true), "TST-p194: a currency (" .. #lines .. ")")
+	opt("whTipCurrency", false)
+	check(#hover(GameTooltip, T.Currency, { id = 1792 }) == 0, "TST-p193: currency lines off")
+	opt("whTipCurrency", nil)
+	-- TST-p195: a forbidden tooltip
+	GameTooltip._lines = nil
+	GameTooltip._forbidden = true
+	H.RunTooltip(T.Item, GameTooltip, linen)
+	check(#(GameTooltip._lines or {}) == 0, "TST-p195: a forbidden tooltip gets nothing")
+	GameTooltip._forbidden = nil
+	-- a secret id
+	local realSecret = issecretvalue
+	_G.issecretvalue = function(v) return v == 2589 end
+	check(#hover(GameTooltip, T.Item, { id = 2589 }) == 0, "J7: a secret id adds nothing")
+	_G.issecretvalue = realSecret
+	-- TST-p196: wh.sum failing
+	M.PSS_Test.fault = "wh.sum"
+	local ok, l2 = pcall(hover, GameTooltip, T.Item, { id = 4306, hyperlink = "|cffffffff|Hitem:4306::::::::|h[x]|h|r" })
+	M.PSS_Test.fault = nil
+	check(ok and #l2 == 0, "TST-p196: wh.sum failing gives no line and no error: " .. tostring(ok) .. " " .. tostring(type(l2) == "table" and #l2 or l2))
+	-- TST-p197: the same item twice, one wh.sum
+	local sums, realCall = 0, M.PSS_Call
+	M.PSS_Call = function(name, ...) if name == "wh.sum" then sums = sums + 1 end return realCall(name, ...) end
+	local fresh = { id = 3371, hyperlink = "|cffffffff|Hitem:3371::::::::|h[x]|h" }
+	hover(GameTooltip, T.Item, fresh); hover(GameTooltip, T.Item, fresh)
+	M.PSS_Call = realCall
+	check(sums == 1, "TST-p197: one wh.sum for two hovers (" .. sums .. ")")
 end
 
 local WHFILES = { "PSS_WhContainers.lua", "PSS_ItemRead.lua", "PSS_ItemDict.lua", "PSS_WhStore.lua", "PSS_WhIndex.lua", "PSS_ItemSearch.lua",
