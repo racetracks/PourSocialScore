@@ -361,8 +361,19 @@ M.PSS_ItemRefs("inv", { used = function(add) eachString(function(_, _, _, str) r
 		end
 	end })
 
+M.PSS_SWEEP_BUDGET = 3000000		-- bytes of saved containers a logout sweep may read (PB-04); over it, the sweep waits for /pss wh sweep
+
 M.PSS_Provide("wh.sweep", function(_, opts)
 	local out = { cols = { "freed", "remapped", "dropped" }, n = 1 }
+	if not (opts and opts.force) then
+		local bytes = 0
+		eachString(function(_, _, _, str) bytes = bytes + #str end)
+		if bytes > M.PSS_SWEEP_BUDGET then
+			M.PSS_ErrNote("cap", "wh.sweep", "skipped at logout: " .. bytes .. " bytes of containers is over the budget")
+			out[1] = { 0, 0, 0 }
+			return out
+		end
+	end
 	local freed, remapped, dropped = M.PSS_ItemSweep(opts and opts.force)
 	out[1] = { freed or 0, remapped or 0, dropped or 0 }
 	return out

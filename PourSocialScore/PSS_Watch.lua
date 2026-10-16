@@ -56,20 +56,25 @@ local function flush(id)
 	local d = dirty[id]
 	if not d or not next(d) then return end
 	local row = live[id]
-	if not M.PSS_Need("Libraries") then return end
 	local set = { cols = { "key" }, n = 0 }
 	for k in pairs(d) do
 		local n = set.n + 1
 		set.n = n
 		set[n] = { k }
 	end
-	M.PSS_InRow = true		-- the bus does not retry this call: the row keeps its keys
-	local out, err = M.PSS_Call(row.run, set)
-	M.PSS_InRow = nil
-	if M.PSS_ErrSettle then M.PSS_ErrSettle() end		-- a settle half-opens open breakers and runs waiting retries
-	if err then return end		-- the keys stay
+	local out, err = true, true
+	if M.PSS_Need("Libraries") then
+		M.PSS_InRow = true		-- the bus does not retry this call: the row keeps its keys
+		out, err = M.PSS_Call(row.run, set)
+		M.PSS_InRow = nil
+		M.PSS_ErrSettle()		-- a settle half-opens open breakers and runs waiting retries
+	end
+	if err then		-- the keys stay, at most 1000 (PB-13)
+		for i = 1001, set.n do d[set[i][1]] = nil end
+		return
+	end
 	for i = 1, set.n do d[set[i][1]] = nil end
-	if out and M.PSS_Signal then M.PSS_Signal("@" .. id, out) end
+	if out then M.PSS_Signal("@" .. id, out) end
 	return out
 end
 
@@ -77,7 +82,9 @@ local function mark(id, e, ...)
 	local row = live[id]
 	local k = e
 	if row.key then k = row.key(e, ...) end
-	if k ~= nil and (type(k) == "table" or not (M.PSS_IsSecret and M.PSS_IsSecret(k))) then dirty[id][k] = true end
+	if k ~= nil and (type(k) == "table" or not (M.PSS_IsSecret and M.PSS_IsSecret(k))) then
+		dirty[id][k] = true
+	end
 	if row.settle == "now" then flush(id) end
 end
 

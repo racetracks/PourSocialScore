@@ -30,6 +30,7 @@ local blocked	-- first step whose part returned false this login (not recorded)
 local out	-- counts per feature, only on a login that reports (see tally)
 local oldFolders	-- folders the window no longer uses, named on the cleanup line
 local newer	-- the save's version when it is newer than this one (a downgrade)
+M.PSS_UNDO_CAP = 1048576		-- an undo copy larger than this is not kept (PB-10)
 local snap	-- the stores as they were before a due step ran (the guard restores them; the undo slot keeps them)
 local skipSnap	-- a new save: nothing to keep
 local failed	-- { step, feature, code, text } when a step part raised or failed its check this login
@@ -931,7 +932,13 @@ function M.PSS_RunUpgradeData(fresh)
 	else
 		rec.fail = nil
 		if snap and not skipSnap and done < reached then
-			rec.undo = { at = rec.at, step = done, version = priorVersion, blob = M.PSS_UpgradePack(snap) }
+			local blob = M.PSS_UpgradePack(snap)
+			if #blob <= M.PSS_UNDO_CAP then
+				rec.undo = { at = rec.at, step = done, version = priorVersion, blob = blob }
+			else
+				rec.undo = nil
+				M.ShowMsg(L["UPG_NO_UNDO_SIZE"])		-- the copy would double a large save
+			end
 		elseif not snap and rec.undo and not retrying then
 			rec.undo = nil
 		end
@@ -990,7 +997,10 @@ function M.PSS_UpgradeRetry()
 	if (tonumber(prior) or 0) < reached then
 		rec.step = reached
 		rec.at = (GetServerTime and GetServerTime()) or time()
-		if snap then rec.undo = { at = rec.at, step = prior, version = rec.version, blob = M.PSS_UpgradePack(snap) } end
+		if snap then
+			local blob = M.PSS_UpgradePack(snap)
+			if #blob <= M.PSS_UNDO_CAP then rec.undo = { at = rec.at, step = prior, version = rec.version, blob = blob } else rec.undo = nil end
+		end
 	end
 	rec.fail = nil
 	M.ShowMsg(L["UPG_RETRY_DONE"]:format(rec.step))

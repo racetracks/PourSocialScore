@@ -222,6 +222,15 @@ if phase == "err" then
 	H.Fire("BAG_UPDATE_DELAYED")
 	table.sort(applied)
 	check(#applied == 3 and applied[1] == "k1" and applied[2] == "k2" and applied[3] == "k3", "R1-02: every kept key applied once on the next settle (" .. table.concat(applied, ",") .. ")")
+	-- PB-13: kept keys are capped while the write cannot run
+	local kept, down = 0, true
+	M.PSS_Provide("t.w4", function(set) if down then error("busy") end kept = set.n return set end, { returns = { "*" }, writes = true, onError = "empty" })
+	M.PSS_Trigger({ id = "t.row4", gate = "logging", on = { "BAG_UPDATE" }, settle = { "BAG_UPDATE_DELAYED" }, run = "t.w4", key = function(_, b) return "q" .. tostring(b) end })
+	for i = 1, 1500 do H.Fire("BAG_UPDATE", i) end
+	H.Fire("BAG_UPDATE_DELAYED")
+	down = false
+	H.Fire("BAG_UPDATE_DELAYED")
+	check(kept == 1000, "PB-13: a row whose write cannot run keeps at most 1000 keys (" .. kept .. ")")
 	-- TST-p022: a bad provide
 	T.strict = true
 	check(not pcall(M.PSS_Provide, "bad name", function() end), "TST-p022: raises under strict")
@@ -777,6 +786,20 @@ if phase == "upg" then
 	run()
 	check(rec().undo == nil, "TST-p230: a login with nothing due drops it")
 	PSS_OptionsDB.tprobe3, PSS_OptionsDB.tprobe4 = nil, nil
+	dropSteps(); rec().step = N
+	-- PB-10: an undo copy over the cap is not kept; the upgrade itself still finishes
+	local capWas = M.PSS_UNDO_CAP
+	M.PSS_UNDO_CAP = 10
+	local s12e = addStep({ { feature = "options", data = function() PSS_OptionsDB.tprobe5 = 1 end } })
+	rec().step = N
+	said = {}
+	run()
+	check(rec().step == s12e and rec().undo == nil and PSS_OptionsDB.tprobe5 == 1, "PB-10: over the cap the upgrade finishes and keeps no undo copy")
+	local said1 = false
+	for _, l in ipairs(said) do if l:find("No undo copy", 1, true) then said1 = true end end
+	check(said1, "PB-10: the player is told")
+	M.PSS_UNDO_CAP = capWas
+	PSS_OptionsDB.tprobe5 = nil
 	dropSteps(); rec().step = N
 	-- TST-p166: every step is safe to run twice
 	for i = 1, N do
@@ -1716,6 +1739,25 @@ if phase == "search" or phase == "searchloc" then
 			if not ok then bad = bad + 1 end
 		end
 		check(bad == 0, "TST-p126: 1000 random searches raised " .. bad .. " errors")
+	end
+end
+
+	-- PB-04: the sweep is skipped over its budget
+if phase == "sweepbudget" then
+	libs()
+	do
+		local was = M.PSS_SWEEP_BUDGET
+		M.PSS_SWEEP_BUDGET = 1
+		PSS_WarehouseDB = PSS_WarehouseDB or { v = 1 }
+		PSS_WarehouseDB.inv = PSS_WarehouseDB.inv or {}
+		PSS_WarehouseDB.inv[99] = { b0 = "1;1;5;0;1.2589.5" }
+		local sw = M.PSS_Call("wh.sweep")
+		local skipped
+		local er2 = M.PSS_Call("err.rows")
+		for i = 1, er2.n do if er2[i][1] == "cap" and er2[i][2] == "wh.sweep" then skipped = true end end
+		check(sw.n == 1 and sw[1][1] == 0 and skipped, "PB-04: a sweep over its budget is skipped and noted")
+		PSS_WarehouseDB.inv[99] = nil
+		M.PSS_SWEEP_BUDGET = was
 	end
 end
 

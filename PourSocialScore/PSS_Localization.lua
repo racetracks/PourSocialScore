@@ -98,6 +98,7 @@ L["UPG_PAUSED_FEATURE"]	= "The %s upgrade (step %d) did not finish. Nothing was 
 L["UPG_RETRY_DONE"]	= "Saved data upgrade finished on the second try (step %d)."
 L["UPG_NO_UNDO"]	= "There is no earlier upgrade to undo."
 L["UPG_UNDO_COMBAT"]	= "Undo works out of combat."
+L["UPG_NO_UNDO_SIZE"]	= "Saved data upgraded. No undo copy was kept because your saved data is large."
 L["UPG_UNDONE"]	= "Saved data put back as it was at version %s. Reload to finish."
 L["UPG_NEWER"]	= "Running %s, older than your saved data (%s). Nothing was upgraded."
 L["UPG_NOTHING"]	= "nothing to tidy"
