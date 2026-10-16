@@ -26,7 +26,7 @@ local lower, find, sub, match, gsub = string.lower, string.find, string.sub, str
 local sort, concat, floor = table.sort, table.concat, math.floor
 
 local PAGE = 100		-- results in a page
-local SLICE = 40		-- uncached items looked at per slice
+local BUDGET = 4		-- milliseconds a search works at a time (a slice)
 local TIPCAP = 600		-- tooltips kept
 local CACHECAP = 24		-- searches kept
 
@@ -118,75 +118,59 @@ end
 ------------------------------------------------------------------------
 local function gs(name) local v = rawget(_G, name); return type(v) == "string" and v or nil end
 
-local ROWS = {}
-local function row(en, group, test, word) ROWS[#ROWS + 1] = { en = en, group = group, test = test, word = word } end
-
-local QUALITY = { "poor", "common", "uncommon", "rare", "epic", "legendary", "artifact", "heirloom" }
-for q = 0, 7 do
-	row(QUALITY[q + 1], "quality", function(p) return p.quality == q end, function() return gs("ITEM_QUALITY" .. q .. "_DESC") end)
+-- the keywords are rows of data: { english, a, b, c } under a group whose matcher reads a, b and c
+local function transmog(p, want)
+	local T = C_TransmogCollection
+	if p.equip == "" or not (T and T.PlayerHasTransmogByItemInfo) then return false end
+	return (T.PlayerHasTransmogByItemInfo(p.link or p.id) and true or false) == want
 end
-
-local function bind(en, test) row(en, "binding", test) end
-bind("bop", function(p) return p.bind == 1 end)
-bind("soulbound", function(p) return p.bind == 1 or p.bind == 4 end)
-bind("boe", function(p) return p.bind == 2 end)
-bind("bou", function(p) return p.bind == 3 end)
-bind("boa", function(p) return p.bind == 7 or p.bind == 8 or p.bind == 9 end)
-bind("warbound", function(p) return p.bind == 8 or p.bind == 9 end)
-bind("unbound", function(p) return p.bind == 0 end)
-
-local SLOT = {
-	{ "head", "INVTYPE_HEAD" }, { "neck", "INVTYPE_NECK" }, { "shoulder", "INVTYPE_SHOULDER" }, { "back", "INVTYPE_CLOAK" },
-	{ "chest", "INVTYPE_CHEST", "INVTYPE_ROBE" }, { "shirt", "INVTYPE_BODY" }, { "tabard", "INVTYPE_TABARD" }, { "wrist", "INVTYPE_WRIST" },
-	{ "hands", "INVTYPE_HAND" }, { "waist", "INVTYPE_WAIST" }, { "legs", "INVTYPE_LEGS" }, { "feet", "INVTYPE_FEET" },
-	{ "ring", "INVTYPE_FINGER" }, { "trinket", "INVTYPE_TRINKET" }, { "onehand", "INVTYPE_WEAPON" }, { "twohand", "INVTYPE_2HWEAPON" },
-	{ "mainhand", "INVTYPE_WEAPONMAINHAND" }, { "offhand", "INVTYPE_WEAPONOFFHAND", "INVTYPE_HOLDABLE" }, { "shield", "INVTYPE_SHIELD" },
-	{ "ranged", "INVTYPE_RANGED", "INVTYPE_RANGEDRIGHT", "INVTYPE_THROWN" }, { "relic", "INVTYPE_RELIC" },
+local MATCH = {
+	quality = function(p, a) return p.quality == a end,
+	binding = function(p, a) return a:find(p.bind, 1, true) ~= nil end,
+	slot = function(p, a, b, c) return p.equip == a or p.equip == b or p.equip == c end,
+	armor = function(p, a) return p.class == 4 and p.sub == a end,
+	class = function(p, a) return p.class == a end,
+	consumable = function(p, a) return p.class == 0 and p.sub == a end,
+	expansion = function(p, a) return p.exp == a and (a > 0 or p.id ~= nil) end,
+	other = function(p, a)
+		if a == "equipment" then return p.equip ~= "" end
+		if a == "stackable" then return p.stack > 1 end
+		if a == "sellable" then return p.price > 0 end
+		if a == "novalue" then return p.price == 0 end
+		if a == "crafted" then return tipHas(p, "crafted") or tipHas(p, "crafting quality") end
+		if a == "engraving" then return tipHas(p, "engrav") end
+		if a == "collected" then return transmog(p, true) end
+		return transmog(p, false)
+	end,
 }
-for _, s in ipairs(SLOT) do
-	local a, b = s[2], s[3]
-	row(s[1], "slot", function(p) return p.equip == a or (b ~= nil and p.equip == b) or (s[4] ~= nil and p.equip == s[4]) end, function() return gs(a) end)
+local GROUPS = {
+	{ "quality", { { "poor", 0 }, { "common", 1 }, { "uncommon", 2 }, { "rare", 3 }, { "epic", 4 }, { "legendary", 5 }, { "artifact", 6 }, { "heirloom", 7 } } },
+	{ "binding", { { "bop", "1" }, { "soulbound", "14" }, { "boe", "2" }, { "bou", "3" }, { "boa", "789" }, { "warbound", "89" }, { "unbound", "0" } } },
+	{ "slot", { { "head", "INVTYPE_HEAD" }, { "neck", "INVTYPE_NECK" }, { "shoulder", "INVTYPE_SHOULDER" }, { "back", "INVTYPE_CLOAK" },
+		{ "chest", "INVTYPE_CHEST", "INVTYPE_ROBE" }, { "shirt", "INVTYPE_BODY" }, { "tabard", "INVTYPE_TABARD" }, { "wrist", "INVTYPE_WRIST" },
+		{ "hands", "INVTYPE_HAND" }, { "waist", "INVTYPE_WAIST" }, { "legs", "INVTYPE_LEGS" }, { "feet", "INVTYPE_FEET" },
+		{ "ring", "INVTYPE_FINGER" }, { "trinket", "INVTYPE_TRINKET" }, { "onehand", "INVTYPE_WEAPON" }, { "twohand", "INVTYPE_2HWEAPON" },
+		{ "mainhand", "INVTYPE_WEAPONMAINHAND" }, { "offhand", "INVTYPE_WEAPONOFFHAND", "INVTYPE_HOLDABLE" }, { "shield", "INVTYPE_SHIELD" },
+		{ "ranged", "INVTYPE_RANGED", "INVTYPE_RANGEDRIGHT", "INVTYPE_THROWN" }, { "relic", "INVTYPE_RELIC" } } },
+	{ "armor", { { "cloth", 1 }, { "leather", 2 }, { "mail", 3 }, { "plate", 4 } } },
+	{ "class", { { "weapon", 2 }, { "armor", 4 }, { "consumable", 0 }, { "container", 1 }, { "gem", 3 }, { "tradegoods", 7 }, { "reagent", 7 }, { "recipe", 9 },
+		{ "questitem", 12 }, { "miscellaneous", 15 }, { "battlepet", 17 }, { "profession", 19 }, { "glyph", 16 } } },
+	{ "consumable", { { "potion", 1 }, { "elixir", 2 }, { "flask", 3 }, { "food", 5 }, { "bandage", 7 } } },
+	{ "other", { { "equipment", "equipment" }, { "stackable", "stackable" }, { "sellable", "sellable" }, { "novalue", "novalue" }, { "crafted", "crafted" },
+		{ "engraving", "engraving" }, { "collected", "collected" }, { "uncollected", "uncollected" } } },
+	{ "expansion", { { "classic", 0 }, { "burningcrusade", 1 }, { "wrath", 2 }, { "cataclysm", 3 }, { "mists", 4 }, { "warlords", 5 }, { "legion", 6 }, { "battleforazeroth", 7 },
+		{ "shadowlands", 8 }, { "dragonflight", 9 }, { "warwithin", 10 }, { "midnight", 11 } } },
+}
+local ROWS = {}
+for _, g in ipairs(GROUPS) do
+	for _, r in ipairs(g[2]) do ROWS[#ROWS + 1] = { en = r[1], group = g[1], a = r[2], b = r[3], c = r[4], test = MATCH[g[1]] } end
 end
 
-local ARMOR = { cloth = 1, leather = 2, mail = 3, plate = 4 }
-for _, n in ipairs({ "cloth", "leather", "mail", "plate" }) do
-	row(n, "armor", function(p) return p.class == 4 and p.sub == ARMOR[n] end)
-end
-
-local CLASS = { { "weapon", 2 }, { "armor", 4 }, { "consumable", 0 }, { "container", 1 }, { "gem", 3 }, { "tradegoods", 7 }, { "reagent", 7 }, { "recipe", 9 },
-	{ "questitem", 12 }, { "miscellaneous", 15 }, { "battlepet", 17 }, { "profession", 19 }, { "glyph", 16 } }
-for _, c in ipairs(CLASS) do
-	local id = c[2]
-	row(c[1], "class", function(p) return p.class == id end, function() return GetItemClassInfo and GetItemClassInfo(id) or nil end)
-end
-
-local CONS = { { "potion", 1 }, { "elixir", 2 }, { "flask", 3 }, { "food", 5 }, { "bandage", 7 } }
-for _, c in ipairs(CONS) do
-	local sc = c[2]
-	row(c[1], "consumable", function(p) return p.class == 0 and p.sub == sc end)
-end
-
-row("equipment", "other", function(p) return p.equip ~= "" end)
-row("stackable", "other", function(p) return p.stack > 1 end)
-row("sellable", "other", function(p) return p.price > 0 end)
-row("novalue", "other", function(p) return p.price == 0 end)
-row("crafted", "other", function(p) return tipHas(p, "crafted") or tipHas(p, "crafting quality") end)
-row("engraving", "other", function(p) return tipHas(p, "engrav") end)
-row("collected", "other", function(p)
-	local T = C_TransmogCollection
-	if p.equip == "" or not (T and T.PlayerHasTransmogByItemInfo) then return false end
-	return T.PlayerHasTransmogByItemInfo(p.link or p.id) and true or false
-end)
-row("uncollected", "other", function(p)
-	local T = C_TransmogCollection
-	if p.equip == "" or not (T and T.PlayerHasTransmogByItemInfo) then return false end
-	return not T.PlayerHasTransmogByItemInfo(p.link or p.id)
-end)
-
-local EXP = { "classic", "burningcrusade", "wrath", "cataclysm", "mists", "warlords", "legion", "battleforazeroth", "shadowlands", "dragonflight", "warwithin", "midnight" }
-for i, n in ipairs(EXP) do
-	local e = i - 1
-	row(n, "expansion", function(p) return p.exp == e and p.exp > 0 or (e == 0 and p.exp == 0 and p.id ~= nil) end)
+-- the client's own word for a keyword, where it gives one
+local function localized(r)
+	if r.group == "quality" then return gs("ITEM_QUALITY" .. r.a .. "_DESC") end
+	if r.group == "slot" then return gs(r.a) end
+	if r.group == "class" then return GetItemClassInfo and GetItemClassInfo(r.a) or nil end
 end
 
 local function norm(s)
@@ -199,7 +183,7 @@ local function wordTable()
 	words = {}
 	for _, r in ipairs(ROWS) do
 		words[norm(r.en)] = r
-		local w = r.word and r.word()
+		local w = localized(r)
 		if type(w) == "string" and w ~= "" then words[norm(w)] = r end
 	end
 	return words
@@ -208,7 +192,7 @@ end
 M.PSS_Provide("item.keywords", function()
 	local out = { cols = { "keyword", "group", "english" }, n = 0 }
 	for _, r in ipairs(ROWS) do
-		local w = r.word and r.word()
+		local w = localized(r)
 		out.n = out.n + 1
 		out[out.n] = { type(w) == "string" and w ~= "" and w or r.en, r.group, r.en }
 	end
@@ -277,7 +261,10 @@ local function atom(text)
 	end
 	if money(raw) then local c = money(raw); return function(p) return valueOf(p) == c end end
 	local kw = wordTable()[t]
-	if kw then return kw.test end
+	if kw then
+		local test, a, b, c = kw.test, kw.a, kw.b, kw.c
+		return function(p) return test(p, a, b, c) end
+	end
 	return function(p)
 		if p.name ~= "" and find(norm(p.name), t, 1, true) then return true end
 		return #t >= 3 and tipHas(p, t)
@@ -370,7 +357,7 @@ local function candidates(input)
 		return keys
 	end
 	if M.PSS_WhHolders and M.PSS_On("warehouse") then
-		for _, ref in ipairs(M.PSS_WhHolders:list()) do
+		for _, ref in ipairs(M.PSS_WhHolders:keys()) do
 			local k = keyOfRef(ref)
 			if k then keys[#keys + 1] = k end
 		end
@@ -388,60 +375,125 @@ end
 local function judge(entry, key)
 	local p = propsOf(key)
 	if not p then return false end		-- not told yet
-	if entry.fn(p) then entry.hits[#entry.hits + 1] = { key, p.name } end
+	if entry.fn(p) then entry.hits[#entry.hits + 1] = { key, p.name }; entry.sorted = nil end
 	return true
 end
 
-local needId = "item.search"
-local function step()
-	local entry
-	for _, e in pairs(cache) do if e.pending and #e.pending > 0 then entry = e; break end end
-	if not entry then M.PSS_Unwant(needId); return true end
-	local left, ask = {}, {}
-	local n = 0
-	for _, key in ipairs(entry.pending) do
-		n = n + 1
-		if n > SLICE or not judge(entry, key) then
-			left[#left + 1] = key
-			if n <= SLICE then local id = idOf(key); if id then ask[id] = true end end
+-- milliseconds: the client's profiler clock where it has one
+local function now()
+	local T = M.PSS_Test
+	if T and T.clock then return T.clock() end		-- the harness's real clock (its client clock is simulated)
+	return debugprofilestop and debugprofilestop() or 0
+end
+
+local function finished(e) return e.pos > #e.todo and #e.retry == 0 end
+
+local needId, wakeId = "item.search", "item.search.data"
+
+-- something to do now: candidates not looked at yet, or (only retries left) the client answered everything it was
+-- asked or 100 ms have passed since the last look
+local function runnable(e)
+	if finished(e) then return false end
+	if e.pos <= #e.todo then return true end
+	return (M.PSS_ItemPending and M.PSS_ItemPending() == 0) or now() - (e.lastRetry or -1e9) >= 100
+end
+
+-- judges candidates for about `budget` ms: the ones not looked at yet, then the ones the client had not told us about
+local function work(e, budget)
+	local t0, ask, before = now(), {}, #e.hits
+	local todo, n = e.todo, #e.todo
+	local i = e.pos
+	while i <= n do
+		local key = todo[i]
+		i = i + 1
+		if not judge(e, key) then
+			e.retry[#e.retry + 1] = key
+			local id = idOf(key)
+			if id then ask[id] = true end
+		end
+		if i % 16 == 0 and now() - t0 > budget then break end
+	end
+	e.pos = i
+	if e.pos > n and #e.retry > 0 and e.lastRetry ~= t0 then
+		e.lastRetry = t0
+		local again = e.retry
+		e.retry = {}
+		for _, key in ipairs(again) do
+			if not judge(e, key) then
+				e.retry[#e.retry + 1] = key
+				local id = idOf(key)
+				if id then ask[id] = true end
+			end
+		end
+		-- items the client has answered about and still does not know are given up on (a search never waits for them)
+		if #e.retry > 0 and M.PSS_ItemPending and M.PSS_ItemPending() == 0 and not next(ask) then e.retry = {} end
+	end
+	if M.PSS_ItemAwait and next(ask) then M.PSS_ItemAwait(ask) end
+	if e.watch and (#e.hits ~= before or finished(e)) then
+		for _, fn in ipairs(e.watch) do pcall(fn, e.text, finished(e)) end
+	end
+	if finished(e) and M.Events and M.Events.Fire and e.progressive then M.Events.Fire("ITEM_SEARCH", e.text) end
+end
+
+local wakeOn = false
+local function arm()
+	M.PSS_Unwant(needId)		-- one need for all searches
+	M.PSS_Want({ id = needId, class = "slice", step = M.PSS_ItemSearchStep })
+end
+-- item data arrived: a search that was waiting for it runs again (the signal comes from PSS_ItemRead.lua)
+local function wake()
+	local any, waiting = false, false
+	for _, e in pairs(cache) do
+		if not finished(e) then
+			if runnable(e) then any = true else waiting = true end
 		end
 	end
-	entry.pending = left
-	if M.PSS_ItemAwait then M.PSS_ItemAwait(ask) end
-	if #left == 0 then
-		entry.pending = nil
-		entry.sorted = nil
-		if M.Events and M.Events.Fire then M.Events.Fire("ITEM_SEARCH", entry.text) end
+	if any then arm() end
+	if not waiting then wakeOn = false; M.PSS_Unwant(wakeId) end
+end
+local function waitForData()
+	if wakeOn or not M.PSS_Want then return end
+	wakeOn = true
+	M.PSS_Want({ id = wakeId, class = "coalesce", signal = "@item.data", fn = wake })
+end
+
+local function step()
+	for _, e in pairs(cache) do
+		if runnable(e) then
+			work(e, BUDGET)
+			if not finished(e) and e.pos > #e.todo then waitForData() end
+			return false
+		end
 	end
-	return false
+	return true		-- nothing to do right now: the engine drops the need, the data signal brings it back
 end
 M.PSS_ItemSearchStep = step
 
+function M.PSS_ItemSearchDebug(text) return cache[text] end
+
 function M.PSS_ItemSearchDone(text)
 	local e = cache[text]
-	return e ~= nil and not (e.pending and #e.pending > 0)
+	return e ~= nil and finished(e)
+end
+
+-- fn(text, done) is called when more results arrived; the window redraws from it
+function M.PSS_ItemSearchWatch(text, fn)
+	local e = cache[text]
+	if not e or type(fn) ~= "function" then return end
+	e.watch = e.watch or {}
+	e.watch[#e.watch + 1] = fn
 end
 
 local function build(text, input)
 	local fn, why = compile(text)
 	if not fn then return nil, why end
-	local entry = { text = text, fn = fn, hits = {}, ver = M.PSS_WhCurVer and 0 }
+	local entry = { text = text, fn = fn, hits = {}, todo = candidates(input), pos = 1, retry = {} }
 	stats.computed = stats.computed + 1
-	local pending, ask = {}, {}
-	for _, key in ipairs(candidates(input)) do
-		if not judge(entry, key) then
-			pending[#pending + 1] = key
-			local id = idOf(key)
-			if id then ask[id] = true end
-		end
-	end
-	if #pending > 0 then
-		entry.pending = pending
-		if M.PSS_ItemAwait then M.PSS_ItemAwait(ask) end
-		if M.PSS_Want then
-			M.PSS_Unwant(needId)		-- one need for all searches
-			M.PSS_Want({ id = needId, class = "slice", step = step })
-		end
+	work(entry, BUDGET)
+	if not finished(entry) then
+		entry.progressive = true
+		if M.PSS_Want then arm() end
+		if entry.pos > #entry.todo then waitForData() end
 	end
 	return entry
 end
@@ -484,5 +536,6 @@ M.PSS_Provide("item.search", function(input, opts)
 		out[out.n] = { h[1], h[2] }
 	end
 	out.total = #entry.hits
+	out.done = finished(entry)
 	return out
 end, { accepts = { "item" }, returns = { "item", "match" }, doc = "the items that fit a search text", cost = "O(items)", writes = false, onError = "empty", paged = true })

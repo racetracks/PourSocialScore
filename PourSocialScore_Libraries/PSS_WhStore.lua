@@ -156,6 +156,7 @@ M.PSS_Provide("wh.write", function(input)
 	local out = { cols = changeCols, n = 0 }
 	local t = now()
 	local touched = {}
+	local built = 0
 	for _, p in ipairs(payloads(input)) do
 		-- the rows of each container read, by entity and code
 		local rowsBy = {}
@@ -180,6 +181,9 @@ M.PSS_Provide("wh.write", function(input)
 				else
 					local str, n, sum = M.PSS_WhPack(kept)
 					if not str then error(n, 0) end
+					built = built + 1
+					local T = M.PSS_Test
+					if T and T.buildFail and built >= T.buildFail then error("fail: injected fault after " .. built .. " strings were built", 0) end
 					-- the decoded string must be the rows it came from
 					local back = newSet()
 					M.PSS_WhUnpack(str, back, ent, code)
@@ -220,12 +224,12 @@ M.PSS_Provide("wh.write", function(input)
 		end
 	end
 	if out.n > 0 then
-		if M.Events and M.Events.Fire then M.Events.Fire("WH_CHANGED", out) end
 		if M.PSS_IndexDirty then
 			local ids = {}
-			for ent in pairs(touched) do ids[#ids + 1] = ent end
-			M.PSS_IndexDirty("wh.holders", ids)
+			for i = 1, out.n do ids[#ids + 1] = out[i][1] .. "." .. out[i][2] end		-- the containers that changed
+			M.PSS_IndexDirty("wh.holders", ids)		-- before the event: a listener may ask at once
 		end
+		if M.Events and M.Events.Fire then M.Events.Fire("WH_CHANGED", out) end
 	end
 	return out
 end, { accepts = COLS, returns = changeCols, doc = "writes the read containers: verify, then swap", cost = "O(slots)", writes = true, retry = 1,
@@ -361,6 +365,8 @@ M.PSS_ItemRefs("inv", { used = function(add) eachString(function(_, _, _, str) r
 		return function()
 			for _, p in ipairs(plan) do d[p[1]][p[2]][p[3]] = p[4] end
 			ms.Drop()
+			ms.Bump()		-- the holders index was built on the old ids
+			if M.PSS_IndexDrop then M.PSS_IndexDrop("wh.holders") end
 		end
 	end })
 

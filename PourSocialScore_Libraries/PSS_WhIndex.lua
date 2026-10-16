@@ -22,12 +22,13 @@ if not M.PSS_On("warehouse") then return end
 
 local type, pairs, ipairs, tonumber, tostring = type, pairs, ipairs, tonumber, tostring
 local concat, sort = table.concat, table.sort
-local find, sub, match = string.find, string.sub, string.match
+local find, sub, match, gmatch = string.find, string.sub, string.match, string.gmatch
 
 local ms = M.PSS_WhStore
 local C = M.PSS_Codec
 
 local KINDCOL = { b = "bags", y = "bags", k = "bank", r = "reagent", w = "warband", e = "equipped", m = "mail", v = "void", a = "auctions", t = "guild" }
+local KINDAT = { b = 3, y = 3, k = 4, r = 5, m = 6, e = 7, v = 8, a = 9, t = 10, w = 11 }		-- the wh.sum column of a container family
 local SUMCOLS = { "item", "ent", "bags", "bank", "reagent", "mail", "equipped", "void", "auctions", "guild", "warband", "total" }
 
 local function db() return rawget(_G, "PSS_WarehouseDB") end
@@ -35,29 +36,21 @@ local function db() return rawget(_G, "PSS_WarehouseDB") end
 ------------------------------------------------------------------------
 -- wh.holders
 ------------------------------------------------------------------------
-local contrib = {}		-- [ent] = { [ref] = true }: what an entity adds to the index (for a partial rebuild)
+local contrib = {}		-- ["ent.code"] = { [ref] = true }: what one container adds to the index (for a partial rebuild)
 
--- adds the refs of one entity's containers into `acc[ref] = { [ent.code] = count }`
-local function addEntity(ent, acc)
-	local mine = contrib[ent]
-	if not mine then mine = {}; contrib[ent] = mine end
-	for _, code in ipairs(ms.Codes(ent)) do
-		local str = ms.Get(ent, code)
-		if str then
-			local body = str:match("^%d+;%d+;%d+;%d+;(.*)$") or ""
-			local from, tag = 1, ent .. "." .. code
-			while from <= #body do
-				local to = find(body, ",", from, true) or (#body + 1)
-				local ref, count = match(sub(body, from, to - 1), "^%d+%.([^.]+)%.?(%d*)")
-				if ref then
-					local a = acc[ref]
-					if not a then a = {}; acc[ref] = a end
-					a[tag] = (a[tag] or 0) + (count ~= "" and tonumber(count) or 1)
-					mine[ref] = true
-				end
-				from = to + 1
-			end
-		end
+-- adds the refs of one container into `acc[ref] = { ["ent.code"] = count }`
+local function addContainer(ent, code, acc)
+	local str = ms.Get(ent, code)
+	if not str then return end
+	local tag = ent .. "." .. code
+	local mine = {}
+	contrib[tag] = mine
+	local body = str:match("^%d+;%d+;%d+;%d+;(.*)$") or ""
+	for ref, count in gmatch(body, "%d+%.([^.,]+)%.?(%d*)") do
+		local a = acc[ref]
+		if not a then a = {}; acc[ref] = a end
+		a[tag] = (a[tag] or 0) + (count ~= "" and tonumber(count) or 1)
+		mine[ref] = true
 	end
 end
 
@@ -73,28 +66,28 @@ local holders = M.PSS_Index("wh.holders", {
 	build = function(add)
 		contrib = {}
 		local acc = {}
-		for _, ent in ipairs(ms.Ents()) do addEntity(ent, acc) end
+		for _, ent in ipairs(ms.Ents()) do
+			for _, code in ipairs(ms.Codes(ent)) do addContainer(ent, code, acc) end
+		end
 		for ref, a in pairs(acc) do add(ref, packAcc(a)) end
 	end,
 	partial = function(add, drop, ids, data)
-		-- take the dirty entities' share out of every ref they were in, then add what they hold now
-		local dirty = {}
-		for ent in pairs(ids) do dirty[ent] = true end
-		local touched = {}
-		for ent in pairs(dirty) do
-			for ref in pairs(contrib[ent] or {}) do touched[ref] = true end
-			contrib[ent] = nil
+		-- ids: the "ent.code" tags that were written. Take their share out of every ref they were in, then add what they hold now
+		local touched, acc = {}, {}
+		for tag in pairs(ids) do
+			for ref in pairs(contrib[tag] or {}) do touched[ref] = true end
+			contrib[tag] = nil
+			local ent, code = match(tag, "^(%d+)%.(.+)$")
+			if ent then addContainer(tonumber(ent), code, acc) end
 		end
-		local acc = {}
-		for ent in pairs(dirty) do addEntity(ent, acc) end
 		for ref in pairs(acc) do touched[ref] = true end
 		for ref in pairs(touched) do
 			local keep = {}
 			local old = data[ref]
 			if old then
-				for entry in (old .. ","):gmatch("([^,]*),") do
-					local e, code, n = match(entry, "^(%d+)%.([^.]+)%.(%d+)$")
-					if e and not dirty[tonumber(e)] then keep[e .. "." .. code] = tonumber(n) end
+				for e, code, n in gmatch(old, "(%d+)%.([^.,]+)%.(%d+)") do
+					local tag = e .. "." .. code
+					if not ids[tag] then keep[tag] = tonumber(n) end
 				end
 			end
 			for tag, n in pairs(acc[ref] or {}) do keep[tag] = n end
@@ -108,12 +101,18 @@ M.PSS_WhHolders = holders
 ------------------------------------------------------------------------
 -- Entity facts: hidden, kind, realm, faction
 ------------------------------------------------------------------------
-local factsCache, factsVer
+local factsCache, factsVer = {}, -1
 local function facts(ent)
+	local v = M.PSS_EntityVer()
+	if v ~= factsVer then factsCache, factsVer = {}, v end
+	local f = factsCache[ent]
+	if f ~= nil then return f or nil end
 	local set = M.PSS_Entity(ent)
-	if not set or set.n == 0 then return nil end
+	if not set or set.n == 0 then factsCache[ent] = false return nil end
 	local r = set[1]
-	return { kind = r[2], name = r[3], realm = r[4], faction = r[5], class = r[6], race = r[7], sex = r[8], hidden = (M.PSS_EntityFlags(ent) or ""):find("h", 1, true) ~= nil }
+	f = { kind = r[2], name = r[3], realm = r[4], faction = r[5], class = r[6], race = r[7], sex = r[8], hidden = (M.PSS_EntityFlags(ent) or ""):find("h", 1, true) ~= nil }
+	factsCache[ent] = f
+	return f
 end
 
 local function allowed(ent, opts, cache)
@@ -173,9 +172,8 @@ M.PSS_Provide("wh.sum", function(input, opts)
 		local packed = ref and holders:get(ref)
 		if packed then
 			local byEnt, order = {}, {}
-			for entry in (packed .. ","):gmatch("([^,]*),") do
-				local e, code, n = match(entry, "^(%d+)%.([^.]+)%.(%d+)$")
-				if e then
+			for e, code, n in gmatch(packed, "(%d+)%.([^.,]+)%.(%d+)") do
+				do
 					e = tonumber(e)
 					if allowed(e, opts, cache) then
 						local row = byEnt[e]
@@ -184,11 +182,10 @@ M.PSS_Provide("wh.sum", function(input, opts)
 							byEnt[e] = row
 							order[#order + 1] = e
 						end
-						local col = KINDCOL[code:sub(1, 1)]
-						for k = 3, 11 do
-							if SUMCOLS[k] == col then row[k] = row[k] + tonumber(n) end
-						end
-						row[12] = row[12] + tonumber(n)
+						local k = KINDAT[sub(code, 1, 1)]
+						n = tonumber(n)
+						if k then row[k] = row[k] + n end
+						row[12] = row[12] + n
 					end
 				end
 			end

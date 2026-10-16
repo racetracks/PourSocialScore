@@ -406,7 +406,8 @@ function GetServerTime() return clock end
 local osdate = os.date
 function date(fmt, t) return osdate(fmt, t or clock) end
 function time(t) if t then return os.time(t) end return clock end
-function debugprofilestop() return uptime * 1000 end
+local profBase = os.clock()
+function debugprofilestop() return uptime * 1000 + (os.clock() - profBase) * 1000 end		-- the simulated uptime plus real time: a time budget can run out
 function GetFramerate() return 60 end
 function InCombatLockdown() return stub.combat == true end
 function IsEncounterInProgress() return false end

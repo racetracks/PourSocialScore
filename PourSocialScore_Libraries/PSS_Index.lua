@@ -132,6 +132,13 @@ local function keys(self)
 	return self.sorted
 end
 
+-- the keys in no order (a sorted list costs a sort the caller may not need)
+function X:keys()
+	local out = {}
+	for key in pairs(fresh(self)) do out[#out + 1] = key end
+	return out
+end
+
 function X:list()
 	local k = keys(self)
 	local out = {}

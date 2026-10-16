@@ -306,6 +306,7 @@ end
 --   ms.Codes(ent)          sorted codes of that entity    ms.Bad(ent)   { [code] = string }
 --   ms.Ents()              entity ids (unsorted)          ms.Ver(ent)   rises with each Put (ent nil: any)
 --   ms.Checks()            how many headers were verified ms.Drop(ent)  forget what was verified
+--   ms.Bump()              the strings changed outside Put: ms.Ver() rises
 ------------------------------------------------------------------------
 local mapStores = {}
 
@@ -441,5 +442,7 @@ function M.PSS_MapStore(name, spec)
 	function ms.Drop(ent)
 		if ent then verified[ent] = nil else verified = {} end
 	end
+	-- strings were rewritten outside Put (a compaction remapped ids): every index built on them is stale
+	function ms.Bump() ver = ver + 1 end
 	return ms
 end

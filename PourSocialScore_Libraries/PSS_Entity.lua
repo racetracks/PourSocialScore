@@ -53,6 +53,7 @@ local byName = M.PSS_Index("ent.byName", {
 })
 
 function M.PSS_EntityDrop() byName:drop(); ent.Drop() end
+function M.PSS_EntityVer() return ent.Ver() end		-- rises with every change of an entity (a cache of facts is valid while it is the same)
 function M.PSS_MeReset() me = nil end		-- the harness plays another character
 
 -- every entity id of a kind ("c", "g", "w"), unsorted

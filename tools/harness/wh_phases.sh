@@ -7,17 +7,19 @@ here=$(dirname "$0")
 fail=0
 n=0
 bad=0
-DEFAULT="stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip everywhere cmd whoptions synapi shimfault gwlint synevents"
+DEFAULT="stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict live name track caps delete ent numbers money search searchloc sweepbudget import0 tooltip everywhere cmd query2 model edges budget budgetoff perf whoptions synapi shimfault gwlint synevents"
 phases=${*:-$DEFAULT}
 full=0
 [ -z "$*" ] && full=1
 for ph in $phases; do
 	comp=logging
 	seed=
+	meas=
+	case $ph in budget|budgetoff) meas=1 ;; esac
 	case $ph in registry|schema) comp=logging,warehouse,bags ;; dict) comp=logging,bags ;; live) comp=logging,bags ;;
-		track|caps|delete|money|search|searchloc|sweepbudget|import0|tooltip|everywhere|cmd|whoptions|synapi|shimfault|gwlint|synevents) comp=logging,warehouse,bags; seed=PSS_WH_SEED=1 ;; ent|numbers) comp=logging,warehouse,bags ;; off) comp=none ;; esac
+		track|caps|delete|money|search|searchloc|sweepbudget|import0|tooltip|everywhere|cmd|query2|model|edges|budget|perf|whoptions|synapi|shimfault|gwlint|synevents) comp=logging,warehouse,bags; seed=PSS_WH_SEED=1 ;; ent|numbers) comp=logging,warehouse,bags ;; off|budgetoff) comp=none ;; esac
 	for cam in "" "PSS_CAMELOT=1"; do
-		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=$comp $seed $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
+		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=$comp $seed $cam ${meas:+PSS_MEASURE=1} lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | sed "s/^PASS wh $ph/PASS wh $ph ${cam:+(Camelot)}/"
 		n=$((n + 1))
 		if ! echo "$out" | grep -q "PASS wh $ph" || echo "$out" | grep -q "FAIL"; then

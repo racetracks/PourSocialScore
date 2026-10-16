@@ -170,7 +170,17 @@ local function load(name)
 	if name == CORE then coreAddon = private end
 	for _, file in ipairs(a.files) do
 		local f = assert(loadfile(a.dir .. "/" .. file))
-		f(name, private)
+		if os.getenv("PSS_MEASURE") then
+			-- the resident KB of each file as it runs (H.sizes[file]); for the budget checks
+			collectgarbage("collect"); collectgarbage("collect")
+			local before = collectgarbage("count")
+			f(name, private)
+			collectgarbage("collect"); collectgarbage("collect")
+			H.sizes = H.sizes or {}
+			H.sizes[file] = collectgarbage("count") - before
+		else
+			f(name, private)
+		end
 	end
 	for _, var in ipairs(a.sv) do
 		if stash[var] ~= nil then _G[var] = stash[var]; stash[var] = nil end
@@ -182,7 +192,7 @@ local function load(name)
 		-- the harness reaches the addon through its namespace (baseline 02 A11):
 		-- loud = the red error line shows (the older checks read it); strict =
 		-- a bad service declaration raises; fault = a service name or * that fails
-		coreAddon.M.PSS_Test = { loud = os.getenv("PSS_QUIET") ~= "1", strict = os.getenv("PSS_STRICT") == "1", fault = os.getenv("PSS_FAULT"), trace = os.getenv("PSS_TRACE") == "1" }
+		coreAddon.M.PSS_Test = { loud = os.getenv("PSS_QUIET") ~= "1", strict = os.getenv("PSS_STRICT") == "1", fault = os.getenv("PSS_FAULT"), trace = os.getenv("PSS_TRACE") == "1", clock = function() return os.clock() * 1000 end }
 	end
 	H.Fire("ADDON_LOADED", name)
 	return true

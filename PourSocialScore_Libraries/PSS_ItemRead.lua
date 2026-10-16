@@ -73,17 +73,21 @@ end
 -- Waiting for item data (display only)
 ------------------------------------------------------------------------
 local awaiting = false
+-- how many items the client has been asked about and not yet answered
+local npending = 0
+function M.PSS_ItemPending() return npending end
+
 function M.PSS_ItemAwait(ids)
 	if not (C_Item and C_Item.RequestLoadItemDataByID) then return end
 	for id in pairs(ids) do
-		if not pending[id] then pending[id] = true; C_Item.RequestLoadItemDataByID(id) end
+		if not pending[id] then pending[id] = true; npending = npending + 1; C_Item.RequestLoadItemDataByID(id) end
 	end
 	if awaiting or not M.PSS_Want then return end
 	awaiting = true
 	M.PSS_Want({ id = "item.data", class = "await-data", on = { "ITEM_DATA_LOAD_RESULT" }, fn = function(_, id)
-		pending[id] = nil
+		if pending[id] then pending[id] = nil; npending = npending - 1 end
 		if M.PSS_Signal then M.PSS_Signal("@item.data", { cols = { "key" }, n = 1, { id } }) end
-		if next(pending) == nil then
+		if npending == 0 then
 			awaiting = false
 			M.PSS_Unwant("item.data")
 		end

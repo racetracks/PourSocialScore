@@ -21,12 +21,12 @@ if not M.PSS_On("warehouse") then return end
 local type, pairs, ipairs, tonumber, tostring, pcall = type, pairs, ipairs, tonumber, tostring, pcall
 local sort, concat = table.sort, table.concat
 
-local cache = {}
-local idMap, idVer
-function M.PSS_WhTipDrop() cache, idMap = {}, nil end
-M.Events.Register("WH_CHANGED", function() cache, idMap = {}, nil end)
-M.Events.Register("WH_DELETED", function() cache, idMap = {}, nil end)
-M.Events.Register("OPTION_CHANGED", function(key) if type(key) == "string" and key:sub(1, 5) == "whTip" then cache = {} end end)
+local cache, cacheByName, curCache = {}, {}, {}
+local idMap
+function M.PSS_WhTipDrop() cache, cacheByName, curCache, idMap = {}, {}, {}, nil end
+M.Events.Register("WH_CHANGED", function() cache, cacheByName, curCache, idMap = {}, {}, {}, nil end)
+M.Events.Register("WH_DELETED", function() cache, cacheByName, curCache, idMap = {}, {}, {}, nil end)
+M.Events.Register("OPTION_CHANGED", function(key) if type(key) == "string" and key:sub(1, 5) == "whTip" then cache, cacheByName, curCache = {}, {}, {} end end)
 
 local COLNAMES = { "Bags", "Bank", "Reagents", "Mail", "Equipped", "Void", "Auctions", "Guild bank", "Warband bank" }
 
@@ -113,28 +113,29 @@ local function holderList(key)
 end
 M.PSS_WhHolderList = holderList
 
+local COLS = { "kind", "left", "right" }
 M.PSS_Provide("wh.tip", function(input)
-	local out = { cols = { "kind", "left", "right" }, n = 0 }
 	local key = input and input.n > 0 and input[1][1]
 	if type(key) == "number" then key = tostring(key) end
-	if type(key) ~= "string" then return out end
-	local ckey = key .. (M.PSS_Opt("whTipByName") and "*" or "")
-	local hit = cache[ckey]
+	local kept = M.PSS_Opt("whTipByName") and cacheByName or cache		-- no string is made to look a kept answer up
+	local hit = type(key) == "string" and kept[key]
 	if hit then return hit end
+	local out = { cols = COLS, n = 0 }
+	if type(key) ~= "string" then return out end
 	local list, total = holderList(key)
 	if not list then return out end
 	limited(list, out)
 	if M.PSS_Opt("whTipTotal") and total > 0 then out.n = out.n + 1; out[out.n] = { "total", "Total", tostring(total) } end
-	cache[ckey] = out
+	kept[key] = out
 	return out
 end, { accepts = { "item" }, returns = { "kind", "left", "right" }, doc = "the tooltip lines for an item", cost = "O(holders)", writes = false, onError = "empty" })
 
 M.PSS_Provide("wh.tipCur", function(input)
-	local out = { cols = { "kind", "left", "right" }, n = 0 }
 	local id = input and input.n > 0 and tonumber(input[1][1])
+	local ckey = id
+	if ckey and curCache[ckey] then return curCache[ckey] end
+	local out = { cols = COLS, n = 0 }
 	if not id then return out end
-	local ckey = "c" .. id
-	if cache[ckey] then return cache[ckey] end
 	local cur, cerr = M.PSS_Call("wh.cur", id, { faction = M.PSS_Opt("whTipFaction") and myFaction() or nil })
 	if cerr or not cur then return out end
 	local ids = { cols = { "ent" }, n = cur.n }
@@ -151,7 +152,7 @@ M.PSS_Provide("wh.tipCur", function(input)
 	end
 	sort(list, function(a, b) if a[4] ~= b[4] then return a[4] > b[4] end return a[2] < b[2] end)
 	limited(list, out)
-	cache[ckey] = out
+	curCache[ckey] = out
 	return out
 end, { accepts = { "currency" }, returns = { "kind", "left", "right" }, doc = "the tooltip lines for a currency", cost = "O(holders)", writes = false, onError = "empty" })
 
