@@ -1,0 +1,6 @@
+## Interface: 120007, 16001
+## Title: Syndicator (harness stand-in)
+## Notes: a stand-in for the other addon, for the checks that need it to be loaded
+## Version: 286
+
+Syndicator.lua

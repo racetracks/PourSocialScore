@@ -55,7 +55,13 @@ function W:HookScript(k, fn)
 	local old = self._scripts[k]
 	self._scripts[k] = old and function(...) old(...); fn(...) end or fn
 end
-function W:RegisterEvent(e) self._events[e] = true; eventFrames[self] = true end
+-- frames hear an event in the order they first registered for any event (as the client delivers it);
+-- a hash walk would make the order differ from run to run
+local regSeq = 0
+function W:RegisterEvent(e)
+	self._events[e] = true
+	if not eventFrames[self] then regSeq = regSeq + 1; eventFrames[self] = regSeq end
+end
 function W:UnregisterEvent(e) self._events[e] = nil end
 function W:UnregisterAllEvents() self._events = {} end
 function W:IsEventRegistered(e) return self._events[e] == true end
@@ -317,6 +323,7 @@ function stub.Fire(event, ...)
 	for f in pairs(eventFrames) do
 		if f._events[event] then list[#list + 1] = f end
 	end
+	table.sort(list, function(a, b) return eventFrames[a] < eventFrames[b] end)
 	for _, f in ipairs(list) do
 		local h = f._scripts.OnEvent
 		if h and f._events[event] then h(f, event, ...) end

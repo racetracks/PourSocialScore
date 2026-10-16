@@ -221,6 +221,8 @@ function M.PSS_Call(name, input, opts)
 	local ok, out
 	if T and T.fault and (T.fault == "*" or T.fault == name) then
 		ok, out = false, "fail: injected fault"
+	elseif T and T.trace then		-- the harness wants the stack of a failing service
+		ok, out = xpcall(function() return svc.fn(set, opts) end, debug.traceback)
 	else
 		ok, out = pcall(svc.fn, set, opts)
 	end

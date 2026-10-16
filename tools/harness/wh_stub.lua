@@ -78,6 +78,14 @@ return function(stub)
 		W.money, W.accountMoney = spec.money or 0, spec.accountMoney or 0
 		W.equipped, W.mail, W.void = spec.equipped or {}, spec.mail or {}, spec.void or {}
 		W.auctions, W.guildbank, W.currencies = spec.auctions or {}, spec.guildbank, spec.currencies or {}
+		-- the client's lists do not hold what has run out: an auction past its time, a mail with no days left
+		local function live(list, gone)
+			local out = {}
+			for _, x in pairs(list) do if not gone(x) then out[#out + 1] = x end end
+			return out
+		end
+		W.mail = live(W.mail, function(m) return (m.daysLeft or 30) <= 0 end)
+		W.auctions = live(W.auctions, function(a) return (a.time or 3600) <= 0 end)
 		W.bankTabs, W.accountTabs = spec.bankTabs or {}, spec.accountTabs or {}
 		W.open = {}
 		for id, it in pairs(spec.items or {}) do stub.items[id] = it end
@@ -230,7 +238,10 @@ return function(stub)
 				return d.name or "Item", d.icon or 134400, a.count or 1, a.quality or d.quality or 0
 			end
 			function GetAuctionItemLink(l, i) local a = W.auctions[i]; return a and (a.link or itemLink(a.id)) or nil end
-			function GetAuctionItemTimeLeft() return 3 end
+			function GetAuctionItemTimeLeft(l, i)
+				local t = W.auctions[i] and W.auctions[i].time or 3600
+				return t <= 1800 and 1 or t <= 7200 and 2 or t <= 43200 and 3 or 4
+			end
 		end
 
 		-- void

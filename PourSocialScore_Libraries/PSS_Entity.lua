@@ -24,7 +24,7 @@
 local addon = PourSocialScore_NS
 local M = addon.M
 
-local type, pairs, next = type, pairs, next
+local type, pairs, ipairs, next = type, pairs, ipairs, next
 
 local FIELDS = { "kind", "name", "realm", "faction", "class", "race", "sex" }
 local ent = M.PSS_Store("ent", {
@@ -53,6 +53,29 @@ local byName = M.PSS_Index("ent.byName", {
 })
 
 function M.PSS_EntityDrop() byName:drop(); ent.Drop() end
+
+-- the flags of an entity (one letter each: h hidden from tooltips and search, g its gold hidden too)
+function M.PSS_EntityFlags(id)
+	return ent.Get(id, "flags") or ""
+end
+
+-- sets (or, with remove, clears) up to two flag letters; returns the flags now, or nil
+local ALLF = { "kind", "name", "realm", "faction", "class", "race", "sex", "flags" }
+function M.PSS_EntitySetFlags(id, a, b, remove)
+	if ent.ReadOnly() or not KINDS[ent.Get(id, "kind")] then return nil end
+	local v = {}
+	ent.Read(id, v, 1, ALLF)
+	local f = v[8] or ""
+	if remove then
+		f = f:gsub("[hg]", "")
+	else
+		for _, c in ipairs({ a or "", b or "" }) do
+			if c ~= "" and not f:find(c, 1, true) then f = f .. c end
+		end
+	end
+	ent.Set(id, { kind = v[1], name = v[2], realm = v[3], faction = v[4], class = v[5], race = v[6], sex = v[7], flags = f ~= "" and f or nil })
+	return f ~= "" and f or nil
+end
 
 -- a character is "Name" and "Realm" (the one name builder, with Camelot surnames)
 local function split(name, realm, unit)

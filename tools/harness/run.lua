@@ -29,6 +29,13 @@ H.SetTime(tonumber(os.getenv("PSS_TIME") or "") or 1790000000)
 _G.H = H
 
 
+-- PSS_WH_SEED=1: the client starts as the first character of the warehouse test world
+-- (fixtures/wh_world.lua; PSS_WH_CLIENT retail | camelot | era, PSS_WH_CHAR the character number)
+if os.getenv("PSS_WH_SEED") == "1" then
+	local F = dofile(here .. "/fixtures/wh_world.lua")
+	F.apply(H, F.world(), tonumber(os.getenv("PSS_WH_CHAR") or "1"), os.getenv("PSS_WH_CLIENT") or (os.getenv("PSS_CAMELOT") == "1" and "camelot" or "retail"))
+end
+
 if svIn and svIn ~= "-" then
 	for path in svIn:gmatch("[^,]+") do dofile(path) end
 end
@@ -175,7 +182,7 @@ local function load(name)
 		-- the harness reaches the addon through its namespace (baseline 02 A11):
 		-- loud = the red error line shows (the older checks read it); strict =
 		-- a bad service declaration raises; fault = a service name or * that fails
-		coreAddon.M.PSS_Test = { loud = os.getenv("PSS_QUIET") ~= "1", strict = os.getenv("PSS_STRICT") == "1", fault = os.getenv("PSS_FAULT") }
+		coreAddon.M.PSS_Test = { loud = os.getenv("PSS_QUIET") ~= "1", strict = os.getenv("PSS_STRICT") == "1", fault = os.getenv("PSS_FAULT"), trace = os.getenv("PSS_TRACE") == "1" }
 	end
 	H.Fire("ADDON_LOADED", name)
 	return true

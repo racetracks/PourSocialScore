@@ -196,7 +196,7 @@ end
 
 local function readGuild(row, code, out, ent)
 	local tab = tonumber(code:sub(2))
-	if select(3, GetGuildBankTabInfo(tab)) == false then return end		-- a tab we may not view is never read: its saved copy stays
+	if select(3, GetGuildBankTabInfo(tab)) == false then return false end		-- a tab we may not view is never read: its saved copy stays
 	for slot = 1, 98 do
 		local link = GetGuildBankItemLink(tab, slot)
 		if link and not secret(link) then
@@ -231,8 +231,7 @@ M.PSS_Provide("item.live", function(input)
 			for _, code in ipairs(M.PSS_WhCodes(row)) do
 				if all or w[code] then
 					ent = ent or entOf(row)
-					READER[row.kind](row, code, out, ent)
-					out.conts[code] = ent
+					if READER[row.kind](row, code, out, ent) ~= false then out.conts[code] = ent end
 				end
 			end
 		end

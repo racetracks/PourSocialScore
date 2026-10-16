@@ -155,6 +155,7 @@ function M.PSS_Store(name, schema)
 		local had = t and t.rec and t.rec[id]
 		if not had and schema.cap and S.Count() >= schema.cap then return false, "cap" end
 		t = root(true)
+		if not t then return false, "arg: the saved data is not there yet" end
 		t.rec = t.rec or {}
 		t.rec[id] = pack(t, rec)
 		ver = ver + 1

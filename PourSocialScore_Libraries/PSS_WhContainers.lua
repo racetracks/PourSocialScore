@@ -70,7 +70,7 @@ local ROWS = {
 			if tab == 0 then return bagIndex("Bank") end
 			return bagIndex("BankBag_" .. tab)
 		end,
-		events = { "PLAYERBANKSLOTS_CHANGED", "BANK_TABS_CHANGED", "BANK_TAB_SETTINGS_UPDATED", "PLAYERBANKBAGSLOTS_CHANGED", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE", "BANKFRAME_OPENED", "BANKFRAME_CLOSED" },
+		events = { "BAG_UPDATE", "PLAYERBANKSLOTS_CHANGED", "BANK_TABS_CHANGED", "BANK_TAB_SETTINGS_UPDATED", "PLAYERBANKBAGSLOTS_CHANGED", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE", "BANKFRAME_OPENED", "BANKFRAME_CLOSED" },
 		settle = { "BAG_UPDATE_DELAYED" }, persist = true },
 	{ code = "r", kind = "reagent", owner = "c", gate = "warehouse", shim = "bank", cb = "BagCacheUpdate", sum = "reagent", ["while"] = "bank",
 		has = function() return bagIndex("Reagentbank") ~= nil and IsReagentBankUnlocked ~= nil end,
@@ -87,7 +87,7 @@ local ROWS = {
 			return data and range(1, #data) or {}
 		end,
 		bagId = function(tab) return bagIndex("AccountBankTab_" .. tab) end,
-		events = { "BANK_TABS_CHANGED", "PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE" }, settle = { "BAG_UPDATE_DELAYED" }, persist = true },
+		events = { "BAG_UPDATE", "BANK_TABS_CHANGED", "PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "PLAYER_INTERACTION_MANAGER_FRAME_HIDE" }, settle = { "BAG_UPDATE_DELAYED" }, persist = true },
 	{ code = "e", kind = "equipped", owner = "c", gate = "bags", shim = "equipped", cb = "EquippedCacheUpdate", sum = "equipped",
 		has = function() return GetInventoryItemID ~= nil end,
 		tabs = function() return { 0 } end,

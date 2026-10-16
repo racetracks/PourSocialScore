@@ -20,6 +20,8 @@ PSS_Name.lua
 PSS_WhContainers.lua
 PSS_ItemDict.lua
 PSS_ItemRead.lua
+PSS_WhStore.lua
+PSS_WhMeta.lua
 PSS_Trig.lua
 PSS_ImportExport.lua
 PSS_PlayerRows.lua
