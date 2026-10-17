@@ -3,7 +3,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 
 => 3.7.0.109 - W-4 G1: an empty set never widens a query
 
-- Fixed: hovering an item nobody holds (a vendor item, a chat link) made the Warehouse tooltip fail five times and stop for the session. An empty list of holders now means no holders, not everyone. The same rule applies to the gold list and the item search.
+- Fixed: hovering an item nobody holds (a vendor item, a chat link) made the Warehouse tooltip fail five times and stop for the session. An empty list of holders now means no holders, not everyone. The same rule applies to the gold list and the item search. A failure inside the tooltip for one item no longer stops the tooltips of every other item. Drop Cheapest Thing waits until the saved data is routed before its first scan, so /pss status no longer reports an early entity read (it has its own code, early). The window's memory was measured after a full collection: nothing stays after it closes except the built window, and it does not grow with use.
 
 => 3.7.0.108 - Warehouse: empty equipment slots are not items
 

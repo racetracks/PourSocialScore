@@ -2541,6 +2541,16 @@ if phase == "entearly" then
 	for _, id in ipairs(M.PSS_EntityList("c")) do seen[id] = (seen[id] or 0) + 1 end
 	for id, n in pairs(seen) do check(n == 1, "entity " .. id .. " listed once") end
 	check(M.PSS_ERR_CODES.early, "the early code exists")
+	-- the F4 guard itself: before routing a store neither reads nor creates its table, and says so with the early code
+	local realReady, before = M.PSS_SavedReady, M.PSS_EntityCount and M.PSS_EntityCount() or #M.PSS_EntityList("c")
+	M.PSS_SavedReady = function() return false end
+	local id, why = M.PSS_EntityId("c", "Guardcheck", "Realm", true)
+	M.PSS_SavedReady = realReady
+	check(id == nil and tostring(why):find("not there yet", 1, true), "an entity asked for before routing is refused: " .. tostring(id) .. " " .. tostring(why))
+	check(#M.PSS_EntityList("c") == before, "and no row is made")
+	local early
+	for _, l in ipairs(M.PSS_ErrLines()) do if l:find("early ent", 1, true) then early = true end end
+	check(early, "the refusal is noted with the early code")
 end
 
 -- W4-1 (G1): an empty set never widens a query; hovering an item nobody holds is not an error

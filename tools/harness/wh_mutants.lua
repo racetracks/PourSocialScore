@@ -47,7 +47,7 @@ return {
 	{ "undo-slot-left-in-place", "PourSocialScore/PSS_Upgrade.lua", "elseif not snap and rec.undo and not retrying then\n\t\t\trec.undo = nil", "elseif not snap and rec.undo and not retrying then", "upg" },
 	{ "shim-computes", "PourSocialScore_Libraries/PSS_GwSyndicator.lua", "local Call = function(...)", "local WD = PSS_WarehouseDB\nlocal Call = function(...)", "gwlint" },
 	{ "meta-hooks-twice", "PourSocialScore_Libraries/PSS_WhMeta.lua", "if not warehouse or started then return end", "if not warehouse then return end", "track" },
-	{ "store-root-before-routing", "PourSocialScore_Libraries/PSS_Store.lua", 'and not M.PSS_SavedReady() then blocked = true return nil end', "and false then blocked = true return nil end", "entroute" },
+	{ "store-root-before-routing", "PourSocialScore_Libraries/PSS_Store.lua", 'and not M.PSS_SavedReady() then blocked = true return nil end', "and false then blocked = true return nil end", "entroute entearly" },
 	{ "realm-scope-ignored", "PourSocialScore_Libraries/PSS_WhIndex.lua", 'if M.PSS_Opt("whRealms") == "all" then return nil end', 'if false then return nil end', "realms" },
 	{ "orphan-gold-named-question", "PourSocialScore_Libraries/PSS_WhView.lua", "orphans = orphans + 1", 'orphans = orphans + 1; list[#list + 1] = { "?", gold[i][2], "" }', "goldorphan" },
 	{ "warehouse-tab-always", "PourSocialScore_Libraries/PSS_ViewNav.lua", '(t.key ~= "warehouse" or M.PSS_On("warehouse"))', '(t.key ~= "warehouse" or true)', "whtaboff" },

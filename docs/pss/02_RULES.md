@@ -120,6 +120,8 @@ The full rule set is the **Interface** section of `CLAUDE.md`; this is its short
 5. **Every `OnUpdate` and timer call is on an approved list** (`tools/check_timers.lua`, in `check_rules.sh`, S3): the list is the sites that exist at 3.7.0.104 and only shrinks; a new site fails the rules check and is declared as a need instead (`M.PSS_Want`, `PSS_Trig.lua`); `PSS_Watch.lua`, `PSS_Bus.lua` and `PSS_Trig.lua` hold no `OnUpdate`, and the engine holds the one timer call (section 12, [`DEC-00227`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/service-bus-helper/00_Decisions.md#dec-00227)).
 6. **The scratch gate** (parity registry, entry-point catalogue, design-proof build gate) runs in the last phase of `bus_phases.sh` through `PSS_SCRATCH` or a scratch checkout beside the repo; a SKIP is not a pass (CI sets `PSS_GATE_STRICT=1` after cloning scratch with `tools/ci_scratch.sh` in the `harness`, `upgrades` and `real-saves` jobs; a SKIP then fails), and a stage's PR names whether it ran (issue [#215](https://github.com/racetracks/PourSocialScore/issues/215), [PR #216](https://github.com/racetracks/PourSocialScore/pull/216); awaiting the author's answers).
 
+7. **An empty set never widens a query (3.7.0.109, G1):** a service called with no input (`nil`) may list everything; a record set with no rows lists nothing. `wh.ent`, `money.gold` and `item.search` follow it (phases `entempty`, `tipjoin`); a new provider that reads its input does the same.
+
 ## 12. Overrides of the baseline
 The only places PSS differs, each with the author's OK. Add a row (with the OK) before shipping anything else that differs; a difference not listed is a bug. A breach waiting for a fix is listed with the line that fixes it.
 
