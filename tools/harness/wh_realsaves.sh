@@ -35,6 +35,10 @@ for sv in "$@"; do
 	out=$(env PSS_PHASE=orphanreal PSS_COMPONENTS=addons,gfx,warehouse,bags lua5.1 "$here/run.lua" . "$sv" - "$here/check_wh.lua" 2>&1 | grep -E '^(FAIL|PASS|ORPHANS)')
 	echo "$out" | grep -q '^FAIL' && { echo "FAIL realsaves: $sv: $(echo "$out" | grep '^FAIL' | head -2)"; fail=1; }
 	echo "$out" | grep -q '^ORPHANS [1-9]' && echo "NOTE realsaves: $sv: $(echo "$out" | grep '^ORPHANS')"
+	# W-4 G3: what stays referenced after the window closes, on this save
+	out=$(env PSS_PHASE=memclose PSS_COMPONENTS=addons,gfx,warehouse,bags lua5.1 "$here/run.lua" . "$sv" - "$here/check_wh.lua" 2>&1 | grep -E '^(FAIL|MEMCLOSE)')
+	echo "$out" | grep -q '^FAIL' && { echo "FAIL realsaves: $sv: $(echo "$out" | grep '^FAIL' | head -1)"; fail=1; }
+	echo "$out" | grep -q '^MEMCLOSE' || { echo "FAIL realsaves: $sv: memclose printed nothing"; fail=1; }
 	# W-3 F9: no saved slot is the item id 0 (an empty equipment slot)
 	out=$(env PSS_PHASE=zeroreal PSS_COMPONENTS=addons,gfx,warehouse,bags lua5.1 "$here/run.lua" . "$sv" - "$here/check_wh.lua" 2>&1 | grep -E '^(FAIL|ZEROS)')
 	echo "$out" | grep -q '^FAIL' && { echo "FAIL realsaves: $sv: $(echo "$out" | grep '^FAIL' | head -1)"; fail=1; }

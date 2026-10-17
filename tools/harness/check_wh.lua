@@ -12,6 +12,7 @@ local here = (arg[0] or ""):match("^(.*)/[^/]*$") or "."
 local WORLD = dofile(here .. "/fixtures/wh_world.lua")
 local GEN = dofile(here .. "/fixtures/wh_gen.lua")
 local client = camelot and "camelot" or "retail"
+local MEMCLOSE_BOUND = 7400		-- KB kept after every tab was opened and the window closed: the most measured (6661 on the real saves, 5236 on the fixture) plus 10 percent, stub frames included (W4-4)
 local function libs() check(M.PSS_Need("Libraries"), "Libraries did not load") end
 
 if phase == "stub" then
@@ -2516,8 +2517,43 @@ if phase == "tooltip" then
 	check(sums == 1, "TST-p197: one wh.sum for two hovers (" .. sums .. ")")
 end
 
--- W4-4 (G3): the window's resident cost after a full collection, and nothing kept after it closes; the figures are printed
--- (KB of the Lua heap on the stub, not the client's addon memory, which also counts garbage not yet collected)
+-- W4-4 (G3): what stays referenced after the window closes (baseline C7, C15). KB of the Lua heap after two full collections on the
+-- stub (the client's addon memory also counts garbage not yet collected and Blizzard-side frames, which this cannot show):
+-- A: loaded, window never opened; B: every tab visited, then closed; C: five more open/close cycles. Prints "MEMCLOSE A B C".
+if phase == "memclose" then
+	-- the stub keeps every SetPoint call in a list; the client replaces an anchor with the same point name. Reduce the stub's lists to
+	-- the client's meaning first, so the figures are the addon's, not the stub's bookkeeping
+	local function client_anchors()
+		for _, fr in pairs(H.frames or {}) do
+			local pts = fr._points
+			if pts and #pts > 1 then
+				local last, keep = {}, {}
+				for i, p in ipairs(pts) do last[p[1]] = i end
+				for i, p in ipairs(pts) do if last[p[1]] == i then keep[#keep + 1] = p end end
+				fr._points = keep
+			end
+		end
+	end
+	local function kb() client_anchors(); collectgarbage("collect"); collectgarbage("collect"); return collectgarbage("count") end
+	check(M.PSS_Need("Libraries"), "Libraries did not load")
+	local A = kb()
+	local win
+	local TABS = { "players", "guilds", "filters", "addons", "warehouse", "events", "options" }
+	for _, key in ipairs(TABS) do M.PSS_OpenUI(true, key) end
+	win = _G.PSS_Window
+	check(win and win:IsShown(), "the window opened")
+	win:Hide()
+	local B = kb()
+	for _ = 1, 5 do M.PSS_OpenUI(true); win:Hide() end
+	local C = kb()
+	for _ = 1, 5 do M.PSS_OpenUI(true); win:Hide() end
+	local D = kb()
+	print(("MEMCLOSE %.1f %.1f %.1f %.1f"):format(A, B, C, D))
+	local bound = tonumber(os.getenv("PSS_MEMCLOSE_BOUND")) or MEMCLOSE_BOUND
+	check(C - B <= 1 and D - C <= 1, ("ten more open/close cycles keep at most 1 KB each five: %.2f, %.2f"):format(C - B, D - C))
+	check(B - A <= bound, ("every tab visited and closed keeps at most %d KB: %.0f"):format(bound, B - A))
+end
+
 if phase == "winmem" then
 	local function kb() collectgarbage("collect"); collectgarbage("collect"); return collectgarbage("count") end
 	local base = kb()

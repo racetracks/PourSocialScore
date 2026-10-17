@@ -28,6 +28,7 @@ return {
 	{ "dtt-no-rearm", "PourSocialScore_Libraries/PSS_DttAct.lua", 'routeWait = true\n\t\tframe:RegisterEvent("PLAYER_ENTERING_WORLD")', 'routeWait = true', "dttwait" },
 	{ "tip-ids-guard", "PourSocialScore_Libraries/PSS_WhTooltip.lua", "if #ids == 0 then return {}, 0 end", "", "tipjoin" },
 	{ "tip-holder-guard", "PourSocialScore_Libraries/PSS_WhTooltip.lua", "if e and not (f[2] == \"g\"", "if not (f[2] == \"g\"", "tipjoin" },
+	{ "window-keeps-on-open", "PourSocialScore_GUI/PSS_Window.lua", "win:HookScript(\"OnShow\", function() esc:Show() end)", "win:HookScript(\"OnShow\", function() esc:Show(); ns.kept = ns.kept or {}; ns.kept[#ns.kept + 1] = { string.rep(\"x\", 600) .. #ns.kept } end)", "memclose" },
 	{ "tooltip-forbidden", "PourSocialScore_Libraries/PSS_WhTooltip.lua", "if tip and tip.IsForbidden and tip:IsForbidden() then return false end", "", "tooltip" },
 	{ "tooltip-limit-ignored", "PourSocialScore_Libraries/PSS_WhTooltip.lua", 'local limit = tonumber(M.PSS_Opt("whTipLimit")) or 4', "local limit = 0", "tooltip" },
 	{ "gateway-secret", "PourSocialScore_Libraries/PSS_Gw.lua", "if secret(...) then return copy(row.empty) end", "", "gwlint synapi edges" },
