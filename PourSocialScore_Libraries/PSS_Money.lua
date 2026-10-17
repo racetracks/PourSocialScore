@@ -33,6 +33,10 @@ end
 local ver = 0
 local function put(ent, copper)
 	if not ent or ent == 0 then return false end
+	if not (M.PSS_Entity and M.PSS_Entity(ent)) then		-- F4: gold only for an entity whose row is saved
+		if M.PSS_ErrNote then M.PSS_ErrNote("arg", "money.write", "unknown entity " .. tostring(ent)) end
+		return false
+	end
 	if not valid(copper) then
 		if M.PSS_ErrNote then M.PSS_ErrNote("arg", "money.write", "gold must be a whole number of copper below 2^53") end
 		return false

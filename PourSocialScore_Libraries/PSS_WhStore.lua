@@ -170,7 +170,10 @@ M.PSS_Provide("wh.write", function(input)
 		local changes = {}		-- [ent] = { [code] = string | false }
 		local ops = {}			-- [ent] = { [code] = "put" | "drop" }
 		for code, ent in pairs(p.conts or {}) do
-			if ent and ent ~= 0 then
+			if ent and ent ~= 0 and not (M.PSS_Entity and M.PSS_Entity(ent)) then
+				-- F4: containers are saved only for an entity whose row is saved
+				if M.PSS_ErrNote then M.PSS_ErrNote("arg", "wh.write", "unknown entity " .. tostring(ent) .. ": " .. code .. " not saved") end
+			elseif ent and ent ~= 0 then
 				local rows = rowsBy[code] or {}
 				local capped, dropped = capRows(code, rows)
 				if dropped > 0 and M.PSS_ErrNote then M.PSS_ErrNote("cap", "wh.write", code .. ": " .. dropped .. " oldest entries left out") end

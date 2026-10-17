@@ -51,8 +51,12 @@ function M.PSS_Store(name, schema)
 	local rev, count		-- reverse dictionary index and record count, built on first need
 	local dbName = schema.db or "PourSocialScoreDB"
 	local ver, cols, parts, pool = 0, {}, {}, nil
+	local blocked		-- read while the saved data was not routed yet: what was built from that is stale (F4)
 
 	local function root(create)
+		-- a key of PourSocialScoreDB is routed to an Options table at login: before that it is not readable here and
+		-- must not be created (F4: a fresh table made early replaced the saved one when the login moved it)
+		if dbName == "PourSocialScoreDB" and M.PSS_SavedReady and not M.PSS_SavedReady() then blocked = true return nil end
 		local db = _G[dbName]
 		if type(db) ~= "table" then
 			if not (create and dbName ~= "PourSocialScoreDB") then return nil end
@@ -195,7 +199,10 @@ function M.PSS_Store(name, schema)
 
 	-- the version of the data: it rises with every write that was made, so a
 	-- cache or an index built at one version knows it is stale
-	function S.Ver() return ver end
+	function S.Ver()
+		if blocked and M.PSS_SavedReady and M.PSS_SavedReady() then blocked = false; count = nil; ver = ver + 1 end
+		return ver
+	end
 
 	-- one row split once: out[at], out[at + 1], ... get the values of names
 	-- (every field in order when names is nil); false when the id is unknown

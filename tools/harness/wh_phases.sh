@@ -12,6 +12,7 @@ phases=${*:-$DEFAULT}
 full=0
 [ -z "$*" ] && full=1
 for ph in $phases; do
+	case $ph in sv|syn|synimport|synother|consumer|entroute|entplant|cmdtaken) continue ;; esac		# these run below, on their own files
 	comp=logging
 	seed=
 	meas=
@@ -75,6 +76,20 @@ for cam in "" "PSS_CAMELOT=1"; do
 		if ! echo "$out" | grep -q "PASS wh synother" || echo "$out" | grep -q "FAIL"; then fail=1; bad=$((bad + 1)); echo "$out" | head -8; fi
 	fi
 done
+if [ $full = 1 ] || echo " $phases " | grep -q " entroute "; then
+	w=$(mktemp -d)
+	o1=$(env PSS_PHASE=entplant PSS_COMPONENTS=logging,warehouse,bags,dtt lua5.1 "$here/run.lua" . - "$w/a.lua" "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
+	o2=$(env PSS_PHASE=entroute PSS_COMPONENTS=logging,warehouse,bags,dtt PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$w/a.lua" "$w/b.lua" "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
+	o3=$(env PSS_AGAIN=1 PSS_PHASE=entroute PSS_COMPONENTS=logging,warehouse,bags,dtt lua5.1 "$here/run.lua" . "$w/b.lua" "$w/c.lua" "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
+	o2="$o2$o3"
+	n=$((n + 1))
+	if echo "$o1$o2" | grep -q "FAIL\|lua5.1:" || ! echo "$o2" | grep -q "PASS wh entroute"; then
+		fail=1; bad=$((bad + 1)); echo "FAIL wh entroute"; echo "$o1$o2" | head -8
+	else
+		echo "PASS wh entroute"
+	fi
+	rm -rf "$w"
+fi
 for cam in "" "PSS_CAMELOT=1"; do
 	if [ $full = 1 ] || echo " $phases " | grep -q " consumer "; then
 		out=$(env PSS_PHASE=consumer PSS_COMPONENTS=logging,warehouse,bags PSS_WH_SEED=1 PSS_EXTRA_ADDONS="$here/fixtures/SynConsumer" $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')

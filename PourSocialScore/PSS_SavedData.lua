@@ -111,6 +111,13 @@ local router = {
 	end,
 }
 
+-- F4: true once PourSocialScoreDB routes its moved keys (PSS_PrepareSavedData ran at login). Before that a routed key
+-- (the entity table, the owned keys) reads as absent, and a store must not create it: the move at login would put the
+-- fresh table over the saved one.
+function M.PSS_SavedReady()
+	return getmetatable(PourSocialScoreDB) == router and active.PourSocialScore_Options == true
+end
+
 local function loaded(name)
 	local f = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
 	return f ~= nil and f(name) and true or false

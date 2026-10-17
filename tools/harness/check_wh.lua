@@ -2212,8 +2212,39 @@ if phase == "goldorphan" then
 	check(out:find("1 saved gold value", 1, true), "F4: /pss wh status reports it")
 	said = {}
 	M.PSS_SlashPSS("wh sweep")
-	check(PSS_WarehouseDB.gold[ghost] == nil and PSS_WarehouseDB.gold[ids["c:Alpha-Realm"]] == 5000, "F4: /pss wh sweep removes the orphan and only the orphan")
+	check(PSS_WarehouseDB.gold[ghost] == 4 and PSS_WarehouseDB.gold[ids["c:Alpha-Realm"]] == 5000, "F4: /pss wh sweep leaves orphan gold alone (a repair of saved data needs the author's OK)")
 	M.ShowMsg = realShow
+end
+
+if phase == "entplant" or phase == "entroute" then
+	-- F4: the author's lost entity row. Drop Cheapest Thing starts at ADDON_LOADED and reads the bags, which asked for this
+	-- character's entity before PourSocialScoreDB routed its moved keys: a fresh entity table was made and the login's move
+	-- put it over the saved one, so a character's saved containers and gold had no entity row.
+	-- entplant: the first login (Retail) saves one character. entroute: another character (Camelot) logs in on that file.
+	libs()
+	local function rows()
+		local e = PSS_OptionsDB and PSS_OptionsDB.ent
+		return e and e.rec or {}, e and e.n
+	end
+	if phase == "entplant" then
+		H.Put(0, 1, { id = 2589, count = 5 })
+		H.Fire("BAG_UPDATE", 0); H.Fire("BAG_UPDATE_DELAYED")
+		check(rows()[1] and rows()[1]:find("^c;Tester;Realm"), "F4: the first character has its row (" .. tostring(rows()[1]) .. ")")
+		check(PSS_WarehouseDB and PSS_WarehouseDB.inv and next(PSS_WarehouseDB.inv), "F4: and saved containers")
+	elseif os.getenv("PSS_AGAIN") then
+		-- the first character logs in again on the file the second one saved: no second row for it
+		local rec, n = rows()
+		check(M.PSS_Me(false) == 1 and n == 3 and rec[1]:find("^c;Tester;Realm"), "F4: the first character is found again, no duplicate row (me " .. tostring(M.PSS_Me(false)) .. ", n " .. tostring(n) .. ")")
+	else
+		local rec, n = rows()
+		check(rec[1] and rec[1]:find("^c;Tester;Realm"), "F4: the saved entity row of the first character is still there (" .. tostring(rec[1]) .. ")")
+		local me = M.PSS_Me(false)
+		check(me and me ~= 1 and rec[me] and rec[me]:find("^c;Tester;Classicbetapvp"), "F4: the new character has its own row (" .. tostring(me) .. ")")
+		local bad = {}
+		for ent in pairs(PSS_WarehouseDB.inv or {}) do if not rec[ent] then bad[#bad + 1] = "inv " .. ent end end
+		for ent in pairs(PSS_WarehouseDB.gold or {}) do if not rec[ent] then bad[#bad + 1] = "gold " .. ent end end
+		check(#bad == 0, "F4: every saved container and gold value has an entity row (" .. table.concat(bad, ", ") .. ")")
+	end
 end
 
 if phase == "consumer" then

@@ -138,6 +138,12 @@ function M.PSS_EntityId(kind, name, realm, create, unit)
 		if M.PSS_ErrNote then M.PSS_ErrNote(why == "cap" and "cap" or "newer", "ent", why == "cap" and "500 entities: no room for another" or tostring(why)) end
 		return nil, why
 	end
+	-- an id is handed out only when its row is saved and reads back (F4)
+	if ent.Get(new, "kind") ~= kind or (kind == "c" and ent.Get(new, "name") ~= name) then
+		ent.Delete(new)
+		if M.PSS_ErrNote then M.PSS_ErrNote("arg", "ent", "the entity row did not save") end
+		return nil, "arg: the entity row did not save"
+	end
 	byName:put(k, new)
 	return new
 end
