@@ -16,6 +16,7 @@ return {
 		-- the warehouse (one-build plan, 03_Design 15): "design" is the plan's figure; a gate above it is a deviation reported in the build report
 		["PSS_Codec.lua"] = { measured = 2.5, gate = 3, stage = "p02 (3.7.0.106)" },
 		["PSS_Name.lua"] = { measured = 1.95, gate = 2.5, design = 1, stage = "p08 (3.7.0.106)" },
+		-- the author approved the measured figures as the gates of these warehouse files (2026-10-17, coordinator prompt 12, R8-01 a)
 		["PSS_WhContainers.lua"] = { measured = 11.74, gate = 12, design = 6, stage = "p07 (3.7.0.106)" },
 		["PSS_ItemDict.lua"] = { measured = 3.4, gate = 6, stage = "p06 (3.7.0.106)" },
 		["PSS_ItemRead.lua"] = { measured = 5.3, gate = 12, stage = "p08 (3.7.0.106)" },
