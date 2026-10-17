@@ -170,6 +170,19 @@ function M.PSS_Store(name, schema)
 		return true
 	end
 
+	-- keeps ids up to n from being handed out (W3-D5); the counter only rises
+	function S.Reserve(n)
+		local t = root()
+		if t and t.v and t.v > schema.v then return false end
+		if n > ((t and t.n) or 0) then
+			t = root(true)
+			if not t then return false end
+			t.n = n
+			ver = ver + 1
+		end
+		return true
+	end
+
 	-- a new record under the next id (ids are never reused)
 	function S.Add(rec)
 		local t = root()

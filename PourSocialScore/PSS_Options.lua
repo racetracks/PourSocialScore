@@ -145,6 +145,7 @@ local WH = {
 	{ key = "whTipTotal",		kind = "bool",		default = false,	section = 8, label = "Show a total line" },
 	{ key = "whRealms",			kind = "choice",	default = "connected", section = 8, label = "Realms shown in tooltips, search and gold",
 		choices = { { "connected", "Connected realms" }, { "all", "All realms" } } },
+	{ key = "whUnnamed",		kind = "action",	default = false,	section = 8, label = "Saved data with no saved character" },
 	{ key = "whValueSource",	kind = "choice",	default = "",		section = 8, label = "Where an item's value comes from",
 		choices = { { "", "Vendor price" }, { "auto", "The first price addon found" }, { "tsm", "TradeSkillMaster" }, { "recrystallize", "RECrystallize" }, { "auctionator", "Auctionator" } } },
 	{ key = "whGuildDays",		kind = "number",	default = 0,		section = 8, min = 0, max = 365, label = "Forget a guild bank not seen for this many days (0 keeps it)" },

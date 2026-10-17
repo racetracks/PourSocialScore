@@ -31,6 +31,10 @@ for sv in "$@"; do
 		lua5.1 "$here/wh_strip.lua" "$work/$t-$i.v" "$work/$t-$i.s"
 		lua5.1 "$here/same_norm.lua" "$work/$t-$i.s" "$work/$t-$i.n"
 	done
+	# W3-D5: every id the saved Warehouse data names is a saved character or reported unnamed, and none is reused
+	out=$(env PSS_PHASE=orphanreal PSS_COMPONENTS=addons,gfx,warehouse,bags lua5.1 "$here/run.lua" . "$sv" - "$here/check_wh.lua" 2>&1 | grep -E '^(FAIL|PASS|ORPHANS)')
+	echo "$out" | grep -q '^FAIL' && { echo "FAIL realsaves: $sv: $(echo "$out" | grep '^FAIL' | head -2)"; fail=1; }
+	echo "$out" | grep -q '^ORPHANS [1-9]' && echo "NOTE realsaves: $sv: $(echo "$out" | grep '^ORPHANS')"
 	n=$((n + 1))
 	if ! cmp -s "$work/r2-$i.n" "$work/w2-$i.n"; then echo "FAIL realsaves: $sv differs from $ref apart from the Warehouse"; diff "$work/r2-$i.n" "$work/w2-$i.n" | head -6; fail=1; continue; fi
 	if ! cmp -s "$work/w2-$i.n" "$work/o-$i.n"; then echo "FAIL realsaves: $sv changed when the Warehouse was turned off"; fail=1; continue; fi

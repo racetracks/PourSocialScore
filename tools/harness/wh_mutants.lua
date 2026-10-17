@@ -24,6 +24,7 @@ return {
 	{ "gateway-secret", "PourSocialScore_Libraries/PSS_Gw.lua", "if secret(...) then return copy(row.empty) end", "", "gwlint synapi edges" },
 	{ "view-writable", "PourSocialScore_Libraries/PSS_GwSyndicator.lua", "__newindex = function() end", "__newindex = rawset", "synapi" },
 	{ "dry-import-writes", "PourSocialScore_Libraries/PSS_WhImport.lua", "\t\t\tif not dry then\n\t\t\t\tent = M.PSS_EntityId(\"c\"", "\t\t\tif true then\n\t\t\t\tent = M.PSS_EntityId(\"c\"", "synimport" },
+	{ "unnamed-id-not-reserved", "PourSocialScore_Libraries/PSS_Store.lua", "if n > ((t and t.n) or 0) then", "if false then", "orphan" },
 	{ "breaker-never-opens", "PourSocialScore_Libraries/PSS_Err.lua", "if s.fails >= BREAK then s.open, s.half = true, false end", "", "err" },
 	{ "hidden-shown", "PourSocialScore_Libraries/PSS_WhIndex.lua", "if f.hidden and not (opts and opts.hidden) then return false end", "", "numbers tooltip synapi" },
 	{ "sweep-over-budget-runs", "PourSocialScore_Libraries/PSS_WhStore.lua", "if bytes > M.PSS_SWEEP_BUDGET then", "if false then", "sweepbudget" },

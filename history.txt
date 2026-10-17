@@ -8,7 +8,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 - /pss wh search <text> now opens the Search Everywhere window with the text filled in (add chat after the text to print the matches in chat, which waits until the client has given the item names). /pss wh search with no text opens the window.
 - Search Everywhere shows this character's items when nothing is typed, with the item's icon on the left of every row and its tooltip when you hover a row.
 - The Warehouse has its own tab in the main window (only while the Warehouse is on), with the same search.
-- Gold saved for a character that is no longer saved is no longer shown as "?"; /pss wh status says how many there are and /pss wh sweep removes them.
+- Fixed: a character's saved name entry could be lost when Drop Cheapest Thing started early, which left its gold shown as "?". Saved Warehouse data that belongs to no saved character is now kept, hidden, not counted, and its number is never reused; Options, Warehouse has a Remove button for it, and /pss wh status lists it as "unnamed #id" for /pss wh remove #id. Nothing is deleted unless you remove it.
 
 => 3.7.0.106 - The Warehouse: what every character, guild and your warband holds (optional, off by default)
 

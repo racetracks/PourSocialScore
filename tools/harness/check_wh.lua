@@ -2216,6 +2216,77 @@ if phase == "goldorphan" then
 	M.ShowMsg = realShow
 end
 
+if phase == "orphan" then
+	-- W3-D5: saved data that names an id with no entity row is kept untouched, never shown or counted, its id is
+	-- reserved so a new character cannot take it, and the player removes it in Options or with /pss wh remove #id
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	local alpha = ids["c:Alpha-Realm"]
+	WORLD.apply(H, w, 1, client)
+	M.PSS_MeReset()
+	local base = M.PSS_WhSearchRows("linen")
+	local baseTotal = 0
+	for _, r in ipairs(base) do baseTotal = baseTotal + r.total end
+	local ghost = 7000
+	local kept = PSS_WarehouseDB.inv[alpha]
+	PSS_WarehouseDB.inv[ghost] = {}
+	for code, str in pairs(kept) do PSS_WarehouseDB.inv[ghost][code] = str end
+	PSS_WarehouseDB.gold[ghost] = 4
+	PSS_WarehouseDB.seen = PSS_WarehouseDB.seen or {}
+	PSS_WarehouseDB.seen[ghost] = 1
+	local o = M.PSS_EntityOrphans()
+	check(#o == 1 and o[1] == ghost, "W3-D5: the unnamed id is found (" .. #o .. ")")
+	check(PSS_OptionsDB.ent.n >= ghost, "W3-D5: its id is reserved (counter " .. tostring(PSS_OptionsDB.ent.n) .. ")")
+	local new = M.PSS_EntityId("c", "Newcomer", "Realm", true)
+	check(new and new > ghost, "W3-D5: a new character does not take it (" .. tostring(new) .. ")")
+	local rows = M.PSS_WhSearchRows("linen")
+	local total = 0
+	for _, r in ipairs(rows) do total = total + r.total end
+	check(total == baseTotal, "W3-D5: its items are not counted in a search (" .. total .. " against " .. baseTotal .. ")")
+	local _, _, orphans = M.PSS_WhGoldRows()
+	check(orphans == 1, "W3-D5: its gold is counted apart (" .. orphans .. ")")
+	local said = {}
+	local realShow = M.ShowMsg
+	M.ShowMsg = function(x) said[#said + 1] = tostring(x):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "") end
+	M.PSS_SlashPSS("wh status")
+	check(table.concat(said, "\n"):find("unnamed #" .. ghost .. ", kept", 1, true), "W3-D5: /pss wh status lists it (" .. table.concat(said, "|") .. ")")
+	check(M.PSS_WhUnnamed() == 1, "W3-D5: Options counts it")
+	local opt
+	for _, d in ipairs(M.PSS_OPTIONS) do if d.key == "whUnnamed" then opt = d end end
+	check(opt and opt.kind == "action" and opt.section == 8, "W3-D5: Options has the Remove row in the Warehouse section")
+	M.PSS_SlashPSS("wh remove #" .. ghost)
+	check(PSS_WarehouseDB.inv[ghost] == nil and PSS_WarehouseDB.gold[ghost] == nil, "W3-D5: /pss wh remove #id removes it")
+	check(PSS_WarehouseDB.inv[alpha] == kept, "W3-D5: and nothing else")
+	check(M.PSS_WhUnnamed() == 0 and PSS_OptionsDB.ent.n >= new, "W3-D5: none left; the counter never goes back")
+	PSS_WarehouseDB.inv[ghost + 50] = { [next(kept)] = (select(2, next(kept))) }
+	check(M.PSS_WhUnnamed() == 1 and M.PSS_WhUnnamedRemove() == 1 and PSS_WarehouseDB.inv[ghost + 50] == nil, "W3-D5: the Options button removes it")
+	M.ShowMsg = realShow
+end
+
+if phase == "orphanreal" then
+	-- W3-D5 on a real save (wh_realsaves.sh): after the login every id the Warehouse data names is either a saved
+	-- character or reported unnamed, no unnamed id is below the counter's reach, and nothing was removed
+	libs()
+	local d = PSS_WarehouseDB
+	local rec = PSS_OptionsDB and PSS_OptionsDB.ent and PSS_OptionsDB.ent.rec or {}
+	local n = PSS_OptionsDB and PSS_OptionsDB.ent and PSS_OptionsDB.ent.n or 0
+	local o = M.PSS_EntityOrphans()
+	local mapped = {}
+	for _, id in ipairs(o) do mapped[id] = true end
+	local named, bad = 0, {}
+	if d then
+		for _, key in ipairs({ "inv", "gold", "seen", "meta", "cur" }) do
+			for id in pairs(d[key] or {}) do
+				if rec[id] then named = named + 1 elseif not mapped[id] then bad[#bad + 1] = key .. " " .. id end
+			end
+		end
+	end
+	check(#bad == 0, "W3-D5: every id in the saved data is named or reported (" .. table.concat(bad, ", ") .. ")")
+	for _, id in ipairs(o) do check(n >= id and rec[id] == nil, "W3-D5: unnamed id " .. id .. " is reserved (counter " .. n .. ") and not reused") end
+	print("ORPHANS " .. #o .. (#o > 0 and (" ids " .. table.concat(o, ",")) or ""))
+end
+
 if phase == "entplant" or phase == "entroute" then
 	-- F4: the author's lost entity row. Drop Cheapest Thing starts at ADDON_LOADED and reads the bags, which asked for this
 	-- character's entity before PourSocialScoreDB routed its moved keys: a fresh entity table was made and the login's move
@@ -2476,6 +2547,22 @@ if phase == "everywhere" or phase == "whoptions" then
 		local row2
 		for _, it in ipairs(pg.groups[1].items) do if it.o.key == "whTipTotal" then row2 = it.row end end
 		check(row2 and row2.check:GetChecked() == (not before), "a change redraws the open page")
+		-- W3-D5: the Remove row for saved data with no saved character
+		local un = have.whUnnamed
+		check(un and un.button and not un.button:IsEnabled(), "W3-D5: the Remove button is off while nothing is unnamed")
+		PSS_WarehouseDB.inv = PSS_WarehouseDB.inv or {}
+		PSS_WarehouseDB.inv[9000] = { i = "1;0;0;0;" }
+		PSS_WarehouseDB.gold = PSS_WarehouseDB.gold or {}
+		PSS_WarehouseDB.gold[9000] = 4
+		M.Events.Fire("OPTION_CHANGED", "whTipTotal")
+		un = nil
+		for _, it in ipairs(pg.groups[1].items) do if it.o.key == "whUnnamed" then un = it.row end end
+		check(un and un.button:IsEnabled(), "W3-D5: the Remove button is on once unnamed data exists")
+		un.button._scripts.OnClick(un.button)
+		local cf = _G.PSS_Confirm
+		check(cf and cf:IsShown() and cf.text:GetText():find("1 character", 1, true), "W3-D5: it asks first")
+		cf.accept._scripts.OnClick(cf.accept)
+		check(PSS_WarehouseDB.inv[9000] == nil and PSS_WarehouseDB.gold[9000] == nil and not un.button:IsEnabled(), "W3-D5: the button removed it and switched itself off")
 		M.PSS_SetOpt("whTipTotal", "global", nil)
 	end
 end

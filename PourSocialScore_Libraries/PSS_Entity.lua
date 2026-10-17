@@ -111,6 +111,31 @@ local function api(fn, ...)
 	return v
 end
 
+-- W3-D5: an unnamed id is one that saved Warehouse data names (containers, gold, currencies, seen, meta) but that has
+-- no entity row. Its data is kept untouched and is never shown or counted; its id is reserved here (the counter is
+-- raised past it) so no new character can take it. The player removes it in Options (Warehouse) or with /pss wh remove #id.
+local sort = table.sort
+function M.PSS_EntityOrphans()
+	local out = {}
+	local d = rawget(_G, "PSS_WarehouseDB")
+	if type(d) ~= "table" or (M.PSS_SavedReady and not M.PSS_SavedReady()) then return out end
+	local seen = {}
+	for _, key in ipairs({ "inv", "gold", "seen", "meta", "cur" }) do
+		local t = d[key]
+		if type(t) == "table" then
+			for id in pairs(t) do
+				if type(id) == "number" and not seen[id] then
+					seen[id] = true
+					if not KINDS[ent.Get(id, "kind")] then out[#out + 1] = id end
+				end
+			end
+		end
+	end
+	sort(out)
+	if #out > 0 then ent.Reserve(out[#out]) end
+	return out
+end
+
 function M.PSS_EntityId(kind, name, realm, create, unit)
 	if not KINDS[kind] or type(name) ~= "string" or name == "" then return nil end
 	if M.PSS_IsSecret and (M.PSS_IsSecret(name) or M.PSS_IsSecret(realm)) then return nil end
@@ -127,6 +152,7 @@ function M.PSS_EntityId(kind, name, realm, create, unit)
 	local id = byName:get(k)
 	if id or not create then return id end
 	local rec = { kind = kind, name = name, realm = realm }
+	M.PSS_EntityOrphans()		-- reserves the unnamed ids before an id is handed out
 	if unit then
 		rec.faction = api(UnitFactionGroup, unit)
 		rec.class = select(2, UnitClass(unit))

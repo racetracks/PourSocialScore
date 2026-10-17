@@ -31,6 +31,8 @@ local function db(create)
 	return d
 end
 
+local orphansSaid
+
 local function metaOf(ent)
 	local d = db(true)
 	if not d then return nil end
@@ -185,6 +187,13 @@ end
 M.PSS_Provide("wh.curWrite", function()
 	local out = { cols = { "ent", "cont", "op" }, n = 0 }
 	local me = M.PSS_Me(true)
+	if not orphansSaid then
+		orphansSaid = true
+		local o = M.PSS_EntityOrphans()
+		if #o > 0 then
+			M.ShowMsg(("Warehouse: saved data for %d character(s) with no saved name is kept, hidden and not counted. Remove it in Options, Warehouse, or with /pss wh status and /pss wh remove #id."):format(#o))
+		end
+	end
 	local mine, shared = readCurrencies()
 	if me and putCur(me, mine) then out.n = out.n + 1; out[out.n] = { me, "cur", "put" } end
 	local wb = M.PSS_EntityId("w", "Warband", "", true)

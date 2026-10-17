@@ -108,21 +108,17 @@ M.PSS_Provide("money.gold", function(input, opts)
 end, { accepts = { "ent" }, returns = { "ent", "copper" }, doc = "the saved gold per entity", cost = "O(entities)", writes = false, onError = "last",
 	ver = function() return ver end })
 
--- F4: saved gold whose entity is not saved any more (it would print as "?"). The count; with drop the values are removed.
-function M.PSS_MoneyOrphans(drop)
+-- F4: the number of saved gold values whose entity is not saved (never removed here; the player removes them, W3-D5)
+function M.PSS_MoneyOrphans()
 	local d = db()
 	local gold = d and d.gold
 	if not gold then return 0 end
-	local gone = {}
+	local n = 0
 	for ent in pairs(gold) do
 		local set = M.PSS_Entity(ent)
-		if not (set and set.n > 0) then gone[#gone + 1] = ent end
+		if not (set and set.n > 0) then n = n + 1 end
 	end
-	if drop then
-		for _, ent in ipairs(gone) do gold[ent] = nil end
-		if #gone > 0 then ver = ver + 1 end
-	end
-	return #gone
+	return n
 end
 
 M.PSS_Provide("money.total", function(input, opts)

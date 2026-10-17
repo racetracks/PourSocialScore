@@ -109,6 +109,19 @@ local function OptionRow(content, o, rows)
 			row:SetHeight(ROW_H + l:GetHeight())
 		end
 		row.itemlist = l
+	elseif o.kind == "action" then
+		-- W3-D5: a button that removes saved Warehouse data that belongs to no saved character (the count is read each refresh)
+		local b = ns.NewButton(row, "Remove", 90, function()
+			ns.Confirm({ title = "Remove Saved Data?", text = "Remove the saved Warehouse data of " .. M.PSS_WhUnnamed() .. " character(s) that have no saved name? This cannot be undone.",
+				accept = "Remove", cancel = "Cancel", onAccept = function() M.PSS_WhUnnamedRemove(); refresh() end })
+		end)
+		b:SetPoint("LEFT", row, "RIGHT", -CONTROL_X, 0)
+		refresh = function()
+			local n = M.PSS_WhUnnamed and M.PSS_WhUnnamed() or 0
+			label:SetText(o.label .. " (" .. n .. ")")
+			b:SetEnabled(n > 0)
+		end
+		row.button = b
 	elseif o.kind == "number" then
 		local e = ns.NewNumberBox(row, 60)
 		e:SetPoint("LEFT", row, "RIGHT", -CONTROL_X + 4, 0)

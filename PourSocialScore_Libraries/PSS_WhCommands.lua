@@ -26,6 +26,12 @@ local function say(s) M.ShowMsg(s) end
 
 local function entOf(full)
 	if type(full) ~= "string" then return nil end
+	local id = full:match("^#(%d+)$")		-- an unnamed saved id (W3-D5), listed by /pss wh status
+	if id then
+		id = tonumber(id)
+		for _, o in ipairs(M.PSS_EntityOrphans()) do if o == id then return id end end
+		return nil
+	end
 	local name, realm = full:match("^(.*)-([^-]*)$")
 	if not name then return nil end
 	return M.PSS_EntityId("c", name, realm, false) or M.PSS_EntityId("g", name, realm, false)
@@ -85,7 +91,7 @@ function M.PSS_WhCommand(args)
 		for i = 1, ents.n do name[ents[i][1]] = ents[i][2] == "w" and "Warband" or ents[i][3] end
 		for i = 1, s.n do
 			local r = s[i]
-			say(("  %s: %s slots in %s containers%s"):format(name[r[1]] or "?", r[3], (r[2] ~= "" and select(2, r[2]:gsub(",", ",")) + 1 or 0), r[5] > 0 and (", " .. r[5] .. " unreadable") or ""))
+			say(("  %s: %s slots in %s containers%s"):format(name[r[1]] or ("unnamed #" .. r[1] .. ", kept"), r[3], (r[2] ~= "" and select(2, r[2]:gsub(",", ",")) + 1 or 0), r[5] > 0 and (", " .. r[5] .. " unreadable") or ""))
 		end
 	elseif sub == "import" then
 		local r = M.PSS_CallSet("wh.import", nil, { dry = args[3] == "dry" })
@@ -102,7 +108,7 @@ function M.PSS_WhCommand(args)
 	elseif sub == "hide" or sub == "delete" or sub == "remove" then
 		local full = args[3]
 		local ent = entOf(full)
-		if not ent then say("Give a name like Name-Realm that the Warehouse knows.") return end
+		if not ent then say("Give a name like Name-Realm that the Warehouse knows, or #id for an unnamed one listed by /pss wh status.") return end
 		if sub == "hide" then
 			local flags = M.PSS_EntityFlags(ent) or ""
 			local r = M.PSS_CallSet("wh.hide", { cols = { "ent" }, n = 1, { ent } }, { show = flags:find("h", 1, true) ~= nil })
@@ -114,6 +120,17 @@ function M.PSS_WhCommand(args)
 	else
 		say("/pss wh [search [text] [chat [page]] | status | import [dry] | sweep | hide <Name-Realm> | remove <Name-Realm>]")
 	end
+end
+
+-- W3-D5: Options (Warehouse) lists and removes saved data that belongs to no saved character
+function M.PSS_WhUnnamed() return #M.PSS_EntityOrphans() end
+function M.PSS_WhUnnamedRemove()
+	local n = 0
+	for _, id in ipairs(M.PSS_EntityOrphans()) do
+		local _, err = M.PSS_Call("wh.delete", { cols = { "ent" }, n = 1, { id } })
+		if not err then n = n + 1 end
+	end
+	return n
 end
 
 function M.PSS_MoneyCommand()
