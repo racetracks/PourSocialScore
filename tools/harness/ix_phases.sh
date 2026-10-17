@@ -92,7 +92,12 @@ $out2" ;;
 		sqdowngrade)
 			out=$(run1 sqdowngrade "$cam" "" "$work/down-$cam.lua")
 			ref=${PSS_SAME_AS:-origin/main}
-			if [ ! -d "$work/ref" ]; then mkdir -p "$work/ref"; git archive "$ref" 2>/dev/null | tar -x -C "$work/ref" 2>/dev/null; fi
+			if [ ! -d "$work/ref" ]; then
+				mkdir -p "$work/ref"
+				# a shallow CI checkout has no origin/main: fetch it once (a SKIP is not a pass)
+				git rev-parse -q --verify "$ref^{commit}" > /dev/null 2>&1 || { git fetch -q --depth=1 origin "${ref#origin/}" 2>/dev/null && ref=FETCH_HEAD; }
+				git archive "$ref" 2>/dev/null | tar -x -C "$work/ref" 2>/dev/null
+			fi
 			if [ -f "$work/ref/PourSocialScore/PourSocialScore.toc" ]; then
 				env PSS_COMPONENTS=logging ${cam:+PSS_CAMELOT=1} lua5.1 "$here/run.lua" "$work/ref" "$work/down-$cam.lua" "$work/down2-$cam.lua" > /dev/null 2>&1
 				cmp=$(lua5.1 -e '
