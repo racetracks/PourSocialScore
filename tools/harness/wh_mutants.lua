@@ -73,4 +73,8 @@ return {
 	{ "stage-unguarded", "PourSocialScore/PourSocialScore.lua", "local ok, res = pcall(f, ...)", "local ok, res = true, f(...)", "fr:startfault" },
 	{ "critical-fault-continues", "PourSocialScore/PourSocialScore.lua", "\t\tstartFailed = true\n\t\tstarting = false\n\t\treturn\n\tend\n\t-- a shipped guild", "\t\tstartFailed = false\n\tend\n\t-- a shipped guild", "fr:startfault" },
 	{ "faults-not-shown", "PourSocialScore_Libraries/PSS_Commands.lua", 'for _, line in ipairs(M.PSS_StartFaults or {}) do gp("|cffff5555start-up fault:|r " .. line) end', "", "fr:startfault" },
+	{ "secret-count-off", "PourSocialScore/PSS_ChatBlock.lua", "stats.secret = stats.secret + 1", "", "fr:secretsweep" },
+	{ "secret-author-filtered", "PourSocialScore/PSS_ChatBlock.lua", "if isSecret(author) or isSecret(guid) then\n", "if false then\n", "fr:secretsweep" },
+	{ "secret-guid-ignored", "PourSocialScore/PSS_ChatBlock.lua", "if isSecret(author) or isSecret(guid) then\n", "if isSecret(author) then\n", "fr:secretsweep" },
+	{ "secret-line-shown-not", "PourSocialScore_Libraries/PSS_Commands.lua", 'secret (unreadable, not filtered): %d | ', "", "fr:secretsweep" },
 }

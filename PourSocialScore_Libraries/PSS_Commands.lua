@@ -452,7 +452,10 @@ function M.PSS_SlashGuild (msg)
 				ev, held == nil and "cannot be read on this client" or (held and "|cff00ff00yes|r" or "|cffff5555NO|r"), frames, shown))
 		end
 		local cs = M.PSS_CoreStats
-		gp(("lines that reached our filter since login: %d | checked: %d | hidden: %d | errors: %d"):format(cs.calls or 0, cs.checked, cs.hidden, cs.errors))
+		gp(("lines that reached our filter since login: %d | secret (unreadable, not filtered): %d | checked: %d | hidden: %d | errors: %d"):format(cs.calls or 0, cs.secret or 0, cs.checked, cs.hidden, cs.errors))
+		if (cs.secret or 0) > 0 and (cs.secret or 0) == (cs.calls or 0) then
+			gp("|cffffff00Every line was unreadable (chat restrictions): check /dump GetCVar(\"addonChatRestrictionsForced\") is 0 outside tests.|r")
+		end
 		if (cs.calls or 0) == 0 then
 			gp("|cffffff00No line has reached our filter since login: whatever draws chat is not calling the client's chat filters.|r")
 		elseif cs.why then

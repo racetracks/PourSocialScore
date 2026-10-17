@@ -261,10 +261,10 @@ local EVENT_CHANNEL = {
 
 function M.PSS_ChannelLabel(event, channelString, chNumber, chName)
 	if event == "CHAT_MSG_CHANNEL" then
-		if type(channelString) == "string" and channelString ~= "" and not isSecret(channelString) then
+		if type(channelString) == "string" and not isSecret(channelString) and channelString ~= "" then
 			return channelString
 		end
-		if type(chName) == "string" and chName ~= "" and not isSecret(chName) then
+		if type(chName) == "string" and not isSecret(chName) and chName ~= "" then
 			local n = tonumber(chNumber)
 			return (n and n > 0) and (n .. ". " .. chName) or chName
 		end
@@ -322,7 +322,7 @@ end
 ------------------------------------------------------------------------
 -- Stats / diagnostics
 ------------------------------------------------------------------------
-local stats = { calls = 0, checked = 0, personHits = 0, hidden = 0, errors = 0, lastError = nil, why = nil, lastChecked = { at = 0 }, bySource = {} }
+local stats = { calls = 0, secret = 0, checked = 0, personHits = 0, hidden = 0, errors = 0, lastError = nil, why = nil, lastChecked = { at = 0 }, bySource = {} }
 M.PSS_CoreStats = stats
 local debug = { on = false, allUntil = 0 }
 M.PSS_CoreDebug = debug
@@ -656,7 +656,11 @@ local function CoreFilter(_, event, msg, author, language, channelString, target
 	local cat = EVENT_CATEGORY[event]
 	if not cat then return false end
 	stats.calls = stats.calls + 1
-	if isSecret(author) or isSecret(guid) then stats.why = "the author or guid is a secret value (restricted chat)" return false end
+	if isSecret(author) or isSecret(guid) then
+		stats.secret = stats.secret + 1		-- seen, not checked and not hidden (PSS 02 10.1); /pssguild chat shows it
+		stats.why = "the author or guid is a secret value (restricted chat), so the line is not filtered"
+		return false
+	end
 	if isSecret(flag) or type(flag) ~= "string" then flag = nil end
 	-- channel args reach the filter tags ([chname], [channel]): drop secret ones
 	if isSecret(channelString) then channelString = nil end
@@ -897,7 +901,7 @@ end
 local whisperWarned = {}
 
 local function handleWhisperSent(target, text, lineID)
-	if not V.PSS_Loaded or type(target) ~= "string" or target == "" or isSecret(target) then return end
+	if not V.PSS_Loaded or type(target) ~= "string" or isSecret(target) or target == "" then return end
 	-- the echo of our own ignore reply raises no alert (issue 183)
 	if next(pendingEcho) ~= nil and type(text) == "string" and not isSecret(text) then
 		local c = canonPlayer(target)

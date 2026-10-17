@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.111 - W-8 secret order: the :893 target compare and the other isSecret-after-compare sites, unreadable lines counted and shown, source-order lint, secret sweep
+
+- Chat filtering: when the game hides a sender's name (chat restrictions such as an encounter, a Mythic+ key, a PvP match, or the test setting addonChatRestrictionsForced), PSS no longer raises an error on your own whisper being sent to a hidden name, and the same wrong order of checks is fixed in three other places (channel names, and two in the guild list code). Lines whose sender is hidden are still passed through unfiltered, as before, but are now counted: /pssguild chat shows "secret (unreadable, not filtered): n" and says so when every line was unreadable, which points at a leftover restriction setting. A source check now fails the build if a value is compared before it is checked for being hidden.
+
 => 3.7.0.110 - Chat filter registration hardening (W-8) and This realm scope (W-7)
 
 - Chat filtering: /pssguild chat said "ours: NO" on every event, but on Retail 12.x the game's filter registry is an object with no list to read, so that check was blind (its "3 filters" were the registry's three methods). The command now says what PSS itself did (started, events added, events the game refused), says "cannot be read on this client" where there is no list, and shows the counters that tell the truth: lines that reached our filter since login, checked, hidden, errors, and why the last line passed. At 0 it says that no line has reached our filter: whatever draws chat is not calling the game's chat filters. Each event is added under its own protection (one the game refuses is named, tried once more when the world is up, and skips neither the other events nor the invite, duel and trade events), a start-up step that fails prints one red line naming it and the steps after it still run, and a fault in the upgrade fields or the built-in rules leaves the filter off, loudly, instead of silently inert. Whether any of this was the cause is for the in-game check to say.

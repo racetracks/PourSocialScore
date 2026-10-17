@@ -28,5 +28,6 @@ for st in snap watch ignoresync compartment components; do fphase startfault PSS
 for st in expand upgradefields; do fphase startfault PSS_FAULT=start:$st; done
 fphase startfault PSS_FAULT=start:defaults
 fphase outcome
+fphase secretsweep
 fphase passwhy
 exit $fail

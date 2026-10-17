@@ -50,6 +50,10 @@ lua5.1 tools/check_locals.lua || fail=1
 
 lua5.1 tools/check_timers.lua || fail=1
 
+# a chat, unit or hook value is checked with isSecret before any compare (3.7.0.111, baseline 02 J7; the lint proves itself first)
+lua5.1 tools/check_secretorder.lua --self || fail=1
+for f in PourSocialScore*/*.lua; do lua5.1 tools/check_secretorder.lua "$f" || fail=1; done
+
 lua5.1 tools/check_fields.lua || fail=1
 
 for d in PourSocialScore_*/; do

@@ -105,7 +105,7 @@ local function scanUnit(unit)
 	-- compared or stored, so the unit is skipped.
 	local name, realm = UnitName(unit)
 	if type(name) ~= "string" or isSecret(name) or name == "" then return end
-	if realm ~= nil and (type(realm) ~= "string" or isSecret(realm)) then return end
+	if type(realm) ~= "nil" and (type(realm) ~= "string" or isSecret(realm)) then return end
 
 	-- one join for every name (a Camelot surname is not a realm)
 	local fullName = M.PSS_UnitFullName(unit)
@@ -1271,7 +1271,7 @@ end
 
 -- Same, for any spelling of a player's name.
 local function lookupGuildMember(name)
-	if type(name) ~= "string" or name == "" or isSecret(name) then return nil end
+	if type(name) ~= "string" or isSecret(name) or name == "" then return nil end
 	return lookupGuildMemberCanon(canonPlayer(name))
 end
 M.PSS_LookupGuildMember = lookupGuildMember
@@ -2301,7 +2301,7 @@ end
 local ownName, ownCk
 function M.PSS_IsOwnGuild(actualGuild)
 	local mine = GetGuildInfo and GetGuildInfo("player")
-	if type(mine) ~= "string" or mine == "" or isSecret(mine) then return false end
+	if type(mine) ~= "string" or isSecret(mine) or mine == "" then return false end
 	if mine ~= ownName then ownName, ownCk = mine, canonGuild(mine) end
 	return ownCk ~= nil and canonGuild(actualGuild) == ownCk
 end

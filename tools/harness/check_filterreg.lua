@@ -128,6 +128,82 @@ elseif phase == "outcome" then
 	local calls = tonumber(out:match("reached our filter since login: (%d+)"))
 	check(calls and calls >= 4 and not out:find("No line has reached", 1, true), "/pssguild chat does not show the lines that reached the filter:\n" .. out)
 
+elseif phase == "secretsweep" then
+	-- 3.7.0.111 (W-8, CON01-R-009): every argument of the filter and of each game-event handler is made secret in turn
+	-- (the stub's secret is a plain string the test names, so a wrong order cannot raise here; tools/check_secretorder.lua
+	-- reads the source for that). Each returns without an error, nothing hidden or counted, one more "secret" line.
+	say("PSS", "add Spammer-Testrealm")
+	local secretOf = {}
+	_G.issecretvalue = function(v) return v ~= nil and secretOf[v] == true end
+	local S = M.PSS_CoreStats
+	local names = { "msg", "author", "language", "channelString", "target", "flag", "zoneChannelID", "channelIndex",
+		"channelBaseName", "languageID", "lineID", "guid" }
+	local base = { "hello", "Spammer-Testrealm", "", "5. Trade", "", "", 0, 5, "Trade", 0, 0, "Player-1-Spammer" }
+	for i, name in ipairs(names) do
+		local args = {}
+		for j = 1, 12 do args[j] = base[j] end
+		lineID = lineID + 1
+		args[11] = lineID
+		local sv = type(base[i]) == "number" and base[i] + 7777 or ("SECRET-" .. name)
+		secretOf[sv] = true
+		args[i] = sv
+		local s0, h0, e0 = S.secret, S.hidden, S.errors
+		local ok, hid = pcall(M.PSS_CoreFilter, nil, "CHAT_MSG_WHISPER", unpack(args, 1, 12))
+		check(ok, name .. " secret: the filter raised " .. tostring(hid))
+		check(S.errors == e0, name .. " secret: the filter counted an error: " .. tostring(S.lastError))
+		if name == "author" or name == "guid" then
+			check(hid == false and S.hidden == h0, name .. " secret: the line was hidden")
+			check(S.secret == s0 + 1, name .. " secret: not counted as an unreadable line (" .. tostring(S.secret) .. " from " .. tostring(s0) .. ")")
+		elseif name == "msg" then
+			check(hid == true and S.hidden == h0 + 1, "a listed author's secret message (decision 1a) was not blocked once")
+		else
+			check(S.secret == s0, name .. " secret: counted as unreadable")
+		end
+	end
+	local out = say("PSSGUILD", "chat")
+	check(out:find("secret (unreadable, not filtered): 2", 1, true), "/pssguild chat does not show the 2 secret lines:\n" .. out)
+	-- the game events: a secret in any argument returns quietly, nothing is declined, warned or counted
+	local warned = 0
+	local realShow = M.ShowMsg
+	M.ShowMsg = function() warned = warned + 1 end
+	local cancelled = 0
+	local realCancel = _G.CancelDuel
+	_G.CancelDuel = function() cancelled = cancelled + 1 end
+	local events = {
+		{ "CHAT_MSG_WHISPER_INFORM", 2, { "hi", "Spammer-Testrealm", "", "", "", "", 0, 0, "", 0, 90001, "Player-1-Spammer" } },
+		{ "PARTY_INVITE_REQUEST", 1, { "Spammer-Testrealm", false, false, false, "", "Player-1-Spammer" } },
+		{ "GUILD_INVITE_REQUEST", 1, { "Spammer-Testrealm", "Some Guild" } },
+		{ "DUEL_REQUESTED", 1, { "Spammer-Testrealm" } },
+		{ "TRADE_REQUEST", 1, { "Spammer-Testrealm" } },
+	}
+	-- e[2] is the argument that names the person: secret, the event does nothing at all; any other secret argument is
+	-- dropped and the event still acts on the readable person
+	local e0, quiet = S.errors, true
+	-- control: the same duel from the readable listed player is declined, so the handler is reached
+	secretOf = {}
+	H.Fire("DUEL_REQUESTED", "Spammer-Testrealm")
+	check(cancelled == 1, "control: a readable listed challenger was not declined (" .. cancelled .. ")")
+	cancelled = 0
+	for _, e in ipairs(events) do
+		-- the person's argument first, secret but reading as the listed player: a guard that is missing acts on it
+		local order = { e[2] }
+		for i = 1, #e[3] do if i ~= e[2] and type(e[3][i]) == "string" then order[#order + 1] = i end end
+		for _, i in ipairs(order) do
+			local w0, c0 = warned, cancelled
+			local args = {}
+			for j = 1, #e[3] do args[j] = e[3][j] end
+			args[i] = i == e[2] and e[3][i] or ("SECRET-" .. e[1] .. i)
+			secretOf[args[i]] = true
+			local ok, err = pcall(H.Fire, e[1], unpack(args, 1, #e[3]))
+			check(ok, e[1] .. " arg " .. i .. " secret: raised " .. tostring(err))
+			if i == e[2] and (warned ~= w0 or cancelled ~= c0) then quiet = false; check(false, e[1] .. " acted on a secret person (arg " .. i .. ")") end
+			secretOf[args[i]] = nil
+		end
+	end
+	M.ShowMsg, _G.CancelDuel = realShow, realCancel
+	check(S.errors == e0, "a game event counted an error with a secret argument: " .. tostring(S.lastError))
+	check(quiet, "a game event acted on a secret person")
+
 elseif phase == "passwhy" then
 	-- a passed line says why, with constants only (no allocation per line)
 	check(not deliver("CHAT_MSG_WHISPER", "Stranger-Testrealm", "hello"), "an unlisted whisper was hidden")
