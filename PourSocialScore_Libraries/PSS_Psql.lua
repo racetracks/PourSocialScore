@@ -2,7 +2,7 @@
 -- POUR SOCIAL SCORE - PSQL, THE SPYGLASS QUERY LANGUAGE (search-helper,
 -- STP-00241, DDS-00031 section 6). A hand-written tokenizer (one pass,
 -- positions kept) and a recursive descent parser. A query is never compiled
--- with loadstring: the compiler builds closures over the syntax tree.
+-- from text into Lua: the compiler builds closures over the syntax tree.
 --   M.PSS_Psql.parse(text)    -> ast | nil, { code, pos, msg }
 --   M.PSS_Psql.compile(text)  -> plan | nil, { code, pos, msg }
 --   M.PSS_Psql.tokens(text)   -> record set pos, len, kind (every byte, never raises)
@@ -181,7 +181,9 @@ local function atom(s)
 		if v.t == "str" then
 			role(v, "string"); node.value = v.v
 		elseif byte(v.s, 1) == 36 then
-			role(v, "param"); node.param = sub(v.s, 2); s.params[node.param] = true
+			node.param = sub(v.s, 2)
+			if not find(node.param, "^[%a_][%w_]*$") then err("arg", v.p, "a parameter is $ and a name") end
+			role(v, "param"); s.params[node.param] = true
 		else
 			node.value = v.s
 			if find(v.s, "*", 1, true) and (nx.s == "=" or nx.s == "!=") then node.k = "like" end
@@ -409,6 +411,7 @@ end
 local CMD = {}
 
 CMD.where = function(s, c)
+	if cmdEnd(s) then err("parse", s.len + 1, "where needs a term") end
 	local e = parseOr(s, false)
 	c.ast = e
 	return "q.where"
@@ -696,8 +699,10 @@ local function run(text, now, all)
 	if isWord(peek(s), "or") then
 		local node = { k = "or", #where == 1 and where[1] or where }
 		while isWord(peek(s), "or") do
-			role(take(s), "bool")
+			local o = take(s)
+			role(o, "bool")
 			local nx = parseAnd(s, false)
+			if #nx == 0 then err("parse", (peek(s) or {}).p or s.len + 1, "a term is needed after OR") end
 			node[#node + 1] = #nx == 1 and nx[1] or nx
 		end
 		where = { k = "and", node }
@@ -852,6 +857,7 @@ function Q.compile(text, now)
 	ast.text = norm(text)
 	if hasParam(ast.where) or (function() for _, c in ipairs(ast.commands) do if hasParam(c.ast) then return true end end end)() then
 		local plan = setmetatable({ ast = ast, unbound = true, indexes = ast.indexes, lazy = ast.lazy, chart = ast.chart, steps = {}, info = {} }, PlanMT)
+		for _, c in ipairs(ast.commands) do if c.svc then plan.steps[#plan.steps + 1] = { c.svc, c.opts, c.name } end end
 		return plan
 	end
 	local ok, plan = pcall(build, ast, nil, now)

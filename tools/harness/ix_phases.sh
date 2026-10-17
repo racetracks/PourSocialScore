@@ -17,7 +17,7 @@ comps() {
 	putoff|logoff) echo "-logging" ;;
 	socialoff) echo "logging,-filtering" ;;
 	whoff) echo "logging" ;;
-	invst|invrows|invderive|invpush|invsum|invval|invempty|invorphan|invnewrow|invsecret|termsame|termunknown|termpending|termreal) echo "logging,warehouse,dtt" ;;
+	invst|invrows|invderive|invpush|invsum|invval|invempty|invorphan|invnewrow|invsecret|termsame|termunknown|termpending|termreal|parseexamples|parsetokens|parsetokenkinds|parsefuzz|budgetcalls) echo "logging,warehouse,dtt" ;;
 	cfgnewer) echo "logging,addons" ;;
 	*) echo "logging" ;;
 	esac
@@ -139,7 +139,9 @@ FAIL ix: sqdowngrade: no reference tree"
 		for sv in $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua' | sort); do
 			v=$(basename "$(dirname "$sv")")
 			if [ "$ph" = reader ]; then
-				out=$(env PSS_PHASE=reader PSS_COMPONENTS=logging PSS_READER_SAVE="$sv" lua5.1 "$here/run.lua" . "$sv" - "$here/check_ix.lua" 2>&1 | grep -v '^|cff')
+				# the reader reads what this version saves (loading Logging trims an old log to its cap first)
+				env PSS_PHASE=loadlog PSS_COMPONENTS=logging lua5.1 "$here/run.lua" . "$sv" "$work/rd.lua" "$here/check_ix.lua" > /dev/null 2>&1
+				out=$(env PSS_PHASE=reader PSS_COMPONENTS=logging PSS_READER_SAVE="$work/rd.lua" lua5.1 "$here/run.lua" . "$work/rd.lua" - "$here/check_ix.lua" 2>&1 | grep -v '^|cff')
 			else
 				mkdir -p "$work/golden"
 				out=$(env PSS_PHASE="$ph" PSS_COMPONENTS=logging,warehouse PSS_GOLDEN="${PSS_GOLDEN_DIR:-$work/golden}/$v.txt" lua5.1 "$here/run.lua" . "$sv" - "$here/check_ix.lua" 2>&1 | grep -v '^|cff')

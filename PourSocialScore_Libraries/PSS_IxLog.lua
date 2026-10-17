@@ -30,7 +30,7 @@ for _, c in ipairs(History.ALL_CATS) do ALL[c] = true end
 
 local isSecret = M.PSS_IsSecret
 local function clean(v)
-	if v == nil or isSecret(v) then return nil end
+	if isSecret(v) or v == nil then return nil end
 	return v
 end
 

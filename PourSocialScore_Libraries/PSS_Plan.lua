@@ -55,7 +55,7 @@ end
 
 local function now() return debugprofilestop and debugprofilestop() or 0 end
 
-local function load(part)
+local function loadPart(part)
 	if part == "Logging" and M.PSS_LoadLogging then return M.PSS_LoadLogging() end
 	return M.PSS_Need and M.PSS_Need(part)
 end
@@ -136,7 +136,7 @@ function M.PSS_Search(textOrPlan, opts)
 			local part = x:needs()
 			local ctx = { load = false, budget = budget }
 			if part then
-				if opts.load and load(part) then
+				if opts.load and loadPart(part) then
 					part = nil
 				else
 					info.needs = part

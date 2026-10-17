@@ -40,7 +40,7 @@ return {
 	{ "breaker-never-opens", "PourSocialScore_Libraries/PSS_Err.lua", "if s.fails >= BREAK then s.open, s.half = true, false end", "", "err" },
 	{ "hidden-shown", "PourSocialScore_Libraries/PSS_WhIndex.lua", "if f.hidden and not (opts and opts.hidden) then return false end", "", "numbers tooltip synapi" },
 	{ "sweep-over-budget-runs", "PourSocialScore_Libraries/PSS_WhStore.lua", "if bytes > M.PSS_SWEEP_BUDGET then", "if false then", "sweepbudget" },
-	{ "query-tie-reversed", "PourSocialScore_Libraries/PSS_Query.lua", "if x == y then return pos[a] < pos[b] end", "if x == y then return pos[a] > pos[b] end", "query2 edges" },
+	{ "query-tie-reversed", "PourSocialScore_Libraries/PSS_Query.lua", "\t\treturn pos[a] < pos[b]\n\tend", "\t\treturn pos[a] > pos[b]\n\tend", "query2 edges" },
 	{ "unviewable-tab-overwrites", "PourSocialScore_Libraries/PSS_WhMeta.lua", "if viewable == false and old[tab] then", "if false then", "caps delete track edges" },
 	{ "syn-over-others", "PourSocialScore_Libraries/PSS_WhCommands.lua", 'if SlashCmdList["SYNDICATOR"] == nil and SlashCmdList["PSSSYN"] == nil and not (isLoaded and isLoaded("Syndicator")) then', "if true then", "cmdtaken" },
 	{ "live-character-deleted", "PourSocialScore_Libraries/PSS_WhStore.lua", "if ent == me then", "if false then", "delete synapi" },
