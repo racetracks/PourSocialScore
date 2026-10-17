@@ -291,6 +291,10 @@ Warehouse (Options, Enabled components, then reload; off by default)
   remove <Name-Realm>. /syn and /syndicator open the search when free.
 * From Syndicator: load it once and /pss wh import (dry shows the counts).
   With Syndicator not installed, addons that ask for it get the Warehouse.
+* Thanks: Syndicator by plusmouse (https://www.curseforge.com/wow/addons/syndicator)
+  showed what a warehouse should do; its behaviour was studied and no code
+  was copied. Item prices are read from TradeSkillMaster, RECrystallize and
+  Auctionator through their documented interfaces.
 * Upgrades: a failed saved-data upgrade is undone and retried once;
   /pss upgrade undo; /pss status shows errors and the upgrade state.
 
