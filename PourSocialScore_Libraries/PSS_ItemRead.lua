@@ -115,7 +115,8 @@ local unseen				-- itemIDs read this pass whose data the client does not have
 
 local function add(out, ent, code, slot, link, id, count, flags)
 	local key = (link and M.PSS_ItemKey(link)) or (id and tostring(id))
-	if not key then return end
+	-- an empty slot the client reports as item 0 (Camelot) is not an item (F9)
+	if not key or tonumber(key:match("^%d+")) == 0 then return end
 	if id and C_Item.IsItemDataCachedByID and not C_Item.IsItemDataCachedByID(id) then
 		unseen = unseen or {}
 		unseen[id] = true

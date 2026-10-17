@@ -76,9 +76,12 @@ function M.PSS_WhUnpack(str, out, ent, cont)
 		local e = sub(body, from, to - 1)
 		local slot, ref, count, flags = match(e, "^(%d+)%.([^.]+)%.?([^.]*)%.?(.*)$")
 		local key = M.PSS_ItemUnref(ref)
-		out.n = out.n + 1
-		out[out.n] = { ent, cont, tonumber(slot), key, count ~= "" and tonumber(count) or 1, flags or "" }
-		k = k + 1
+		-- a row saved as item 0 by 3.7.0.107 (an empty slot) is kept in the save and never listed (F9)
+		if not (key and tonumber(key:match("^%d+")) == 0) then
+			out.n = out.n + 1
+			out[out.n] = { ent, cont, tonumber(slot), key, count ~= "" and tonumber(count) or 1, flags or "" }
+			k = k + 1
+		end
 		from = to + 1
 	end
 	return k

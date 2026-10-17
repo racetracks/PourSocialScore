@@ -2216,6 +2216,55 @@ if phase == "goldorphan" then
 	M.ShowMsg = realShow
 end
 
+if phase == "zeroreal" then
+	-- W-3 F9 on a real save: no saved or listed slot is the item id 0 (an empty equipment slot read as an item)
+	libs()
+	local bad, seen = 0, 0
+	local d = PSS_WarehouseDB
+	for ent in pairs(d and d.inv or {}) do
+		local set = M.PSS_Call("wh.cont", { cols = { "ent" }, n = 1, { ent } })
+		for i = 1, set and set.n or 0 do
+			seen = seen + 1
+			if tonumber(tostring(set[i][4]):match("^%d+")) == 0 then bad = bad + 1 end
+		end
+	end
+	check(bad == 0, "F9: no saved slot is item 0 (" .. bad .. " of " .. seen .. ")")
+	print("ZEROS " .. bad .. " of " .. seen)
+end
+
+if phase == "itemzero" then
+	-- W-3 F9: an empty equipment slot that the client reports as item 0 (Camelot) is never stored, listed or searched;
+	-- item 0 rows already saved are not shown
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	WORLD.apply(H, w, 1, client)
+	M.PSS_MeReset()
+	local real = GetInventoryItemID
+	GetInventoryItemID = function(u, slot) if u == "player" and slot == 4 then return 0 end return real(u, slot) end
+	local rows = M.PSS_Call("item.live", "e0")
+	local zero = 0
+	for i = 1, rows.n do if tonumber(tostring(rows[i][4]):match("^%d+")) == 0 then zero = zero + 1 end end
+	check(zero == 0, "F9: the live read has no item 0 row (" .. zero .. ")")
+	GetInventoryItemID = real
+	-- a saved container that already holds item 0 (written by 3.7.0.107)
+	local me = M.PSS_Me(false)
+	local str = PSS_WarehouseDB.inv[me].e0
+	local out = { cols = { "ent", "cont", "slot", "key", "count", "flags" }, n = 0 }
+	M.PSS_WhUnpack(str, out, me, "e0")
+	local before = out.n
+	local ref = M.PSS_ItemRef and M.PSS_ItemRef("0")
+	check(before > 0, "F9: the saved equipped container reads")
+	local pack = M.PSS_WhPack({ { 4, "0", 1, "" }, { 16, "207791", 1, "b" } })
+	local out2 = { cols = out.cols, n = 0 }
+	M.PSS_WhUnpack(pack, out2, me, "e0")
+	local z = 0
+	for i = 1, out2.n do if tonumber(tostring(out2[i][4]):match("^%d+")) == 0 then z = z + 1 end end
+	check(z == 0 and out2.n == 1 and out2[1][3] == 16, "F9: an item 0 row already saved is not read (" .. out2.n .. " rows, " .. z .. " zero)")
+	local found = M.PSS_WhSearchRows("item:0")
+	check(#found == 0, "F9: searching finds no item 0 (" .. #found .. ")")
+end
+
 if phase == "orphan" then
 	-- W3-D5: saved data that names an id with no entity row is kept untouched, never shown or counted, its id is
 	-- reserved so a new character cannot take it, and the player removes it in Options or with /pss wh remove #id

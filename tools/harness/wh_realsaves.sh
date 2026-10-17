@@ -35,6 +35,9 @@ for sv in "$@"; do
 	out=$(env PSS_PHASE=orphanreal PSS_COMPONENTS=addons,gfx,warehouse,bags lua5.1 "$here/run.lua" . "$sv" - "$here/check_wh.lua" 2>&1 | grep -E '^(FAIL|PASS|ORPHANS)')
 	echo "$out" | grep -q '^FAIL' && { echo "FAIL realsaves: $sv: $(echo "$out" | grep '^FAIL' | head -2)"; fail=1; }
 	echo "$out" | grep -q '^ORPHANS [1-9]' && echo "NOTE realsaves: $sv: $(echo "$out" | grep '^ORPHANS')"
+	# W-3 F9: no saved slot is the item id 0 (an empty equipment slot)
+	out=$(env PSS_PHASE=zeroreal PSS_COMPONENTS=addons,gfx,warehouse,bags lua5.1 "$here/run.lua" . "$sv" - "$here/check_wh.lua" 2>&1 | grep -E '^(FAIL|ZEROS)')
+	echo "$out" | grep -q '^FAIL' && { echo "FAIL realsaves: $sv: $(echo "$out" | grep '^FAIL' | head -1)"; fail=1; }
 	n=$((n + 1))
 	if ! cmp -s "$work/r2-$i.n" "$work/w2-$i.n"; then echo "FAIL realsaves: $sv differs from $ref apart from the Warehouse"; diff "$work/r2-$i.n" "$work/w2-$i.n" | head -6; fail=1; continue; fi
 	if ! cmp -s "$work/w2-$i.n" "$work/o-$i.n"; then echo "FAIL realsaves: $sv changed when the Warehouse was turned off"; fail=1; continue; fi
