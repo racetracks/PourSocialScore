@@ -2072,50 +2072,120 @@ if phase == "synapi" or phase == "shimfault" or phase == "gwlint" or phase == "s
 	end
 end
 
+-- W-7: "This realm" is the exact realm of the logged-in character. Search and gold follow the option (this realm, or
+-- every realm with whRealms = "all"); a tooltip is always this realm only, whatever the option says.
+local function realmWorld()
+	libs()
+	local w = WORLD.world()
+	-- Charlie (OtherRealm) and Delta (ConnectedRealm) hold Honor too, so the currency tooltip has a holder on each realm
+	w.chars[3].currencies = { { id = 1792, name = "Honor", quantity = 11, icon = 1 } }
+	w.chars[4].currencies = { { id = 1792, name = "Honor", quantity = 22, icon = 1 } }
+	local ids = loadWorld(w)
+	WORLD.apply(H, w, 1, client)		-- the player is Alpha on "Realm"
+	M.PSS_MeReset()
+	-- seeding the client again clears the stub's tooltip post calls: the warehouse's own two are put back
+	local E = Enum.TooltipDataType
+	H.tooltipPost = { [E.Item] = { M.PSS_WhTipItem }, [E.Currency] = { M.PSS_WhTipCurrency } }
+	PSS_WarehouseDB.gold = { [ids["c:Alpha-Realm"]] = 5000, [ids["c:Charlie-OtherRealm"]] = 99, [ids["c:Delta-ConnectedRealm"]] = 7, [ids["c:Echo-ClassicBetaPvP"]] = 1000 }
+	-- the connected realms as the entities store them (the normalised spelling "Connectedrealm")
+	_G.GetAutoCompleteRealms = function() return { "Realm", "Connectedrealm" } end
+	M.PSS_SetOpt("whTipLimit", "global", 0)
+	return w, ids
+end
+local function realmHover(typ, data)
+	GameTooltip._lines = nil
+	H.RunTooltip(typ, GameTooltip, data)
+	return GameTooltip._lines or {}
+end
+local function realmSeen(lines, who)
+	for _, l in ipairs(lines) do if l:find(who, 1, true) then return true end end
+	return false
+end
+
 if phase == "realms" then
-	-- F2: tooltips, search and gold cover the connected realms by default and every realm with whRealms = "all"
+	local w, ids = realmWorld()
+	local T = Enum.TooltipDataType
+	local linen = { id = 2589, hyperlink = "|cffffffff|Hitem:2589::::::::|h[Linen Cloth]|h|r" }
+	local function opt(v) M.PSS_SetOpt("whRealms", "global", v) end
+	-- 0: a tooltip ignores "All realms" (item and currency): this realm's holder shows, no other realm's does
+	for _, v in ipairs({ "all", "this" }) do
+		opt(v)
+		local lines = realmHover(T.Item, linen)
+		check(realmSeen(lines, "Bravo") and not realmSeen(lines, "Charlie") and not realmSeen(lines, "Delta") and not realmSeen(lines, "Echo"),
+			"W-7 0: the item tooltip shows this realm only with whRealms = " .. v)
+		lines = realmHover(T.Currency, { id = 1792 })
+		check(realmSeen(lines, "Bravo") and not realmSeen(lines, "Charlie") and not realmSeen(lines, "Delta"),
+			"W-7 0: the currency tooltip shows this realm only with whRealms = " .. v)
+	end
+	-- 1: the default is this realm for search rows and gold (a connected-realm and an other-realm character are hidden)
+	opt(nil)
+	check(M.PSS_Opt("whRealms") == "this", "W-7 1: the default scope is this realm (" .. tostring(M.PSS_Opt("whRealms")) .. ")")
+	local rows = M.PSS_WhSearchRows("linen")
+	local tot = rows[1] and rows[1].total or 0
+	local gold = M.PSS_WhGold()
+	check(gold == 5000, "W-7 1: gold is this realm's characters only (" .. tostring(gold) .. ")")
+	-- 2: "all" shows everything and grows by exactly the hidden amounts; the tooltip does not change
+	local before = realmHover(T.Item, linen)
+	opt("all")
+	rows = M.PSS_WhSearchRows("linen")
+	check((rows[1] and rows[1].total or 0) > tot, "W-7 2: search totals grow with all realms (" .. tot .. " to " .. tostring(rows[1] and rows[1].total) .. ")")
+	check(M.PSS_WhGold() - gold == 99 + 7 + 1000, "W-7 2: gold grows by the hidden amounts (" .. gold .. " and " .. M.PSS_WhGold() .. ")")
+	local after = realmHover(T.Item, linen)
+	check(table.concat(before, "|") == table.concat(after, "|"), "W-7 2: the tooltip is the same under all realms")
+	opt(nil)
+	-- 3: a client that cannot name the connected realms (Camelot) still defaults to this realm, not to every realm
+	_G.GetAutoCompleteRealms = nil
+	check(M.PSS_WhGold() == 5000, "W-7 3: with no connected-realm list the default is this realm (" .. tostring(M.PSS_WhGold()) .. ")")
+	-- 6: a stored or imported "connected" never widens or breaks the scope (it reads as this realm)
+	PSS_OptionsDB.whRealms = "connected"
+	check(M.PSS_WhGold() == 5000, "W-7 6: a stored 'connected' is this realm (" .. tostring(M.PSS_WhGold()) .. ")")
+	PSS_OptionsDB.whRealms = nil
+	-- 7: an unreadable character name never widens to everyone: no character is shown, the warband and guilds stay
+	local keepName = _G.UnitName
+	_G.UnitName = function() return nil end
+	local scope = M.PSS_WhThisRealm()
+	check(type(scope) == "table" and next(scope) == nil, "W-7 7: an unreadable name gives an empty scope, not every realm")
+	check(M.PSS_WhGold() == 0, "W-7 7: an unreadable name shows no character's gold (" .. tostring(M.PSS_WhGold()) .. ")")
+	_G.UnitName = keepName
+end
+
+if phase == "realmspace" then
+	-- W-7 4: a realm name with a space (the run starts on "Burning Blade", PSS_WH_REALM): "this realm" is spelled the way
+	-- the entity stores it, so the character's own gold and items are found, and no other realm's
 	libs()
 	local w = WORLD.world()
 	local ids = loadWorld(w)
-	local oracle = WORLD.oracle(w)
-	local T = Enum.TooltipDataType
-	local function hover(data)
-		GameTooltip._lines = nil
-		H.RunTooltip(T.Item, GameTooltip, data)
-		return GameTooltip._lines or {}
-	end
-	local function opt(k, v) M.PSS_SetOpt(k, "global", v) end
-	PSS_WarehouseDB.gold = { [ids["c:Alpha-Realm"]] = 5000, [ids["c:Charlie-OtherRealm"]] = 99, [ids["c:Echo-ClassicBetaPvP"]] = 1000 }
-	local function seen(lines, who)
-		for _, l in ipairs(lines) do if l:find(who, 1, true) then return true end end
-		return false
-	end
-	local keep = _G.GetAutoCompleteRealms
-	_G.GetAutoCompleteRealms = function() return { "Realm", "ConnectedRealm" } end
-	opt("whTipLimit", 0)
-	local linen = { id = 2589, hyperlink = "|cffffffff|Hitem:2589::::::::|h[Linen Cloth]|h|r" }
-	local o = oracle.sum("2589")
-	local lines = hover(linen)
-	check(M.PSS_Opt("whRealms") == "connected", "F2: the default scope is the connected realms")
-	check(seen(lines, "Alpha") and not seen(lines, "Charlie") and not seen(lines, "Echo"), "F2: connected scope hides the characters of unconnected realms in the tooltip")
-	local rows = M.PSS_WhSearchRows("linen")
-	local tot = rows[1] and rows[1].total or 0
-	local gold, goldAll
-	gold = M.PSS_WhGold()
-	opt("whRealms", "all")
-	lines = hover(linen)
-	check(seen(lines, "Charlie") and seen(lines, "Echo"), "F2: all realms shows them")
-	rows = M.PSS_WhSearchRows("linen")
-	goldAll = M.PSS_WhGold()
-	check((rows[1] and rows[1].total or 0) > tot, "F2: search totals grow with the wider scope (" .. tot .. " to " .. tostring(rows[1] and rows[1].total) .. ")")
-	check(goldAll - gold == 99 + 1000, "F2: gold totals follow the scope (" .. gold .. " and " .. goldAll .. ")")
-	opt("whRealms", nil)
-	check(M.PSS_Opt("whRealms") == "connected", "F2: the option goes back to its default")
-	-- a client that cannot name the connected realms covers every realm
-	_G.GetAutoCompleteRealms = function() return {} end
-	lines = hover(linen)
-	check(seen(lines, "Charlie"), "F2: with no connected-realm list every realm is covered")
-	_G.GetAutoCompleteRealms = keep
+	WORLD.apply(H, w, 1, client)
+	M.PSS_MeReset()
+	check(GetRealmName() == "Burning Blade", "the run starts on a spaced realm (" .. tostring(GetRealmName()) .. ")")
+	local alpha = ids["c:Alpha-Burning Blade"]
+	check(alpha, "the world's Alpha is on the spaced realm")
+	PSS_WarehouseDB.gold = { [alpha] = 5000, [ids["c:Charlie-OtherRealm"]] = 99 }
+	local scope = M.PSS_WhThisRealm()
+	local key = next(scope)
+	check(key and next(scope, key) == nil, "W-7 4: this realm is one entry")
+	local stored = M.PSS_Entity(alpha)
+	check(stored and stored[1] and stored[1][4] == key, "W-7 4: this realm is spelled as the entity stores it (" .. tostring(key) .. " and " .. tostring(stored and stored[1] and stored[1][4]) .. ")")
+	check(M.PSS_WhGold() == 5000, "W-7 4: a spaced realm shows its own character's gold (" .. tostring(M.PSS_WhGold()) .. ")")
+end
+
+if phase == "realmsui" then
+	-- W-7 5: the choices come from the option; a change made on the Options page redraws an open search window
+	local w = realmWorld()
+	local choices
+	for _, o in ipairs(M.PSS_OPTIONS) do if o.key == "whRealms" then choices = o.choices end end
+	check(choices and #choices == 2 and choices[1][1] == "this" and choices[1][2] == "This realm" and choices[2][1] == "all" and choices[2][2] == "All realms",
+		"W-7 5: the option offers This realm and All realms")
+	local label
+	for _, o in ipairs(M.PSS_OPTIONS) do if o.key == "whRealms" then label = o.label end end
+	check(label == "Realms shown in search and gold", "W-7 5: the label no longer says tooltips (" .. tostring(label) .. ")")
+	check(M.PSS_Need("GUI"), "the window folder loads")
+	local win = M.PSS_WhOpenEverywhere("linen")
+	local tot0 = win.rows[1] and win.rows[1].total or 0
+	M.PSS_SetOpt("whRealms", "global", "all")
+	check((win.rows[1] and win.rows[1].total or 0) > tot0, "W-7 5: the Options page change redraws the open window (" .. tot0 .. " to " .. tostring(win.rows[1] and win.rows[1].total) .. ")")
+	M.PSS_SetOpt("whRealms", "global", "this")
+	check((win.rows[1] and win.rows[1].total or 0) == tot0, "W-7 5: and back")
 end
 
 if phase == "searchwin" then

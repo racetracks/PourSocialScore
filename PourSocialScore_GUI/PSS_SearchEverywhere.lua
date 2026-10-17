@@ -21,12 +21,12 @@ local function BuildView(host, tab)
 	local f = host
 	f.search = ns.NewSearchBox(f, tab and 360 or 400, "Name, keyword or numbers: epic & >400", function(text) f.Search(text) end)
 	f.search:SetPoint("TOPLEFT", f, "TOPLEFT", tab and 12 or 20, tab and -10 or -44)
-	-- F2: which realms the rows and the gold cover (option whRealms, the same one the Options page and the tooltips read)
+	-- F2, W-7: which realms the rows and the gold cover (option whRealms, the one the Options page reads; the choices are
+	-- the option's own, a change from either place redraws an open window)
 	f.scope = ns.NewDropdown(f, 118, function(m)
-		for _, v in ipairs({ { "connected", "Connected realms" }, { "all", "All realms" } }) do
+		for _, v in ipairs(M.PSS_WhScopeChoices()) do
 			m:Radio(v[2], function() return M.PSS_Opt("whRealms") == v[1] end, function()
 				M.PSS_SetOpt("whRealms", "global", v[1])
-				f.Refresh()
 			end)
 		end
 	end)
@@ -101,6 +101,7 @@ local function BuildView(host, tab)
 	end
 	-- item names the client gave late: draw again (the window hears core events only while it shows)
 	ns.Listen("ITEM_DATA", function() if f:IsShown() then f.Refresh() end end)
+	ns.Listen("OPTION_CHANGED", function(key) if key == "whRealms" and f:IsShown() then f.Refresh() end end)
 	return f
 end
 
@@ -114,7 +115,12 @@ local function Build()
 	f.close:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -16, 12)
 	f.close:SetScript("OnClick", function() f:Hide() end)
 	ns.PopupAbove(f, f.search, f.scope, f.listFrame, f.money, f.close)
-	f:SetScript("OnShow", f.Refresh)
+	-- the popup can show without the main window: it hears core events (a changed scope, late item names) while it shows
+	f:SetScript("OnShow", function() ns.ListenStart() f.Refresh() end)
+	f:HookScript("OnHide", function()
+		local main = _G.PSS_Window
+		if not (main and main:IsShown()) then ns.ListenStop() end
+	end)
 	ns.EscapeCloses(f, "PSS_Everywhere")
 end
 

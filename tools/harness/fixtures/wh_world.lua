@@ -87,6 +87,12 @@ function F.world()
 	w.guilds[2] = { name = "Guild Two", realm = "OtherRealm", money = 10, tabs = { { name = "Bank", icon = 1, viewable = true, cont = { [1] = r(2592, 9) } } } }
 	w.warband = { money = 77777777, tabs = { { name = "Warband", icon = 133784, cont = { [1] = r(2589, 999), [2] = r(4306, 2) } } },
 		currencies = { { id = 2032, quantity = 77 } } }
+	-- PSS_WH_REALM: the home realm of the world is spelled another way (a spaced realm name, W-7 phase realmspace)
+	local home = os.getenv("PSS_WH_REALM")
+	if home and home ~= "" then
+		for _, c in ipairs(w.chars) do if c.realm == "Realm" then c.realm = home end end
+		for _, g in ipairs(w.guilds) do if g.realm == "Realm" then g.realm = home end end
+	end
 	return w
 end
 
