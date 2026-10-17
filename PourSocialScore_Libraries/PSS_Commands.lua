@@ -431,21 +431,14 @@ function M.PSS_SlashGuild (msg)
 	end
 
 	if cmd == "chat" then
-		local CFU = type(ChatFrameUtil) == "table" and ChatFrameUtil or nil
-		local getFilters = (CFU and CFU.GetMessageEventFilters) or ChatFrame_GetMessageEventFilters
 		gp(("filter registration API: %s"):format(M.PSS_FilterAvailable and "found" or "|cffff5555MISSING - chat blocking cannot work|r"))
-		gp(("started: %s"):format(M.PSS_BlockingStarted and M.PSS_BlockingStarted() and "yes" or "|cffff5555NO - Social Filtering is off or its start-up did not run|r"))
-		-- anything the start-up could not do, then put our filter back where it is missing (read only on the client's list)
+		local started, added, refused, total = M.PSS_FilterStatus()
+		gp(("started: %s | added by PSS: %d of %d events%s"):format(started and "yes" or "|cffff5555NO - Social Filtering is off or its start-up did not run|r",
+			added, total, refused > 0 and (", |cffff5555" .. refused .. " refused|r") or ""))
 		for _, line in ipairs(M.PSS_StartFaults or {}) do gp("|cffff5555start-up fault:|r " .. line) end
 		for _, line in ipairs(M.PSS_FilterFaults or {}) do gp("|cffff5555filter fault:|r " .. line) end
-		local readded = M.PSS_EnsureFilter and M.PSS_EnsureFilter() or 0
-		if readded > 0 then gp(("|cffffff00our filter was missing on %d event(s) and is re-added|r"):format(readded)) end
 		for _, ev in ipairs({ "CHAT_MSG_WHISPER", "CHAT_MSG_CHANNEL", "CHAT_MSG_SAY", "CHAT_MSG_PARTY" }) do
-			local list = getFilters and getFilters(ev)
 			local held = M.PSS_FilterHeld and M.PSS_FilterHeld(ev)
-			local n = 0
-			if type(list) == "table" then for _ in pairs(list) do n = n + 1 end end
-			local ours = held == true
 			local frames, shown = 0, 0
 			for i = 1, (tonumber(NUM_CHAT_WINDOWS) or 10) do
 				local cf = _G["ChatFrame" .. i]
@@ -454,8 +447,16 @@ function M.PSS_SlashGuild (msg)
 					if cf:IsShown() then shown = shown + 1 end
 				end
 			end
-			gp(("  %-17s filters: %s, ours: %s | Blizzard chat windows listening: %d (%d shown)"):format(
-				ev, getFilters and tostring(n) or "?", held ~= nil and (ours and "|cff00ff00yes|r" or "|cffff5555NO|r") or "?", frames, shown))
+			-- Retail 12.x keeps a registry object with no list to read: there the client cannot say, only the counters can
+			gp(("  %-17s in the client's list: %s | Blizzard chat windows listening: %d (%d shown)"):format(
+				ev, held == nil and "cannot be read on this client" or (held and "|cff00ff00yes|r" or "|cffff5555NO|r"), frames, shown))
+		end
+		local cs = M.PSS_CoreStats
+		gp(("lines that reached our filter since login: %d | checked: %d | hidden: %d | errors: %d"):format(cs.calls or 0, cs.checked, cs.hidden, cs.errors))
+		if (cs.calls or 0) == 0 then
+			gp("|cffffff00No line has reached our filter since login: whatever draws chat is not calling the client's chat filters.|r")
+		elseif cs.why then
+			gp("last line passed because: " .. cs.why)
 		end
 		local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
 		local found = {}

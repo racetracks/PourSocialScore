@@ -322,7 +322,7 @@ end
 ------------------------------------------------------------------------
 -- Stats / diagnostics
 ------------------------------------------------------------------------
-local stats = { checked = 0, personHits = 0, hidden = 0, errors = 0, lastError = nil, lastChecked = { at = 0 }, bySource = {} }
+local stats = { calls = 0, checked = 0, personHits = 0, hidden = 0, errors = 0, lastError = nil, why = nil, lastChecked = { at = 0 }, bySource = {} }
 M.PSS_CoreStats = stats
 local debug = { on = false, allUntil = 0 }
 M.PSS_CoreDebug = debug
@@ -476,20 +476,22 @@ local function evaluate(ctx)
 	if cat == "system" then
 		return (runHandlers(handlers.system, ctx))
 	end
-	if not V.PSS_Loaded then return false end
+	if not V.PSS_Loaded then stats.why = "PSS has not finished starting (PSS_Loaded is false)" return false end
 	if cat == "npc" then
 		return (runHandlers(handlers.npc, ctx))
 	end
 
 	local author = ctx.author
-	if type(author) ~= "string" or author == "" then return false end
+	if type(author) ~= "string" or author == "" then stats.why = "no readable author" return false end
 	stats.checked = stats.checked + 1
+	stats.why = "no rule matched"
 	local lc = stats.lastChecked			-- one table, reused
 	lc.name, lc.event, lc.at = author, ctx.event, GetTime()
 
 	local canon = senderCanon(author, ctx.guid)
 	ctx.canon = canon
 	ctx.isSelf = isSelf(canon, ctx.guid)
+	if ctx.isSelf then stats.why = "your own line (a person rule never hides it)" end
 
 	if not ctx.isSelf and canon then
 		-- 2. people (player list + guild members, merged)
@@ -501,9 +503,13 @@ local function evaluate(ctx)
 			if debugActive() then dprint(("BLOCKED %s from %s (%s)"):format(M.PSS_BLOCK_LABELS[cat] or cat, author, hits[1].src.label or hits[1].src.id)) end
 			return true
 		elseif found then
+			stats.why = "listed, but allowed for this message type"
 			if debugActive() then dprint(("%s from %s: listed (%s) but allowed for this message type"):format(
 				M.PSS_BLOCK_LABELS[cat] or cat, author, found[1].src.label or found[1].src.id)) end
-		elseif debugActive(true) then
+		else
+			stats.why = "not on any list (the name form is in /pssguild check Name-Realm)"
+		end
+		if not found and debugActive(true) then
 			dprint(("%s from %s (key %s): not on any list"):format(M.PSS_BLOCK_LABELS[cat] or cat, author, tostring(canon)), true)
 		end
 
@@ -649,7 +655,8 @@ local function CoreFilter(_, event, msg, author, language, channelString, target
 							zoneChannelID, channelIndex, channelBaseName, languageID, lineID, guid)
 	local cat = EVENT_CATEGORY[event]
 	if not cat then return false end
-	if isSecret(author) or isSecret(guid) then return false end
+	stats.calls = stats.calls + 1
+	if isSecret(author) or isSecret(guid) then stats.why = "the author or guid is a secret value (restricted chat)" return false end
 	if isSecret(flag) or type(flag) ~= "string" then flag = nil end
 	-- channel args reach the filter tags ([chname], [channel]): drop secret ones
 	if isSecret(channelString) then channelString = nil end
@@ -916,26 +923,32 @@ local AddFilter = (CFU and CFU.AddMessageEventFilter) or ChatFrame_AddMessageEve
 M.PSS_FilterAvailable = type(AddFilter) == "function"
 local GetFilters = (CFU and CFU.GetMessageEventFilters) or ChatFrame_GetMessageEventFilters
 
--- Is our filter in the client's list for an event? The one test /pssguild chat and EnsureFilter share. The client
--- hands back functions or entries { func = fn } (both read), and the list is only read, never written. nil: cannot tell.
+-- Is our filter in the client's list for an event? true / false when the client hands back a list (an array of
+-- functions, or of entries { func = fn }); nil when it cannot be told: Retail 12.x hands back a registry object
+-- (ProcessFilters, RemoveFilter, AddFilter), which holds no list to read. Read only.
 local function filterHeld(event)
 	local list = GetFilters and GetFilters(event)
-	if type(list) ~= "table" then return nil end
-	for _, f in pairs(list) do
+	if type(list) ~= "table" or type(list.AddFilter) == "function" then return nil end
+	for _, f in ipairs(list) do
 		if f == CoreFilter or (type(f) == "table" and f.func == CoreFilter) then return true end
 	end
 	return false
 end
 M.PSS_FilterHeld = filterHeld
 
--- registration failures, kept for /pssguild chat; the first prints one red line
+-- what PSS itself did: events it added, events the client refused (kept for a retry and /pssguild chat)
+local added, refused = {}, {}
 M.PSS_FilterFaults = {}
 local function filterFault(event, err)
 	local faults = M.PSS_FilterFaults
 	faults[#faults + 1] = "registration " .. event .. ": " .. tostring(err)
 	if #faults == 1 then
-		M.ChatMsg("|cffff5555Pour Social Score: chat filter registration failed for " .. event .. " (" .. tostring(err) .. "); it is tried again at login and by /pssguild chat|r")
+		M.ChatMsg("|cffff5555Pour Social Score: chat filter registration failed for " .. event .. " (" .. tostring(err) .. "); it is tried again once the world is up|r")
 	end
+end
+local function addOurs(event)
+	local ok, err = pcall(AddFilter, event, CoreFilter)
+	if ok then added[event], refused[event] = true, nil else refused[event] = true; filterFault(event, err) end
 end
 
 -- Social Filtering (issue 181): nothing is registered at file load; core's
@@ -948,10 +961,7 @@ function M.PSS_StartBlocking()
 	if blockingStarted then return end
 	blockingStarted = true
 	if M.PSS_FilterAvailable then
-		for event in pairs(EVENT_CATEGORY) do
-			local ok, err = pcall(AddFilter, event, CoreFilter)
-			if not ok then filterFault(event, err) end
-		end
+		for event in pairs(EVENT_CATEGORY) do addOurs(event) end
 	end
 	ev:RegisterEvent("PARTY_INVITE_REQUEST")
 	ev:RegisterEvent("PARTY_INVITE_CANCEL")
@@ -962,21 +972,25 @@ function M.PSS_StartBlocking()
 	ev:RegisterEvent("CHAT_MSG_WHISPER_INFORM")
 	pcall(ev.RegisterEvent, ev, "TRADE_REQUEST")	-- not on every client
 end
-function M.PSS_BlockingStarted() return blockingStarted == true end
 
--- Add our filter again where the list does not hold it (another chat addon may have rebuilt the lists). Looks
--- first, adds only what is missing, event driven (PLAYER_ENTERING_WORLD once, /pssguild chat), no timer. Returns
--- how many events it added.
-function M.PSS_EnsureFilter()
-	if not (blockingStarted and M.PSS_FilterAvailable) then return 0 end
-	local added = 0
-	for event in pairs(EVENT_CATEGORY) do
-		if filterHeld(event) == false then
-			local ok, err = pcall(AddFilter, event, CoreFilter)
-			if ok then added = added + 1 else filterFault(event, err) end
-		end
+-- The events the client refused are added once more when the world is up (the one retry; it reads no list, so it
+-- cannot add a second copy of an event that was added). Returns how many it added.
+function M.PSS_RetryFilter()
+	local n = 0
+	for event in pairs(refused) do
+		addOurs(event)
+		if added[event] then n = n + 1 end
 	end
-	return added
+	return n
+end
+
+-- the truth about registration, for /pssguild chat: started, events added by PSS, events still refused, events in all
+function M.PSS_FilterStatus()
+	local n, r, t = 0, 0, 0
+	for _ in pairs(added) do n = n + 1 end
+	for _ in pairs(refused) do r = r + 1 end
+	for _ in pairs(EVENT_CATEGORY) do t = t + 1 end
+	return blockingStarted == true, n, r, t
 end
 ev:SetScript("OnEvent", function(_, event, arg1, ...)
 	local ok, err = true, nil

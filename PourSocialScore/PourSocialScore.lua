@@ -277,10 +277,10 @@ local function EventHandler (self, event, sender, ...)
 
 	if event == "PLAYER_ENTERING_WORLD" then
 		gotEntering = true
-		-- the world is up: our chat filter is in the client's lists, or it is added again (W-8; once, no timer)
-		if M.PSS_EnsureFilter and not filterEnsured then
+		-- the world is up: an event the client refused at start-up is added once more (W-8; once, no timer)
+		if M.PSS_RetryFilter and not filterEnsured then
 			filterEnsured = true
-			stage("ensure", M.PSS_EnsureFilter)
+			stage("retry", M.PSS_RetryFilter)
 		end
 		-- sender = isInitialLogin, then isReloadingUi: a login or /reload starts
 		-- a new session (a loading screen does not)

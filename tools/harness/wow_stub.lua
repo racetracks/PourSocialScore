@@ -666,24 +666,39 @@ LOCALIZED_CLASS_NAMES_FEMALE = {}
 CLASS_ICON_TCOORDS = {}
 Menu = { ModifyMenu = function() end }
 MenuUtil = { CreateContextMenu = function() end }
--- Chat filters as the client keeps them: one list per event. A repeat add makes a second copy here (whatever the
--- client does with one, the code looks before it adds).
--- The list the client hands back is functions (PSS_FILTER_SHAPE unset) or entries { func = fn } (PSS_FILTER_SHAPE=entries):
--- the shape on a given client is not known here, so checks run both. PSS_FILTER_FAIL=n makes the nth add throw;
--- stub.DropFilters() empties every list (another chat addon rebuilding them).
+-- Chat filters as the client keeps them: one entry per add (a repeat add makes a second copy here, so a double
+-- registration shows). PSS_FILTER_SHAPE picks what GetMessageEventFilters hands back (see getFilters).
+-- PSS_FILTER_FAIL=n makes the nth add throw.
 local filterAdds = 0
 local function addFilter(event, fn)
 	filterAdds = filterAdds + 1
 	if tonumber(os.getenv("PSS_FILTER_FAIL") or "") == filterAdds then error("injected filter add failure", 2) end
 	stub.filters[#stub.filters + 1] = { event = event, fn = fn }
 end
-function stub.DropFilters() stub.filters = {} end
-local function getFilters(event)
-	local out = {}
+-- A line as the client delivers it: every filter of the event in turn, hidden when one says so.
+function stub.ProcessChat(event, ...)
 	for _, f in ipairs(stub.filters) do
-		if f.event == event then out[#out + 1] = os.getenv("PSS_FILTER_SHAPE") == "entries" and { func = f.fn } or f.fn end
+		if f.event == event and f.fn(nil, event, ...) == true then return true end
 	end
-	return out
+	return false
+end
+-- What GetMessageEventFilters hands back. Default (Retail 12.x, as the author's client printed it): a registry
+-- object with the methods ProcessFilters, RemoveFilter and AddFilter and no list to read. PSS_FILTER_SHAPE=functions
+-- or entries: the older array of functions, or of { func = fn } entries.
+local function getFilters(event)
+	local shape = os.getenv("PSS_FILTER_SHAPE")
+	if shape == "functions" or shape == "entries" then
+		local out = {}
+		for _, f in ipairs(stub.filters) do
+			if f.event == event then out[#out + 1] = shape == "entries" and { func = f.fn } or f.fn end
+		end
+		return out
+	end
+	return {
+		ProcessFilters = function(_, frame, ...) return stub.ProcessChat(event, ...) end,
+		RemoveFilter = function() end,
+		AddFilter = function(_, fn) addFilter(event, fn) end,
+	}
 end
 ChatFrame_AddMessageEventFilter = addFilter
 ChatFrame_RemoveMessageEventFilter = function() end
@@ -1151,13 +1166,5 @@ function stub.CloseMerchant() MerchantFrame:Hide(); stub.Fire("MERCHANT_CLOSED")
 -- the warehouse client APIs (one-build plan, STP-p00): stub.SeedWorld(spec)
 local here = debug.getinfo(1, "S").source:match("^@(.*)/[^/]*$") or "."
 dofile(here .. "/wh_stub.lua")(stub)
-
--- PSS_CHAT_ADDON=1: a chat addon that rebuilds the filter lists at its own PLAYER_LOGIN (it loads first, so it hears
--- the event before core does; core registered at ADDON_LOADED, so ours is gone when the world is up)
-if os.getenv("PSS_CHAT_ADDON") == "1" then
-	local f = CreateFrame("Frame")
-	f:RegisterEvent("PLAYER_LOGIN")
-	f:SetScript("OnEvent", function() stub.DropFilters() end)
-end
 
 return stub

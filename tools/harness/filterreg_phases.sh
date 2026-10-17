@@ -12,7 +12,7 @@ fphase() {
 	ph=$1; shift
 	[ -z "$FR_ONLY" ] || echo " $FR_ONLY " | grep -q " $ph " || return 0
 	for cam in "" "PSS_CAMELOT=1"; do
-		for shape in functions entries; do
+		for shape in object functions entries; do
 			n=$((n + 1))
 			out=$(env PSS_PHASE=$ph PSS_COMPONENTS=none PSS_FILTER_SHAPE=$shape $cam "$@" lua5.1 "$here/run.lua" . - "$work/f-$n.lua" "$here/check_filterreg.lua" 2>&1 | grep -v '^|cff')
 			echo "$out" | sed "s/^PASS filterreg $ph/PASS filterreg $ph ${cam:+(Camelot) }[$shape]/"
@@ -23,10 +23,10 @@ fphase() {
 }
 fphase base
 fphase regfail PSS_FILTER_FAIL=2
-fphase regdrop PSS_CHAT_ADDON=1
-fphase idem
+fphase retry
 for st in snap watch ignoresync compartment components; do fphase startfault PSS_FAULT=start:$st; done
 for st in expand upgradefields; do fphase startfault PSS_FAULT=start:$st; done
 fphase startfault PSS_FAULT=start:defaults
 fphase outcome
+fphase passwhy
 exit $fail
