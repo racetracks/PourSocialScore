@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.1.115 - Operating Instructions
+
+- Documentation only: the instructions for the AI that builds PSS are updated. Nothing in the addon changes.
+
 => 3.7.0.114 - Addon manager, Drop Cheapest Thing, Warehouse and money
 
 - Every change since 3.5.0.62, in one summary.
