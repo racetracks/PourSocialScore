@@ -2505,6 +2505,29 @@ if phase == "tooltip" then
 	check(sums == 1, "TST-p197: one wh.sum for two hovers (" .. sums .. ")")
 end
 
+-- W4-4 (G3): the window's resident cost after a full collection, and nothing kept after it closes; the figures are printed
+-- (KB of the Lua heap on the stub, not the client's addon memory, which also counts garbage not yet collected)
+if phase == "winmem" then
+	local function kb() collectgarbage("collect"); collectgarbage("collect"); return collectgarbage("count") end
+	local base = kb()
+	check(M.PSS_Need("Libraries"), "Libraries did not load")
+	local libsKb = kb()
+	M.PSS_OpenUI(true)
+	local openKb = kb()
+	local win = _G.PSS_Window
+	check(win and win:IsShown(), "the window opened")
+	if win then win:Hide() end
+	local closedKb = kb()
+	M.PSS_OpenUI(true)
+	if win then win:Hide() end
+	local again = kb()
+	for _ = 1, 3 do M.PSS_OpenUI(true); if win then win:Hide() end end
+	local fifth = kb()
+	print(("NOTE wh winmem: base %.0f, Libraries +%.0f, window open +%.0f, closed (kept) +%.0f, second cycle +%.0f, fifth +%.0f KB"):format(base, libsKb - base, openKb - libsKb, closedKb - libsKb, again - closedKb, fifth - again))
+	check(fifth - again < 40, "four more open/close cycles keep under 40 KB: " .. ("%.1f"):format(fifth - again))
+	check(again - closedKb < 40, "a second open/close keeps under 40 KB: " .. ("%.1f"):format(again - closedKb))
+end
+
 -- W4-3 (G2): nothing reads or creates an entity before the saved data is routed, and Drop Cheapest Thing scans once it is
 if phase == "entearly" then
 	libs()
