@@ -184,7 +184,7 @@ end
 function M.PSS_WhTipItem(tip, data)
 	if not allowed(tip) or type(data) ~= "table" then return end
 	local id, link = data.id, data.hyperlink
-	if (id ~= nil and M.PSS_IsSecret and M.PSS_IsSecret(id)) or (link ~= nil and M.PSS_IsSecret and M.PSS_IsSecret(link)) then return end
+	if (type(id) ~= "nil" and M.PSS_IsSecret and M.PSS_IsSecret(id)) or (type(link) ~= "nil" and M.PSS_IsSecret and M.PSS_IsSecret(link)) then return end
 	local key = type(link) == "string" and M.PSS_ItemKey(link) or (type(id) == "number" and tostring(id))
 	if not key then return end
 	add(tip, M.PSS_Call("wh.tip", key))

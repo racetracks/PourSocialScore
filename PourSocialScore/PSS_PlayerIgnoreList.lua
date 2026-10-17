@@ -925,7 +925,7 @@ function M.PSS_PlayerSearch(text, onDone)
 		query	= query,
 		onInfo = function(info)
 			local full = info.fullName or info.name
-			if type(full) ~= "string" or full == "" or (M.PSS_IsSecret and M.PSS_IsSecret(full)) then return end
+			if type(full) ~= "string" or (M.PSS_IsSecret and M.PSS_IsSecret(full)) or full == "" then return end
 			if seen[full] then return end
 			seen[full] = true
 			found[#found + 1] = {

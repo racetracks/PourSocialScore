@@ -82,7 +82,7 @@ local function mark(id, e, ...)
 	local row = live[id]
 	local k = e
 	if row.key then k = row.key(e, ...) end
-	if k ~= nil and (type(k) == "table" or not (M.PSS_IsSecret and M.PSS_IsSecret(k))) then
+	if type(k) ~= "nil" and (type(k) == "table" or not (M.PSS_IsSecret and M.PSS_IsSecret(k))) then
 		dirty[id][k] = true
 	end
 	if row.settle == "now" then flush(id) end

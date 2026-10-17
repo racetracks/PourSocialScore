@@ -6,9 +6,11 @@
 -- `lua5.1 tools/check_secretorder.lua --self` proves the lint on four wrong lines (the mutants).
 local function bad(line)
 	local out = {}
-	for v in line:gmatch("isSecret%(([%a_][%w_]*)%)") do
-		local at = line:find("isSecret(" .. v .. ")", 1, true)
-		for _, pat in ipairs({ "%f[%w_]" .. v .. "%s*[=~]=", "#" .. v .. "%f[^%w_]", "%f[%w_]" .. v .. "[:.%[]" }) do
+	-- isSecret(x), M.PSS_IsSecret(x), an alias such as sec(x) is not seen (none exists); x may be dotted (ctx.msg)
+	for fn, v in line:gmatch("([%w_.]*[Ii]s[Ss]ecret)%(([%a_][%w_.]*)%)") do
+		local at = line:find(fn .. "(" .. v .. ")", 1, true)
+		local ev = v:gsub("%.", "%%.")
+		for _, pat in ipairs({ "%f[%w_.]" .. ev .. "%s*[=~]=", "#" .. ev .. "%f[^%w_]", "%f[%w_.]" .. ev .. "[:.%[]" }) do
 			local p = line:find(pat)
 			if p and p < at then out[#out + 1] = v break end
 		end
@@ -23,6 +25,9 @@ if arg[1] == "--self" then
 		{ 'if #name > 0 and isSecret(name) then return end', true },
 		{ 'if name:lower() == x and not isSecret(name) then', true },
 		{ 'if isSecret(author) or isSecret(guid) then return end', false },
+		{ 'if M.PSS_IsSecret(name) or name == "" then return end', false },
+		{ 'if full == "" or M.PSS_IsSecret(full) then return end', true },
+		{ 'if ctx.msg == "" or isSecret(ctx.msg) then return end', true },
 	}
 	local fail = false
 	for _, c in ipairs(cases) do

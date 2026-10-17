@@ -236,7 +236,7 @@ function M.PSS_UnitMenuPlayer (owner, root, contextData)
 	end
 	-- secret check first: a secret value can't even be compared with ""
 	if type(target) ~= "string" or M.PSS_IsSecret(target) or target == "" then return end
-	if server ~= nil and (type(server) ~= "string" or M.PSS_IsSecret(server)) then server = nil end
+	if type(server) ~= "nil" and (type(server) ~= "string" or M.PSS_IsSecret(server)) then server = nil end
 	if unit and UnitIsUnit and UnitIsUnit(unit, "player") then return end
 
 	-- one join for every name: a unit's surname (Camelot) is not a realm
