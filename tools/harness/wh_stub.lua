@@ -76,6 +76,38 @@ return function(stub)
 		if guild ~= nil and W.guildbank then W.guildbank.money = guild end
 	end
 
+	-- argument types the client checks (the lesson of F1: a stub more permissive than the client hides bugs): a wrong
+	-- type raises like the client's "bad argument" instead of answering
+	local wrapped = setmetatable({}, { __mode = "k" })
+	local function strictArgs(holder, name, ...)
+		local f = holder and holder[name]
+		if type(f) ~= "function" or wrapped[f] then return end
+		local want = { ... }
+		local g
+		g = function(...)
+			local got = { ... }
+			for i, t in ipairs(want) do
+				if type(got[i]) ~= t then error(("bad argument #%d to '%s' (%s expected, got %s)"):format(i, name, t, type(got[i])), 2) end
+			end
+			return f(...)
+		end
+		wrapped[g] = true
+		holder[name] = g
+	end
+	local function strictApis()
+		strictArgs(C_Container, "GetContainerNumSlots", "number")
+		strictArgs(C_Container, "GetContainerItemInfo", "number", "number")
+		strictArgs(C_Item, "RequestLoadItemDataByID", "number")
+		strictArgs(C_TooltipInfo, "GetItemByID", "number")
+		strictArgs(_G, "GetInventoryItemID", "string", "number")
+		strictArgs(_G, "GetInventoryItemLink", "string", "number")
+		strictArgs(_G, "GetInventoryItemCount", "string", "number")
+		strictArgs(_G, "GetInboxItem", "number", "number")
+		strictArgs(_G, "GetInboxHeaderInfo", "number")
+		strictArgs(_G, "GetGuildBankItemInfo", "number", "number")
+		strictArgs(_G, "GetVoidItemInfo", "number", "number")
+	end
+
 	function stub.SeedWorld(spec)
 		spec = spec or {}
 		local f = flags(spec.client or (camelotEnv and "camelot" or "retail"))
@@ -370,6 +402,7 @@ return function(stub)
 				l[#l + 1] = fn
 			end,
 		}
+		strictApis()
 	end
 
 	-- run the post calls for one tooltip, as the client does when it fills it
@@ -395,32 +428,6 @@ return function(stub)
 		return #q
 	end
 	function stub.PendingItemData() return #loadQueue end
-
-	-- argument types the client checks (the lesson of F1: a stub more permissive than the client hides bugs): a wrong
-	-- type raises like the client's "bad argument" instead of answering
-	local function strictArgs(holder, name, ...)
-		local f = holder and holder[name]
-		if type(f) ~= "function" then return end
-		local want = { ... }
-		holder[name] = function(...)
-			local got = { ... }
-			for i, t in ipairs(want) do
-				if type(got[i]) ~= t then error(("bad argument #%d to '%s' (%s expected, got %s)"):format(i, name, t, type(got[i])), 2) end
-			end
-			return f(...)
-		end
-	end
-	strictArgs(C_Container, "GetContainerNumSlots", "number")
-	strictArgs(C_Container, "GetContainerItemInfo", "number", "number")
-	strictArgs(C_Item, "RequestLoadItemDataByID", "number")
-	strictArgs(C_TooltipInfo, "GetItemByID", "number")
-	strictArgs(_G, "GetInventoryItemID", "string", "number")
-	strictArgs(_G, "GetInventoryItemLink", "string", "number")
-	strictArgs(_G, "GetInventoryItemCount", "string", "number")
-	strictArgs(_G, "GetInboxItem", "number", "number")
-	strictArgs(_G, "GetInboxHeaderInfo", "number")
-	strictArgs(_G, "GetGuildBankItemInfo", "number", "number")
-	strictArgs(_G, "GetVoidItemInfo", "number", "number")
 
 	local KIND = {
 		bank = { open = "Banker", ev = "BANKFRAME_OPENED", close = "BANKFRAME_CLOSED" },
