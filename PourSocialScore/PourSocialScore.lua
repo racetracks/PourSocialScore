@@ -88,6 +88,7 @@ local function stage(name, f, ...)
 	local ok, res = pcall(f, ...)
 	if ok then return true, res end
 	M.PSS_StartFaults[#M.PSS_StartFaults + 1] = name .. ": " .. tostring(res)
+	if M.PSS_IxPut then M.PSS_IxPut("pss", "pss.start", { step = name, message = tostring(res) }) end
 	M.ChatMsg("|cffff5555Pour Social Score: start-up stage " .. name .. " failed (" .. tostring(res) .. ")|r")
 	return false
 end

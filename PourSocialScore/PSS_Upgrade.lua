@@ -783,9 +783,14 @@ local function runPart(part)
 		if i > done or step.always then
 			if i > done and not step.always and not snap and not skipSnap then snap = take() end
 			local parts = step.parts
+			local t0, ok = debugprofilestop and debugprofilestop() or 0, true
 			for j = 1, #parts do
 				local f = parts[j][part]
-				if f and not guard(i, parts[j], part, f) then break end
+				if f and not guard(i, parts[j], part, f) then ok = false break end
+			end
+			-- the internal log (search-helper STP-00247): one line per step that upgraded the save
+			if part == "data" and i > done and M.PSS_IxPut then
+				M.PSS_IxPut("pss", "pss.upg", { step = i, ok = ok and 1 or 0, ms = (debugprofilestop and debugprofilestop() or 0) - t0 })
 			end
 		end
 	end

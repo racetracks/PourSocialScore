@@ -1,6 +1,7 @@
 {
 	"latestRelease": "3.7.0.114",
 	"preReleases": [
+		{ "version": "3.8.0.115", "pr": 238 }
 	],
 	"releases": [
 		{

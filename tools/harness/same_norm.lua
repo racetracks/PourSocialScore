@@ -3,7 +3,8 @@
 -- one (`list`, one sparse record per entry) are written in the new shape,
 -- with a legacy duplicate of one kind and name dropped (the first stays),
 -- and the upgrade record's step, undo slot and failure are left out (a stage that adds an upgrade
--- step moves it on purpose). Everything else is written as it is, so the
+-- step moves it on purpose), and so is the Spyglass self log (pssHot, PSS_LoggingDB.pss, 3.8.0.115: timed
+-- lines an upgrade writes). Everything else is written as it is, so the
 -- other stores are still compared byte for byte.
 --   lua5.1 tools/harness/same_norm.lua <in.lua> <out.lua>
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
@@ -49,6 +50,8 @@ for _, holder in ipairs({ "PourSocialScoreDB", "PSS_PlayersDB" }) do
 	end
 	if type(t) == "table" and type(t.upgrade) == "table" then t.upgrade.step = nil t.upgrade.at = nil t.upgrade.undo = nil t.upgrade.fail = nil end
 end
+if type(env.PourSocialScoreDB) == "table" then env.PourSocialScoreDB.pssHot = nil end
+if type(env.PSS_LoggingDB) == "table" then env.PSS_LoggingDB.pss = nil end
 
 local names = {}
 for k in pairs(env) do names[#names + 1] = k end
