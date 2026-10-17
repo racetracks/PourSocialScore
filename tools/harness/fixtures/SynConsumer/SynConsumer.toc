@@ -1,0 +1,7 @@
+## Interface: 120007, 16001
+## Title: Syndicator consumer (harness stand-in)
+## Notes: an addon that reads Syndicator's documented API the way a bag addon does, for the gateway checks
+## OptionalDeps: Syndicator
+## Version: 1
+
+SynConsumer.lua

@@ -948,6 +948,9 @@ elseif phase == "itemloc" then
 	local ok1, err1 = pcall(C_Item.IsBound, { equipmentSlotIndex = 16 })
 	local ok2 = pcall(C_Item.DoesItemExist, { bagID = 0, slotIndex = 1 })
 	check(not ok1 and tostring(err1):find("itemLocation", 1, true) and not ok2, "F1: the strict stub refuses a plain table like the client")
+	-- the stub refuses wrong argument types like the client (a string bag, a missing slot)
+	check(not pcall(C_Container.GetContainerItemInfo, "0", 1) and not pcall(C_Container.GetContainerNumSlots) and not pcall(GetInventoryItemID, 16),
+		"F1: the strict stub refuses wrong argument types")
 	local live, lerr = M.PSS_Call("item.live")
 	check(live and live.n > 0, "F1: the live read gives no error with the strict stub (" .. tostring(lerr) .. ")")
 	local flags = {}
@@ -2213,6 +2216,27 @@ if phase == "goldorphan" then
 	M.ShowMsg = realShow
 end
 
+if phase == "consumer" then
+	-- F8: an addon that reads Syndicator's documented API (a bag addon's way) gets the Warehouse's answers while
+	-- Syndicator is not installed: counts, characters, the current character, a callback on a bag change
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	WORLD.apply(H, w, 1, client)
+	M.PSS_MeReset()
+	check(rawget(_G, "Syndicator") and Syndicator.API, "F8: the shim is defined once the player is in (login)")
+	check(SynConsumerAtLoad == false, "F8: at its own file load the global is not there yet; a consumer must read it lazily (limitation, reported)")
+	H.Fire("PLAYER_ENTERING_WORLD")
+	local seen = SynConsumerSeen
+	check(not seen.none and type(seen.all) == "table" and #seen.all >= 3, "F8: the consumer lists the saved characters (" .. tostring(seen.all and #seen.all) .. ")")
+	check(seen.current == "Alpha-Realm" or seen.current == "Alpha-Realm", "F8: the current character (" .. tostring(seen.current) .. ")")
+	local o = WORLD.oracle(w).sum("2589")
+	check(type(seen.linen) == "number" and seen.linen >= 200, "F8: the consumer reads Alpha's linen from the Warehouse (" .. tostring(seen.linen) .. ")")
+	H.Put(0, 12, { id = 4306, count = 9 })
+	H.Fire("BAG_UPDATE", 0); H.Fire("BAG_UPDATE_DELAYED")
+	check(#SynConsumerEvents >= 1, "F8: the consumer's BagCacheUpdate callback ran on a bag change (" .. #SynConsumerEvents .. ")")
+end
+
 if phase == "tooltip" then
 	libs()
 	local w = WORLD.world()
@@ -2850,7 +2874,7 @@ if phase == "budget" or phase == "budgetoff" then
 	for k, v in pairs(H.sizes or {}) do sizes[k] = v end
 	local B = dofile(here .. "/bus_budgets.lua")
 	local FILES = { "PSS_WhContainers.lua", "PSS_ItemDict.lua", "PSS_ItemRead.lua", "PSS_WhStore.lua", "PSS_WhMeta.lua", "PSS_Money.lua", "PSS_MoneyValue.lua", "PSS_WhIndex.lua",
-		"PSS_ItemSearch.lua", "PSS_WhImport.lua", "PSS_Gw.lua", "PSS_GwSyndicator.lua", "PSS_WhTooltip.lua", "PSS_WhView.lua", "PSS_WhCommands.lua" }
+		"PSS_ItemSearch.lua", "PSS_WhImport.lua", "PSS_Gw.lua", "PSS_GwSyndicator.lua", "PSS_WhTooltip.lua", "PSS_WhView.lua", "PSS_WhRows.lua", "PSS_WhCommands.lua" }
 	local line = {}
 	for _, f in ipairs(FILES) do
 		local kb = sizes[f]

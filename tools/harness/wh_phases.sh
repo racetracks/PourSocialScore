@@ -76,6 +76,14 @@ for cam in "" "PSS_CAMELOT=1"; do
 	fi
 done
 for cam in "" "PSS_CAMELOT=1"; do
+	if [ $full = 1 ] || echo " $phases " | grep -q " consumer "; then
+		out=$(env PSS_PHASE=consumer PSS_COMPONENTS=logging,warehouse,bags PSS_WH_SEED=1 PSS_EXTRA_ADDONS="$here/fixtures/SynConsumer" $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
+		echo "$out" | sed "s/^PASS wh consumer/PASS wh consumer ${cam:+(Camelot)}/"
+		n=$((n + 1))
+		if ! echo "$out" | grep -q "PASS wh consumer" || echo "$out" | grep -q "FAIL"; then fail=1; bad=$((bad + 1)); echo "$out" | head -8; fi
+	fi
+done
+for cam in "" "PSS_CAMELOT=1"; do
 	if [ $full = 1 ] || echo " $phases " | grep -q " cmdtaken "; then
 		out=$(env PSS_PHASE=cmdtaken PSS_COMPONENTS=logging,warehouse,bags PSS_WH_SEED=1 PSS_EXTRA_ADDONS="$here/fixtures/SlashTaken" $cam lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | sed "s/^PASS wh cmdtaken/PASS wh cmdtaken ${cam:+(Camelot)}/"
