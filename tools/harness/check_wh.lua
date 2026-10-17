@@ -2067,6 +2067,52 @@ if phase == "synapi" or phase == "shimfault" or phase == "gwlint" or phase == "s
 	end
 end
 
+if phase == "realms" then
+	-- F2: tooltips, search and gold cover the connected realms by default and every realm with whRealms = "all"
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	local oracle = WORLD.oracle(w)
+	local T = Enum.TooltipDataType
+	local function hover(data)
+		GameTooltip._lines = nil
+		H.RunTooltip(T.Item, GameTooltip, data)
+		return GameTooltip._lines or {}
+	end
+	local function opt(k, v) M.PSS_SetOpt(k, "global", v) end
+	PSS_WarehouseDB.gold = { [ids["c:Alpha-Realm"]] = 5000, [ids["c:Charlie-OtherRealm"]] = 99, [ids["c:Echo-ClassicBetaPvP"]] = 1000 }
+	local function seen(lines, who)
+		for _, l in ipairs(lines) do if l:find(who, 1, true) then return true end end
+		return false
+	end
+	local keep = _G.GetAutoCompleteRealms
+	_G.GetAutoCompleteRealms = function() return { "Realm", "ConnectedRealm" } end
+	opt("whTipLimit", 0)
+	local linen = { id = 2589, hyperlink = "|cffffffff|Hitem:2589::::::::|h[Linen Cloth]|h|r" }
+	local o = oracle.sum("2589")
+	local lines = hover(linen)
+	check(M.PSS_Opt("whRealms") == "connected", "F2: the default scope is the connected realms")
+	check(seen(lines, "Alpha") and not seen(lines, "Charlie") and not seen(lines, "Echo"), "F2: connected scope hides the characters of unconnected realms in the tooltip")
+	local rows = M.PSS_WhSearchRows("linen")
+	local tot = rows[1] and rows[1].total or 0
+	local gold, goldAll
+	gold = M.PSS_WhGold()
+	opt("whRealms", "all")
+	lines = hover(linen)
+	check(seen(lines, "Charlie") and seen(lines, "Echo"), "F2: all realms shows them")
+	rows = M.PSS_WhSearchRows("linen")
+	goldAll = M.PSS_WhGold()
+	check((rows[1] and rows[1].total or 0) > tot, "F2: search totals grow with the wider scope (" .. tot .. " to " .. tostring(rows[1] and rows[1].total) .. ")")
+	check(goldAll - gold == 99 + 1000, "F2: gold totals follow the scope (" .. gold .. " and " .. goldAll .. ")")
+	opt("whRealms", nil)
+	check(M.PSS_Opt("whRealms") == "connected", "F2: the option goes back to its default")
+	-- a client that cannot name the connected realms covers every realm
+	_G.GetAutoCompleteRealms = function() return {} end
+	lines = hover(linen)
+	check(seen(lines, "Charlie"), "F2: with no connected-realm list every realm is covered")
+	_G.GetAutoCompleteRealms = keep
+end
+
 if phase == "tooltip" then
 	libs()
 	local w = WORLD.world()

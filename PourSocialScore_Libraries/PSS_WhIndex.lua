@@ -141,7 +141,8 @@ M.PSS_Provide("wh.ent", function(input, opts)
 	for _, id in ipairs(ids) do
 		local f = facts(id)
 		if f and (not opts or not opts.kind or opts.kind == f.kind) and (not opts or not opts.realm or opts.realm == f.realm)
-			and (not opts or not opts.faction or opts.faction == f.faction) and (not opts or opts.shown ~= true or not f.hidden) then
+			and (not opts or not opts.faction or opts.faction == f.faction) and (not opts or opts.shown ~= true or not f.hidden)
+			and (not opts or not opts.realms or f.kind ~= "c" or opts.realms[f.realm]) then
 			out.n = out.n + 1
 			out[out.n] = { id, f.kind, f.name, f.realm, f.faction, f.class, f.race, f.sex, f.hidden }
 		end
@@ -286,4 +287,11 @@ function M.PSS_ConnectedRealms()
 	for _, r in ipairs(list) do set[r] = true end
 	set[GetRealmName()] = true
 	return set
+end
+
+-- F2: the realms tooltips, search and gold cover: the connected realms (Syndicator's way) or every realm
+-- (option whRealms); nil means every realm, also where the client cannot name the connected realms
+function M.PSS_WhRealmScope()
+	if M.PSS_Opt("whRealms") == "all" then return nil end
+	return M.PSS_ConnectedRealms()
 end

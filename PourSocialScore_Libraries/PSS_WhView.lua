@@ -35,7 +35,7 @@ function M.PSS_WhSearchRows(text)
 	if found.n == 0 then return rows end
 	local keys = { cols = { "item" }, n = found.n }
 	for i = 1, found.n do keys[i] = { found[i][1] } end
-	local sum = M.PSS_CallSet("wh.sum", keys, { hidden = false })
+	local sum = M.PSS_CallSet("wh.sum", keys, { hidden = false, realms = M.PSS_WhRealmScope() })
 	local total = {}
 	for i = 1, sum.n do total[sum[i][1]] = (total[sum[i][1]] or 0) + (sum[i][12] or 0) end
 	for i = 1, found.n do
@@ -74,19 +74,37 @@ function M.PSS_WhShowLocation(key)
 	for _, h in ipairs(list) do M.ShowMsg("  " .. h[2] .. ": " .. h[3]) end
 end
 
-function M.PSS_WhGold()
+-- F2, F4: the saved gold as { name, copper, realm } rows inside the realm scope. A gold value whose entity is not
+-- saved any more has no name to show: it is left out and counted in `orphans` (/pss wh status reports it), never
+-- printed as "?". Hidden entities are named too, so a name always resolves.
+function M.PSS_WhGoldRows()
 	local gold = M.PSS_CallSet("money.gold")
 	local ids = { cols = { "ent" }, n = gold.n }
 	for i = 1, gold.n do ids[i] = { gold[i][1] } end
 	local ents = M.PSS_CallSet("wh.ent", ids)
-	local name = {}
-	for i = 1, ents.n do name[ents[i][1]] = (ents[i][2] == "w" and "Warband bank") or (ents[i][2] == "g" and ents[i][3] .. " (guild bank)") or ents[i][3] end
-	local list, total = {}, 0
+	local at = {}
+	for i = 1, ents.n do at[ents[i][1]] = ents[i] end
+	local scope = M.PSS_WhRealmScope()
+	local list, orphans, copper = {}, 0, 0
+	local kept = { cols = { "ent", "copper" }, n = 0 }
 	for i = 1, gold.n do
-		total = total + gold[i][2]
-		list[#list + 1] = { name[gold[i][1]] or "?", gold[i][2] }
+		local e = at[gold[i][1]]
+		if not e then
+			orphans = orphans + 1
+		elseif not (scope and e[2] == "c" and not scope[e[4]]) then
+			local name = (e[2] == "w" and "Warband bank") or (e[2] == "g" and e[3] .. " (guild bank)") or e[3]
+			list[#list + 1] = { name, gold[i][2], e[4] or "" }
+			copper = copper + gold[i][2]
+			kept.n = kept.n + 1
+			kept[kept.n] = gold[i]
+		end
 	end
 	sort(list, function(a, b) if a[2] ~= b[2] then return a[2] > b[2] end return a[1] < b[1] end)
+	return list, copper, orphans, kept
+end
+
+function M.PSS_WhGold()
+	local list, total = M.PSS_WhGoldRows()
 	local lines = {}
 	for i, r in ipairs(list) do lines[i] = r[1] .. "  " .. (M.PSS_MoneyText and M.PSS_MoneyText(r[2], false) or tostring(r[2])) end
 	return total, concat(lines, "\n")

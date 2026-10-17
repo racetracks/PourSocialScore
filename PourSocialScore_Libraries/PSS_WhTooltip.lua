@@ -26,7 +26,7 @@ local idMap
 function M.PSS_WhTipDrop() cache, cacheByName, curCache, idMap = {}, {}, {}, nil end
 M.Events.Register("WH_CHANGED", function() cache, cacheByName, curCache, idMap = {}, {}, {}, nil end)
 M.Events.Register("WH_DELETED", function() cache, cacheByName, curCache, idMap = {}, {}, {}, nil end)
-M.Events.Register("OPTION_CHANGED", function(key) if type(key) == "string" and key:sub(1, 5) == "whTip" then cache, cacheByName, curCache = {}, {}, {} end end)
+M.Events.Register("OPTION_CHANGED", function(key) if type(key) == "string" and (key:sub(1, 5) == "whTip" or key == "whRealms") then cache, cacheByName, curCache = {}, {}, {} end end)
 
 local COLNAMES = { "Bags", "Bank", "Reagents", "Mail", "Equipped", "Void", "Auctions", "Guild bank", "Warband bank" }
 
@@ -75,7 +75,7 @@ local function holderList(key)
 	local keys = M.PSS_Opt("whTipByName") and sameId(key) or { key }
 	local set = { cols = { "item" }, n = #keys }
 	for i, k in ipairs(keys) do set[i] = { k } end
-	local sum, err = M.PSS_Call("wh.sum", set, { faction = M.PSS_Opt("whTipFaction") and myFaction() or nil })
+	local sum, err = M.PSS_Call("wh.sum", set, { faction = M.PSS_Opt("whTipFaction") and myFaction() or nil, realms = M.PSS_WhRealmScope() })
 	if err or not sum then return nil end		-- a failed read never shows another item's holders
 	local by, ids, total = {}, {}, 0
 	for i = 1, sum.n do
@@ -136,7 +136,7 @@ M.PSS_Provide("wh.tipCur", function(input)
 	if ckey and curCache[ckey] then return curCache[ckey] end
 	local out = { cols = COLS, n = 0 }
 	if not id then return out end
-	local cur, cerr = M.PSS_Call("wh.cur", id, { faction = M.PSS_Opt("whTipFaction") and myFaction() or nil })
+	local cur, cerr = M.PSS_Call("wh.cur", id, { faction = M.PSS_Opt("whTipFaction") and myFaction() or nil, realms = M.PSS_WhRealmScope() })
 	if cerr or not cur then return out end
 	local ids = { cols = { "ent" }, n = cur.n }
 	for i = 1, cur.n do ids[i] = { cur[i][1] } end
