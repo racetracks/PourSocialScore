@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.113 - Documentation review after the warehouse
+
+- Documentation only: the project notes now describe the merged Warehouse (3.7.0.106 to 3.7.0.112), its saved data and its checks. Nothing in the addon changes.
+
 => 3.7.0.112 - /pssguild chat names an error as the reason the last line passed (no stale reason)
 
 - Chat filtering: when checking a line raised an error, /pssguild chat still showed the reason of an earlier line as "last line passed because". It now says an error happened (the error itself is shown by lastError and counted in errors).
