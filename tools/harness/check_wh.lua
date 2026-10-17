@@ -2264,6 +2264,7 @@ if phase == "goldorphan" then
 	local realShow = M.ShowMsg
 	M.ShowMsg = function(x) said[#said + 1] = tostring(x):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "") end
 	local ghost = 987654
+	M.PSS_SetOpt("whRealms", "global", "all")		-- every realm is named (the default is this realm only, W-7)
 	PSS_WarehouseDB.gold = { [ids["c:Alpha-Realm"]] = 5000, [ids["c:Charlie-OtherRealm"]] = 99, [ghost] = 4, [ids["c:Foxtrot-Realm"]] = 7 }
 	local rows, total, orphans = M.PSS_WhGoldRows()
 	local names = {}
@@ -2473,6 +2474,7 @@ end
 if phase == "tooltip" then
 	libs()
 	local w = WORLD.world()
+	w.chars[3].realm = "Realm"		-- W-7: a tooltip lists this realm only; Charlie (Horde) lives here so the faction checks have a holder
 	local ids = loadWorld(w)
 	local oracle = WORLD.oracle(w)
 	local V = WORLD.V
@@ -2490,11 +2492,13 @@ if phase == "tooltip" then
 	-- holders of linen the tooltip should list: everyone visible, by oracle
 	local o = oracle.sum("2589")
 	local holders = 0
-	for lab in pairs(o.by) do if lab ~= "c:Foxtrot-Realm" then holders = holders + 1 end end
+	for lab in pairs(o.by) do if lab ~= "c:Foxtrot-Realm" and (lab == "w:" or lab:match("%-Realm$")) then holders = holders + 1 end end
 	-- TST-p192: one line per holder, the limit, "and n more", the total
+	opt("whTipLimit", 3)
 	local lines = hover(GameTooltip, T.Item, linen)
-	check(#lines == 1 + 4 + 1 and lines[1] == " " and lines[2]:find("Warband bank", 1, true) and lines[3]:find("Alpha", 1, true) and lines[4]:find("Guild One", 1, true), "TST-p192: blank, four holders, 'and n more' (" .. #lines .. ")")
-	check(lines[#lines]:find("and " .. (holders - 4) .. " more", 1, true), "TST-p192: and n more: " .. tostring(lines[#lines]))
+	check(#lines == 1 + 3 + 1 and lines[1] == " " and lines[2]:find("Warband bank", 1, true) and lines[3]:find("Alpha", 1, true) and lines[4]:find("Guild One", 1, true), "TST-p192: blank, three holders, 'and n more' (" .. #lines .. ")")
+	check(lines[#lines]:find("and " .. (holders - 3) .. " more", 1, true), "TST-p192: and n more: " .. tostring(lines[#lines]))
+	opt("whTipLimit", nil)
 	opt("whTipTotal", true)
 	lines = hover(GameTooltip, T.Item, linen)
 	check(lines[#lines]:find("^Total\t" .. o.total - 1 .. "$") or lines[#lines]:find("^Total\t%d+$"), "TST-p192: the total line: " .. tostring(lines[#lines]))
@@ -2532,11 +2536,12 @@ if phase == "tooltip" then
 	horde = false
 	for _, l in ipairs(lines) do if l:find("Charlie", 1, true) then horde = true end end
 	check(horde, "TST-p193: both factions by default")
+	-- W-7: with the realm option on, no other realm's character is listed (a tooltip is this realm only), so none shows
 	opt("whTipRealms", true)
 	lines = hover(GameTooltip, T.Item, linen)
 	local realmShown
-	for _, l in ipairs(lines) do if l:find("Charlie-", 1, true) then realmShown = true end end
-	check(realmShown, "TST-p193: another realm's character shows its realm")
+	for _, l in ipairs(lines) do if l:find("Delta", 1, true) or l:find("Echo", 1, true) then realmShown = true end end
+	check(not realmShown, "TST-p193: another realm's character is not listed, even with the realm shown")
 	opt("whTipRealms", nil)
 	opt("whTipLimit", nil)
 	shift = false
@@ -2722,13 +2727,13 @@ if phase == "entempty" or phase == "tipjoin" or phase == "tipbreaker" then
 		local function hover(tip, kind, data) tip._lines = nil; tip._forbidden = nil; H.RunTooltip(kind, tip, data); return tip._lines or {} end
 		_G.IsShiftKeyDown = function() return false end
 		M.PSS_ErrReset()
-		local realScope, bugs = M.PSS_WhRealmScope, 6
-		M.PSS_WhRealmScope = function(...) if bugs > 0 then bugs = bugs - 1; error("planted bug") end return realScope(...) end
+		local realScope, bugs = M.PSS_WhThisRealm, 6
+		M.PSS_WhThisRealm = function(...) if bugs > 0 then bugs = bugs - 1; error("planted bug") end return realScope(...) end
 		for i = 1, 6 do
 			local id = 888000 + i
 			hover(GameTooltip, T.Item, { id = id, hyperlink = "|cffffffff|Hitem:" .. id .. "::::::::|h[x]|h|r" })
 		end
-		M.PSS_WhRealmScope = realScope
+		M.PSS_WhThisRealm = realScope
 		check(bugs == 0, "the planted bug ran six times: " .. bugs)
 		check(not M.PSS_ErrOpen("wh.tip") and M.PSS_ErrCount("wh.tip") == 0, "six bugs do not open the wh.tip breaker or count: " .. M.PSS_ErrCount("wh.tip"))
 		local noted

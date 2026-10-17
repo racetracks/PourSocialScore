@@ -27,6 +27,36 @@ function M.PSS_CallSet(name, input, opts)
 end
 
 
+-- W-7: "this realm" is the realm of the logged-in character, spelled the way an entity stores it (the realm part of
+-- the character's own display name, the form M.PSS_EntityId files it under: a spaced realm is its normalised name).
+-- A one-entry set. A name that cannot be read gives an empty set, never every realm (PSS 02 11A.7): no character is
+-- shown, the guilds and the warband stay.
+function M.PSS_WhThisRealm()
+	local name = M.PSS_PlayerDisplayName and M.PSS_PlayerDisplayName()
+	local realm = type(name) == "string" and name:match("-([^-]*)$")
+	if not realm or realm == "" then
+		if M.PSS_ErrNote then M.PSS_ErrNote("fail", "wh.scope", "the character's realm cannot be read: no character is shown") end
+		return {}
+	end
+	return { [realm] = true }
+end
+
+-- the scope choices, read from the option (the Options page and the search window offer the same two)
+function M.PSS_WhScopeChoices()
+	for _, o in ipairs(M.PSS_OPTIONS or {}) do
+		if o.key == "whRealms" then return o.choices end
+	end
+	return {}
+end
+
+-- The realms search rows and gold cover (option whRealms): this realm, or nil (every realm) with "all". A tooltip
+-- never calls this: it is this realm only (M.PSS_WhThisRealm), whatever the option says. A stored value other than
+-- "all" (an old "connected") reads as this realm.
+function M.PSS_WhRealmScope()
+	if M.PSS_Opt("whRealms") == "all" then return nil end
+	return M.PSS_WhThisRealm()
+end
+
 -- F2, F4: the saved gold as { name, copper, realm } rows inside the realm scope. A gold value whose entity is not
 -- saved any more has no name to show: it is left out and counted in `orphans` (/pss wh status reports it), never
 -- printed as "?". Hidden entities are named too, so a name always resolves.
