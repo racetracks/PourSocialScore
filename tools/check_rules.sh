@@ -98,5 +98,15 @@ if grep -nE 'ACP_|AddonList_|NoRecurse|NoChildren|ProtectedAddons|AddonSet|Enabl
 	fail=1
 fi
 
+# a binding header is written once (3.7.0.110): the client refuses a header repeated on later bindings ("Binding header
+# ... was attempted to be loaded more than once") and the later ones take the first's
+for f in PourSocialScore*/Bindings.xml; do
+	[ -f "$f" ] || continue
+	if grep -o 'header="[^"]*"' "$f" | sort | uniq -d | grep .; then
+		echo "bindings: $f repeats a header (above); only the first binding of a group carries it"
+		fail=1
+	fi
+done
+
 [ $fail -eq 0 ] && echo "All rule checks passed"
 exit $fail

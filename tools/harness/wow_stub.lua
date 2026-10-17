@@ -666,9 +666,28 @@ LOCALIZED_CLASS_NAMES_FEMALE = {}
 CLASS_ICON_TCOORDS = {}
 Menu = { ModifyMenu = function() end }
 MenuUtil = { CreateContextMenu = function() end }
-ChatFrame_AddMessageEventFilter = function(event, fn) stub.filters[#stub.filters + 1] = { event = event, fn = fn } end
+-- Chat filters as the client keeps them: one list per event. A repeat add makes a second copy here (whatever the
+-- client does with one, the code looks before it adds).
+-- The list the client hands back is functions (PSS_FILTER_SHAPE unset) or entries { func = fn } (PSS_FILTER_SHAPE=entries):
+-- the shape on a given client is not known here, so checks run both. PSS_FILTER_FAIL=n makes the nth add throw;
+-- stub.DropFilters() empties every list (another chat addon rebuilding them).
+local filterAdds = 0
+local function addFilter(event, fn)
+	filterAdds = filterAdds + 1
+	if tonumber(os.getenv("PSS_FILTER_FAIL") or "") == filterAdds then error("injected filter add failure", 2) end
+	stub.filters[#stub.filters + 1] = { event = event, fn = fn }
+end
+function stub.DropFilters() stub.filters = {} end
+local function getFilters(event)
+	local out = {}
+	for _, f in ipairs(stub.filters) do
+		if f.event == event then out[#out + 1] = os.getenv("PSS_FILTER_SHAPE") == "entries" and { func = f.fn } or f.fn end
+	end
+	return out
+end
+ChatFrame_AddMessageEventFilter = addFilter
 ChatFrame_RemoveMessageEventFilter = function() end
-ChatFrameUtil = { AddMessageEventFilter = function(event, fn) stub.filters[#stub.filters + 1] = { event = event, fn = fn } end }
+ChatFrameUtil = { AddMessageEventFilter = addFilter, GetMessageEventFilters = getFilters }
 ChatEdit_InsertLink = function() end
 ChatFrame_OpenChat = function() end
 StaticPopup_Show = function() end
@@ -1132,5 +1151,13 @@ function stub.CloseMerchant() MerchantFrame:Hide(); stub.Fire("MERCHANT_CLOSED")
 -- the warehouse client APIs (one-build plan, STP-p00): stub.SeedWorld(spec)
 local here = debug.getinfo(1, "S").source:match("^@(.*)/[^/]*$") or "."
 dofile(here .. "/wh_stub.lua")(stub)
+
+-- PSS_CHAT_ADDON=1: a chat addon that rebuilds the filter lists at its own PLAYER_LOGIN (it loads first, so it hears
+-- the event before core does; core registered at ADDON_LOADED, so ours is gone when the world is up)
+if os.getenv("PSS_CHAT_ADDON") == "1" then
+	local f = CreateFrame("Frame")
+	f:RegisterEvent("PLAYER_LOGIN")
+	f:SetScript("OnEvent", function() stub.DropFilters() end)
+end
 
 return stub

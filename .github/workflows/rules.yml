@@ -85,6 +85,8 @@ jobs:
         run: sh tools/harness/addons_phases.sh /tmp/pss-addons
       - name: Enabled components
         run: sh tools/harness/components_phases.sh /tmp/pss-components
+      - name: Chat filter registration
+        run: sh tools/harness/filterreg_phases.sh /tmp/pss-filterreg
       - name: Drop Cheapest Thing
         run: sh tools/harness/dtt_phases.sh
       - name: Service bus

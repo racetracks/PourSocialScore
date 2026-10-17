@@ -914,17 +914,44 @@ end
 local CFU = type(ChatFrameUtil) == "table" and ChatFrameUtil or nil
 local AddFilter = (CFU and CFU.AddMessageEventFilter) or ChatFrame_AddMessageEventFilter
 M.PSS_FilterAvailable = type(AddFilter) == "function"
+local GetFilters = (CFU and CFU.GetMessageEventFilters) or ChatFrame_GetMessageEventFilters
+
+-- Is our filter in the client's list for an event? The one test /pssguild chat and EnsureFilter share. The client
+-- hands back functions or entries { func = fn } (both read), and the list is only read, never written. nil: cannot tell.
+local function filterHeld(event)
+	local list = GetFilters and GetFilters(event)
+	if type(list) ~= "table" then return nil end
+	for _, f in pairs(list) do
+		if f == CoreFilter or (type(f) == "table" and f.func == CoreFilter) then return true end
+	end
+	return false
+end
+M.PSS_FilterHeld = filterHeld
+
+-- registration failures, kept for /pssguild chat; the first prints one red line
+M.PSS_FilterFaults = {}
+local function filterFault(event, err)
+	local faults = M.PSS_FilterFaults
+	faults[#faults + 1] = "registration " .. event .. ": " .. tostring(err)
+	if #faults == 1 then
+		M.ChatMsg("|cffff5555Pour Social Score: chat filter registration failed for " .. event .. " (" .. tostring(err) .. "); it is tried again at login and by /pssguild chat|r")
+	end
+end
 
 -- Social Filtering (issue 181): nothing is registered at file load; core's
 -- ADDON_LOADED handler calls M.PSS_StartBlocking only when the component is on
--- (the chat filter and the game events below). Called once.
+-- (the chat filter and the game events below). Called once. One event the
+-- client refuses does not skip the others, nor the game events (W-8).
 local ev = CreateFrame("Frame")
 local blockingStarted
 function M.PSS_StartBlocking()
 	if blockingStarted then return end
 	blockingStarted = true
 	if M.PSS_FilterAvailable then
-		for event in pairs(EVENT_CATEGORY) do AddFilter(event, CoreFilter) end
+		for event in pairs(EVENT_CATEGORY) do
+			local ok, err = pcall(AddFilter, event, CoreFilter)
+			if not ok then filterFault(event, err) end
+		end
 	end
 	ev:RegisterEvent("PARTY_INVITE_REQUEST")
 	ev:RegisterEvent("PARTY_INVITE_CANCEL")
@@ -934,6 +961,22 @@ function M.PSS_StartBlocking()
 	ev:RegisterEvent("GROUP_ROSTER_UPDATE")
 	ev:RegisterEvent("CHAT_MSG_WHISPER_INFORM")
 	pcall(ev.RegisterEvent, ev, "TRADE_REQUEST")	-- not on every client
+end
+function M.PSS_BlockingStarted() return blockingStarted == true end
+
+-- Add our filter again where the list does not hold it (another chat addon may have rebuilt the lists). Looks
+-- first, adds only what is missing, event driven (PLAYER_ENTERING_WORLD once, /pssguild chat), no timer. Returns
+-- how many events it added.
+function M.PSS_EnsureFilter()
+	if not (blockingStarted and M.PSS_FilterAvailable) then return 0 end
+	local added = 0
+	for event in pairs(EVENT_CATEGORY) do
+		if filterHeld(event) == false then
+			local ok, err = pcall(AddFilter, event, CoreFilter)
+			if ok then added = added + 1 else filterFault(event, err) end
+		end
+	end
+	return added
 end
 ev:SetScript("OnEvent", function(_, event, arg1, ...)
 	local ok, err = true, nil
@@ -961,7 +1004,7 @@ end)
 
 -- Test hooks for an offline test harness (used only by tools/harness).
 M.PSS__CoreTest = {
-	handlePartyInvite = handlePartyInvite, handleGuildInvite = handleGuildInvite,
+	events = EVENT_CATEGORY, handlePartyInvite = handlePartyInvite, handleGuildInvite = handleGuildInvite,
 	handleDuel = handleDuel, handleTrade = handleTrade, handleWhisperSent = handleWhisperSent,
 	resetWhisperWarned = function() whisperWarned = {} end,
 	resetCache = function() decisionCache, ringKeys, ringPos = {}, {}, 0 end,

@@ -58,4 +58,12 @@ return {
 	{ "warehouse-tab-always", "PourSocialScore_Libraries/PSS_ViewNav.lua", '(t.key ~= "warehouse" or M.PSS_On("warehouse"))', '(t.key ~= "warehouse" or true)', "whtaboff" },
 	{ "item-location-plain-table", "PourSocialScore_Libraries/PSS_ItemRead.lua", "local loc = C_Item.IsBound and locEquip(slot)", "local loc = C_Item.IsBound and { equipmentSlotIndex = slot }", "itemloc" },
 	{ "search-command-opens-nothing", "PourSocialScore_Libraries/PSS_WhCommands.lua", 'if text == "" or not chat then M.PSS_WhOpenEverywhere(text ~= "" and text or nil) return end', 'if text == "" or not chat then return end', "cmd" },
+	{ "ensure-adds-blind", "PourSocialScore/PSS_ChatBlock.lua", "if filterHeld(event) == false then", "if true then", "fr:idem,regdrop" },
+	{ "ensure-never-at-world", "PourSocialScore/PourSocialScore.lua", "if M.PSS_EnsureFilter and not filterEnsured then", "if false then", "fr:regdrop" },
+	{ "chat-command-no-ensure", "PourSocialScore_Libraries/PSS_Commands.lua", "local readded = M.PSS_EnsureFilter and M.PSS_EnsureFilter() or 0", "local readded = 0", "fr:regdrop" },
+	{ "start-add-unguarded", "PourSocialScore/PSS_ChatBlock.lua", "\t\t\tlocal ok, err = pcall(AddFilter, event, CoreFilter)\n\t\t\tif not ok then filterFault(event, err) end\n\t\tend\n\tend\n\tev:RegisterEvent", "\t\t\tAddFilter(event, CoreFilter)\n\t\tend\n\tend\n\tev:RegisterEvent", "fr:regfail" },
+	{ "held-functions-only", "PourSocialScore/PSS_ChatBlock.lua", ' or (type(f) == "table" and f.func == CoreFilter)', "", "fr:base,regdrop" },
+	{ "stage-unguarded", "PourSocialScore/PourSocialScore.lua", "local ok, res = pcall(f, ...)", "local ok, res = true, f(...)", "fr:startfault" },
+	{ "critical-fault-continues", "PourSocialScore/PourSocialScore.lua", "\t\tstartFailed = true\n\t\tstarting = false\n\t\treturn\n\tend\n\t-- a shipped guild", "\t\tstartFailed = false\n\tend\n\t-- a shipped guild", "fr:startfault" },
+	{ "faults-not-shown", "PourSocialScore_Libraries/PSS_Commands.lua", 'for _, line in ipairs(M.PSS_StartFaults or {}) do gp("|cffff5555start-up fault:|r " .. line) end', "", "fr:startfault" },
 }

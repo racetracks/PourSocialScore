@@ -187,6 +187,11 @@ sh "$here/addons_phases.sh" "$work" || fail=1
 echo "== enabled components"
 sh "$here/components_phases.sh" "$work" || fail=1
 
+# The chat filter's registration (W-8): a refused add, another addon's rebuild, a faulted start-up
+# stage, the client's list in both shapes (filterreg_phases.sh)
+echo "== chat filter registration"
+sh "$here/filterreg_phases.sh" "$work/filterreg" || fail=1
+
 # PSS Drop Cheapest Thing (money-helper): scan, filters, act, command, button,
 # round trips, the log, the merchant button, off = zero cost (dtt_phases.sh)
 echo "== drop cheapest thing"

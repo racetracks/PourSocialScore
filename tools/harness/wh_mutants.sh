@@ -20,7 +20,12 @@ while [ $i -le $count ]; do
 	if ! lua5.1 "$here/wh_mutate.lua" "$work/$file" "$from" "$to" 2>"$work/err.txt"; then
 		invalid=$((invalid + 1)); echo "INVALID $id: $(cat "$work/err.txt")"; rm -rf "$work"; continue
 	fi
-	out=$(cd "$work" && sh tools/harness/wh_phases.sh $phases 2>&1)
+	case "$phases" in
+	fr:*)	# the chat filter's registration phases (filterreg_phases.sh): killed by any failing phase
+		out=$(cd "$work" && FR_ONLY=$(echo "${phases#fr:}" | tr ',' ' ') sh tools/harness/filterreg_phases.sh 2>&1) && out="" || out="FAIL wh: filterreg: $(echo "$out" | grep -m1 'FAIL filterreg' | sed 's/FAIL filterreg: \([a-z]*\):.*/\1/')"
+		;;
+	*)	out=$(cd "$work" && sh tools/harness/wh_phases.sh $phases 2>&1) ;;
+	esac
 	if echo "$out" | grep -q "FAIL\|lua5.1:\|failed" && ! echo "$out" | grep -q "failed, 0 failed\|WH [0-9]* phases, 0 failed"; then
 		killed=$((killed + 1))
 		by=$(echo "$out" | sed -n 's/^FAIL wh: \([a-z0-9]*\):.*/\1/p' | head -1)

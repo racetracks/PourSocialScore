@@ -434,12 +434,18 @@ function M.PSS_SlashGuild (msg)
 		local CFU = type(ChatFrameUtil) == "table" and ChatFrameUtil or nil
 		local getFilters = (CFU and CFU.GetMessageEventFilters) or ChatFrame_GetMessageEventFilters
 		gp(("filter registration API: %s"):format(M.PSS_FilterAvailable and "found" or "|cffff5555MISSING - chat blocking cannot work|r"))
+		gp(("started: %s"):format(M.PSS_BlockingStarted and M.PSS_BlockingStarted() and "yes" or "|cffff5555NO - Social Filtering is off or its start-up did not run|r"))
+		-- anything the start-up could not do, then put our filter back where it is missing (read only on the client's list)
+		for _, line in ipairs(M.PSS_StartFaults or {}) do gp("|cffff5555start-up fault:|r " .. line) end
+		for _, line in ipairs(M.PSS_FilterFaults or {}) do gp("|cffff5555filter fault:|r " .. line) end
+		local readded = M.PSS_EnsureFilter and M.PSS_EnsureFilter() or 0
+		if readded > 0 then gp(("|cffffff00our filter was missing on %d event(s) and is re-added|r"):format(readded)) end
 		for _, ev in ipairs({ "CHAT_MSG_WHISPER", "CHAT_MSG_CHANNEL", "CHAT_MSG_SAY", "CHAT_MSG_PARTY" }) do
 			local list = getFilters and getFilters(ev)
-			local ours, n = false, 0
-			if type(list) == "table" then
-				for _, fn in pairs(list) do n = n + 1; if fn == M.PSS_CoreFilter then ours = true end end
-			end
+			local held = M.PSS_FilterHeld and M.PSS_FilterHeld(ev)
+			local n = 0
+			if type(list) == "table" then for _ in pairs(list) do n = n + 1 end end
+			local ours = held == true
 			local frames, shown = 0, 0
 			for i = 1, (tonumber(NUM_CHAT_WINDOWS) or 10) do
 				local cf = _G["ChatFrame" .. i]
@@ -449,7 +455,7 @@ function M.PSS_SlashGuild (msg)
 				end
 			end
 			gp(("  %-17s filters: %s, ours: %s | Blizzard chat windows listening: %d (%d shown)"):format(
-				ev, getFilters and tostring(n) or "?", getFilters and (ours and "|cff00ff00yes|r" or "|cffff5555NO|r") or "?", frames, shown))
+				ev, getFilters and tostring(n) or "?", held ~= nil and (ours and "|cff00ff00yes|r" or "|cffff5555NO|r") or "?", frames, shown))
 		end
 		local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
 		local found = {}
