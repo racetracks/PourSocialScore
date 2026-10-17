@@ -75,6 +75,8 @@ function M.PSS_WhCommand(args)
 	if sub == "search" then return search(args) end
 	if sub == "status" then
 		local s = M.PSS_CallSet("wh.status")
+		local orphans = M.PSS_MoneyOrphans and M.PSS_MoneyOrphans(false) or 0
+		if orphans > 0 then say(("  %d saved gold value(s) belong to no saved character (/pss wh sweep removes them)."):format(orphans)) end
 		if s.n == 0 then say("Nothing is saved yet.") return end
 		local ids = { cols = { "ent" }, n = s.n }
 		for i = 1, s.n do ids[i] = { s[i][1] } end
@@ -96,6 +98,8 @@ function M.PSS_WhCommand(args)
 	elseif sub == "sweep" then
 		local r = M.PSS_CallSet("wh.sweep", nil, { force = true })
 		say(r.n > 0 and ("Freed %d item ids, remapped %d."):format(r[1][1], r[1][2]) or "Nothing to free.")
+		local gone = M.PSS_MoneyOrphans and M.PSS_MoneyOrphans(true) or 0
+		if gone > 0 then say(("Removed %d saved gold value(s) that belonged to no saved character."):format(gone)) end
 	elseif sub == "hide" or sub == "delete" or sub == "remove" then
 		local full = args[3]
 		local ent = entOf(full)

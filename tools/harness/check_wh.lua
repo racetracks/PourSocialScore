@@ -2180,6 +2180,39 @@ if phase == "whtaboff" then
 	check(M.PSS_UITab() == 1, "F6: a saved Warehouse tab opens the first tab when the Warehouse is off")
 end
 
+if phase == "goldorphan" then
+	-- F4: gold saved for an entity that is not saved never prints "?"; hidden entities and other realms are named
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	local said = {}
+	local realShow = M.ShowMsg
+	M.ShowMsg = function(x) said[#said + 1] = tostring(x):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "") end
+	local ghost = 987654
+	PSS_WarehouseDB.gold = { [ids["c:Alpha-Realm"]] = 5000, [ids["c:Charlie-OtherRealm"]] = 99, [ghost] = 4, [ids["c:Foxtrot-Realm"]] = 7 }
+	local rows, total, orphans = M.PSS_WhGoldRows()
+	local names = {}
+	for _, r in ipairs(rows) do names[#names + 1] = r[1] end
+	local joined = table.concat(names, ",")
+	check(not joined:find("?", 1, true), "F4: no row is named ? (" .. joined .. ")")
+	check(orphans == 1 and total == 5000 + 99, "F4: the orphan is counted apart and the total is right (" .. total .. ", " .. orphans .. ")")
+	check(not joined:find("Foxtrot", 1, true), "F4: a hidden character is left out of the gold, not shown as ?")
+	local win = M.PSS_WhOpenEverywhere()
+	check(not win.money.text:GetText():find("?", 1, true), "F4: the window's gold line has no ?")
+	said = {}
+	M.PSS_SlashPSS("money")
+	local out = table.concat(said, "\n")
+	check(not out:find("?: ", 1, true) and out:find("no longer saved", 1, true) and out:find("Alpha", 1, true), "F4: /pss money names every row and reports the orphan (" .. out .. ")")
+	said = {}
+	M.PSS_SlashPSS("wh status")
+	out = table.concat(said, "\n")
+	check(out:find("1 saved gold value", 1, true), "F4: /pss wh status reports it")
+	said = {}
+	M.PSS_SlashPSS("wh sweep")
+	check(PSS_WarehouseDB.gold[ghost] == nil and PSS_WarehouseDB.gold[ids["c:Alpha-Realm"]] == 5000, "F4: /pss wh sweep removes the orphan and only the orphan")
+	M.ShowMsg = realShow
+end
+
 if phase == "tooltip" then
 	libs()
 	local w = WORLD.world()
