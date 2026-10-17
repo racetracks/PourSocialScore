@@ -232,7 +232,7 @@ function W:GetHyperlinksEnabled() return self._links or false end
 -- a check sets f._mouseOver to put the mouse over a frame
 function W:IsMouseOver() return self._mouseOver or false end
 function W:IsDragging() return false end
-function W:GetTexture() return nil end
+function W:GetTexture() return self._texture end
 function W:GetAtlas() return self._atlas end
 function W:SetAtlas(a) self._atlas = a end
 -- PSS_TEX_MISSING="path;path": the client has no such file (SetTexture says false)
@@ -374,6 +374,15 @@ ItemRefTooltip = new("GameTooltip", "ItemRefTooltip")
 function GameTooltip:SetText(t) self._lines = { t } end
 function GameTooltip:AddLine(t) self._lines = self._lines or {}; self._lines[#self._lines + 1] = t end
 function GameTooltip:NumLines() return self._lines and #self._lines or 0 end
+-- the window's hover: the owner and the link the tooltip was given (an item: link only; the client's SetHyperlink refuses others)
+function GameTooltip:SetOwner(o, anchor) self._owner, self._anchor, self._lines, self._link = o, anchor, nil, nil end
+function GameTooltip:SetHyperlink(link)
+	if type(link) ~= "string" or not link:find("^item:%d+") then error("Unknown link type", 2) end
+	self._link = link
+	self._lines = { "Item " .. link:match("^item:(%d+)") }
+end
+function GameTooltip:Show() self._shown = true end
+function GameTooltip:Hide() self._shown = false end
 DEFAULT_CHAT_FRAME = new("ScrollingMessageFrame", "DEFAULT_CHAT_FRAME")
 stub.chat = {}
 function DEFAULT_CHAT_FRAME:AddMessage(m) stub.chat[#stub.chat + 1] = tostring(m) end

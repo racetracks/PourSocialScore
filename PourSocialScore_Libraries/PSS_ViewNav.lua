@@ -53,14 +53,16 @@ local ALL_TABS = {
 	{ key = "guilds", text = "Guild Ignore List" },
 	{ key = "filters", text = "Chat Filters" },
 	{ key = "addons", text = "Addon Manager" },
+	{ key = "warehouse", text = "Warehouse" },
 	{ key = "events", text = "Events" },
 }
 -- built once per session: Addon Manager always (3.6.0.91; it also holds
--- Import/Export and Options, PSS_ManagerNav.lua), Events only while Event
--- Logging is on; a tab is found by its key
+-- Import/Export and Options, PSS_ManagerNav.lua), Warehouse only while the
+-- Warehouse is on (F6), Events only while Event Logging is on; a tab is found
+-- by its key
 local tabs = {}
 for _, t in ipairs(ALL_TABS) do
-	if (t.key ~= "events" or M.PSS_On("logging")) then tabs[#tabs + 1] = t end
+	if (t.key ~= "events" or M.PSS_On("logging")) and (t.key ~= "warehouse" or M.PSS_On("warehouse")) then tabs[#tabs + 1] = t end
 end
 M.PSS_UI_TABS = tabs
 function M.PSS_UITabIndex(key)

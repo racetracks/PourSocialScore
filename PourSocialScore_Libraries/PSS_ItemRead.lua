@@ -90,6 +90,7 @@ function M.PSS_ItemAwait(ids)
 		if npending == 0 then
 			awaiting = false
 			M.PSS_Unwant("item.data")
+			if M.Events and M.Events.Fire then M.Events.Fire("ITEM_DATA") end		-- a window showing names asks again
 		end
 	end })
 end

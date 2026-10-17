@@ -2113,6 +2113,73 @@ if phase == "realms" then
 	_G.GetAutoCompleteRealms = keep
 end
 
+if phase == "searchwin" then
+	-- F5: with nothing typed the window shows this character's items by name, with icons; a search finishes when item
+	-- names arrive late and the window draws again
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	WORLD.apply(H, w, 1, client)
+	M.PSS_MeReset()
+	check(M.PSS_Need("GUI"), "the window folder loads")
+	local win = M.PSS_WhOpenEverywhere()
+	local mine, truncated = M.PSS_WhMineRows()
+	check(win:IsShown() and #win.rows == #mine and #mine > 0 and not truncated, "F5: the empty window lists this character's items (" .. #mine .. ")")
+	local linen
+	for _, r in ipairs(mine) do if r.key == "2589" then linen = r end end
+	check(linen and linen.total == 120 + 80 + 200 and linen.name == "Linen Cloth" and linen.icon, "F5: Linen Cloth is Alpha's bags plus bank, with its name and icon (" .. tostring(linen and linen.total) .. ")")
+	for i = 2, #mine do check(mine[i - 1].name <= mine[i].name, "F5: sorted by name") break end
+	local others
+	for _, r in ipairs(mine) do if r.name == "Soul Shard" then others = true end end
+	check(not others, "F5: only this character's items, not Bravo's or Charlie's")
+	check(win.hint:GetText():find("This character's items", 1, true), "F5: the hint says whose items they are (" .. tostring(win.hint:GetText()) .. ")")
+	-- a character with nothing saved
+	PSS_WarehouseDB.inv[M.PSS_Me(false)] = nil
+	local none = M.PSS_WhMineRows()
+	check(#none == 0, "F5: a character with nothing saved shows no rows")
+end
+
+if phase == "whtab" then
+	-- F6: a top tab "Warehouse" in the main window, only while the Warehouse is on, the same view as Search Everywhere
+	libs()
+	local w = WORLD.world()
+	local ids = loadWorld(w)
+	WORLD.apply(H, w, 1, client)
+	M.PSS_MeReset()
+	local idx = M.PSS_UITabIndex("warehouse")
+	check(idx and M.PSS_UI_TABS[idx].text == "Warehouse" and M.PSS_UI_TABS[idx + 1] and M.PSS_UI_TABS[idx + 1].key == "events", "F6: the Warehouse tab sits before Events while the Warehouse is on")
+	local addons = M.PSS_UITabIndex("addons")
+	check(addons == 4 and idx == 5, "F6: the Addon Manager stays tab 4, the Warehouse is tab 5")
+	for _, look in ipairs({ 2, 0, 1 }) do
+		M.PSS_SetOpt("uiSkin", "global", look)
+		M.PSS_OpenUI(true, "warehouse")
+		local win = _G.PSS_Window
+		local tag = "look " .. look .. ": "
+		check(win and win:IsShown() and win.pages[idx]:IsShown() and not win.pages[1]:IsShown(), tag .. "the window opens on the Warehouse tab")
+		local page = win.pages[idx]
+		check(page.rows and #page.rows > 0 and page.scope and page.search, tag .. "the tab shows this character's items with the search box and the scope (" .. tostring(page.rows and #page.rows) .. ")")
+		check(page.list.rows[1].icon and page.list.rows[1].icon:GetTexture() ~= nil, tag .. "rows have icons")
+		page.search:SetText("epic"); page.Search("epic")
+		check(#page.rows == 3, tag .. "typing searches (" .. #page.rows .. ")")
+		page.search:SetText(""); page.Search("")
+		win:Hide()
+	end
+	-- saved tab: the Warehouse tab is remembered by key
+	M.PSS_OpenUI(true, "warehouse")
+	check(PourSocialScoreDB.windowPoints and PourSocialScoreDB.windowPoints.PSS_WindowTab == "warehouse", "F6: the tab is saved by its key")
+	_G.PSS_Window:Hide()
+end
+
+if phase == "whtaboff" then
+	libs()
+	-- with the Warehouse off there is no tab, and a saved Warehouse tab falls back to the first
+	check(M.PSS_UITabIndex("warehouse") == nil, "F6: no Warehouse tab while the Warehouse is off")
+	for _, t in ipairs(M.PSS_UI_TABS) do check(t.key ~= "warehouse", "F6: not in the tab list") end
+	PourSocialScoreDB.windowPoints = PourSocialScoreDB.windowPoints or {}
+	PourSocialScoreDB.windowPoints.PSS_WindowTab = "warehouse"
+	check(M.PSS_UITab() == 1, "F6: a saved Warehouse tab opens the first tab when the Warehouse is off")
+end
+
 if phase == "tooltip" then
 	libs()
 	local w = WORLD.world()
@@ -2256,6 +2323,11 @@ if phase == "everywhere" or phase == "whoptions" then
 			check(g == geom, tag .. "the same layout in every look (" .. g .. " vs " .. geom .. ")")
 			check(win.list.rows[1].cells.name:GetText() ~= "" and win.list.rows[1].cells.total:GetText() ~= "", tag .. "a row is drawn")
 			check(win.money.copper and win.money.text:GetText() ~= "", tag .. "the gold line is drawn")
+			-- F5: an icon on the left of every row, the item's tooltip on hover
+			check(win.list.rows[1].icon and win.list.rows[1].icon:GetTexture() ~= nil, tag .. "a row has its item icon")
+			win.list.rows[1]._scripts.OnEnter(win.list.rows[1])
+			check(GameTooltip._owner == win.list.rows[1] and GameTooltip._link and GameTooltip._link:find("^item:%d+") and GameTooltip._shown, tag .. "hover shows the item's tooltip (" .. tostring(GameTooltip._link) .. ")")
+			check(win.scope and win.scope:IsShown(), tag .. "the realm scope drop-down is there")
 			local dark = look == 1
 			check(win.pssParts.fill:IsShown() == (dark or not win.pssParts.art), tag .. "the panel follows the look")
 			-- TST-p201: a click on a row says where the item is
@@ -2334,12 +2406,28 @@ if phase == "cmd" or phase == "cmdtaken" then
 		local ids = loadWorld(w)
 		check(SlashCmdList["PSSSYN"] ~= nil and SLASH_PSSSYN1 == "/syn", "/syn is ours when free")
 		-- TST-p206: the commands print the expected lines
-		local out = run("wh search epic")
-		check(out:find("3 found for 'epic'", 1, true) and out:find("Harbinger", 1, true), "TST-p206: search: " .. out)
-		out = run("wh search")
-		check(out:find("Type what to look for", 1, true), "TST-p206: search without text")
-		out = run("wh search zzzzqq")
-		check(out:find("Nothing found", 1, true), "TST-p206: nothing found")
+		-- F3 (W3-D2): the real slash route; `search <text>` opens the window filled in, `chat` keeps the listing
+		check(type(SlashCmdList["PSS"]) == "function", "F3: the real slash handler exists")
+		local out = run("wh search epic chat")
+		check(out:find("Searching for 'epic'", 1, true), "F3: an unfinished search says it is searching (" .. out .. ")")
+		H.LoadItemData()
+		out = table.concat(said, "\n")
+		check(out:find("3 found for 'epic'", 1, true) and out:find("Harbinger", 1, true), "TST-p206: search in chat, printed once the names arrived: " .. out)
+		out = run("wh search zzzzqq chat")
+		H.LoadItemData()
+		out = table.concat(said, "\n")
+		check(out:find("Nothing found", 1, true), "TST-p206: nothing found: " .. out)
+		said = {}
+		SlashCmdList["PSS"]("wh search epic")
+		local win = _G.PSS_Everywhere
+		check(win and win:IsShown() and win.search:GetText() == "epic" and #win.rows == 3 and #said == 0, "F3: /pss wh search epic opens the window filled in, nothing in chat (" .. #said .. " lines)")
+		win:Hide()
+		SlashCmdList["PSS"]("wh search")
+		check(win:IsShown() and win.search:GetText() == "", "F3: /pss wh search opens the window with the box empty")
+		win:Hide()
+		SlashCmdList["PSS"]("wh")
+		check(win:IsShown(), "F3: /pss wh opens the window")
+		win:Hide()
 		out = run("wh status")
 		check(out:find("Alpha", 1, true) and out:find("Warband", 1, true), "TST-p206: status: " .. out)
 		out = run("money")
@@ -2365,8 +2453,9 @@ if phase == "cmd" or phase == "cmdtaken" then
 		out = run("help")
 		check(out:find("wh", 1, true) and out:find("/pss money", 1, true), "TST-p208: help lists wh and money")
 		-- /syn does what /pss wh does
+		said = {}
 		SlashCmdList["PSSSYN"]("epic")
-		check(#said > 0 and table.concat(said, "\n"):find("found for 'epic'", 1, true), "/syn <text> searches")
+		check(_G.PSS_Everywhere and _G.PSS_Everywhere:IsShown() and _G.PSS_Everywhere.search:GetText() == "epic", "/syn <text> opens the window filled in")
 		-- the open command loads the window
 		local win = M.PSS_WhOpenEverywhere()
 		check(win and win:IsShown(), "/pss wh opens Search Everywhere")
