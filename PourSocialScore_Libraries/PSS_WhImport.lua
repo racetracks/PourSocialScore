@@ -93,7 +93,6 @@ M.PSS_Provide("wh.import", function(_, opts)
 		out[out.n] = { kind, name, p and count(p) or 0, slots or 0, skipped or 0 }
 	end
 	local function write(p)
-		if dry then return true end
 		local r, err = M.PSS_Call("wh.write", p)
 		return r ~= nil and not err
 	end

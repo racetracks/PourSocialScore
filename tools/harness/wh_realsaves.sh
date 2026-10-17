@@ -27,7 +27,7 @@ for sv in "$@"; do
 	lua5.1 "$here/wh_strip.lua" "$work/w2-$i.lua" "$work/w2off-$i.lua" options
 	env PSS_WH_SEED=1 lua5.1 "$here/run.lua" . "$work/w2off-$i.lua" "$work/o-$i.lua" > /dev/null 2>&1
 	for t in r2 w2 o; do
-		sed "s/$vref/VERSION/g; s/$vnew/VERSION/g" "$work/$t-$i.lua" > "$work/$t-$i.v"
+		sed "s/$vref/VERSION/g; s/$vnew/VERSION/g; s/\\[\"version\"\\] = \"[0-9.]*\"/[\"version\"] = \"VERSION\"/" "$work/$t-$i.lua" > "$work/$t-$i.v"
 		lua5.1 "$here/wh_strip.lua" "$work/$t-$i.v" "$work/$t-$i.s"
 		lua5.1 "$here/same_norm.lua" "$work/$t-$i.s" "$work/$t-$i.n"
 	done

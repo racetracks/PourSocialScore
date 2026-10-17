@@ -47,8 +47,10 @@ login() {
 	# parallel arrays and the 3.4.1.51 records alike) and leaves out the
 	# upgrade step, which a stage that adds one moves on purpose
 	for f in "$work/$tag-1.lua" "$work/$tag-2.lua"; do
-		sed "s/$v/VERSION/g" "$f" > "$f.v"
-		lua5.1 "$here/same_norm.lua" "$f.v" "$f.n"
+		sed "s/$v/VERSION/g; s/\\[\"version\"\\] = \"[0-9.]*\"/[\"version\"] = \"VERSION\"/" "$f" > "$f.v"
+		# what the Warehouse adds (its table, options and entity rows) is not compared: a save with it on (3.7.0.106) has no counterpart on a build without it
+		lua5.1 "$here/wh_strip.lua" "$f.v" "$f.s"
+		lua5.1 "$here/same_norm.lua" "$f.s" "$f.n"
 	done
 	# the upgrade report's lines (3.4.1.46, U2) are left out of the chat: a
 	# version change alone now prints one; the saves still must be the same

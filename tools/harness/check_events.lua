@@ -30,7 +30,7 @@ pane.pages:Select("summary")
 local sm = pane.summary
 check(sm.viewButton:IsShown(), "no View Events")
 sm.viewButton._scripts.OnClick(sm.viewButton)
-local page = win.pages[5]
+local page = win.pages[M.PSS_UITabIndex("events")]
 local view, list, eu = page.view, page.list, page.ui
 check(page:IsShown() and view and view.q.scope and view.q.scope.id == entry, "View Events did not open this player's events")
 check(loaded("PourSocialScore_Logging"), "the Events tab did not load Logging")
@@ -176,7 +176,7 @@ eu.resetButton._scripts.OnClick(eu.resetButton)
 H.RunTimers()
 check(list.count == 0 or (list.rows[1].cells.message:GetText() or ""):find("expired", 1, true), "Reset Block History left lines: " .. list.count)
 -- a tab click: every list, every time and type
-win.tabs[5]._scripts.OnClick(win.tabs[5])
+win.tabs[M.PSS_UITabIndex("events")]._scripts.OnClick(win.tabs[M.PSS_UITabIndex("events")])
 check(view.q.scope == nil and view.q.period == nil and view.q.cats == nil and view.q.sources.guilds, "a tab click did not reset the query")
 local shownLines = #view.all
 
@@ -184,7 +184,7 @@ local shownLines = #view.all
 -- the window closed), and read again when it shows
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(#view.all == 0 and #view.shown == 0 and list.count == 0, "the Events view kept its lines after the tab hid")
-win.tabs[5]._scripts.OnClick(win.tabs[5])
+win.tabs[M.PSS_UITabIndex("events")]._scripts.OnClick(win.tabs[M.PSS_UITabIndex("events")])
 check(#view.all == shownLines, ("lines not read again: %d, was %d"):format(#view.all, shownLines))
 win:Hide()
 check(#view.all == 0, "the Events view kept its lines after the window closed")
