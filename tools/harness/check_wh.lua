@@ -25,7 +25,7 @@ if phase == "stub" then
 	check(C_Container.GetContainerNumSlots(0) == 16 and C_Container.GetContainerItemInfo(0, 1).stackCount == 120, "TST-p002: bag 0 slot 1 holds 120")
 	local blade = C_Container.GetContainerItemInfo(0, 5)
 	check(blade and blade.itemID == 207791 and blade.hyperlink:find("|Hitem:207791:", 1, true) and blade.isBound, "TST-p002: variant link and bound flag")
-	check(C_Item.DoesItemExist({ bagID = 0, slotIndex = 5 }) and C_Item.GetItemID({ bagID = 0, slotIndex = 5 }) == 207791 and not C_Item.DoesItemExist({ bagID = 0, slotIndex = 3 }), "TST-p002: item locations")
+	check(C_Item.DoesItemExist(ItemLocation:CreateFromBagAndSlot(0, 5)) and C_Item.GetItemID(ItemLocation:CreateFromBagAndSlot(0, 5)) == 207791 and not C_Item.DoesItemExist(ItemLocation:CreateFromBagAndSlot(0, 3)), "TST-p002: item locations")
 	check(GetInventoryItemID("player", 16) == 207791 and GetInventoryItemLink("player", 3):find("210001", 1, true), "TST-p002: equipped")
 	check(GetInboxNumItems() == 1 and GetInboxItem(1, 1) == "Crystal Vial" and select(2, GetInboxItem(1, 1)) == 3371 and select(4, GetInboxItem(1, 1)) == 3, "TST-p002: mail attachment")
 	check(IsInGuild() and GetGuildInfo("player") == "Guild One" and GetNumGuildBankTabs() == 3 and GetGuildBankMoney() == 2000000, "TST-p002: guild bank")
@@ -938,6 +938,31 @@ if phase == "dict" then
 	PSS_WarehouseDB = nil
 	check(journal[1]:match("|(x%d+)|") == refs[2] and journal[2]:match("|(%d+)|") == "2589", "TST-p215: refs in a saved line are a plain id or x<dict>")
 	PSS_WarehouseDB = nil
+elseif phase == "itemloc" then
+	-- F1: every C_Item call that takes a location gets an ItemLocation object, never a plain table (the client's
+	-- "Usage: C_Item.IsBound(itemLocation)" on Camelot); the stub now refuses a plain table like the client
+	libs()
+	local w = WORLD.world()
+	WORLD.apply(H, w, 1, client)
+	H.Interact("bank", true)
+	local ok1, err1 = pcall(C_Item.IsBound, { equipmentSlotIndex = 16 })
+	local ok2 = pcall(C_Item.DoesItemExist, { bagID = 0, slotIndex = 1 })
+	check(not ok1 and tostring(err1):find("itemLocation", 1, true) and not ok2, "F1: the strict stub refuses a plain table like the client")
+	local live, lerr = M.PSS_Call("item.live")
+	check(live and live.n > 0, "F1: the live read gives no error with the strict stub (" .. tostring(lerr) .. ")")
+	local flags = {}
+	for i = 1, live.n do flags[live[i][2] .. ":" .. live[i][3]] = live[i][6] end
+	check(flags["e0:16"] and flags["e0:16"]:find("b", 1, true), "F1: the equipped blade is bound, read through an ItemLocation")
+	local rows = M.PSS_Call("err.rows")
+	check(not rows or rows.n == 0, "F1: no error row was recorded (" .. tostring(rows and rows.n) .. ")")
+	-- no ItemLocation in the client at all: the read still works, nothing is claimed bound
+	local keep = ItemLocation
+	ItemLocation = nil
+	local bare = M.PSS_Call("item.live", "e0")
+	ItemLocation = keep
+	local bad = false
+	for i = 1, bare.n do if bare[i][6] and bare[i][6]:find("b", 1, true) then bad = true end end
+	check(bare.n > 0 and not bad, "F1: without ItemLocation the read works and claims nothing bound")
 elseif phase == "live" then
 	libs()
 	local w = WORLD.world()

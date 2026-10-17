@@ -130,6 +130,15 @@ local function bagFlags(info)
 	return f
 end
 
+-- the client takes an ItemLocation object, never a plain table (F1: "Usage: C_Item.IsBound(itemLocation)" on Camelot)
+local function locBag(bag, slot)
+	if ItemLocation and ItemLocation.CreateFromBagAndSlot then return ItemLocation:CreateFromBagAndSlot(bag, slot) end
+end
+
+local function locEquip(slot)
+	if ItemLocation and ItemLocation.CreateFromEquipmentSlot then return ItemLocation:CreateFromEquipmentSlot(slot) end
+end
+
 local function readBagLike(row, code, out, ent)
 	local bag = row.bagId(tonumber(code:sub(2)))
 	if bag == nil then return end
@@ -139,8 +148,8 @@ local function readBagLike(row, code, out, ent)
 		if info and not secret(info.hyperlink) then
 			add(out, ent, code, slot, info.hyperlink, info.itemID, info.stackCount, bagFlags(info))
 		elseif not info and C_Item.DoesItemExist then
-			local loc = { bagID = bag, slotIndex = slot }
-			if C_Item.DoesItemExist(loc) then
+			local loc = locBag(bag, slot)
+			if loc and C_Item.DoesItemExist(loc) then
 				local id = C_Item.GetItemID(loc)
 				if id then add(out, ent, code, slot, nil, id, 1, "") end
 			end
@@ -153,7 +162,10 @@ local function readEquipped(row, code, out, ent)
 	for slot = 0, top do
 		local id = GetInventoryItemID("player", slot)
 		if id then
-			local bound = C_Item.IsBound and C_Item.IsBound({ equipmentSlotIndex = slot })
+			local loc = C_Item.IsBound and locEquip(slot)
+			local ok, bound = false, false
+			if loc then ok, bound = pcall(C_Item.IsBound, loc) end
+			if not ok then bound = false end
 			add(out, ent, code, slot, GetInventoryItemLink("player", slot), id, GetInventoryItemCount("player", slot), bound and "b" or "")
 		end
 	end

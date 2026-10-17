@@ -138,12 +138,30 @@ return function(stub)
 		C_Container.ContainerIDToInventoryID = function(i) return 19 + i end
 		function BankButtonIDToInvSlotID(i) return 67 + i end
 
+		-- the client's ItemLocation (Blizzard_ObjectAPI, Gethe/wow-ui-source ItemLocation.lua): an object with methods;
+		-- every C_Item call that takes a location refuses a plain table (F1, "Usage: C_Item.<name>(itemLocation)")
+		ItemLocation = {}
+		local LocMixin = {}
+		LocMixin.__index = LocMixin
+		function LocMixin:IsValid() return self.bagID ~= nil or self.equipmentSlotIndex ~= nil end
+		function LocMixin:IsBagAndSlot() return self.bagID ~= nil end
+		function LocMixin:IsEquipmentSlot() return self.equipmentSlotIndex ~= nil end
+		function LocMixin:GetBagAndSlot() return self.bagID, self.slotIndex end
+		function LocMixin:GetEquipmentSlot() return self.equipmentSlotIndex end
+		function ItemLocation:CreateFromBagAndSlot(bag, slot) return setmetatable({ bagID = bag, slotIndex = slot }, LocMixin) end
+		function ItemLocation:CreateFromEquipmentSlot(slot) return setmetatable({ equipmentSlotIndex = slot }, LocMixin) end
+		local function needLoc(loc, name)
+			if type(loc) ~= "table" or getmetatable(loc) ~= LocMixin then error("Usage: C_Item." .. name .. "(itemLocation)", 3) end
+		end
+
 		-- item data
 		C_Item.DoesItemExist = function(loc)
+			needLoc(loc, "DoesItemExist")
 			if loc.bagID then return stub.bags[loc.bagID] ~= nil and stub.bags[loc.bagID][loc.slotIndex] ~= nil end
 			return W.equipped[loc.equipmentSlotIndex] ~= nil
 		end
 		C_Item.GetItemID = function(loc)
+			needLoc(loc, "GetItemID")
 			local r = loc.bagID and stub.bags[loc.bagID] and stub.bags[loc.bagID][loc.slotIndex] or W.equipped[loc.equipmentSlotIndex]
 			return r and r.id
 		end
@@ -172,6 +190,7 @@ return function(stub)
 			return it and it.collected == true or false
 		end
 		C_Item.IsBound = function(loc)
+			needLoc(loc, "IsBound")
 			local r = loc.bagID and stub.bags[loc.bagID] and stub.bags[loc.bagID][loc.slotIndex] or W.equipped[loc.equipmentSlotIndex]
 			return r and r.bound == true or false
 		end
