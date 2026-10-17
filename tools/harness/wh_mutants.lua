@@ -77,4 +77,5 @@ return {
 	{ "secret-author-filtered", "PourSocialScore/PSS_ChatBlock.lua", "if isSecret(author) or isSecret(guid) then\n", "if false then\n", "fr:secretsweep" },
 	{ "secret-guid-ignored", "PourSocialScore/PSS_ChatBlock.lua", "if isSecret(author) or isSecret(guid) then\n", "if isSecret(author) then\n", "fr:secretsweep" },
 	{ "secret-line-shown-not", "PourSocialScore_Libraries/PSS_Commands.lua", 'secret (unreadable, not filtered): %d | ', "", "fr:secretsweep" },
+	{ "error-why-stale", "PourSocialScore/PSS_ChatBlock.lua", 'stats.why = "an error while checking the line (lastError in /pssguild chat)"', "", "fr:passwhy" },
 }

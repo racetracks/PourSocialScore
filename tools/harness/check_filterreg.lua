@@ -215,6 +215,20 @@ elseif phase == "passwhy" then
 	check(not deliver("CHAT_MSG_WHISPER", "Hidden-Testrealm", "hello"), "a secret author was hidden")
 	check(tostring(M.PSS_CoreStats.why):find("secret", 1, true), "why for a secret author: " .. tostring(M.PSS_CoreStats.why))
 	_G.issecretvalue = keepSecret
+
+	-- 3.7.0.112: an error while checking a line replaces the stale reason, and is counted and shown
+	say("PSS", "add Broken-Testrealm")
+	local mt0 = getmetatable(PourSocialScoreDB) or {}
+	setmetatable(PourSocialScoreDB, { __index = mt0.__index, __newindex = function(t, k, v)
+		if k == "hiddenTotal" then error("planted fault") end
+		if mt0.__newindex then return mt0.__newindex(t, k, v) end
+		rawset(t, k, v)
+	end })
+	local e0 = M.PSS_CoreStats.errors
+	deliver("CHAT_MSG_WHISPER", "Broken-Testrealm", "hi")
+	setmetatable(PourSocialScoreDB, mt0)
+	check(M.PSS_CoreStats.errors == e0 + 1, "the planted fault was not counted")
+	check(tostring(M.PSS_CoreStats.why):find("an error while checking", 1, true), "why after an error is stale: " .. tostring(M.PSS_CoreStats.why))
 	local out = say("PSSGUILD", "chat")
 	check(out:find("last line passed because: ", 1, true), "/pssguild chat does not say why the last line passed:\n" .. out)
 end

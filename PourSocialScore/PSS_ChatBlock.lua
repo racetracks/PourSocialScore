@@ -338,6 +338,7 @@ end
 
 local function noteError(err)
 	stats.errors = stats.errors + 1
+	stats.why = "an error while checking the line (lastError in /pssguild chat)"		-- a constant: nothing is allocated per line
 	if not stats.lastError then
 		M.ChatMsg("|cffff5555Pour Social Score chat block error (shown once, see /pssguild status):|r " .. tostring(err))
 	end

@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.112 - /pssguild chat names an error as the reason the last line passed (no stale reason)
+
+- Chat filtering: when checking a line raised an error, /pssguild chat still showed the reason of an earlier line as "last line passed because". It now says an error happened (the error itself is shown by lastError and counted in errors).
+
 => 3.7.0.111 - W-8 secret order: the :893 target compare and the other isSecret-after-compare sites, unreadable lines counted and shown, source-order lint, secret sweep
 
 - Chat filtering: when the game hides a sender's name (chat restrictions such as an encounter, a Mythic+ key, a PvP match, or the test setting addonChatRestrictionsForced), PSS no longer raises an error on your own whisper being sent to a hidden name, and the same wrong order of checks is fixed in three other places (channel names, and two in the guild list code). Lines whose sender is hidden are still passed through unfiltered, as before, but are now counted: /pssguild chat shows "secret (unreadable, not filtered): n" and says so when every line was unreadable, which points at a leftover restriction setting. A source check now fails the build if a value is compared before it is checked for being hidden.
