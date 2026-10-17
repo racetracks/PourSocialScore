@@ -125,7 +125,7 @@ M.PSS_Provide("wh.tip", function(input)
 	if type(key) ~= "string" then return out end
 	local okc, list, total = pcall(holderList, key)
 	if not okc then		-- a bug for one item is noted once and never counts toward the breaker, so other items keep their tooltips
-		if M.PSS_ErrNote then M.PSS_ErrNote("fail", "wh.tip", tostring(list)) end
+		if M.PSS_ErrNote then M.PSS_ErrNote("fail", "wh.tip", key .. ": " .. tostring(list)) end
 		return out
 	end
 	if not list then return out end

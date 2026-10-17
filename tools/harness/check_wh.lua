@@ -274,6 +274,7 @@ if phase == "err" then
 		local code = tostring(t):match("^(%a+): ")
 		check(code and M.PSS_ERR_CODES[code], "TST-p025: text " .. i .. " starts with a known code: " .. tostring(t))
 	end
+	check(M.PSS_ERR_CODES.early and select(1, M.PSS_ErrSplit("early: x")) == "early", "W4-3: early is a known code and splits as one")
 	M.ChatMsg = realMsg
 end
 
@@ -2364,6 +2365,16 @@ if phase == "entplant" or phase == "entroute" then
 		for ent in pairs(PSS_WarehouseDB.inv or {}) do if not rec[ent] then bad[#bad + 1] = "inv " .. ent end end
 		for ent in pairs(PSS_WarehouseDB.gold or {}) do if not rec[ent] then bad[#bad + 1] = "gold " .. ent end end
 		check(#bad == 0, "F4: every saved container and gold value has an entity row (" .. table.concat(bad, ", ") .. ")")
+		-- the store guard itself, with no help from Drop Cheapest Thing or any event order: a read made while routing is off
+		-- is refused, and the saved entity table is the same table afterwards (rows and count unchanged)
+		local tbl, nBefore = PSS_OptionsDB.ent, n
+		local realReady = M.PSS_SavedReady
+		M.PSS_SavedReady = function() return false end
+		local id, why = M.PSS_EntityId("c", "Guardcheck", "Realm", true)
+		M.PSS_SavedReady = realReady
+		check(id == nil and tostring(why):find("^early: "), "F4 guard: a create before routing is refused (" .. tostring(id) .. " " .. tostring(why) .. ")")
+		local rec2, n2 = rows()
+		check(PSS_OptionsDB.ent == tbl and n2 == nBefore and rec2[1] and rec2[1]:find("^c;Tester;Realm") and not rec2[n2 + 1], "F4 guard: the saved entity table is untouched (n " .. tostring(nBefore) .. " -> " .. tostring(n2) .. ")")
 	end
 end
 
@@ -2528,6 +2539,41 @@ if phase == "winmem" then
 	check(again - closedKb < 40, "a second open/close keeps under 40 KB: " .. ("%.1f"):format(again - closedKb))
 end
 
+-- W4-3b (R1-03): the Drop Cheapest Thing wait for routing ends: it re-arms while routing is not ready, scans once when it is, and
+-- leaves no registration behind (also when the option is switched off while it waits)
+if phase == "dttwait" then
+	libs()
+	local frame = M.PSS_DttFrame
+	check(M.PSS_On("dtt") and frame, "Drop Cheapest Thing is on and started")
+	local scans, realScan = 0, M.PSS_DttScan
+	M.PSS_DttScan = function(...) scans = scans + 1 return realScan(...) end
+	local realReady, ready = M.PSS_SavedReady, false
+	M.PSS_SavedReady = function() return ready end
+	local function reg() return frame:IsEventRegistered("PLAYER_ENTERING_WORLD") end
+	local function fire(e) frame:GetScript("OnEvent")(frame, e) end
+	check(not reg(), "nothing waits at the start")
+	fire("BAG_UPDATE_DELAYED")
+	check(scans == 0 and reg(), "routing not ready: no scan, the wait is registered (" .. scans .. ")")
+	fire("PLAYER_ENTERING_WORLD")
+	check(scans == 0 and reg(), "still not ready at the first PLAYER_ENTERING_WORLD: no scan, the wait is registered again")
+	ready = true
+	fire("PLAYER_ENTERING_WORLD")
+	check(scans == 1 and not reg(), "ready: exactly one scan and no registration left (" .. scans .. ")")
+	fire("PLAYER_ENTERING_WORLD")
+	check(scans == 1, "a later PLAYER_ENTERING_WORLD scans nothing more")
+	ready = false
+	fire("BAG_UPDATE_DELAYED")
+	check(reg(), "a second wait is registered")
+	M.PSS_SetOpt("dttIcon", "global", false)
+	check(not reg(), "switching the option off while waiting removes the registration")
+	ready = true
+	fire("PLAYER_ENTERING_WORLD")
+	check(scans == 1, "and nothing scans after it")
+	M.PSS_SetOpt("dttIcon", "global", nil)
+	M.PSS_SavedReady, M.PSS_DttScan = realReady, realScan
+	for _, l in ipairs(M.PSS_ErrLines()) do check(not l:find(" ent ", 1, true) and not l:find("breaker", 1, true), "no error line: " .. l) end
+end
+
 -- W4-3 (G2): nothing reads or creates an entity before the saved data is routed, and Drop Cheapest Thing scans once it is
 if phase == "entearly" then
 	libs()
@@ -2546,11 +2592,15 @@ if phase == "entearly" then
 	M.PSS_SavedReady = function() return false end
 	local id, why = M.PSS_EntityId("c", "Guardcheck", "Realm", true)
 	M.PSS_SavedReady = realReady
-	check(id == nil and tostring(why):find("not there yet", 1, true), "an entity asked for before routing is refused: " .. tostring(id) .. " " .. tostring(why))
+	check(id == nil and tostring(why):find("^early: "), "an entity asked for before routing is refused with the early code: " .. tostring(id) .. " " .. tostring(why))
 	check(#M.PSS_EntityList("c") == before, "and no row is made")
-	local early
-	for _, l in ipairs(M.PSS_ErrLines()) do if l:find("early ent", 1, true) then early = true end end
-	check(early, "the refusal is noted with the early code")
+	local early, newer = 0, 0
+	local rows = M.PSS_ErrRows()
+	for i = 1, rows.n do
+		if rows[i][2] == "ent" and rows[i][1] == "early" then early = early + rows[i][4] end
+		if rows[i][2] == "ent" and rows[i][1] == "newer" then newer = newer + rows[i][4] end
+	end
+	check(early >= 1 and newer == 0, "the ring holds the refusal as code early, never newer (early " .. early .. ", newer " .. newer .. ")")
 end
 
 -- W4-1 (G1): an empty set never widens a query; hovering an item nobody holds is not an error
@@ -2578,6 +2628,12 @@ if phase == "entempty" or phase == "tipjoin" or phase == "tipbreaker" then
 		local noted
 		for _, l in ipairs(M.PSS_ErrLines()) do if l:find("wh.tip", 1, true) and l:find("planted bug", 1, true) then noted = true end end
 		check(noted, "the bug is noted in the status")
+		local named = 0
+		local rows = M.PSS_ErrRows()
+		for i = 1, rows.n do
+			if rows[i][2] == "wh.tip" and rows[i][3]:find("^88800%d: .*planted bug") then named = named + 1 end
+		end
+		check(named == 6, "six notes, each naming its item (" .. named .. ")")
 		check(#hover(GameTooltip, T.Item, { id = 2589, hyperlink = "|cffffffff|Hitem:2589::::::::|h[Linen Cloth]|h|r" }) > 0, "the next item still lists its holders")
 	elseif phase == "entempty" then
 		check(none("wh.ent", nil) > 0, "wh.ent with no input lists everyone")
@@ -2591,16 +2647,38 @@ if phase == "entempty" or phase == "tipjoin" or phase == "tipbreaker" then
 		_G.IsShiftKeyDown = function() return false end
 		M.PSS_ErrReset()
 		local unheld = { id = 999001, hyperlink = "|cffffffff|Hitem:999001::::::::|h[Nobody Has This]|h|r" }
-		for i = 1, 6 do
+		local entCalls, realCall = 0, M.PSS_Call
+		M.PSS_Call = function(name, ...) if name == "wh.ent" then entCalls = entCalls + 1 end return realCall(name, ...) end
+		for i = 1, 10 do
 			check(#hover(GameTooltip, T.Item, unheld) == 0, "an unheld item adds no line (hover " .. i .. ")")
 			unheld.id = 999001 + i; unheld.hyperlink = "|cffffffff|Hitem:" .. unheld.id .. "::::::::|h[x]|h|r"
 		end
 		check(#hover(ItemRefTooltip, T.Item, unheld) == 0, "an unheld chat link adds no line")
+		M.PSS_Call = realCall
+		check(entCalls == 0, "nobody holds it, so wh.ent is not asked at all (" .. entCalls .. " calls)")
+		local rows = M.PSS_ErrRows()
+		for i = 1, rows.n do check(rows[i][2] ~= "wh.tip", "no error row for wh.tip: " .. tostring(rows[i][3])) end
 		check(M.PSS_ErrCount("wh.tip") == 0 and not M.PSS_ErrOpen("wh.tip"), "no wh.tip failure and no open breaker: " .. M.PSS_ErrCount("wh.tip"))
 		local bad = {}
 		for _, l in ipairs(M.PSS_ErrLines()) do if l:find("wh.tip", 1, true) then bad[#bad + 1] = l end end
 		check(#bad == 0, "nothing about wh.tip in the status: " .. (bad[1] or ""))
-		check(#hover(GameTooltip, T.Item, { id = 2589, hyperlink = "|cffffffff|Hitem:2589::::::::|h[Linen Cloth]|h|r" }) > 0, "a held item still lists its holders")
+		-- a wh.ent that answers with an entity the holder map never saw: the row is skipped, nothing errors
+		M.PSS_Call = function(name, ...)
+			local out, err = realCall(name, ...)
+			if name == "wh.ent" and out then
+				local c = { cols = out.cols, n = out.n + 1 }
+				for i = 1, out.n do c[i] = out[i] end
+				c[c.n] = { 99999, "c", "Ghost", "Realm", "Alliance", "WARRIOR", "Human", 2, false }
+				return c, err
+			end
+			return out, err
+		end
+		local lines = hover(GameTooltip, T.Item, { id = 2589, hyperlink = "|cffffffff|Hitem:2589::::::::|h[Linen Cloth]|h|r" })
+		M.PSS_Call = realCall
+		local ghost
+		for _, l in ipairs(lines) do if l:find("Ghost", 1, true) then ghost = true end end
+		check(#lines > 0 and not ghost, "an unknown entity row is skipped and the holders still list (" .. #lines .. " lines)")
+		check(M.PSS_ErrCount("wh.tip") == 0 and not M.PSS_ErrOpen("wh.tip"), "and no wh.tip failure")
 	end
 end
 

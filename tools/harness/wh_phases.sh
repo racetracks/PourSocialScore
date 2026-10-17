@@ -7,7 +7,7 @@ here=$(dirname "$0")
 fail=0
 n=0
 bad=0
-DEFAULT="stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict itemloc live name track caps delete ent numbers money search searchloc searchwin goldorphan orphan itemzero whtab whtaboff realms sweepbudget import0 tooltip entempty tipjoin tipbreaker entearly winmem everywhere cmd query2 model edges budget budgetoff perf parity base36 whoptions synapi shimfault gwlint synevents"
+DEFAULT="stub err codec codecprop store2 mapstore integrity idx watch upg registry schema off layers dict itemloc live name track caps delete ent numbers money search searchloc searchwin goldorphan orphan itemzero whtab whtaboff realms sweepbudget import0 tooltip entempty tipjoin tipbreaker entearly dttwait winmem everywhere cmd query2 model edges budget budgetoff perf parity base36 whoptions synapi shimfault gwlint synevents"
 phases=${*:-$DEFAULT}
 full=0
 [ -z "$*" ] && full=1
@@ -18,7 +18,7 @@ for ph in $phases; do
 	meas=
 	case $ph in budget|budgetoff) meas=1 ;; esac
 	case $ph in registry|schema) comp=logging,warehouse,bags ;; dict) comp=logging,bags ;; live|itemloc) comp=logging,bags ;;
-		track|caps|delete|money|search|searchloc|searchwin|goldorphan|orphan|itemzero|whtab|realms|sweepbudget|import0|tooltip|entempty|tipjoin|tipbreaker|everywhere|cmd|query2|model|edges|budget|perf|parity|base36|whoptions|synapi|shimfault|gwlint|synevents) comp=logging,warehouse,bags; seed=PSS_WH_SEED=1 ;; ent|numbers) comp=logging,warehouse,bags ;; entearly) comp=logging,warehouse,bags,dtt; seed=PSS_WH_SEED=1 ;; winmem) comp=logging,warehouse,bags; seed=PSS_WH_SEED=1 ;; off|budgetoff) comp=none ;; esac
+		track|caps|delete|money|search|searchloc|searchwin|goldorphan|orphan|itemzero|whtab|realms|sweepbudget|import0|tooltip|entempty|tipjoin|tipbreaker|everywhere|cmd|query2|model|edges|budget|perf|parity|base36|whoptions|synapi|shimfault|gwlint|synevents) comp=logging,warehouse,bags; seed=PSS_WH_SEED=1 ;; ent|numbers) comp=logging,warehouse,bags ;; entearly|dttwait) comp=logging,warehouse,bags,dtt; seed=PSS_WH_SEED=1 ;; winmem) comp=logging,warehouse,bags; seed=PSS_WH_SEED=1 ;; off|budgetoff) comp=none ;; esac
 	for cam in "" "PSS_CAMELOT=1"; do
 		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=$comp $seed $cam ${meas:+PSS_MEASURE=1} lua5.1 "$here/run.lua" . - - "$here/check_wh.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | sed "s/^PASS wh $ph/PASS wh $ph ${cam:+(Camelot)}/"
