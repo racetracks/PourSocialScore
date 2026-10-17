@@ -305,6 +305,12 @@ function M.PSS_SlashPSS (msg)
 		if not M.PSS_On("warehouse") or not M.PSS_WhCommand then M.ShowMsg(M.PSS_OFF_TEXT.warehouse)
 		else M.PSS_WhCommand(args) end
 
+	elseif args[1] == "q" then
+
+		-- the Spyglass engine (search-helper; PSS_IxExport.lua): the query keeps its case
+		if not M.PSS_QCommand then M.ShowMsg("|cffff5555Spyglass: the search engine did not load.|r")
+		else M.PSS_QCommand(raw:match("^%S+%s*(.*)$")) end
+
 	elseif args[1] == "money" then
 
 		if not M.PSS_On("warehouse") or not M.PSS_MoneyCommand then M.ShowMsg(M.PSS_OFF_TEXT.warehouse)
@@ -364,6 +370,7 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  |cffffff00macro|cffffffff: Create the preloaded macros (Camelot): /pss macro global create, /pss macro <class> create [account|character]")
 		M.ShowMsg ("  |cffffff00dtt|cffffffff: Destroy or sell the cheapest junk item: /pss dtt | list | sell | never | always | forget | options | log | icon" .. (M.PSS_On("dtt") and "" or " (off)"))
 		M.ShowMsg ("  |cffffff00wh|cffffffff: Search every character, guild bank and the warband: /pss wh | search <text> | status | import | sweep | hide | delete; /pss money" .. (M.PSS_On("warehouse") and "" or " (off)"))
+		M.ShowMsg ("  |cffffff00q|cffffffff: Spyglass, search everything PSS knows: /pss q <query> | status | export <query> [as pssio] | alert <id> on|off")
 		M.ShowMsg ("  |cffffff00acp|cffffffff: Turn addons on and off, see what they cost, addon profiles: /pss acp (the AddOns tab), /pss acp list | on | off | load | all | undo | profiles | profile | lock | api" .. (M.PSS_On("addons") and "" or " (off)"))
 		if M.PSS_On("addons") then M.ShowMsg ("  " .. (M.PSS_ACPTaken and "/acp is used by another addon; use /pss acp" or "/acp = /pss acp")) end
 		M.ShowMsg ("  " .. L["HELP_9"])
