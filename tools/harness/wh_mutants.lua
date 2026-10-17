@@ -22,6 +22,7 @@ return {
 	{ "ent-empty-is-all", "PourSocialScore_Libraries/PSS_WhIndex.lua", 'local want = input and input.cols and input.cols[1] == "ent"', 'local want = input and input.n > 0 and input.cols[1] == "ent"', "entempty tipjoin" },
 	{ "money-empty-is-all", "PourSocialScore_Libraries/PSS_Money.lua", 'if input and input.cols and input.cols[1] == "ent" then', 'if input and input.n > 0 and input.cols[1] == "ent" then', "entempty" },
 	{ "search-empty-is-all", "PourSocialScore_Libraries/PSS_ItemSearch.lua", "if input and input.n then", "if input and input.n and input.n > 0 then", "entempty" },
+	{ "breaker-global", "PourSocialScore_Libraries/PSS_WhTooltip.lua", "if not okc then		-- a bug for one item", "if false then		-- a bug for one item", "tipbreaker" },
 	{ "tooltip-forbidden", "PourSocialScore_Libraries/PSS_WhTooltip.lua", "if tip and tip.IsForbidden and tip:IsForbidden() then return false end", "", "tooltip" },
 	{ "tooltip-limit-ignored", "PourSocialScore_Libraries/PSS_WhTooltip.lua", 'local limit = tonumber(M.PSS_Opt("whTipLimit")) or 4', "local limit = 0", "tooltip" },
 	{ "gateway-secret", "PourSocialScore_Libraries/PSS_Gw.lua", "if secret(...) then return copy(row.empty) end", "", "gwlint synapi edges" },

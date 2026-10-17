@@ -123,7 +123,11 @@ M.PSS_Provide("wh.tip", function(input)
 	if hit then return hit end
 	local out = { cols = COLS, n = 0 }
 	if type(key) ~= "string" then return out end
-	local list, total = holderList(key)
+	local okc, list, total = pcall(holderList, key)
+	if not okc then		-- a bug for one item is noted once and never counts toward the breaker, so other items keep their tooltips
+		if M.PSS_ErrNote then M.PSS_ErrNote("fail", "wh.tip", tostring(list)) end
+		return out
+	end
 	if not list then return out end
 	limited(list, out)
 	if M.PSS_Opt("whTipTotal") and total > 0 then out.n = out.n + 1; out[out.n] = { "total", "Total", tostring(total) } end

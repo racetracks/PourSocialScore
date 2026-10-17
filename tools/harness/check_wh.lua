@@ -2506,13 +2506,32 @@ if phase == "tooltip" then
 end
 
 -- W4-1 (G1): an empty set never widens a query; hovering an item nobody holds is not an error
-if phase == "entempty" or phase == "tipjoin" then
+if phase == "entempty" or phase == "tipjoin" or phase == "tipbreaker" then
 	libs()
 	local w = WORLD.world()
 	loadWorld(w)
 	local function none(svc, input, opts) local s = M.PSS_Call(svc, input, opts); return s and s.n or -1 end
 	local empty = { cols = { "ent" }, n = 0 }
-	if phase == "entempty" then
+	if phase == "tipbreaker" then
+		-- W4-2: a bug inside the tooltip for six different items never opens the breaker; the next item still answers
+		local T = Enum.TooltipDataType
+		local function hover(tip, kind, data) tip._lines = nil; tip._forbidden = nil; H.RunTooltip(kind, tip, data); return tip._lines or {} end
+		_G.IsShiftKeyDown = function() return false end
+		M.PSS_ErrReset()
+		local realScope, bugs = M.PSS_WhRealmScope, 6
+		M.PSS_WhRealmScope = function(...) if bugs > 0 then bugs = bugs - 1; error("planted bug") end return realScope(...) end
+		for i = 1, 6 do
+			local id = 888000 + i
+			hover(GameTooltip, T.Item, { id = id, hyperlink = "|cffffffff|Hitem:" .. id .. "::::::::|h[x]|h|r" })
+		end
+		M.PSS_WhRealmScope = realScope
+		check(bugs == 0, "the planted bug ran six times: " .. bugs)
+		check(not M.PSS_ErrOpen("wh.tip") and M.PSS_ErrCount("wh.tip") == 0, "six bugs do not open the wh.tip breaker or count: " .. M.PSS_ErrCount("wh.tip"))
+		local noted
+		for _, l in ipairs(M.PSS_ErrLines()) do if l:find("wh.tip", 1, true) and l:find("planted bug", 1, true) then noted = true end end
+		check(noted, "the bug is noted in the status")
+		check(#hover(GameTooltip, T.Item, { id = 2589, hyperlink = "|cffffffff|Hitem:2589::::::::|h[Linen Cloth]|h|r" }) > 0, "the next item still lists its holders")
+	elseif phase == "entempty" then
 		check(none("wh.ent", nil) > 0, "wh.ent with no input lists everyone")
 		check(none("wh.ent", empty) == 0, "wh.ent with an empty set lists no one: " .. none("wh.ent", empty))
 		check(none("wh.ent", empty, { hidden = true }) == 0, "wh.ent with an empty set and options lists no one")
