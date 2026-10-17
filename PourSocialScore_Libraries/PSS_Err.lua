@@ -8,7 +8,7 @@
 --   M.PSS_ErrSettle()                       half-opens every open breaker (called after a settle)
 --   M.PSS_ErrRows()                         the ring as a record set (service err.rows)
 -- Codes (the text of an error always starts with one: "<code>: <text>"):
---   arg cap secret newer fail integrity combat missing
+--   arg cap secret newer fail integrity combat missing early
 -- A secret never counts toward the breaker; 5 other failures open a service
 -- for the session (half-open at the next settle, closed by one success).
 -- Nothing is printed here: the red chat line belongs to M.PSS_NoteListenerError
@@ -21,7 +21,7 @@ local M = addon.M
 local type, tostring, pairs = type, tostring, pairs
 local remove, concat = table.remove, table.concat
 
-local CODES = { arg = true, cap = true, secret = true, newer = true, fail = true, integrity = true, combat = true, missing = true }
+local CODES = { arg = true, cap = true, secret = true, newer = true, fail = true, integrity = true, combat = true, missing = true, early = true }
 local LIMIT = 50		-- distinct errors kept
 local BREAK = 5			-- failures that open a service
 

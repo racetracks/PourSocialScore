@@ -2505,6 +2505,21 @@ if phase == "tooltip" then
 	check(sums == 1, "TST-p197: one wh.sum for two hovers (" .. sums .. ")")
 end
 
+-- W4-3 (G2): nothing reads or creates an entity before the saved data is routed, and Drop Cheapest Thing scans once it is
+if phase == "entearly" then
+	libs()
+	for _, l in ipairs(M.PSS_ErrLines()) do
+		check(not l:find(" ent ", 1, true), "no entity line in the status at login: " .. l)
+	end
+	check(M.PSS_SavedReady(), "the saved data is routed")
+	check(M.PSS_Me(false) and M.PSS_Me(false) > 0, "this character's entity row exists after login")
+	check(M.PSS_On("dtt") and M.PSS_DttFrame, "Drop Cheapest Thing is on and started")
+	local seen = {}
+	for _, id in ipairs(M.PSS_EntityList("c")) do seen[id] = (seen[id] or 0) + 1 end
+	for id, n in pairs(seen) do check(n == 1, "entity " .. id .. " listed once") end
+	check(M.PSS_ERR_CODES.early, "the early code exists")
+end
+
 -- W4-1 (G1): an empty set never widens a query; hovering an item nobody holds is not an error
 if phase == "entempty" or phase == "tipjoin" or phase == "tipbreaker" then
 	libs()

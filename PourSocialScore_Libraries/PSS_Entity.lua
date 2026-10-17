@@ -161,7 +161,10 @@ function M.PSS_EntityId(kind, name, realm, create, unit)
 	end
 	local new, why = ent.Add(rec)
 	if not new then
-		if M.PSS_ErrNote then M.PSS_ErrNote(why == "cap" and "cap" or "newer", "ent", why == "cap" and "500 entities: no room for another" or tostring(why)) end
+		if M.PSS_ErrNote then
+			local early = tostring(why):find("not there yet", 1, true)		-- asked before the saved data was routed (F4): a caller bug, not a newer layout
+			M.PSS_ErrNote(why == "cap" and "cap" or early and "early" or "newer", "ent", why == "cap" and "500 entities: no room for another" or early and "asked before the saved data was routed" or tostring(why))
+		end
 		return nil, why
 	end
 	-- an id is handed out only when its row is saved and reads back (F4)
