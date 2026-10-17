@@ -219,8 +219,10 @@ local function transferred()
 	end
 end
 
+local started
 function M.PSS_WhMetaStart(warehouse)
-	if not warehouse then return end
+	if not warehouse or started then return end
+	started = true
 	M.PSS_Trigger({ id = "wh.cur", gate = "warehouse", on = { "CURRENCY_DISPLAY_UPDATE", "PLAYER_ENTERING_WORLD" },
 		settle = { "BAG_UPDATE_DELAYED", "PLAYER_ENTERING_WORLD", "PLAYER_LOGOUT" }, run = "wh.curWrite", key = function() return "c" end })
 	M.PSS_Trigger({ id = "wh.transfer", gate = "warehouse", on = { "CURRENCY_TRANSFER_LOG_UPDATE", "CURRENCY_TRANSFER_FAILED" }, settle = "now", run = "wh.transfer",

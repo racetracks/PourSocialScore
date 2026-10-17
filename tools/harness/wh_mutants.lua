@@ -36,4 +36,7 @@ return {
 	{ "compaction-index-stale", "PourSocialScore_Libraries/PSS_WhStore.lua", "ms.Bump()		-- the holders index was built on the old ids\n			if M.PSS_IndexDrop then M.PSS_IndexDrop(\"wh.holders\") end", "", "model" },
 	{ "kept-keys-uncapped", "PourSocialScore/PSS_Watch.lua", "for i = 1001, set.n do d[set[i][1]] = nil end", "", "err" },
 	{ "undo-cap-ignored", "PourSocialScore/PSS_Upgrade.lua", "if #blob <= M.PSS_UNDO_CAP then\n				rec.undo = { at = rec.at, step = done,", "if true then\n				rec.undo = { at = rec.at, step = done,", "upg" },
+	{ "undo-slot-left-in-place", "PourSocialScore/PSS_Upgrade.lua", "elseif not snap and rec.undo and not retrying then\n\t\t\trec.undo = nil", "elseif not snap and rec.undo and not retrying then", "upg" },
+	{ "shim-computes", "PourSocialScore_Libraries/PSS_GwSyndicator.lua", "local Call = function(...)", "local WD = PSS_WarehouseDB\nlocal Call = function(...)", "gwlint" },
+	{ "meta-hooks-twice", "PourSocialScore_Libraries/PSS_WhMeta.lua", "if not warehouse or started then return end", "if not warehouse then return end", "track" },
 }

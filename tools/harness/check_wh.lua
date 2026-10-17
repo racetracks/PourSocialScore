@@ -1050,6 +1050,19 @@ if phase == "track" then
 	libs()
 	local me = M.PSS_Me(false)
 	check(me ~= nil, "TST-00120: the first read made this character an entity")
+	-- R7-02: the currency hook is installed once however often the warehouse starts
+	do
+		local real, n = hooksecurefunc, 0
+		hooksecurefunc = function(...) n = n + 1 return real(...) end
+		M.PSS_WhMetaStart(true); M.PSS_WhMetaStart(true)
+		hooksecurefunc = real
+		check(n <= 1 and (n == 0 or true), "R7-02: starting twice hooks at most once (" .. n .. ")")
+		local n1 = n
+		hooksecurefunc = function(...) n = n + 1 return real(...) end
+		M.PSS_WhMetaStart(true)
+		hooksecurefunc = real
+		check(n == n1, "R7-02: a later start hooks nothing more")
+	end
 	local changed = {}
 	M.Events.Register("WH_CHANGED", function(set) changed[#changed + 1] = set end)
 	-- the first read saved what needs no window
