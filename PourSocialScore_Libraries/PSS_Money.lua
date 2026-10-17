@@ -88,7 +88,7 @@ M.PSS_Provide("money.gold", function(input, opts)
 	local gold = d and d.gold
 	if not gold then return out end
 	local ids = {}
-	if input and input.n > 0 and input.cols[1] == "ent" then
+	if input and input.cols and input.cols[1] == "ent" then		-- no input lists everyone; an empty set lists no one
 		for i = 1, input.n do ids[#ids + 1] = input[i][1] end
 	else
 		for ent in pairs(gold) do ids[#ids + 1] = ent end

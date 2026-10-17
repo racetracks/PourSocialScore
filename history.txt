@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.109 - W-4 G1: an empty set never widens a query
+
+- Fixed: hovering an item nobody holds (a vendor item, a chat link) made the Warehouse tooltip fail five times and stop for the session. An empty list of holders now means no holders, not everyone. The same rule applies to the gold list and the item search.
+
 => 3.7.0.108 - Warehouse: empty equipment slots are not items
 
 - Fixed: the Warehouse search showed a row "item:0" held by "Equipped" (a red question mark). An empty equipment slot that the client reports as item 0 is no longer saved, and an item 0 row already saved is no longer listed.

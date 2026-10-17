@@ -346,7 +346,7 @@ function M.PSS_ItemSearchStats() return stats end
 
 local function candidates(input)
 	local keys = {}
-	if input and input.n and input.n > 0 then
+	if input and input.n then		-- no input searches every held item; an empty set searches none
 		local c = M.PSS_SetCol(input, "item") or M.PSS_SetCol(input, "key") or 1
 		local seen = {}
 		for i = 1, input.n do

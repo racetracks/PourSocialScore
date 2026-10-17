@@ -2505,6 +2505,38 @@ if phase == "tooltip" then
 	check(sums == 1, "TST-p197: one wh.sum for two hovers (" .. sums .. ")")
 end
 
+-- W4-1 (G1): an empty set never widens a query; hovering an item nobody holds is not an error
+if phase == "entempty" or phase == "tipjoin" then
+	libs()
+	local w = WORLD.world()
+	loadWorld(w)
+	local function none(svc, input, opts) local s = M.PSS_Call(svc, input, opts); return s and s.n or -1 end
+	local empty = { cols = { "ent" }, n = 0 }
+	if phase == "entempty" then
+		check(none("wh.ent", nil) > 0, "wh.ent with no input lists everyone")
+		check(none("wh.ent", empty) == 0, "wh.ent with an empty set lists no one: " .. none("wh.ent", empty))
+		check(none("wh.ent", empty, { hidden = true }) == 0, "wh.ent with an empty set and options lists no one")
+		check(none("money.gold", nil) >= 0 and none("money.gold", empty) == 0, "money.gold with an empty set lists no one: " .. none("money.gold", empty))
+		check(M.PSS_Call("item.search", { cols = { "item" }, n = 0 }, { text = "linen" }).n == 0, "item.search over an empty set finds nothing")
+	else
+		local T = Enum.TooltipDataType
+		local function hover(tip, kind, data) tip._lines = nil; tip._forbidden = nil; H.RunTooltip(kind, tip, data); return tip._lines or {} end
+		_G.IsShiftKeyDown = function() return false end
+		M.PSS_ErrReset()
+		local unheld = { id = 999001, hyperlink = "|cffffffff|Hitem:999001::::::::|h[Nobody Has This]|h|r" }
+		for i = 1, 6 do
+			check(#hover(GameTooltip, T.Item, unheld) == 0, "an unheld item adds no line (hover " .. i .. ")")
+			unheld.id = 999001 + i; unheld.hyperlink = "|cffffffff|Hitem:" .. unheld.id .. "::::::::|h[x]|h|r"
+		end
+		check(#hover(ItemRefTooltip, T.Item, unheld) == 0, "an unheld chat link adds no line")
+		check(M.PSS_ErrCount("wh.tip") == 0 and not M.PSS_ErrOpen("wh.tip"), "no wh.tip failure and no open breaker: " .. M.PSS_ErrCount("wh.tip"))
+		local bad = {}
+		for _, l in ipairs(M.PSS_ErrLines()) do if l:find("wh.tip", 1, true) then bad[#bad + 1] = l end end
+		check(#bad == 0, "nothing about wh.tip in the status: " .. (bad[1] or ""))
+		check(#hover(GameTooltip, T.Item, { id = 2589, hyperlink = "|cffffffff|Hitem:2589::::::::|h[Linen Cloth]|h|r" }) > 0, "a held item still lists its holders")
+	end
+end
+
 if phase == "everywhere" or phase == "whoptions" then
 	libs()
 	local w = WORLD.world()

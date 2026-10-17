@@ -84,6 +84,7 @@ local function holderList(key)
 		if not e then e = { 0, 0, 0, 0, 0, 0, 0, 0, 0 }; by[r[2]] = e; ids[#ids + 1] = { r[2] } end
 		for c = 1, 9 do e[c] = e[c] + (r[2 + c] or 0) end
 	end
+	if #ids == 0 then return {}, 0 end		-- nobody holds it: an empty set must never widen wh.ent to every entity
 	local entSet = { cols = { "ent" }, n = #ids }
 	for i, v in ipairs(ids) do entSet[i] = v end
 	local ents, eerr = M.PSS_Call("wh.ent", entSet)
@@ -93,7 +94,7 @@ local function holderList(key)
 	for i = 1, ents.n do
 		local f = ents[i]
 		local e = by[f[1]]
-		if not (f[2] == "g" and not M.PSS_Opt("whTipGuilds")) then
+		if e and not (f[2] == "g" and not M.PSS_Opt("whTipGuilds")) then
 			local parts, n = {}, 0
 			for c, name in ipairs(COLNAMES) do
 				local v = e[c]

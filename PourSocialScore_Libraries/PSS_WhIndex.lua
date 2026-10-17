@@ -130,7 +130,7 @@ end
 ------------------------------------------------------------------------
 M.PSS_Provide("wh.ent", function(input, opts)
 	local out = { cols = { "ent", "kind", "name", "realm", "faction", "class", "race", "sex", "hidden" }, n = 0 }
-	local want = input and input.n > 0 and input.cols[1] == "ent"
+	local want = input and input.cols and input.cols[1] == "ent"		-- no input lists everyone; an empty set lists no one
 	local ids = {}
 	if want then
 		for i = 1, input.n do ids[#ids + 1] = input[i][1] end
