@@ -1,6 +1,15 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.107 - Warehouse fixes from the first in-game test
+
+- Fixed: the equipped items could not be read on Camelot (an error about the item's bound state); the Warehouse now asks the client for an item location the way the client wants it.
+- New: choose which realms the Warehouse covers (Options, Warehouse: connected realms, the default, or all realms); the Search Everywhere window has the same choice.
+- /pss wh search <text> now opens the Search Everywhere window with the text filled in (add chat after the text to print the matches in chat, which waits until the client has given the item names). /pss wh search with no text opens the window.
+- Search Everywhere shows this character's items when nothing is typed, with the item's icon on the left of every row and its tooltip when you hover a row.
+- The Warehouse has its own tab in the main window (only while the Warehouse is on), with the same search.
+- Gold saved for a character that is no longer saved is no longer shown as "?"; /pss wh status says how many there are and /pss wh sweep removes them.
+
 => 3.7.0.106 - The Warehouse: what every character, guild and your warband holds (optional, off by default)
 
 - New optional Warehouse (Options, Enabled components, then reload). It remembers the items every character carries, keeps in the bank, mail, void storage, auctions and has equipped, each guild bank and your warband bank, the currencies each character holds and everyone's gold. Everything is saved account wide, only while the Warehouse is on, and nothing loads while it is off.
