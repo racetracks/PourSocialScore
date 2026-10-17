@@ -3,8 +3,10 @@
 ## 1. SavedVariables by folder
 | Folder | SavedVariables | Holds |
 | --- | --- | --- |
-| core | `PourSocialScoreDB` | upgrade record, outbox, `purge` marks (S1), `recent` counts, sessionStart |
-| _Options | `PSS_OptionsDB`, `PSS_PlayersDB`, `PSS_GuildsDB`, `PSS_RulesDB`, `PSS_CountsDB` | options (non-defaults), lists, rules, all-time counts |
+| core | `PourSocialScoreDB` | upgrade record (`step`, `version`, `at`, `fail` = `"<step>:<code>"`, `undo` = one pre-upgrade copy of the stores, kept until the next clean login, `/pss upgrade undo`; 3.7.0.106), outbox, `purge` marks (S1), `recent` counts, sessionStart |
+| _Options | `PSS_OptionsDB`, `PSS_PlayersDB`, `PSS_GuildsDB`, `PSS_RulesDB`, `PSS_CountsDB` | options (non-defaults), lists, rules, all-time counts; `ent` (entity rows) and the owned keys `*Of` (3.7.0.100) in `PSS_OptionsDB` |
+| _Options | `PSS_WarehouseDB` (3.7.0.106) | the Warehouse, only while `useWarehouse` is on (nil otherwise): `v` layout, `item` / `itemN` / `itemFree` item-variant dictionary, `inv[entity][code]` container strings `1;n;sum;hash;body`, `meta`, `cur`, `gold`, `seen` by entity id, `bad` quarantined strings, `jrn` reserved for the journal (schema row `wh`, [PSS_Schema.lua](https://github.com/racetracks/PourSocialScore/blob/ff5b910/PourSocialScore/PSS_Schema.lua#L27); 02 section 3) |
+| _Options | `PSS_CharDB` (per character) | read only by upgrade step 11 (3.7.0.102), nil once moved |
 | _Logging | `PSS_LoggingDB` | `blockLog`, `blockKeep` |
 
 Every saved field is in the schema map (`PSS_Schema.lua`, 02 section 3). Upgrades: numbered steps in `PSS_Upgrade.lua` (10_CORE_UPLIFT), run once, tracked in the upgrade record; Logging-side cleanups run when Logging loads. Window state lives in `PSS_OptionsDB`; the addon manager's per-character sets and protected addons are the owned keys `addonSetsOf`, `addonLockOf`, `addonSelOf`, `addonPickOf` in `PSS_OptionsDB` (3.7.0.102; they were in `PSS_CharDB`, a `SavedVariablesPerCharacter` of `PourSocialScore_Options`, which upgrade step 11 now only reads and empties); an old save's `PSS_EllesmereUIDB` is no longer read.

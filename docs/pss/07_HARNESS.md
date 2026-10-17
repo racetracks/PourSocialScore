@@ -50,6 +50,19 @@ Other checks in `validate_all.sh`: `check_forget` (removals), `check_guildrule`,
 
 **Tests bundle** (not hosted unless the author asks; 11_PREFERENCES): `sh tools/host_tests.sh <scratch checkout> [--no-commit | --no-push] [--log <file>]` builds `PourSocialScore-<version>-tests-<YYYY-MM-DD-hh-mm>.zip` from HEAD (`tools/`, `versions.json`, `.github/workflows`, `README_TESTS.txt`, and the validation log with `--log`; never real saves) into scratch `releases/`, adding its name to the index's releases row only (not `latest/`; the addon zip never holds `tools/`).
 
+## Service bus, components, chat filter registration and the Warehouse (3.6.0 to 3.7.0.112; all in `validate_all.sh` and CI)
+| Script | What it runs |
+| --- | --- |
+| `sh tools/harness/components_phases.sh [work dir]` | Enabled components (#181, `check_components.lua`): defaults, the Options section and its reload question, each component off and on, a simulated reload (`reloadset`, `reloadread`), Retail and Camelot |
+| `sh tools/harness/bus_phases.sh` | The service bus (`check_bus.lua`: `sets calls chain errors act budget gui listen store query strict`) and the trigger engine (`check_trig.lua`: `off rows engine rules shipped retry cost`), Retail and Camelot, budgets from `bus_budgets.lua`; its last phase is the scratch gate (`PSS_SCRATCH` or a scratch checkout beside the repo; a SKIP fails with `PSS_GATE_STRICT=1`, CI); the last line is `GATE n phases, f failed` |
+| `sh tools/harness/filterreg_phases.sh [work dir]` | The chat filter's registration (3.7.0.110 to .112, `check_filterreg.lua`: `base regfail retry startfault outcome passwhy secretsweep`, ...), Retail and Camelot, the client's answer as the 12.x registry object and as the older lists (`PSS_FILTER_SHAPE`); `FR_ONLY="ph ..."` runs only those |
+| `sh tools/harness/wh_phases.sh [phase ...]` | The Warehouse (`check_wh.lua`, 59 phases by default, from `stub err codec` to `memclose everywhere cmd query2 model edges budget`), Retail and Camelot; the last line is `WH n phases, f failed`; `wh_phases.sh model` runs 200 random worlds (`PSS_MODEL_SEEDS`) |
+| `sh tools/harness/wh_faults.sh [saves dir]` | Every warehouse phase and each real save's login with `PSS_FAULT=*` (every service call fails): no Lua error and no error line of the addon's own |
+| `sh tools/harness/wh_mutants.sh` | The mutants in `wh_mutants.lua` (warehouse, filter registration, secret order): each small wrong change must fail at least one named phase |
+| `sh tools/harness/wh_realsaves.sh <ref> <saves dir>` | Each real save with the Warehouse on, then off again: everything the Warehouse does not own is the same as with `<ref>`'s code (run by `validate_all.sh` when `PSS_REAL_SAVES` is set) |
+
+`tools/check_secretorder.lua` (in `check_rules.sh`, with a self-test, 3.7.0.111) fails a compare, `#`, index or `find` on a chat, unit or hook value before its `M.PSS_IsSecret` / `isSecret` check (baseline J7).
+
 ## PSS Drop Cheapest Thing (3.6.1; `check_dtt.lua`, `dtt_phases.sh`)
 `sh tools/harness/dtt_phases.sh` runs every phase on Retail and Camelot (`off options scan filters act cmd icon roundtrip mapbutton dttlog merchant bus refresh`; `PSS_PHASE`, `PSS_COMPONENTS=dtt` or `none`); fixtures `tools/harness/fixtures/dtt_bags.lua`; the stub's bag, item, cursor and merchant model is in `wow_stub.lua` (`H.items`, `H.bags`, `H.OpenMerchant`). `bus` fixes the `M.Events` payloads (the service bus: `DTT_CHANGED`, `DTT_ACTED`, `OPTION_CHANGED`); `refresh` proves every options page redraws on `OPTION_CHANGED`, a shift-clicked link goes to the focused list only, and item lists lay out. Look at the result of an event (the drawn chip) before reopening a page: a test that reopens first hides a missing redraw.
 
