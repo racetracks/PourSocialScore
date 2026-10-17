@@ -66,6 +66,42 @@ function phases.off()
 	check(PSS_OptionsDB.useDtt == nil and PSS_OptionsDB.dttIcon == nil, "a default was saved")
 end
 
+-- TST-p106, p107, p108: with the Bag manager on, the scan reads the shared reader and chooses the same
+function phases.shared()
+	bags()
+	local base = { M.PSS_DttScan("drop") }
+	local baseList = list()
+	local reads, realCall = 0, M.PSS_Call
+	M.PSS_Call = function(name, ...)
+		if name == "item.live" then reads = reads + 1 end
+		return realCall(name, ...)
+	end
+	local n, best, total = M.PSS_DttScan("drop")
+	check(reads >= 1, "TST-p106: the scan did not read item.live")
+	check(n == base[1] and best == base[2] and total == base[3] and same(list(), baseList), "TST-p106: the choices changed with the shared reader (" .. show(list()) .. " vs " .. show(baseList) .. ")")
+	-- a failing reader falls back to the full scan with the same choices
+	M.PSS_Call = function(name, ...)
+		if name == "item.live" then return nil, "fail: test" end
+		return realCall(name, ...)
+	end
+	local n2, best2, total2 = M.PSS_DttScan("drop")
+	check(n2 == base[1] and best2 == base[2] and total2 == base[3], "TST-p108: a failing reader changed the choices")
+	-- a failing value service leaves the vendor value or the addon's own call
+	M.PSS_Call = function(name, ...)
+		if name == "money.value" then return nil, "fail: test" end
+		return realCall(name, ...)
+	end
+	set("dttAuction", true)
+	set("dttAuctionQuality", 0)
+	set("whValueSource", "tsm")
+	_G.TSM_API = { GetCustomPriceValue = function() return 777 end }
+	local ok, v, src = pcall(M.PSS_DttValue, H.items[101] and "item:101" or "item:1")
+	check(ok and type(v) == "number", "TST-p108: PSS_DttValue raised an error when money.value failed")
+	check(src == "TSM" or src == "vendor", "TST-p108: the source after a failed value service is " .. tostring(src))
+	M.PSS_Call = realCall
+	_G.TSM_API = nil
+end
+
 function phases.scan()
 	bags()
 	check(loaded("PourSocialScore_Libraries") and M.PSS_DttFrame, "Libraries or the frame missing with the feature on")

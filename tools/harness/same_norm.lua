@@ -2,7 +2,7 @@
 -- the Player Ignore List's old layout (seven parallel arrays) and the new
 -- one (`list`, one sparse record per entry) are written in the new shape,
 -- with a legacy duplicate of one kind and name dropped (the first stays),
--- and the upgrade record's step is left out (a stage that adds an upgrade
+-- and the upgrade record's step, undo slot and failure are left out (a stage that adds an upgrade
 -- step moves it on purpose). Everything else is written as it is, so the
 -- other stores are still compared byte for byte.
 --   lua5.1 tools/harness/same_norm.lua <in.lua> <out.lua>
@@ -47,7 +47,7 @@ for _, holder in ipairs({ "PourSocialScoreDB", "PSS_PlayersDB" }) do
 		end
 		t.list = out
 	end
-	if type(t) == "table" and type(t.upgrade) == "table" then t.upgrade.step = nil t.upgrade.at = nil end
+	if type(t) == "table" and type(t.upgrade) == "table" then t.upgrade.step = nil t.upgrade.at = nil t.upgrade.undo = nil t.upgrade.fail = nil end
 end
 
 local names = {}

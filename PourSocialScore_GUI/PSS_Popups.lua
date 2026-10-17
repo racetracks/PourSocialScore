@@ -119,6 +119,9 @@ end
 ------------------------------------------------------------------------
 local confirm, confirmOpts
 
+-- the shell, button and raise helper other windows made like a popup use (Search Everywhere)
+ns.PopupShell, ns.PopupButton, ns.PopupAbove = Shell, PopupButton, Above
+
 local function BuildConfirm()
 	confirm = Shell("PSS_Confirm", 390, 176)
 	confirm.text = ns.NewText(confirm, 12)

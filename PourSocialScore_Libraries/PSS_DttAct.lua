@@ -87,10 +87,15 @@ end
 ------------------------------------------------------------------------
 -- Starting: the button and the events, only while they are wanted
 ------------------------------------------------------------------------
-local frame, button, dirty, unknownWait
+local frame, button, dirty, unknownWait, routeWait
 local EV = {}
 
 local function Rescan()
+	if M.PSS_SavedReady and not M.PSS_SavedReady() then		-- ADDON_LOADED: the saved data is routed at login, and a scan reads the entity row
+		routeWait = true
+		frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+		return
+	end
 	if InCombatLockdown() then
 		dirty = true
 		frame:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -109,6 +114,10 @@ local function Rescan()
 	end
 end
 EV.BAG_UPDATE_DELAYED = Rescan
+EV.PLAYER_ENTERING_WORLD = function()
+	frame:UnregisterEvent("PLAYER_ENTERING_WORLD")
+	if routeWait then routeWait = false; Rescan() end
+end
 EV.PLAYER_REGEN_ENABLED = function() if dirty then Rescan() end end
 EV.GET_ITEM_INFO_RECEIVED = function() if unknownWait then Rescan() end end
 
@@ -152,7 +161,8 @@ local function SyncButton()
 		frame:UnregisterEvent("BAG_UPDATE_DELAYED")
 		frame:UnregisterEvent("PLAYER_REGEN_ENABLED")
 		frame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
-		dirty, unknownWait = false, false
+		dirty, unknownWait, routeWait = false, false, false
+		frame:UnregisterEvent("PLAYER_ENTERING_WORLD")
 		M.PSS_DttClearCaches()
 	end
 end

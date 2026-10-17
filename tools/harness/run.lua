@@ -29,6 +29,13 @@ H.SetTime(tonumber(os.getenv("PSS_TIME") or "") or 1790000000)
 _G.H = H
 
 
+-- PSS_WH_SEED=1: the client starts as the first character of the warehouse test world
+-- (fixtures/wh_world.lua; PSS_WH_CLIENT retail | camelot | era, PSS_WH_CHAR the character number)
+if os.getenv("PSS_WH_SEED") == "1" then
+	local F = dofile(here .. "/fixtures/wh_world.lua")
+	F.apply(H, F.world(), tonumber(os.getenv("PSS_WH_CHAR") or "1"), os.getenv("PSS_WH_CLIENT") or (os.getenv("PSS_CAMELOT") == "1" and "camelot" or "retail"))
+end
+
 if svIn and svIn ~= "-" then
 	for path in svIn:gmatch("[^,]+") do dofile(path) end
 end
@@ -42,7 +49,7 @@ end
 -- again once startup is done (a fresh install wipes the options table).
 local function injectComponents()
 	local want = os.getenv("PSS_COMPONENTS") or "addons,gfx"
-	local KEYS = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering", dtt = "useDtt" }
+	local KEYS = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering", dtt = "useDtt", warehouse = "useWarehouse", bags = "useBags" }
 	if want == "none" then return end
 	PSS_OptionsDB = PSS_OptionsDB or {}
 	for tok in want:gmatch("[^,]+") do
@@ -163,21 +170,39 @@ local function load(name)
 	if name == CORE then coreAddon = private end
 	for _, file in ipairs(a.files) do
 		local f = assert(loadfile(a.dir .. "/" .. file))
-		f(name, private)
+		if os.getenv("PSS_MEASURE") then
+			-- the resident KB of each file as it runs (H.sizes[file]); for the budget checks
+			collectgarbage("collect"); collectgarbage("collect")
+			local before = collectgarbage("count")
+			f(name, private)
+			collectgarbage("collect"); collectgarbage("collect")
+			H.sizes = H.sizes or {}
+			H.sizes[file] = collectgarbage("count") - before
+		else
+			f(name, private)
+		end
 	end
 	for _, var in ipairs(a.sv) do
 		if stash[var] ~= nil then _G[var] = stash[var]; stash[var] = nil end
 	end
 	loading[name] = nil
 	loaded[name] = true
-	if name == CORE then injectComponents() end
+	if name == CORE then
+		injectComponents()
+		-- the harness reaches the addon through its namespace (baseline 02 A11):
+		-- loud = the red error line shows (the older checks read it); strict =
+		-- a bad service declaration raises; fault = a service name or * that fails
+		coreAddon.M.PSS_Test = { loud = os.getenv("PSS_QUIET") ~= "1", strict = os.getenv("PSS_STRICT") == "1", fault = os.getenv("PSS_FAULT"), trace = os.getenv("PSS_TRACE") == "1", clock = function() return os.clock() * 1000 end }
+	end
 	H.Fire("ADDON_LOADED", name)
 	return true
 end
 
 local function isLoaded(name) return loaded[name] == true end
 C_AddOns.IsAddOnLoaded = isLoaded
+H.loadFail = {}		-- H.loadFail[name] = true: that addon fails to load (a client that cannot)
 C_AddOns.LoadAddOn = function(name)
+	if H.loadFail[name] then return false, "CORRUPT" end
 	local ok, why = load(name)
 	if ok then return true end
 	return false, why

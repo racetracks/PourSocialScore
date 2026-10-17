@@ -1,0 +1,6 @@
+## Interface: 120007, 16001
+## Title: Slash taken (harness stand-in)
+## Notes: owns /syn, for the command checks
+## Version: 1
+
+SlashTaken.lua

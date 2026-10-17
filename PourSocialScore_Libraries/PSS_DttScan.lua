@@ -112,14 +112,36 @@ end
 -- Returns n, the cheapest bagslot (bag * 100 + slot) or nil, and the total
 -- vendor value of all candidates. Fires DTT_CHANGED(n, total, icon) only
 -- when the result changed.
+-- the occupied bag slots from the shared reader, [bag] = { slot, ... }, or nil to scan every slot
+-- (Bag manager or Warehouse on; any failure of the service falls back to the full scan)
+local function LiveSlots()
+	if not (M.PSS_On and M.PSS_On("items") and M.PSS_Call) then return nil end
+	local set, err = M.PSS_Call("item.live", { cols = { "key" }, n = 1, { "b*" } })
+	if err or not set or not set.conts then return nil end
+	local out = {}
+	for i = 1, set.n do
+		local r = set[i]
+		local bag = tonumber(tostring(r[2]):match("^b(%d+)$"))
+		if bag then
+			local t = out[bag]
+			if not t then t = {}; out[bag] = t end
+			t[#t + 1] = r[3]
+		end
+	end
+	return out
+end
+
 function M.PSS_DttScan(mode)
 	mode = mode or (M.PSS_DttAtMerchant() and "sell" or "drop")
 	Lists()
 	wipe(slotOf); wipe(link); wipe(count); wipe(price); wipe(icon); wipe(weight)
 	n, best, total, missing = 0, nil, 0, false
 	local full = M.PSS_Opt("dttFullStacks")
+	local live = LiveSlots()
 	for bag = 0, LAST_BAG do
-		for slot = 1, C_Container.GetContainerNumSlots(bag) or 0 do
+		local only = live and (live[bag] or {})
+		for k = 1, only and #only or (C_Container.GetContainerNumSlots(bag) or 0) do
+			local slot = only and only[k] or k
 			local info = Info(bag, slot)
 			if info then
 				local p, stack = Evaluate(info, mode)
@@ -170,6 +192,11 @@ function M.PSS_DttValue(l, vendorOnly)
 	local vendor = sell or 0
 	if vendorOnly or not M.PSS_Opt("dttAuction") or (q or 0) < (tonumber(M.PSS_Opt("dttAuctionQuality")) or 1) then
 		return vendor, "vendor"
+	end
+	if M.PSS_Call and M.PSS_On("items") and (M.PSS_Opt("whValueSource") or "") ~= "" then
+		-- the shared value service; its failure leaves the addon calls below
+		local set, err = M.PSS_Call("money.value", { cols = { "item" }, n = 1, { l } })
+		if not err and set and set.n == 1 and type(set[1][3]) == "number" then return set[1][3], set[1][4] end
 	end
 	local ok, a
 	if Auctionator and Auctionator.API and Auctionator.API.v1 and Auctionator.API.v1.GetAuctionPriceByItemLink then

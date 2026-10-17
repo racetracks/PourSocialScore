@@ -45,7 +45,8 @@ for sv in "$@"; do
 	if ! cmp -s "$work/b.txt" "$work/c.txt"; then
 		echo "FAIL the sparse file reads back differently ($sv)"; diff "$work/b.txt" "$work/c.txt" | head -8; ok=0
 	fi
-	if ! cmp -s "$work/new1.lua" "$work/new2.lua"; then
+	lua5.1 "$here/strip_undo.lua" "$work/new1.lua" "$work/new1s.lua"; lua5.1 "$here/strip_undo.lua" "$work/new2.lua" "$work/new2s.lua"
+	if ! cmp -s "$work/new1s.lua" "$work/new2s.lua"; then
 		echo "FAIL a second login changed the saved file ($sv)"; diff "$work/new1.lua" "$work/new2.lua" | head -8; ok=0
 	fi
 	# the previous build and the 3.4.0.29 release read the migrated save

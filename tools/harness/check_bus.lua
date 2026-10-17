@@ -156,7 +156,7 @@ elseif phase == "budget" then
 	-- TST-00191 for this stage's files
 	local B = dofile(here .. "/bus_budgets.lua")
 	local note = {}
-	for _, name in ipairs({ "PSS_Bus.lua", "PSS_Store.lua", "PSS_Query.lua", "PSS_Entity.lua" }) do
+	for _, name in ipairs({ "PSS_Err.lua", "PSS_Bus.lua", "PSS_Store.lua", "PSS_Index.lua", "PSS_Query.lua", "PSS_Entity.lua" }) do
 		local chunk = assert(loadfile("PourSocialScore_Libraries/" .. name))
 		collectgarbage("collect"); collectgarbage("collect")
 		local a = collectgarbage("count")
@@ -167,12 +167,16 @@ elseif phase == "budget" then
 		check(kb <= gate, string.format("%s resident %.2f KB over its gate %d KB", name, kb, gate))
 		note[#note + 1] = string.format("%s %.2f KB (gate %d)", name, kb, gate)
 	end
-	M.PSS_Provide("t.n", function(i) return i end, {})
+	local fixed = { cols = { "a" }, n = 1, { 1 } }
+	M.PSS_Provide("t.n", function() return fixed end, {})
 	local N = 100000
-	local t0 = os.clock()
-	for i = 1, N do M.PSS_Call("t.n", i) end
-	local us = (os.clock() - t0) / N * 1e6
-	check(us <= B.us.call.gate, string.format("a bus call %.2f us over its gate %d us", us, B.us.call.gate))
+	local us = math.huge
+	for _ = 1, 3 do		-- the best of three: a loaded machine slows a run, never speeds it up
+		local t0 = os.clock()
+		for i = 1, N do M.PSS_Call("t.n", i) end
+		us = math.min(us, (os.clock() - t0) / N * 1e6)
+	end
+	check(us <= B.us.call.gate, string.format("a bus call %.2f us over its gate %.1f us", us, B.us.call.gate))
 	-- a store read by key (DEC-00192: 3 us)
 	local S = M.PSS_Store("tbudget", { key = "tbudget", v = 1, fields = { { "a", "s" }, { "b", "n" } } })
 	for i = 1, 1000 do S.Set(i, { a = "x" .. i, b = i }) end

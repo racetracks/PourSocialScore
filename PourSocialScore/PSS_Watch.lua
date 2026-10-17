@@ -46,6 +46,12 @@ local function need(e)
 	src:RegisterEvent(e)
 end
 
+-- A change is forgotten only after the service took it (one-build plan
+-- STP-p05, ISS-p01): Libraries load first, the keys are cleared one by one
+-- after the call returned without an error. A failed load or a failed
+-- service keeps every key; the next settle (or the next pull) writes them.
+-- The output set raises "@<row id>", so a second reader (the bag window, Drop
+-- Cheapest Thing, a journal monitor) follows the one settled read.
 local function flush(id)
 	local d = dirty[id]
 	if not d or not next(d) then return end
@@ -55,11 +61,20 @@ local function flush(id)
 		local n = set.n + 1
 		set.n = n
 		set[n] = { k }
-		d[k] = nil
 	end
-	if not M.PSS_Need("Libraries") then return end
-	local out = M.PSS_Call(row.run, set)
-	if out and M.PSS_Signal then M.PSS_Signal("@" .. id, out) end
+	local out, err = true, true
+	if M.PSS_Need("Libraries") then
+		M.PSS_InRow = true		-- the bus does not retry this call: the row keeps its keys
+		out, err = M.PSS_Call(row.run, set)
+		M.PSS_InRow = nil
+		M.PSS_ErrSettle()		-- a settle half-opens open breakers and runs waiting retries
+	end
+	if err then		-- the keys stay, at most 1000 (PB-13)
+		for i = 1001, set.n do d[set[i][1]] = nil end
+		return
+	end
+	for i = 1, set.n do d[set[i][1]] = nil end
+	if out then M.PSS_Signal("@" .. id, out) end
 	return out
 end
 
@@ -67,7 +82,9 @@ local function mark(id, e, ...)
 	local row = live[id]
 	local k = e
 	if row.key then k = row.key(e, ...) end
-	if k ~= nil and (type(k) == "table" or not (M.PSS_IsSecret and M.PSS_IsSecret(k))) then dirty[id][k] = true end
+	if type(k) ~= "nil" and (type(k) == "table" or not (M.PSS_IsSecret and M.PSS_IsSecret(k))) then
+		dirty[id][k] = true
+	end
 	if row.settle == "now" then flush(id) end
 end
 
@@ -155,7 +172,7 @@ function M.PSS_WatchPull(service)
 	for i = 1, #ids do flush(ids[i]) end
 end
 
--- the declared rows and whether each is live (read by M.PSS_Triggers)
+-- the declared rows, whether each is live and the changes waiting (read by M.PSS_Triggers and the Syndicator shim)
 function M.PSS_WatchRows()
-	return rows, live
+	return rows, live, dirty
 end

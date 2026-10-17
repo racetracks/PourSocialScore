@@ -95,7 +95,7 @@ function M.PSS_OptGroups()
 	for _, section in ipairs(M.PSS_OPTION_SECTION_ORDER) do
 		local g
 		for _, o in ipairs(M.PSS_OPTIONS) do
-			if o.section == section and not o.inline and not o.retired then
+			if o.section == section and not o.inline and not o.retired and not o.reserved then
 				if not g then
 					g = { title = ((sections[section] or ""):gsub("[:%s]+$", "")), items = {}, section = section,
 						group = M.PSS_OptSectionGroup(section), off = M.PSS_OptSectionOff(section) }
@@ -116,7 +116,7 @@ end
 
 -- an Enabled components row: its label with a note, whether it can be ticked
 -- (Graphics is Camelot only), and whether the change waits for a reload
-local COMPONENT_NAME = { useAddons = "addons", useLogging = "logging", useGfx = "gfx", useFiltering = "filtering", useDtt = "dtt" }
+local COMPONENT_NAME = { useAddons = "addons", useLogging = "logging", useGfx = "gfx", useFiltering = "filtering", useDtt = "dtt", useWarehouse = "warehouse", useBags = "bags" }
 function M.PSS_OptGate(o)
 	local name = COMPONENT_NAME[o.key]
 	if not name then return true, "" end

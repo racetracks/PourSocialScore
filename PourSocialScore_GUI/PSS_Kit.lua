@@ -17,6 +17,7 @@
 --   ns.NewPanel(parent, inset)           a tab page or a pane
 --   ns.NewScrollFrame(parent)            scroll frame with a skinned bar
 --   ns.NewTab(parent, text, onClick) and ns.SetTabSelected(tab, on)
+--   ns.NewMoneyLine(parent, w)           an amount with a hover breakdown (SetLabel, SetMoney)
 -- Each widget keeps its Dark parts in widget.pssParts (shown in Dark).
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
@@ -663,4 +664,37 @@ function ns.SetTabSelected(tab, selected)
 		end
 		tab:SetNormalFontObject(ns.Font(11, selected and "GameFontHighlightSmall" or "GameFontNormalSmall"))
 	end
+end
+
+-- A money line (warehouse-helper, M1b / M2b): ns.NewMoneyLine(parent, w).
+-- line:SetMoney(copper, breakdown) shows the amount the client's way (coin
+-- icons where the client has them) and, on hover, the breakdown text in the
+-- look's own tooltip. The amount text comes from Libraries (M.PSS_MoneyText).
+function ns.NewMoneyLine(parent, w)
+	local M = ns.M
+	local line = CreateFrame("Frame", nil, parent)
+	line:SetSize(w, 18)
+	line.text = ns.NewText(line, 12)
+	line.text:SetPoint("RIGHT", line, "RIGHT", 0, 0)
+	line.text:SetJustifyH("RIGHT")
+	line.label = ns.NewText(line, 12)
+	line.label:SetPoint("LEFT", line, "LEFT", 0, 0)
+	line.label:SetJustifyH("LEFT")
+	line:EnableMouse(true)
+	ns.OnPaint(function(dark)
+		-- the label fades with SetAlpha (never colour alpha); both lines are white in every look
+		line.text:SetTextColor(1, 1, 1)
+		line.label:SetTextColor(1, 1, 1)
+		line.label:SetAlpha(dark and 0.7 or 0.85)
+	end)
+	function line:SetLabel(text) self.label:SetText(text or "") end
+	function line:SetMoney(copper, breakdown)
+		self.copper, self.breakdown = copper or 0, breakdown
+		self.text:SetText(M.PSS_MoneyText and M.PSS_MoneyText(self.copper, true) or tostring(self.copper))
+	end
+	line:SetScript("OnEnter", function(self)
+		if self.breakdown and self.breakdown ~= "" then ns.Tip(self, self.breakdown) end
+	end)
+	line:SetScript("OnLeave", ns.HideTip)
+	return line
 end

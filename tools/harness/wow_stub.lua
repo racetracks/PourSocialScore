@@ -55,7 +55,13 @@ function W:HookScript(k, fn)
 	local old = self._scripts[k]
 	self._scripts[k] = old and function(...) old(...); fn(...) end or fn
 end
-function W:RegisterEvent(e) self._events[e] = true; eventFrames[self] = true end
+-- frames hear an event in the order they first registered for any event (as the client delivers it);
+-- a hash walk would make the order differ from run to run
+local regSeq = 0
+function W:RegisterEvent(e)
+	self._events[e] = true
+	if not eventFrames[self] then regSeq = regSeq + 1; eventFrames[self] = regSeq end
+end
 function W:UnregisterEvent(e) self._events[e] = nil end
 function W:UnregisterAllEvents() self._events = {} end
 function W:IsEventRegistered(e) return self._events[e] == true end
@@ -226,7 +232,7 @@ function W:GetHyperlinksEnabled() return self._links or false end
 -- a check sets f._mouseOver to put the mouse over a frame
 function W:IsMouseOver() return self._mouseOver or false end
 function W:IsDragging() return false end
-function W:GetTexture() return nil end
+function W:GetTexture() return self._texture end
 function W:GetAtlas() return self._atlas end
 function W:SetAtlas(a) self._atlas = a end
 -- PSS_TEX_MISSING="path;path": the client has no such file (SetTexture says false)
@@ -317,6 +323,7 @@ function stub.Fire(event, ...)
 	for f in pairs(eventFrames) do
 		if f._events[event] then list[#list + 1] = f end
 	end
+	table.sort(list, function(a, b) return eventFrames[a] < eventFrames[b] end)
 	for _, f in ipairs(list) do
 		local h = f._scripts.OnEvent
 		if h and f._events[event] then h(f, event, ...) end
@@ -367,6 +374,15 @@ ItemRefTooltip = new("GameTooltip", "ItemRefTooltip")
 function GameTooltip:SetText(t) self._lines = { t } end
 function GameTooltip:AddLine(t) self._lines = self._lines or {}; self._lines[#self._lines + 1] = t end
 function GameTooltip:NumLines() return self._lines and #self._lines or 0 end
+-- the window's hover: the owner and the link the tooltip was given (an item: link only; the client's SetHyperlink refuses others)
+function GameTooltip:SetOwner(o, anchor) self._owner, self._anchor, self._lines, self._link = o, anchor, nil, nil end
+function GameTooltip:SetHyperlink(link)
+	if type(link) ~= "string" or not link:find("^item:%d+") then error("Unknown link type", 2) end
+	self._link = link
+	self._lines = { "Item " .. link:match("^item:(%d+)") }
+end
+function GameTooltip:Show() self._shown = true end
+function GameTooltip:Hide() self._shown = false end
 DEFAULT_CHAT_FRAME = new("ScrollingMessageFrame", "DEFAULT_CHAT_FRAME")
 stub.chat = {}
 function DEFAULT_CHAT_FRAME:AddMessage(m) stub.chat[#stub.chat + 1] = tostring(m) end
@@ -399,7 +415,8 @@ function GetServerTime() return clock end
 local osdate = os.date
 function date(fmt, t) return osdate(fmt, t or clock) end
 function time(t) if t then return os.time(t) end return clock end
-function debugprofilestop() return uptime * 1000 end
+local profBase = os.clock()
+function debugprofilestop() return uptime * 1000 + (os.clock() - profBase) * 1000 end		-- the simulated uptime plus real time: a time budget can run out
 function GetFramerate() return 60 end
 function InCombatLockdown() return stub.combat == true end
 function IsEncounterInProgress() return false end
@@ -649,9 +666,43 @@ LOCALIZED_CLASS_NAMES_FEMALE = {}
 CLASS_ICON_TCOORDS = {}
 Menu = { ModifyMenu = function() end }
 MenuUtil = { CreateContextMenu = function() end }
-ChatFrame_AddMessageEventFilter = function(event, fn) stub.filters[#stub.filters + 1] = { event = event, fn = fn } end
+-- Chat filters as the client keeps them: one entry per add (a repeat add makes a second copy here, so a double
+-- registration shows). PSS_FILTER_SHAPE picks what GetMessageEventFilters hands back (see getFilters).
+-- PSS_FILTER_FAIL=n makes the nth add throw.
+local filterAdds = 0
+local function addFilter(event, fn)
+	filterAdds = filterAdds + 1
+	if tonumber(os.getenv("PSS_FILTER_FAIL") or "") == filterAdds then error("injected filter add failure", 2) end
+	stub.filters[#stub.filters + 1] = { event = event, fn = fn }
+end
+-- A line as the client delivers it: every filter of the event in turn, hidden when one says so.
+function stub.ProcessChat(event, ...)
+	for _, f in ipairs(stub.filters) do
+		if f.event == event and f.fn(nil, event, ...) == true then return true end
+	end
+	return false
+end
+-- What GetMessageEventFilters hands back. Default (Retail 12.x, as the author's client printed it): a registry
+-- object with the methods ProcessFilters, RemoveFilter and AddFilter and no list to read. PSS_FILTER_SHAPE=functions
+-- or entries: the older array of functions, or of { func = fn } entries.
+local function getFilters(event)
+	local shape = os.getenv("PSS_FILTER_SHAPE")
+	if shape == "functions" or shape == "entries" then
+		local out = {}
+		for _, f in ipairs(stub.filters) do
+			if f.event == event then out[#out + 1] = shape == "entries" and { func = f.fn } or f.fn end
+		end
+		return out
+	end
+	return {
+		ProcessFilters = function(_, frame, ...) return stub.ProcessChat(event, ...) end,
+		RemoveFilter = function() end,
+		AddFilter = function(_, fn) addFilter(event, fn) end,
+	}
+end
+ChatFrame_AddMessageEventFilter = addFilter
 ChatFrame_RemoveMessageEventFilter = function() end
-ChatFrameUtil = { AddMessageEventFilter = function(event, fn) stub.filters[#stub.filters + 1] = { event = event, fn = fn } end }
+ChatFrameUtil = { AddMessageEventFilter = addFilter, GetMessageEventFilters = getFilters }
 ChatEdit_InsertLink = function() end
 ChatFrame_OpenChat = function() end
 StaticPopup_Show = function() end
@@ -1052,8 +1103,9 @@ local function slotInfo(bag, slot)
 	local row = stub.bags[bag] and stub.bags[bag][slot]
 	if not row then return nil end
 	local it = stub.items[row.id] or {}
-	return { iconFileID = it.icon or 134400, stackCount = row.count or 1, quality = it.quality or 0,
-		hyperlink = itemLink(row.id), itemID = row.id, hasNoValue = row.noValue or (it.price or 0) == 0, isBound = row.bound == true }
+	return { iconFileID = it.icon or 134400, stackCount = row.count or 1, quality = row.quality or it.quality or 0,
+		hyperlink = row.link or itemLink(row.id), itemID = row.id, hasNoValue = row.noValue or (it.price or 0) == 0, isBound = row.bound == true,
+		hasLoot = row.hasLoot }
 end
 C_Container = {
 	GetContainerNumSlots = function(bag) return stub.bags[bag] and (stub.bags[bag].size or 20) or 0 end,
@@ -1089,8 +1141,8 @@ C_Item.GetItemInfo = function(x)
 	local id = type(x) == "number" and x or tonumber(tostring(x):match("item:(%d+)"))
 	local it = id and stub.items[id]
 	if not it or it.unknown then return nil end
-	return it.name, itemLink(id), it.quality or 0, 1, it.minLevel or 0, "", "", it.stack or 1, it.equip or "", it.icon or 134400,
-		it.price or 0, it.class or 15, it.sub or 0, it.bind or 0
+	return it.name, itemLink(id), it.quality or 0, it.ilvl or 1, it.minLevel or 0, "", "", it.stack or 1, it.equip or "", it.icon or 134400,
+		it.price or 0, it.class or 15, it.sub or 0, it.bind or 0, it.exp or 0
 end
 C_Item.GetItemIconByID = function(id) return stub.items[id] and stub.items[id].icon or 134400 end
 function GetMoneyString(c)
@@ -1110,5 +1162,9 @@ function stub.OpenMerchant(tab)
 	stub.Fire("MERCHANT_SHOW")
 end
 function stub.CloseMerchant() MerchantFrame:Hide(); stub.Fire("MERCHANT_CLOSED") end
+
+-- the warehouse client APIs (one-build plan, STP-p00): stub.SeedWorld(spec)
+local here = debug.getinfo(1, "S").source:match("^@(.*)/[^/]*$") or "."
+dofile(here .. "/wh_stub.lua")(stub)
 
 return stub

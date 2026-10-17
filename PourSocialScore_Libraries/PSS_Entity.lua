@@ -24,7 +24,7 @@
 local addon = PourSocialScore_NS
 local M = addon.M
 
-local type, pairs, next = type, pairs, next
+local type, pairs, ipairs, next = type, pairs, ipairs, next
 
 local FIELDS = { "kind", "name", "realm", "faction", "class", "race", "sex" }
 local ent = M.PSS_Store("ent", {
@@ -34,25 +34,68 @@ local ent = M.PSS_Store("ent", {
 local KINDS = { c = true, g = true, w = true }
 
 local me				-- this character's id, once per session
-local byName			-- [kind .. ":" .. lower name] = id, built on first need
 
 local function indexKey(kind, name, realm)
 	local full = realm and realm ~= "" and (name .. "-" .. realm) or name
 	return kind .. ":" .. full:lower()
 end
 
-local function index()
-	if not byName then
-		byName = {}
+-- [kind .. ":" .. lower name] = id, a declared index (PSS_Index.lua): built on the
+-- first lookup with one row split per entity, released on a GC request
+local NAMEF, tmp = { "kind", "name", "realm" }, {}
+local byName = M.PSS_Index("ent.byName", {
+	sourceVer = ent.Ver,
+	build = function(add)
 		ent.Each(function(id)
-			local kind = ent.Get(id, "kind")
-			if KINDS[kind] then byName[indexKey(kind, ent.Get(id, "name") or "", ent.Get(id, "realm"))] = id end
+			if ent.Read(id, tmp, 1, NAMEF) and KINDS[tmp[1]] then add(indexKey(tmp[1], tmp[2] or "", tmp[3]), id) end
 		end)
-	end
-	return byName
+	end,
+})
+
+function M.PSS_EntityDrop() byName:drop(); ent.Drop() end
+function M.PSS_EntityVer() return ent.Ver() end		-- rises with every change of an entity (a cache of facts is valid while it is the same)
+function M.PSS_MeReset() me = nil end		-- the harness plays another character
+
+-- every entity id of a kind ("c", "g", "w"), unsorted
+function M.PSS_EntityList(kind)
+	local out = {}
+	ent.Each(function(id) if ent.Get(id, "kind") == kind then out[#out + 1] = id end end)
+	return out
 end
 
-function M.PSS_EntityDrop() byName = nil; ent.Drop() end
+-- sets the descriptive fields of an entity (faction, class, race, sex), for rows a feature
+-- knows from another source (an import); a nil field stays as it is
+function M.PSS_EntitySetInfo(id, info)
+	if ent.ReadOnly() or not KINDS[ent.Get(id, "kind")] then return false end
+	local v = {}
+	ent.Read(id, v, 1, { "kind", "name", "realm", "faction", "class", "race", "sex", "flags" })
+	ent.Set(id, { kind = v[1], name = v[2], realm = v[3], faction = info.faction or v[4], class = info.class or v[5], race = info.race or v[6],
+		sex = info.sex or v[7], flags = v[8] })
+	return true
+end
+
+-- the flags of an entity (one letter each: h hidden from tooltips and search, g its gold hidden too)
+function M.PSS_EntityFlags(id)
+	return ent.Get(id, "flags") or ""
+end
+
+-- sets (or, with remove, clears) up to two flag letters; returns the flags now, or nil
+local ALLF = { "kind", "name", "realm", "faction", "class", "race", "sex", "flags" }
+function M.PSS_EntitySetFlags(id, a, b, remove)
+	if ent.ReadOnly() or not KINDS[ent.Get(id, "kind")] then return nil end
+	local v = {}
+	ent.Read(id, v, 1, ALLF)
+	local f = v[8] or ""
+	if remove then
+		f = f:gsub("[hg]", "")
+	else
+		for _, c in ipairs({ a or "", b or "" }) do
+			if c ~= "" and not f:find(c, 1, true) then f = f .. c end
+		end
+	end
+	ent.Set(id, { kind = v[1], name = v[2], realm = v[3], faction = v[4], class = v[5], race = v[6], sex = v[7], flags = f ~= "" and f or nil })
+	return f ~= "" and f or nil
+end
 
 -- a character is "Name" and "Realm" (the one name builder, with Camelot surnames)
 local function split(name, realm, unit)
@@ -68,6 +111,31 @@ local function api(fn, ...)
 	return v
 end
 
+-- W3-D5: an unnamed id is one that saved Warehouse data names (containers, gold, currencies, seen, meta) but that has
+-- no entity row. Its data is kept untouched and is never shown or counted; its id is reserved here (the counter is
+-- raised past it) so no new character can take it. The player removes it in Options (Warehouse) or with /pss wh remove #id.
+local sort = table.sort
+function M.PSS_EntityOrphans()
+	local out = {}
+	local d = rawget(_G, "PSS_WarehouseDB")
+	if type(d) ~= "table" or (M.PSS_SavedReady and not M.PSS_SavedReady()) then return out end
+	local seen = {}
+	for _, key in ipairs({ "inv", "gold", "seen", "meta", "cur" }) do
+		local t = d[key]
+		if type(t) == "table" then
+			for id in pairs(t) do
+				if type(id) == "number" and not seen[id] then
+					seen[id] = true
+					if not KINDS[ent.Get(id, "kind")] then out[#out + 1] = id end
+				end
+			end
+		end
+	end
+	sort(out)
+	if #out > 0 then ent.Reserve(out[#out]) end
+	return out
+end
+
 function M.PSS_EntityId(kind, name, realm, create, unit)
 	if not KINDS[kind] or type(name) ~= "string" or name == "" then return nil end
 	if M.PSS_IsSecret and (M.PSS_IsSecret(name) or M.PSS_IsSecret(realm)) then return nil end
@@ -76,11 +144,15 @@ function M.PSS_EntityId(kind, name, realm, create, unit)
 		if not name then return nil end
 	elseif kind == "w" then
 		realm = ""
+	elseif type(realm) == "string" and realm ~= "" then
+		local _, r = split("X", realm)		-- a guild's realm is spelled the way a character's is
+		if r and r ~= "" then realm = r end
 	end
 	local k = indexKey(kind, name, realm)
-	local id = index()[k]
+	local id = byName:get(k)
 	if id or not create then return id end
 	local rec = { kind = kind, name = name, realm = realm }
+	M.PSS_EntityOrphans()		-- reserves the unnamed ids before an id is handed out
 	if unit then
 		rec.faction = api(UnitFactionGroup, unit)
 		rec.class = select(2, UnitClass(unit))
@@ -88,8 +160,20 @@ function M.PSS_EntityId(kind, name, realm, create, unit)
 		rec.sex = api(UnitSex, unit)
 	end
 	local new, why = ent.Add(rec)
-	if not new then return nil, why end
-	byName[k] = new
+	if not new then
+		if M.PSS_ErrNote then
+			local early = type(why) == "string" and why:sub(1, 6) == "early:"		-- asked before the saved data was routed (F4): a caller bug, not a newer layout
+			M.PSS_ErrNote(why == "cap" and "cap" or early and "early" or "newer", "ent", why == "cap" and "500 entities: no room for another" or early and why:sub(8) or tostring(why))
+		end
+		return nil, why
+	end
+	-- an id is handed out only when its row is saved and reads back (F4)
+	if ent.Get(new, "kind") ~= kind or (kind == "c" and ent.Get(new, "name") ~= name) then
+		ent.Delete(new)
+		if M.PSS_ErrNote then M.PSS_ErrNote("arg", "ent", "the entity row did not save") end
+		return nil, "arg: the entity row did not save"
+	end
+	byName:put(k, new)
 	return new
 end
 
@@ -110,9 +194,11 @@ function M.PSS_Entity(id)
 	return ent.Rows(FIELDS, { n = 1, { id } })
 end
 
-M.PSS_QueryDict("ent", { "name", "realm", "kind" }, function(id, dest, at)
-	if KINDS[ent.Get(id, "kind")] then
-		dest[at], dest[at + 1], dest[at + 2] = ent.Get(id, "name"), ent.Get(id, "realm"), ent.Get(id, "kind")
+local DICTF = { "name", "realm", "kind" }
+M.PSS_QueryDict("ent", DICTF, function(id, dest, at)
+	-- one split of the row; an entity of a kind this version does not know reads as absent
+	if ent.Read(id, dest, at, DICTF) and not KINDS[dest[at + 2]] then
+		dest[at], dest[at + 1], dest[at + 2] = nil, nil, nil
 	end
 end)
 
@@ -189,9 +275,7 @@ function M.PSS_EntityRemove(id)
 		end
 	end
 	ent.Delete(id)
-	if byName then
-		for k, v in pairs(byName) do if v == id then byName[k] = nil end end
-	end
+	byName:drop()
 	if me == id then me = nil end
 	return true
 end

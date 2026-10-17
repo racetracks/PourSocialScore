@@ -187,6 +187,11 @@ sh "$here/addons_phases.sh" "$work" || fail=1
 echo "== enabled components"
 sh "$here/components_phases.sh" "$work" || fail=1
 
+# The chat filter's registration (W-8): a refused add, another addon's rebuild, a faulted start-up
+# stage, the client's list in both shapes (filterreg_phases.sh)
+echo "== chat filter registration"
+sh "$here/filterreg_phases.sh" "$work/filterreg" || fail=1
+
 # PSS Drop Cheapest Thing (money-helper): scan, filters, act, command, button,
 # round trips, the log, the merchant button, off = zero cost (dtt_phases.sh)
 echo "== drop cheapest thing"
@@ -197,6 +202,17 @@ sh "$here/dtt_phases.sh" || fail=1
 # PSS_SCRATCH names a scratch checkout (bus_phases.sh)
 echo "== service bus"
 sh "$here/bus_phases.sh" || fail=1
+
+# the warehouse (warehouse-helper, one build 3.7.0.106): every phase of
+# check_wh.lua on Retail and Camelot (wh_phases.sh)
+echo "== warehouse"
+sh "$here/wh_phases.sh" || fail=1
+# more of it: 200 random worlds, every service failing (also at the login of each real save), the 34
+# mutants (each must fail a check), and the real saves with the Warehouse on and off again
+PSS_MODEL_SEEDS=${PSS_MODEL_SEEDS:-200} sh "$here/wh_phases.sh" model || fail=1
+sh "$here/wh_faults.sh" ${PSS_REAL_SAVES:+"$PSS_REAL_SAVES"} || fail=1
+sh "$here/wh_mutants.sh" || fail=1
+[ -n "$PSS_REAL_SAVES" ] && { sh "$here/wh_realsaves.sh" "${PSS_SAME_AS:-origin/main}" "$PSS_REAL_SAVES" || fail=1; }
 
 # the new window's Libraries maths (3.4.0-dev005): pane numbers equal the
 # core's counts, slices, back / forward, throttle
@@ -458,6 +474,13 @@ for sv in $lrsaves; do
 		echo "$out" | grep -q "PASS list records $ph" || { echo "$out"; echo "FAIL list records $ph ($sv)"; lrfail=1; }
 	done
 	lua5.1 tools/check_schema.lua --saves "$work/lr-1.lua" "$work/lr-2.lua" || lrfail=1
+	# the unstripped undo guarantee (A13): login 2 differs from login 1 only by the undo slot, login 3 equals login 2
+	# (not the planted 3.4.1.50 save: its second login repairs a name's case on main too)
+	if [ "$sv" != "$work/lr-plant.lua" ]; then
+		lua5.1 "$here/run.lua" . "$work/lr-2.lua" "$work/lr-3.lua" > /dev/null 2>&1
+		lua5.1 "$here/undo_check.lua" 1-to-2 "$work/lr-1.lua" "$work/lr-2.lua" > /dev/null || { echo "FAIL undo 1-to-2 ($sv)"; lrfail=1; }
+		lua5.1 "$here/undo_check.lua" same "$work/lr-2.lua" "$work/lr-3.lua" > /dev/null || { echo "FAIL undo same ($sv)"; lrfail=1; }
+	fi
 done
 [ $lrfail -eq 0 ] && echo "PASS list records ($(echo $lrsaves | wc -w) saves)" || { echo "FAIL list records"; fail=1; }
 
@@ -483,7 +506,11 @@ for ph in login again; do
 	echo "$out" | grep -q "PASS sparse $ph" || fail=1
 done
 lua5.1 "$here/run.lua" . "$work/sp-1.lua" "$work/sp-2.lua" > "$work/sp-2.out" 2>&1
-cmp -s "$work/sp-1.lua" "$work/sp-2.lua" && ! grep -q "Upgrading your saved data" "$work/sp-2.out" || { echo "FAIL sparse: a second login changed the save or reported"; fail=1; }
+lua5.1 "$here/run.lua" . "$work/sp-2.lua" "$work/sp-3.lua" > "$work/sp-3.out" 2>&1
+lua5.1 "$here/undo_check.lua" 1-to-2 "$work/sp-1.lua" "$work/sp-2.lua" || fail=1
+lua5.1 "$here/undo_check.lua" same "$work/sp-2.lua" "$work/sp-3.lua" || fail=1
+lua5.1 "$here/strip_undo.lua" "$work/sp-1.lua" "$work/sp-1s.lua"; lua5.1 "$here/strip_undo.lua" "$work/sp-2.lua" "$work/sp-2s.lua"
+cmp -s "$work/sp-1s.lua" "$work/sp-2s.lua" && ! grep -q "Upgrading your saved data" "$work/sp-2.out" || { echo "FAIL sparse: a second login changed the save or reported"; fail=1; }
 lua5.1 "$here/check_sparse.lua" --after "$work/sp-1.lua" ids || fail=1
 lua5.1 tools/check_schema.lua --saves "$work/sp-1.lua" "$work/sp-2.lua" || fail=1
 # Camelot
@@ -495,7 +522,11 @@ out=$(PSS_SHIPPED="$ship" PSS_FIRST=1 PSS_LOGIN_OUT="$work/cam-1.out" PSS_CAMELO
 echo "$out" | grep -E "PASS|FAIL"
 echo "$out" | grep -q "PASS sparse camelot" || fail=1
 PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/cam-1.lua" "$work/cam-2.lua" > /dev/null 2>&1
-cmp -s "$work/cam-1.lua" "$work/cam-2.lua" || { echo "FAIL camelot: a second login changed the save"; fail=1; }
+PSS_CAMELOT=1 lua5.1 "$here/run.lua" . "$work/cam-2.lua" "$work/cam-3.lua" > /dev/null 2>&1
+lua5.1 "$here/undo_check.lua" 1-to-2 "$work/cam-1.lua" "$work/cam-2.lua" || fail=1
+lua5.1 "$here/undo_check.lua" same "$work/cam-2.lua" "$work/cam-3.lua" || fail=1
+lua5.1 "$here/strip_undo.lua" "$work/cam-1.lua" "$work/cam-1s.lua"; lua5.1 "$here/strip_undo.lua" "$work/cam-2.lua" "$work/cam-2s.lua"
+cmp -s "$work/cam-1s.lua" "$work/cam-2s.lua" || { echo "FAIL camelot: a second login changed the save"; fail=1; }
 out=$(PSS_SHIPPED="$ship" PSS_CAMELOT=1 PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-1.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -q "PASS sparse camelot" || { echo "$out"; echo "FAIL camelot: the repaired save"; fail=1; }
 out=$(PSS_PHASE=camelot lua5.1 "$here/run.lua" . "$work/cam-plant.lua" - "$here/check_sparse.lua" 2>&1 | grep -v '^|cff')

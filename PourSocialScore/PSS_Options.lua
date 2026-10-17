@@ -53,6 +53,7 @@ local OPTIONS = {
 	{ key = "openWithFriends", kind = "bool",	default = true,		section = 4, label = L["OPT_2"] },
 	{ key = "useUnitHacks",		kind = "bool",		default = true,		section = 4, label = L["OPT_16"] },
 	{ key = "useLFGHacks",		kind = "bool",		default = true,		section = 4, label = L["OPT_17"] },
+	{ key = "showErrors",		kind = "bool",		default = false,		section = 4, label = "Show addon errors in chat (otherwise /pss status lists them)" },
 	{ key = "gcEnabled",		kind = "bool",		default = true,		section = 4, label = "Background memory cleanup (out of combat, never causes a hitch)" },
 	{ key = "frameStrata",		kind = "choice", default = 3,		section = 4, label = L["OPT_25"],
 		choices = { { 0, "LOW" }, { 1, "MEDIUM" }, { 2, "HIGH" }, { 3, "DIALOG" } } },
@@ -92,6 +93,14 @@ for _, o in ipairs(COMPONENTS) do OPTIONS[#OPTIONS + 1] = o end
 -- disabled while the switch is off). Read through M.PSS_On("dtt") and M.PSS_Opt.
 OPTIONS[#OPTIONS + 1] = { key = "useDtt", kind = "bool", default = false, section = 6, reload = true, label = "PSS Drop Cheapest Thing",
 	tip = "A minimap button and /pss dtt that destroy or sell your cheapest junk. Off: nothing loads. Applies after a reload." }
+-- The Warehouse (3.7.0.106, warehouse-helper): every character's, guild's and warband's items,
+-- currencies and gold, saved account wide (PSS_WarehouseDB), with tooltips and search. The Bag
+-- manager switch is the shared item layer's: it reads your bags live for other features (the bag
+-- windows come in a later line). Both off by default; off means no file, event or table.
+OPTIONS[#OPTIONS + 1] = { key = "useWarehouse", kind = "bool", default = false, section = 6, reload = true, label = "Warehouse",
+	tip = "Keeps every character's, guild's and warband's items, currencies and gold, shows them in item tooltips and in search (/pss wh). Off: nothing loads and nothing is saved. Applies after a reload." }
+OPTIONS[#OPTIONS + 1] = { key = "useBags", kind = "bool", default = false, section = 6, reserved = true, reload = true, label = "Bag manager (item layer)",
+	tip = "Reads your bags, bank and equipped items live for other features. The bag windows come later. Off: nothing loads. Applies after a reload." }
 local DTT = {
 	{ key = "dttIcon",			kind = "bool",		default = true,		section = 7, label = "Show the minimap button" },
 	{ key = "dttQuality",		kind = "choice",	default = 0,		section = 7, label = "Highest quality to destroy",
@@ -120,14 +129,38 @@ local DTT = {
 	{ key = "dttNever",		kind = "itemlist",	default = "",		section = 7, label = "Never destroy these items" },
 }
 for _, o in ipairs(DTT) do OPTIONS[#OPTIONS + 1] = o end
-local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:", "Enabled components:", "Drop The Cheapest Thing:" }
+-- Warehouse options (section 8, shown under Feature Options; SAV-p09). A tooltip line for every holder
+-- of the item, from the Warehouse.
+local WHCAM = (select(4, GetBuildInfo()) or 0) < 20000
+local WH = {
+	{ key = "whTooltips",		kind = "bool",		default = true,		section = 8, label = "Show who holds an item in its tooltip" },
+	{ key = "whTipGuilds",		kind = "bool",		default = true,		section = 8, label = "Include guild banks" },
+	{ key = "whTipEquipped",	kind = "bool",		default = true,		section = 8, label = "Include equipped items" },
+	{ key = "whTipCurrency",	kind = "bool",		default = true,		section = 8, label = "Show who holds a currency in its tooltip" },
+	{ key = "whTipShift",		kind = "bool",		default = false,	section = 8, label = "Only while Shift is held" },
+	{ key = "whTipRealms",		kind = "bool",		default = WHCAM,	section = 8, label = "Show the realm of other realms' characters" },
+	{ key = "whTipFaction",		kind = "bool",		default = false,	section = 8, label = "Only characters of your faction" },
+	{ key = "whTipLimit",		kind = "number",	default = 4,		section = 8, min = 0, max = 50, label = "Holders listed before \"and n more\" (0-50)" },
+	{ key = "whTipByName",		kind = "bool",		default = false,	section = 8, label = "Join variants of an item by its name" },
+	{ key = "whTipTotal",		kind = "bool",		default = false,	section = 8, label = "Show a total line" },
+	{ key = "whRealms",			kind = "choice",	default = "this", section = 8, label = "Realms shown in search and gold",
+		tip = "This realm: the characters of the realm you are on. All realms: every character you saved. Item and currency tooltips always show this realm only.",
+		choices = { { "this", "This realm" }, { "all", "All realms" } } },
+	{ key = "whUnnamed",		kind = "action",	default = false,	section = 8, label = "Saved data with no saved character" },
+	{ key = "whValueSource",	kind = "choice",	default = "",		section = 8, label = "Where an item's value comes from",
+		choices = { { "", "Vendor price" }, { "auto", "The first price addon found" }, { "tsm", "TradeSkillMaster" }, { "recrystallize", "RECrystallize" }, { "auctionator", "Auctionator" } } },
+	{ key = "whGuildDays",		kind = "number",	default = 0,		section = 8, min = 0, max = 365, label = "Forget a guild bank not seen for this many days (0 keeps it)" },
+}
+for _, o in ipairs(WH) do OPTIONS[#OPTIONS + 1] = o end
+local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:", "Enabled components:", "Drop The Cheapest Thing:", "Warehouse:" }
 -- the order the Options tab lists the sections in (Enabled components first)
-M.PSS_OPTION_SECTION_ORDER = { 6, 1, 2, 3, 4, 5, 7 }
+M.PSS_OPTION_SECTION_ORDER = { 6, 1, 2, 3, 4, 5, 7, 8 }
 -- sections drawn under a group title, and sections shown disabled (one line)
 -- while their Enabled component is off: { [section] = ... }; none yet
-M.PSS_OPTION_SECTION_GROUP = { [7] = "Feature Options" }
-M.PSS_OPTION_SECTION_GATE = { [7] = { on = "dtt", text = "Turn on PSS Drop Cheapest Thing in Enabled components, then reload." } }
-M.PSS_OPTION_SECTION_PAGE = { [7] = "dtt" }	-- section -> its Addon Manager page key
+M.PSS_OPTION_SECTION_GROUP = { [7] = "Feature Options", [8] = "Feature Options" }
+M.PSS_OPTION_SECTION_GATE = { [7] = { on = "dtt", text = "Turn on PSS Drop Cheapest Thing in Enabled components, then reload." },
+	[8] = { on = "warehouse", text = "Turn on the Warehouse in Enabled components, then reload." } }
+M.PSS_OPTION_SECTION_PAGE = { [7] = "dtt", [8] = "warehouse" }	-- section -> its Addon Manager page key
 
 local REG = {}
 for _, o in ipairs(OPTIONS) do REG[o.key] = o end
@@ -187,7 +220,7 @@ end
 -- started with (M.PSS_SnapComponents at ADDON_LOADED), so a change made in
 -- the Options tab applies after a reload and a session never has half a
 -- component. M.PSS_OnNow(name) is the option as set now (the Options tab).
-local COMPONENT_KEY = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering", dtt = "useDtt" }
+local COMPONENT_KEY = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering", dtt = "useDtt", warehouse = "useWarehouse", bags = "useBags" }
 local snap
 
 local function camelot()
@@ -196,7 +229,9 @@ local function camelot()
 end
 M.PSS_IsCamelot = camelot
 
-local function liveOn(name)
+local liveOn
+function liveOn(name)
+	if name == "items" then return liveOn("bags") or liveOn("warehouse") end		-- the shared item layer runs for either
 	local key = COMPONENT_KEY[name]
 	if not key then return false end
 	if name == "gfx" and not camelot() then return false end
@@ -206,6 +241,7 @@ end
 function M.PSS_SnapComponents()
 	snap = {}
 	for name in pairs(COMPONENT_KEY) do snap[name] = liveOn(name) end
+	snap.items = snap.bags or snap.warehouse
 end
 
 function M.PSS_On(name)
@@ -221,6 +257,8 @@ M.PSS_OFF_TEXT = {
 	logging = "Event Logging is off: Options, Enabled components.",
 	filtering = "Social Filtering is off: nothing is blocked (Options, Enabled components).",
 	dtt = "PSS Drop Cheapest Thing is off: turn it on in Options, Enabled components, then reload.",
+	warehouse = "The Warehouse is off: turn it on in Options, Enabled components, then reload.",
+	bags = "The Bag manager is off: turn it on in Options, Enabled components, then reload.",
 }
 
 -- a component whose option was changed since the session started

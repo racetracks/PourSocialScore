@@ -83,6 +83,13 @@ function ns.BuildKitPage(win)
 	y = y - 26 - 2 * 22
 
 	y = y - 32
+	Label("Money line")
+	local ml = ns.NewMoneyLine(page, 360)
+	ml:SetPoint("TOPLEFT", page, "TOPLEFT", 120, y)
+	ml:SetLabel("Gold")
+	ml:SetMoney(12345678, "Alpha  1234g\nBravo  50g")
+
+	y = y - 32
 	Label("Tooltip")
 	local hover = ns.NewText(page, 12)
 	hover:SetPoint("TOPLEFT", page, "TOPLEFT", 120, y - 4)
@@ -131,7 +138,7 @@ function ns.BuildKitPage(win)
 	local menus = ns.BuildKitMenus(pages[3])
 	Select(1)
 
-	win.kit = { tabs = tabs, pages = pages, page = page, lists = lists, menus = menus, buttons = { b1, b2, b3 }, checks = { c1, c2 }, boxes = { e1, n1, s1, h1 }, itemList = il, textArea = ta, allowed = allowed, line = line, label = lbl, scroll = sf, tipOwner = hit }
+	win.kit = { tabs = tabs, pages = pages, page = page, lists = lists, menus = menus, buttons = { b1, b2, b3 }, checks = { c1, c2 }, boxes = { e1, n1, s1, h1 }, itemList = il, moneyLine = ml, textArea = ta, allowed = allowed, line = line, label = lbl, scroll = sf, tipOwner = hit }
 end
 
 -- Page 2: a sortable list of 200 sample entries and a pie

@@ -494,7 +494,8 @@ local function Build()
 	-- memory is given back at the next quiet moment
 	win:HookScript("OnHide", function(self)
 		self:UnregisterEvent("GLOBAL_MOUSE_UP")
-		ns.ListenStop()
+		local pop = _G.PSS_Everywhere		-- the Search Everywhere popup still listens while it shows
+		if not (pop and pop:IsShown()) then ns.ListenStop() end
 		for _, page in ipairs(self.pages) do
 			if page.release then page.release() end
 		end

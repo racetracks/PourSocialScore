@@ -1,0 +1,1 @@
+Syndicator = { other = true }

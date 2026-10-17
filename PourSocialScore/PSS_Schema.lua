@@ -22,8 +22,12 @@ local M = addon.M
 M.PSS_SCHEMA = {
 	-- PourSocialScoreDB's own keys (the rest are routed, LAYOUT)
 	core = "upgrade outbox purge recent session sessionStart revision imported importedFrom importedLegacyAt logAllV1",
-	-- PourSocialScoreDB.upgrade
-	upgrade = "step=0 version at",
+	-- PourSocialScoreDB.upgrade (fail "<step>:<code>" and undo, the pre-upgrade stores, one slot: one-build plan STP-p06)
+	upgrade = "step=0 version at fail undo",
+	-- PSS_WarehouseDB (its own SavedVariables, warehouse-helper, SAV-p01..p08): v layout, item/itemN/itemFree
+	-- the dictionary of item variants, inv/meta/cur/gold/seen by entity id, bad the quarantined strings,
+	-- jrn reserved for the journal (written by no one yet)
+	wh = "v item itemN itemFree inv meta cur gold bad seen jrn",
 	-- PSS_PlayersDB.list[i], one record per listed player, NPC or server
 	-- (S2b; the arrays ignoreList, typeList, factionList, dateList, notes,
 	-- expList and syncInfo are read once by the upgrade and dropped)

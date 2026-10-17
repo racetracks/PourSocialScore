@@ -50,6 +50,10 @@ lua5.1 tools/check_locals.lua || fail=1
 
 lua5.1 tools/check_timers.lua || fail=1
 
+# a chat, unit or hook value is checked with isSecret before any compare (3.7.0.111, baseline 02 J7; the lint proves itself first)
+lua5.1 tools/check_secretorder.lua --self || fail=1
+for f in PourSocialScore*/*.lua; do lua5.1 tools/check_secretorder.lua "$f" || fail=1; done
+
 lua5.1 tools/check_fields.lua || fail=1
 
 for d in PourSocialScore_*/; do
@@ -66,6 +70,12 @@ fi
 # the top section's bullets are written (a release's summary at release time)
 if awk 'NR > 1 && /^=> / { n++ } n == 1' history.txt | grep -qE '^- (What changed, in plain words\.|Summary of every change since .*written at release time)'; then
 	echo "history.txt: the top section still holds the placeholder bullet"
+	fail=1
+fi
+
+# the 3.7.0.106 section credits Syndicator by name and says so in plain words (no code notes)
+if [ "$ver" = "3.7.0.106" ] && ! awk 'NR > 1 && /^=> / { n++ } n == 1' history.txt | grep -q 'Syndicator by plusmouse'; then
+	echo "history.txt: the 3.7.0.106 section must credit Syndicator by plusmouse"
 	fail=1
 fi
 
@@ -91,6 +101,16 @@ if grep -nE 'ACP_|AddonList_|NoRecurse|NoChildren|ProtectedAddons|AddonSet|Enabl
 	echo "clean room: an identifier of another addon manager found above (written from the design, never copied)"
 	fail=1
 fi
+
+# a binding header is written once (3.7.0.110): the client refuses a header repeated on later bindings ("Binding header
+# ... was attempted to be loaded more than once") and the later ones take the first's
+for f in PourSocialScore*/Bindings.xml; do
+	[ -f "$f" ] || continue
+	if grep -o 'header="[^"]*"' "$f" | sort | uniq -d | grep .; then
+		echo "bindings: $f repeats a header (above); only the first binding of a group carries it"
+		fail=1
+	fi
+done
 
 [ $fail -eq 0 ] && echo "All rule checks passed"
 exit $fail

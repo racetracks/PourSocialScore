@@ -1,0 +1,6 @@
+## Interface: 120007, 16001
+## Title: Not Syndicator (harness stand-in)
+## Notes: defines a global named Syndicator without being Syndicator, for the shim checks
+## Version: 1
+
+OtherSyn.lua

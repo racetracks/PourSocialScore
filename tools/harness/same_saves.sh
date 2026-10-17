@@ -47,13 +47,22 @@ login() {
 	# parallel arrays and the 3.4.1.51 records alike) and leaves out the
 	# upgrade step, which a stage that adds one moves on purpose
 	for f in "$work/$tag-1.lua" "$work/$tag-2.lua"; do
-		sed "s/$v/VERSION/g" "$f" > "$f.v"
-		lua5.1 "$here/same_norm.lua" "$f.v" "$f.n"
+		sed "s/$v/VERSION/g; s/\\[\"version\"\\] = \"[0-9.]*\"/[\"version\"] = \"VERSION\"/" "$f" > "$f.v"
+		# only a save written with the Warehouse on (3.7.0.106) has data the older build cannot make: its table, options and
+		# entity rows are left out of the compare; every other save is compared with its entity rows as they are (R10-01)
+		if [ "$sv" != "-" ] && grep -q '\["useWarehouse"\] = true' "$sv"; then
+			lua5.1 "$here/wh_strip.lua" "$f.v" "$f.s"
+		else
+			cp "$f.v" "$f.s"
+		fi
+		lua5.1 "$here/same_norm.lua" "$f.s" "$f.n"
 	done
 	# the upgrade report's lines (3.4.1.46, U2) are left out of the chat: a
 	# version change alone now prints one; the saves still must be the same
 	for f in "$work/$tag-1.txt" "$work/$tag-2.txt"; do
 		sed "s/$v/VERSION/g" "$f" | grep -v -E "$REPORT" > "$f.n"
+		# the one line a save written with the Warehouse on prints about its unnamed data (W3-D5); the older build has no such line
+		if [ "$sv" != "-" ] && grep -q '\["useWarehouse"\] = true' "$sv"; then grep -v 'Warehouse: saved data for ' "$f.n" > "$f.m"; mv "$f.m" "$f.n"; fi
 	done
 }
 REPORT='Upgrading your saved data:|Saved data upgraded to |Saved data upgrade paused at |older than your saved data|Pour Social Score: [|]cffffffff  [A-Z][A-Za-z ]+: '

@@ -324,6 +324,20 @@ il.rows[1].remove._scripts.OnClick(il.rows[1].remove)
 check(il.removed == 6948, "item list: remove did not report the item")
 il:SetItems({ 1 })
 check(not il.rows[2]:IsShown() and il:GetHeight() == 26 + 22, "item list did not hide spare rows")
+-- warehouse-helper: the money line (TST-p198), drawn the same in every look
+local ml = kit.moneyLine
+check(ml and ml.text:GetText() and ml.text:GetText() ~= "" and ml.label:GetText() == "Gold" and ml.breakdown == "Alpha  1234g\nBravo  50g", "money line did not draw its amount, label and breakdown")
+check(ml:GetWidth() == 360 and ml:GetHeight() == 18, "money line size")
+ml._scripts.OnEnter(ml)
+check(ml._scripts.OnLeave ~= nil, "money line has no hover leave")
+ml:SetMoney(0)
+check(ml.text:GetText() ~= nil and ml.breakdown == nil, "money line SetMoney(0) clears the breakdown")
+ml:SetMoney(12345678, "Alpha  1234g\nBravo  50g")
+for _, look in ipairs({ 1, 2, 0 }) do
+	M.PSS_SetOpt("uiSkin", "global", look)
+	check(ml.label:GetAlpha() == (look == 1 and 0.7 or 0.85) and ml.text:GetAlpha() == 1, "money line label fade in look " .. look)
+end
+M.PSS_SetOpt("uiSkin", "global", 0)
 -- chips: the x sits just after the name, chips share a line and wrap
 il:SetItems({ 1, 2, 3 })
 local chip = il.rows[1]
@@ -880,7 +894,7 @@ do
 	-- navmodel: the rows as the ask, headings dropped with no entry
 	local keys = {}
 	for _, r in ipairs(M.PSS_MgrNav()) do keys[#keys + 1] = r.head and ("#" .. r.head) or r.key end
-	check(table.concat(keys, ",") == "#Global Settings,addons,features,importExport,#Social Services,players,guilds,filters,#Feature Options,dtt,#Options,options", "nav rows: " .. table.concat(keys, ","))
+	check(table.concat(keys, ",") == "#Global Settings,addons,features,importExport,#Social Services,players,guilds,filters,#Feature Options,dtt,warehouse,#Options,options", "nav rows: " .. table.concat(keys, ","))
 	local t1, p1 = M.PSS_ResolveTab("importExport")
 	local t2, p2 = M.PSS_ResolveTab("options")
 	local t3, p3 = M.PSS_ResolveTab("players")
@@ -890,12 +904,12 @@ do
 	host:SetSize(300, 300)
 	local picked
 	local nav = ui.NewNav(host, { width = 180, rows = M.PSS_MgrNav(), onSelect = function(k) picked = k end })
-	check(#nav.rows == 12 and #nav.pool == 12 and nav:GetWidth() == 180, "nav rows drawn")
+	check(#nav.rows == 13 and #nav.pool == 13 and nav:GetWidth() == 180, "nav rows drawn")
 	for _, look in ipairs({ 1, 0, 2 }) do
 		M.PSS_SetOpt("uiSkin", "global", look)
 		M.Events.Fire("OPTION_CHANGED", "uiSkin")
 		nav:Select("guilds")
-		check(#nav.pool == 12, "a repaint made rows (look " .. look .. ")")
+		check(#nav.pool == 13, "a repaint made rows (look " .. look .. ")")
 		check(nav.rows[7].data.key == "guilds" and nav.rows[7].bg:IsShown(), "the selected entry is not marked (look " .. look .. ")")
 		check(nav.rows[1].data.head and not nav.rows[1].data.key and nav.rows[6].bg:IsShown() == false, "heading or entry paint (look " .. look .. ")")
 	end
@@ -904,7 +918,7 @@ do
 	nav.rows[2]._scripts.OnClick(nav.rows[2])
 	check(picked == "addons", "a click did not report the entry")
 	nav:SetRows({ M.PSS_MgrNav()[1], M.PSS_MgrNav()[3] })
-	check(#nav.pool == 12 and not nav.pool[3]:IsShown() and nav.pool[2]:IsShown(), "SetRows did not reuse the pool")
+	check(#nav.pool == 13 and not nav.pool[3]:IsShown() and nav.pool[2]:IsShown(), "SetRows did not reuse the pool")
 	-- navcollapse: the fold is one call, no timer or OnUpdate
 	win:Hide()
 	SlashCmdList["PSS"]("acp")

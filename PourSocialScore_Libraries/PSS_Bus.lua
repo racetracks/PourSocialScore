@@ -67,45 +67,196 @@ end
 ------------------------------------------------------------------------
 -- The bus
 ------------------------------------------------------------------------
+-- spec: accepts / returns (column lists), doc, cost, paged, and the error
+-- contract (one-build plan STP-p01): onError "empty" | "last" | "default",
+-- default (a set or a function), ver (function: the source's version, for
+-- "last"), retry = 1 (a failed write runs once more after the next settle,
+-- out of combat), critical, writes.
 function M.PSS_Provide(name, fn, spec)
-	if type(name) ~= "string" or not name:find("^[%w_]+%.[%w_.]+$") or type(fn) ~= "function" then return end
+	if type(name) ~= "string" or not name:find("^[%w_]+%.[%w_.]+$") or type(fn) ~= "function" then
+		local T = M.PSS_Test
+		if T and T.strict then error("bad service declaration: " .. tostring(name), 2) end
+		if M.PSS_ErrNote then M.PSS_ErrNote("arg", tostring(name), "bad service declaration") end
+		return
+	end
 	spec = spec or {}
-	services[name] = { fn = fn, accepts = spec.accepts or {}, returns = spec.returns or {}, doc = spec.doc }
+	services[name] = { fn = fn, accepts = spec.accepts or {}, returns = spec.returns or {}, doc = spec.doc, cost = spec.cost,
+		paged = spec.paged, writes = spec.writes, onError = spec.onError, default = spec.default, ver = spec.ver,
+		retry = spec.retry, critical = spec.critical }
 end
 
-local function Fail(name, err)
-	M.PSS_NoteListenerError("service " .. name, err)		-- counted every time, shown once per service
-	return nil, err
+-- a service declared now and built on its first call (one-build plan A10): the
+-- name and the contract are known to discovery at once, `load()` returns the
+-- real function and nothing of it is built until someone calls
+function M.PSS_ProvideStub(name, spec, load)
+	M.PSS_Provide(name, function(set, opts)
+		local real = load()
+		if type(real) ~= "function" then error("missing: " .. name .. " could not be built", 0) end
+		local svc = services[name]
+		if svc then svc.fn = real; svc.stub = nil end
+		return real(set, opts)
+	end, spec)
+	if services[name] then services[name].stub = true end
+end
+
+function M.PSS_ServiceIsStub(name)
+	local s = services[name]
+	return s ~= nil and s.stub == true
+end
+
+-- what a service declares (a copy; nil when it does not exist)
+function M.PSS_ServiceInfo(name)
+	local s = services[name]
+	if not s then return nil end
+	return { accepts = s.accepts, returns = s.returns, doc = s.doc, cost = s.cost, paged = s.paged, writes = s.writes,
+		onError = s.onError, retry = s.retry, critical = s.critical }
+end
+
+local KEYCOLS = { "key" }
+local pool = {}			-- [depth] = a one-row key set, reused (a key call allocates nothing once warm)
+local depth = 0
+local retryQ = {}		-- [service] = { { input, opts }, ... } : a direct call's failed inputs, key sets merged (a trigger row keeps its own keys)
+
+local function keySet(v)
+	local s = pool[depth]
+	if not s then s = { cols = KEYCOLS, n = 1, { false } }; pool[depth] = s end
+	s[1][1] = v
+	return s
 end
 
 -- a key, a { key = ... } table and a one-row set are the same call
 local function Normalize(input)
 	local t = type(input)
-	if t == "string" or t == "number" then
-		return { cols = { "key" }, n = 1, { input } }
-	end
+	if t == "string" or t == "number" then return keySet(input) end
 	if t == "table" and not M.PSS_IsSet(input) and input.key ~= nil and next(input, "key") == nil and next(input) == "key" then
-		return { cols = { "key" }, n = 1, { input.key } }
+		return keySet(input.key)
 	end
 	return input
 end
 
+local function copySet(set)
+	if not M.PSS_IsSet(set) then return set end
+	local c = { cols = set.cols, n = set.n }
+	for i = 1, set.n do
+		local row, r = set[i], {}
+		for j = 1, #row do r[j] = row[j] end
+		c[i] = r
+	end
+	return c
+end
+
+local function emptyLike(svc, input)
+	local cols = svc.returns
+	if (cols[1] == "*" or #cols == 0) and M.PSS_IsSet(input) then cols = input.cols end
+	return { cols = cols, n = 0 }
+end
+
+-- what a failing call gives back: the service's policy set, or nil
+local function fallback(svc, input, err)
+	local p = svc.onError
+	if p == "empty" then
+		return emptyLike(svc, input), err
+	elseif p == "last" then
+		local l = svc.last
+		if l and (not svc.ver or l.ver == svc.ver()) then return l.set, err end
+		return emptyLike(svc, input), err
+	elseif p == "default" then
+		local d = svc.default
+		if type(d) == "function" then d = d() end
+		if M.PSS_IsSet(d) then return d, err end
+		return emptyLike(svc, input), err
+	end
+	return nil, err
+end
+
+local function Fail(name, svc, input, err, opts)
+	err = M.PSS_ErrFail(name, err)		-- ring, breaker; the text starts with its code
+	if M.PSS_NoteListenerError then M.PSS_NoteListenerError("service " .. name, err, true) end
+	if svc.retry and not M.PSS_InRow and M.PSS_IsSet(input) then
+		local q = retryQ[name]
+		if not q then q = {}; retryQ[name] = q end
+		local last = q[#q]
+		if last and last.opts == opts and #input.cols == 1 and input.cols[1] == "key" and #last.input.cols == 1 and last.input.cols[1] == "key" then
+			local have = {}
+			for i = 1, last.input.n do have[last.input[i][1]] = true end
+			for i = 1, input.n do
+				local k = input[i][1]
+				if not have[k] then have[k] = true; last.input.n = last.input.n + 1; last.input[last.input.n] = { k } end
+			end
+		elseif #q < 8 then
+			q[#q + 1] = { input = copySet(input), opts = opts }
+		end
+	end
+	return fallback(svc, input, err)
+end
+
+local function runRetries()
+	for name, q in pairs(retryQ) do
+		retryQ[name] = nil
+		local svc = services[name]
+		if svc then
+			for _, r in ipairs(q) do
+				local ok, out = pcall(svc.fn, r.input, r.opts)
+				if ok and M.PSS_IsSet(out) then M.PSS_ErrOk(name)
+				else M.PSS_ErrFail(name, ok and "fail: retry returned no record set" or out) end
+			end
+		end
+	end
+end
+
+-- called after a settle (M.PSS_ErrSettle): pending retries run out of combat
+function M.PSS_BusRetry()
+	if next(retryQ) == nil then return end
+	if M.PSS_When then M.PSS_When("nocombat", runRetries) else runRetries() end
+end
+
 function M.PSS_Call(name, input, opts)
 	local svc = services[name]
-	if not svc then return nil, "no service " .. tostring(name) end
+	if not svc then
+		if M.PSS_ErrNote then M.PSS_ErrNote("missing", tostring(name), "no service") end
+		return nil, "missing: no service " .. tostring(name)
+	end
 	if M.PSS_WatchPull then M.PSS_WatchPull(name) end		-- a reader's trigger rows settle first (pull)
 	local secret = M.PSS_IsSecret
 	if secret then
 		local t = type(input)
-		if t == "string" or t == "number" then
-			if secret(input) then return nil, "secret value" end
-		elseif t == "table" and secret(input.key) then
-			return nil, "secret value"
+		if (t == "string" or t == "number") and secret(input) or t == "table" and secret(input.key) then
+			M.PSS_ErrNote("secret", name, "secret value")
+			return fallback(svc, nil, "secret: secret value")
 		end
 	end
-	local ok, out = pcall(svc.fn, Normalize(input), opts)
-	if not ok then return Fail(name, out) end
-	if out ~= nil and not M.PSS_IsSet(out) then return Fail(name, "returned a value that is not a record set") end
+	if M.PSS_ErrOpen(name) then
+		M.PSS_ErrNote("fail", name, "breaker open")
+		return fallback(svc, nil, "fail: breaker open")
+	end
+	depth = depth + 1
+	local set = Normalize(input)
+	local T = M.PSS_Test
+	local ok, out
+	if T and T.fault and (T.fault == "*" or T.fault == name) then
+		ok, out = false, "fail: injected fault"
+	elseif T and T.trace then		-- the harness wants the stack of a failing service
+		ok, out = xpcall(function() return svc.fn(set, opts) end, debug.traceback)
+	else
+		ok, out = pcall(svc.fn, set, opts)
+	end
+	depth = depth - 1
+	if not ok then return Fail(name, svc, set, out, opts) end
+	if out ~= nil and not M.PSS_IsSet(out) then return Fail(name, svc, set, "fail: returned a value that is not a record set") end
+	if out == set and set == pool[depth + 1] then out = copySet(out) end		-- never hand out the reused key set
+	if svc.onError == "last" and out then svc.last = { set = out, ver = svc.ver and svc.ver() } end
+	M.PSS_ErrOk(name)
+	return out
+end
+
+-- the same call without the guard: an error raises (a query pipeline wraps all
+-- of its steps in one pcall and reports one ring entry)
+function M.PSS_CallRaw(name, input, opts)
+	local svc = services[name]
+	if not svc then error("missing: no service " .. tostring(name), 0) end
+	if M.PSS_WatchPull then M.PSS_WatchPull(name) end
+	local out = svc.fn(input, opts)
+	if out ~= nil and not M.PSS_IsSet(out) then error("fail: " .. name .. " returned a value that is not a record set", 0) end
 	return out
 end
 
@@ -147,3 +298,24 @@ function M.PSS_Triggers()
 end
 
 M.PSS_Provide("trig.rows", function() return M.PSS_Triggers() end, { returns = { "id", "gate", "on", "settle", "run", "live" }, doc = "every trigger row" })
+
+M.PSS_Provide("err.rows", function() return M.PSS_ErrRows() end, { returns = { "code", "service", "message", "count", "first", "last" },
+	doc = "the last distinct service errors", cost = "O(50)", writes = false, onError = "empty" })
+
+-- the upgrade helper's services (core PSS_Upgrade.lua holds the work): the plan,
+-- the state, and the one retry that the trigger row upgretry runs
+M.PSS_Provide("upg.plan", function()
+	local set = { cols = { "step", "feature", "state" }, n = 0 }
+	for _, r in ipairs(M.PSS_UpgradePlan()) do M.PSS_SetAdd(set, r) end
+	return set
+end, { returns = { "step", "feature", "state" }, doc = "the upgrade steps and whether each is done, due or always", cost = "O(steps)", writes = false, onError = "empty" })
+
+M.PSS_Provide("upg.status", function()
+	local rec = type(PourSocialScoreDB) == "table" and PourSocialScoreDB.upgrade or {}
+	return { cols = { "step", "version", "fail", "undo" }, n = 1, { tonumber(rec.step) or 0, tostring(rec.version or ""), tostring(rec.fail or ""), rec.undo ~= nil } }
+end, { returns = { "step", "version", "fail", "undo" }, doc = "where the upgrade stands", cost = "O(1)", writes = false, onError = "empty" })
+
+M.PSS_Provide("upg.retry", function(set)
+	M.PSS_UpgradeRetry()
+	return set
+end, { accepts = { "key" }, returns = { "key" }, doc = "the one retry of a paused upgrade, out of combat", writes = true, onError = "empty" })

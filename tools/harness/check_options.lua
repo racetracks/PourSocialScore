@@ -32,7 +32,7 @@ for _, g in ipairs(page.groups) do
 	end
 end
 local want = 0
-for _, o in ipairs(M.PSS_OPTIONS) do if not o.inline and not o.retired then want = want + 1 end end
+for _, o in ipairs(M.PSS_OPTIONS) do if not o.inline and not o.retired and not o.reserved then want = want + 1 end end
 check(n == want, ("rows %d, options %d"):format(n, want))
 for key, row in pairs(rowOf) do
 	local o = row.option

@@ -275,6 +275,29 @@ Events
 * Every pie slice, View Events and a double-click in an Event History opens
   this tab on those lines; Back returns to where you were.
 
+Warehouse (Options, Enabled components, then reload; off by default)
+* Remembers what every character, guild bank and your warband bank holds
+  (bags, bank, reagents, mail, equipped, void storage, auctions), each
+  character's currencies and everyone's gold. Saved account wide in the
+  Options folder (PSS_WarehouseDB) and only while it is on.
+* Tooltips: an item or currency tooltip lists who holds it. Options, Feature
+  Options, Warehouse choose what is shown.
+* Search Everywhere: /pss wh. Words: a keyword (quality, slot, class,
+  binding, expansion, crafted, collected ...), part of a name, or part of the
+  tooltip. Numbers: >400 <300 =415 400-420 (item level), >10g 5s-2g (value).
+  Join with & (and), | (or), ~ or ! (not) and brackets. Click a result to
+  see where it is.
+* Gold: /pss money. Manage: /pss wh status, import, sweep, hide <Name-Realm>,
+  remove <Name-Realm>. /syn and /syndicator open the search when free.
+* From Syndicator: load it once and /pss wh import (dry shows the counts).
+  With Syndicator not installed, addons that ask for it get the Warehouse.
+* Thanks: Syndicator by plusmouse (https://www.curseforge.com/wow/addons/syndicator)
+  showed what a warehouse should do; its behaviour was studied and no code
+  was copied. Item prices are read from TradeSkillMaster, RECrystallize and
+  Auctionator through their documented interfaces.
+* Upgrades: a failed saved-data upgrade is undone and retried once;
+  /pss upgrade undo; /pss status shows errors and the upgrade state.
+
 Options and Import/Export
 * Options: every option by section, with a search box. Changes save at once.
 * Import/Export: pick the parts (Player Ignore List, Guild Ignore List and
@@ -283,8 +306,9 @@ Options and Import/Export
   Import (Replace asks first).
 
 Enabled components (Options, first section)
-* Four tick boxes: Addon Manager (default off), Event Logging (on), Graphics
-  Settings Exporter (off; Camelot only) and Social Filtering (on). A change
+* Tick boxes: Addon Manager (default off), Event Logging (on), Graphics
+  Settings Exporter (off; Camelot only), Social Filtering (on), PSS Drop
+  Cheapest Thing (off) and Warehouse (off). A change
   applies after a reload (it asks "Reload now?"; the row says "(after
   reload)" until then). Off means nothing of it runs or is loaded.
 * Addon Manager off: no AddOns tab, no /pss acp or /acp, the Open AddOns key
@@ -625,6 +649,13 @@ filter that mixes them without brackets may now behave differently.)
                           list, sell, never <item>, always <item>, forget
                           <item>, options, log, icon. Also /dropcheap and
                           /dtct, a key binding and a minimap button.
+/pss wh                   The Warehouse (off by default: Options, Enabled
+                          components, then reload): Search Everywhere. Also
+                          search <text>, status, import [dry], sweep,
+                          hide <Name-Realm>, remove <Name-Realm>.
+/pss money                Warehouse: gold per character, realm and total.
+/pss status               Recent errors, open breakers and the saved-data
+                          upgrade state. /pss upgrade [plan | undo].
 /pss macro [set] [create] [account|character]
                           Camelot: write the macros the addon carries,
                           each as an account-wide or a character macro.

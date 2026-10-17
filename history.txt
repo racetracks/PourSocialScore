@@ -1,6 +1,48 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.7.0.112 - /pssguild chat names an error as the reason the last line passed (no stale reason)
+
+- Chat filtering: when checking a line raised an error, /pssguild chat still showed the reason of an earlier line as "last line passed because". It now says an error happened (the error itself is shown by lastError and counted in errors).
+
+=> 3.7.0.111 - W-8 secret order: the :893 target compare and the other isSecret-after-compare sites, unreadable lines counted and shown, source-order lint, secret sweep
+
+- Chat filtering: when the game hides a sender's name (chat restrictions such as an encounter, a Mythic+ key, a PvP match, or the test setting addonChatRestrictionsForced), PSS no longer raises an error on your own whisper being sent to a hidden name, and the same wrong order of checks is fixed in three other places (channel names, and two in the guild list code). Lines whose sender is hidden are still passed through unfiltered, as before, but are now counted: /pssguild chat shows "secret (unreadable, not filtered): n" and says so when every line was unreadable, which points at a leftover restriction setting. A source check now fails the build if a value is compared before it is checked for being hidden.
+
+=> 3.7.0.110 - Chat filter registration hardening (W-8) and This realm scope (W-7)
+
+- Chat filtering: /pssguild chat said "ours: NO" on every event, but on Retail 12.x the game's filter registry is an object with no list to read, so that check was blind (its "3 filters" were the registry's three methods). The command now says what PSS itself did (started, events added, events the game refused), says "cannot be read on this client" where there is no list, and shows the counters that tell the truth: lines that reached our filter since login, checked, hidden, errors, and why the last line passed. At 0 it says that no line has reached our filter: whatever draws chat is not calling the game's chat filters. Each event is added under its own protection (one the game refuses is named, tried once more when the world is up, and skips neither the other events nor the invite, duel and trade events), a start-up step that fails prints one red line naming it and the steps after it still run, and a fault in the upgrade fields or the built-in rules leaves the filter off, loudly, instead of silently inert. Whether any of this was the cause is for the in-game check to say.
+- Fixed: Bindings.xml repeated the key binding header on every binding, which the game reports as "Binding header POURSOCIALSCORE was attempted to be loaded more than once". The header is now on the first binding only.
+- Warehouse: "This realm" means the realm of the character you are on (it was the connected realms). Search and gold follow the option "Realms shown in search and gold" (This realm, the default, or All realms; a saved All realms stays). Item and currency tooltips always show this realm only, whatever the option says. The Search Everywhere window redraws when the option changes on the Options page.
+
+=> 3.7.0.109 - W-4 G1: an empty set never widens a query
+
+- Fixed: hovering an item nobody holds (a vendor item, a chat link) made the Warehouse tooltip fail five times and stop for the session. An empty list of holders now means no holders, not everyone. The same rule applies to the gold list and the item search. A failure inside the tooltip for one item no longer stops the tooltips of every other item. Drop Cheapest Thing waits until the saved data is routed before its first scan, so /pss status no longer reports an early entity read (it has its own code, early). The window's memory was measured after a full collection: nothing stays after it closes except the built window, and it does not grow with use.
+
+=> 3.7.0.108 - Warehouse: empty equipment slots are not items
+
+- Fixed: the Warehouse search showed a row "item:0" held by "Equipped" (a red question mark). An empty equipment slot that the client reports as item 0 is no longer saved, and an item 0 row already saved is no longer listed.
+
+=> 3.7.0.107 - Warehouse fixes from the first in-game test
+
+- Fixed: the equipped items could not be read on Camelot (an error about the item's bound state); the Warehouse now asks the client for an item location the way the client wants it.
+- New: choose which realms the Warehouse covers (Options, Warehouse: connected realms, the default, or all realms); the Search Everywhere window has the same choice.
+- /pss wh search <text> now opens the Search Everywhere window with the text filled in (add chat after the text to print the matches in chat, which waits until the client has given the item names). /pss wh search with no text opens the window.
+- Search Everywhere shows this character's items when nothing is typed, with the item's icon on the left of every row and its tooltip when you hover a row.
+- The Warehouse has its own tab in the main window (only while the Warehouse is on), with the same search.
+- Fixed: a character's saved name entry could be lost when Drop Cheapest Thing started early, which left its gold shown as "?". Saved Warehouse data that belongs to no saved character is now kept, hidden, not counted, and its number is never reused; Options, Warehouse has a Remove button for it, and /pss wh status lists it as "unnamed #id" for /pss wh remove #id. Nothing is deleted unless you remove it.
+
+=> 3.7.0.106 - The Warehouse: what every character, guild and your warband holds (optional, off by default)
+
+- New optional Warehouse (Options, Enabled components, then reload). It remembers the items every character carries, keeps in the bank, mail, void storage, auctions and has equipped, each guild bank and your warband bank, the currencies each character holds and everyone's gold. Everything is saved account wide, only while the Warehouse is on, and nothing loads while it is off.
+- Item and currency tooltips list who holds them. The Warehouse page in Options (Feature Options) chooses what is shown: guild banks, equipped items, other realms, your faction only, how many holders before "and n more", a total line, Shift only, and joining variants of an item by name.
+- Search Everywhere: /pss wh opens one window that searches every character, guild bank and the warband in all three looks. /pss wh search <text> prints the matches. You can search by name, quality, slot, item class, binding, expansion, item level (>400, 400-420) and value (>10g, 5s-2g), and combine words with & | ~ ! and brackets. Click a result to see where it is.
+- /pss money lists gold per character, per realm and the total. /pss wh status, hide, remove, sweep and import manage what is saved; /syn and /syndicator open the search when no other addon owns them.
+- Moving from Syndicator: /pss wh import copies what Syndicator saved (it must be loaded, and it is only read), then you can turn it off. When Syndicator is not installed, addons that ask for it (such as Baganator) get their answers from the Warehouse.
+- Drop Cheapest Thing uses the same bag reader and item values when the Warehouse is on; its choices do not change.
+- Safer upgrades: a saved-data upgrade that fails is undone and tried once more, /pss upgrade undo puts the data back as it was before the last upgrade, and /pss status shows recent errors and the upgrade state.
+- Thanks: Syndicator by plusmouse (https://www.curseforge.com/wow/addons/syndicator) showed what a warehouse should do; its behaviour was studied and no code was copied. Item prices come read-only from TradeSkillMaster, RECrystallize and Auctionator through their documented interfaces.
+
 => 3.7.0.105 - Docs: dated temp folders, token rule for threads, graphs in reports
 
 - Docs only: session temp folders on scratch are dated by year, month and day (temp/YYYY/MM/DD/hh-mm-ss-Ddd-<name>/); older folders stay where they are. The author's token rule is passed verbatim to every sub-agent and thread, and summaries and reports carry graphs and heat maps where they help. Every planned build after S3 moves up one (W1 is 3.7.0.106).

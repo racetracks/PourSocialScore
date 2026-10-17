@@ -44,7 +44,7 @@ function phases.options()
 	check(g[1].title == "Enabled components", "the section is not first: " .. tostring(g[1].title))
 	local labels = {}
 	for _, it in ipairs(g[1].items) do labels[#labels + 1] = it.o.label end
-	check(table.concat(labels, ",") == "Addon Manager,Event Logging,Graphics Settings Exporter,Social Filtering,PSS Drop Cheapest Thing", "labels: " .. table.concat(labels, ","))
+	check(table.concat(labels, ",") == "Addon Manager,Event Logging,Graphics Settings Exporter,Social Filtering,PSS Drop Cheapest Thing,Warehouse", "labels: " .. table.concat(labels, ","))
 	check(g[2].title == "Blocking Options" or g[2].title ~= "Enabled components", "the other sections follow")
 	-- greyed rows
 	local en, note = M.PSS_OptGate(M.PSS_OPTION_REG.useGfx)

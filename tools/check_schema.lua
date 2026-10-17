@@ -93,7 +93,7 @@ end
 -- --saves: walk the saved files
 ------------------------------------------------------------------------
 local KIND = {}
-for _, k in ipairs({ "upgrade", "player", "guild", "member", "block", "counts", "filterStat", "builtinStat", "line", "logGroup", "ent" }) do
+for _, k in ipairs({ "upgrade", "player", "guild", "member", "block", "counts", "filterStat", "builtinStat", "line", "logGroup", "ent", "wh" }) do
 	KIND[k] = fields(k)
 end
 for _, c in ipairs({ "guildChat", "unknown" }) do KIND.counts[c] = true end
@@ -120,14 +120,15 @@ local function lines(list, where)
 	end
 end
 
-local STORES = { "PourSocialScoreDB", "PSS_CharDB", "PSS_OptionsDB", "PSS_PlayersDB", "PSS_GuildsDB", "PSS_RulesDB", "PSS_CountsDB", "PSS_LoggingDB" }
+local STORES = { "PourSocialScoreDB", "PSS_CharDB", "PSS_OptionsDB", "PSS_PlayersDB", "PSS_GuildsDB", "PSS_RulesDB", "PSS_CountsDB", "PSS_LoggingDB", "PSS_WarehouseDB" }
 for i = 2, #arg do
 	local path = arg[i]
 	for _, g in ipairs(STORES) do _G[g] = nil end
 	if not pcall(dofile, path) then problem("%s: not a saved file", path) end
+	check(PSS_WarehouseDB, "wh", path .. " warehouse")		-- its keys are the schema's wh row
 	for _, g in ipairs(STORES) do
 		local t = _G[g]
-		if type(t) == "table" then
+		if type(t) == "table" and g ~= "PSS_WarehouseDB" then
 			for k in pairs(t) do
 				if type(k) == "string" and not top[k] and not k:match("^newer") and not HARNESS[k] then
 					problem("%s: %s.%s is not in the schema map", path, g, k)
