@@ -9,12 +9,27 @@
 # 2.0.17, 2.0.8, 2.0.1: their code is not in git, so the 2.0.18 save is
 # rewritten into their shape (tools/harness/downgrade.lua).
 here=$(dirname "$0")
-# PSS_VALIDATION_LOG=<file> keeps the whole output in that file too (for
-# tools/host_tests.sh --log); the exit status is the run's own
-if [ -n "$PSS_VALIDATION_LOG" ] && [ -z "$PSS_VALIDATION_TEE" ]; then
+# The whole output is always kept in a log (PSS_VALIDATION_LOG, default
+# $TMPDIR/pss-validate-last.log; tools/host_tests.sh --log uses it); the exit
+# status is the run's own
+if [ -z "$PSS_VALIDATION_TEE" ]; then
+	log=${PSS_VALIDATION_LOG:-${TMPDIR:-/tmp}/pss-validate-last.log}
 	rcfile=$(mktemp)
-	{ PSS_VALIDATION_TEE=1 sh "$0" "$@"; echo $? > "$rcfile"; } 2>&1 | tee "$PSS_VALIDATION_LOG"
+	echo "log: $log"
+	{ PSS_VALIDATION_TEE=1 sh "$0" "$@"; echo $? > "$rcfile"; } 2>&1 | tee "$log"
 	rc=$(cat "$rcfile"); rm -f "$rcfile"
+	awk 'BEGIN { cur = "(setup)"; seen[cur] = 1; n = 1; ord[1] = cur }
+		/^== / { cur = substr($0, 4); if (!(cur in seen)) { seen[cur] = 1; ord[++n] = cur } }
+		/^PASS/ { p[cur]++; P++ }
+		/^FAIL/ { f[cur]++; F++ }
+		/^SKIP/ { k[cur]++; K++ }
+		/^-- [0-9]+s, total [0-9]+s: / { i = index($0, ": "); nm = substr($0, i + 2); s[nm] += $2 + 0; tot = $4 + 0 }
+		END {
+			print "SUMMARY section | PASS | FAIL | SKIP | seconds"
+			for (i = 1; i <= n; i++) { c = ord[i]; printf "| %s | %d | %d | %d | %s |\n", c, p[c], f[c], k[c], (c in s) ? s[c] : "--" }
+			printf "| total | %d | %d | %d | %s |\n", P, F, K, tot
+		}' "$log" | tee -a "$log"
+	echo "log: $log"
 	exit "$rc"
 fi
 work=${TMPDIR:-/tmp}/pss-validate
@@ -29,7 +44,31 @@ skipped=""
 if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = "true" ] && ! git cat-file -e 767c49c 2>/dev/null; then
 	echo "NOTE: shallow clone without the 2.0 history; run: git fetch --depth=2000 origin main"
 fi
+command -v lua5.1 > /dev/null || { echo "FAIL setup: lua5.1 not found (apt-get install -y lua5.1)"; exit 1; }
+if [ -z "$PSS_SCRATCH" ] && [ -e ../Pour-Social-Score_Scratch/.git ]; then
+	PSS_SCRATCH=$(cd ../Pour-Social-Score_Scratch && pwd); export PSS_SCRATCH
+	echo "NOTE: PSS_SCRATCH=$PSS_SCRATCH (scratch checkout beside the repo)"
+fi
+run_t=$(date +%s); sec_name=""
+section_end() {
+	now=$(date +%s)
+	[ -n "$sec_name" ] && echo "-- $((now - sec_t))s, total $((now - run_t))s: $sec_name"
+	rm -f "$work/.section"; sec_name=""
+}
+section() {
+	now=$(date +%s)
+	[ -n "$sec_name" ] && echo "-- $((now - sec_t))s, total $((now - run_t))s: $sec_name"
+	sec_name=$1; sec_t=$now
+	echo "$now $1" > "$work/.section"
+	echo "== $1"
+}
+PSS_SECTION_TIMEOUT=${PSS_SECTION_TIMEOUT:-1200}
+if [ "$PSS_SECTION_TIMEOUT" != 0 ]; then
+	sh "$here/validate_watchdog.sh" $$ "$work" "$PSS_SECTION_TIMEOUT" &
+	wd=$!; trap 'kill $wd 2>/dev/null' EXIT
+fi
 
+section "old builds"
 for pair in 2.0.18:d885cd0 2.0.19:4b7066c 2.0.22:2837de0 2.0.35:9646596 2.0.36:9bfba2e 2.0.37:710d180 2.0.38:d331f82 2.0.39:24d234c 2.0.40:34092f7 2.0.41:35742b2 2.0.42:8a8a8fd 2.0.43:41444f3 2.0.44:767c49c; do
 	v=${pair%%:*}; c=${pair#*:}
 	mkdir -p "$work/src-$v"
@@ -42,6 +81,7 @@ for v in 2.0.17 2.0.8 2.0.1; do
 	cp "$work/expect-2.0.18.lua" "$work/expect-$v.lua"
 done
 
+section "upgrades"
 for v in 2.0.1 2.0.8 2.0.17 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40 2.0.41 2.0.42 2.0.43 2.0.44; do
 	out=$(sh "$here/validate.sh" "$v" "$work/sv-$v.lua" "$work/expect-$v.lua" 2>&1)
 	echo "$out"
@@ -59,7 +99,7 @@ done
 # built-in list member stays blocked there with a note. Run on the save each
 # version's upgrade wrote (validate.sh phase 3).
 for v in 2.0.1 2.0.8 2.0.17 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40 2.0.41 2.0.42 2.0.43 2.0.44; do
-	echo "== $v removals"
+	section "$v removals"
 	src=${TMPDIR:-/tmp}/pss-validate-$v/after-login2.lua
 	for ph in forget1 forget2; do
 		out=$(PSS_PHASE=$ph lua5.1 "$here/run.lua" . "$src" "$work/forget-$v-$ph.lua" "$here/check_forget.lua" 2>&1 | grep -v '^|cff')
@@ -72,7 +112,7 @@ done
 # guild rule blocks (2.0.39): counted once, linked to the rule, no combat
 # discovery. Saves written by each version's own code (2.0.18 and later).
 for v in 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40 2.0.41 2.0.42 2.0.43 2.0.44; do
-	echo "== $v guild rule"
+	section "$v guild rule"
 	PSS_TIME=$t0 PSS_EXPECT="$work/expect-gr-$v.lua" \
 		lua5.1 "$here/run.lua" "$work/src-$v" - "$work/sv-gr-$v.lua" "$here/make_guildrule.lua" | grep '^made' || fail=1
 	tm=$(lua5.1 -e "print(dofile('$work/expect-gr-$v.lua').time)")
@@ -85,13 +125,13 @@ for v in 2.0.18 2.0.19 2.0.22 2.0.35 2.0.36 2.0.37 2.0.38 2.0.39 2.0.40 2.0.41 2
 done
 
 # group and whisper alerts (2.0.44), on a fresh save
-echo "== alerts"
+section "alerts"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_alerts.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS alerts" || fail=1
 
 # the ignore auto-reply echo (issue 183): hidden only while the option is off
-echo "== ignore reply echo"
+section "ignore reply echo"
 for camel in 0 1; do
 	out=$(PSS_CAMELOT=$camel lua5.1 "$here/run.lua" . - - "$here/check_ignorereply.lua" 2>&1 | grep -v '^|cff')
 	echo "$out"
@@ -101,7 +141,7 @@ done
 # the PSS window (3.4.0) and the back end on demand: PourSocialScore_GUI and
 # _Libraries load only when needed; /pss gui, Friends / Social and the Addon
 # Compartment open it (3.4.0.23, D1; the window's folder from 3.4.0.25, D2)
-echo "== new window on demand"
+section "new window on demand"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_tui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS tui" || fail=1
@@ -111,7 +151,7 @@ echo "$out" | grep -q "PASS tui" || fail=1
 # keep prompt after a /reload (the apply run writes a save with a change
 # waiting, each login run answers it another way) and the History view.
 # The saves they write join the schema check below.
-echo "== graphics settings"
+section "graphics settings"
 for ph in logic history keep; do
 	out=$(PSS_PHASE=$ph PSS_CAMELOT=1 lua5.1 "$here/run.lua" . - "$work/gfx-$ph.lua" "$here/check_gfx.lua" 2>&1 | grep -v '^|cff')
 	echo "$out"
@@ -148,7 +188,7 @@ echo "$out" | grep -q "PASS gfx reload" || fail=1
 # update by name per store (account or character per macro, set, default
 # or the command word), the class gate, preview, room, combat, no API,
 # Retail, login, and the memory budget (resident, garbage, nothing kept)
-echo "== macro helper"
+section "macro helper"
 for ph in data global wrongclass dynicon combat list login memory; do
 	out=$(PSS_PHASE=$ph PSS_CAMELOT=1 lua5.1 "$here/run.lua" . - "$work/macro-$ph.lua" "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
 	echo "$out"
@@ -179,41 +219,41 @@ echo "$out" | grep -q "PASS macro retail" || fail=1
 
 # addon manager (3.6.0, /pss acp, /acp and the AddOns tab): every phase of
 # check_addons.lua on Retail and on Camelot (addons_phases.sh)
-echo "== addon manager"
+section "addon manager"
 sh "$here/addons_phases.sh" "$work" || fail=1
 
 # Enabled components (issue 181): defaults, the Options section, each
 # component off and on, a simulated reload (components_phases.sh)
-echo "== enabled components"
+section "enabled components"
 sh "$here/components_phases.sh" "$work" || fail=1
 
 # The chat filter's registration (W-8): a refused add, another addon's rebuild, a faulted start-up
 # stage, the client's list in both shapes (filterreg_phases.sh)
-echo "== chat filter registration"
+section "chat filter registration"
 sh "$here/filterreg_phases.sh" "$work/filterreg" || fail=1
 
 # PSS Drop Cheapest Thing (money-helper): scan, filters, act, command, button,
 # round trips, the log, the merchant button, off = zero cost (dtt_phases.sh)
-echo "== drop cheapest thing"
+section "drop cheapest thing"
 sh "$here/dtt_phases.sh" || fail=1
 
 # the service bus and its gates (service-bus-helper): record sets, calls,
 # isolation, budgets, the GUI boundary, the scratch design-proof gate when
 # PSS_SCRATCH names a scratch checkout (bus_phases.sh)
-echo "== service bus"
+section "service bus"
 sh "$here/bus_phases.sh" || fail=1
 
 # the Spyglass engine (search-helper phase A): check_ix.lua on Retail and Camelot, the real-save phases on
 # every save when PSS_REAL_SAVES is set (ix_phases.sh)
-echo "== Spyglass engine (ix_phases.sh)"
+section "Spyglass engine (ix_phases.sh)"
 sh "$here/ix_phases.sh" || fail=1
 
-echo "== Spyglass console (console_phases.sh)"
+section "Spyglass console (console_phases.sh)"
 sh "$here/console_phases.sh" || fail=1
 
 # the warehouse (warehouse-helper, one build 3.7.0.106): every phase of
 # check_wh.lua on Retail and Camelot (wh_phases.sh)
-echo "== warehouse"
+section "warehouse"
 sh "$here/wh_phases.sh" || fail=1
 # more of it: 200 random worlds, every service failing (also at the login of each real save), the 34
 # mutants (each must fail a check), and the real saves with the Warehouse on and off again
@@ -224,68 +264,68 @@ sh "$here/wh_mutants.sh" || fail=1
 
 # the new window's Libraries maths (3.4.0-dev005): pane numbers equal the
 # core's counts, slices, back / forward, throttle
-echo "== new window maths"
+section "new window maths"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_viewquery.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS viewquery" || fail=1
 
 # the new window's Player Ignore List tab (3.4.0-dev007)
-echo "== new window Players tab"
+section "new window Players tab"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_players.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS players" || fail=1
 
 # the new window's right-click menus (3.4.0.21)
-echo "== new window right-click menus"
+section "new window right-click menus"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_menus.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS menus" || fail=1
 
 # the new window's Guild Ignore List tab, part 1 (3.4.0-dev008)
-echo "== new window Guilds tab"
+section "new window Guilds tab"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_guilds.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS guilds" || fail=1
 
 # the view functions moved out of the window's drawing files (W2)
-echo "== view functions"
+section "view functions"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_viewfns.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS viewfns" || fail=1
 
 # the new window's Chat Filters tab (3.4.0-dev010)
-echo "== new window Chat Filters tab"
+section "new window Chat Filters tab"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_filters.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS filters" || fail=1
 
 # the new window's Events tab (3.4.0-dev011)
-echo "== new window Events tab"
+section "new window Events tab"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_events.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS events" || fail=1
 
 # the new window's Options and Import/Export tabs (3.4.0-dev012)
-echo "== new window Options and Import/Export tabs"
+section "new window Options and Import/Export tabs"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -E "PASS|FAIL"
 echo "$out" | grep -q "PASS options" || fail=1
 
 # window tidy W2: logic of the Events, Options and Chat Filters tabs in Libraries
-echo "== window tidy W2 (Events, Options, Filters)"
+section "window tidy W2 (Events, Options, Filters)"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_w2b.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS w2b" || fail=1
 
 # secret values: chat, unit and hook values checked, never kept (3.4.0.14)
-echo "== secret values"
+section "secret values"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_secrets.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -E "PASS|FAIL"
 echo "$out" | grep -q "PASS secrets" || fail=1
 
 # names (core uplift N1, 3.4.1.32): M.PSS_NormName joins every name; keys
 # unchanged, the Camelot surname rule, secrets
-echo "== names"
+section "names"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_names.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -E "names:|PASS|FAIL"
 echo "$out" | grep -q "PASS names" || fail=1
@@ -295,7 +335,7 @@ echo "$out" | grep -q "PASS names" || fail=1
 # PSS and off Blizzard's list, removal both ways, a full list. Then a
 # 3.4.1.34-style save (global option on) through upgrade step 8 and the
 # login sync, with Blizzard's list there at once and arriving late.
-echo "== blizzard ignore"
+section "blizzard ignore"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_blizzard.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -E "blizzard|PASS|FAIL"
 echo "$out" | grep -q "PASS blizzard" || fail=1
@@ -310,7 +350,7 @@ done
 # PSS_OptionsDB, no longer an option) and the old window's sizes, column
 # widths and places, keeps the window's own; a PourSocialScore_EllesmereUI
 # folder left on disk is named once, at the first login after the upgrade
-echo "== cutover"
+section "cutover"
 lua5.1 "$here/run.lua" . - "$work/co-0.lua" > /dev/null 2>&1
 cat >> "$work/co-0.lua" <<'SV'
 PourSocialScoreDB.upgrade.step = 6
@@ -338,7 +378,7 @@ echo "$co3" | grep -q "$note" && { echo "FAIL cutover: the note without an old f
 
 # shipped guild lists on demand (3.0): PourSocialScore_Communities loads
 # only when the rule is on or members are needed
-echo "== Communities on demand"
+section "Communities on demand"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_communities.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS communities" || fail=1
@@ -347,7 +387,7 @@ echo "$out"
 echo "$out" | grep -q "PASS communities seen" || fail=1
 
 # packed lists (3.0 Step 5.1): the same members as the unpacked dev16 list
-echo "== packed lists"
+section "packed lists"
 git show ba5483a:PourSocialScore_Communities/PSS_GuildIgnore_Managed.lua > "$work/managed-dev16.lua"
 out=$(PSS_OLD_MANAGED="$work/managed-dev16.lua" lua5.1 "$here/run.lua" . - - "$here/check_packed.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -E "PASS|FAIL"
@@ -355,7 +395,7 @@ echo "$out" | grep -q "PASS packed" || fail=1
 
 # saved data split (3.0): the Options tables, key routing, undo and reset,
 # on a fresh save and an upgraded 2.0.44 save
-echo "== saved data"
+section "saved data"
 for sv in - "$work/sv-2.0.44.lua"; do
 	out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_saveddata.lua" 2>&1 | grep -v '^|cff')
 	echo "$out" | grep -q "PASS saved data" && echo "PASS saved data ($sv)" || { echo "$out"; echo "FAIL saved data on $sv"; fail=1; }
@@ -369,7 +409,7 @@ done
 # fresh install: the Enabled components at their defaults, so no option the
 # harness adds changes a count or a saved byte (issue 181; run.lua PSS_COMPONENTS)
 export PSS_COMPONENTS=none
-echo "== split"
+section "split"
 rm -rf "$work/src-prev"; mkdir -p "$work/src-prev"
 git archive c5c8296 | tar -x -C "$work/src-prev"
 git show 3cf8ed6:PourSocialScore_Communities/PSS_GuildIgnore_Managed.lua > "$work/managed-pre-n3.lua"
@@ -406,7 +446,7 @@ done
 
 # the saved log (3.2.0-dev007): one group per owner, every line comes back
 unset PSS_COMPONENTS
-echo "== saved log"
+section "saved log"
 PSS_NOTE="$work/savedlog.txt" PSS_PHASE=1 lua5.1 "$here/run.lua" . - "$work/savedlog.lua" "$here/check_savedlog.lua" 2>&1 | grep -E "PASS|FAIL|saved log:" > "$work/savedlog-1.txt"
 PSS_NOTE="$work/savedlog.txt" PSS_PHASE=2 lua5.1 "$here/run.lua" . "$work/savedlog.lua" - "$here/check_savedlog.lua" 2>&1 | grep -E "PASS|FAIL|was:|now:" >> "$work/savedlog-1.txt"
 cat "$work/savedlog-1.txt"
@@ -415,7 +455,7 @@ grep -q "PASS saved log 1" "$work/savedlog-1.txt" && grep -q "PASS saved log 2" 
 # PourSocialScore_Logging on demand (3.0 Step 4.4): not loaded at a normal
 # login, lines wait in the outbox over a logout, opening the history or 200
 # waiting lines load it
-echo "== on demand"
+section "on demand"
 for sv in - "$work/sv-2.0.44.lua"; do
 	lua5.1 "$here/run.lua" . "$sv" "$work/od-0.lua" > /dev/null 2>&1
 	src=$work/od-0.lua
@@ -428,13 +468,13 @@ for sv in - "$work/sv-2.0.44.lua"; do
 done
 
 # memory cleanup and the Logging quiet load without timers (3.4.1.52)
-echo "== gc"
+section "gc"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_gc.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS gc" || fail=1
 
 # capture events only while they can be used (P3, 3.4.1.52)
-echo "== capture"
+section "capture"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_capture.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS capture" || fail=1
@@ -442,7 +482,7 @@ echo "$out" | grep -q "PASS capture" || fail=1
 # purge by owner (core uplift S1, 3.4.1.49): a removal never loads Logging;
 # the owner is marked and their saved lines go when it loads, a person
 # listed again keeps only their new lines, full marks load it at once
-echo "== purge"
+section "purge"
 lua5.1 "$here/run.lua" . - "$work/pg-0.lua" > /dev/null 2>&1
 src=$work/pg-0.lua
 for ph in 1 2 3 4; do
@@ -455,7 +495,7 @@ done
 # member field accessors (core uplift S2, 3.4.1.50): a record without the
 # fields S3 stops saving reads the same through M.PSS_Member*; counts
 # without total; the member count never reads the saved memberCount
-echo "== accessors"
+section "accessors"
 lua5.1 "$here/run.lua" . - "$work/ac-0.lua" > /dev/null 2>&1
 out=$(lua5.1 "$here/run.lua" . "$work/ac-0.lua" "$work/ac-1.lua" "$here/check_accessors.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -q "PASS accessors" && echo "PASS accessors" || { echo "$out"; echo "FAIL accessors"; fail=1; }
@@ -466,7 +506,7 @@ echo "$out" | grep -q "PASS accessors" && echo "PASS accessors" || { echo "$out"
 # per entry on one login with the same counters; a second login changes
 # nothing and keeps unknown fields; entries added and removed in the middle
 # never drift; removing a player still clears their record and history
-echo "== list records"
+section "list records"
 lua5.1 "$here/check_listrecords.lua" --plant "$work/lr-plant.lua" > /dev/null || fail=1
 lrsaves="- $work/lr-plant.lua $work/sv-2.0.1.lua $work/sv-2.0.40.lua $work/sv-2.0.44.lua $work/sv-gr-2.0.44.lua"
 [ -n "$PSS_REAL_SAVES" ] && lrsaves="$lrsaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua')"
@@ -502,7 +542,7 @@ done
 # every real save) shows the same through the accessors as the previous
 # build, in the migrating login and when the sparse file is read back, and
 # the previous build and 3.4.0.29 read it without an error
-echo "== sparse records"
+section "sparse records"
 lua5.1 "$here/run.lua" . - "$work/sp-base.lua" > /dev/null 2>&1
 lua5.1 "$here/check_sparse.lua" --plant "$work/sp-base.lua" "$work/sp-plant.lua" > /dev/null || fail=1
 lua5.1 "$here/check_sparse.lua" --plant "$work/sp-base.lua" "$work/sp-plant-unique.lua" unique > /dev/null || fail=1
@@ -544,7 +584,7 @@ echo "$out" | grep -q "PASS sparse camelot" || { echo "$out"; echo "FAIL camelot
 # that nothing the addon shows changed, which a feature stage legitimately breaks.
 sparse_ref=${PSS_SPARSE_AS:-}
 if [ -z "$sparse_ref" ]; then
-	echo "== sparse saves: not requested (PSS_SPARSE_AS=<ref> compares every save with that build)"
+	section "sparse saves: not requested (PSS_SPARSE_AS=<ref> compares every save with that build)"
 elif git rev-parse --verify -q "$sparse_ref" > /dev/null; then
 	sparsesaves="- $work/sp-plant-unique.lua $work/cam-plant.lua"
 	[ -n "$PSS_REAL_SAVES" ] && sparsesaves="$sparsesaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua' | sort)"
@@ -562,7 +602,7 @@ fi
 # recent counts (3.2): session and last-24-hour counts per owner without
 # Logging; a login or /reload starts a new session (3.2.0-dev006), which
 # is not saved at logout
-echo "== recent counts"
+section "recent counts"
 lua5.1 "$here/run.lua" . - "$work/rc-0.lua" > /dev/null 2>&1
 rcT=$(lua5.1 -e "print(1790000000 + 24 * 3600 + 10 * 60 + 150 * 600)")
 src=$work/rc-0.lua
@@ -577,25 +617,25 @@ for ph in 1 2 3; do
 done
 
 # saved data stays bounded (3.2): 30 days of blocks, rules added and removed
-echo "== growth"
+section "growth"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_growth.lua" 2>&1 | grep -v '^|cff')
 echo "$out" | grep -q "PASS growth" && echo "$out" | grep "^growth:" && echo "PASS growth" || { echo "$out"; echo "FAIL growth"; fail=1; }
 
 # the right-click menu (B2): a PSS header, Block Player and Block Guild
-echo "== unit menu"
+section "unit menu"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_unitmenu.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS unitmenu" || fail=1
 
 # core uplift F1 (3.4.1.42): expiry, option hooks, talent tag, Replace keeps
 # the shipped rules, listener errors, the group warning, /pss list
-echo "== fixes"
+section "fixes"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_fixes.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS fixes" || fail=1
 
 # your own guild (3.2): a guild rule never blocks it, a player entry does
-echo "== own guild"
+section "own guild"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_ownguild.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS own guild" || fail=1
@@ -603,7 +643,7 @@ echo "$out" | grep -q "PASS own guild" || fail=1
 # upgrade record (3.0): a 2.0 save gets step 1 once with one chat line, the
 # next login prints nothing; a fresh save is stamped without a message
 export PSS_COMPONENTS=none
-echo "== upgrade record"
+section "upgrade record"
 echo 'print("steps=" .. M.PSS_UPGRADE_STEPS)' > "$work/steps.lua"
 steps=$(lua5.1 "$here/run.lua" . - - "$work/steps.lua" 2>&1 | sed -n 's/^steps=//p')
 o1=$(lua5.1 "$here/run.lua" . "$work/sv-gr-2.0.44.lua" "$work/up-1.lua" 2>&1)
@@ -621,7 +661,7 @@ fi
 
 # upgrade step registry (core uplift U1, 3.4.1.45): its shape, the version
 # order, counts per feature only on a login that reports, retired keys gone
-echo "== upgrade steps"
+section "upgrade steps"
 for sv in - "$work/sv-gr-2.0.44.lua"; do
 	out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_upgrade_steps.lua" 2>&1 | grep -v '^|cff')
 	echo "$out"
@@ -631,7 +671,7 @@ done
 # the upgrade report (core uplift U2, 3.4.1.46): 10 cases on a new save, then
 # each first login's output (the 2.0.44 test save and every real save) has
 # the report's shape and the save checks clean
-echo "== upgrade report"
+section "upgrade report"
 reportsaves="- $work/sv-gr-2.0.44.lua"
 [ -n "$PSS_REAL_SAVES" ] && reportsaves="$reportsaves $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua')"
 for sv in $reportsaves; do
@@ -655,7 +695,7 @@ done
 # not know; what this version cannot use is reported, not applied and
 # exported; the 3.4.0.29 release imports the format 2 export; a newer block
 # log and recent counts come back unchanged
-echo "== forward compatibility"
+section "forward compatibility"
 for ver in 3.4.1.99 3.4.1.46; do
 	out=$(PSS_PHASE=plant PSS_FW_VERSION=$ver lua5.1 "$here/run.lua" . - "$work/fw-0.lua" "$here/check_forward.lua" 2>&1 | grep -v '^|cff')
 	lua5.1 "$here/run.lua" . "$work/fw-0.lua" "$work/fw-1.lua" > "$work/fw-1.out" 2>&1
@@ -684,7 +724,7 @@ echo "$out" | grep -q "PASS forward newerlog" && echo "$out" | grep -q "PASS for
 
 # /pss check (3.0): no problems on a fresh save and on every upgraded 2.0.44
 # test save; planted faults are reported
-echo "== saved data check"
+section "saved data check"
 for sv in - "$work/sv-2.0.44.lua" "$work/sv-2.0.44-overflow.lua" "$work/sv-gr-2.0.44.lua"; do
 	out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_validate.lua" 2>&1 | grep -v '^|cff')
 	echo "$out" | grep -q "PASS validate" || { echo "$out"; echo "FAIL validate on $sv"; fail=1; }
@@ -692,14 +732,14 @@ done
 [ $fail -eq 0 ] && echo "PASS saved data check"
 
 # multi-addon harness (3.0): child addons, LoadOnDemand, several saved tables
-echo "== multi-addon harness"
+section "multi-addon harness"
 sh "$here/check_multi.sh" || fail=1
 
 # real saves: load, log in twice, keep every rule, player and member, and
 # the window's tabs on each (their numbers equal the core's counts)
 if [ -n "$PSS_REAL_SAVES" ]; then
 	for sv in $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua'); do
-		echo "== real save $sv"
+		section "real save $sv"
 		lua5.1 "$here/run.lua" . "$sv" "$work/real-1.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
 		lua5.1 "$here/run.lua" . "$work/real-1.lua" "$work/real-2.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
 		lua5.1 "$here/check_real.lua" "$sv" "$work/real-2.lua" || fail=1
@@ -738,7 +778,7 @@ fi
 # the schema map (core uplift U3): every field of every save this run wrote
 # is in PourSocialScore/PSS_Schema.lua (fields a check planted start with
 # "newer")
-echo "== schema"
+section "schema"
 lua5.1 tools/check_schema.lua --saves $(ls "$work"/*.lua | grep -v '/steps\.lua$') || fail=1
 
 # saves byte-identical with another ref (PSS_SAME_AS=origin/main, for a
@@ -747,12 +787,14 @@ if [ -n "$PSS_SAME_AS" ] && ! git rev-parse --verify -q "$PSS_SAME_AS" > /dev/nu
 	echo "SKIPPED: same saves: $PSS_SAME_AS is not known here (git fetch origin main:refs/remotes/origin/main)"
 	skipped="$skipped same-saves"
 elif [ -n "$PSS_SAME_AS" ]; then
-	echo "== same saves as $PSS_SAME_AS"
+	section "same saves as $PSS_SAME_AS"
 	out=$(TMPDIR=${TMPDIR:-/tmp} sh "$here/same_saves.sh" "$PSS_SAME_AS" 2>&1)
 	echo "$out" | grep -v '^same:'
 	echo "$out" | grep -q "^PASS same saves" || fail=1
 fi
 
+section_end
+[ -e "$work/.timedout" ] && fail=1
 if [ -n "$skipped" ] && [ "$PSS_ALLOW_SKIP" != 1 ]; then
 	echo "Upgrade checks INCOMPLETE: skipped$skipped (set PSS_ALLOW_SKIP=1 to accept)"
 	fail=1
