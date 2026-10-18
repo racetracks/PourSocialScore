@@ -2866,11 +2866,11 @@ if phase == "everywhere" or phase == "whoptions" then
 		-- TST-p203: the Warehouse page has every wh* row and redraws on a change
 		SlashCmdList["PSS"]("gui")
 		local win = _G.PSS_Window
-		win.tabs[4]._scripts.OnClick(win.tabs[4])
+		win.tabs[M.PSS_UITabIndex("addons")]._scripts.OnClick(win.tabs[M.PSS_UITabIndex("addons")])
 		local ui = H.Private("PourSocialScore_GUI")
 		check(M.PSS_MgrHas("warehouse"), "the nav has the Warehouse page")
 		ui.ManagerShow("warehouse")
-		local pg = win.pages[4].pages.warehouse
+		local pg = win.pages[M.PSS_UITabIndex("addons")].pages.warehouse
 		check(pg and pg:IsShown() and pg.groups and #pg.groups == 1, "the page is built")
 		local have = {}
 		for _, it in ipairs(pg.groups[1].items) do have[it.o.key] = it.row end

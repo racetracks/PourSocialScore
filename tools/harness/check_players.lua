@@ -139,7 +139,8 @@ dp:Select("rule")
 check(pane.noteBox:IsVisible() and not hv.frame:IsVisible(), "rule page")
 dp:Select("history")
 check(hv.frame:IsVisible() and not pane.noteBox:IsVisible(), "history page")
-check(hv.list.count == 0 and not hv.gate:IsShown(), "history before any block")
+check(hv.qv ~= nil, "history is a query view")
+local function HN() local set = hv.qv:Result(); return set and (set.n or #set) or 0 end
 
 -- a block is counted at once; Logging loads only on Show Block History
 local hadLogging = loaded("PourSocialScore_Logging")
@@ -161,20 +162,22 @@ sm.boxes.all._scripts.OnClick(sm.boxes.all)
 check(sm.viewButton:IsShown(), "no View Events on the Summary")
 dp:Select("history")
 if not hadLogging then
-	check(hv.gate:IsShown() and hv.gate:GetText() == "Show Block History (1)", "no Show Block History button")
-	hv.gate._scripts.OnClick(hv.gate)
-	check(loaded("PourSocialScore_Logging"), "Show Block History did not load Logging")
+	check(hv.qv.load:IsShown(), "no Load history button")
+	hv.qv.load._scripts.OnClick(hv.qv.load)
+	check(loaded("PourSocialScore_Logging"), "Load history did not load Logging")
 end
-check(not hv.gate:IsShown() and hv.list.count == 1, "history after Show Block History: " .. hv.list.count)
-local hc = hv.list.rows[1].cells
-check((hc.message:GetText() or ""):find("buy gold", 1, true) ~= nil, "history row text")
-check((hc.kind:GetText() or ""):match("|c%x+whisper|r") ~= nil, "type not one word")
+hv:Requery()
+check(not hv.qv.load:IsShown() and HN() == 1, "history after Load history: " .. HN())
+local set = hv.qv:Result()
+local msg
+for i, c in ipairs(set.cols) do if c == "message" then msg = set[1][i] end end
+check(tostring(msg):find("buy gold", 1, true) ~= nil, "history row text")
 hv.boxes.whisper:SetChecked(false)
 hv.boxes.whisper._scripts.OnClick(hv.boxes.whisper)
-check(hv.list.count == 0, "whisper line not filtered")
+check(HN() == 0, "whisper line not filtered")
 hv.boxes.whisper:SetChecked(true)
 hv.boxes.whisper._scripts.OnClick(hv.boxes.whisper)
-check(hv.list.count == 1, "whisper line not back")
+check(HN() == 1, "whisper line not back")
 
 -- an NPC: View/Edit Rule only
 page.select("Gossip Vendor")
