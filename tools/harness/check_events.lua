@@ -43,4 +43,19 @@ check(page:IsShown(), "the session slice did not open the console")
 _G.PSS_WindowEscape:Hide()
 check(win:IsShown() and players:IsShown(), "Escape did not go back after a slice")
 
+-- the retired Events tab (phase B, D50)
+-- (a) the console shows the counts the Events tab showed (core counts, check_viewquery.lua definitions)
+local want = (M.PSS_GetPlayerBlockCounts(entry) or {}).total or 0
+local res = M.PSS_Search("index=log owner=$owner | sort -time | head 200", { params = { owner = M.PSS_PlayerHistoryKey(entry) }, load = true, rows = 200 })
+check(want == 2, "the core counts " .. tostring(want) .. " blocks for the planted player, not 2")
+check(res and res.n == want, "the console lists " .. tostring(res and res.n) .. " lines for the player; the core counts " .. want)
+-- (b) no tab index for Events; the old key resolves to the console
+check(M.PSS_UITabIndex("events") == nil, "an Events tab still exists")
+for i, t in ipairs(M.PSS_UI_TABS) do check(t.key ~= "events", "tab " .. i .. " is Events") end
+check(M.PSS_ResolveTab("events") == "console", "the events key does not resolve to the console")
+-- (c) a save whose last tab was Events opens the console
+PourSocialScoreDB.windowPoints = PourSocialScoreDB.windowPoints or {}
+PourSocialScoreDB.windowPoints.PSS_WindowTab = "events"
+check(M.PSS_UITab() == M.PSS_UITabIndex("console"), "a saved Events tab did not fall back to the console")
+
 if not fail then print("PASS events (View Events opens the console; the Events tab is retired)") end
