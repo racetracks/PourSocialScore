@@ -26,6 +26,7 @@ Purpose: the on-demand half of `CLAUDE.md`: every topic route, the session proce
 | saved data, upgrades, core uplift history | `docs/pss/10_CORE_UPLIFT.md`, `04_DATA_AND_LOGGING.md` | [Topic routes](#topic-routes) |
 | a hook, Blizzard frame, secret value, taint, TOC or API difference | `docs/baseline/reference/wow-api/` | [Topic routes](#topic-routes) |
 | a version bump or build | `tools/bump_version.sh`, `versions.json` | [Builds and versions](#builds-and-versions) |
+| a build, test run, PR or release | `docs/pss/17_BUILD_PREFERENCES.md` in full (the author's build, test and release preferences, `DEC-00387`) | [Builds and versions](#builds-and-versions) |
 | a full release | `docs/pss/05_RELEASE.md` | [Full releases](#full-releases) |
 | a scratch delivery, test zip, real-save run, PR context | `docs/scratch/05_RULES.md` | [Session procedures](#session-procedures) |
 
@@ -93,3 +94,4 @@ Moved from `CLAUDE.md`; the full rules are PSS 02 and baseline 02, read before a
 | Date | Reference | Change | Reason | Context |
 | --- | --- | --- | --- | --- |
 | 2026-10-18 | this file | created: `CLAUDE.md` lines 99 to 120 (less 101 and 104), 128 to 142 (Short form), 175, 179 and 181 to 187 moved word for word; route table added | `DEC-00383`: startup context | scratch `temp/2026/10/18/15-13-57-Sun-cool-meitner-abnxu0/prompts/01.md`; before: new |
+| 2026-10-18 | route table | row added: `docs/pss/17_BUILD_PREFERENCES.md` before a build, test run, PR or release | `DEC-00387` a: preferences split | scratch `temp/2026/10/18/15-10-00-Sun-busy-fermi-qrk4qx/prompts/12.md`; before: af6aaef |

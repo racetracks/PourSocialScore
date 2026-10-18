@@ -4,15 +4,16 @@
   ledger.py init                         load provision.md + TASK.md direct tasks; validate; print totals
   ledger.py spawn TASKS [--reuse AID]    gate, allocate agent ID, snapshot repo, print the spawn line
   ledger.py cont AID [--support|--review] [--add-calls N --add-out N --reason TEXT]
-  ledger.py ret AID "<return line 1>" "<return line 3: spend: calls a/b · out c/d>"
+  ledger.py ret AID "<return line 1>" "<return line 3: spend: calls a/b · out c/d>" [--failed]
   ledger.py done TASKS                   mark coordinator-inline tasks done
   ledger.py next                         ready tasks, grouped for batching, plus totals
   ledger.py decide "<one line>" [PATH]   append a decision to CONTEXT.md
-  ledger.py render                       regenerate the session README.md
+  ledger.py render                       measure tokens from transcripts, regenerate the session README.md
   ledger.py close                        render, mark the session closed
 
 TASKS is comma-separated. TRIAGE is a built-in task for the triage consultant.
 Budget defaults: .claude/agents/consultant.md (BUDGETS block). Scope fence: provision.md Writes column.
+Re-run: an engineer-m1 task that returns BLOCKED/BUDGET (or DONE with --failed) is re-run once on engineer (Sonnet).
 Shape: ret runs check_context.py (CONTEXT-CAPS block; code needs its docs) on the files a DONE return changed.
 """
 import argparse
@@ -29,20 +30,29 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import _session  # noqa: E402
 
 ROOT = _session.ROOT
-AGENTS = ("coordinator", "consultant", "engineer", "engineer-m3")
+AGENTS = ("coordinator", "consultant", "engineer", "engineer-m1", "engineer-m3")
 NONE = {"", "-", "—", "n/a", "none"}
 PROTECTED = ("provision.md", "specs/", "briefs/", "context/")  # session paths only consultants write
 IGNORE = {".claude/.session"}
 FIT_RULES = {  # consultant K0: the grade decides class and agent
     "engineer": lambda f, c: (f, c) in (("WL", "M1"), ("WM", "M2")),
+    "engineer-m1": lambda f, c: (f, c) == ("WL", "M1"),
     "engineer-m3": lambda f, c: f == "WH" and c == "M3",
     "consultant": lambda f, c: (f[0] in "PU" or f[1] == "H") and c == "M3",
 }
 FIT_HINT = {"engineer": "engineer takes WL as M1 or WM as M2",
+            "engineer-m1": "engineer-m1 takes WL as M1 only",
             "engineer-m3": "engineer-m3 takes WH only",
             "consultant": "consultant takes P*, U* or *H; WL/WM go to an engineer"}
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache",
              ".tox", "dist", "build", ".next", ".cache"}
+PRICES = {  # USD per million tokens: (input, output); cache read 0.1x, cache write 1.25x input (assumption)
+    "opus": (4.00, 20.00),
+    "sonnet": (2.00, 10.00),
+    "haiku": (0.10, 0.50),
+}
+PRICES_LONG = {"haiku": (0.50, 2.50)}  # one message whose prompt tokens exceed LONG_AT
+LONG_AT = 100_000
 SD = None
 LEDGER = None
 
@@ -121,6 +131,8 @@ def budget_key(agent, cls):
         return "consultant"
     if agent == "engineer":
         return "engineer-" + cls if cls in ("M1", "M2") else None
+    if agent == "engineer-m1":
+        return "engineer-m1"
     if agent == "engineer-m3":
         return "engineer-m3"
     return None
@@ -244,6 +256,18 @@ def shape_check(paths):
             if l.startswith(("SHAPE ", "DOCS ")) and not l.startswith(("SHAPE startup", "SHAPE spawn"))]
 
 
+def own_paths(L, aid, kind, changed):
+    """The agent's own changed paths: its fence, its agents/<aid>/ folder, a consultant's session documents."""
+    srel = _session.rel(SD)
+    ws = agent_writes(L, aid)
+    pre = [f"{srel}/{d}" for d in ("specs/", "briefs/", "context/")] if kind == "consultant" else []
+
+    def mine(p):
+        return (any(fnmatch.fnmatchcase(p, g) for g in ws) or p.startswith(f"{srel}/agents/{aid}/")
+                or (kind == "consultant" and (p == f"{srel}/provision.md" or any(p.startswith(x) for x in pre))))
+    return [p for p in changed if mine(p)]
+
+
 def agent_writes(L, aid):
     ws = []
     for t in L["agents"][aid]["tasks"]:
@@ -326,6 +350,8 @@ def cmd_init(a):
                 e("Brief path required")
             if ag == "engineer" and cl not in ("M1", "M2"):
                 e("engineer rows are M1/M2; M3 implementation needs engineer-m3 via consultant K5")
+            if ag == "engineer-m1" and cl != "M1":
+                e("engineer-m1 rows are M1")
             if ag == "engineer-m3":
                 if cl != "M3":
                     e("engineer-m3 rows are M3")
@@ -335,6 +361,8 @@ def cmd_init(a):
                     e("engineer-m3 fence must be <=3 exact paths, no globs")
         key = budget_key(ag, cl)
         if key:
+            if key not in D:
+                die(f"consultant.md: BUDGETS row {key} missing")
             dc, do = D[key]
             if calls <= 0 or out <= 0:
                 e("Calls and Out must be > 0")
@@ -347,6 +375,9 @@ def cmd_init(a):
         for k in ("status", "agent_ids", "blocks"):
             if k in old:
                 nt[k] = old[k]
+        if old.get("rerun"):  # a task already re-run keeps its mark and its switched agent
+            nt["rerun"] = old["rerun"]
+            nt["agent"] = old["agent"]
         if nt["status"] == "rejected":  # re-provisioned after a scope rejection
             nt["status"] = "todo"
         new[t] = nt
@@ -445,6 +476,8 @@ def cmd_spawn(a):
     ag["orig"][1] += out
     for t, x in zip(tasks, T):
         x["status"] = "running"
+        if x.get("rerun") == 1:
+            x["rerun"] = 2
         x["agent_ids"].append(aid)
         if kind == "consultant" and x["stream"].lower() not in NONE:
             L["streams"][x["stream"]] = aid
@@ -498,6 +531,8 @@ def cmd_ret(a):
     if ag["status"] != "running":
         die(f"{aid} is not running")
     status = re.sub(r"[^A-Z]", "", (a.line1.split() or [""])[0].upper())
+    if a.failed and status == "DONE":
+        status = "BLOCKED"
     mc = re.search(r"calls\D{0,3}(\d+)", a.spend)
     mo = re.search(r"out\D{0,3}(\d+)", a.spend)
     if not (mc and mo):
@@ -512,6 +547,7 @@ def cmd_ret(a):
     tasks = seg["tasks"]
     kind = ag["kind"]
     out = []
+    rerun_route = False
     if sc > seg["budget"][0] or so > seg["budget"][1]:
         out.append(f"OVERRUN {aid}: spent calls {sc} out {so} past budget {seg['budget'][0]}/{seg['budget'][1]}; treated as BUDGET")
         status = "BUDGET"
@@ -526,7 +562,7 @@ def cmd_ret(a):
                 break
     changed = changed_since(snap)
     bad = [p for p in changed if not any(allowed(p, k, w) for k, w in active)]
-    shape = shape_check(changed) if status == "DONE" and not bad else []
+    shape = shape_check(own_paths(L, aid, kind, changed)) if status == "DONE" and not bad else []
 
     triage = L.get("triage") or "the triage consultant"
     if bad:
@@ -557,6 +593,16 @@ def cmd_ret(a):
                     out.append(f"REVIEW {t}: `cont {who} --review` with agents/{aid}/diff.patch")
         if kind == "engineer-m3":
             out.append(f"ROUTE if agents/{aid}/HANDOFF.md exists: `cont {L['streams'].get(L['tasks'][tasks[0]]['stream']) or triage} --support` with it")
+    elif kind == "engineer-m1" and status in ("BLOCKED", "BUDGET") and any(not L["tasks"][t].get("rerun") for t in tasks):
+        rerun_route = True
+        for t in tasks:
+            x = L["tasks"][t]
+            if x.get("rerun"):
+                continue
+            x["rerun"] = 1
+            x["agent"] = "engineer"
+            x["status"] = "todo"
+            out.append(f"RERUN {t}: engineer-m1 {aid} returned {status}; re-run once on engineer (Sonnet), same brief, no consultant turn")
     elif status == "BLOCKED":
         for t in tasks:
             L["tasks"][t]["status"] = "blocked"
@@ -566,7 +612,8 @@ def cmd_ret(a):
         else:
             who = L["streams"].get(L["tasks"][tasks[0]]["stream"]) if tasks else None
             who = who or triage
-            out.append(f"ROUTE `cont {who} --support` with agents/{aid}/QUESTIONS.md; then `cont {aid}` (brief updated)")
+            qf = "REPORT.md" if a.failed else "QUESTIONS.md"
+            out.append(f"ROUTE `cont {who} --support` with agents/{aid}/{qf}; then `cont {aid}` (brief updated)")
             twice = [t for t in tasks if L["tasks"][t]["blocks"] >= 2]
             if twice:
                 out.append(f"ESCALATE? {','.join(twice)} blocked twice: consultant decides fix-brief or split to engineer-m3 (K5)")
@@ -589,7 +636,7 @@ def cmd_ret(a):
         out.append("CAP reached: stop spawning; ask the user")
     save(L)
     print("\n".join(out))
-    if status == "DONE" and not bad and not shape:
+    if (status == "DONE" and not bad and not shape) or rerun_route:
         cmd_next(None, header=False)
 
 
@@ -612,6 +659,9 @@ def cmd_next(a, header=True):
     groups = {}
     for t in ready:
         x = T[t]
+        if x.get("rerun") == 1:
+            print(f"ROUTE re-run {t} on engineer (Sonnet): `spawn {t}` (brief {x['brief']}; once, no consultant turn)")
+            continue
         key = (x["agent"], x["stream"]) if x["agent"] != "engineer-m3" else (x["agent"], t)
         groups.setdefault(key, []).append(t)
     for (agent, stream), ts in groups.items():
@@ -637,7 +687,8 @@ def cmd_next(a, header=True):
 
 def decide(L, text, path=""):
     ctx = SD / "CONTEXT.md"
-    body = ctx.read_text() if ctx.exists() else "# Session context\n\n## Decisions\n"
+    body = ctx.read_text() if ctx.exists() else ("# Session context\nPurpose: session decision log and links · Owner: generated by .claude/scripts/ledger.py and _session.py · "
+                                 "Status: live\n\n## Decisions\n")
     n = len(re.findall(r"^- D\d+ ·", body, re.M)) + 1
     with open(ctx, "w") as f:
         f.write(body.rstrip("\n") + f"\n- D{n} · {text}" + (f" · {path}" if path else "") + "\n")
@@ -649,13 +700,129 @@ def cmd_decide(a):
     print(f"D{decide(L, a.text, a.path or '')}")
 
 
+# ---------- token measurement ----------
+def transcript_base():
+    env = os.environ.get("LEDGER_TRANSCRIPTS")
+    if env:
+        return pathlib.Path(env)
+    cfg = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or (pathlib.Path.home() / ".claude"))
+    return cfg / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(ROOT))
+
+
+def transcripts(L, key):
+    try:
+        base = transcript_base()
+        found = []
+        if key == "coordinator":
+            for f in sorted(base.glob("*.jsonl")):
+                if SD.name in f.read_text(errors="replace"):
+                    found.append(f)
+            return found
+        pat = re.compile(r"ref " + re.escape(f"{L.get('prefix', 'REF')}-{SD.name}-{key}") + r"(?![A-Za-z0-9])")
+        for f in sorted(base.rglob("*.jsonl")):
+            if "subagents" not in f.relative_to(base).parts[:-1]:
+                continue
+            with open(f, errors="replace") as fh:
+                head = "".join(fh.readline() for _ in range(5))
+            if pat.search(head):
+                found.append(f)
+        return found
+    except Exception:
+        return []
+
+
+def price(model, i, cr, cw, o):
+    m = (model or "").lower()
+    fam = next((f for f in ("opus", "sonnet", "haiku") if f in m), None)
+    if not fam:
+        return None
+    rates = PRICES_LONG[fam] if fam in PRICES_LONG and i + cr + cw > LONG_AT else PRICES[fam]
+    return (i * rates[0] + cr * 0.1 * rates[0] + cw * 1.25 * rates[0] + o * rates[1]) / 1e6
+
+
+def measure(L):
+    base = transcript_base()
+    keys = list(L["agents"]) + ["coordinator"]
+    L["tokens"] = {}
+    for k in keys:
+        role = "coordinator" if k == "coordinator" else L["agents"][k]["kind"]
+        rec = {"role": role, "state": "unmeasured", "files": [], "by_model": {}}
+        try:
+            files = transcripts(L, k)
+            msgs = {}
+            for f in files:
+                with open(f, errors="replace") as fh:
+                    for n, line in enumerate(fh):
+                        try:
+                            d = json.loads(line)
+                        except ValueError:
+                            continue
+                        if not isinstance(d, dict) or d.get("type") != "assistant":
+                            continue
+                        m = d.get("message")
+                        u = m.get("usage") if isinstance(m, dict) else None
+                        if not isinstance(u, dict):
+                            continue
+                        mid = m.get("id") or f"{f}:{n}"
+                        msgs[mid] = (m.get("model") or "", u)
+            if files and msgs:
+                bm = {}
+                for model, u in msgs.values():
+                    i, cr = u.get("input_tokens") or 0, u.get("cache_read_input_tokens") or 0
+                    cw, o = u.get("cache_creation_input_tokens") or 0, u.get("output_tokens") or 0
+                    usd = price(model, i, cr, cw, o)
+                    r = bm.setdefault(model, [0, 0, 0, 0, 0.0])
+                    r[0] += i
+                    r[1] += cr
+                    r[2] += cw
+                    r[3] += o
+                    r[4] = None if (usd is None or r[4] is None) else r[4] + usd
+                rec.update(state="measured", files=[str(f.relative_to(base)) for f in files], by_model=bm)
+        except Exception:
+            rec = {"role": role, "state": "unmeasured", "files": [], "by_model": {}}
+        L["tokens"][k] = rec
+    return L["tokens"]
+
+
+def token_section(L):
+    tok = L.get("tokens", {})
+    done = {k: v for k, v in tok.items() if v["state"] == "measured"}
+    if not done:
+        return ["## Tokens", f"Tokens: unmeasured (no transcripts under `{transcript_base()}`)"], "tokens: unmeasured"
+    rows, tot, total_usd = {}, [0, 0, 0, 0], 0.0
+    for v in done.values():
+        for model, r in v["by_model"].items():
+            g = rows.setdefault((v["role"], model), {"n": set(), "v": [0, 0, 0, 0], "usd": 0.0})
+            g["n"].add(id(v))
+            for j in range(4):
+                g["v"][j] += r[j]
+                tot[j] += r[j]
+            g["usd"] = None if (r[4] is None or g["usd"] is None) else g["usd"] + r[4]
+            total_usd = None if (r[4] is None or total_usd is None) else total_usd + r[4]
+    fmt = lambda x: "-" if x is None else f"{x:.4f}"
+    lines = ["## Tokens", "| Role | Model | Agents | Input | Cache read | Cache write | Output | Est. USD |",
+             "|---|---|---|---|---|---|---|---|"]
+    for (role, model) in sorted(rows):
+        g = rows[(role, model)]
+        lines.append(f"| {role} | {model} | {len(g['n'])} | " + " | ".join(str(x) for x in g["v"]) + f" | {fmt(g['usd'])} |")
+    lines.append(f"| Total | - | {len(done)} | " + " | ".join(str(x) for x in tot) + f" | {fmt(total_usd)} |")
+    un = [k for k, v in tok.items() if v["state"] != "measured"]
+    if un:
+        lines += ["", "Unmeasured: " + ", ".join(un)]
+    lines += ["", "Estimate: `PRICES` in .claude/scripts/ledger.py; cache read 0.1x and cache write 1.25x input are assumptions."]
+    return lines, f"tokens: measured {len(done)} · est ${total_usd or 0:.4f}"
+
+
 def cmd_render(a=None):
     L = load()
     T = L["tasks"]
     task = os.path.relpath(ROOT / "TASK.md", SD).replace(os.sep, "/")
     ri = ref_index()
     ri_link = f" · [reference index]({os.path.relpath(ROOT / ri, SD).replace(os.sep, '/')})" if ri else ""
-    lines = [f"# Session {SD.name}", "",
+    measure(L)
+    save(L)
+    lines = [f"# Session {SD.name}",
+             "Purpose: session index, tasks, spend and tokens · Owner: generated by .claude/scripts/ledger.py render · Status: live", "",
              f"[TASK]({task}) · [CONTEXT](CONTEXT.md) · [provision](provision.md) · [prompts](prompts/README.md){ri_link}", ""]
     counts = {}
     for x in T.values():
@@ -674,7 +841,9 @@ def cmd_render(a=None):
         lines.append(f"| {aid} | {ag['kind']} | {','.join(ag['tasks']) or '-'} | {ag['spent'][0]}/{ag['spent'][1]} | "
                      f"{b[0]}/{b[1]} | {ag['status']} |")
     c, o = spent_total(L)
-    lines += ["", f"Total spent: calls {c} · out {o}{capstr(L)}", "", "## Artefacts"]
+    lines += ["", f"Total spent: calls {c} · out {o}{capstr(L)}", ""]
+    tl, tmsg = token_section(L)
+    lines += tl + ["", "## Artefacts"]
     for label, pat in (("Reports", "agents/*/REPORT.md"), ("Syntheses", "agents/*/SYNTHESIS.md"),
                        ("Specs", "specs/*.md"), ("Briefs", "briefs/*.md"), ("Context", "context/*.md"),
                        ("Test packages", "**/*.zip")):
@@ -682,6 +851,7 @@ def cmd_render(a=None):
         if found:
             lines.append(f"- {label}: " + " · ".join(f"[{p}]({p})" for p in found))
     (SD / "README.md").write_text("\n".join(lines) + "\n")
+    print(tmsg)
     return c, o
 
 
@@ -711,6 +881,7 @@ def main():
     s.add_argument("aid")
     s.add_argument("line1")
     s.add_argument("spend")
+    s.add_argument("--failed", action="store_true")
     s = sub.add_parser("done")
     s.add_argument("tasks")
     sub.add_parser("next")
