@@ -62,7 +62,7 @@ section() {
 	echo "$now $1" > "$work/.section"
 	echo "== $1"
 }
-PSS_SECTION_TIMEOUT=${PSS_SECTION_TIMEOUT:-1200}
+PSS_SECTION_TIMEOUT=${PSS_SECTION_TIMEOUT:-300}
 if [ "$PSS_SECTION_TIMEOUT" != 0 ]; then
 	sh "$here/validate_watchdog.sh" $$ "$work" "$PSS_SECTION_TIMEOUT" &
 	wd=$!; trap 'kill $wd 2>/dev/null' EXIT
