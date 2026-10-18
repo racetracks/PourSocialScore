@@ -1,9 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
-=> 3.8.0.123 - Docs: context budget (startup trim, agent-ready outputs, context caps)
+=> 3.8.0.123 - Docs and tooling: context budget and M1 lane
 
 - Nothing in the addon changes. The developer instructions load about half as much at the start of each session, and every file written for the developer agents is kept small and checked.
+
+- Agent tooling (nothing changes in game): a Haiku engineer for mechanical work with one Sonnet re-run, token and cost measurement in the session ledger, and a one-command stage close (tools/stage_close.sh).
 
 => 3.8.0.120 - Docs: startup context (imports, documentation rules, reference index, build history)
 
