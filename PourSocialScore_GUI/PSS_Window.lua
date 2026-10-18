@@ -42,6 +42,7 @@ local STREAKS = "_UI-Frame-TopTileStreaks"
 local SEP = "  >  "
 local TABS = M.PSS_UI_TABS
 local EVENTS = M.PSS_UI_EVENTS_TAB
+local CONSOLE = M.PSS_UITabIndex("console")
 
 -- the tabs' builders, keyed by M.PSS_UI_TABS key (the tab files add theirs)
 ns.TabBuilders = ns.TabBuilders or {}
@@ -275,6 +276,22 @@ function ns.ShowEventsTab(prepare)
 	ns.NavRecord()
 end
 
+-- Deep dive: a button opens the Spyglass console on a query (a registry key or
+-- text; ctx binds its parameters), with a Back chip to the tab it came from.
+function ns.DeepDive(keyOrText, ctx, from)
+	local text, params, range = M.PSS_DeepDiveText(keyOrText, ctx)
+	if not text then M.ShowMsg("Spyglass: " .. tostring(params)) return end
+	if from == nil and win and win:IsShown() and TABS[curTab] then from = TABS[curTab].text end
+	if not (win and win:IsShown()) then M.PSS_OpenWindow(true) end
+	if not CONSOLE then return end
+	local page = BuildTab(CONSOLE)
+	local shown = win.pages[curTab]
+	if shown and shown.navClose then shown.navClose() end
+	SelectTab(CONSOLE)
+	if page.deepDive then page.deepDive(text, params, range, from) end
+	ns.NavRecord()
+end
+
 -- Back closes an overlay first (a picker), then steps back.
 function ns.NavBack()
 	local page = win.pages[curTab]
@@ -295,8 +312,8 @@ function ns.NavUp()
 		ns.NavRecord()
 		return true
 	end
-	if curTab == EVENTS then
-		local st = nav:BackToOther(EVENTS)
+	if curTab == EVENTS or (curTab == CONSOLE and page.from) then
+		local st = nav:BackToOther(curTab)
 		if st then
 			Go(st)
 			return true

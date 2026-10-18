@@ -978,6 +978,77 @@ PH.savebroken = function()
 	resetSq()
 end
 
+-- TST-00937 deep dive (STP-00258)
+PH.deepentry = function()
+	local p = io.popen("lua5.1 tools/check_layers.lua 2>&1")
+	local out = p:read("*a")
+	p:close()
+	check(not out:find("DeepDive", 1, true), "check_layers names a DeepDive line: " .. out:sub(1, 200))
+end
+
+PH.deepservice = function()
+	local tmp = (os.getenv("TMPDIR") or "/tmp") .. "/pss-deep-" .. tostring(os.time()) .. ".lua"
+	local fh = io.open(tmp, "w")
+	fh:write("local x = 1\nns.DeepDive(\"x\")\nfunction ns.DeepDive() end\n")
+	fh:close()
+	local function run(as)
+		local p = io.popen("PSS_LAYERS_ONLY=" .. tmp .. " PSS_LAYERS_AS=" .. as .. " lua5.1 tools/check_layers.lua 2>&1; echo EXIT$?")
+		local o = p:read("*a")
+		p:close()
+		return o
+	end
+	local o = run("PourSocialScore_Libraries/PSS_Planted.lua")
+	check(o:find("PSS_Planted.lua:2: ns.DeepDive is called only from the window's buttons", 1, true), "Libraries call fails: " .. o)
+	check(not o:find("EXIT0"), "non-zero exit")
+	o = run("PourSocialScore_GUI/PSS_Planted.lua")
+	check(o:find("ns.DeepDive is called only", 1, true), "an unlisted GUI file fails")
+	o = run("PourSocialScore_GUI/PSS_Players.lua")
+	check(o:find("EXIT0") and not o:find("only from"), "a listed GUI file passes")
+	os.remove(tmp)
+end
+
+PH.deepback = function()
+	M.PSS_AddPlayer("Deepguy-Realm", "n", 0)
+	GUI()
+	if not (_G.PSS_Window and _G.PSS_Window:IsShown()) then SlashCmdList.PSS("gui") end
+	local win = _G.PSS_Window
+	local pi = M.PSS_UITabIndex("players")
+	click(win.tabs[pi])
+	local players = win.pages[pi]
+	local view = players.navState and players.navState()
+	ui.DeepDive("index=log | head 5")
+	local con = win.pages[conIndex()]
+	check(con:IsShown() and con.bar:GetText() == "index=log | head 5", "console shown with that text")
+	check(con.backChip and con.backChip:IsShown() and con.backChip:GetText() == "Back: Player Ignore List", "Back chip text: " .. tostring(con.backChip and con.backChip:GetText()))
+	click(con.backChip)
+	check(players:IsShown() and not con:IsShown(), "players tab shown again")
+	check((players.navState and players.navState()) == view, "same selection")
+	-- Escape from the console goes back too
+	ui.DeepDive("index=log | head 5")
+	check(ui.NavUp() == true and players:IsShown(), "NavUp leaves via Back")
+	-- params bound by the engine
+	con.deepDive("index=log | where owner=$who and cat=$n", { who = 'a"b' }, nil, "Players")
+	local vm = con.qv.vm
+	local direct = M.PSS_Search("index=log | where owner=$who and cat=$n", { params = { who = 'a"b' }, load = true, rows = 500 })
+	check((vm.set and vm.set.n) == (direct and direct.n), "rows equal a direct search")
+	check(vm:Text() == 'index=log | where owner="a\\"b" and cat=$n', "Text(): " .. tostring(vm:Text()))
+end
+
+PH.deepearly = function()
+	GUI()
+	check(_G.PSS_Window == nil, "window never built")
+	local n = 0
+	for _, f in pairs({}) do n = n + 1 end
+	ui.DeepDive("index=log | head 2")
+	local win = _G.PSS_Window
+	check(win and win:IsShown(), "window built and shown")
+	local con = win.pages[conIndex()]
+	check(con:IsShown() and con.bar:GetText() == "index=log | head 2", "console on the query")
+	check(con.qv.vm.loaded == true, "ran with load")
+	ui.DeepDive("index=log | head 3")
+	check(_G.PSS_Window == win, "one window")
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

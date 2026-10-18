@@ -4,7 +4,7 @@
 -- (M.PSS_ConsoleView.saveState). ns.SaveQueryDialog(spec) with spec
 -- { query, range (a time-picker choice), chart = { kind, shape, x, y, series } };
 -- called as (text, choice) by the console's Save button, it reads the chart from the page.
--- Also hooks the console's left list: right click on a "Mine" row opens Rename and Delete.
+-- ns.AttachQueryList(pg) hooks the console's left list: right click on a "Mine" row opens Rename and Delete.
 ------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local M = ns.M
@@ -216,12 +216,5 @@ local function Attach(pg)
 	pg.refreshLeft()
 end
 
-ns.TabBuilders = ns.TabBuilders or {}
-local orig = ns.TabBuilders.console
-if orig then
-	ns.TabBuilders.console = function(pg)
-		local r = orig(pg)
-		Attach(pg)
-		return r
-	end
-end
+-- called by the console page as it is built (PSS_Console.lua)
+ns.AttachQueryList = Attach

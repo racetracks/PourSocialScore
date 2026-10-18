@@ -166,13 +166,19 @@ ns.TabBuilders.console = function(pg)
 	end
 
 	------------------------------------------------------------------ tabs and chips
+	local backChip = ns.NewButton(pg, "", 150, function() ns.NavBack() end)
+	backChip:SetPoint("LEFT", tabs[#tabs], "RIGHT", 10, 0)
+	backChip:Hide()
 	function pg.updateChip()
 		local _, _, label = picker:Range()
 		local c = picker:Choice()
-		local t = (c and c.preset ~= "all" and label) or ""
-		if pg.from then t = t .. (t ~= "" and "   " or "") .. "[Back]" end
-		chip:SetText(t)
+		chip:SetText((c and c.preset ~= "all" and label) or "")
+		backChip:SetText("Back: " .. tostring(pg.from or ""))
+		backChip:SetShown(pg.from ~= nil)
 	end
+
+	-- the tab is reset as it opens from a tab click: no way back to a tab it was not sent from
+	function pg.navReset() pg.from = nil; pg.updateChip() end
 
 	local function Sync()
 		local vm = qv.vm
@@ -354,7 +360,8 @@ ns.TabBuilders.console = function(pg)
 
 	pg.bar, pg.qv, pg.cm, pg.picker, pg.help, pg.overlay, pg.underline, pg.sideList, pg.tabs = bar, qv, cm, picker, help, overlay, ul, sideList, tabs
 	pg.highlight, pg.sync = Highlight, Sync
-	pg.nav, pg.chip = nav, chip
+	pg.nav, pg.chip, pg.backChip = nav, chip, backChip
+	if ns.AttachQueryList then ns.AttachQueryList(pg) end
 	function pg.barError() return barErr end
 	function pg.dictPanel() return dict end
 	function pg.sideFlat() return flat end

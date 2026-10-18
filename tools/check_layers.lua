@@ -183,6 +183,28 @@ local function enclosing(ls, i)
 	return "(file level)"
 end
 
+-- ns.DeepDive opens the console from the window's buttons only (E06)
+local DEEP_OK = { "PSS_Detail", "PSS_History", "PSS_Players", "PSS_Guilds", "PSS_Filters", "PSS_QueryView", "PSS_Console", "PSS_Window" }
+local function deepScan(path, ls)
+	local n = 0
+	local okFile = false
+	for _, f in ipairs(DEEP_OK) do if path:find("^PourSocialScore_GUI/" .. f .. "%.lua$") then okFile = true end end
+	for i = 1, #ls do
+		local l = ls[i]:gsub("%-%-.*$", "")
+		if l:find("DeepDive%(") and not l:find("function%s+ns%.DeepDive") and not okFile then
+			print(("%s:%d: ns.DeepDive is called only from the window's buttons"):format(path, i))
+			n = n + 1
+		end
+	end
+	return n
+end
+-- the self-test of the rule: PSS_LAYERS_ONLY=<file> PSS_LAYERS_AS=<path it stands for>
+if os.getenv("PSS_LAYERS_ONLY") then
+	local ls = {}
+	for l in io.lines(os.getenv("PSS_LAYERS_ONLY")) do ls[#ls + 1] = l end
+	os.exit(deepScan(os.getenv("PSS_LAYERS_AS") or os.getenv("PSS_LAYERS_ONLY"), ls) > 0 and 1 or 0)
+end
+
 local find = io.popen('find PourSocialScore PourSocialScore_* -name "*.lua" 2>/dev/null | sort')
 local seen, bad = 0, 0
 for path in find:lines() do
@@ -191,6 +213,7 @@ for path in find:lines() do
 	for l in fh:lines() do ls[#ls + 1] = l end
 	fh:close()
 	local inGui = path:find("^PourSocialScore_GUI/") ~= nil
+	bad = bad + deepScan(path, ls)
 	for i = 1, #ls do
 		local l = ls[i]:gsub("%-%-.*$", "")
 		if not inGui then
