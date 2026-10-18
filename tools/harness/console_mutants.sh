@@ -27,7 +27,10 @@ deep-no-load|PourSocialScore_GUI/PSS_Console.lua|/function pg.deepDive/,/^\tend/
 deep-from-service|tools/check_layers.lua|s/and not okFile then/and not okFile and false then/|deepservice
 pick-edits-text|PourSocialScore_GUI/PSS_TimePicker.lua|s/function p:Range() return CV.pickerRange(choice) end/function p:Range() return nil end/|pickaxis picktyped pickrange
 pick-wins-typed|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if range and CV.typedTime(self.query) then range = nil end/if false then range = nil end/|picktyped
-pick-month-30d|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/text = "This month", e = "@mon"/text = "This month", e = "-30d"/|pickpresets'
+pick-month-30d|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/text = "This month", e = "@mon"/text = "This month", e = "-30d"/|pickpresets
+con-copy-raw|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if M.PSS_IsSecret(v) then/if false then/|concopysecret
+con-rows-hook-once|PourSocialScore_GUI/PSS_Console.lua|s/list.Layout = function(self, ...) local r = layout(self, ...); HookRows(); return r end/list.Layout = layout/|conrowhook
+save-chart-lost|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not cs then return id, nil, cerr or "chart not saved" end/if not cs then return id end/|savepartial'
 want="$*"
 total=0; killed=0
 nl='

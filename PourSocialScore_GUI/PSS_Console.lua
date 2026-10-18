@@ -135,9 +135,16 @@ ns.TabBuilders.console = function(pg)
 		end })
 
 	------------------------------------------------------------------ result row menu
-	local function HookRows()
+	local HookRows
+	function HookRows()
 		local list = qv.chart and qv.chart.tableList
 		if not list then return end
+		if not list.pssConLayout then
+			-- a taller list makes more rows later: hook those as they appear
+			list.pssConLayout = true
+			local layout = list.Layout
+			list.Layout = function(self, ...) local r = layout(self, ...); HookRows(); return r end
+		end
 		for _, row in pairs(list.rows or {}) do
 			if not row.pssConHooked then
 				row.pssConHooked = true
@@ -151,9 +158,7 @@ ns.TabBuilders.console = function(pg)
 						for _, a in ipairs(actions) do
 							m:Button(a.text, function()
 								if a.key == "copy" then
-									local cells = {}
-									for k = 1, #set.cols do cells[k] = tostring(set[idx][k]) end
-									ns.CopyText({ title = "Copy line", text = table.concat(cells, "\t") })
+									ns.CopyText({ title = "Copy line", text = cm:CopyLine(set, idx) })
 								else
 									bar:SetText(a.query); pg.run(true)
 								end
@@ -359,7 +364,7 @@ ns.TabBuilders.console = function(pg)
 	Sync()
 
 	pg.bar, pg.qv, pg.cm, pg.picker, pg.help, pg.overlay, pg.underline, pg.sideList, pg.tabs = bar, qv, cm, picker, help, overlay, ul, sideList, tabs
-	pg.highlight, pg.sync = Highlight, Sync
+	pg.highlight, pg.sync, pg.hookRows = Highlight, Sync, HookRows
 	pg.nav, pg.chip, pg.backChip = nav, chip, backChip
 	if ns.AttachQueryList then ns.AttachQueryList(pg) end
 	function pg.barError() return barErr end

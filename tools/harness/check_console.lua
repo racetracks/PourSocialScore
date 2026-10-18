@@ -676,6 +676,31 @@ PH.conactions = function()
 	check(a[3].query == "index=inv " .. CV.term("item", "item:5"), "item query " .. tostring(a[3].query))
 end
 
+PH.concopysecret = function()
+	local pg = openCon()
+	local sec = "hidden-text"
+	local real = _G.issecretvalue
+	_G.issecretvalue = function(v) return v == sec or real(v) end
+	local s = set({ "owner", "text" }, { { "bob", sec } })
+	local line = pg.cm:CopyLine(s, 1)
+	_G.issecretvalue = real
+	check(line == "bob\t", "copy line leaked or broke: " .. tostring(line))
+end
+
+PH.conrowhook = function()
+	local pg = openCon()
+	plantLog(40)
+	pg.bar:SetText("index=log | head 50")
+	pg.run(true)
+	local list = pg.qv.chart.tableList
+	check(list and #list.rows > 0, "no rows")
+	local n = #list.rows
+	list.scroll:SetHeight((n + 5) * list.rowH)
+	list:Layout()
+	check(#list.rows > n, "list did not grow (" .. #list.rows .. ")")
+	for i, r in ipairs(list.rows) do check(r.pssConHooked, "row " .. i .. " has no menu hook") end
+end
+
 PH.conescape = function()
 	local pg = openCon()
 	pg.toggleHelp()
@@ -918,6 +943,19 @@ PH.savechart = function()
 	PourSocialScoreDB.sqCharts = saved
 	M.PSS_Call("sq.del", { id = q[1][1] })
 	check(M.PSS_Call("sq.chart.list", {}).n == 0, "sq.del removes its charts")
+end
+
+PH.savepartial = function()
+	resetSq()
+	local CV = M.PSS_ConsoleView
+	local id, err, cerr = CV.saveSearch({ name = "ok", scope = "any", query = "index=log", time = "", flags = "" }, { kind = "bar", chart = { x = "cat", y = "n" } })
+	check(id and not err and not cerr, "saved with chart")
+	PourSocialScoreDB.sqCharts = "2;5\nx"
+	id, err, cerr = CV.saveSearch({ name = "two", scope = "any", query = "index=log", time = "", flags = "" }, { kind = "bar", chart = {} })
+	check(id and not err and cerr, "partial failure: id, no err, chartErr " .. tostring(cerr))
+	check(sqRows().n == 2, "search stays saved")
+	id, err = CV.saveSearch({ name = "", scope = "any", query = "index=log", time = "", flags = "" })
+	check(id == nil and err, "bad name is an err")
 end
 
 PH.savealert = function()

@@ -78,14 +78,10 @@ local function Build()
 	f.save:SetScript("OnClick", function()
 		local spec = f.spec or {}
 		local flags = f.alert:GetChecked() and "a" or ""
-		local set, err = CV.call("sq.put", { name = f.name:GetText() or "", scope = f.scope, query = spec.query or "", time = f.term or "", flags = flags })
-		if not set then f.err:SetText(Msg(nil, err)); return end
-		local id = set[1][1]
-		if spec.chart and f.chartCheck:GetChecked() and f.kind then
-			local c = spec.chart
-			local cs, cerr = CV.call("sq.chart.put", { queryId = id, kind = f.kind, x = c.x or "", y = c.y or "", series = c.series or "", opts = c.opts or {} })
-			if not cs then f.err:SetText(Msg(nil, cerr)); f.savedId = id; M.ShowMsg("Spyglass: search saved, chart not saved: " .. tostring(cerr)); return end
-		end
+		local id, err, chartErr = CV.saveSearch({ name = f.name:GetText() or "", scope = f.scope, query = spec.query or "", time = f.term or "", flags = flags },
+			(spec.chart and f.chartCheck:GetChecked() and f.kind) and { kind = f.kind, chart = spec.chart } or nil)
+		if not id then f.err:SetText(Msg(nil, err)); return end
+		if chartErr then f.err:SetText(Msg(nil, chartErr)); f.savedId = id; M.ShowMsg("Spyglass: search saved, chart not saved: " .. tostring(chartErr)); return end
 		f.err:SetText("")
 		f.savedId = id
 		f:Hide()

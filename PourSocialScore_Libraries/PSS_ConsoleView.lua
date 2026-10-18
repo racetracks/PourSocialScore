@@ -319,6 +319,20 @@ CM.__index = CM
 function CV.call(name, input) return M.PSS_Call(name, input) end
 
 -- The Save dialog's gate (STP-00256): canSave false with why at the 200 saved searches; chartWhy at the 100 saved charts
+-- save a search, then its chart when asked: put = sq.put input, ch = { kind, chart = {x,y,series,opts} } | nil
+-- -> id, err, chartErr (the search stays saved when only the chart fails)
+function CV.saveSearch(put, ch)
+	local set, err = CV.call("sq.put", put)
+	if not set then return nil, err end
+	local id = set[1][1]
+	if ch then
+		local c = ch.chart or {}
+		local cs, cerr = CV.call("sq.chart.put", { queryId = id, kind = ch.kind, x = c.x or "", y = c.y or "", series = c.series or "", opts = c.opts or {} })
+		if not cs then return id, nil, cerr or "chart not saved" end
+	end
+	return id
+end
+
 function CV.saveState(hasChart)
 	local caps = M.PSS_SQ_CAPS or {}
 	local out = { canSave = true }
@@ -381,6 +395,17 @@ function CM:RowActions(set, i)
 		out[#out + 1] = { key = "item", text = "Where is this item", query = "index=inv " .. CV.term("item", row[ic]) }
 	end
 	return out
+end
+
+-- the tab-joined text of result row i; a secret cell is "" (PSS 02 section 10)
+function CM:CopyLine(set, i)
+	local row, cells = set and set[i], {}
+	if not row then return "" end
+	for k = 1, #set.cols do
+		local v = row[k]
+		if M.PSS_IsSecret(v) then cells[k] = "" else cells[k] = v == nil and "" or tostring(v) end
+	end
+	return table.concat(cells, "\t")
 end
 
 function CM:LeftRows()
