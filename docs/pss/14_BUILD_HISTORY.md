@@ -40,7 +40,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.8.0.122 - Docs: context budget (startup trim, agent-ready outputs, context caps)
 
-- Branch: `claude/cool-meitner-abnxu0`; PR: none yet.
+- Branch: `claude/cool-meitner-abnxu0`; [PR #244](https://github.com/racetracks/PourSocialScore/pull/244).
 - What changed and why: the author asked for more aggressive context cost reduction and for every code file, artefact, report and plan to be written for M1 to M3 ingestion within the budget plan (scratch `temp/2026/10/18/15-13-57-Sun-cool-meitner-abnxu0/prompts/01.md`).
   - Startup (`DEC-00383`): `CLAUDE.md` goes from 39,854 to 15,490 bytes; with its imports from 55,159 to 29,117 bytes (about 13.8k to 7.3k tokens) in every session and every sub-agent spawn; a spawn with `consultant.md` from 68,968 to 45,465 bytes. The topic routes, the short form, the build, release and session procedures move word for word to `docs/pss/15_ROUTES.md` (with a route table), the window rules to `docs/pss/16_INTERFACE.md`; the scratch `05_RULES.md` import is dropped (its rules are the scratch `CLAUDE.md` rules 1 to 15 and are read before any scratch delivery). One duplicate bullet (documentation rules trigger) is removed; no rule text changes.
   - Agent-ready outputs (`DEC-00384`): a new token rule in `CLAUDE.md`, synced into every `.claude/agents/*.md`: header line, stable anchors, sections inside the caps, tables and pointers before prose, current truth only, `check_context.py` passes.
