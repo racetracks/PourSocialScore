@@ -8,6 +8,10 @@
   ledger.py done TASKS                   mark coordinator-inline tasks done
   ledger.py next                         ready tasks, grouped for batching, plus totals
   ledger.py decide "<one line>" [PATH]   append a decision to CONTEXT.md
+  ledger.py pack PROJECT                 hand-off check of <session>/projects/PROJECT/, then write its pack.json and README.md
+  ledger.py init --pack DIR [--draft]    load an approved pack (documents/projects/<project>/) into a fresh session;
+                                         --draft: dry run of a <session>/projects/<project>/ folder under temp/
+  ledger.py promote DRAFT                copy a drafted pack to documents/projects/<project>/ (the author's OK only)
   ledger.py render                       measure tokens from transcripts, regenerate the session README.md
   ledger.py close                        render, mark the session closed
 
@@ -18,6 +22,9 @@ Shape: ret runs check_context.py (CONTEXT-CAPS block; code needs its docs) on th
 Stale pack: init compares each new row's Writes with `git diff --name-only <Base commit>` of provision.md: RETRIAGE (status stale),
   WARN when the base is not in the clone, NOTE when the `Index hash:` differs; init and spawn rebuild context/repo-index.json.
 Brief check: spawn runs check_context.py --brief on each M1/M2 engineer brief; BRIEF lines refuse the spawn (ROUTE to its consultant).
+Pointers: ret runs check_context.py --pointers on a consultant's DONE specs/ and context/ files; POINTER lines block it.
+Plan pack: pack checks the draft (briefs, context, caps, ## Changelog, registry keys, pointers) and refuses with HANDOFF refused;
+  spawn lines for consultants carry `index <hash>` after `base`.
 Rules read: ret reads an engineer's transcript; RULES (ROUTE cont) when docs/baseline/02_RULES.md or docs/pss/02_RULES.md was not
   read in full, WARN RULES when unmeasured (never a pass).
 """
@@ -37,7 +44,7 @@ import _session  # noqa: E402
 ROOT = _session.ROOT
 AGENTS = ("coordinator", "consultant", "engineer", "engineer-m1", "engineer-m3")
 NONE = {"", "-", "—", "n/a", "none"}
-PROTECTED = ("provision.md", "specs/", "briefs/", "context/")  # session paths only consultants write
+PROTECTED = ("provision.md", "specs/", "briefs/", "context/", "projects/")  # session paths only consultants write
 IGNORE = {".claude/.session"}
 FIT_RULES = {  # consultant K0: the grade decides class and agent
     "engineer": lambda f, c: (f, c) in (("WL", "M1"), ("WM", "M2")),
@@ -146,11 +153,15 @@ def budget_key(agent, cls):
 
 
 # ---------- ledger io ----------
+def fresh():
+    return {"tasks": {}, "agents": {}, "streams": {}, "triage": None, "next_agent": 1,
+            "cap": {}, "prefix": "REF"}
+
+
 def load():
     if LEDGER.exists():
         return json.loads(LEDGER.read_text())
-    return {"tasks": {}, "agents": {}, "streams": {}, "triage": None, "next_agent": 1,
-            "cap": {}, "prefix": "REF"}
+    return fresh()
 
 
 def save(L):
@@ -267,11 +278,25 @@ def shape_check(paths):
             if l.startswith(("SHAPE ", "DOCS ")) and not l.startswith(("SHAPE startup", "SHAPE spawn"))]
 
 
+def pointer_lines(files, idx=None):
+    """`POINTER ` lines of check_context.py --pointers over existing files (spec plan-pack 7.4.3); [] when no index."""
+    files = [f for f in files if os.path.isfile(f)]
+    if not files:
+        return []
+    if idx is None:
+        idx, _ = build_index()
+    if not idx:
+        return []
+    tool = ROOT / ".claude" / "scripts" / "check_context.py"
+    r = subprocess.run([sys.executable, str(tool), "--pointers", str(idx)] + files, capture_output=True, text=True)
+    return [l for l in r.stdout.splitlines() if l.startswith("POINTER ")]
+
+
 def own_paths(L, aid, kind, changed, tasks=None):
     """The agent's own changed paths: its fence, its agents/<aid>/ folder, a consultant's session documents."""
     srel = _session.rel(SD)
     ws = [w for t in (tasks if tasks is not None else L["agents"][aid]["tasks"]) for w in L["tasks"].get(t, {}).get("writes", [])]
-    pre = [f"{srel}/{d}" for d in ("specs/", "briefs/", "context/")] if kind == "consultant" else []
+    pre = [f"{srel}/{d}" for d in ("specs/", "briefs/", "context/", "projects/")] if kind == "consultant" else []
 
     def mine(p):
         return (any(fnmatch.fnmatchcase(p, g) for g in ws) or p.startswith(f"{srel}/agents/{aid}/")
@@ -323,30 +348,8 @@ def stale_check(L, new, prov_text):
 
 
 # ---------- commands ----------
-def cmd_init(a):
-    L = load()
-    D = defaults()
-    rows, src = [], []
-    prov = SD / "provision.md"
-    if prov.exists():
-        pr = md_table(prov.read_text(), ["task", "class", "fit", "agent", "writes", "calls", "out", "depends"])
-        if pr is None:
-            die("INVALID provision.md: table needs Task|Class|Fit|Agent|Stream|Context|Writes|Brief|Calls|Out|Depends|Review|Why")
-        rows += pr
-        src.append("provision.md")
-    dm = re.search(r"## Direct tasks(.*?)(\n## |\Z)", task_md(), re.S)
-    direct = md_table(dm.group(1), ["task", "writes", "change", "acceptance"]) if dm else None
-    if direct:
-        dc, do = D["engineer-M1"]
-        for r in direct:
-            rows.append({"task": r["task"], "class": "M1", "fit": "WL", "agent": "engineer", "stream": "direct",
-                         "writes": r["writes"], "brief": f"TASK.md#direct-tasks row {r['task']}",
-                         "calls": str(dc), "out": str(do), "depends": "-", "review": "no", "why": "-",
-                         "_acc": r.get("acceptance", "")})
-        src.append("TASK.md direct tasks")
-    if not rows:
-        die("nothing to load: no provision.md and no TASK.md direct tasks")
-
+def load_rows(L, D, rows):
+    """Validate provision-style rows (dicts, lower-case keys) -> (errors, new task records). Spec plan-pack 7.5.1."""
     ids = {r["task"] for r in rows}
     errs, new = [], {}
     for r in rows:
@@ -428,6 +431,34 @@ def cmd_init(a):
         if nt["status"] in ("rejected", "stale"):  # re-provisioned after a scope rejection or a stale fence
             nt["status"] = "todo"
         new[t] = nt
+    return errs, new
+
+
+def cmd_init(a):
+    L = load()
+    D = defaults()
+    rows, src = [], []
+    prov = SD / "provision.md"
+    if prov.exists():
+        pr = md_table(prov.read_text(), ["task", "class", "fit", "agent", "writes", "calls", "out", "depends"])
+        if pr is None:
+            die("INVALID provision.md: table needs Task|Class|Fit|Agent|Stream|Context|Writes|Brief|Calls|Out|Depends|Review|Why")
+        rows += pr
+        src.append("provision.md")
+    dm = re.search(r"## Direct tasks(.*?)(\n## |\Z)", task_md(), re.S)
+    direct = md_table(dm.group(1), ["task", "writes", "change", "acceptance"]) if dm else None
+    if direct:
+        dc, do = D["engineer-M1"]
+        for r in direct:
+            rows.append({"task": r["task"], "class": "M1", "fit": "WL", "agent": "engineer", "stream": "direct",
+                         "writes": r["writes"], "brief": f"TASK.md#direct-tasks row {r['task']}",
+                         "calls": str(dc), "out": str(do), "depends": "-", "review": "no", "why": "-",
+                         "_acc": r.get("acceptance", "")})
+        src.append("TASK.md direct tasks")
+    if not rows:
+        die("nothing to load: no provision.md and no TASK.md direct tasks")
+
+    errs, new = load_rows(L, D, rows)
     prov_text = prov.read_text() if prov.exists() else ""
     _, ihash = build_index()
     stale_check(L, new, prov_text)
@@ -438,6 +469,10 @@ def cmd_init(a):
         print("INVALID — continue the triage consultant with these lines:")
         print("\n".join(errs))
         sys.exit(1)
+    finish_init(L, new, len(rows), " + ".join(src))
+
+
+def finish_init(L, new, n, src):
     for t, v in L["tasks"].items():  # keep history of tasks dropped by re-triage once started
         if t not in new and v["status"] != "todo":
             new[t] = v
@@ -445,7 +480,7 @@ def cmd_init(a):
     L["cap"], L["prefix"] = task_meta()
     save(L)
     c, o = projected(L)
-    print(f"loaded {len(rows)} tasks from {' + '.join(src)} · projected calls {c} out {o}{capstr(L)}")
+    print(f"loaded {n} tasks from {src} · projected calls {c} out {o}{capstr(L)}")
     cap = L["cap"]
     if (cap.get("calls") and c > cap["calls"]) or (cap.get("out") and o > cap["out"]):
         print("CAP projected spend exceeds the TASK.md cap: continue the triage consultant to re-split; "
@@ -453,7 +488,7 @@ def cmd_init(a):
     cmd_next(None, header=False)
 
 
-def spawn_line(L, aid, kind, tasks, calls, out, note=""):
+def spawn_line(L, aid, kind, tasks, calls, out, note="", ihash=None):
     briefs = sorted({L["tasks"][t]["brief"] for t in tasks if L["tasks"][t]["brief"]})
     T = L["tasks"]
     parts = [f"ID {aid}", f"ref {L.get('prefix', 'REF')}-{SD.name}-{aid}", f"tasks {','.join(tasks)}",
@@ -464,6 +499,8 @@ def spawn_line(L, aid, kind, tasks, calls, out, note=""):
         r = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short=12", "HEAD"], capture_output=True, text=True)
         if r.returncode == 0 and r.stdout.strip():
             parts.append(f"base {r.stdout.strip()}")
+        if ihash:
+            parts.append(f"index {ihash}")
     parts += [f"budget calls {calls} out {out}", f"session {_session.rel(SD)}"]
     if note:
         parts.append(note)
@@ -507,7 +544,7 @@ def cmd_spawn(a):
             bp = SD / b.split("#")[0]
             if not bp.exists() or "acceptance" not in bp.read_text().lower():
                 die(f"{t}: brief {b} missing or has no acceptance check: continue its consultant")
-    idx, _ = build_index()
+    idx, ihash = build_index()
     tool, probs, who = ROOT / ".claude" / "scripts" / "check_context.py", [], None
     for t, x in zip(tasks, T):
         if kind in ("engineer", "engineer-m1") and not x["brief"].startswith("TASK.md") and x["cls"] in ("M1", "M2"):
@@ -558,7 +595,7 @@ def cmd_spawn(a):
     open_segment(L, aid, tasks, calls, out)
     save(L)
     note = "+ ≤15-line consultant brief (coordinator C3)" if kind == "consultant" else ""
-    print(spawn_line(L, aid, kind, tasks, calls, out, note))
+    print(spawn_line(L, aid, kind, tasks, calls, out, note, ihash))
 
 
 def cmd_cont(a):
@@ -636,6 +673,12 @@ def cmd_ret(a):
     bad = [p for p in changed if not any(allowed(p, k, w) for k, w in active)]
     shape = shape_check(own_paths(L, aid, kind, changed, tasks)) if status == "DONE" and not bad else []
 
+    ptrs = []
+    if kind == "consultant" and status == "DONE" and not bad:
+        pf = [p for p in own_paths(L, aid, kind, changed, tasks)
+              if p.endswith(".md") and ("/specs/" in p or "/context/" in p) and not p.endswith("-index.md")]
+        ptrs = pointer_lines([str(ROOT / p) for p in pf])
+
     rules = []
     if kind in RULE_KINDS and status == "DONE" and not bad:
         miss = rules_missing(L, aid)
@@ -651,10 +694,12 @@ def cmd_ret(a):
         more = " …" if len(bad) > 10 else ""
         out.append(f"SCOPE {aid} ({kind}) wrote outside its fence: {', '.join(bad[:10])}{more}")
         out.append(f"ROUTE reject; git restore those paths; continue {triage} (`cont {triage} --support`) to re-provision")
-    elif shape or rules:
+    elif shape or rules or ptrs:
         for t in tasks:
             L["tasks"][t]["status"] = "blocked"
-        out += shape + rules
+        out += shape + rules + ptrs
+        if ptrs:
+            out.append(f"ROUTE `cont {aid}` with these lines: fix each pointer (a line inside the file, an existing #anchor), then return again")
         if shape:
             out.append(f"ROUTE `cont {aid}` with these lines: it reshapes its documents to the context caps (SHAPE) and updates the docs its brief names for its code (DOCS; a brief that names none: BLOCKED to its consultant), then returns again")
         if rules:
@@ -719,7 +764,7 @@ def cmd_ret(a):
         out.append("CAP reached: stop spawning; ask the user")
     save(L)
     print("\n".join(out))
-    if (status == "DONE" and not bad and not shape and not rules) or rerun_route:
+    if (status == "DONE" and not bad and not shape and not rules and not ptrs) or rerun_route:
         cmd_next(None, header=False)
 
 

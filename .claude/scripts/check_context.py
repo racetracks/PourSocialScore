@@ -24,6 +24,10 @@ Usage:
                                      REF is path, path:n, path:n-m, path#anchor or @name; prints OK or MISSING <ref>: <why>;
                                      @name prints <path>:<line> <kind> <name> per symbol (kinds: export, fires, listens,
                                      wow_event, slash, saved; in the index under files[path]["symbols"])
+  check_context.py --pointers INDEX FILE...
+                                     the pointer rule alone (backticked path:n[-m], path#anchor in prose; lines naming scratch
+                                     and scratch-side paths skipped); prints `POINTER <path>: <problem>`; exit 0, 1, 2 (usage);
+                                     run by `ledger.py pack` and by `ledger.py ret` on a consultant's specs and context files
   Docs with code: in a file list, code and no document prints `DOCS`; against the base, changed code needs
   the build history entry of the TOC version to fill `- Docs updated:` (docs/pss/14_BUILD_HISTORY.md).
 Exit 1 on a failing problem. Problems print as `SHAPE <path>: <problem>` or `DOCS <problem>`.
@@ -119,7 +123,8 @@ WRITES = re.compile(r"(?m)^\s*[-*]?\s*(\*\*)?Writes\b[^:\n]*:.*`[^`]+`")
 EDIT = re.compile(r"[\w./-]+\.[A-Za-z]+:\d+(-\d+)?")
 BARE = re.compile(r"`([^`\s:#]+\.(md|py|lua|sh|json|txt|toc|xml|yml|yaml))`")
 POINTER = re.compile(r"`([\w./-]+)(?::(\d+)(?:-(\d+))?|#([\w.-]+))`")
-SKIP_PTR = ("specs/", "briefs/", "context/", "agents/", "prompts/", "../")
+SKIP_PTR = ("specs/", "briefs/", "context/", "agents/", "prompts/", "../", "documents/", "drafts/", "history/",
+            "summary/", "releases/", "latest/", "SavedVariables/", "temp/")
 EXTS = (".md", ".py", ".lua", ".sh", ".toc", ".xml", ".json", ".txt", ".yml", ".yaml")
 
 
@@ -178,13 +183,30 @@ def brief_problems(text, cls, index=None):
         for m in BARE.finditer(l):
             out.append(f"line {n}: bare file reference {m.group(0)}: give path:line or path#anchor, or mark it Full or (new)")
     if index:
-        for n, l, _ in prose:
-            for m in POINTER.finditer(l):
-                if m.group(1).startswith(SKIP_PTR):
-                    continue
-                why = lookup_ref(index, m.group(0)[1:-1])
-                if why:
-                    out.append(f"line {n}: pointer {m.group(0)[1:-1]}: {why}")
+        out += pointer_problems(text, index)
+    return out
+
+
+def pointer_problems(text, index):
+    """Rule 8 (spec plan-pack 7.4.1): backticked path:n[-m] and path#anchor in prose lines resolve in the index;
+    lines inside code fences or under ## Changelog, and lines naming scratch, are skipped."""
+    out, sec, infence = [], "", False
+    for n, l in enumerate(text.split("\n"), 1):
+        if FENCE.match(l):
+            infence = not infence
+            continue
+        if infence:
+            continue
+        if l.startswith("## "):
+            sec = l.strip()
+        if sec.startswith("## Changelog") or "scratch" in l.lower():
+            continue
+        for m in POINTER.finditer(l):
+            if m.group(1).startswith(SKIP_PTR):
+                continue
+            why = lookup_ref(index, m.group(0)[1:-1])
+            if why:
+                out.append(f"line {n}: pointer {m.group(0)[1:-1]}: {why}")
     return out
 
 
@@ -297,6 +319,17 @@ def cli_brief(args):
         print("usage: check_context.py --brief M1|M2 [--index INDEX] FILE...", file=sys.stderr)
         return 2
     bad = [f"BRIEF {rel_of(f)}: {p}" for f in rest[1:] for p in brief_problems(pathlib.Path(f).read_text(), rest[0], idx)]
+    if bad:
+        print("\n".join(bad))
+    return 1 if bad else 0
+
+
+def cli_pointers(args):
+    if len(args) < 3:
+        print("usage: check_context.py --pointers INDEX FILE...", file=sys.stderr)
+        return 2
+    idx = json.loads(pathlib.Path(args[1]).read_text())
+    bad = [f"POINTER {rel_of(f)}: {p}" for f in args[2:] for p in pointer_problems(pathlib.Path(f).read_text(), idx)]
     if bad:
         print("\n".join(bad))
     return 1 if bad else 0
@@ -426,6 +459,8 @@ def main():
         return cli_brief(args)
     if args[:1] == ["--lookup"]:
         return cli_lookup(args)
+    if args[:1] == ["--pointers"]:
+        return cli_pointers(args)
     if args[:1] == ["--index"]:
         return build_index(args[1]) if len(args) == 2 else 2
     rows, order = load_caps()
