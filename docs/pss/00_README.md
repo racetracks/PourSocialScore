@@ -30,6 +30,7 @@ The **PourSocialScore-only layer.** It sits on top of two general packs and does
 | 10_CORE_UPLIFT.md | The closed core uplift (released as 3.4.1.53): design, decisions, what each stage did |
 | 11_PREFERENCES.md | The author's preferences and approach: the one file, loaded in every session |
 | 13_CHANGES_IN_TRAIN.md | The core uplift's findings, what shipped and what is open; on demand |
+| 14_BUILD_HISTORY.md | What each build changed and why, its PR, tests and checks, and every approved combined build; written by `tools/bump_version.sh`, on demand (`DEC-00341`) |
 | PROJECT_INSTRUCTIONS.md | Paste-ready project instructions |
 | reference/ | History, read only: the 3.3 parity analysis and plan (`plans-3.3-parity/`), the issue #77 note (`issues/`), the 2026-10-07 memory snapshot (`memory-2026-10-07/`), status history to 3.4.1.30 (`06_status-history-to-3.4.1.30.md`), the 3.4.1.52 per-stage notes (`combined-3.4.1.52/`) |
 
