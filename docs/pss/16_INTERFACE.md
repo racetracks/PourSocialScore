@@ -1,6 +1,6 @@
 # 16_INTERFACE: the PSS window's rules
 
-Purpose: the window's rules (all three looks, the kit, titles and popups), moved word for word from `CLAUDE.md`; read in full before any change to `PourSocialScore_GUI`, its kit or a window question (`DEC-00383`) · owner: the PSS pack (`docs/pss/`) · updated: 3.8.0.122, session cool-meitner-abnxu0 · status: live · related: `docs/pss/09_PSS_UI_PROJECT.md`, `docs/pss/02_RULES.md` section 11, `docs/pss/15_ROUTES.md`
+Purpose: the window's rules (all three looks, the kit, titles and popups), moved word for word from `CLAUDE.md`; read in full before any change to `PourSocialScore_GUI`, its kit or a window question (`DEC-00383`) · owner: the PSS pack (`docs/pss/`) · updated: 3.8.0.123, session cool-meitner-abnxu0 · status: live · related: `docs/pss/09_PSS_UI_PROJECT.md`, `docs/pss/02_RULES.md` section 11, `docs/pss/15_ROUTES.md`
 
 ## Contents
 - [Interface: the PSS window (PourSocialScore_GUI)](#interface-the-pss-window-poursocialscore_gui)

@@ -1,7 +1,7 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
-=> 3.8.0.122 - Docs: context budget (startup trim, agent-ready outputs, context caps)
+=> 3.8.0.123 - Docs: context budget (startup trim, agent-ready outputs, context caps)
 
 - Nothing in the addon changes. The developer instructions load about half as much at the start of each session, and every file written for the developer agents is kept small and checked.
 

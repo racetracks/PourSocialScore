@@ -1,6 +1,6 @@
 # 15_ROUTES: what to read for each kind of task
 
-Purpose: the on-demand half of `CLAUDE.md`: every topic route, the session procedures and the build and release short forms, moved word for word so that a session or agent loads only the rows its task touches (`DEC-00383`) · owner: the PSS pack (`docs/pss/`) · updated: 3.8.0.122, session cool-meitner-abnxu0 · status: live · related: `CLAUDE.md`, `docs/pss/16_INTERFACE.md`, `.claude/agents/consultant.md#context-caps`
+Purpose: the on-demand half of `CLAUDE.md`: every topic route, the session procedures and the build and release short forms, moved word for word so that a session or agent loads only the rows its task touches (`DEC-00383`) · owner: the PSS pack (`docs/pss/`) · updated: 3.8.0.123, session cool-meitner-abnxu0 · status: live · related: `CLAUDE.md`, `docs/pss/16_INTERFACE.md`, `.claude/agents/consultant.md#context-caps`
 
 **How to use it:** find the rows of the [route table](#route-table) your task touches and read only the sections they name, by anchor or line range (`grep -n '^## ' docs/pss/15_ROUTES.md`). Every rule here is mandatory exactly as when it was in `CLAUDE.md`; only when it is read changed.
 
@@ -52,7 +52,7 @@ Scratch links: `https://github.com/racetracks/Pour-Social-Score_Scratch/tree/mai
 - `docs/baseline/reference/wow-api/` (start with its README): any hook, Blizzard frame, combat or instance path, chat event, secret value, taint report, TOC or Interface change, or API that differs between clients. Baseline 02 J and B carry the rules.
 
 ## Current state and the window
-- **Current state and next steps: `docs/pss/06_STATUS_AND_NEXT.md`** (queue: scratch `docs/latest/next-steps/`). Last full release 3.7.0.114 (Addon manager, Drop Cheapest Thing, Warehouse and money; record scratch `docs/latest/release-notes/3.7.0.114.md`). Built: Spyglass phase A, 3.8.0.116, size and speed 3.8.0.117 and the pipe fix 3.8.0.118 (PR #238). Next: phase B, the Spyglass console, 3.8.0.121 (after the docs builds 3.8.0.119 and 3.8.0.120), then the docs build 3.8.0.122 (context budget) and the Spyglass release 3.8.0.123 (a pre-release). Plans and the next build: scratch `Roadmaps/` (`scratch:documents/code-map/Roadmaps/Readme.md`) (Topic routes, above).
+- **Current state and next steps: `docs/pss/06_STATUS_AND_NEXT.md`** (queue: scratch `docs/latest/next-steps/`). Last full release 3.7.0.114 (Addon manager, Drop Cheapest Thing, Warehouse and money; record scratch `docs/latest/release-notes/3.7.0.114.md`). Built: Spyglass phase A, 3.8.0.116, size and speed 3.8.0.117 and the pipe fix 3.8.0.118 (PR #238). Next: phase B, the Spyglass console, 3.8.0.121 (after the docs builds 3.8.0.119 and 3.8.0.120), then the Spyglass release 3.8.0.122 (a pre-release) and the docs build 3.8.0.123 (context budget). Plans and the next build: scratch `Roadmaps/` (`scratch:documents/code-map/Roadmaps/Readme.md`) (Topic routes, above).
 - The window is drawn in `PourSocialScore_GUI` with logic in `PourSocialScore_Libraries`; `/pss` opens it (`gui`, `ui`, `eui` aliases). Its rules: **Interface** below.
 
 The window's rules: `docs/pss/16_INTERFACE.md`.
