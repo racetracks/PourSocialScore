@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash, Write, Edit
 # Engineer
 You produce exactly what your brief specifies. You make no design decisions.
 
-1. Your prompt is one line: ID, ref, tasks, brief, budget, session. Read the brief, then only the pointers it lists.
+1. Your prompt is one line: ID, ref, tasks, brief, budget, session. Read the brief, then only the pointers it lists.  Before any change, read `docs/baseline/02_RULES.md` and `docs/pss/02_RULES.md` in full (Read with no offset or limit); `ledger.py ret` checks your transcript and prints `RULES` without it.
 2. Write only inside the brief's Writes fence and `agents/<id>/`. The ledger checks every changed path; a write outside the fence rejects all your work.
 3. Repetitive, structural or derivable output (bulk edits, generated files, skeletons, indexes, extraction): write and run a script; never produce it by hand.
 4. Judgement only where the brief lists it. Otherwise stop: the spec is silent or contradicts itself or the code, the acceptance check cannot pass as written, or two valid behaviours exist. Write `agents/<id>/QUESTIONS.md` (question, options seen, files touched so far) and return `BLOCKED`.

@@ -10,11 +10,25 @@ Usage:
                                      only problems the base did not have fail
   check_context.py FILE...           every problem in these files fails (the ledger's SHAPE check)
   check_context.py --sizes           print the startup and spawn sizes, never fail
+  check_context.py --brief M1|M2 [--index INDEX] FILE...
+                                     the brief check, run by `ledger.py spawn`; prints `BRIEF <path>: <problem>`; rules:
+                                     1 Writes line with backticked paths; 2 exact edit (path:line) or "by script" with
+                                     Input:, Output:, Rule: lines; 3 one ## Acceptance with one code block and an
+                                     Expected: line; 4 M1 "Permitted judgement: none" / M2 numbered ## Permitted
+                                     judgement; 5 one line naming both rules files "in full"; 6 no hedge words
+                                     (e.g., etc., as appropriate, consider, if needed); 7 no bare file reference
+                                     (give path:line, path#anchor, Full or (new)); 8 with --index, every backticked
+                                     path:n[-m] or path#anchor exists. Exit 2 on a usage error.
+  check_context.py --index OUT       write the machine index (git ls-files: lines and heading anchors) to OUT as JSON
+  check_context.py --lookup INDEX REF...
+                                     REF is path, path:n, path:n-m or path#anchor; prints OK or MISSING <ref>: <why>
   Docs with code: in a file list, code and no document prints `DOCS`; against the base, changed code needs
   the build history entry of the TOC version to fill `- Docs updated:` (docs/pss/14_BUILD_HISTORY.md).
 Exit 1 on a failing problem. Problems print as `SHAPE <path>: <problem>` or `DOCS <problem>`.
 """
 import fnmatch
+import hashlib
+import json
 import os
 import pathlib
 import re
@@ -96,6 +110,170 @@ def problems(path, text, row):
         if infence and row["fence"] is not None and fence > row["fence"]:
             out[f"fence:{head}"] = f"code block at line {fstart} is never closed and has {fence} lines > {row['fence']}"
     return out
+
+
+HEDGE = re.compile(r"(?i)(?<!\w)(e\.g\.|etc\.|as appropriate|consider|if needed)(?!\w)")
+WRITES = re.compile(r"(?m)^\s*[-*]?\s*(\*\*)?Writes\b[^:\n]*:.*`[^`]+`")
+EDIT = re.compile(r"[\w./-]+\.[A-Za-z]+:\d+(-\d+)?")
+BARE = re.compile(r"`([^`\s:#]+\.(md|py|lua|sh|json|txt|toc|xml|yml|yaml))`")
+POINTER = re.compile(r"`([\w./-]+)(?::(\d+)(?:-(\d+))?|#([\w.-]+))`")
+SKIP_PTR = ("specs/", "briefs/", "context/", "agents/", "prompts/", "../")
+EXTS = (".md", ".py", ".lua", ".sh", ".toc", ".xml", ".json", ".txt", ".yml", ".yaml")
+
+
+def label(name):
+    return re.compile(r"(?i)^\s*[-*]?\s*(\*\*)?" + name + r"(\*\*)?:")
+
+
+def brief_problems(text, cls, index=None):
+    """Brief rules 1 to 8 (spec ledger-m1 7.7, 12.4); problems in rule order."""
+    prose, sec, infence, nfence, expected, has_acc, judge = [], "", False, 0, False, False, False
+    for n, l in enumerate(text.split("\n"), 1):
+        if sec.startswith("## Acceptance") and l.startswith("Expected:"):
+            expected = True
+        if FENCE.match(l):
+            if sec.startswith("## Acceptance") and not infence:
+                nfence += 1
+            infence = not infence
+            continue
+        if infence:
+            continue
+        if l.startswith("## "):
+            sec = l.strip()
+            has_acc = has_acc or sec.startswith("## Acceptance")
+        if sec.lower().startswith("## permitted judgement") and re.match(r"\d+\. ", l):
+            judge = True
+        if not sec.startswith("## Changelog"):
+            prose.append((n, l, sec))
+    out = []
+    if not WRITES.search(text):
+        out.append("no Writes line (Writes, a colon, the fence paths in backticks)")
+    byscript = any("by script" in l.lower() for _, l, _ in prose)
+    lab = all(any(label(k).match(l) for _, l, _ in prose) for k in ("Input", "Output", "Rule"))
+    if not any(EDIT.search(l) for _, l, _ in prose) and not (byscript and lab):
+        out.append('no exact edit (path:line) and no "by script" with Input:, Output: and Rule: lines')
+    if not has_acc:
+        out.append("no ## Acceptance section")
+    else:
+        if nfence != 1:
+            out.append(f"## Acceptance needs exactly one code block (found {nfence})")
+        if not expected:
+            out.append("## Acceptance has no Expected: line")
+    if cls == "M1" and not re.search(r"(?i)permitted judgement\W*none\b", text):
+        out.append('M1 brief needs the line "Permitted judgement: none"')
+    if cls == "M2" and not judge:
+        out.append('M2 brief needs a "## Permitted judgement" section with a numbered list')
+    if not any(all(k in l.lower() for k in ("docs/baseline/02_rules.md", "docs/pss/02_rules.md", "in full"))
+               for l in text.split("\n")):
+        out.append("no rules read: one line naming docs/baseline/02_RULES.md and docs/pss/02_RULES.md in full")
+    for n, l, _ in prose:
+        for m in HEDGE.finditer(l):
+            out.append(f'line {n}: hedge word "{m.group(0).lower()}"')
+    for n, l, s in prose:
+        if (s.startswith(("## Acceptance", "## Docs")) or l.lstrip().startswith("|") or WRITES.search(l)
+                or "in full" in l.lower() or re.search(r"\bFull\b", l) or "(new)" in l):
+            continue
+        for m in BARE.finditer(l):
+            out.append(f"line {n}: bare file reference {m.group(0)}: give path:line or path#anchor, or mark it Full or (new)")
+    if index:
+        for n, l, _ in prose:
+            for m in POINTER.finditer(l):
+                if m.group(1).startswith(SKIP_PTR):
+                    continue
+                why = lookup_ref(index, m.group(0)[1:-1])
+                if why:
+                    out.append(f"line {n}: pointer {m.group(0)[1:-1]}: {why}")
+    return out
+
+
+def slug(h):
+    return re.sub(r"[^\w -]", "", h.strip().lower()).replace(" ", "-")
+
+
+def build_index(out):
+    ls, head = git("ls-files"), git("rev-parse", "HEAD")
+    if ls is None or head is None:
+        print("check_context: git ls-files failed", file=sys.stderr)
+        return 1
+    files, keys = {}, []
+    for rel in sorted(ls.split("\n")):
+        if not rel.endswith(EXTS):
+            continue
+        try:
+            text = (ROOT / rel).read_text(errors="replace")
+        except OSError:
+            continue
+        n = text.count("\n") + (1 if text and not text.endswith("\n") else 0)
+        anchors, fence = [], False
+        if rel.endswith(".md"):
+            for l in text.split("\n"):
+                if FENCE.match(l):
+                    fence = not fence
+                m = re.match(r"#{1,6} +(.*)", l)
+                if m and not fence:
+                    anchors.append(slug(m.group(1)))
+        files[rel] = {"lines": n, "anchors": anchors}
+        keys.append(f"{rel}:{n}:{','.join(anchors)}")
+    h = hashlib.sha256("\n".join(sorted(keys)).encode()).hexdigest()[:12]
+    data = json.dumps({"base": head.strip(), "hash": h, "files": files}, sort_keys=True)
+    o = pathlib.Path(out)
+    if not o.exists() or o.read_text() != data:  # unchanged index is not rewritten (scope fence of parallel agents)
+        o.parent.mkdir(parents=True, exist_ok=True)
+        o.write_text(data)
+    print(f"index: {len(files)} files \u00b7 hash {h}")
+    return 0
+
+
+def lookup_ref(index, ref):
+    """None when ref resolves in the index dict, else the reason."""
+    m = re.fullmatch(r"([^:#]+)(?::(\d+)(?:-(\d+))?|#(.+))?", ref)
+    if not m:
+        return "no file"
+    files = index["files"]
+    path = m.group(1) if m.group(1) in files else None
+    if path is None:
+        c = [p for p in files if p.endswith("/" + m.group(1))]
+        path = c[0] if len(c) == 1 else None
+    if path is None:
+        return "no file"
+    f = files[path]
+    if m.group(2):
+        x = max(int(m.group(2)), int(m.group(3) or 0))
+        if x > f["lines"]:
+            return f"line {x} > {f['lines']}"
+    if m.group(4) and m.group(4).lower() not in f["anchors"]:
+        return "no anchor"
+    return None
+
+
+def cli_brief(args):
+    idx, rest, i = None, [], 1
+    while i < len(args):
+        if args[i] == "--index" and i + 1 < len(args):
+            idx = json.loads(pathlib.Path(args[i + 1]).read_text())
+            i += 2
+        else:
+            rest.append(args[i])
+            i += 1
+    if not rest or rest[0] not in ("M1", "M2") or len(rest) < 2:
+        print("usage: check_context.py --brief M1|M2 [--index INDEX] FILE...", file=sys.stderr)
+        return 2
+    bad = [f"BRIEF {rel_of(f)}: {p}" for f in rest[1:] for p in brief_problems(pathlib.Path(f).read_text(), rest[0], idx)]
+    if bad:
+        print("\n".join(bad))
+    return 1 if bad else 0
+
+
+def cli_lookup(args):
+    if len(args) < 3:
+        print("usage: check_context.py --lookup INDEX REF...", file=sys.stderr)
+        return 2
+    idx, bad = json.loads(pathlib.Path(args[1]).read_text()), False
+    for ref in args[2:]:
+        why = lookup_ref(idx, ref)
+        bad = bad or bool(why)
+        print(f"MISSING {ref}: {why}" if why else f"OK {ref}")
+    return 1 if bad else 0
 
 
 CODE = ("PourSocialScore*/*.lua", "PourSocialScore*/*.xml", "tools/*", ".claude/scripts/*", ".github/workflows/*")
@@ -200,8 +378,14 @@ def check_files(paths, order, base=None):
 
 
 def main():
-    rows, order = load_caps()
     args = sys.argv[1:]
+    if args[:1] == ["--brief"]:
+        return cli_brief(args)
+    if args[:1] == ["--lookup"]:
+        return cli_lookup(args)
+    if args[:1] == ["--index"]:
+        return build_index(args[1]) if len(args) == 2 else 2
+    rows, order = load_caps()
     info, bad = startup(rows)
     if args == ["--sizes"]:
         print("\n".join(info + bad))

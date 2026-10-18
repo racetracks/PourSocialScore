@@ -15,6 +15,11 @@ TASKS is comma-separated. TRIAGE is a built-in task for the triage consultant.
 Budget defaults: .claude/agents/consultant.md (BUDGETS block). Scope fence: provision.md Writes column.
 Re-run: an engineer-m1 task that returns BLOCKED/BUDGET (or DONE with --failed) is re-run once on engineer (Sonnet).
 Shape: ret runs check_context.py (CONTEXT-CAPS block; code needs its docs) on the files a DONE return changed.
+Stale pack: init compares each new row's Writes with `git diff --name-only <Base commit>` of provision.md: RETRIAGE (status stale),
+  WARN when the base is not in the clone, NOTE when the `Index hash:` differs; init and spawn rebuild context/repo-index.json.
+Brief check: spawn runs check_context.py --brief on each M1/M2 engineer brief; BRIEF lines refuse the spawn (ROUTE to its consultant).
+Rules read: ret reads an engineer's transcript; RULES (ROUTE cont) when docs/baseline/02_RULES.md or docs/pss/02_RULES.md was not
+  read in full, WARN RULES when unmeasured (never a pass).
 """
 import argparse
 import fnmatch
@@ -53,6 +58,8 @@ PRICES = {  # USD per million tokens: (input, output); cache read 0.1x, cache wr
 }
 PRICES_LONG = {"haiku": (0.50, 2.50)}  # one message whose prompt tokens exceed LONG_AT
 LONG_AT = 100_000
+RULES_FILES = ("docs/baseline/02_RULES.md", "docs/pss/02_RULES.md")
+RULE_KINDS = ("engineer", "engineer-m1", "engineer-m3")
 SD = None
 LEDGER = None
 
@@ -191,13 +198,17 @@ def sig(p):
         return None
 
 
+def skipped(p):
+    return p in IGNORE or "__pycache__/" in p
+
+
 def walk(base):
     out = {}
     for dp, dns, fns in os.walk(base):
         dns[:] = [d for d in dns if d not in SKIP_DIRS and d != ".scope"]
         for f in fns:
             p = os.path.relpath(os.path.join(dp, f), ROOT).replace(os.sep, "/")
-            if p not in IGNORE:
+            if not skipped(p):
                 out[p] = sig(p)
     return out
 
@@ -218,7 +229,7 @@ def snapshot():
                 paths.append(tok[3:])
                 if tok[0] in "RC":
                     i += 1  # skip rename/copy source path
-            snap.update({p: sig(p) for p in paths if p not in IGNORE})
+            snap.update({p: sig(p) for p in paths if not skipped(p)})
             return snap
     snap.update(walk(ROOT))
     return snap
@@ -227,7 +238,7 @@ def snapshot():
 def changed_since(snap):
     now = snapshot()
     ch = {p for p in now if snap.get(p, "absent") != now[p]}
-    ch |= {p for p in snap if p not in now}
+    ch |= {p for p in snap if p not in now and sig(p) != snap[p]}  # a mid-run commit is not a change
     return sorted(ch)
 
 
@@ -273,6 +284,42 @@ def agent_writes(L, aid):
     for t in L["agents"][aid]["tasks"]:
         ws += L["tasks"].get(t, {}).get("writes", [])
     return ws
+
+
+def build_index():
+    """Rebuild <SD>/context/repo-index.json; return (path, hash) or (None, None) after a WARN."""
+    idx = SD / "context" / "repo-index.json"
+    tool = ROOT / ".claude" / "scripts" / "check_context.py"
+    r = subprocess.run([sys.executable, str(tool), "--index", str(idx)], capture_output=True, text=True)
+    m = re.search(r"hash ([0-9a-f]{12})", r.stdout)
+    if r.returncode != 0 or not m:
+        err = (r.stderr.strip().splitlines() or r.stdout.strip().splitlines() or ["failed"])[-1]
+        print(f"WARN index not built: {err}")
+        return None, None
+    return idx, m.group(1)
+
+
+def stale_check(L, new, prov_text):
+    """Spec ledger-m1 7.6: new rows whose Writes changed since the pack's Base commit become stale."""
+    m = re.search(r"(?m)^Base commit:\s*`?([0-9a-f]{7,40})`?\s*$", prov_text)
+    if not m:
+        return
+    base = m.group(1)
+    g = ["git", "-C", str(ROOT)]
+    if subprocess.run(g + ["cat-file", "-e", base + "^{commit}"], capture_output=True).returncode != 0:
+        print(f"WARN stale-plan check skipped: base {base} not in this clone (git fetch --depth=2000 origin main, then init)")
+        return
+    changed = subprocess.run(g + ["diff", "--name-only", base], capture_output=True, text=True).stdout.split("\n")
+    triage = L.get("triage") or "the triage consultant"
+    for t, nt in new.items():
+        if t in L["tasks"] or nt["agent"] in ("consultant", "coordinator"):
+            continue
+        hit = sorted(p for p in changed if p and any(fnmatch.fnmatchcase(p, w) for w in nt["writes"]))
+        if hit:
+            nt["status"] = "stale"
+            more = " \u2026" if len(hit) > 5 else ""
+            print(f"RETRIAGE {t}: fence changed since pack base {base}: {', '.join(hit[:5])}{more}; "
+                  f"`cont {triage} --support` to re-check its brief, then `init`")
 
 
 # ---------- commands ----------
@@ -378,9 +425,15 @@ def cmd_init(a):
         if old.get("rerun"):  # a task already re-run keeps its mark and its switched agent
             nt["rerun"] = old["rerun"]
             nt["agent"] = old["agent"]
-        if nt["status"] == "rejected":  # re-provisioned after a scope rejection
+        if nt["status"] in ("rejected", "stale"):  # re-provisioned after a scope rejection or a stale fence
             nt["status"] = "todo"
         new[t] = nt
+    prov_text = prov.read_text() if prov.exists() else ""
+    _, ihash = build_index()
+    stale_check(L, new, prov_text)
+    mi = re.search(r"(?m)^Index hash:\s*`?([0-9a-f]{12})`?\s*$", prov_text)
+    if mi and ihash and mi.group(1) != ihash:
+        print(f"NOTE index changed since the pack: {mi.group(1)} \u2192 {ihash}")
     if errs:
         print("INVALID — continue the triage consultant with these lines:")
         print("\n".join(errs))
@@ -407,6 +460,10 @@ def spawn_line(L, aid, kind, tasks, calls, out, note=""):
              "class " + ",".join(sorted({T[t]["cls"] for t in tasks})), f"model {model_of(kind)}"]
     if briefs:
         parts.append("brief " + "; ".join(briefs))
+    if kind == "consultant":
+        r = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short=12", "HEAD"], capture_output=True, text=True)
+        if r.returncode == 0 and r.stdout.strip():
+            parts.append(f"base {r.stdout.strip()}")
     parts += [f"budget calls {calls} out {out}", f"session {_session.rel(SD)}"]
     if note:
         parts.append(note)
@@ -450,6 +507,21 @@ def cmd_spawn(a):
             bp = SD / b.split("#")[0]
             if not bp.exists() or "acceptance" not in bp.read_text().lower():
                 die(f"{t}: brief {b} missing or has no acceptance check: continue its consultant")
+    idx, _ = build_index()
+    tool, probs, who = ROOT / ".claude" / "scripts" / "check_context.py", [], None
+    for t, x in zip(tasks, T):
+        if kind in ("engineer", "engineer-m1") and not x["brief"].startswith("TASK.md") and x["cls"] in ("M1", "M2"):
+            cmd = [sys.executable, str(tool), "--brief", x["cls"]] + (["--index", str(idx)] if idx else [])
+            r = subprocess.run(cmd + [str(SD / x["brief"].split("#")[0])], capture_output=True, text=True)
+            if r.returncode not in (0, 1):
+                die(f"brief check failed to run: {(r.stderr.strip().splitlines() or ['?'])[-1]}")
+            found = [l for l in r.stdout.splitlines() if l.startswith("BRIEF ")]
+            if found and who is None:
+                who = L["streams"].get(x["stream"]) or L.get("triage") or "the triage consultant"
+            probs += found
+    if probs:
+        print("\n".join(probs))
+        die(f"ROUTE `cont {who} --support` with these BRIEF lines; then spawn again")
     for t, x in zip(tasks, T):
         if x["status"] != "todo":
             die(f"{t} is {x['status']}")
@@ -564,6 +636,14 @@ def cmd_ret(a):
     bad = [p for p in changed if not any(allowed(p, k, w) for k, w in active)]
     shape = shape_check(own_paths(L, aid, kind, changed)) if status == "DONE" and not bad else []
 
+    rules = []
+    if kind in RULE_KINDS and status == "DONE" and not bad:
+        miss = rules_missing(L, aid)
+        if miss is None:
+            out.append(f"WARN RULES {aid}: transcript unmeasured; rules read not verified (not a pass)")
+        elif miss:
+            rules = [f"RULES {aid}: not read in full: {', '.join(miss)}"]
+
     triage = L.get("triage") or "the triage consultant"
     if bad:
         for t in tasks:
@@ -571,11 +651,14 @@ def cmd_ret(a):
         more = " …" if len(bad) > 10 else ""
         out.append(f"SCOPE {aid} ({kind}) wrote outside its fence: {', '.join(bad[:10])}{more}")
         out.append(f"ROUTE reject; git restore those paths; continue {triage} (`cont {triage} --support`) to re-provision")
-    elif shape:
+    elif shape or rules:
         for t in tasks:
             L["tasks"][t]["status"] = "blocked"
-        out += shape
-        out.append(f"ROUTE `cont {aid}` with these lines: it reshapes its documents to the context caps (SHAPE) and updates the docs its brief names for its code (DOCS; a brief that names none: BLOCKED to its consultant), then returns again")
+        out += shape + rules
+        if shape:
+            out.append(f"ROUTE `cont {aid}` with these lines: it reshapes its documents to the context caps (SHAPE) and updates the docs its brief names for its code (DOCS; a brief that names none: BLOCKED to its consultant), then returns again")
+        if rules:
+            out.append(f"ROUTE `cont {aid}` with this line: read both files in full (Read, no offset or limit), re-check the change against them, then return again")
     elif status == "DONE":
         for t in tasks:
             L["tasks"][t]["status"] = "done"
@@ -636,7 +719,7 @@ def cmd_ret(a):
         out.append("CAP reached: stop spawning; ask the user")
     save(L)
     print("\n".join(out))
-    if (status == "DONE" and not bad and not shape) or rerun_route:
+    if (status == "DONE" and not bad and not shape and not rules) or rerun_route:
         cmd_next(None, header=False)
 
 
@@ -729,6 +812,33 @@ def transcripts(L, key):
         return found
     except Exception:
         return []
+
+
+def rules_missing(L, aid):
+    """RULES_FILES the agent did not Read in full (no offset or limit); None when unmeasured."""
+    try:
+        files = transcripts(L, aid)
+        if not files:
+            return None
+        read = set()
+        for f in files:
+            with open(f, errors="replace") as fh:
+                for line in fh:
+                    try:
+                        d = json.loads(line)
+                    except ValueError:
+                        continue
+                    m = d.get("message") if isinstance(d, dict) and d.get("type") == "assistant" else None
+                    c = m.get("content") if isinstance(m, dict) else None
+                    for it in c if isinstance(c, list) else []:
+                        inp = it.get("input") if isinstance(it, dict) and it.get("type") == "tool_use" and it.get("name") == "Read" else None
+                        if not isinstance(inp, dict) or inp.get("offset") is not None or inp.get("limit") is not None:
+                            continue
+                        fp = pathlib.PurePath(str(inp.get("file_path", ""))).as_posix()
+                        read |= {rf for rf in RULES_FILES if fp == rf or fp.endswith("/" + rf)}
+        return [rf for rf in RULES_FILES if rf not in read]
+    except Exception:
+        return None
 
 
 def price(model, i, cr, cw, o):

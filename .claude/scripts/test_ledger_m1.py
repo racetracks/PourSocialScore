@@ -10,8 +10,11 @@ import tempfile
 
 LEDGER = str(pathlib.Path(__file__).resolve().parent / "ledger.py")
 HEAD = "| Task | Class | Fit | Agent | Stream | Context | Writes | Brief | Calls | Out | Depends | Review | Why |"
+BRIEF = ("# Brief\nPurpose: test\n- Writes: `tmp/none`\n"
+         "- Read: `docs/baseline/02_RULES.md` and `docs/pss/02_RULES.md` in full.\n"
+         "- Edit `.claude/README.md:1`: x becomes y.\nPermitted judgement: none\n"
+         "## Acceptance\n```sh\ntrue\n```\nExpected: ok\n")
 fails = []
-
 
 def row(t, cls, fit, agent):
     return f"| {t} | {cls} | {fit} | {agent} | s | - | tmp/none | briefs/{t}.md | 10 | 150 | - | yes | - |"
@@ -22,7 +25,7 @@ def session(tmp, n, rows):
     (sd / "briefs").mkdir(parents=True)
     for r in rows:
         t = r.split("|")[1].strip()
-        (sd / "briefs" / f"{t}.md").write_text("# brief\n## Acceptance\nAcceptance\n")
+        (sd / "briefs" / f"{t}.md").write_text(BRIEF)
     (sd / "provision.md").write_text("# Provision\n\n" + HEAD + "\n" + "|" + "---|" * 13 + "\n" + "\n".join(rows) + "\n")
     return sd
 

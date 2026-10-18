@@ -22,6 +22,9 @@ Requires Python 3.8+ and git (falls back to a tree walk without git). The spawn-
 | Stage close | `tools/stage_close.sh` | a stage closed without the real-save run, the hosted zip or the rendered README (`DEC-00390`) |
 | Context caps | `consultant.md` CONTEXT-CAPS block + `check_context.py`, run by `ledger.py ret` (`SHAPE`) and `tools/check_rules.sh` | documents too big or too unstructured for the next agent's budget; code changed without its documentation (`DOCS`; code itself is never capped); `CLAUDE.md` and its imports growing past the startup cap (`DEC-00384`, `DEC-00385`) |
 | Zero-token records | `log-prompt.py` hook, `ledger.py render` | the coordinator spending output tokens on logs, task tables and indexes |
+| Stale pack | `ledger.py init` | a pack row whose Writes changed since the pack's `Base commit:` (`git diff --name-only`): `RETRIAGE <t>`, status `stale` |
+| Brief check | `ledger.py spawn` runs `check_context.py --brief <class> <brief>` | an engineer brief without Writes, exact edits, one acceptance block, rules read, or with hedge words and bare file references: refused with `BRIEF` lines and a ROUTE to the stream consultant |
+| Rules read | `ledger.py ret` reads the engineer's transcript | an engineer that did not read `docs/baseline/02_RULES.md` and `docs/pss/02_RULES.md` in full: `RULES` with ROUTE cont; `WARN RULES` when unmeasured (never a pass) |
 
 Scope check limits: it attributes changes by time window, so with parallel agents a path is accepted if any agent active in that window may write it. It cannot see files that are git-ignored outside the session directory.
 
@@ -66,7 +69,7 @@ Scope check limits: it attributes changes by time window, so with parallel agent
 | 4 Session `README.md` index + visuals, links prompts, reports, reference index, outputs, test zips | 🔁 | `ledger.py render` |
 | 5 Agent deliverables: own dir, ≤5-line return, standalone report with ref ID, inputs, method, findings, artefacts, open issues, next steps | ✅ | `CLAUDE.md` §3; consultant K6; engineer rule 7; engineer-m3 rule 5 |
 | 6 Visuals, test zips linked | ✅ | consultant K6; `ledger.py render` |
-| 7 Peer-review docs: DRAFT mark, script skeleton, per-API 6 items with full detail, document level, exhaustive | ✅ | consultant K6 pointer; `.claude/agents/peer-review.md` |
+| 7 Peer-review docs: DRAFT mark, script skeleton, per-API 6 items with full detail, document level, exhaustive | ✅ | consultant K6 pointer; `.claude/roles/peer-review.md` |
 | 8 Current task | ✅ | `TASK.template.md` (adds budget cap, reference index, direct tasks) |
 
 ## Deliberate changes (from your design brief)
