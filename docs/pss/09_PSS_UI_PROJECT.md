@@ -7,7 +7,7 @@ windows (the old native GUI and `PourSocialScore_EllesmereUI`) at the cutover
 Started 2026-10-07, released 2026-10-08 as **3.4.0.29** (notes: one summary of
 PRs #88 to #117).
 
-**Rules:** the window's rules are the **Interface** section of `CLAUDE.md`
+**Rules:** the window's rules are `docs/pss/16_INTERFACE.md`
 (the one place for them). This file holds the decisions behind them, the code
 map and the lessons; it stays the reference for any window change. The full
 code map is on scratch [`documents/code-map/`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/code-map) ([`05_Detailed_Design.md`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/05_Detailed_Design.md) section 9, [`14_04_GUI_API.md`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/14_Code_Reference/14_04_GUI_API.md)).

@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.123 - Docs: context budget (startup trim, agent-ready outputs, context caps)
+
+- Nothing in the addon changes. The developer instructions load about half as much at the start of each session, and every file written for the developer agents is kept small and checked.
+
 => 3.8.0.120 - Docs: startup context (imports, documentation rules, reference index, build history)
 
 - Nothing in the addon changes. The developer instructions load less at the start of each session, and the build history is kept in its own file.

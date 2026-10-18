@@ -33,6 +33,7 @@ Run `L next` after every return and act on its lines. Provision exactly what `pr
 | `ESCALATE?` | include it in the stream consultant's support continue; only a consultant may provision engineer-m3 |
 | `RETRIAGE` | continue the triage consultant with the path given; never raise a budget yourself |
 | `REVIEW` | continue the stream consultant with `--review`; for a consultant's own design, spawn a fresh consultant |
+| `SHAPE`, `DOCS` | `L cont <id>` with the printed lines (no budget extension); the agent reshapes its documents to the context caps, or updates the docs its code change needs |
 | `SCOPE` | reject the work, `git restore` the listed paths, route to triage for re-provisioning |
 | `CAP` | stop spawning; ask the user |
 | user changes scope | continue the triage consultant with the change, then `L init` |
