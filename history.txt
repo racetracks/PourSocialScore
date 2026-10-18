@@ -5,8 +5,6 @@ POUR SOCIAL SCORE - VERSION HISTORY
 
 - Spyglass console (phase B): the Spyglass tab with a colour-coded search bar, time picker, charts, saved searches and charts, the Data dictionary page; View Events and pane histories open in Spyglass; the Events tab is replaced by Spyglass.
 
-- The Events tab is now part of Spyglass; View Events opens Spyglass.
-
 => 3.8.0.120 - Docs: startup context (imports, documentation rules, reference index, build history)
 
 - Nothing in the addon changes. The developer instructions load less at the start of each session, and the build history is kept in its own file.
