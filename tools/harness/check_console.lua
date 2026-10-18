@@ -815,6 +815,169 @@ PH.conhireadonly = function()
 	check(pg.overlay:GetText() == CV.colorize(d.query, M.PSS_Psql.tokens(d.query), ui.SyntaxHex), "coloured as the bar")
 end
 
+-- TST-00935 save dialog (STP-00256)
+local function sqRows() return M.PSS_Call("sq.list", { scope = "any" }) end
+local function sqKey() local r = sqRows(); local o = {} for i = 1, r.n do o[#o + 1] = table.concat({ r[i][1], r[i][2], r[i][3], r[i][4], r[i][5], r[i][6], tostring(r[i][7]) }, "|") end return table.concat(o, "\n") end
+local function resetSq() PourSocialScoreDB.sqSaved = nil; PourSocialScoreDB.sqCharts = nil; PourSocialScoreDB.sqSavedBad = nil end
+local function leftRow(pg, key) for _, r in ipairs(pg.nav.rows) do if r.data and r.data.key == key then return r end end end
+local function menuOf(pg, key)
+	local entries, orig = {}, ui.ContextMenu
+	ui.ContextMenu = function(by, build) build({ Button = function(_, t, fn) entries[#entries + 1] = { text = t, fn = fn } end, Divider = function() end, Title = function() end }) end
+	local row = leftRow(pg, key)
+	check(row, "left row " .. key)
+	click(row, "RightButton")
+	ui.ContextMenu = orig
+	return entries
+end
+
+PH.saveround = function()
+	resetSq()
+	local pg = openCon()
+	pg.bar:SetText("index=log | head 7")
+	pg.run(true)
+	local dlg = ui.SaveQueryDialog("index=log | head 7", pg.picker:Choice())
+	check(dlg:IsShown() and dlg.title:GetText() == "Save Search?", "dialog shown with its title")
+	dlg.name:SetText("Mine one")
+	click(dlg.save)
+	local r = sqRows()
+	check(r.n == 1 and r[1][2] == "Mine one" and r[1][5] == "index=log | head 7", "saved")
+	check(not dlg:IsShown(), "dialog closed")
+	local key = "sq:" .. r[1][1]
+	check(leftRow(pg, key), "left list shows it")
+	-- an error stays on the dialog
+	dlg = ui.SaveQueryDialog("index=log | bogus", pg.picker:Choice())
+	dlg.name:SetText("bad")
+	click(dlg.save)
+	check(dlg:IsShown() and (dlg.err:GetText() or "") ~= "", "error shown, dialog open")
+	check(sqRows().n == 1, "nothing saved on error")
+	dlg:Hide()
+	-- rename
+	local before = sqKey()
+	local m = menuOf(pg, key)
+	check(#m == 2 and m[1].text == "Rename" and m[2].text == "Delete", "menu entries")
+	m[1].fn()
+	local c = _G.PSS_Confirm
+	c.name:SetText("Renamed")
+	click(c.accept)
+	r = sqRows()
+	check(r.n == 1 and r[1][2] == "Renamed" and r[1][5] == "index=log | head 7", "renamed")
+	check(sqKey() ~= before, "list changed by rename")
+	-- delete without accept leaves it
+	m = menuOf(pg, key)
+	m[2].fn()
+	check(_G.PSS_Confirm.title:GetText() == "Delete Search?" and _G.PSS_Confirm.accept:GetText() == "Delete", "delete confirm")
+	local keep = sqKey()
+	click(_G.PSS_Confirm.cancel)
+	check(sqKey() == keep, "cancel leaves it")
+	m = menuOf(pg, key)
+	m[2].fn()
+	click(_G.PSS_Confirm.accept)
+	check(sqRows().n == 0 and not leftRow(pg, key), "deleted")
+end
+
+PH.savechart = function()
+	resetSq()
+	local pg = openCon()
+	plantLog(30)
+	pg.bar:SetText("index=log | stats count by cat")
+	pg.run(true)
+	local vm = pg.qv.vm
+	local chart = vm.chart
+	check(chart and chart.kind ~= "table", "a chart is available: " .. tostring(chart and chart.kind))
+	local dlg = ui.SaveQueryDialog("index=log | stats count by cat", pg.picker:Choice())
+	check(dlg.chartCheck:IsShown(), "Save chart too shown")
+	dlg.name:SetText("with chart")
+	dlg.chartCheck:SetChecked(true)
+	local kind = dlg.kind
+	click(dlg.save)
+	local q = sqRows()
+	check(q.n == 1, "query saved")
+	local cl = M.PSS_Call("sq.chart.list", { queryId = q[1][1] })
+	check(cl.n == 1 and cl[1][3] == kind and cl[1][2] == q[1][1], "chart listed with kind " .. tostring(kind))
+	local row = {} for i = 1, 6 do row[i] = cl[1][i] end
+	-- reload: write and reread the saved file
+	local saved = PourSocialScoreDB.sqCharts
+	check(type(saved) == "string" and saved:find("^1;"), "sqCharts saved in layout 1")
+	PourSocialScoreDB.sqCharts = nil
+	check(M.PSS_Call("sq.chart.list", {}).n == 0, "cleared")
+	PourSocialScoreDB.sqCharts = saved
+	local cl2 = M.PSS_Call("sq.chart.list", { queryId = q[1][1] })
+	check(cl2.n == 1, "listed after reload")
+	for i = 1, 6 do check(cl2[1][i] == row[i], "field " .. i .. " equal after reload") end
+	check(M.PSS_Call("sq.chart.list", { queryId = 99 }).n == 0, "other query has none")
+	-- arg errors, newer layout, delete cascade
+	local r, err = M.PSS_Call("sq.chart.put", { queryId = q[1][1], kind = "pie" })
+	check(r == nil and tostring(err):find("^arg"), "bad kind is an arg error")
+	r, err = M.PSS_Call("sq.chart.put", { queryId = 99, kind = "bar" })
+	check(r == nil and tostring(err):find("^arg"), "unknown query is an arg error")
+	PourSocialScoreDB.sqCharts = "2;5\nx"
+	check(M.PSS_Call("sq.chart.list", {}).n == 0, "newer layout read as none")
+	r, err = M.PSS_Call("sq.chart.put", { queryId = q[1][1], kind = "bar" })
+	check(r == nil and tostring(err):find("^newer"), "newer layout refuses writes")
+	check(PourSocialScoreDB.sqCharts == "2;5\nx", "newer layout kept untouched")
+	PourSocialScoreDB.sqCharts = saved
+	M.PSS_Call("sq.del", { id = q[1][1] })
+	check(M.PSS_Call("sq.chart.list", {}).n == 0, "sq.del removes its charts")
+end
+
+PH.savealert = function()
+	resetSq()
+	local pg = openCon()
+	pg.bar:SetText("index=log | head 3")
+	local dlg = ui.SaveQueryDialog("index=log | head 3", pg.picker:Choice())
+	dlg.name:SetText("alerting")
+	dlg.alert:SetChecked(true)
+	click(dlg.save)
+	local q = sqRows()
+	check(q.n == 1 and q[1][4]:find("a", 1, true), "flags contain a")
+	check(M.PSS_SqAlerts[q[1][1]], "alert armed")
+	M.PSS_Call("sq.del", { id = q[1][1] })
+	check(not M.PSS_SqAlerts[q[1][1]], "alert gone with the search")
+end
+
+PH.savecaps = function()
+	resetSq()
+	for i = 1, 200 do check(M.PSS_Call("sq.put", { name = "s" .. i, query = "index=log | head 1" }), "plant " .. i) end
+	local pg = openCon()
+	local st = M.PSS_ConsoleView.saveState(false)
+	check(st.canSave == false and st.why == "You have 200 saved searches. Delete one to save another.", "saveState why")
+	local dlg = ui.SaveQueryDialog("index=log | head 1", pg.picker:Choice())
+	check(not dlg.save:IsEnabled(), "Save disabled")
+	check(dlg.saveWhy == st.why, "tooltip is why")
+	local onEnter = dlg.save:GetScript("OnEnter")
+	check(onEnter, "tooltip script"); if onEnter then onEnter(dlg.save) end
+	ui.HideTip()
+	dlg:Hide()
+	resetSq()
+	for i = 1, 100 do
+		local id = M.PSS_Call("sq.put", { name = "c" .. i, query = "index=log | head 1" })
+		check(M.PSS_Call("sq.chart.put", { queryId = id[1][1], kind = "bar" }), "plant chart " .. i)
+	end
+	local id = M.PSS_Call("sq.list", {})[1][1]
+	local r, err = M.PSS_Call("sq.chart.put", { queryId = id, kind = "bar" })
+	check(r == nil and tostring(err):find("^cap"), "101st chart refused")
+	check(M.PSS_ConsoleView.saveState(true).chartWhy == "You have 100 saved charts.", "chartWhy")
+	check(M.PSS_ConsoleView.saveState(true).canSave, "searches still savable")
+	resetSq()
+end
+
+PH.savebroken = function()
+	resetSq()
+	local C = M.PSS_Codec
+	PourSocialScoreDB.sqSaved = "1;2\n" .. C.list({ 1, "broken one", "any", "", "index=log | bogus", "" }, "\t")
+	local pg = openCon()
+	pg.refreshLeft()
+	local row = leftRow(pg, "sq:1")
+	check(row and row.data.broken and row.data.text:find("(cannot run)", 1, true), "row marked (cannot run)")
+	pg.bar:SetText("index=pss | head 1")
+	pg.run(true)
+	local before = pg.qv.vm.set
+	click(row)
+	check(pg.bar:GetText() == "index=log | bogus", "its text is loaded")
+	check(pg.qv.vm.set == before, "Run did nothing")
+	resetSq()
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

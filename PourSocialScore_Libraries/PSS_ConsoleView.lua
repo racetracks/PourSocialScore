@@ -315,6 +315,24 @@ local SKIPCOL = { time = true, ts = true, message = true, label = true }
 local CM = {}
 CM.__index = CM
 
+-- a service call that keeps its error (the dialog shows it): set or nil, err
+function CV.call(name, input) return M.PSS_Call(name, input) end
+
+-- The Save dialog's gate (STP-00256): canSave false with why at the 200 saved searches; chartWhy at the 100 saved charts
+function CV.saveState(hasChart)
+	local caps = M.PSS_SQ_CAPS or {}
+	local out = { canSave = true }
+	local q = M.PSS_Call("sq.list", { scope = "any" })
+	if q and q.n >= (caps.records or 200) then
+		out.canSave, out.why = false, "You have " .. (caps.records or 200) .. " saved searches. Delete one to save another."
+	end
+	if hasChart then
+		local c = M.PSS_Call("sq.chart.list", {})
+		if c and c.n >= (caps.charts or 100) then out.chartWhy = "You have " .. (caps.charts or 100) .. " saved charts." end
+	end
+	return out
+end
+
 function M.PSS_ConsoleModel() return setmetatable({ text = "" }, CM) end
 function CM:SetText(t) self.text = t or "" end
 
