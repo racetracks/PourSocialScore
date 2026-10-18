@@ -7,7 +7,7 @@ windows (the old native GUI and `PourSocialScore_EllesmereUI`) at the cutover
 Started 2026-10-07, released 2026-10-08 as **3.4.0.29** (notes: one summary of
 PRs #88 to #117).
 
-**Rules:** the window's rules are the **Interface** section of `CLAUDE.md`
+**Rules:** the window's rules are `docs/pss/16_INTERFACE.md`
 (the one place for them). This file holds the decisions behind them, the code
 map and the lessons; it stays the reference for any window change. The full
 code map is on scratch [`documents/code-map/`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/code-map) ([`05_Detailed_Design.md`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/05_Detailed_Design.md) section 9, [`14_04_GUI_API.md`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/14_Code_Reference/14_04_GUI_API.md)).
@@ -90,5 +90,5 @@ Current file names; the full map with every function is on scratch [`documents/c
 - **Blizzard's guild invite window is not a StaticPopup** (`Blizzard_FrameXML/GuildInviteFrame`): it opens with `StaticPopupSpecial_Show`, calls `DeclineGuild` itself in its `OnHide`, and hides on `GUILD_INVITE_CANCEL` or after 60 s. `StaticPopup_Hide("GUILD_INVITE")` does not close it.
 - **A re-sort per blocked line is the hot spot:** `M.PSS_GuildRows` recounts every guild (`PSS_GetGuildBlockCounts` walks the members), 180 KB of garbage and 5 ms on the author's save. Count only what is drawn and leave the order to the next Resort. And the harness stub does not fire a child's `OnHide` when its parent hides, so the window calls each page's `release` itself rather than relying on it.
 - **Ask which object a screenshot shows:** `/fstack` names only what is under the mouse; a screenshot of a highlighted region with an unrelated frame stack cannot be identified.
-- **The console never loads Logging on show (3.8.0.121, C3):** first show runs the query with `load=false` (tier 1 shows Load history); Run, Enter, a left-list click and a deep dive run `load=true`. The console may be the restored tab, so show must stay free.
-- **The search bar keeps its caret by drawing text at colour alpha 0 (3.8.0.121, C9):** the edit box text has alpha 0 and no shadow, and a coloured overlay draws the text; when the text is wider than the box the overlay hides and plain text shows. The one exception to "fade with SetAlpha" (02 section 11, waiting on the author's OK).
+- **The console never loads Logging on show (3.8.0.125, C3):** first show runs the query with `load=false` (tier 1 shows Load history); Run, Enter, a left-list click and a deep dive run `load=true`. The console may be the restored tab, so show must stay free.
+- **The search bar keeps its caret by drawing text at colour alpha 0 (3.8.0.125, C9):** the edit box text has alpha 0 and no shadow, and a coloured overlay draws the text; when the text is wider than the box the overlay hides and plain text shows. The one exception to "fade with SetAlpha" (02 section 11, waiting on the author's OK).

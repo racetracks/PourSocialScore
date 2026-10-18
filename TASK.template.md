@@ -1,4 +1,5 @@
 # Current Task
+Purpose: the session's task: goal, deliverables, completion criteria, constraints, inputs · Owner: coordinator · Status: draft until the session starts, then live · Related: CONTEXT.md, provision.md
 **Goal:**
 **Mandatory deliverables:**
 **Completion criteria:**

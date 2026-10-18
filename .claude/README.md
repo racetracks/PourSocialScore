@@ -1,10 +1,10 @@
 # Agent operating pack: maintainer notes
-For humans. No agent loads this file.
+Purpose: maintainer notes for the agent operating pack (for humans; no agent loads it) · Owner: pack maintainers · Status: current · Related: [CLAUDE.md](../CLAUDE.md), [coordinator](roles/coordinator.md)
 
 ## Install
 1. Copy `CLAUDE.md`, `TASK.template.md` and `.claude/` to the repo root. Merge `.claude/settings.json` hooks into any existing settings.
 2. Add to `.gitignore`: `.claude/.session` and the session root (`sessions/` unless `SESSION_ROOT` is set).
-3. CI: `python3 .claude/scripts/sync-token-rules.py --check` (fails when an agent file's token rules drift from `CLAUDE.md`).
+3. CI: `python3 .claude/scripts/sync-token-rules.py --check` (fails when an agent file holds a copy of the token rules: they live only in `CLAUDE.md`, which every agent loads) and `python3 .claude/scripts/check_context.py` (context caps; needs the base commit: `fetch-depth: 2`).
 4. Per task: copy `TASK.template.md` to `TASK.md` and fill it. Prompt the main thread with "Run TASK.md."
 
 Requires Python 3.8+ and git (falls back to a tree walk without git). The spawn-logging hook matches the sub-agent tool as `Task|Agent`; change the matcher if your Claude Code version names it differently.
@@ -12,12 +12,21 @@ Requires Python 3.8+ and git (falls back to a tree walk without git). The spawn-
 ## Enforcement
 | Mechanism | Where | What it stops |
 |---|---|---|
-| Token rules embedded in every agent file | `CLAUDE.md` TOKEN-RULES block + `sync-token-rules.py` | agents running without the rules |
+| Token rules in `CLAUDE.md` only | `CLAUDE.md` TOKEN-RULES block, loaded by every agent; `sync-token-rules.py --check` | stale copies of the rules in agent files |
 | Tool fence | `consultant.md` has no Bash | consultants running builds, tests or scripts |
 | Provisioning validation | `ledger.py init` | a Fit grade (scope × complexity) that does not match its class and agent, wrong agent for a class, missing Writes fence or brief, engineer-m3 without Why or with a wide fence, over-default budgets without Why |
 | Scope fence | `ledger.py ret` | any write outside the agent's Writes (consultants: session directory only; engineers: never specs, briefs, `provision.md`, `context/`) |
 | Spend ledger | `ledger.py ret` / `cont` | silent overruns: BUDGET, ≥1.5× original, TASK cap; extensions need a logged reason |
+| Sonnet re-run | `ledger.py ret` / `next` (`RERUN`, `ROUTE re-run`) | an engineer-m1 task that returns BUDGET or fails acceptance (`ret --failed`) is re-run once on engineer; BLOCKED goes to its consultant and the task stays on engineer-m1 (`DEC-00389`) |
+| Token measurement | `ledger.py render` (`## Tokens`) | judging cost cuts by estimate (`DEC-00391`) |
+| Stage close | `tools/stage_close.sh` | a stage closed without the real-save run, the hosted zip or the rendered README (`DEC-00390`) |
+| Context caps | `consultant.md` CONTEXT-CAPS block + `check_context.py`, run by `ledger.py ret` (`SHAPE`) and `tools/check_rules.sh` | documents too big or too unstructured for the next agent's budget; code changed without its documentation (`DOCS`; code itself is never capped); `CLAUDE.md` and its imports growing past the startup cap (`DEC-00384`, `DEC-00385`) |
 | Zero-token records | `log-prompt.py` hook, `ledger.py render` | the coordinator spending output tokens on logs, task tables and indexes |
+| Stale pack | `ledger.py init` | a pack row whose Writes changed since the pack's `Base commit:` (`git diff --name-only`): `RETRIAGE <t>`, status `stale` |
+| Brief check | `ledger.py spawn` runs `check_context.py --brief <class> <brief>` | an engineer brief without Writes, exact edits, one acceptance block, rules read, or with hedge words and bare file references: refused with `BRIEF` lines and a ROUTE to the stream consultant |
+| Rules read | `ledger.py ret` reads the engineer's transcript | an engineer that did not read `docs/baseline/02_RULES.md` and `docs/pss/02_RULES.md` in full: `RULES` with ROUTE cont; `WARN RULES` when unmeasured (never a pass) |
+| Transcript search | `ledger.py transcripts` (`.claude/scripts/ledger.py:795`) | transcripts are found by spawn ref across every `projects/*/` folder, newest first; `LEDGER_TRANSCRIPTS` overrides (check 23, `test_ledger_plan.py`) |
+| Batched fence | `ledger.py own_paths` (`.claude/scripts/ledger.py:270`) | a batched spawn's scoped shape check uses the union of its tasks' Writes (check 24) |
 
 Scope check limits: it attributes changes by time window, so with parallel agents a path is accepted if any agent active in that window may write it. It cannot see files that are git-ignored outside the session directory.
 
@@ -43,7 +52,7 @@ Scope check limits: it attributes changes by time window, so with parallel agent
 | 2.4 Main thread fixed model; orchestration | ✅ / ⚠️ | coordinator preamble; M3 work moved to consultants |
 | 2.5 Planners write for executors; executor ambiguity = defective spec; never guess | ✅ | consultant K1, K3; engineer rule 4 |
 | 2.6 Model chosen at spawn, kept for life; pinned agent types; executor only when brief suffices | ✅ | `CLAUDE.md` §2; agent frontmatter; Fit `W` required for engineers |
-| 2.6 Executors at lowest reasoning effort | ✅ (text only) | `CLAUDE.md` §2; no frontmatter field enforces it |
+| 2.6 Executors at lowest reasoning effort | ✅ | `effort: low` in `engineer.md` and `engineer-m1.md` frontmatter |
 | 2.7 Offload M1/M2, script first, batch, rule-based briefs, M2 stops on edge cases, verify by acceptance | ✅ | consultant K0, K3; engineer rules 3–4; coordinator C4 |
 | 2.8 Spawn discipline, one agent per stream, continue over spawn, ≤5-line returns, reports opened only if needed | ✅ | coordinator C2–C4; `CLAUDE.md` §3 |
 | 2.8 Brief states role, scope, class, model, acceptance, budget | 🔁 | spawn line (ID, ref, class, model, budget) + brief (scope, acceptance) |
@@ -62,7 +71,7 @@ Scope check limits: it attributes changes by time window, so with parallel agent
 | 4 Session `README.md` index + visuals, links prompts, reports, reference index, outputs, test zips | 🔁 | `ledger.py render` |
 | 5 Agent deliverables: own dir, ≤5-line return, standalone report with ref ID, inputs, method, findings, artefacts, open issues, next steps | ✅ | `CLAUDE.md` §3; consultant K6; engineer rule 7; engineer-m3 rule 5 |
 | 6 Visuals, test zips linked | ✅ | consultant K6; `ledger.py render` |
-| 7 Peer-review docs: DRAFT mark, script skeleton, per-API 6 items with full detail, document level, exhaustive | ✅ | consultant K6 |
+| 7 Peer-review docs: DRAFT mark, script skeleton, per-API 6 items with full detail, document level, exhaustive | ✅ | consultant K6 pointer; `.claude/roles/peer-review.md` |
 | 8 Current task | ✅ | `TASK.template.md` (adds budget cap, reference index, direct tasks) |
 
 ## Deliberate changes (from your design brief)
@@ -72,7 +81,7 @@ Scope check limits: it attributes changes by time window, so with parallel agent
 | 2.3 Keep reading-heavy judgement in the main thread | in consultants, reused per stream | coordinator context stays minimal |
 | 2.3 No cheaper sub-agent model → work inline | still delegate; batch harder | production never enters coordinator context |
 | 2.1 T1 ≤5 calls inline; T2 inline with full records | T1 ≤3 calls, no code/tests; all T2+ coordinated | any code change goes to an engineer |
-| 2.5 Executor = small model | engineer = Sonnet; Fit grade decides M1/M2/M3 | your instruction |
+| 2.5 Executor = small model | `engineer-m1` (Haiku) for `WL`, pilot with `Review: yes` and one Sonnet re-run; `engineer` (Sonnet) for `WM` | the author (`DEC-00389`) |
 | 1.3 Tool-call budgets only | adds `out` ceiling | output tokens are the main cost |
 
-New since the original: Fit grading (consultant K0), engineer-m3 (consultant K5 gate), `out` budget dimension, Direct tasks, recon lane, scope fence, TASK budget cap, acceptance gate at spawn.
+New since the original: Fit grading (consultant K0), engineer-m3 (consultant K5 gate), `out` budget dimension, Direct tasks, recon lane, scope fence, TASK budget cap, acceptance gate at spawn, engineer-m1 (Haiku) with the Sonnet re-run, token measurement, stage-close script.

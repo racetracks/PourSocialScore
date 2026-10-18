@@ -20,6 +20,8 @@
 #   in CI every entry has its PR (PSS_PR: this pull request's number)
 #   The window (PourSocialScore_GUI) and the Libraries code it calls use
 #   PSS names only: no EllesmereUI or EUI names
+#   Agent context: token rules in sync, startup and context caps
+#   (.claude/scripts/check_context.py, DEC-00385)
 # Usage: sh tools/check_rules.sh   (from the repo root, needs luac5.1/lua5.1)
 
 fail=0
@@ -88,6 +90,11 @@ python3 tools/versions.py check --toc "$ver" $strict ${PSS_PR:+--pr "$PSS_PR"} |
 
 # the build history (DEC-00341): 06 "Now" holds one build entry; every version from 3.8.0.119 has an entry
 python3 tools/build_history.py check || fail=1
+
+# agent context (DEC-00384, DEC-00385): the token rules are the same in every agent file; CLAUDE.md and its
+# imports stay inside the startup cap; a changed file gains no context-cap problem (.claude/agents/consultant.md#context-caps)
+python3 .claude/scripts/sync-token-rules.py --check || fail=1
+python3 .claude/scripts/check_context.py || fail=1
 
 if grep -nE 'EUI|[Ee]llesmere' PourSocialScore_GUI/* PourSocialScore_Libraries/PSS_ViewNav.lua PourSocialScore_Libraries/PSS_DetailQuery.lua PourSocialScore_Libraries/PSS_PlayerView.lua PourSocialScore_Libraries/PSS_GuildView.lua PourSocialScore_Libraries/PSS_FilterView.lua PourSocialScore_Libraries/PSS_EventsView.lua PourSocialScore_Libraries/PSS_OptionsView.lua PourSocialScore_Libraries/PSS_RowMenus.lua PourSocialScore_Libraries/PSS_Graphics.lua PourSocialScore_Libraries/PSS_MacroData.lua PourSocialScore_Libraries/PSS_Macros.lua PourSocialScore_Libraries/PSS_AddonsQuery.lua PourSocialScore_Libraries/PSS_AddonsView.lua; then
 	echo "PSS names only: an EllesmereUI or EUI name found above"
