@@ -25,6 +25,8 @@ Requires Python 3.8+ and git (falls back to a tree walk without git). The spawn-
 | Stale pack | `ledger.py init` | a pack row whose Writes changed since the pack's `Base commit:` (`git diff --name-only`): `RETRIAGE <t>`, status `stale` |
 | Brief check | `ledger.py spawn` runs `check_context.py --brief <class> <brief>` | an engineer brief without Writes, exact edits, one acceptance block, rules read, or with hedge words and bare file references: refused with `BRIEF` lines and a ROUTE to the stream consultant |
 | Rules read | `ledger.py ret` reads the engineer's transcript | an engineer that did not read `docs/baseline/02_RULES.md` and `docs/pss/02_RULES.md` in full: `RULES` with ROUTE cont; `WARN RULES` when unmeasured (never a pass) |
+| Transcript search | `ledger.py transcripts` (`.claude/scripts/ledger.py:795`) | transcripts are found by spawn ref across every `projects/*/` folder, newest first; `LEDGER_TRANSCRIPTS` overrides (check 23, `test_ledger_plan.py`) |
+| Batched fence | `ledger.py own_paths` (`.claude/scripts/ledger.py:270`) | a batched spawn's scoped shape check uses the union of its tasks' Writes (check 24) |
 
 Scope check limits: it attributes changes by time window, so with parallel agents a path is accepted if any agent active in that window may write it. It cannot see files that are git-ignored outside the session directory.
 
