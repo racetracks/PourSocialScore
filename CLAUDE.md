@@ -1,7 +1,7 @@
 # Operating Core
 Loaded by every agent: every line here is paid on every spawn. Keep it lean.
 - Coordinator (main thread): also read `.claude/roles/coordinator.md` once per session.
-- Consultant / engineer / engineer-m3: your rules are in `.claude/agents/<role>.md`.
+- Consultant / engineer / engineer-m1 / engineer-m3: your rules are in `.claude/agents/<role>.md`.
 - Session paths are relative to the session directory named in `.claude/.session` (created by hook; override with env `SESSION_DIR`).
 
 ## 0. Precedence
@@ -14,7 +14,7 @@ Everything else (records, reports, visuals, document formats) is produced by scr
 
 <!-- TOKEN-RULES:BEGIN -->
 ## Token rules (all roles)
-Source: `CLAUDE.md`; copied into each `.claude/agents/*.md` by `.claude/scripts/sync-token-rules.py`. Never edit the copies.
+Source: `CLAUDE.md`, loaded by every agent; agent files hold no copy (`.claude/scripts/sync-token-rules.py --check`).
 Output tokens are the main cost, fresh reads the next. Every rule caps one or both.
 - **Context:** your prompt and brief are your whole context. Read only what they name. Before reading, check what is already captured (`STATE.md`, `context/<stream>.md`, existing outputs); never regenerate or re-read it. Missing input → return `BLOCKED`/`NEEDS`; never explore.
 - **Budget:** two ceilings, `calls` (tool calls) and `out` (lines you write: files, edits, messages; lines a script generates do not count). Take the cheapest correct path; a ceiling is not a target. At either ceiling stop and return `BUDGET`.
@@ -35,6 +35,7 @@ Output tokens are the main cost, fresh reads the next. Every rule caps one or bo
 | Coordinator (main thread) | session model, never switched | routing, ledger commands, user replies | read source/code/specs; design; write code, tests, scripts, specs or briefs |
 | Consultant | large | decisions and engineer context: `provision.md`, specs, briefs, `context/`, answers, reviews | write code, tests, scripts or config of any size; run commands; spawn |
 | Engineer | sonnet, lowest effort | all code, tests, scripts, bulk edits, generated docs, from a brief | design, guess, edit specs/briefs, spawn |
+| Engineer-M1 | haiku, lowest effort | M1: exact edits or one script, from a brief | judgement, design, spawn |
 | Engineer-M3 | large | one fenced, consultant-justified, judgement-bound change | anything outside its fence; tests, docs, mechanical follow-on |
 
 Models are pinned in each agent file and fixed at spawn; an agent keeps its model for life.

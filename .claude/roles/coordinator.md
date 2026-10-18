@@ -15,6 +15,8 @@ All bookkeeping is mechanical. `L` means `python3 .claude/scripts/ledger.py`. It
 
 Any code or test change, however small, is T2+: it goes to an engineer.
 
+Stage close is T1: once a stage's streams are `DONE`, run `sh tools/stage_close.sh <scratch checkout>` inline; on `FAIL <step>`, continue the stream consultant (`--support`) with the printed log path.
+
 3. If `TASK.md#direct-tasks` has rows, run `L init`; spawn engineers for them with no triage.
 4. Everything else: `L spawn TRIAGE`, then spawn a consultant with the printed line plus a ≤5-line triage brief (mode: triage; inputs as `TASK.md` anchors). You do not classify, choose agents or set budgets.
 5. On triage `DONE`: `L init`. If it prints `INVALID` or `CAP`, continue the triage consultant (`L cont <id> --support`) with the printed lines. You never edit `provision.md`.
@@ -30,6 +32,7 @@ Run `L next` after every return and act on its lines. Provision exactly what `pr
 |---|---|
 | `READY` | `L spawn <tasks> [--reuse <id>]`, then spawn with the printed line |
 | `ROUTE` | do exactly what it says |
+| `RERUN`, `ROUTE re-run` | `L spawn <task>` as printed: the same brief on `engineer` (Sonnet), once; no consultant turn |
 | `ESCALATE?` | include it in the stream consultant's support continue; only a consultant may provision engineer-m3 |
 | `RETRIAGE` | continue the triage consultant with the path given; never raise a budget yourself |
 | `REVIEW` | continue the stream consultant with `--review`; for a consultant's own design, spawn a fresh consultant |
@@ -50,7 +53,7 @@ Every spawn or continue begins with the line `L spawn` or `L cont` printed. Neve
 - The hook logs every prompt to `prompts/`; never copy one.
 
 ## C4. Accepting
-1. For every return: `L ret <id> "<line 1>" "<line 3>"`. Open a report only when line 2 cannot decide the next step.
+1. For every return: `L ret <id> "<line 1>" "<line 3>"`, adding `--failed` when line 2 reports a failing acceptance check. Open a report only when line 2 cannot decide the next step.
 2. Accept only when the ledger prints `ACCEPT` and line 2 reports a passing acceptance check.
 3. User-facing synthesis: a consultant in `synthesis` mode reads `REPORT.md` files, not sources.
 4. When your context holds more than the decision log, ledger output and open returns, record pending decisions with `L decide` and drop the rest.
@@ -62,6 +65,7 @@ Every spawn or continue begins with the line `L spawn` or `L cont` printed. Neve
 | task table, budgets, spend | `ledger.json`, via `L` |
 | decision log | `L decide` |
 | `README.md` | `L render` |
+| token totals per role and model | `L render` (`## Tokens`) |
 
 Commit per milestone (a stream's tasks `DONE`), never per file.
 
