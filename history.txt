@@ -1,13 +1,17 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
-=> 3.8.0.115 - Spyglass engine
+=> 3.8.0.116 - Spyglass engine
 
 - Spyglass engine (no window yet; the console comes in the next build): one search language over everything Pour Social Score keeps. Type /pss q followed by a search, for example /pss q index=log -24h whisper | stats count by event, or /pss q index=inv #reagent | stats sum(count) by owner, and the answer prints in chat. /pss q status shows what can be searched, /pss q index=sq lists the saved searches, /pss q export <search> copies the result as CSV text, and /pss q alert <id> on|off turns an alert on or off.
 - What it searches: the block log and counts, your player, guild and chat filter lists, the Warehouse (bags, bank, mail, gold, currencies, item values), your options, addon profiles, Drop Cheapest Thing, graphics sets, macros, upgrades and the addon's own errors. Logs and shipped guild lists are read only when a search needs them.
 - A small self log: upgrades, start-up faults, chat filter faults and the addon's own errors are kept as searchable lines (index=pss, 50 recent lines plus older ones while Event Logging is on).
 - Saved searches (up to 200, account wide) and alerts that tell you when a new line matches, through the event engine (no timers).
 - Fix: Search Everywhere could show a cached answer for a different item when the same words were searched with a list of items.
+
+=> 3.7.1.115 - Operating Instructions
+
+- Documentation only: the instructions for the AI that builds PSS are updated. Nothing in the addon changes.
 
 => 3.7.0.114 - Addon manager, Drop Cheapest Thing, Warehouse and money
 

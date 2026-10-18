@@ -3,7 +3,7 @@
 -- one (`list`, one sparse record per entry) are written in the new shape,
 -- with a legacy duplicate of one kind and name dropped (the first stays),
 -- and the upgrade record's step, undo slot and failure are left out (a stage that adds an upgrade
--- step moves it on purpose), and so is the Spyglass self log (pssHot, PSS_LoggingDB.pss, 3.8.0.115: timed
+-- step moves it on purpose), and so is the Spyglass self log (pssHot, PSS_LoggingDB.pss, 3.8.0.116: timed
 -- lines an upgrade writes). Everything else is written as it is, so the
 -- other stores are still compared byte for byte.
 --   lua5.1 tools/harness/same_norm.lua <in.lua> <out.lua>

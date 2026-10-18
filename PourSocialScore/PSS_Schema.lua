@@ -22,7 +22,7 @@ local M = addon.M
 M.PSS_SCHEMA = {
 	-- PourSocialScoreDB's own keys (the rest are routed, LAYOUT)
 	core = "upgrade outbox purge recent session sessionStart revision imported importedFrom importedLegacyAt logAllV1 pssHot",
-	-- a segment store (search-helper SAV-00078): PSS_LoggingDB.pss, the internal log (SAV-00079), 3.8.0.115
+	-- a segment store (search-helper SAV-00078): PSS_LoggingDB.pss, the internal log (SAV-00079), 3.8.0.116
 	seg = "v seq first seg open openLo dict dn pin bad",
 	-- PourSocialScoreDB.upgrade (fail "<step>:<code>" and undo, the pre-upgrade stores, one slot: one-build plan STP-p06)
 	upgrade = "step=0 version at fail undo",

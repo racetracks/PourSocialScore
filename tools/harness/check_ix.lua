@@ -1,4 +1,4 @@
--- The Spyglass engine (search-helper, phase A, 3.8.0.115), as a run.lua script. The phase is PSS_PHASE;
+-- The Spyglass engine (search-helper, phase A, 3.8.0.116), as a run.lua script. The phase is PSS_PHASE;
 -- each prints "PASS ix <phase>" or "FAIL ix: <phase>: <what>". Expected results come from the phase A
 -- guide (15_Tests TST-00911 to TST-00931, TST-00964 to TST-00966), not from the code. Run by
 -- ix_phases.sh on Retail and Camelot (TZ=UTC: the time phases' hand answers are UTC seconds).
