@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Hook: log every user prompt and every sub-agent spawn prompt verbatim, at zero model cost.
+
+Wired in .claude/settings.json to UserPromptSubmit and PreToolUse (matcher Task|Agent).
+Writes <session>/prompts/NNN.md and appends a row to <session>/prompts/README.md.
+Blocks of >=300 chars seen in an earlier prompt are stored once and referenced by ID.
+Never blocks the prompt or the tool call: every error is swallowed.
+"""
+import hashlib
+import json
+import pathlib
+import re
+import sys
+import time
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+
+def main():
+    import _session
+
+    data = json.load(sys.stdin)
+    event = data.get("hook_event_name", "")
+    if event == "UserPromptSubmit":
+        author, text, meta = "user", data.get("prompt", ""), ""
+    else:
+        ti = data.get("tool_input") or {}
+        text = ti.get("prompt", "")
+        author = "agent"
+        meta = " · ".join(x for x in (ti.get("subagent_type", ""), ti.get("description", "")) if x)
+    if not text.strip():
+        return
+    d, created = _session.current(create=True)
+    pdir = d / "prompts"
+    pdir.mkdir(exist_ok=True)
+    nn = f"{len(list(pdir.glob('[0-9][0-9][0-9].md'))) + 1:03d}"
+
+    seen_f = pdir / ".blocks.json"
+    seen = json.loads(seen_f.read_text()) if seen_f.exists() else {}
+    body = []
+    for block in re.split(r"\n[ \t]*\n", text):
+        if len(block) >= 300:
+            h = hashlib.sha1(block.encode()).hexdigest()[:10]
+            if h in seen:
+                body.append(f"[repeat of block {h}: see {seen[h]}.md]")
+                continue
+            seen[h] = nn
+        body.append(block)
+    seen_f.write_text(json.dumps(seen))
+
+    first = next((l.strip() for l in text.splitlines() if l.strip()), "")
+    summary = (meta + ": " if meta else "") + first[:100]
+    ts = time.strftime("%Y-%m-%d %H:%M:%S")
+    (pdir / f"{nn}.md").write_text(
+        f"# {nn} · {author} · {ts}\nSummary: {summary}\n\n" + "\n\n".join(body) + "\n"
+    )
+    with open(pdir / "README.md", "a") as f:
+        f.write(f"| {nn} | {ts} | {author} | {summary.replace('|', '/')} | [{nn}]({nn}.md) |\n")
+    if created and event == "UserPromptSubmit":
+        print(f"Session directory: {_session.rel(d)}")
+
+
+try:
+    main()
+except Exception:
+    pass
+sys.exit(0)
