@@ -1,0 +1,42 @@
+# 16_INTERFACE: the PSS window's rules
+
+Purpose: the window's rules (all three looks, the kit, titles and popups), moved word for word from `CLAUDE.md`; read in full before any change to `PourSocialScore_GUI`, its kit or a window question (`DEC-00383`) · owner: the PSS pack (`docs/pss/`) · updated: 3.8.0.122, session cool-meitner-abnxu0 · status: live · related: `docs/pss/09_PSS_UI_PROJECT.md`, `docs/pss/02_RULES.md` section 11, `docs/pss/15_ROUTES.md`
+
+## Contents
+- [Interface: the PSS window (PourSocialScore_GUI)](#interface-the-pss-window-poursocialscore_gui)
+- [Changelog](#changelog)
+
+## Interface: the PSS window (PourSocialScore_GUI)
+The one place for the window's rules. Details (decisions, code map, lessons): `docs/pss/09_PSS_UI_PROJECT.md`; look numbers: scratch `docs/latest/ui uplift/04_LOOK_SPEC.md`.
+
+### Every element works in all three looks (the first rule)
+Three looks (option `uiSkin`), listed in this order everywhere (Options, docs):
+1. **Modern** (value 2, **the default**): Blizzard's 12.x Social window art.
+2. **Classic** (value 0): Blizzard's classic templates; internal name "blizzard".
+3. **Dark** (value 1): the EllesmereUI port's flat style.
+
+The saved values never change (old saves keep their look). Nothing ships that works or looks right in only one or two looks.
+1. **One element, three paints.** Every control, row, pane, popup, menu and tooltip is built once, with the parts each look needs, and painted by the look shown (`ns.OnPaint`; Dark parts in `widget.pssParts`). Switching the look or the font (`uiFont`) repaints in place, with no reload.
+2. **Only the paint differs.** Layout, sizes, places, text, behaviour, keys (Escape, Back, Enter) and numbers are identical in all three. A look never adds, hides or moves a feature.
+3. **Modern falls back to Classic** where the client has no Modern art (Camelot, or a missing atlas): check the art, never assume it. Dark falls back to its own parts when a Blizzard template is missing.
+4. **Use the kit, not raw frames:** `ns.NewButton`, `ns.NewCheck`, `ns.NewEditBox` / `NewNumberBox` / `NewSearchBox`, `ns.NewPanel`, `ns.NewRows`, `ns.NewTab`, `ns.NewDropdown` / `ns.ContextMenu` (Blizzard's Menu API in Modern and Classic, our list in Dark or without the Menu API), `ns.Tip` (GameTooltip in Modern and Classic, ours in Dark), `ns.Confirm` / `ns.CopyText` / `ns.ImportText` (the window's frame art, `ns.NewFrameArt`, in Modern and Classic; the flat panel in Dark). A new kind of control is added to the kit in all three looks first, and to the kit preview (`tools/harness/kit_page.lua`).
+5. **Per element, check:** its Modern art, its Classic template, its Dark parts; text faded with `SetAlpha`, never colour alpha; lines and edges one physical pixel (`ns.OnePixel`, `ns.NoSnap`); the accent is the class colour (`ns.Accent()`) in every look, with no option; fonts through `ns.Font` so `uiFont` applies (LibSharedMedia only read, only when another addon loaded it); anything that must show over Blizzard frame art sits on a frame raised above its NineSlice (level about 500).
+6. **Prove it in all three looks:** `sh tools/harness/tui_compare.sh` (the window step by step in Modern, Classic and Dark; "identical" for a change that should not show, only the intended lines otherwise), `check_tui.lua` (the kit in every look), and in-game checks that name each look, on Retail and Camelot.
+
+### Titles and popups
+- **Only the main window's title carries the addon's name** ("Pour Social Score"). Popup and dialog titles say what they ask ("Remove Player?", "Remove Guild?", "Remove Rule?", "Prune Players?"), never the addon name, and sit in the title bar in Modern and Classic.
+- The window's popups are our own frames (no `StaticPopupDialogs` entries from the window); each registers for Escape through `ns.EscapeCloses` after its own scripts are set. One Escape closes the top popup or menu, then steps the window up one level, then closes it.
+- **Core's note and party warning popups stay Blizzard StaticPopups in every look**: core never loads the GUI folder for a popup.
+
+### The other interface rules
+- **The EllesmereUI port is the reference** for layout, features and feel (tag `v3.4.0.24`); the old GUI is not authoritative. Blizzard's Social window is the reference for Modern. Copy behaviour and numbers, never EllesmereUI's code or media.
+- **EllesmereUI is the reference framework for UI elements:** when building an element needs more information, add `EllesmereGaming/EllesmereUI` to the session (`add_repo`, read only) and reference it wherever possible. Rewrite to our rules (the kit, all three looks, Libraries for logic, PSS names, zero cost, J rules); never copy it verbatim, never its media. How: `docs/pss/03_ELLESMEREUI.md` section 0.
+- **Logic in `PourSocialScore_Libraries`, drawing only in `PourSocialScore_GUI`.** No state, query, validation or flow in a drawing file; UIs write through core setters (`check_layers.lua`). No `EUI` or `Ellesmere` names in new code (`check_rules.sh`).
+- **Zero cost until opened:** `/pss gui` loads Libraries and the GUI folder; each tab is built on first open; core events are heard only while the window shows (`ns.Listen`); the window drops what it read and requests a GC on close.
+- **Taint and secrets:** baseline 02 J and PSS 02 section 10 apply to every UI hook and every unit or chat value the window shows or acts on.
+- **Saved state:** window place, last tab and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` UI keys); no new SavedVariables for the window. `PSS_CharDB` (the addon manager's per-character profiles up to 3.7.0.101) is read only by upgrade step 11 (3.7.0.102): they are now the owned keys `addonSetsOf`, `addonLockOf`, `addonSelOf`, `addonPickOf` in `PSS_OptionsDB`.
+
+## Changelog
+| Date | Reference | Change | Reason | Context |
+| --- | --- | --- | --- | --- |
+| 2026-10-18 | this file | created: `CLAUDE.md` lines 144 to 172 (section Interface) moved word for word | `DEC-00383`: startup context | scratch `temp/2026/10/18/15-13-57-Sun-cool-meitner-abnxu0/prompts/01.md`; before: new |

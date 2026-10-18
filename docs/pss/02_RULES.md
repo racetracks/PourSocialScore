@@ -101,7 +101,7 @@ PSS is a chat filter: on Retail 12.x its inputs are the values most likely to be
 6. **In-game checks for any change on a chat, unit or hook path** include a run with `/console addonChatRestrictionsForced 1` and `/console addonCombatRestrictionsForced 1`: no Lua errors, no blocked-action message, and unreadable lines pass through unfiltered.
 
 ## 11. The PSS window (details in 09)
-The full rule set is the **Interface** section of `CLAUDE.md`; this is its short form.
+The full rule set is `docs/pss/16_INTERFACE.md`; this is its short form.
 1. The EllesmereUI port is the reference for every visual and layout choice; the old GUI is not authoritative.
 2. Logic in `PourSocialScore_Libraries`; drawing only in `PourSocialScore_GUI`. No `EUI` or `Ellesmere` names in new code (`check_rules.sh`); never copy EllesmereUI's code or media.
 3. Three looks, same layout, features and feel, in this order: **Modern** (value 2, default), **Classic** (0), **Dark** (1). Every element works in all three. Dark draws the window's own popups, menus and tooltips from our kit.

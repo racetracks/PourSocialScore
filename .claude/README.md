@@ -4,7 +4,7 @@ For humans. No agent loads this file.
 ## Install
 1. Copy `CLAUDE.md`, `TASK.template.md` and `.claude/` to the repo root. Merge `.claude/settings.json` hooks into any existing settings.
 2. Add to `.gitignore`: `.claude/.session` and the session root (`sessions/` unless `SESSION_ROOT` is set).
-3. CI: `python3 .claude/scripts/sync-token-rules.py --check` (fails when an agent file's token rules drift from `CLAUDE.md`).
+3. CI: `python3 .claude/scripts/sync-token-rules.py --check` (fails when an agent file's token rules drift from `CLAUDE.md`) and `python3 .claude/scripts/check_context.py` (context caps; needs the base commit: `fetch-depth: 2`).
 4. Per task: copy `TASK.template.md` to `TASK.md` and fill it. Prompt the main thread with "Run TASK.md."
 
 Requires Python 3.8+ and git (falls back to a tree walk without git). The spawn-logging hook matches the sub-agent tool as `Task|Agent`; change the matcher if your Claude Code version names it differently.
@@ -17,6 +17,7 @@ Requires Python 3.8+ and git (falls back to a tree walk without git). The spawn-
 | Provisioning validation | `ledger.py init` | a Fit grade (scope × complexity) that does not match its class and agent, wrong agent for a class, missing Writes fence or brief, engineer-m3 without Why or with a wide fence, over-default budgets without Why |
 | Scope fence | `ledger.py ret` | any write outside the agent's Writes (consultants: session directory only; engineers: never specs, briefs, `provision.md`, `context/`) |
 | Spend ledger | `ledger.py ret` / `cont` | silent overruns: BUDGET, ≥1.5× original, TASK cap; extensions need a logged reason |
+| Context caps | `consultant.md` CONTEXT-CAPS block + `check_context.py`, run by `ledger.py ret` (`SHAPE`) and `tools/check_rules.sh` | artefacts too big or too unstructured for the next agent's budget; `CLAUDE.md` and its imports growing past the startup cap (`DEC-00385`) |
 | Zero-token records | `log-prompt.py` hook, `ledger.py render` | the coordinator spending output tokens on logs, task tables and indexes |
 
 Scope check limits: it attributes changes by time window, so with parallel agents a path is accepted if any agent active in that window may write it. It cannot see files that are git-ignored outside the session directory.

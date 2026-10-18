@@ -13,7 +13,7 @@
 # and the new entry of docs/pss/14_BUILD_HISTORY.md.
 # For a release, write them at release time: one summary, for players, of
 # every change since the previous release, from the PRs that
-# "python3 tools/versions.py prs" lists (CLAUDE.md, Full releases).
+# "python3 tools/versions.py prs" lists (docs/pss/15_ROUTES.md, Full releases).
 mode=$1
 case "$mode" in
 	line) line=$2; title=$3 ;;
