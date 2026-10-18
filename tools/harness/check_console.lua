@@ -1049,6 +1049,171 @@ PH.deepearly = function()
 	check(_G.PSS_Window == win, "one window")
 end
 
+
+-- TST-00936 View Events, button queries, panes (STP-00257)
+local function sh(cmd) local f = io.popen(cmd) local o = f:read("*a") f:close() return o end
+local function ctxList()
+	local ctx = {}
+	-- the harness's ignore list is empty: a made-up listed name stands in for the first player
+	ctx.player = { id = (M.PSS_PlayerCount() or 0) > 0 and M.PSS_PlayerEntry(1) or "Foo-Bar" }
+	local gd = PourSocialScoreDB and PourSocialScoreDB.guildData or {}
+	for gk, g in pairs(gd) do
+		if type(g) == "table" then
+			ctx.guild = ctx.guild or { id = gk }
+			if not ctx.member and type(g.members) == "table" then
+				for _, mrec in pairs(g.members) do ctx.member = { id = mrec, guild = gk } break end
+			end
+		end
+	end
+	ctx.filter = { id = 1 }
+	return ctx
+end
+local function runText(text, params)
+	local v = newView({ query = text, params = params, shape = "events" })
+	v:Run(true)
+	return v, v.vm.state
+end
+PH.buttonregistry = function()
+	local files = sh("ls PourSocialScore_GUI/*.lua"):gmatch("[^\n]+")
+	local seen = 0
+	for f in files do
+		if not f:find("PSS_QueryView") and not f:find("PSS_Console%.lua") and not f:find("PSS_Window") then
+			local h = io.open(f) local src = h:read("*a") h:close()
+			for call in src:gmatch("DeepDive%(([^\n]-)[,)]") do
+				seen = seen + 1
+				local key = call:match('^"([^"]+)"')
+				check(key, f .. ": DeepDive needs a literal key: " .. call)
+				if key then check(M.PSS_BUTTON_QUERIES[key], f .. ": key not in registry: " .. key) end
+			end
+		end
+	end
+	check(seen >= 6, "found the GUI calls, got " .. seen)
+end
+PH.buttonqueries = function()
+	GUI()
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local c = ctxList()
+	local jobs = {
+		{ "player.events", c.player }, { "member.events", c.member }, { "filter.events", c.filter }, { "guild.events", c.guild },
+		{ "group.events", { id = "__managed" } }, { "wh.holders", { item = 6948 } },
+		{ "pane.events", c.player and { kind = "player", id = c.player.id, period = "day", cats = { whisper = true, world = true } } },
+		{ "pane.slice", c.player and { kind = "player", id = c.player.id, cat = "whisper" } },
+	}
+	for _, j in ipairs(jobs) do
+		if j[2] then
+			local text, params, range = M.PSS_DeepDiveText(j[1], j[2])
+			check(text, j[1] .. ": no text")
+			if text then
+				local v, st = runText(text, params)
+				check(st ~= "error", j[1] .. " does not run: " .. text .. " -> " .. tostring(v.vm.info and v.vm.info.err or st))
+			end
+		else
+			print("NOTE " .. j[1] .. ": no context in this save")
+		end
+	end
+end
+PH.viewevents = function()
+	local ui = GUI()
+	local t, p = M.PSS_DeepDiveText("player.events", { id = "Bob-Realm" })
+	check(t == "index=log owner=$owner | sort -time | head 200" and p.owner == M.PSS_PlayerHistoryKey("Bob-Realm"), "player.events text and owner")
+	local t2, p2, r2 = M.PSS_DeepDiveText("pane.events", { kind = "guild", id = "g1", period = "session" })
+	check(t2 == "index=log guild=$guild | sort -time | head 200" and p2.guild == "g1" and r2.advanced.earliest == "@session", "pane.events guild session")
+	local t3, _, r3 = M.PSS_DeepDiveText("pane.events", { kind = "filter", id = 2, period = "day", cats = { world = true, whisper = true } })
+	check(t3 == "index=log owner=$owner (cat=whisper OR cat=world) | sort -time | head 200" and r3.preset == "last24h", "cats and day: " .. tostring(t3))
+	local t4, p4 = M.PSS_DeepDiveText("pane.slice", { kind = "player", id = "Bob-Realm", cat = "world" })
+	check(t4 == "index=log owner=$owner cat=$cat | sort -time | head 200" and p4.cat == "world", "slice: " .. tostring(t4))
+	ui.DeepDive("pane.slice", { kind = "player", id = "Bob-Realm", cat = "world" })
+	local con = _G.PSS_Window.pages[conIndex()]
+	check(con.bar:GetText() == t4 or con.bar:GetText():find("cat=", 1, true), "console shows the bound text: " .. tostring(con.bar:GetText()))
+end
+PH.panequeries = function()
+	local t, p = M.PSS_PaneQuery("player", "Bob-Realm", { whisper = true, invite = true })
+	check(t == "index=log owner=$owner NOT (cat=guildInvite OR cat=partyInvite OR cat=whisper) | sort -time | head 200" and p.owner, "hidden types: " .. tostring(t))
+	check(M.PSS_PaneQuery("player", "x") == "index=log owner=$owner | sort -time | head 200", "no hidden types")
+	local q = M.PSS_PaneQueries("member")
+	local g = M.PSS_PaneQueries("guild")
+	check(#q == #g, "member uses the guild scope")
+	local n = 0 for _, r in ipairs(M.PSS_PaneQueries("player")) do if r.id == "log.lines" and r.system then n = n + 1 end end
+	check(n == 1, "log.lines listed for player")
+end
+PH.paneempty = function()
+	local v, st = runText(M.PSS_PaneQuery("player", "Nobody-Nowhere"))
+	local _, info = v:Result()
+	check(st ~= "error", "runs: " .. tostring(st))
+	local set = v:Result()
+	check(st == "needsload" or (set and (set.n or 0) == 0 and v.chart.noText:IsShown()), "No results shown: " .. tostring(v.vm:Status()))
+	check(set == nil or (set.n or 0) == 0, "totals 0")
+end
+PH.paneoff = function()
+	check(M.PSS_PANE_OFF == "Event Logging is off. Turn it on in Optional Features.", "text")
+	local ui = GUI()
+	local on = M.PSS_On
+	M.PSS_On = function(n) if n == "logging" then return false end return on(n) end
+	local hv = ui.NewHistory(UIParent, 0, { kind = "player", empty = "x" })
+	M.PSS_On = on
+	check(hv.qv == nil and hv.off:IsShown(), "off text shown, no view")
+end
+PH.panehistory = function()
+	GUI()
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local cmp
+	function cmp(label, old, kind, id)
+		local lines = {}
+		for i = 1, #old do lines[i] = { ts = old[i].ts, message = M.PSS_HistCells(old[i], {}).message } end
+		local function ord(a, b) if a.ts ~= b.ts then return a.ts > b.ts end return a.message < b.message end
+		table.sort(lines, ord)
+		local text, params = M.PSS_PaneQuery(kind, id)
+		local v = runText(text, params)
+		local set = v:Result()
+		local new = {}
+		if set then
+			local ti, mi
+			for i, c in ipairs(set.cols) do if c == "time" then ti = i elseif c == "message" then mi = i end end
+			for i = 1, math.min(set.n or #set, 200) do new[i] = { ts = set[i][ti], message = set[i][mi] } end
+		end
+		table.sort(new, ord)
+		for i = 1, math.min(200, #lines) do
+			if not (new[i] and new[i].ts == lines[i].ts and new[i].message == lines[i].message) then
+				check(false, label .. " line " .. i .. " differs: old " .. tostring(lines[i].ts) .. " " .. tostring(lines[i].message) ..
+					" new " .. tostring(new[i] and new[i].ts) .. " " .. tostring(new[i] and new[i].message))
+				return
+			end
+		end
+	end
+	-- the real saves hold no player-owned lines (the stub's ignore list is empty): plant some
+	local log = History.Log()
+	local t0 = GetServerTime() - 3000
+	for i = 1, 40 do
+		local e = History.NewEntry(History.ALL_CATS[i % 6 + 1], "CHAT_MSG_CHANNEL", "planted line " .. i, "Trade", nil)
+		e.ts = t0 + (i % 9) * 60
+		e.o = M.PSS_PlayerHistoryKey("Foo-Bar")
+		log[#log + 1] = e
+	end
+	local compared = 0
+	local _cmp = cmp
+	cmp = function(label, old, kind, id) compared = compared + #old; return _cmp(label, old, kind, id) end
+	cmp("player Foo-Bar", M.PSS_GetPlayerBlockHistory("Foo-Bar") or {}, "player", "Foo-Bar")
+	local gks = {}
+	for gk, g in pairs(PourSocialScoreDB.guildData or {}) do if type(g) == "table" then gks[#gks + 1] = gk end end
+	table.sort(gks)
+	local nm = 0
+	for gi, gk in ipairs(gks) do
+		local g = PourSocialScoreDB.guildData[gk]
+		if gi == 1 then print("SKIP guild (old read, E07 round 2)") end
+		local mks = {}
+		for mk in pairs(g.members or {}) do mks[#mks + 1] = mk end
+		table.sort(mks)
+		for _, mk in ipairs(mks) do
+			if nm < 40 then nm = nm + 1; cmp("member " .. tostring(mk), M.PSS_GetMemberBlockHistory(g.members[mk]) or {}, "member", g.members[mk]) end
+		end
+	end
+	for n = 1, 30 do
+		if M.PSS_FilterOwnerKey(n) then cmp("filter " .. n, M.PSS_FilterHistory(n) or {}, "filter", n) end
+	end
+	check(compared > 0, "compared no lines")
+	print("NOTE panehistory: lines compared " .. compared)
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

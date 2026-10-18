@@ -9,7 +9,7 @@ mkdir -p "$work"
 export TZ=UTC
 fail=0; n=0; bad=0
 
-ALL=$(grep -o '^PH\.[a-z0-9]*' "$here/check_console.lua" | sed 's/^PH\.//')
+ALL=$(echo $(grep -o '^PH\.[a-z0-9]*' "$here/check_console.lua" | sed 's/^PH\.//'))
 REAL="conreal buttonqueries panehistory"
 
 want="$*"

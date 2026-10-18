@@ -433,15 +433,117 @@ CV.HELP = {
 	{ "earliest=-7d@d", "earliest and latest set the time range" },
 }
 
-M.PSS_BUTTON_QUERIES = {}
+-- The button query registry (STP-00257): a key -> query text (or a function of ctx) and
+-- bind(ctx) -> params, range. Buttons call ns.DeepDive("<literal key>", ctx).
+local EV_OWNER = "index=log owner=$owner | sort -time | head 200"
+local function ownerRow(fn)
+	return { query = EV_OWNER, bind = function(ctx) return { owner = fn(ctx.id) } end }
+end
+M.PSS_BUTTON_QUERIES = {
+	["player.events"] = ownerRow(function(id) return M.PSS_PlayerHistoryKey(id) end),
+	["member.events"] = ownerRow(function(id) return M.PSS_History.MemberKey(id) end),
+	["filter.events"] = ownerRow(function(id) return M.PSS_FilterOwnerKey(id) end),
+	["guild.events"] = { query = "index=log guild=$guild | sort -time | head 200", bind = function(ctx) return { guild = ctx.id } end },
+	["group.events"] = { query = "index=log rule=$rule | sort -time | head 200", bind = function(ctx) return { rule = ctx.id } end },
+	["pane.events"] = { pane = "events" },
+	["pane.slice"] = { pane = "slice" },
+	["wh.holders"] = { sys = "wh.holders", bind = function(ctx) return { item = ctx.item } end },
+}
+
+local function rowText(row, ctx)
+	if row.sys then
+		for _, r in ipairs(M.PSS_SQ_SYSTEM or {}) do if r.id == row.sys then return r.q end end
+		return nil
+	end
+	return type(row.query) == "function" and row.query(ctx) or row.query
+end
+
+local function sortedNames(set)
+	local out = {}
+	for k, on in pairs(set or {}) do
+		if on and type(k) == "string" and k:match("^[%w_]+$") then out[#out + 1] = k end
+	end
+	table.sort(out)
+	return out
+end
+
+local function beforePipe(text, add)
+	local a, b = text:find(" | ", 1, true)
+	if not a then return text .. add end
+	return text:sub(1, a - 1) .. add .. text:sub(a)
+end
+
+local function orList(names)
+	for i, c in ipairs(names) do names[i] = "cat=" .. c end
+	return table.concat(names, " OR ")
+end
+
+local PERIOD_RANGE = {
+	session = function() return { advanced = { earliest = "@session" } } end,
+	day = function() return { preset = "last24h" } end,
+}
 
 function M.PSS_DeepDiveText(keyOrText, ctx)
 	local row = type(keyOrText) == "string" and M.PSS_BUTTON_QUERIES[keyOrText]
 	if row then
-		local params, range
-		if row.bind then params, range = row.bind(ctx) end
-		return row.query, params, range
+		ctx = ctx or {}
+		local base, range = row, nil
+		if row.pane then
+			base = M.PSS_BUTTON_QUERIES[tostring(ctx.kind) .. ".events"]
+			if not base then return nil, "unknown query" end
+		end
+		local text = rowText(base, ctx)
+		if not text then return nil, "unknown query" end
+		local params = base.bind and base.bind(ctx) or {}
+		if row.pane == "slice" then
+			text = beforePipe(text, " cat=$cat")
+			params.cat = ctx.cat
+		elseif row.pane == "events" then
+			local f = ctx.period and PERIOD_RANGE[ctx.period]
+			range = f and f() or nil
+		end
+		local names = ctx.cats and sortedNames(ctx.cats) or {}
+		if #names > 0 then text = beforePipe(text, " (" .. orList(names) .. ")") end
+		return text, params, range
 	end
 	if type(keyOrText) == "string" then return keyOrText, ctx, nil end
 	return nil, "unknown query"
+end
+
+M.PSS_PANE_OFF = "Event Logging is off. Turn it on in Optional Features."
+
+-- types -> the log categories they stand for (party, raid and BG lines are told apart by channel)
+local TYPE_CATS = { whisper = { "whisper" }, invite = { "partyInvite", "guildInvite" }, world = { "world" }, guild = { "guildChat" } }
+
+-- the pane's text and params: the kind's .events row, hidden types (a set of type names) excluded
+function M.PSS_PaneQuery(kind, id, hidden)
+	local row = M.PSS_BUTTON_QUERIES[tostring(kind) .. ".events"]
+	if not row then return nil, "unknown query" end
+	local ctx = { kind = kind, id = id }
+	local text = rowText(row, ctx)
+	local params = row.bind and row.bind(ctx) or {}
+	local cats = {}
+	for t, on in pairs(hidden or {}) do
+		if on then for _, c in ipairs(TYPE_CATS[t] or {}) do cats[#cats + 1] = c end end
+	end
+	if #cats > 0 then
+		table.sort(cats)
+		text = beforePipe(text, " NOT (" .. orList(cats) .. ")")
+	end
+	return text, params
+end
+
+-- the Queries drop-down of a pane: { { id, name, text, system } ... }
+function M.PSS_PaneQueries(kind)
+	local scope = kind == "member" and "guild" or kind
+	local out = {}
+	local sys = M.PSS_Call("sq.system", { scope = scope })
+	for i = 1, sys and sys.n or 0 do
+		out[#out + 1] = { id = sys[i][1], name = sys[i][2], text = sys[i][4], system = true }
+	end
+	local mine = M.PSS_Call("sq.list", { scope = scope })
+	for i = 1, mine and mine.n or 0 do
+		out[#out + 1] = { id = mine[i][1], name = mine[i][2], text = mine[i][5] }
+	end
+	return out
 end
