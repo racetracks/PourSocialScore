@@ -21,7 +21,9 @@ Usage:
                                      path:n[-m] or path#anchor exists. Exit 2 on a usage error.
   check_context.py --index OUT       write the machine index (git ls-files: lines and heading anchors) to OUT as JSON
   check_context.py --lookup INDEX REF...
-                                     REF is path, path:n, path:n-m or path#anchor; prints OK or MISSING <ref>: <why>
+                                     REF is path, path:n, path:n-m, path#anchor or @name; prints OK or MISSING <ref>: <why>;
+                                     @name prints <path>:<line> <kind> <name> per symbol (kinds: export, fires, listens,
+                                     wow_event, slash, saved; in the index under files[path]["symbols"])
   Docs with code: in a file list, code and no document prints `DOCS`; against the base, changed code needs
   the build history entry of the TOC version to fill `- Docs updated:` (docs/pss/14_BUILD_HISTORY.md).
 Exit 1 on a failing problem. Problems print as `SHAPE <path>: <problem>` or `DOCS <problem>`.
@@ -190,6 +192,39 @@ def slug(h):
     return re.sub(r"[^\w -]", "", h.strip().lower()).replace(" ", "-")
 
 
+SYM_PATHS = ("PourSocialScore*/*.lua", "tools/*", ".claude/scripts/*")
+LUA_DEF = [re.compile(r"^\s*function\s+(?:M|ns|History|Events|V|View)\.([A-Za-z_]\w*)\s*\(", re.M),
+           re.compile(r"^\s*(?:M|ns|History|Events)\.([A-Za-z_]\w*)\s*=\s*(?:function\b|\{|[A-Za-z_\"'0-9])", re.M)]
+SYM_RX = [("fires", re.compile(r"Events\.Fire\(\s*\"([A-Z_]+)\"")),
+          ("listens", re.compile(r"(?:Events\.Register|ns\.Listen)\(\s*\"([A-Z_]+)\"")),
+          ("wow_event", re.compile(r"RegisterEvent\(\s*\"([A-Z_0-9]+)\"")),
+          ("slash", re.compile(r"^\s*SLASH_\w+\s*=\s*\"(/[^\"]+)\"", re.M))]
+SAVED_RX = re.compile(r"^\t(\w+)\s*=\s*\"", re.M)  # entries of PSS_SCHEMA: one tab, name = "
+
+
+def symbols(rel, text):
+    """[kind, name, line] list for a code file (comments not stripped)."""
+    if not any(fnmatch.fnmatchcase(rel, g) for g in SYM_PATHS):
+        return []
+    out = []
+
+    def add(kind, rx):
+        for m in rx.finditer(text):
+            out.append([kind, m.group(1), text.count("\n", 0, m.start(1)) + 1])
+    if rel.endswith(".lua"):
+        for rx in LUA_DEF:
+            add("export", rx)
+        for kind, rx in SYM_RX:
+            add(kind, rx)
+        if rel == "PourSocialScore/PSS_Schema.lua":
+            add("saved", SAVED_RX)
+    elif rel.endswith(".py"):
+        add("export", re.compile(r"^def (\w+)", re.M))
+    elif rel.endswith(".sh"):
+        add("export", re.compile(r"^(\w+)\s*\(\)\s*\{", re.M))
+    return sorted(out, key=lambda x: (x[2], x[0], x[1]))
+
+
 def build_index(out):
     ls, head = git("ls-files"), git("rev-parse", "HEAD")
     if ls is None or head is None:
@@ -213,7 +248,10 @@ def build_index(out):
                 if m and not fence:
                     anchors.append(slug(m.group(1)))
         files[rel] = {"lines": n, "anchors": anchors}
-        keys.append(f"{rel}:{n}:{','.join(anchors)}")
+        sy = symbols(rel, text)
+        if sy:
+            files[rel]["symbols"] = sy
+        keys.append(f"{rel}:{n}:{','.join(anchors)}" + "".join(f"|{k}:{a}:{b}" for k, a, b in sy))
     h = hashlib.sha256("\n".join(sorted(keys)).encode()).hexdigest()[:12]
     data = json.dumps({"base": head.strip(), "hash": h, "files": files}, sort_keys=True)
     o = pathlib.Path(out)
@@ -270,6 +308,11 @@ def cli_lookup(args):
         return 2
     idx, bad = json.loads(pathlib.Path(args[1]).read_text()), False
     for ref in args[2:]:
+        if ref.startswith("@"):
+            hits = sorted((p, l, k) for p, f in idx["files"].items() for k, nm, l in f.get("symbols", []) if nm == ref[1:])
+            bad = bad or not hits
+            print("\n".join(f"{p}:{l} {k} {ref[1:]}" for p, l, k in hits) if hits else f"MISSING {ref}: no symbol")
+            continue
         why = lookup_ref(idx, ref)
         bad = bad or bool(why)
         print(f"MISSING {ref}: {why}" if why else f"OK {ref}")

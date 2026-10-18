@@ -19,6 +19,7 @@ Output tokens are the main cost, fresh reads the next. Every rule caps one or bo
 - **Context:** your prompt and brief are your whole context. Read only what they name. Before reading, check what is already captured (`STATE.md`, `context/<stream>.md`, existing outputs); never regenerate or re-read it. Missing input → return `BLOCKED`/`NEEDS`; never explore.
 - **Budget:** two ceilings, `calls` (tool calls) and `out` (lines you write: files, edits, messages; lines a script generates do not count). Take the cheapest correct path; a ceiling is not a target. At either ceiling stop and return `BUDGET`.
 - **Pointers, not payloads:** refer to `path:line-range` or `path#anchor`. Never copy source, specs, diffs or tool output into briefs, reports or messages.
+- **Lookup:** before opening a file for a pointer or a name, run `python3 .claude/scripts/check_context.py --lookup <session>/context/repo-index.json <path:n | path#anchor | @name>` (built by `ledger.py init` and `spawn`).
 - **Read:** clone or pull each repo once per session; read from the local checkout, never the web. Grep/Glob, line ranges, `head`/`tail`, `--stat`/`--name-only` before opening. Whole files only when marked **Full**. Never re-read an unchanged file.
 - **Tool output:** summarise large output to the essentials immediately; never carry raw dumps forward. Run independent tool calls in parallel, in one turn.
 - **Resume:** after a restart or compaction, resume from your `STATE.md` (agents) or `CONTEXT.md` + `ledger.py next` (coordinator); re-read sources only for what those lack.
