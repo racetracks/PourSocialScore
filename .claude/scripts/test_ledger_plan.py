@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Checks for the stale-plan, brief, rules-read and index features (spec ledger-m1 section 9 and 12.6, checks 1 to 22).
-Runs in a throwaway git repo. Prints FAIL <n> <reason> per failing check, else OK 22 checks."""
+"""Checks for the stale-plan, brief, rules-read and index features (spec ledger-m1 section 9 and 12.6, checks 1 to 24).
+Runs in a throwaway git repo. Prints FAIL <n> <reason> per failing check, else OK 24 checks."""
 import json
 import os
 import pathlib
@@ -178,9 +178,28 @@ def main():
         (pc / "x.pyc").write_text("x")
         rc, o = led(22, "ret", "A01", "DONE", SPEND)
         check(22, "SCOPE" not in o, o)
+        # 23: transcript in another project folder; 24: batched fences
+        rc, o, ref = spawn_p2(23)
+        d = tmp / "cfg/projects/-elsewhere/s1/subagents"
+        d.mkdir(parents=True)
+        shutil.copy(next((tmp / "tr14").rglob("*.jsonl")), d / "agent-a.jsonl")
+        (d / "agent-a.jsonl").write_text((d / "agent-a.jsonl").read_text().replace("ref REF", "ref " + ref, 1).replace(re.search(r"ref (\S+)", (d / "agent-a.jsonl").read_text()).group(1), ref))
+        env = dict(os.environ, SESSION_DIR=str(tmp / "s23"), CLAUDE_CONFIG_DIR=str(tmp / "cfg"))
+        env.pop("LEDGER_TRANSCRIPTS", None)
+        p = subprocess.run([sys.executable, str(repo / ".claude/scripts/ledger.py"), "ret", "A01", "DONE", SPEND], env=env, capture_output=True, text=True)
+        check(23, "RULES" not in p.stdout and "ACCEPT P2" in p.stdout, p.stdout + p.stderr)
+        sess(24, [row("P4", "tools/t.sh"), row("P5", "docs/x.md")])
+        led(24, "init")
+        led(24, "spawn", "P4,P5")
+        (repo / "tools").mkdir(exist_ok=True)
+        (repo / "tools/t.sh").write_text("echo x\n")
+        (repo / "docs").mkdir(exist_ok=True)
+        (repo / "docs/x.md").write_text("# x\nPurpose: x\n")
+        rc, o = led(24, "ret", "A01", "DONE", SPEND)
+        check(24, "DOCS" not in o and "SHAPE" not in o, o)
     if fails:
         sys.exit(1)
-    print("OK 22 checks")
+    print("OK 24 checks")
 
 
 main()

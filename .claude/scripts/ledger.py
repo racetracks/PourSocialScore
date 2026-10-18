@@ -267,10 +267,10 @@ def shape_check(paths):
             if l.startswith(("SHAPE ", "DOCS ")) and not l.startswith(("SHAPE startup", "SHAPE spawn"))]
 
 
-def own_paths(L, aid, kind, changed):
+def own_paths(L, aid, kind, changed, tasks=None):
     """The agent's own changed paths: its fence, its agents/<aid>/ folder, a consultant's session documents."""
     srel = _session.rel(SD)
-    ws = agent_writes(L, aid)
+    ws = [w for t in (tasks if tasks is not None else L["agents"][aid]["tasks"]) for w in L["tasks"].get(t, {}).get("writes", [])]
     pre = [f"{srel}/{d}" for d in ("specs/", "briefs/", "context/")] if kind == "consultant" else []
 
     def mine(p):
@@ -634,7 +634,7 @@ def cmd_ret(a):
                 break
     changed = changed_since(snap)
     bad = [p for p in changed if not any(allowed(p, k, w) for k, w in active)]
-    shape = shape_check(own_paths(L, aid, kind, changed)) if status == "DONE" and not bad else []
+    shape = shape_check(own_paths(L, aid, kind, changed, tasks)) if status == "DONE" and not bad else []
 
     rules = []
     if kind in RULE_KINDS and status == "DONE" and not bad:
@@ -802,13 +802,23 @@ def transcripts(L, key):
                     found.append(f)
             return found
         pat = re.compile(r"ref " + re.escape(f"{L.get('prefix', 'REF')}-{SD.name}-{key}") + r"(?![A-Za-z0-9])")
-        for f in sorted(base.rglob("*.jsonl")):
-            if "subagents" not in f.relative_to(base).parts[:-1]:
-                continue
-            with open(f, errors="replace") as fh:
-                head = "".join(fh.readline() for _ in range(5))
-            if pat.search(head):
-                found.append(f)
+
+        def scan(b):
+            hits = []
+            for f in sorted(b.rglob("*.jsonl")):
+                if "subagents" not in f.relative_to(b).parts[:-1]:
+                    continue
+                with open(f, errors="replace") as fh:
+                    head = "".join(fh.readline() for _ in range(5))
+                if pat.search(head):
+                    hits.append(f)
+            return hits
+        found = scan(base)
+        if not found and not os.environ.get("LEDGER_TRANSCRIPTS"):  # Claude Code names the folder after the launch directory
+            for d in base.parent.glob("*/"):
+                if d != base and d.is_dir():
+                    found += scan(d)
+            found.sort(key=lambda f: f.stat().st_mtime, reverse=True)
         return found
     except Exception:
         return []
@@ -887,7 +897,7 @@ def measure(L):
                     r[2] += cw
                     r[3] += o
                     r[4] = None if (usd is None or r[4] is None) else r[4] + usd
-                rec.update(state="measured", files=[str(f.relative_to(base)) for f in files], by_model=bm)
+                rec.update(state="measured", files=[os.path.relpath(f, base) for f in files], by_model=bm)
         except Exception:
             rec = {"role": role, "state": "unmeasured", "files": [], "by_model": {}}
         L["tokens"][k] = rec
