@@ -18,13 +18,15 @@ if [ -z "$PSS_VALIDATION_TEE" ]; then
 	echo "log: $log"
 	{ PSS_VALIDATION_TEE=1 sh "$0" "$@"; echo $? > "$rcfile"; } 2>&1 | tee "$log"
 	rc=$(cat "$rcfile"); rm -f "$rcfile"
-	awk 'BEGIN { cur = "(setup)"; seen[cur] = 1; n = 1; ord[1] = cur }
+	awk -v rc="$rc" 'BEGIN { cur = "(setup)"; seen[cur] = 1; n = 1; ord[1] = cur }
 		/^== / { cur = substr($0, 4); if (!(cur in seen)) { seen[cur] = 1; ord[++n] = cur } }
 		/^PASS/ { p[cur]++; P++ }
-		/^FAIL/ { f[cur]++; F++ }
+		/^FAIL/ || /^lua5\.1: / || /^lua: / { f[cur]++; F++ }
 		/^SKIP/ { k[cur]++; K++ }
 		/^-- [0-9]+s, total [0-9]+s: / { i = index($0, ": "); nm = substr($0, i + 2); s[nm] += $2 + 0; tot = $4 + 0 }
 		END {
+			# a non-zero exit with no FAIL line (a crash) still counts as a FAIL
+			if (rc + 0 != 0 && F == 0) { f[cur]++; F++ }
 			print "SUMMARY section | PASS | FAIL | SKIP | seconds"
 			for (i = 1; i <= n; i++) { c = ord[i]; printf "| %s | %d | %d | %d | %s |\n", c, p[c], f[c], k[c], (c in s) ? s[c] : "--" }
 			printf "| total | %d | %d | %d | %s |\n", P, F, K, tot
