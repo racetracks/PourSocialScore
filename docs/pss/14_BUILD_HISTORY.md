@@ -40,7 +40,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.8.0.120 - Docs: startup context (imports, documentation rules, reference index, build history)
 
-- Branch: `claude/elegant-dijkstra-2oq5s5`; PR: none yet.
+- Branch: `claude/elegant-dijkstra-2oq5s5`; [PR #241](https://github.com/racetracks/PourSocialScore/pull/241).
 - What changed and why: the author answered `DEC-00338` a, `DEC-00339` a, `DEC-00340` c and `DEC-00341` a (2026-10-18, [prompt 04](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/10/18/13-19-00-Sun-elegant-dijkstra-2oq5s5/prompts/04.md)); the files every session loads at start cost about 45k tokens.
   - `CLAUDE.md` imports only `11_PREFERENCES.md`, scratch `05_RULES.md` and `06_STATUS_AND_NEXT.md`; baseline 02 and PSS 02 are read in full before the first change to the repo, baseline 10 before a design or stage, 01 when the task needs how the addon works ("Read when the task touches the topic").
   - "Mandatory Documentation Requirements", "Reference framework" and 11's "Records, links and summaries" moved word for word to scratch `documents/reference-framework/12_User_Guides/12_02_Documentation_Rules.md`; `CLAUDE.md` keeps "Requirements for every interaction" word for word and a "Documentation rules" section (when to read the file, the temp root, the reference index).
