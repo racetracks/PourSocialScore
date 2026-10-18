@@ -1,0 +1,91 @@
+------------------------------------------------------------------------
+-- POUR SOCIAL SCORE - THE QUERY VIEW (search-helper, phase B)
+--   local v = ns.NewQueryView(parent, o)
+--   o = { w, h, query, params, scope, shape = "auto"|"events"|"table"|"chart",
+--         deepDive, compact, from, rows }
+--   v:SetQuery(text, params)  v:Run(load)  v:Refresh()  v:Result()  v:SetRange(range)
+-- Drawing only: the model is M.PSS_QueryViewModel (Libraries). Heard events
+-- only while the window shows (ns.Listen), redraws coalesced by M.PSS_Throttle.
+------------------------------------------------------------------------
+local ADDON_NAME, ns = ...
+local M = ns.M
+
+local ERR = { 1, 0.36, 0.36 }
+
+function ns.NewQueryView(parent, o)
+	o = o or {}
+	local W, H = o.w or 400, o.h or 240
+	local v = CreateFrame("Frame", nil, parent)
+	v:SetSize(W, H)
+	local vm = M.PSS_QueryViewModel(o)
+	v.vm = vm
+	local top = 0
+	if o.compact then
+		v.line = ns.NewText(v, 11)
+		v.line:SetPoint("TOPLEFT", v, "TOPLEFT", 0, 0)
+		v.line:SetWidth(W - 70)
+		v.run = ns.NewButton(v, "Run", 60, function() v:Run(true) end)
+		v.run:SetPoint("TOPRIGHT", v, "TOPRIGHT", 0, 0)
+		top = 26
+	end
+	if o.deepDive then
+		v.deep = ns.NewButton(v, "Open in Spyglass", 120, function()
+			if ns.DeepDive then ns.DeepDive(vm:Text(), vm.params, o.from) end
+		end)
+		v.deep:SetPoint("TOPRIGHT", v, "TOPRIGHT", 0, -top)
+		v.deep:SetScript("OnEnter", function(self) ns.Tip(self, "Open this search in Spyglass") end)
+		v.deep:SetScript("OnLeave", function() ns.HideTip() end)
+		top = top + 26
+	end
+	v.chart = ns.NewChart(v, W, H - 40 - top)
+	v.chart:SetPoint("TOPLEFT", v, "TOPLEFT", 0, -top)
+	v.status = ns.NewText(v, 11)
+	v.status:SetPoint("BOTTOMLEFT", v, "BOTTOMLEFT", 0, 4)
+	v.status:SetAlpha(0.7)
+	v.load = ns.NewButton(v, "Load history", 110, function() v:Run(true) end)
+	v.load:SetPoint("BOTTOMRIGHT", v, "BOTTOMRIGHT", 0, 0)
+	v.load:Hide()
+
+	local function Paint()
+		if vm.state == "error" then v.status:SetTextColor(ERR[1], ERR[2], ERR[3])
+		else v.status:SetTextColor(1, 1, 1) end
+	end
+
+	local function Draw()
+		if vm.state == "error" or not vm.set then
+			v.chart:Clear()
+		else
+			local spec = vm.chart
+			if o.shape == "events" or o.shape == "table" then spec = { kind = "table" } end
+			v.chart:Draw(vm.set, spec or { kind = "table" })
+		end
+		v.status:SetText(vm:Status())
+		Paint()
+		if vm.state == "needsload" then v.load:Show() else v.load:Hide() end
+		if v.line then v.line:SetText(vm:Text() or "") end
+	end
+
+	function v:SetQuery(text, params)
+		vm:SetQuery(text, params)
+		if v.line then v.line:SetText(vm:Text() or "") end
+	end
+	function v:Run(load)
+		vm:Run(load, v.range)
+		Draw()
+	end
+	function v:Refresh() v:Run(vm.loaded) end
+	function v:Result() return vm.set, vm.info end
+	function v:SetRange(range) v.range = range end
+
+	v:HookScript("OnShow", function()
+		if vm.state == "idle" and vm.query then v:Run(false) end
+	end)
+	v:HookScript("OnHide", function() vm:Drop() end)
+
+	local fn = M.PSS_Throttle(function() if v:IsVisible() then v:Refresh() end end)
+	for _, ev in pairs(M.PSS_QV_EVENTS) do ns.Listen(ev, fn) end
+	ns.OnPaint(Paint)
+
+	if o.query then v:SetQuery(o.query, o.params) end
+	return v
+end
