@@ -1,21 +1,51 @@
 #!/bin/sh
-# Mutation check of the Spyglass console (search-helper phase B). Same runner as ix_mutants.sh; each row of
-# MUTANTS is: name|file|sed expression|phase. At least one phase it names must fail (console_phases.sh), or
-# this script fails. The table is empty until the phase's components exist.
+# Mutation check of the Spyglass console (search-helper phase B, TST-00932 to TST-00937, TST-00967). Same runner
+# as ix_mutants.sh; each row of MUTANTS is: name|file|sed expression|phases. One sed edit per mutant produces
+# its named fault; at least one phase it names must fail (console_phases.sh), or this script fails.
+# A sed that changes nothing is INVALID and counts as not killed.
 #   sh tools/harness/console_mutants.sh [name ...]
 here=$(dirname "$0")
 src=$(cd "$here/../.." && pwd)
-MUTANTS=""
+MUTANTS='chart-alloc-each|PourSocialScore_GUI/PSS_Chart.lua|s/if not o then o = MAKE\[name\](f); p\[c\] = o end/o = MAKE[name](f); p[c] = o/|chartpool
+chart-cap-off|PourSocialScore_GUI/PSS_Chart.lua|s/^\tlocal cap = CAP_BARS$/\tlocal cap = 100000/|chartcaps
+chart-colour-alpha|PourSocialScore_GUI/PSS_Chart.lua|s/fs:SetTextColor(1, 1, 1, 1)/fs:SetTextColor(1, 1, 1, 0.5)/|chartalpha
+chart-onupdate|PourSocialScore_GUI/PSS_Chart.lua|s/b.tex:SetAllPoints(b)/b.tex:SetAllPoints(b); b:SetScript("OnUpdate", function() end)/|charthover
+qv-run-tier1|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/self.loaded = self.loaded or load == true/self.loaded = true/|qvtier
+qv-listen-hidden|PourSocialScore_GUI/PSS_Skin.lua|s/if listening then l.id = M.Events.Register/if true then l.id = M.Events.Register/|qvlisten
+qv-redraw-each|PourSocialScore_GUI/PSS_QueryView.lua|s/M.PSS_Throttle(function() if v:IsVisible() then v:Refresh() end end)/(function() if v:IsVisible() then v:Refresh() end end)/|qvburst
+con-build-early|PourSocialScore_GUI/PSS_Window.lua|s/^local function SelectTab(id)$/local function SelectTab(id)\n\tfor i = 1, #TABS do BuildTab(i) end/|contab
+con-sidebar-own-count|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/{ field = col, n = 5 }/{ field = col, n = 4 }/|considebar
+con-chart-ignored|PourSocialScore_GUI/PSS_Console.lua|s/if vm.plan and vm.plan.chart and chartOn then/if false and chartOn then/|conchart
+save-no-confirm|PourSocialScore_GUI/PSS_QueryDialog.lua|s/m:Button("Delete", function()/m:Button("Delete", function() M.PSS_ConsoleView.call("sq.del", { id = id }) pg.refreshLeft() if true then return end/|saveround
+save-cap-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/q.n >= (caps.records or 200)/q.n >= 1e9/|savecaps
+save-broken-runs|PourSocialScore_GUI/PSS_QueryDialog.lua|s/if not d.broken then pg.run(true) end/pg.run(true)/|savebroken
+button-literal-query|PourSocialScore_GUI/PSS_Players.lua|s/ns.DeepDive("player.events"/ns.DeepDive(("player.events")/|buttonregistry
+pane-own-scan|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/owner=\$owner | sort -time | head 200/owner=$owner | sort -time | head 5/|panehistory
+events-tab-kept|PourSocialScore_Libraries/PSS_ManagerNav.lua|/events = { tab = "console" },/d|eventstab
+deep-no-back|PourSocialScore_GUI/PSS_Window.lua|s/if from == nil and win and win:IsShown() and TABS\[curTab\] then/if false then/|deepback
+deep-no-load|PourSocialScore_GUI/PSS_Console.lua|/function pg.deepDive/,/^\tend/s/qv:Run(true)/qv:Run(false)/|deepearly
+deep-from-service|tools/check_layers.lua|s/and not okFile then/and not okFile and false then/|deepservice
+pick-edits-text|PourSocialScore_GUI/PSS_TimePicker.lua|s/function p:Range() return CV.pickerRange(choice) end/function p:Range() return nil end/|pickaxis picktyped pickrange
+pick-wins-typed|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if range and CV.typedTime(self.query) then range = nil end/if false then range = nil end/|picktyped
+pick-month-30d|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/text = "This month", e = "@mon"/text = "This month", e = "-30d"/|pickpresets'
 want="$*"
 total=0; killed=0
+nl='
+'
+IFS=$nl
 for row in $MUTANTS; do
-	name=${row%%|*}; rest=${row#*|}; file=${rest%%|*}; rest=${rest#*|}; expr=${rest%%|*}; phase=${rest#*|}
+	IFS=' '
+	name=${row%%|*}; rest=${row#*|}; file=${rest%%|*}; rest=${rest#*|}; phase=${rest##*|}; expr=${rest%|*}
+	IFS=$nl
 	if [ -n "$want" ] && ! echo " $want " | grep -q " $name "; then continue; fi
 	total=$((total + 1))
 	work=$(mktemp -d)
 	(cd "$src" && tar cf - PourSocialScore PourSocialScore_Libraries PourSocialScore_Options PourSocialScore_GUI PourSocialScore_Logging PourSocialScore_Communities tools) | (cd "$work" && tar xf -)
+	cp "$work/$file" "$work/before.txt"
 	sed -i "$expr" "$work/$file"
-	if (cd "$work" && sh tools/harness/console_phases.sh $phase > /dev/null 2>&1); then
+	if cmp -s "$work/before.txt" "$work/$file"; then
+		echo "INVALID $name: the edit changed nothing"
+	elif (cd "$work" && sh tools/harness/console_phases.sh $phase > /dev/null 2>&1 < /dev/null); then
 		echo "SURVIVED $name"
 	else
 		killed=$((killed + 1)); echo "KILLED $name"
