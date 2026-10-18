@@ -1042,6 +1042,12 @@ PH.parsetokens = function()
 	local want = { "index=index", "==op", "log=indexname", " =space", "cat=field", "==op", "whisper=value", " =space", "|=pipe", " =space", "stats=cmd", " =space",
 		"count=fn", " =space", "by=arg", " =space", "cat=field" }
 	check(table.concat(k, ",") == table.concat(want, ","), "kinds: " .. table.concat(k, ","))
+	-- a pipe needs no spaces round it, and an escaped quote stays in its value (3.8.0.117 pattern tokenizer)
+	local tk = M.PSS_Psql.tokenize('index=log|head 1 "say \\"hi\\" x"')
+	local seen = {}
+	for _, t in ipairs(tk) do seen[#seen + 1] = t.t .. ":" .. tostring(t.v or t.s or "") end
+	check(seen[4] == "pipe:|" and seen[5] == "word:head", "pipe without spaces: " .. table.concat(seen, ","))
+	check(seen[#seen] == 'str:say "hi" x', "escaped quote: " .. tostring(seen[#seen]))
 	k = tokenKinds('index=inv #reagent -24h "a b" earliest=-7d (x OR y) item=$item')
 	local s = table.concat(k, ",")
 	check(s:find("#reagent=keyword") and s:find('"a b"=string') and s:find("%-7d=time") and s:find("OR=bool") and s:find("%$item=param") and s:find("%(=paren"), "kinds: " .. s)

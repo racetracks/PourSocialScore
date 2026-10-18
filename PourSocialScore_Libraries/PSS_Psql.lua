@@ -31,8 +31,6 @@ local function err(code, pos, msg) error({ code = code, pos = pos or 1, msg = ms
 -- Tokenizer
 ------------------------------------------------------------------------
 local SPACE = { [32] = true, [9] = true, [10] = true, [13] = true }
-local STOP = { [32] = true, [9] = true, [10] = true, [13] = true, [124] = true, [40] = true, [41] = true, [34] = true,
-	[61] = true, [60] = true, [62] = true, [33] = true, [44] = true }
 
 -- tokens { t = ws|pipe|lp|rp|op|comma|str|word, s = text, v = value, p = pos, n = len }
 local function tokenize(text)
@@ -41,7 +39,7 @@ local function tokenize(text)
 		local c = byte(text, i)
 		local start = i
 		if SPACE[c] then
-			while i <= n and SPACE[byte(text, i)] do i = i + 1 end
+			i = (find(text, "[^ \t\n\r]", i) or n + 1)		-- one pattern scan, not a byte loop
 			toks[#toks + 1] = { t = "ws", p = start, n = i - start }
 		elseif c == 124 then toks[#toks + 1] = { t = "pipe", s = "|", p = i, n = 1 }; i = i + 1
 		elseif c == 40 then toks[#toks + 1] = { t = "lp", s = "(", p = i, n = 1 }; i = i + 1
@@ -57,16 +55,17 @@ local function tokenize(text)
 		elseif c == 34 then
 			local out, j = {}, i + 1
 			while true do
-				if j > n then return nil, { code = "parse", pos = start, msg = "a quoted value is not closed" } end
-				local d = byte(text, j)
-				if d == 92 and j < n then out[#out + 1] = sub(text, j + 1, j + 1); j = j + 2
-				elseif d == 34 then break
-				else out[#out + 1] = sub(text, j, j); j = j + 1 end
+				local k = find(text, '["\\]', j)		-- the next quote or backslash; the run before it is plain
+				if not k then return nil, { code = "parse", pos = start, msg = "a quoted value is not closed" } end
+				out[#out + 1] = sub(text, j, k - 1)
+				if byte(text, k) == 34 then j = k break end
+				if k == n then return nil, { code = "parse", pos = start, msg = "a quoted value is not closed" } end
+				out[#out + 1] = sub(text, k + 1, k + 1); j = k + 2
 			end
 			toks[#toks + 1] = { t = "str", s = sub(text, i, j), v = concat(out), p = i, n = j - i + 1 }
 			i = j + 1
 		else
-			while i <= n and not STOP[byte(text, i)] do i = i + 1 end
+			i = (find(text, "[ \t\n\r|()\"=<>!,]", i) or n + 1)
 			toks[#toks + 1] = { t = "word", s = sub(text, start, i - 1), p = start, n = i - start }
 		end
 	end
