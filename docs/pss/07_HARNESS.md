@@ -1,4 +1,5 @@
 # PSS harness (tools/harness)
+Purpose: PSS harness commands and checks · Owner: PSS pack · Status: current · Related: baseline 06, docs/pss/15_ROUTES.md
 
 **The harness is the simulated client Claude codes against (required, the author, 2026-10-09; 11_PREFERENCES).** The general harness is baseline 06; this file lists PSS's commands and checks.
 
@@ -7,6 +8,7 @@
 - **Setup:** `lua5.1` (apt) and `git fetch --depth=2000 origin main:refs/remotes/origin/main`. The explicit ref matters: in a single-branch clone a plain `git fetch origin main` leaves `origin/main` unknown and the comparisons skip. The depth matters: `validate_all.sh`'s upgrade checks rebuild old versions from history, and in a shallow clone its "split" checks fail on 2.0.1 and 2.0.40.
 - **Real saves** live only on scratch (`SavedVariables/<version>/`). `sh tools/harness/build_saves.sh <scratch checkout> [out dir]` writes `<out dir>/<version>/PourSocialScore.lua` for each (a 2.0 save as is; a 3.x set joined: core, Options, Logging, EllesmereUI; out dir defaults to `/tmp/pss-baselines`).
 - **`validate_all.sh` switches:** `PSS_REAL_SAVES=<out dir>` adds every real save; a check that cannot run prints `SKIPPED ...` and fails the run (`PSS_ALLOW_SKIP=1` accepts it); `PSS_SAME_AS=<ref>` runs `same_saves.sh` at the end; `PSS_SPARSE_AS=<ref>` compares every save with another build through `sparse_saves.sh` (opt-in, for a change to the saved layout); `PSS_VALIDATION_LOG=<file>` also writes the whole output to that file (same output and exit status).
+- **Stage close (`DEC-00390`):** `sh tools/stage_close.sh <scratch checkout> [--dry-run] [--no-host] [--no-push]`, run from the addon repo root; quiet, failure-only. Four steps in order, stopping at the first failure: `saves` (`build_saves.sh`), `validate` (`validate_all.sh` on those saves), `host` (`host_build.sh`, the test zip; skipped by `--no-host`, `--no-push` is passed on), `render` (`ledger.py render`, the session README). `PSS_STAGE_OUT` (default `${TMPDIR:-/tmp}/pss-stage-close`) is the out dir, removed and recreated at start; each step's full output is `<out>/<step>.log`. Exit 0 all passed (or a dry run, which prints `would run:` lines), 1 a step failed (`FAIL <step>` and the log tail), 2 a bad option, wrong directory or missing checkout.
 
 | Command | Proves |
 | --- | --- |
