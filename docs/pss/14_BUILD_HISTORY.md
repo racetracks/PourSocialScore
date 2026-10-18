@@ -38,6 +38,15 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.124 - Ignore agent session files
+
+- Branch: `ccr-6fe8cad3-dfamel`; PR: none yet.
+- What changed and why: (written in the PR)
+- Docs updated: (written in the PR)
+- Tests run: (written in the PR)
+- Not shown by the simulation: (written in the PR)
+- In-game checks: (written in the PR)
+
 ### 3.8.0.123 - Docs and tooling: context budget and M1 lane
 
 - Branch: `claude/busy-fermi-qrk4qx`; [PR #246](https://github.com/racetracks/PourSocialScore/pull/246) (supersedes [PR #244](https://github.com/racetracks/PourSocialScore/pull/244)).

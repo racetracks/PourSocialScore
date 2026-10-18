@@ -1,1 +1,4 @@
 __pycache__/
+# agent operating pack session state (.claude/README.md, Install step 2)
+.claude/.session
+sessions/
