@@ -338,6 +338,15 @@ for _, look in ipairs({ 1, 2, 0 }) do
 	check(ml.label:GetAlpha() == (look == 1 and 0.7 or 0.85) and ml.text:GetAlpha() == 1, "money line label fade in look " .. look)
 end
 M.PSS_SetOpt("uiSkin", "global", 0)
+-- search-helper phase B: the chart kit (TST-00932), a column chart of 5 bars in every look
+check(kit.chart and kit.chart:Kind() == "column", "kit chart is not a column chart")
+for _, look in ipairs({ 1, 2, 0 }) do
+	M.PSS_SetOpt("uiSkin", "global", look)
+	local nb = 0
+	for _, b in ipairs(kit.chart.p.bars) do if b:IsShown() then nb = nb + 1 end end
+	check(nb == 5, "kit chart shows " .. nb .. " bars in look " .. look)
+end
+M.PSS_SetOpt("uiSkin", "global", 0)
 -- chips: the x sits just after the name, chips share a line and wrap
 il:SetItems({ 1, 2, 3 })
 local chip = il.rows[1]
