@@ -2,7 +2,7 @@
 	"latestRelease": "3.7.0.114",
 	"preReleases": [
 		{ "version": "3.7.1.115", "pr": 237 },
-		{ "version": "3.7.1.116", "pr": null }
+		{ "version": "3.7.1.116", "pr": 239 }
 	],
 	"releases": [
 		{
