@@ -2223,9 +2223,9 @@ if phase == "whtab" then
 	WORLD.apply(H, w, 1, client)
 	M.PSS_MeReset()
 	local idx = M.PSS_UITabIndex("warehouse")
-	check(idx and M.PSS_UI_TABS[idx].text == "Warehouse" and M.PSS_UI_TABS[idx + 1] and M.PSS_UI_TABS[idx + 1].key == "events", "F6: the Warehouse tab sits before Events while the Warehouse is on")
+	check(idx and M.PSS_UI_TABS[idx].text == "Warehouse" and M.PSS_UI_TABS[idx + 1] == nil and M.PSS_UI_TABS[idx - 1].key == "addons", "F6: the Warehouse tab sits after the Addon Manager while the Warehouse is on")
 	local addons = M.PSS_UITabIndex("addons")
-	check(addons == 4 and idx == 5, "F6: the Addon Manager stays tab 4, the Warehouse is tab 5")
+	check(addons == 5 and idx == 6, "F6: the Addon Manager is tab 5, the Warehouse is tab 6")
 	for _, look in ipairs({ 2, 0, 1 }) do
 		M.PSS_SetOpt("uiSkin", "global", look)
 		M.PSS_OpenUI(true, "warehouse")
@@ -2614,7 +2614,7 @@ if phase == "memclose" then
 	check(M.PSS_Need("Libraries"), "Libraries did not load")
 	local A = kb()
 	local win
-	local TABS = { "players", "guilds", "filters", "addons", "warehouse", "events", "options" }
+	local TABS = { "players", "guilds", "filters", "addons", "warehouse", "options" }
 	for _, key in ipairs(TABS) do M.PSS_OpenUI(true, key) end
 	win = _G.PSS_Window
 	check(win and win:IsShown(), "the window opened")

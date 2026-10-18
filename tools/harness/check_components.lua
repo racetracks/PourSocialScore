@@ -66,9 +66,9 @@ function phases.options()
 	SlashCmdList["PSS"]("gui")
 	local win = _G.PSS_Window
 	local ui = H.Private("PourSocialScore_GUI")
-	win.tabs[4]._scripts.OnClick(win.tabs[4])
+	win.tabs[M.PSS_UITabIndex("addons")]._scripts.OnClick(win.tabs[M.PSS_UITabIndex("addons")])
 	H.Private("PourSocialScore_GUI").ManagerShow("options")
-	local page = win.pages[4].pages.options
+	local page = win.pages[M.PSS_UITabIndex("addons")].pages.options
 	local row
 	for _, it in ipairs(page.groups[1].items) do if it.o.key == "useAddons" then row = it.row end end
 	check(row and row.check, "no Addon Manager row")
@@ -142,7 +142,7 @@ function phases.addonson()
 	check(type(SlashCmdList["PSSACP"]) == "function", "no /acp")
 	check(#AddonCompartmentFrame.registered == 2, "compartment entries: " .. #AddonCompartmentFrame.registered)
 	check(M.PSS_Need("Libraries") and type(M.PSS_AddonList) == "function" and type(M.PSS_AddonCommand) == "function", "the addon manager did not load")
-	check(keysOf(M.PSS_UI_TABS) == "players,guilds,filters,addons,events", "tabs: " .. keysOf(M.PSS_UI_TABS))
+	check(keysOf(M.PSS_UI_TABS) == "players,guilds,filters,console,addons", "tabs: " .. keysOf(M.PSS_UI_TABS))
 	check(BINDING_NAME_PSS_OPEN_ADDONS == "Open Addon Manager", "the key's label")
 	check(not has(pss("acp api"), "The Addon Manager is off"), "/pss acp says off")
 end
@@ -180,9 +180,9 @@ function phases.filteringoff()
 	SlashCmdList["PSS"]("gui")
 	local win = _G.PSS_Window
 	check(win.offNote and win.offNote:IsShown() and win.offNote:GetText():find("nothing is blocked", 1, true), "the list tab does not say it")
-	win.tabs[4]._scripts.OnClick(win.tabs[4])
+	win.tabs[M.PSS_UITabIndex("addons")]._scripts.OnClick(win.tabs[M.PSS_UITabIndex("addons")])
 	check(not win.offNote:IsShown(), "the note shows on the Addon Manager")
-	check(keysOf(M.PSS_UI_TABS):find("events", 1, true), "Events tab gone with filtering off (logging is independent)")
+	check(keysOf(M.PSS_UI_TABS):find("console", 1, true), "Spyglass tab gone with filtering off")
 end
 
 function phases.filteringon()
@@ -205,7 +205,7 @@ function phases.loggingoff()
 	check((counts.whisper or 0) == 1 and (counts.total or 0) == 1, "the block was not counted")
 	check(stored() == before, "a line was stored")
 	check(M.PSS_Need("Libraries"), "Libraries")
-	check(not keysOf(M.PSS_UI_TABS):find("events", 1, true) and M.PSS_UI_EVENTS_TAB == nil, "Events tab listed: " .. keysOf(M.PSS_UI_TABS))
+	check(not keysOf(M.PSS_UI_TABS):find("events", 1, true), "Events tab listed: " .. keysOf(M.PSS_UI_TABS))
 	SlashCmdList["PSS"]("gui")
 	check(H.Private("PourSocialScore_GUI").OpenEvents == nil, "the Events tab code loaded")
 end
@@ -218,7 +218,6 @@ function phases.loggingon()
 	History.Add("p:Someone-Realm", counts, { cat = "whisper", ts = 1790000000 })
 	check(stored() == before + 1 and (counts.total or 0) == 1, "the line was not stored with logging on")
 	check(M.PSS_Need("Libraries"), "Libraries")
-	check(M.PSS_UI_EVENTS_TAB == 5 or camelot or M.PSS_UI_EVENTS_TAB ~= nil, "no Events tab")
 end
 
 -- a reload: set and save (reloadset), then load the saved file (reloadread)

@@ -41,7 +41,6 @@ ns.TAB_ROW_Y = TAB_Y
 local STREAKS = "_UI-Frame-TopTileStreaks"
 local SEP = "  >  "
 local TABS = M.PSS_UI_TABS
-local EVENTS = M.PSS_UI_EVENTS_TAB
 local CONSOLE = M.PSS_UITabIndex("console")
 
 -- the tabs' builders, keyed by M.PSS_UI_TABS key (the tab files add theirs)
@@ -263,19 +262,6 @@ function ResetTab(id)
 	ns.NavRecord()
 end
 
--- The Events tab, built if need be; prepare() then sets what it shows, as
--- a step of its own (pies and View Events).
-function ns.ShowEventsTab(prepare)
-	if not win then return end
-	local page = BuildTab(EVENTS)
-	if not page.refresh then return end
-	local shown = win.pages[curTab]
-	if shown.navClose then shown.navClose() end
-	if prepare then prepare() end
-	SelectTab(EVENTS)
-	ns.NavRecord()
-end
-
 -- Deep dive: a button opens the Spyglass console on a query (a registry key or
 -- text; ctx binds its parameters), with a Back chip to the tab it came from.
 function ns.DeepDive(keyOrText, ctx, from)
@@ -303,8 +289,8 @@ function ns.NavForward()
 	Go(nav:Forward())
 end
 
--- Escape: up one level; false at the top (the window closes). Events
--- opened from another tab (a pie, View Events) go back to that tab.
+-- Escape: up one level; false at the top (the window closes). The console
+-- opened from another tab (a deep dive) goes back to that tab.
 function ns.NavUp()
 	local page = win.pages[curTab]
 	if page.navClose and page.navClose() then UpdateNav() return true end
@@ -312,7 +298,7 @@ function ns.NavUp()
 		ns.NavRecord()
 		return true
 	end
-	if curTab == EVENTS or (curTab == CONSOLE and page.from) then
+	if curTab == CONSOLE and page.from then
 		local st = nav:BackToOther(curTab)
 		if st then
 			Go(st)

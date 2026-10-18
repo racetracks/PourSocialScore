@@ -1214,6 +1214,22 @@ PH.panehistory = function()
 	print("NOTE panehistory: lines compared " .. compared)
 end
 
+-- E07b: the Events tab is retired; a saved "events" opens the console, and the console's
+-- first System row is the Events preset
+PH.eventstab = function()
+	local con = M.PSS_UITabIndex("console")
+	check(con ~= nil and M.PSS_UITabIndex("events") == nil and M.PSS_UI_EVENTS_TAB == nil, "an Events tab is listed")
+	PourSocialScoreDB.windowPoints = PourSocialScoreDB.windowPoints or {}
+	PourSocialScoreDB.windowPoints.PSS_WindowTab = "events"
+	check(M.PSS_UITab() == con, "a saved Events tab did not open the console")
+	SlashCmdList["PSS"]("gui")
+	local win = _G.PSS_Window
+	check(win and win:IsShown() and win.pages[con] and win.pages[con]:IsShown(), "the window did not open on the console")
+	check(win.ShowEventsTab == nil and _G.PSS_Window ~= nil and not M.PSS_TAB_ALIAS.events == false, "alias missing")
+	local rows = M.PSS_ConsoleModel():LeftRows()
+	check(rows[2] and rows[2].text == "Events" and rows[2].query == "index=log | head 500", "the first System row is not Events")
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

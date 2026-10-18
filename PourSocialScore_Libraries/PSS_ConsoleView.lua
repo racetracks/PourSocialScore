@@ -385,6 +385,7 @@ end
 
 function CM:LeftRows()
 	local rows = { { head = "System" } }
+	rows[#rows + 1] = { key = "preset:events", text = "Events", query = "index=log | head 500" }
 	local sys = M.PSS_Call("sq.system", { scope = "any" })
 	for i = 1, sys and sys.n or 0 do
 		local r = sys[i]
@@ -494,7 +495,9 @@ function M.PSS_DeepDiveText(keyOrText, ctx)
 		end
 		local text = rowText(base, ctx)
 		if not text then return nil, "unknown query" end
-		local params = base.bind and base.bind(ctx) or {}
+		local params
+		if base.bind then params, range = base.bind(ctx) end
+		params = params or {}
 		if row.pane == "slice" then
 			text = beforePipe(text, " cat=$cat")
 			params.cat = ctx.cat
@@ -502,7 +505,7 @@ function M.PSS_DeepDiveText(keyOrText, ctx)
 			local f = ctx.period and PERIOD_RANGE[ctx.period]
 			range = f and f() or nil
 		end
-		local names = ctx.cats and sortedNames(ctx.cats) or {}
+		local names = type(ctx) == "table" and ctx.cats and sortedNames(ctx.cats) or {}
 		if #names > 0 then text = beforePipe(text, " (" .. orList(names) .. ")") end
 		return text, params, range
 	end

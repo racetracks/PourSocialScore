@@ -27,7 +27,6 @@ PSS_History.lua
 PSS_Players.lua
 PSS_Guilds.lua
 PSS_Filters.lua
-PSS_Events.lua
 PSS_Options.lua
 PSS_Addons.lua
 PSS_Nav.lua

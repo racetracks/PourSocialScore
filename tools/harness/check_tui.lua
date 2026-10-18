@@ -161,11 +161,12 @@ check(not win:IsShown(), "Escape did not close the window")
 ------------------------------------------------------------------------
 SlashCmdList["PSS"]("gui")
 check(win:IsShown(), "window did not open again")
+local AD = M.PSS_UITabIndex("addons")
 local names = {}
 for i, t in ipairs(win.tabs or {}) do names[i] = t:GetText() end
-check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,Addon Manager,Events", "tabs are not the five")
+check(table.concat(names, ",") == "Player Ignore List,Guild Ignore List,Chat Filters,Spyglass,Addon Manager", "tabs are not the five")
 check(win.tabs[1].pssSelected and win.pages[1]:IsShown() and not win.pages[2]:IsShown(), "first tab not shown first")
-check(win.pages[4].note == nil and not win.pages[4].refresh, "a tab not opened yet is not built, and has no placeholder note")
+check(win.pages[AD].note == nil and not win.pages[AD].refresh, "a tab not opened yet is not built, and has no placeholder note")
 check(win.where:GetText() == "Player Ignore List", "the line by the arrows does not name the tab")
 check(win.where:GetAlpha() == 0.9, "the line by the arrows is not at 0.9")
 check(not win.back:IsEnabled() and not win.forward:IsEnabled(), "arrows enabled with nowhere to go")
@@ -177,13 +178,13 @@ check(PourSocialScoreDB.windowPoints.PSS_WindowTab == "filters", "tab shown not 
 check(win.back:IsEnabled() and win.where:GetText() == "Chat Filters", "tab click is not a step back")
 -- a page with a sub-view (as the Guilds tab's members view): the Addon Manager tab
 -- page, not built yet, stands in (the Addon Manager tab)
-local pg = win.pages[4]
+local pg = win.pages[AD]
 local sub
 pg.navState = function() return sub end
 pg.navApply = function(v) sub = v end
 pg.navUp = function() if sub then sub = nil return true end return false end
 pg.navTitle = function(v) return "Members of " .. v end
-win.tabs[4]._scripts.OnClick(win.tabs[4])
+win.tabs[AD]._scripts.OnClick(win.tabs[AD])
 sub = "Badguild"
 local ui = H.Private("PourSocialScore_GUI")
 ui.NavRecord()
@@ -196,7 +197,7 @@ ui.NavBack()
 check(win.pages[3]:IsShown() and win.forward:IsEnabled(), "back did not return to the tab before")
 ui.NavForward()
 ui.NavForward()
-check(win.pages[4]:IsShown() and sub == "Badguild", "forward did not return to the sub-view")
+check(win.pages[AD]:IsShown() and sub == "Badguild", "forward did not return to the sub-view")
 -- mouse buttons 4 / 5 over the window only
 win._mouseOver = true
 win._scripts.OnEvent(win, "GLOBAL_MOUSE_UP", "Button4")
@@ -230,26 +231,17 @@ check(sub == "Badguild" and win:IsShown() and _G.PSS_WindowEscape:IsShown(), "Es
 H.Advance(1)
 _G.PSS_WindowEscape:Hide()
 check(sub == nil and win:IsShown(), "the next Escape did not step up one level")
--- Events opened from another tab: Escape goes back there
-win.tabs[5]._scripts.OnClick(win.tabs[5])
-check(win.pages[5]:IsShown(), "Events tab not shown")
-_G.PSS_WindowEscape:Hide()
-check(win:IsShown() and win.pages[4]:IsShown(), "Escape on Events did not go back to the tab before")
 _G.PSS_WindowEscape:Hide()
 check(not win:IsShown(), "Escape at the top did not close the window")
 pg.navState, pg.navApply, pg.navUp, pg.navTitle = nil, nil, nil, nil
 -- the tab shown last opens next time; the first tab clears the saved one
 SlashCmdList["PSS"]("gui")
-check(win.pages[4]:IsShown() and M.PSS_UITab() == 4, "saved tab not reopened")
+check(win.pages[AD]:IsShown() and M.PSS_UITab() == AD, "saved tab not reopened")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 check(PourSocialScoreDB.windowPoints.PSS_WindowTab == nil, "the first tab was saved")
--- (3.4.0.15) Events is never the tab the window opens on (it would load
--- Logging before any click): the tab before it stays saved
-win.tabs[4]._scripts.OnClick(win.tabs[4])
-win.tabs[5]._scripts.OnClick(win.tabs[5])
-check(M.PSS_UITab() == 4, "the Events tab was saved: " .. tostring(M.PSS_UITab()))
+-- a saved "events" (the retired tab) opens the console
 PourSocialScoreDB.windowPoints.PSS_WindowTab = "events"
-check(M.PSS_UITab() == 1, "a saved Events tab was reopened")
+check(M.PSS_UITab() == M.PSS_UITabIndex("console"), "a saved Events tab did not open the console")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
 -- a page with a builder is built on first select and redrawn when shown
 -- (the Import/Export page's own builder, counted)
@@ -260,10 +252,10 @@ ui.PageBuilders.importExport = function(page)
 	local redraw = realBuild(page)
 	return function() drawn = drawn + 1 redraw() end
 end
-win.tabs[4]._scripts.OnClick(win.tabs[4])
+win.tabs[AD]._scripts.OnClick(win.tabs[AD])
 ui.ManagerShow("importExport")
 ui.ManagerShow("importExport")
-check(built == 1 and drawn == 2 and win.pages[4].pages.importExport.refresh, "a page builder did not build once and redraw")
+check(built == 1 and drawn == 2 and win.pages[AD].pages.importExport.refresh, "a page builder did not build once and redraw")
 ui.PageBuilders.importExport = realBuild
 ui.ManagerShow("addons")
 win.tabs[1]._scripts.OnClick(win.tabs[1])
@@ -777,9 +769,9 @@ do
 	local ui = H.Private("PourSocialScore_GUI")
 	win:Hide()
 	SlashCmdList["PSS"]("acp")
-	local pg = win.pages[4].pages.addons
-	check(win:IsShown() and win.pages[4]:IsShown() and pg:IsShown() and pg.refresh, "/pss acp did not open the AddOns tab")
-	check(M.PSS_MgrCollapsed() and not win.pages[4].nav:IsShown(), "/pss acp did not open with the navigation collapsed")
+	local pg = win.pages[AD].pages.addons
+	check(win:IsShown() and win.pages[AD]:IsShown() and pg:IsShown() and pg.refresh, "/pss acp did not open the AddOns tab")
+	check(M.PSS_MgrCollapsed() and not win.pages[AD].nav:IsShown(), "/pss acp did not open with the navigation collapsed")
 	SlashCmdList["PSS"]("acp")
 	check(not win:IsShown(), "/pss acp again did not close the window")
 	win.tabs[1]._scripts.OnClick(win.tabs[1])
@@ -789,15 +781,15 @@ do
 	check(PourSocialScoreDB.windowPoints.PSS_WindowTab == "addons", "the AddOns tab is not remembered as the last tab")
 	-- the Options page's search box (in its header row)
 	ui.ManagerShow("options")
-	local sb = win.pages[4].pages.options.search
+	local sb = win.pages[AD].pages.options.search
 	check(sb and sb:GetWidth() >= 160, "the Options search box is narrower than 160")
 	ui.ManagerShow("addons")
-	win.tabs[4]._scripts.OnClick(win.tabs[4])
-	-- (3.6.0.91) the tabs are Players, Guilds, Chat Filters, Addon Manager, Events; Import/Export and
+	win.tabs[AD]._scripts.OnClick(win.tabs[AD])
+	-- (3.6.0.91) the tabs are Players, Guilds, Chat Filters, Spyglass, Addon Manager; Import/Export and
 	-- Options are pages of the Addon Manager. The last tab is saved by its key, so an old save's
 	-- tab (and its page) still opens
-	check(M.PSS_UI_TABS[4].key == "addons" and M.PSS_UI_TABS[5].key == "events" and M.PSS_UI_EVENTS_TAB == 5 and #M.PSS_UI_TABS == 5, "the tab order is not Chat Filters, Addon Manager, Events")
-	for key, id in pairs({ players = 1, guilds = 2, filters = 3, addons = 4, importExport = 4, options = 4 }) do
+	check(M.PSS_UI_TABS[4].key == "console" and M.PSS_UI_TABS[5].key == "addons" and M.PSS_UI_EVENTS_TAB == nil and #M.PSS_UI_TABS == 5, "the tab order is not Chat Filters, Spyglass, Addon Manager")
+	for key, id in pairs({ players = 1, guilds = 2, filters = 3, console = 4, addons = 5, importExport = 5, options = 5, events = 4 }) do
 		PourSocialScoreDB.windowPoints.PSS_WindowTab = key
 		check(M.PSS_UITab() == id, "the saved tab " .. key .. " opens tab " .. M.PSS_UITab() .. ", not " .. id)
 		check(key ~= "importExport" and key ~= "options" or M.PSS_MgrPage() == key, "the saved " .. key .. " did not open its page")
@@ -931,7 +923,7 @@ do
 	-- navcollapse: the fold is one call, no timer or OnUpdate
 	win:Hide()
 	SlashCmdList["PSS"]("acp")
-	local h = win.pages[4]
+	local h = win.pages[AD]
 	-- the stub keeps every anchor ever set: the newest TOPLEFT is the one in force
 	local function left()
 		for i = #h.body._points, 1, -1 do
@@ -959,7 +951,7 @@ do
 	win:Hide()
 	-- the social pages: a note and a button that opens the tab
 	ui.ManagerShow("guilds")
-	local sp = win.pages[4].pages.guilds
+	local sp = win.pages[AD].pages.guilds
 	win:Show()
 	check(sp.open and sp.open:GetText() == "Open Guild Ignore List", "social page button")
 	sp.open._scripts.OnClick(sp.open)

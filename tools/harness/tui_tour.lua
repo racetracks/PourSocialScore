@@ -251,7 +251,7 @@ for _, skin in ipairs({ 2, 0, 1 }) do
 		ui.Confirm({ title = "Disable All AddOns?", text = "Tour disable all", accept = "Disable All" })
 	end)
 	step(look .. " addons disable all closed", function() _G.PSS_Confirm:Hide() end)
-	step(look .. " events", function() click(win.tabs[TAB("events")]) end)
+	step(look .. " console", function() click(win.tabs[TAB("console")]) end)
 	step(look .. " close", function() win:Hide() end)
 end
 
