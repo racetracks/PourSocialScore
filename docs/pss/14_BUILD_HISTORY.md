@@ -38,6 +38,15 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.124 - Ignore agent session files
+
+- Branch: `ccr-6fe8cad3-dfamel`; [PR #247](https://github.com/racetracks/PourSocialScore/pull/247).
+- What changed and why: `.gitignore` (`.gitignore:2-4`) gains `.claude/.session` and `sessions/`, the agent pack's install step 2 (`.claude/README.md#install`), missed when the pack landed on main (c5c73fe). Session state was untracked and flagged by the stop hook in every session. Safe: nothing under either path is tracked or was ever committed; `ledger.py` walks the session directory itself (`.claude/scripts/ledger.py:230`, written for a git-ignored session root) and already skips `.claude/.session` (`.claude/scripts/ledger.py:50`); `host_build.sh` and `host_tests.sh` package from `git archive HEAD`. Later planned builds move up one (06 Next; scratch roadmap stage rows). The author chose a build of its own over riding in #242 (2026-10-18, prompt 002).
+- Docs updated: `docs/pss/06_STATUS_AND_NEXT.md` (Now, Next), this entry, `history.txt`; scratch `documents/code-map/Roadmaps/In_Progress/Spyglass_Journal_Bags/Readme.md` stage rows 3 to 8.
+- Tests run: `check_rules.sh` pass; `validate_all.sh` on the 14 real saves from scratch (`build_saves.sh`) 1365 PASS / 0 FAIL, scratch gate on; `tui_compare.sh` and same-as-main not run (no addon file changed).
+- Not shown by the simulation: nothing; no addon file changed.
+- In-game checks: none needed (the zip is the 3.8.0.123 addon with the new version number); optional: the AddOns list shows 3.8.0.124.
+
 ### 3.8.0.123 - Docs and tooling: context budget and M1 lane
 
 - Branch: `claude/busy-fermi-qrk4qx`; [PR #246](https://github.com/racetracks/PourSocialScore/pull/246) (supersedes [PR #244](https://github.com/racetracks/PourSocialScore/pull/244)).
