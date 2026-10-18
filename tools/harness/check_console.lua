@@ -380,6 +380,160 @@ PH.qvchaos = function()
 	M.PSS_Search = real
 end
 
+-- TST-00967 time picker
+local CV = M.PSS_ConsoleView
+local NOW = utc(2026, 10, 17, 13, 35)
+local function U(d, h) return utc(2026, 10, d, h or 0) end
+
+PH.pickpresets = function()
+	local want = {
+		last15m = { NOW - 900, NOW }, last60m = { NOW - 3600, NOW }, last4h = { NOW - 14400, NOW },
+		last24h = { NOW - 86400, NOW }, last7d = { NOW - 604800, NOW }, last30d = { NOW - 2592000, NOW },
+		today = { U(17), NOW }, yesterday = { U(16), U(17) }, thisweek = { U(12), NOW },
+		lastweek = { U(5), U(12) }, thismonth = { U(1), NOW }, lastmonth = { utc(2026, 9, 1), U(1) },
+		all = { nil, nil },
+	}
+	check(#CV.PRESETS == 13, "13 presets, got " .. #CV.PRESETS)
+	for _, r in ipairs(CV.PRESETS) do
+		local e, l, label = CV.pickerRange({ preset = r.key }, NOW)
+		local w = want[r.key]
+		check(w ~= nil, "unexpected preset " .. r.key)
+		if w then
+			check(e == w[1], r.key .. ": earliest " .. tostring(e) .. " want " .. tostring(w[1]))
+			check(l == w[2], r.key .. ": latest " .. tostring(l) .. " want " .. tostring(w[2]))
+			check(label == r.text, r.key .. ": label " .. tostring(label))
+		end
+	end
+end
+
+PH.pickrelative = function()
+	local e, l, label, term = CV.pickerRange({ relative = true, n = 3, unit = "d", snap = "d" }, NOW)
+	check(e == U(14) and l == NOW, "3d@d range " .. tostring(e) .. " " .. tostring(l))
+	check(term == "earliest=-3d@d", "term " .. tostring(term))
+	check(label == "Last 3 days, from start of day", "label " .. tostring(label))
+	local a, pos, msg = CV.pickerRange({ relative = true, n = 0, unit = "d" }, NOW)
+	check(a == nil and pos == 1 and msg == "a whole number 1 to 9999", "n = 0 refused: " .. tostring(msg))
+end
+
+PH.pickrange = function()
+	local e, l = CV.pickerRange({ between = true, from = "2026-10-01", to = "2026-10-07T18:00" }, NOW)
+	check(e == U(1) and l == U(7, 18), "between " .. tostring(e) .. " " .. tostring(l))
+	local e2, l2 = CV.pickerRange({ between = true, from = "2026-10-01", to = "2026-10-07" }, NOW)
+	check(l2 == U(8), "date-only end is the next midnight: " .. tostring(l2))
+	local a, pos, msg = CV.pickerRange({ between = true, from = "2026-10-09", to = "2026-10-07" }, NOW)
+	check(a == nil and msg == "the start is after the end", "from after to: " .. tostring(msg))
+	local b = CV.pickerRange({ before = true, to = "2026-10-07T18:00" }, NOW)
+	check(b == nil, "before has no start")
+	local off, days = CV.monthGrid(2026, 10)
+	check(off == 3 and days == 31, "October 2026 grid " .. tostring(off) .. " " .. tostring(days))
+	local y, m = CV.monthStep(2026, 12, 1)
+	check(y == 2027 and m == 1, "monthStep forward")
+	y, m = CV.monthStep(2026, 1, -1)
+	check(y == 2025 and m == 12, "monthStep back")
+	local cal = GUI().NewCalendar(UIParent, function(day) PH.picked = day end)
+	cal:SetMonth(2026, 10)
+	local shown = 0
+	for _, b in ipairs(cal.days) do if b:IsShown() then shown = shown + 1 end end
+	check(shown == 31, "calendar shows 31 days, " .. shown)
+	cal.days[off + 1]:GetScript("OnClick")(cal.days[off + 1])
+	check(PH.picked == "2026-10-01", "day 1 writes " .. tostring(PH.picked))
+end
+
+PH.pickadvanced = function()
+	local e, l = CV.pickerRange({ advanced = true, earliest = "-7d@d", latest = "now" }, NOW)
+	check(e == U(10) and l == NOW, "advanced " .. tostring(e) .. " " .. tostring(l))
+	local a, pos, msg = CV.pickerRange({ advanced = true, earliest = "-7x", latest = "" }, NOW)
+	check(a == nil and tostring(msg):find("^earliest: "), "bad earliest: " .. tostring(msg))
+	a, pos, msg = CV.pickerRange({ advanced = true, earliest = "-7d", latest = "zzz" }, NOW)
+	check(a == nil and tostring(msg):find("^latest: "), "bad latest: " .. tostring(msg))
+end
+
+PH.picktyped = function()
+	check(CV.typedTime("index=log earliest=-7d") == true, "earliest typed")
+	check(CV.typedTime("index=log gold") == false, "no time typed")
+	local seen
+	local real = M.PSS_Search
+	M.PSS_Search = function(q, o) seen = o; return real(q, o) end
+	local v = newView({ w = 400, h = 240, query = "index=log earliest=-7d" })
+	v:SetRange({ earliest = NOW - 86400, latest = NOW })
+	v:Run(true)
+	check(seen and seen.from == nil, "typed time ignores the picker range: " .. tostring(seen and seen.from))
+	local v2 = newView({ w = 400, h = 240, query = "index=log gold" })
+	v2:SetRange({ earliest = NOW - 86400, latest = NOW })
+	v2:Run(true)
+	check(seen and seen.from == NOW - 86400, "plain query uses the range: " .. tostring(seen and seen.from))
+	M.PSS_Search = real
+end
+
+PH.pickaxis = function()
+	local save = GetServerTime
+	GetServerTime = function() return NOW end
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local log = History.Log()
+	for i, d in ipairs({ 9, 11, 13, 13, 17 }) do
+		local e = History.NewEntry(History.ALL_CATS[i % 6 + 1], "CHAT_MSG_CHANNEL", "hello " .. i, "Trade", nil)
+		e.ts = utc(2026, 10, d, 9, 0)
+		e.o = "p:Owner-Realm"
+		log[#log + 1] = e
+	end
+	local v = newView({ w = 400, h = 240, query = "index=log | timechart span=1d count" })
+	local p = GUI().NewTimePicker(UIParent)
+	p:SetChoice({ preset = "last7d" })
+	local e, l = p:Range()
+	v:SetRange({ earliest = e, latest = l })
+	v:Run(true)
+	local rs = v:Result()
+	GetServerTime = save
+	check(rs and rs.n == 8, "8 day rows, got " .. tostring(rs and rs.n) .. " " .. tostring(v.vm:Status()))
+	if rs and rs.n == 8 then
+		check(rs[1][2] == 0 and rs[8][2] == 1, "empty first day 0, last day 1: " .. tostring(rs[1][2]) .. " " .. tostring(rs[8][2]))
+	end
+end
+
+PH.picklooks = function()
+	local function sig(f, out, depth)
+		for _, c in ipairs({ f:GetChildren() }) do
+			if c:IsShown() then
+				local pt, rel, rp, x, y = c:GetPoint(1)
+				out[#out + 1] = format("%d:%s %.1fx%.1f %s %s %.1f %.1f", depth, tostring(c:GetObjectType()), c:GetWidth() or 0, c:GetHeight() or 0, tostring(pt), tostring(rp), x or 0, y or 0)
+				sig(c, out, depth + 1)
+			end
+		end
+	end
+	local ref = {}
+	looks(function(n, name)
+		local p = GUI().NewTimePicker(UIParent)
+		p:SetPoint("CENTER")
+		for _, mode in ipairs({ "relative", "range", "advanced" }) do
+			p:OpenPanel(mode)
+			local panel, cal = p:Panel()
+			if mode == "range" then cal:SetMonth(2026, 10); cal:Show() end
+			local out = {}
+			sig(panel, out, 0)
+			if mode == "range" then sig(cal, out, 0) end
+			local r = ref[mode]
+			if not r then ref[mode] = out
+			else
+				check(#out == #r, name .. " " .. mode .. ": " .. #out .. " shown, modern " .. #r)
+				for i = 1, math.min(#out, #r) do
+					if out[i] ~= r[i] then check(false, name .. " " .. mode .. " #" .. i .. ": " .. out[i] .. " vs " .. r[i]) break end
+				end
+			end
+			panel:Hide()
+		end
+	end)
+end
+
+PH.pickperview = function()
+	local a, b = GUI().NewTimePicker(UIParent), GUI().NewTimePicker(UIParent)
+	a:SetChoice({ preset = "today" })
+	b:SetChoice({ preset = "last4h" })
+	check(a:Choice().preset == "today" and b:Choice().preset == "last4h", "choices are per picker")
+	a:SetTyped(true)
+	check(a:Choice().preset == "today", "typed keeps the choice")
+end
+
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

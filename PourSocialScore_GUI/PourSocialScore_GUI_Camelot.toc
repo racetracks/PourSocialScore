@@ -19,6 +19,7 @@ PSS_Rows.lua
 PSS_Pie.lua
 PSS_Chart.lua
 PSS_QueryView.lua
+PSS_TimePicker.lua
 PSS_Detail.lua
 PSS_History.lua
 PSS_Players.lua
