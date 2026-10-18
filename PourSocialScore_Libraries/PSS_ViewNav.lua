@@ -52,6 +52,7 @@ local ALL_TABS = {
 	{ key = "players", text = "Player Ignore List" },
 	{ key = "guilds", text = "Guild Ignore List" },
 	{ key = "filters", text = "Chat Filters" },
+	{ key = "console", text = M.PSS_CONSOLE_NAME },
 	{ key = "addons", text = "Addon Manager" },
 	{ key = "warehouse", text = "Warehouse" },
 	{ key = "events", text = "Events" },

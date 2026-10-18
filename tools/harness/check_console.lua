@@ -534,6 +534,287 @@ PH.pickperview = function()
 end
 
 
+-- TST-00934 console tab (model level)
+PH.conopts = function()
+	local all, base = M.PSS_OPTION_REG, nil
+	check(all.conTime and all.conTime.default == "all" and all.conRows.default == 500, "con options declared")
+	local ch = all.conTime.choices
+	check(#ch == 13 and ch[1][1] == "all", "13 conTime choices, got " .. #ch)
+	local CV = M.PSS_ConsoleView
+	for i, r in ipairs(CV.PRESETS) do
+		local found
+		for _, c in ipairs(ch) do if c[1] == r.key and c[2] == r.text then found = true end end
+		check(found, "preset " .. r.key .. " in conTime choices")
+	end
+	local db = PSS_OptionsDB
+	local function dump() local n = 0 for k in pairs(db) do if tostring(k):find("^con") then n = n + 1 end end return n end
+	base = dump()
+	M.PSS_SetOpt("conRows", "global", 800)
+	M.PSS_SetOpt("conTime", "global", "last7d")
+	check(M.PSS_Opt("conRows") == 800 and M.PSS_Opt("conTime") == "last7d", "set values read back")
+	M.PSS_SetOpt("conRows", "global", 500)
+	M.PSS_SetOpt("conTime", "global", "all")
+	check(dump() == base, "defaults stored sparse: " .. dump() .. " vs " .. base)
+	local found
+	for _, t in ipairs(M.PSS_UI_TABS) do if t.key == "console" then found = true end end
+	check(found, "console tab in M.PSS_UI_TABS")
+end
+
+PH.conmodel = function()
+	local CV = M.PSS_ConsoleView
+	check(CV.colorize("a|b", { n = 1, { 1, 3, "word" } }, function() return "ff0000" end) == "|cffff0000a||b|r", "colorize wraps and escapes")
+	check(CV.colorize("a b", { n = 3, { 1, 1, "word" }, { 2, 1, "space" }, { 3, 1, "word" } }, function(k) return k == "word" and "00ff00" or nil end)
+		== "|cff00ff00a|r |cff00ff00b|r", "space plain")
+	check(CV.term("owner", 'a"b') == 'owner="a\\"b"' or CV.term("owner", 'a"b') == 'owner="a\"b"', "term escapes quote")
+	check(CV.term("n", 5) == "n=5", "number bare")
+	check(CV.addTerm("index=log | head 5", 'x="1"') == 'index=log x="1" | head 5', "addTerm before pipe: " .. CV.addTerm("index=log | head 5", 'x="1"'))
+	check(CV.addTerm('index=log m="a|b"', "x=1") == 'index=log m="a|b" x=1', "addTerm pipe inside quotes")
+	check(CV.addTerm("", "x=1") == "x=1", "addTerm empty")
+	local q, p, r = M.PSS_DeepDiveText("index=log")
+	check(q == "index=log", "text passes through")
+	M.PSS_BUTTON_QUERIES.k = { query = "index=pss", bind = function(c) return { a = c }, "R" end }
+	q, p, r = M.PSS_DeepDiveText("k", 7)
+	check(q == "index=pss" and p.a == 7 and r == "R", "key resolves")
+	M.PSS_BUTTON_QUERIES.k = nil
+	q, p = M.PSS_DeepDiveText(42)
+	check(q == nil and p == "unknown query", "bad input")
+	local cm = M.PSS_ConsoleModel()
+	local rows, heads = cm:LeftRows(), {}
+	for _, x in ipairs(rows) do if x.head then heads[#heads + 1] = x.head end end
+	check(table.concat(heads, ",") == "System,Mine,Indexes,Data dictionary", "four groups: " .. table.concat(heads, ","))
+	check(next(cm:Sidebar(set({ "a" }, {}))) == nil, "empty sidebar")
+	check(#CV.HELP == 15, "15 help rows")
+	for i, h in ipairs(CV.HELP) do
+		local ok, e = pcall(M.PSS_Psql.parse, h[1])
+		check(ok, "help " .. i .. " parses: " .. h[1] .. " " .. tostring(type(e) == "table" and e.msg or e))
+	end
+	local kinds = cm:ChartKinds("series")
+	check(table.concat(kinds, ",") == "column,line,area,table", "series kinds " .. table.concat(kinds, ","))
+	local s = cm:Sidebar(set({ "owner", "n", "time" }, { { "a", 1, 5 }, { "a", 2, 6 }, { "b", 3, 7 } }))
+	check(#s == 2 and s[1].field == "owner" and s[1].rows[1][1] == "a" and s[1].rows[1][2] == 2, "sidebar owner top")
+end
+
+
+-- TST-00934 console tab (window level)
+local function click(b, button) local fn = b and b:GetScript("OnClick") if fn then fn(b, button or "LeftButton") end end
+local function conIndex() return M.PSS_UITabIndex("console") end
+local function openCon()
+	GUI()
+	if not (_G.PSS_Window and _G.PSS_Window:IsShown()) then SlashCmdList.PSS("gui") end
+	local win = _G.PSS_Window
+	click(win.tabs[conIndex()])
+	return win.pages[conIndex()], win
+end
+local function hexOf(t, text) return ui.SyntaxHex and M.PSS_ConsoleView.colorize(text, t, ui.SyntaxHex) end
+
+PH.contab = function()
+	GUI()
+	local n, orig = 0, ui.TabBuilders.console
+	check(orig, "console builder registered")
+	ui.TabBuilders.console = function(pg) n = n + 1 return orig(pg) end
+	SlashCmdList.PSS("gui")
+	local win = _G.PSS_Window
+	check(win.pages[conIndex()].bar == nil, "no console frame before the tab is opened")
+	click(win.tabs[conIndex()]); click(win.tabs[conIndex()])
+	check(n == 1, "built once, got " .. n)
+	check(win.pages[conIndex()].bar ~= nil, "console built")
+	ui.TabBuilders.console = orig
+end
+
+local EXAMPLES = nil
+local BAD = { "index=lgo", "| stats", '"open', "a ((", "index=log | chart line", "index=log | head x", "earliest=-7x", "|", "= =", "index=log | bogus" }
+PH.conhighlight = function()
+	local pg = openCon()
+	local CV = M.PSS_ConsoleView
+	local function colored(text)
+		pg.bar:SetText(text)
+		pg.highlight()
+		local toks = M.PSS_Psql.tokens(text)
+		check(pg.overlay:GetText() == CV.colorize(text, toks, ui.SyntaxHex), "overlay matches tokens for " .. text)
+	end
+	for _, h in ipairs(CV.HELP) do colored(h[1]) end
+	for _, t in ipairs(BAD) do
+		colored(t)
+		local err = pg.barError()
+		check(err and err.msg, "error for " .. t)
+		if err and err.pos <= #t then check(pg.underline:IsShown(), "underline shown for " .. t) end
+	end
+end
+
+PH.considebar = function()
+	local pg = openCon()
+	plantLog(20)
+	pg.bar:SetText("index=log | head 50")
+	pg.run(true)
+	local set = pg.qv.vm.set
+	check(set and set.n > 0, "rows planted")
+	local side = pg.cm:Sidebar(set)
+	for _, g in ipairs(side) do
+		local top = M.PSS_Call("q.top", set, { field = g.field, n = 5 })
+		check(#g.rows == top.n, g.field .. " row count")
+		for i = 1, top.n do check(g.rows[i][1] == top[i][1] and g.rows[i][2] == top[i][2], g.field .. " value " .. i) end
+	end
+	local flat = pg.sideFlat()
+	check(#flat > 0, "sidebar drawn")
+	for i, d in ipairs(flat) do
+		if d.field then
+			pg.sideList.spec.click(nil, i)
+			check(pg.bar:GetText():find(M.PSS_ConsoleView.term(d.field, d.value), 1, true), "click adds the term")
+			break
+		end
+	end
+end
+
+PH.conactions = function()
+	local pg = openCon()
+	local cm, CV = pg.cm, M.PSS_ConsoleView
+	cm:SetText("index=log | head 5")
+	local s = set({ "owner", "item" }, { { "bob", "item:5" } })
+	local a = cm:RowActions(s, 1)
+	check(#a == 3 and a[1].key == "copy" and a[2].key == "owner" and a[3].key == "item", "three actions")
+	check(a[2].query == CV.addTerm("index=log | head 5", CV.term("owner", "bob")), "owner query " .. tostring(a[2].query))
+	check(a[3].query == "index=inv " .. CV.term("item", "item:5"), "item query " .. tostring(a[3].query))
+end
+
+PH.conescape = function()
+	local pg = openCon()
+	pg.toggleHelp()
+	check(pg.help:IsShown(), "help open")
+	pg.bar:SetFocus()
+	pg.bar:GetScript("OnEscapePressed")(pg.bar)
+	check(not pg.help:IsShown(), "help closed")
+	pg.bar:SetFocus()
+	pg.bar:GetScript("OnEscapePressed")(pg.bar)
+	check(not pg.bar:HasFocus(), "second Escape leaves the box")
+	print("NOTE conescape: window ns.NavUp is E06's")
+end
+
+PH.condict = function()
+	local pg = openCon()
+	click(pg.nav.rows[#pg.nav.rows], "LeftButton")
+	pg.nav:Select("dict", true)
+	local d = pg.dictPanel()
+	check(d and d:IsShown(), "dictionary shown")
+	local names = M.PSS_DictPageModel()
+	local f = M.PSS_DictPageModel(names[1][1])
+	check(f and d.fieldList.count == f.n, "field rows equal ix.dict: " .. tostring(d.fieldList.count) .. " vs " .. tostring(f and f.n))
+	local fc = M.PSS_SetCol(f, "field") or 1
+	d.fieldList.spec.click(nil, 1)
+	local v = M.PSS_DictPageModel(names[1][1], f[1][fc])
+	check(v and d.valueList.count == v.n, "value rows equal ix.values")
+end
+
+PH.conoff = function()
+	check(_G.PSS_Window == nil, "window never opened: no frame")
+	check(not M.PSS_ConsoleBuilt, "no console state")
+end
+
+PH.conlook = function()
+	local sizes = {}
+	looks(function(_, name)
+		local pg = openCon()
+		sizes[name] = { pg.bar:GetWidth(), pg.qv:GetWidth(), pg.qv:GetHeight() }
+	end)
+	for _, k in ipairs({ "classic", "dark" }) do
+		for i = 1, 3 do check(sizes[k][i] == sizes.modern[i], k .. " size " .. i) end
+	end
+end
+
+PH.conreal = function()
+	local pg = openCon()
+	local one = M.PSS_Search("index=log | head 1", {})
+	local owner = one and one.n > 0 and one[1][M.PSS_SetCol(one, "owner") or 1] or "x"
+	local inv = M.PSS_Search("index=inv | head 1", {})
+	local item = inv and inv.n > 0 and inv[1][M.PSS_SetCol(inv, "item") or 1] or "item:1"
+	local function same(text, params)
+		pg.qv:SetQuery(text, params)
+		pg.qv:Run(true)
+		local want = M.PSS_Search(text, { params = params, load = true, rows = pg.qv.vm.o.rows })
+		local got = pg.qv.vm.set
+		check(pg.qv.vm.state ~= "error" or not want, text .. ": " .. tostring(pg.qv.vm.err and pg.qv.vm.err.msg))
+		if want and got then check(got.n == want.n, text .. ": " .. got.n .. " rows vs " .. want.n) end
+	end
+	for _, q in ipairs(M.PSS_SQ_SYSTEM) do same(q.q, { owner = owner, item = item }) end
+	local ex = { "index=log | stats count by cat", "index=log | timechart span=1d count", "index=log | top 5 cat",
+		"index=log | head 20", "index=log | sort -time | head 5", "index=log | dedup cat", "index=log | table time, cat" }
+	for _, t in ipairs(ex) do same(t) end
+	local names = M.PSS_DictPageModel()
+	for i = 1, math.min(3, names and names.n or 0) do same("index=" .. names[i][1] .. " | head 5") end
+end
+
+PH.conchart = function()
+	local pg = openCon()
+	plantLog(30)
+	pg.bar:SetText("index=log | timechart span=1d count | chart line")
+	pg.run(true)
+	check(pg.qv.vm.chart and pg.qv.vm.chart.kind == "line", "chart kind line, got " .. tostring(pg.qv.vm.chart and pg.qv.vm.chart.kind))
+	check(pg.tabs[3].pssSelected, "Chart tab selected")
+end
+
+local KINDTEXT = "index=log cat=\"x\" n>5 | head 5"
+PH.conhicolors = function()
+	local CV = M.PSS_ConsoleView
+	looks(function(_, name)
+		local pg = openCon()
+		pg.bar:SetText(KINDTEXT)
+		pg.highlight()
+		local toks = M.PSS_Psql.tokens(KINDTEXT)
+		local seen = {}
+		for i = 1, toks.n do
+			local k = toks[i][3]
+			local hex = k ~= "space" and ui.SyntaxHex(k)
+			if hex then
+				local piece = KINDTEXT:sub(toks[i][1], toks[i][1] + toks[i][2] - 1):gsub("|", "||")
+				check(pg.overlay:GetText():find("|cff" .. hex .. piece, 1, true), name .. ": " .. k .. " carries its colour")
+				seen[k] = true
+			end
+		end
+		check(next(seen), name .. ": some kinds coloured")
+	end)
+end
+
+PH.conhilive = function()
+	local pg = openCon()
+	local calls, base = 0, M.PSS_Psql.tokens
+	M.PSS_Psql.tokens = function(...) calls = calls + 1 return base(...) end
+	local text, t0 = "", os.clock()
+	for i = 1, 60 do
+		text = text .. (("index=log | head 10 "):sub(((i - 1) % 19) + 1, ((i - 1) % 19) + 1))
+		pg.bar:SetText(text)
+		pg.highlight()
+	end
+	local avg = (os.clock() - t0) / 60 * 1000
+	M.PSS_Psql.tokens = base
+	check(calls == 60, "60 recolours, got " .. calls)
+	check(avg < 20, "tokenize loop average " .. avg .. " ms (harness bound 20)")
+	check(not pg.bar:GetScript("OnUpdate"), "no OnUpdate on the bar")
+end
+
+PH.conhierror = function()
+	local pg = openCon()
+	local text = "index=log | bogus x"
+	pg.bar:SetText(text)
+	pg.highlight()
+	local hex = ui.SyntaxHex("error")
+	check(hex, "error colour defined")
+	local at = pg.overlay:GetText():find("|cff" .. tostring(hex) .. "bogus", 1, true)
+	check(at, "bogus is error coloured: " .. tostring(pg.overlay:GetText()))
+	check(pg.underline:IsShown(), "underline shown")
+end
+
+PH.conhireadonly = function()
+	local pg = openCon()
+	local CV = M.PSS_ConsoleView
+	local text = "index=log | head 3"
+	local d
+	for _, r in ipairs(pg.cm:LeftRows()) do if r.key and r.key:find("^sys:") then d = r break end end
+	check(d, "a list row exists")
+	pg.nav:Select(d.key, true)
+	check(pg.bar:GetText() == d.query, "list query in the bar")
+	pg.highlight()
+	check(pg.overlay:GetText() == CV.colorize(d.query, M.PSS_Psql.tokens(d.query), ui.SyntaxHex), "coloured as the bar")
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

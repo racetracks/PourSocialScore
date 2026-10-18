@@ -152,9 +152,17 @@ local WH = {
 	{ key = "whGuildDays",		kind = "number",	default = 0,		section = 8, min = 0, max = 365, label = "Forget a guild bank not seen for this many days (0 keeps it)" },
 }
 for _, o in ipairs(WH) do OPTIONS[#OPTIONS + 1] = o end
-local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:", "Enabled components:", "Drop The Cheapest Thing:", "Warehouse:" }
+-- Spyglass console (section 9); the preset keys are PSS_ConsoleView.PRESETS' (Libraries is not loaded here)
+local CONTIME = { { "all", "All time" } }
+for _, p in ipairs({ { "last15m", "Last 15 minutes" }, { "last60m", "Last 60 minutes" }, { "last4h", "Last 4 hours" },
+	{ "last24h", "Last 24 hours" }, { "last7d", "Last 7 days" }, { "last30d", "Last 30 days" }, { "today", "Today" },
+	{ "yesterday", "Yesterday" }, { "thisweek", "This week" }, { "lastweek", "Last week" }, { "thismonth", "This month" },
+	{ "lastmonth", "Last month" } }) do CONTIME[#CONTIME + 1] = p end
+OPTIONS[#OPTIONS + 1] = { key = "conTime", kind = "choice", default = "all", section = 9, label = "Spyglass time range", choices = CONTIME }
+OPTIONS[#OPTIONS + 1] = { key = "conRows", kind = "number", default = 500, section = 9, min = 50, max = 5000, label = "Spyglass rows shown" }
+local SECTIONS = { L["OPT_8"], "Blocking Options:", L["OPT_9"], L["OPT_15"], "Whois Scan Options:", "Enabled components:", "Drop The Cheapest Thing:", "Warehouse:", "Spyglass" }
 -- the order the Options tab lists the sections in (Enabled components first)
-M.PSS_OPTION_SECTION_ORDER = { 6, 1, 2, 3, 4, 5, 7, 8 }
+M.PSS_OPTION_SECTION_ORDER = { 6, 1, 2, 3, 4, 5, 7, 8, 9 }
 -- sections drawn under a group title, and sections shown disabled (one line)
 -- while their Enabled component is off: { [section] = ... }; none yet
 M.PSS_OPTION_SECTION_GROUP = { [7] = "Feature Options", [8] = "Feature Options" }

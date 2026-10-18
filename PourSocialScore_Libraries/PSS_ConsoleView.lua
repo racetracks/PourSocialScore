@@ -249,3 +249,181 @@ function CV.monthStep(y, m, k)
 	local i = y * 12 + (m - 1) + k
 	return math.floor(i / 12), i % 12 + 1
 end
+
+------------------------------------------------------------------------
+-- Console tab model (STP-00255): highlight, sidebar, row actions, left list, help
+--   M.PSS_ConsoleModel() -> cm   cm:Tokens, Sidebar, ChartKinds, RowActions, LeftRows, SetText
+--   CV.colorize(text, toks, hexFn)  CV.term(field, value)  CV.addTerm(text, term)
+--   M.PSS_DictPageModel(index, field)  CV.HELP  M.PSS_BUTTON_QUERIES  M.PSS_DeepDiveText(keyOrText, ctx)
+------------------------------------------------------------------------
+local sub, gsub = string.sub, string.gsub
+
+local function esc(s) return (gsub(s, "|", "||")) end
+
+function CV.colorize(text, toks, hexFn)
+	local out, at = {}, 1
+	for i = 1, toks and toks.n or 0 do
+		local t = toks[i]
+		local p, len, kind = t[1], t[2], t[3]
+		if p > at then out[#out + 1] = esc(sub(text, at, p - 1)) end
+		if p >= at and len > 0 then
+			local s = esc(sub(text, p, p + len - 1))
+			local hex = kind ~= "space" and hexFn and hexFn(kind)
+			out[#out + 1] = hex and ("|cff" .. hex .. s .. "|r") or s
+			at = p + len
+		end
+	end
+	if at <= #text then out[#out + 1] = esc(sub(text, at)) end
+	return table.concat(out)
+end
+
+function CV.term(field, value)
+	if type(value) == "number" then return field .. "=" .. tostring(value) end
+	return field .. '="' .. gsub(tostring(value), '[\\"]', "\\%0") .. '"'
+end
+
+-- the first | outside quotes
+local function pipeAt(text)
+	local q, i = false, 1
+	while i <= #text do
+		local c = sub(text, i, i)
+		if q then
+			if c == "\\" then i = i + 1 elseif c == '"' then q = false end
+		elseif c == '"' then q = true
+		elseif c == "|" then return i end
+		i = i + 1
+	end
+end
+
+function CV.addTerm(text, term)
+	text = text or ""
+	local i = pipeAt(text)
+	local r
+	if i then
+		local head = gsub(sub(text, 1, i - 1), "%s+$", "")
+		r = (head ~= "" and (head .. " ") or "") .. term .. " " .. sub(text, i)
+	else
+		local head = gsub(text, "%s+$", "")
+		r = (head ~= "" and (head .. " ") or "") .. term
+	end
+	return r
+end
+
+local KIND_ORDER = { "column", "line", "area", "bar", "donut", "heat", "number", "table" }
+local SKIPCOL = { time = true, ts = true, message = true, label = true }
+
+local CM = {}
+CM.__index = CM
+
+function M.PSS_ConsoleModel() return setmetatable({ text = "" }, CM) end
+function CM:SetText(t) self.text = t or "" end
+
+function CM:Tokens(text)
+	local toks = M.PSS_Psql.tokens(text)
+	local ok, r, e = pcall(M.PSS_Psql.parse, text)
+	local err
+	if ok and r == nil then ok, e = false, e or "invalid query"		-- parse returns nil, err
+	elseif not ok then e = r end
+	if not ok then
+		err = type(e) == "table" and { pos = e.pos or 1, msg = tostring(e.msg) } or { pos = 1, msg = tostring(e) }
+	end
+	return toks, err
+end
+
+function CM:Sidebar(set)
+	local out = {}
+	if not set or (set.n or 0) == 0 then return out end
+	for _, col in ipairs(set.cols or {}) do
+		if #out >= 8 then break end
+		if not SKIPCOL[col] then
+			local top = M.PSS_Call("q.top", set, { field = col, n = 5 })
+			local rows = {}
+			for i = 1, top and top.n or 0 do rows[i] = { top[i][1], top[i][2] } end
+			out[#out + 1] = { field = col, rows = rows }
+		end
+	end
+	return out
+end
+
+function CM:ChartKinds(shape)
+	local allowed, out = ALLOWED[shape] or {}, {}
+	for _, k in ipairs(KIND_ORDER) do if allowed[k] then out[#out + 1] = k end end
+	return out
+end
+
+function CM:RowActions(set, i)
+	local out = { { key = "copy", text = "Copy line" } }
+	local row = set and set[i]
+	if not row then return out end
+	local oc, ic = M.PSS_SetCol(set, "owner"), M.PSS_SetCol(set, "item")
+	if oc and row[oc] ~= nil then
+		out[#out + 1] = { key = "owner", text = "Show this owner", query = CV.addTerm(self.text, CV.term("owner", row[oc])) }
+	end
+	if ic and row[ic] ~= nil then
+		out[#out + 1] = { key = "item", text = "Where is this item", query = "index=inv " .. CV.term("item", row[ic]) }
+	end
+	return out
+end
+
+function CM:LeftRows()
+	local rows = { { head = "System" } }
+	local sys = M.PSS_Call("sq.system", { scope = "any" })
+	for i = 1, sys and sys.n or 0 do
+		local r = sys[i]
+		rows[#rows + 1] = { key = "sys:" .. r[1], text = r[2], query = r[4], view = r[5] }
+	end
+	rows[#rows + 1] = { head = "Mine" }
+	local mine = M.PSS_Call("sq.list", { scope = "any" })
+	for i = 1, mine and mine.n or 0 do
+		local r = mine[i]
+		rows[#rows + 1] = { key = "sq:" .. r[1], text = r[2] .. (r[7] and " (cannot run)" or ""), query = r[5], broken = r[7] and true or nil }
+	end
+	rows[#rows + 1] = { head = "Indexes" }
+	local ixs = M.PSS_Call("ix.list")
+	for i = 1, ixs and ixs.n or 0 do
+		rows[#rows + 1] = { key = "ix:" .. ixs[i][1], text = ixs[i][1], insert = "index=" .. ixs[i][1] }
+	end
+	rows[#rows + 1] = { head = "Data dictionary" }
+	rows[#rows + 1] = { key = "dict", text = "Data dictionary" }
+	return rows
+end
+
+function M.PSS_DictPageModel(index, field)
+	local set, err
+	if not index then set, err = M.PSS_Call("ix.list")
+	elseif not field then set, err = M.PSS_Call("ix.dict", { index = index })
+	else set, err = M.PSS_Call("ix.values", { index = index, field = field, n = 10 }) end
+	if not set then return nil, err or "no result" end
+	return set
+end
+
+CV.HELP = {
+	{ "index=log | where time>-24h", "where: keep rows that match a comparison" },
+	{ "index=log | fields time, cat", "fields: keep only these columns" },
+	{ "index=log | rename cat as category", "rename: give a column another name" },
+	{ "index=log | sort -time", "sort: order rows, - for descending" },
+	{ "index=log | head 20", "head: the first rows (tail: the last)" },
+	{ "index=log | dedup cat", "dedup: one row for each value" },
+	{ "index=log | stats count by cat", "stats: count, sum, avg, min, max, dc ... by a column" },
+	{ "index=log | timechart span=1d count", "timechart: a count over time" },
+	{ "index=log | top 5 cat", "top: the most common values (rare: the least)" },
+	{ "index=gold | calc k = copper / 1000", "calc: one sum of two columns or numbers" },
+	{ "index=log | table time, cat", "table: show these columns as a table" },
+	{ "index=log | stats count by cat | chart bar", "chart: draw the answer (last command)" },
+	{ "gold", "A bare word searches the text of every index" },
+	{ "index=log cat=whisper", "field=value keeps rows where it matches" },
+	{ "earliest=-7d@d", "earliest and latest set the time range" },
+}
+
+M.PSS_BUTTON_QUERIES = {}
+
+function M.PSS_DeepDiveText(keyOrText, ctx)
+	local row = type(keyOrText) == "string" and M.PSS_BUTTON_QUERIES[keyOrText]
+	if row then
+		local params, range
+		if row.bind then params, range = row.bind(ctx) end
+		return row.query, params, range
+	end
+	if type(keyOrText) == "string" then return keyOrText, ctx, nil end
+	return nil, "unknown query"
+end
