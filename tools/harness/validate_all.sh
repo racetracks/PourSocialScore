@@ -310,7 +310,7 @@ echo "$out" | grep -q "PASS events" || fail=1
 # the new window's Options and Import/Export tabs (3.4.0-dev012)
 section "new window Options and Import/Export tabs"
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
-echo "$out" | grep -E "PASS|FAIL"
+echo "$out" | grep -E "PASS|FAIL|^lua5\.1: "
 echo "$out" | grep -q "PASS options" || fail=1
 
 # window tidy W2: logic of the Events, Options and Chat Filters tabs in Libraries
