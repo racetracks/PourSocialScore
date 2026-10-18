@@ -9,6 +9,7 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
+- PR #242: answer the asks O1 to O3 (02 section 11 rules 11 and 12, the guild pane) and run `CHK-00146` to `CHK-00150`, `CHK-00170`, `CHK-00171` on the 3.8.0.121 zip, each in Modern, Classic and Dark; then the release 3.8.0.122.
 - Test a very old save on 3.7.0.113 (the final pre-release), then merge the 3.7.0.114 release PR; then hand phase A its guide (section G0 of 12_02_Phase_A_Spyglass_Engine.md (`scratch:documents/features/search-helper/12_User_Guides/12_02_Phase_A_Spyglass_Engine.md`)).
 - Run `CHK-00110` when the TBC stage opens (#233) and `CHK-00113` on a live realm with a guild bank (#234); `CHK-00117` and `CHK-00118` have no recorded result.
 - #231: the undo check skips the planted 3.4.1.50 save.
