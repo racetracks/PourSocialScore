@@ -165,9 +165,14 @@ local function errLine(e)
 	return "|cffff5555Spyglass: " .. tostring(e.code) .. ": " .. tostring(e.msg) .. " (at " .. tostring(e.pos) .. ")|r"
 end
 
+-- The chat edit box sends a typed | as || (its escape). PSQL has no || operator and a typed quoted value
+-- arrives escaped too, so every || in the text is one typed pipe.
+local function unpipe(s) return (gsub(s, "||", "|")) end
+
 -- /pss q export: the GUI loads for this command only (a listed entry point, check_layers.lua)
 function M.PSS_QExport(query)
 	local pssio = false
+	query = unpipe(query or "")
 	local q = match(query, "^(.-)%s+as%s+pssio%s*$")
 	if q then query, pssio = q, true end
 	local set, info = M.PSS_Search(query, { load = true })
@@ -196,7 +201,7 @@ function M.PSS_QCommand(rest)
 		say(ok and ("Spyglass: alert " .. id .. " " .. on:lower()) or ("|cffff5555Spyglass: " .. tostring(e) .. "|r"))
 		return
 	end
-	local set, info = M.PSS_Search(rest, { load = true })
+	local set, info = M.PSS_Search(unpipe(rest), { load = true })
 	if not set then say(errLine(info)) return end
 	for _, line in ipairs(M.PSS_QLines(set, info)) do say(line) end
 	return set, info

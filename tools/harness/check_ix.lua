@@ -1794,6 +1794,28 @@ PH.qcmd = function()
 	local out = M.PSS_QLines(wide, { shape = "table" })
 	check(out[1]:find("%(%+2 columns%)") and select(2, out[2]:gsub("|", "")) == 5, "at most 6 columns")
 end
+-- the chat edit box sends a typed | as ||; both lines go through the slash command as the client sends them
+PH.qpipe = function()
+	plantLog(40)
+	capture()
+	SlashCmdList["PSS"]("q index=log || stats count by cat")
+	local err = false
+	for _, l in ipairs(said) do if l:find("Spyglass: ") then err = l end end
+	check(not err, "no error for a typed pipe: " .. tostring(err))
+	check(said[1] and said[1]:find("cat") and said[#said]:find("rows,") and not said[#said]:find("^0 rows"), "rows by cat: " .. tostring(said[1]))
+	capture()
+	SlashCmdList["PSS"]('q index=log message="hello||there" || stats count')
+	check(said[1] and said[1]:find("^count = 0"), "a typed pipe inside a quoted value parses: " .. tostring(said[1]))
+	capture()
+	local rows
+	local csv = M.PSS_IxCsv
+	M.PSS_IxCsv = function(set) rows = set.n return csv(set) end
+	SlashCmdList["PSS"]("q export index=log || head 5")
+	M.PSS_IxCsv = csv
+	err = false
+	for _, l in ipairs(said) do if l:find("Spyglass: ") then err = l end end
+	check(not err and rows == 5, "export with a typed pipe: 5 rows, no error: " .. tostring(rows) .. " " .. tostring(err))
+end
 PH.csvquote = function()
 	local set = { cols = { "a", "b" }, n = 2, { 'x,y', 'say "hi"' }, { "line\nbreak", 5 } }
 	local csv = M.PSS_IxCsv(set)

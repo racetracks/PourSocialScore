@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.118 - Spyglass pipe fix
+
+- /pss q: a search typed with a pipe (|) in the chat box works. The chat box sends a typed pipe as two (||), so every search with a pipe failed with "a command is needed after |"; /pss q and /pss q export now read || as one pipe.
+
 => 3.8.0.117 - Spyglass size and speed
 
 - Spyglass reads a search about a third faster before running it (the reader scans words and quoted values in one pass). Nothing else changes.

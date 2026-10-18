@@ -161,4 +161,5 @@ return {
 	{ "lazy-no-summary", "PourSocialScore_Libraries/PSS_Plan.lua", "if summary then local okS, s = pcall(summary, row); r[7] = okS and s or nil end", "", "lazysummary" },
 	{ "word-eats-pipe", "PourSocialScore_Libraries/PSS_Psql.lua", 'i = (find(text, "[ \\t\\n\\r|()\\"=<>!,]", i) or n + 1)', 'i = (find(text, "[ \\t\\n\\r()\\"=<>!,]", i) or n + 1)', "parsetokens" },
 	{ "string-escape-lost", "PourSocialScore_Libraries/PSS_Psql.lua", "out[#out + 1] = sub(text, k + 1, k + 1); j = k + 2", "j = k + 2", "parsetokens" },
+	{ "pipe-unescape-lost", "PourSocialScore_Libraries/PSS_IxExport.lua", 'local function unpipe(s) return (gsub(s, "||", "|")) end', "local function unpipe(s) return s end", "qpipe" },
 }

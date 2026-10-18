@@ -42,7 +42,7 @@ cfgrows cfgreadonly cfgnewer cfgsystem
 pssproduce pssonce psshot psscap pssnolog
 sqsystem sqput sqcaps sqbroken sqcorrupt sqbind sqbuttons sqgolden sqfuzz sqdowngrade
 alerton alertfire alertrate alertoff alerttimers
-qcmd csvquote pssio pssiobad reader
+qcmd qpipe csvquote pssio pssiobad reader
 covpass covfail covlist
 budgetfiles budgetcalls budgetcore budgetci
 dictrows dictdrift dictextend dictunknownattr dictgen
