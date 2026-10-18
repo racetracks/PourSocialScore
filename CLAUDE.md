@@ -1,5 +1,5 @@
 # Operating Core
-Loaded by every agent: every line here is paid on every spawn. Keep it lean.
+Purpose: the operating core, loaded by every agent; every line is paid on every spawn, so keep it lean.
 - Coordinator (main thread): also read `.claude/roles/coordinator.md` once per session.
 - Consultant / engineer / engineer-m1 / engineer-m3: your rules are in `.claude/agents/<role>.md`.
 - Session paths are relative to the session directory named in `.claude/.session` (created by hook; override with env `SESSION_DIR`).
