@@ -93,7 +93,7 @@ end
 -- --saves: walk the saved files
 ------------------------------------------------------------------------
 local KIND = {}
-for _, k in ipairs({ "upgrade", "player", "guild", "member", "block", "counts", "filterStat", "builtinStat", "line", "logGroup", "ent", "wh" }) do
+for _, k in ipairs({ "upgrade", "player", "guild", "member", "block", "counts", "filterStat", "builtinStat", "line", "logGroup", "ent", "wh", "seg" }) do
 	KIND[k] = fields(k)
 end
 for _, c in ipairs({ "guildChat", "unknown" }) do KIND.counts[c] = true end
@@ -177,6 +177,7 @@ for i = 2, #arg do
 	end
 	for o, l in pairs(type(Lg.blockKeep) == "table" and Lg.blockKeep or {}) do lines(l, path .. " blockKeep " .. tostring(o)) end
 	lines(db.outbox, path .. " outbox")
+	check(Lg.pss, "seg", path .. " pss")
 end
 if problems == 0 then print(("PASS schema (%d saves)"):format(#arg - 1)) end
 os.exit(problems == 0 and 0 or 1)

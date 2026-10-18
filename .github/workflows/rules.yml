@@ -91,6 +91,8 @@ jobs:
         run: sh tools/harness/dtt_phases.sh
       - name: Service bus
         run: sh tools/harness/bus_phases.sh
+      - name: Spyglass engine (ix_phases.sh)
+        run: sh tools/harness/ix_phases.sh
       - name: Warehouse
         run: sh tools/harness/wh_phases.sh
       - name: Warehouse faults and mutants

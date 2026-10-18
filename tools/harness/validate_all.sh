@@ -203,6 +203,11 @@ sh "$here/dtt_phases.sh" || fail=1
 echo "== service bus"
 sh "$here/bus_phases.sh" || fail=1
 
+# the Spyglass engine (search-helper phase A): check_ix.lua on Retail and Camelot, the real-save phases on
+# every save when PSS_REAL_SAVES is set (ix_phases.sh)
+echo "== Spyglass engine (ix_phases.sh)"
+sh "$here/ix_phases.sh" || fail=1
+
 # the warehouse (warehouse-helper, one build 3.7.0.106): every phase of
 # check_wh.lua on Retail and Camelot (wh_phases.sh)
 echo "== warehouse"

@@ -5,7 +5,7 @@
 ## Group: PourSocialScore
 ## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
 ## Author: Boaties
-## Version: 3.7.1.115
+## Version: 3.8.0.118
 ## SavedVariables: PourSocialScoreDB
 ## Dependencies: PourSocialScore_Options
 
@@ -21,6 +21,7 @@ PSS_Whois.lua
 PSS_Communities.lua
 PSS_ChatHistory.lua
 PSS_ChatBlock.lua
+PSS_IxPut.lua
 PSS_ChatFilters.lua
 PSS_PlayerIgnoreList.lua
 PSS_PlayerQuery.lua

@@ -947,6 +947,7 @@ M.PSS_FilterFaults = {}
 local function filterFault(event, err)
 	local faults = M.PSS_FilterFaults
 	faults[#faults + 1] = "registration " .. event .. ": " .. tostring(err)
+	if M.PSS_IxPut then M.PSS_IxPut("pss", "pss.filter", { event = event, message = tostring(err) }) end
 	if #faults == 1 then
 		M.ChatMsg("|cffff5555Pour Social Score: chat filter registration failed for " .. event .. " (" .. tostring(err) .. "); it is tried again once the world is up|r")
 	end
