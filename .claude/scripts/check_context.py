@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Context caps (DEC-00385): is what was written cheap for the next agent to read?
+"""Context caps (DEC-00385) and docs with code (DEC-00384): is what was written cheap for the next
+agent to read, and does every code change carry its documentation? Code itself is never capped.
 
 Caps: the CONTEXT-CAPS block of .claude/agents/consultant.md (#context-caps).
 
@@ -9,7 +10,9 @@ Usage:
                                      only problems the base did not have fail
   check_context.py FILE...           every problem in these files fails (the ledger's SHAPE check)
   check_context.py --sizes           print the startup and spawn sizes, never fail
-Exit 1 on a failing problem. Problems print as `SHAPE <path>: <problem>`.
+  Docs with code: in a file list, code and no document prints `DOCS`; against the base, changed code needs
+  the build history entry of the TOC version to fill `- Docs updated:` (docs/pss/14_BUILD_HISTORY.md).
+Exit 1 on a failing problem. Problems print as `SHAPE <path>: <problem>` or `DOCS <problem>`.
 """
 import fnmatch
 import os
@@ -72,13 +75,6 @@ def problems(path, text, row):
         out["size"] = f"{size} bytes > {row['kb']} KB ({row['kind']}): split it or point to the detail"
     if row["header"] == "yes" and not any(re.search(r"purpose", l, re.I) for l in lines[:12]):
         out["header"] = "no header block in the first 12 lines (Purpose · owner · status · related)"
-    if row["header"] == "comment":
-        body = [l for l in lines if l.strip()]
-        if body and body[0].startswith("#!"):
-            body = body[1:]
-        first = body[0].lstrip() if body else ""
-        if not first.startswith(("--", "#", "//", '"""')):
-            out["header"] = "no header comment naming the file's role"
     if path.endswith(".md"):
         head, count, start, fence, fstart, infence = "(top)", 0, 1, 0, 0, False
         for i, l in enumerate(lines + ["## (end)"], 1):
@@ -100,6 +96,49 @@ def problems(path, text, row):
         if infence and row["fence"] is not None and fence > row["fence"]:
             out[f"fence:{head}"] = f"code block at line {fstart} is never closed and has {fence} lines > {row['fence']}"
     return out
+
+
+CODE = ("PourSocialScore*/*.lua", "PourSocialScore*/*.xml", "tools/*", ".claude/scripts/*", ".github/workflows/*")
+HIST = ROOT / "docs" / "pss" / "14_BUILD_HISTORY.md"
+
+
+def is_code(rel):
+    return any(fnmatch.fnmatchcase(rel, g) for g in CODE) and not rel.endswith((".md", ".toc"))
+
+
+def rel_of(p):
+    full = pathlib.Path(p) if pathlib.Path(p).is_absolute() else ROOT / p
+    try:
+        return full.resolve().relative_to(ROOT).as_posix()
+    except ValueError:
+        return full.resolve().as_posix()
+
+
+def docs_in_list(paths):
+    """A return that changed code and no document."""
+    rels = [rel_of(p) for p in paths]
+    code = [r for r in rels if is_code(r)]
+    if code and not any(r.endswith(".md") for r in rels):
+        return [f"DOCS code changed with no documentation ({', '.join(code[:5])}): update the docs the brief names (code map, feature documents)"]
+    return []
+
+
+def docs_in_history(changed):
+    """A PR that changed code: the build history entry of the TOC version names the docs updated."""
+    code = [r for r in changed if is_code(r)]
+    if not code or not HIST.exists():
+        return []
+    toc = ROOT / "PourSocialScore" / "PourSocialScore.toc"
+    m = re.search(r"^## Version: *(\S+)", toc.read_text(), re.M) if toc.exists() else None
+    if not m:
+        return []
+    ver = m.group(1)
+    text = HIST.read_text()
+    e = re.search(r"^### " + re.escape(ver) + r" .*?(?=^### |\Z)", text, re.M | re.S)
+    d = re.search(r"^- Docs updated: *(.*)$", e.group(0), re.M) if e else None
+    if not d or "written in the PR" in d.group(1) or not re.search(r"\]\(|`", d.group(1)):
+        return [f"DOCS {ver} changes code ({', '.join(code[:5])}) but its build history entry has no filled `- Docs updated:` line naming the documents changed ({HIST.relative_to(ROOT)})"]
+    return []
 
 
 def git(*args):
@@ -168,7 +207,7 @@ def main():
         print("\n".join(info + bad))
         return 0
     if args:
-        bad = check_files(args, order)
+        bad = check_files(args, order) + docs_in_list(args)
     else:
         base = base_ref()
         if base is None:
@@ -176,7 +215,7 @@ def main():
             changed = []
         else:
             changed = (git("diff", "--name-only", "--diff-filter=AM", base) or "").split()
-        bad += check_files(changed, order, base)
+        bad += check_files(changed, order, base) + docs_in_history(changed)
     if bad:
         print("\n".join(info + bad))
         return 1

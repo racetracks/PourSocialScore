@@ -13,7 +13,7 @@
 
 TASKS is comma-separated. TRIAGE is a built-in task for the triage consultant.
 Budget defaults: .claude/agents/consultant.md (BUDGETS block). Scope fence: provision.md Writes column.
-Shape: ret runs check_context.py (CONTEXT-CAPS block) on the files a DONE return changed.
+Shape: ret runs check_context.py (CONTEXT-CAPS block; code needs its docs) on the files a DONE return changed.
 """
 import argparse
 import fnmatch
@@ -234,13 +234,14 @@ def allowed(path, kind, writes):
 
 
 def shape_check(paths):
-    """Context caps (consultant.md#context-caps, DEC-00385) on the files a return changed; [] when clean."""
+    """Context caps (consultant.md#context-caps, DEC-00385) and docs with code (DEC-00384) on a return's files."""
     tool = ROOT / ".claude" / "scripts" / "check_context.py"
     files = [str(ROOT / p) for p in paths if (ROOT / p).is_file()]
     if not tool.exists() or not files:
         return []
     r = subprocess.run([sys.executable, str(tool)] + files, capture_output=True, text=True)
-    return [l for l in r.stdout.splitlines() if l.startswith("SHAPE ") and not l.startswith(("SHAPE startup", "SHAPE spawn"))]
+    return [l for l in r.stdout.splitlines()
+            if l.startswith(("SHAPE ", "DOCS ")) and not l.startswith(("SHAPE startup", "SHAPE spawn"))]
 
 
 def agent_writes(L, aid):
@@ -538,7 +539,7 @@ def cmd_ret(a):
         for t in tasks:
             L["tasks"][t]["status"] = "blocked"
         out += shape
-        out.append(f"ROUTE `cont {aid}` with the SHAPE lines: it reshapes its own output to the context caps, then returns again")
+        out.append(f"ROUTE `cont {aid}` with these lines: it reshapes its documents to the context caps (SHAPE) and updates the docs its brief names for its code (DOCS; a brief that names none: BLOCKED to its consultant), then returns again")
     elif status == "DONE":
         for t in tasks:
             L["tasks"][t]["status"] = "done"
