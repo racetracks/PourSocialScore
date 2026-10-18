@@ -170,6 +170,7 @@ local ENTRIES = {
 	["PourSocialScore_Libraries/PSS_Commands.lua"] = { ["M.PSS_SlashPSS"] = "/pss, /acp" },
 	["PourSocialScore_Libraries/PSS_DttView.lua"] = { ["M.PSS_DttCommand"] = "/pss dtt options" },
 	["PourSocialScore_Libraries/PSS_WhView.lua"] = { ["M.PSS_WhOpenEverywhere"] = "/pss wh" },
+	["PourSocialScore_Libraries/PSS_IxExport.lua"] = { ["M.PSS_QExport"] = "/pss q export" },
 	["PourSocialScore_Libraries/PSS_Graphics.lua"] = { ["M.PSS_GfxOpen"] = "/pss gfx", ["M.PSS_GfxAsk"] = "the keep prompt after the player's import and reload" },
 }
 

@@ -699,6 +699,7 @@ if phase == "upg" then
 				local c = {}
 				local function cp(v) if type(v) ~= "table" then return v end local r = {} for k, x in pairs(v) do r[k] = cp(x) end return r end
 				for k, v in pairs(t) do c[k] = cp(v) end
+				c.pssHot = nil		-- the Spyglass self log: each run writes its own timed line (3.8.0.116)
 				s[n] = c
 			end
 		end
