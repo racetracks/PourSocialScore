@@ -33,7 +33,7 @@ Run `L next` after every return and act on its lines. Provision exactly what `pr
 |---|---|
 | `READY` | `L spawn <tasks> [--reuse <id>]`, then spawn with the printed line |
 | `ROUTE` | do exactly what it says |
-| `RERUN`, `ROUTE re-run` | `L spawn <task>` as printed: the same brief on `engineer` (Sonnet), once; no consultant turn |
+| `RERUN`, `ROUTE re-run` | `L spawn <task>` as printed: the same brief on `engineer` (Sonnet), once, only after BUDGET or `--failed`; an engineer-m1 BLOCKED goes to its consultant (`cont <consultant> --support`) and the task stays on engineer-m1 |
 | `ESCALATE?` | include it in the stream consultant's support continue; only a consultant may provision engineer-m3 |
 | `RETRIAGE` | continue the triage consultant with the path given; never raise a budget yourself |
 | `REVIEW` | continue the stream consultant with `--review`; for a consultant's own design, spawn a fresh consultant |

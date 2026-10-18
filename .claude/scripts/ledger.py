@@ -17,7 +17,7 @@
 
 TASKS is comma-separated. TRIAGE is a built-in task for the triage consultant.
 Budget defaults: .claude/agents/consultant.md (BUDGETS block). Scope fence: provision.md Writes column.
-Re-run: an engineer-m1 task that returns BLOCKED/BUDGET (or DONE with --failed) is re-run once on engineer (Sonnet).
+Re-run: an engineer-m1 task that returns BUDGET, or DONE with --failed, is re-run once on engineer (Sonnet); BLOCKED goes to its consultant.
 Shape: ret runs check_context.py (CONTEXT-CAPS block; code needs its docs) on the files a DONE return changed.
 Stale pack: init compares each new row's Writes with `git diff --name-only <Base commit>` of provision.md: RETRIAGE (status stale),
   WARN when the base is not in the clone, NOTE when the `Index hash:` differs; init and spawn rebuild context/repo-index.json.
@@ -1054,7 +1054,7 @@ def cmd_ret(a):
                     out.append(f"REVIEW {t}: `cont {who} --review` with agents/{aid}/diff.patch")
         if kind == "engineer-m3":
             out.append(f"ROUTE if agents/{aid}/HANDOFF.md exists: `cont {L['streams'].get(L['tasks'][tasks[0]]['stream']) or triage} --support` with it")
-    elif kind == "engineer-m1" and status in ("BLOCKED", "BUDGET") and any(not L["tasks"][t].get("rerun") for t in tasks):
+    elif kind == "engineer-m1" and (status == "BUDGET" or a.failed) and any(not L["tasks"][t].get("rerun") for t in tasks):
         rerun_route = True
         for t in tasks:
             x = L["tasks"][t]

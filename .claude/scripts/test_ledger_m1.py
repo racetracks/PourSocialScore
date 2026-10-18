@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks for the ledger M1 lane (spec ledger-m1 7.1 to 7.5). Prints FAIL <n> <reason> per failure, else OK 11 checks."""
+"""Checks for the ledger M1 lane (spec ledger-m1 7.1 to 7.5). Prints FAIL <n> <reason> per failure, else OK 12 checks."""
 import json
 import os
 import pathlib
@@ -57,11 +57,11 @@ def main():
         rc, o = run(sd1, tr, "spawn", "R1")
         check(4, o.lstrip().startswith("SPAWN engineer-m1:") and "model haiku" in o, o)
         ref1 = (re.search(r"ref (\S+)", o) or [0, ""])[1]
-        rc, o = run(sd1, tr, "ret", "A01", "BLOCKED", spend)
+        rc, o = run(sd1, tr, "ret", "A01", "BUDGET", spend)
         check(5, o.count("RERUN R1") == 1 and o.count("ROUTE re-run R1 on engineer (Sonnet)") == 1 and "--support" not in o, o)
         rc, o = run(sd1, tr, "spawn", "R1")
         check(6, o.lstrip().startswith("SPAWN engineer:") and "model sonnet" in o, o)
-        rc, o = run(sd1, tr, "ret", "A02", "BLOCKED", spend)
+        rc, o = run(sd1, tr, "ret", "A02", "BUDGET", spend)
         check(7, "re-run" not in o and "--support" in o, o)
         rc, o = run(sd1, tr, "spawn", "R2")
         rc, o = run(sd1, tr, "ret", "A03", "DONE", spend, "--failed")
@@ -91,9 +91,17 @@ def main():
         sl = [l for l in o.splitlines() if l.startswith("SHAPE")]
         check(11, any("agents/A01/REPORT.md" in l for l in sl) and not any("notes.md" in l for l in o.splitlines()
               if l.startswith(("SHAPE", "DOCS"))), o)
+    # 12
+    sd5 = session(tmp, 5, [row("R1", "M1", "WL", "engineer-m1")])
+    run(sd5, tr, "init")
+    run(sd5, tr, "spawn", "R1")
+    rc, o = run(sd5, tr, "ret", "A01", "BLOCKED", "spend: calls 1/10 · out 1/150")
+    lg = json.loads((sd5 / "ledger.json").read_text())["tasks"]["R1"]
+    check(12, "ROUTE `cont" in o and "QUESTIONS.md" in o and "RERUN" not in o
+          and lg["agent"] == "engineer-m1" and lg["status"] == "blocked", o + str(lg))
     if fails:
         sys.exit(1)
-    print("OK 11 checks")
+    print("OK 12 checks")
 
 
 main()

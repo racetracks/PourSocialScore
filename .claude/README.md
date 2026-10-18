@@ -17,7 +17,7 @@ Requires Python 3.8+ and git (falls back to a tree walk without git). The spawn-
 | Provisioning validation | `ledger.py init` | a Fit grade (scope × complexity) that does not match its class and agent, wrong agent for a class, missing Writes fence or brief, engineer-m3 without Why or with a wide fence, over-default budgets without Why |
 | Scope fence | `ledger.py ret` | any write outside the agent's Writes (consultants: session directory only; engineers: never specs, briefs, `provision.md`, `context/`) |
 | Spend ledger | `ledger.py ret` / `cont` | silent overruns: BUDGET, ≥1.5× original, TASK cap; extensions need a logged reason |
-| Sonnet re-run | `ledger.py ret` / `next` (`RERUN`, `ROUTE re-run`) | a failed or blocked engineer-m1 task costing a consultant turn (`DEC-00389`) |
+| Sonnet re-run | `ledger.py ret` / `next` (`RERUN`, `ROUTE re-run`) | an engineer-m1 task that returns BUDGET or fails acceptance (`ret --failed`) is re-run once on engineer; BLOCKED goes to its consultant and the task stays on engineer-m1 (`DEC-00389`) |
 | Token measurement | `ledger.py render` (`## Tokens`) | judging cost cuts by estimate (`DEC-00391`) |
 | Stage close | `tools/stage_close.sh` | a stage closed without the real-save run, the hosted zip or the rendered README (`DEC-00390`) |
 | Context caps | `consultant.md` CONTEXT-CAPS block + `check_context.py`, run by `ledger.py ret` (`SHAPE`) and `tools/check_rules.sh` | documents too big or too unstructured for the next agent's budget; code changed without its documentation (`DOCS`; code itself is never capped); `CLAUDE.md` and its imports growing past the startup cap (`DEC-00384`, `DEC-00385`) |
