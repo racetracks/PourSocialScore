@@ -86,6 +86,9 @@ strict=""
 [ -n "$CI" ] && strict="--strict"
 python3 tools/versions.py check --toc "$ver" $strict ${PSS_PR:+--pr "$PSS_PR"} || fail=1
 
+# the build history (DEC-00341): 06 "Now" holds one build entry; every version from 3.8.0.119 has an entry
+python3 tools/build_history.py check || fail=1
+
 if grep -nE 'EUI|[Ee]llesmere' PourSocialScore_GUI/* PourSocialScore_Libraries/PSS_ViewNav.lua PourSocialScore_Libraries/PSS_DetailQuery.lua PourSocialScore_Libraries/PSS_PlayerView.lua PourSocialScore_Libraries/PSS_GuildView.lua PourSocialScore_Libraries/PSS_FilterView.lua PourSocialScore_Libraries/PSS_EventsView.lua PourSocialScore_Libraries/PSS_OptionsView.lua PourSocialScore_Libraries/PSS_RowMenus.lua PourSocialScore_Libraries/PSS_Graphics.lua PourSocialScore_Libraries/PSS_MacroData.lua PourSocialScore_Libraries/PSS_Macros.lua PourSocialScore_Libraries/PSS_AddonsQuery.lua PourSocialScore_Libraries/PSS_AddonsView.lua; then
 	echo "PSS names only: an EllesmereUI or EUI name found above"
 	fail=1
