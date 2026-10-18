@@ -9,7 +9,8 @@
 #   sh tools/bump_version.sh pr <number>           the PR that carries the new builds
 #                                                  (once it is open; the rules check
 #                                                  fails a pull request without it)
-# Run from the repo root (needs python3), then fill in the history bullets.
+# Run from the repo root (needs python3), then fill in the history bullets
+# and the new entry of docs/pss/14_BUILD_HISTORY.md.
 # For a release, write them at release time: one summary, for players, of
 # every change since the previous release, from the PRs that
 # "python3 tools/versions.py prs" lists (CLAUDE.md, Full releases).
@@ -17,7 +18,7 @@ mode=$1
 case "$mode" in
 	line) line=$2; title=$3 ;;
 	build|release) title=$2 ;;
-	pr) python3 tools/versions.py pr "$2" && echo "PR $2 recorded"; exit $? ;;
+	pr) python3 tools/versions.py pr "$2" && python3 tools/build_history.py pr "$2" && echo "PR $2 recorded"; exit $? ;;
 	*) echo "usage: sh tools/bump_version.sh build|release \"Title\"  or  line X.Y.Z \"Title\"  or  pr <number>"; exit 1 ;;
 esac
 if [ -z "$title" ]; then echo "a title is needed"; exit 1; fi
@@ -45,4 +46,7 @@ done
 	printf '=> %s - %s\n\n%s\n\n' "$new" "$title" "$bullet"
 	sed '1,/^$/d' history.txt
 } > history.txt.new && mv history.txt.new history.txt
+# the build history (DEC-00341): 06 "Now" keeps only this build; the one before moves to
+# docs/pss/14_BUILD_HISTORY.md, and both get a stub to fill in the PR
+python3 tools/build_history.py roll "$new" "$title" "$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)" || exit 1
 echo "$ver -> $new$( [ "$mode" = release ] && echo ' (release)')"
