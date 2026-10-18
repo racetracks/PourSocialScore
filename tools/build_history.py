@@ -76,6 +76,7 @@ def cmd_roll(args):
 		"",
 		"- Branch: `" + branch + "`; " + NOPR + ".",
 		"- What changed and why: (written in the PR)",
+		"- Docs updated: (written in the PR)",
 		"- Tests run: (written in the PR)",
 		"- Not shown by the simulation: (written in the PR)",
 		"- In-game checks: (written in the PR)",
