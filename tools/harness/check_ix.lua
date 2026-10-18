@@ -1271,7 +1271,7 @@ PH.logcost = function()
 	for _ = 1, 9 do local t0 = os.clock(); S("index=log gold", { load = true }); best = math.min(best, (os.clock() - t0) * 1000) end
 	local B = dofile(here .. "/bus_budgets.lua")
 	check(best <= B.us.text2k.gate / 1000, string.format("text search on 2,000 lines %.2f ms", best))
-	print(string.format("NOTE ix logcost: %.2f ms (design 0.5 ms)", best))
+	print(string.format("NOTE ix logcost: %.2f ms (design %.1f ms)", best, B.us.text2k.design / 1000))
 end
 
 ------------------------------------------------------------------------

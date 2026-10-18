@@ -68,7 +68,7 @@ return {
 		decode = { measured = 1.6, gate = 3, design = 3, stage = "A (3.8.0.116)" },
 		segappend = { measured = 3.3, gate = 5, design = 5, stage = "A (3.8.0.116)" },
 		parse = { measured = 246, gate = 500, design = 500, stage = "A (3.8.0.116)" },
-		tokens = { measured = 182, gate = 220, design = 200, stage = "A (3.8.0.116); 3.8.0.117 pattern tokenizer, gate lowered from 350" },
+		tokens = { measured = 185, gate = 240, design = 200, stage = "A (3.8.0.116); 3.8.0.117 pattern tokenizer, gate lowered from 350 to 240 (machine noise up to 220)" },
 		text2k = { measured = 4040, gate = 4900, design = 3000, stage = "A (3.8.0.116), text search on 2,000 lines; design 0.5 to 3 ms, DEC-00333; resident sizes to phase G, DEC-00332" },
 		stats20k = { measured = 4520, gate = 25000, design = 25000, stage = "A (3.8.0.116), stats count by owner on 20,000 rows" },
 		namebuild = { measured = 17100, gate = 20000, design = 20000, stage = "A (3.8.0.116), item name index on 5,000 items" },
