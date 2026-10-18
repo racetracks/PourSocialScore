@@ -16,7 +16,7 @@ All bookkeeping is mechanical. `L` means `python3 .claude/scripts/ledger.py`. It
 Any code or test change, however small, is T2+: it goes to an engineer.
 
 Stage close is T1: once a stage's streams are `DONE`, run `sh tools/stage_close.sh <scratch checkout>` inline; on `FAIL <step>`, continue the stream consultant (`--support`) with the printed log path.
-Plan packs (`DEC-00394`): on `PACK <project>`, run `L pack <project>`; on `HANDOFF refused`, `cont` that consultant `--support` with the lines, then `pack` again; run the printed `NEXT` line before the session closes. `L promote <draft>` only on the author's OK. A building session starts with `L init --pack <scratch>/documents/projects/<project>` (`--draft`: dry run of a drafts/ path).
+Plan packs (`DEC-00394`): on `PACK <project>`, run `L pack <project>`; on `HANDOFF refused`, `cont` that consultant `--support` with the lines, then `pack` again; run the printed `NEXT` line before the session closes. `L promote <draft>` only on the author's OK. A building session starts with `L init --pack <scratch>/documents/projects/<project>` (`--draft`: dry run of a session's `projects/<project>/` draft).
 
 3. If `TASK.md#direct-tasks` has rows, run `L init`; spawn engineers for them with no triage.
 4. Everything else: `L spawn TRIAGE`, then spawn a consultant with the printed line plus a ≤5-line triage brief (mode: triage; inputs as `TASK.md` anchors). You do not classify, choose agents or set budgets.
