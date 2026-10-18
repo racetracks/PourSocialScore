@@ -208,6 +208,9 @@ sh "$here/bus_phases.sh" || fail=1
 echo "== Spyglass engine (ix_phases.sh)"
 sh "$here/ix_phases.sh" || fail=1
 
+echo "== Spyglass console (console_phases.sh)"
+sh "$here/console_phases.sh" || fail=1
+
 # the warehouse (warehouse-helper, one build 3.7.0.106): every phase of
 # check_wh.lua on Retail and Camelot (wh_phases.sh)
 echo "== warehouse"

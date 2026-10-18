@@ -93,6 +93,8 @@ jobs:
         run: sh tools/harness/bus_phases.sh
       - name: Spyglass engine (ix_phases.sh)
         run: sh tools/harness/ix_phases.sh
+      - name: Spyglass console (console_phases.sh)
+        run: sh tools/harness/console_phases.sh
       - name: Warehouse
         run: sh tools/harness/wh_phases.sh
       - name: Warehouse faults and mutants
