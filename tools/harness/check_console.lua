@@ -805,8 +805,7 @@ PH.conhilive = function()
 	local text, t0 = "", os.clock()
 	for i = 1, 60 do
 		text = text .. (("index=log | head 10 "):sub(((i - 1) % 19) + 1, ((i - 1) % 19) + 1))
-		pg.bar:SetText(text)
-		pg.highlight()
+		pg.bar:SetText(text)	-- the stub fires OnTextChanged, which recolours once
 	end
 	local avg = (os.clock() - t0) / 60 * 1000
 	M.PSS_Psql.tokens = base
@@ -1266,6 +1265,131 @@ PH.eventstab = function()
 	check(win.ShowEventsTab == nil and _G.PSS_Window ~= nil and not M.PSS_TAB_ALIAS.events == false, "alias missing")
 	local rows = M.PSS_ConsoleModel():LeftRows()
 	check(rows[2] and rows[2].text == "Events" and rows[2].query == "index=log | head 500", "the first System row is not Events")
+end
+
+-- fix-125 F1: the client stores a typed pipe as two
+PH.conpipe = function()
+	local CV = M.PSS_ConsoleView
+	check(CV.unpipe and CV.pipe, "CV.unpipe / CV.pipe missing")
+	if CV.unpipe and CV.pipe then
+		local x = "index=log | head 5"
+		check(CV.unpipe("a||b") == "a|b", "unpipe a||b")
+		check(CV.pipe("a|b") == "a||b", "pipe a|b")
+		check(CV.unpipe(CV.pipe(x)) == x, "unpipe(pipe(x)) == x")
+	end
+	local pg = openCon()
+	plantLog(20)
+	pg.bar:SetText("index=log cat=whisper || stats count by cat")
+	pg.run(true)
+	check(pg.qv.vm.state ~= "error", "client-form pipe: state " .. tostring(pg.qv.vm.state) .. " " .. tostring(pg.qv.vm.err and pg.qv.vm.err.msg))
+end
+
+-- fix-125 F2 and F4: bar text visible; the needsload status
+PH.conbarvis = function()
+	local pg = openCon()
+	local CV = M.PSS_ConsoleView
+	local function vis(what)
+		local tc = pg.bar._tc
+		check(not tc or tc[4] == nil or tc[4] == 1, what .. ": box text alpha " .. tostring(tc and tc[4]))
+		check(not pg.overlay:IsShown(), what .. ": overlay shown")
+		check(pg.barError() == nil, what .. ": bar error " .. tostring(pg.barError() and pg.barError().msg))
+		check(pg.qv.vm.state ~= "error", what .. ": state error " .. tostring(pg.qv.vm.err and pg.qv.vm.err.msg))
+	end
+	vis("builder")
+	plantLog(20)
+	local d
+	for _, r in ipairs(pg.cm:LeftRows()) do if r.key and r.key:find("^sys:") then d = r break end end
+	check(d, "a list row exists")
+	if d then pg.nav:Select(d.key, true); vis("left-list pick") end
+	pg.bar:SetText(CV.HELP[1][1]); pg.run(true); vis("help pick")
+	pg.bar:SetText("index=log | head 50"); pg.run(true)
+	for i, f in ipairs(pg.sideFlat()) do
+		if f.field then pg.sideList.spec.click(nil, i); break end
+	end
+	vis("side-list click")
+	local text, params = M.PSS_DeepDiveText("player.events", { kind = "player", id = "Owner1-Realm" })
+	check(text, "deep dive text")
+	if text then pg.deepDive(text, params); vis("deep dive") end
+	M.PSS_SetOpt("conTime", "global", "all")
+	local v = GUI().NewQueryView(UIParent, { w = 400, h = 240, query = "index=log | head 5" })
+	v:Run(false)
+	check(v.vm.state == "needsload", "needsload state " .. tostring(v.vm.state))
+	check(v.vm:Status() == "History not loaded", "needsload status: " .. tostring(v.vm:Status()))
+end
+
+-- fix-125 F3: the left list clips and scrolls
+PH.connavclip = function()
+	local pg = openCon()
+	local nav = pg.nav
+	check(nav:GetClipsChildren(), "console nav does not clip")
+	check(nav:IsMouseWheelEnabled(), "console nav wheel not enabled")
+	local wheel = nav:GetScript("OnMouseWheel")
+	check(wheel, "no OnMouseWheel")
+	local function top() local p = nav.rows[1]._point return p and (p[5] or 0) end
+	if wheel then
+		local y0 = top()
+		check(y0 ~= nil, "row 1 has no point")
+		wheel(nav, -1)
+		check(top() == y0 + 60, "wheel -1: row 1 top " .. tostring(top()) .. " want " .. tostring(y0 + 60))
+		for _ = 1, 5 do wheel(nav, 1) end
+		check(top() == y0, "wheel +1 x5: row 1 top " .. tostring(top()) .. " want " .. tostring(y0))
+	end
+	local win = _G.PSS_Window
+	local opt
+	for i, t in ipairs(win.tabs) do if t.key == "options" or (t.GetText and t:GetText() == "Options") then opt = t end end
+	if opt then
+		click(opt)
+		for _, pgx in pairs(win.pages) do
+			local n = pgx.nav
+			if n and n ~= nav and n.IsShown and n:IsShown() and n.rows[1] then
+				local p0 = n.rows[1]._point and n.rows[1]._point[5]
+				local w = n:GetScript("OnMouseWheel")
+				if w then w(n, -1) end
+				check((n.rows[1]._point and n.rows[1]._point[5]) == p0, "Options nav moved on wheel")
+			end
+		end
+	end
+end
+
+-- fix-125 F5: slice deep dive without an owner
+PH.conslice = function()
+	local kinds = { player = "p:*", member = "g:*", filter = "f:*", guild = "guild=\"*\"", group = "guild=\"*\"" }
+	for kind, want in pairs(kinds) do
+		for _, id in ipairs({ false, "nil" }) do
+			local text, params = M.PSS_DeepDiveText("pane.slice", { kind = kind, id = id ~= "nil" and id or nil, cat = "whisper" })
+			local w = kind .. " id=" .. tostring(id)
+			check(text and text:find(want, 1, true), w .. ": text " .. tostring(text))
+			check(text and text:find(" cat=$cat", 1, true), w .. ": no cat slice")
+			check(params and params.cat == "whisper", w .. ": params")
+		end
+	end
+	local t, e = M.PSS_DeepDiveText("player.events", { kind = "player", id = {} })
+	check(t == nil and e == "nothing selected", "no name: " .. tostring(t) .. " / " .. tostring(e))
+	local pg = openCon()
+	plantLog(20)
+	local text, params = M.PSS_DeepDiveText("player.events", { kind = "player", id = "Owner1-Realm" })
+	check(text, "deep dive text")
+	if text then
+		pg.deepDive(text, params)
+		pg.run(true)
+		check(pg.qv.vm.state ~= "error", "run after deep dive: " .. tostring(pg.qv.vm.err and pg.qv.vm.err.msg))
+		check(not pg.bar:GetText():find("$", 1, true), "bar holds $: " .. tostring(pg.bar:GetText()))
+	end
+end
+
+-- fix-125 F6: the System chart row draws a chart
+PH.conchartpick = function()
+	local pg = openCon()
+	plantLog(30)
+	local d
+	for _, r in ipairs(pg.cm:LeftRows()) do if r.text == "Lines a day" then d = r break end end
+	check(d, "row Lines a day")
+	if d then
+		pg.nav:Select(d.key, true)
+		pg.run(true)
+		check(pg.tabs[3]:IsEnabled(), "Chart tab disabled; state " .. tostring(pg.qv.vm.state) .. " " .. tostring(pg.qv.vm:Status()))
+		check(pg.qv.vm.chart and pg.qv.vm.chart.kind ~= "table", "chart kind " .. tostring(pg.qv.vm.chart and pg.qv.vm.chart.kind))
+	end
 end
 
 local f = PH[phase]
