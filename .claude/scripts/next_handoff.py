@@ -7,7 +7,7 @@ Format: scratch `.next/README.md#format`.
 
 Usage:
   next_handoff.py start          SessionStart hook (.claude/settings.json): prints the root NEXT.md and the
-                                 other sessions' handoffs from the last 24 h (## Parallel); never fails
+                                 other sessions' handoffs from the last 24 h (## Parallel, at most 5 rows plus a +N more line); never fails
   next_handoff.py check [FILE]   shape of FILE, else of this session's handoff; prints `NEXT <path>: <problem>`;
                                  exit 1 on a problem. Run by check_context.py outside CI.
 Scratch checkout: PSS_SCRATCH, else ../Pour-Social-Score_Scratch beside this repo.
@@ -24,6 +24,7 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SECTIONS = ["Prompt", "State", "Done", "Next", "Open", "Pitfalls", "Parallel"]
 CAP = 60
+PARALLEL_CAP = 5
 RULE_FROM = "2026/10/19/11-01-05"
 HEAD_RX = re.compile(r"^from (\S+) · (\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC · status (ready|blocked|waiting)(?: \([^)]*\))? · temp root ")
 
@@ -96,10 +97,15 @@ def cli_start():
             others.append((h.group(2), h.group(1), lines[0][8:], p.relative_to(sc).as_posix()))
     print("Next-session handoff (DEC-00398), scratch .next/NEXT.md, printed by the SessionStart hook; "
           "pull scratch before acting on it, the author's prompt wins:\n")
+    cut = re.search(r"^## Parallel", text, re.M)
+    text = text[:cut.start()] if cut else text
     print(text or "(none yet)")
     print("## Parallel (other handoffs, last 24 h; copy into your NEXT.md ## Parallel)")
-    for row in sorted(others, reverse=True):
+    rows = sorted(others, reverse=True)
+    for row in rows[:PARALLEL_CAP]:
         print("- %s UTC · %s · %s · scratch:%s" % row)
+    if len(rows) > PARALLEL_CAP:
+        print("- +%d more under scratch:temp/ (*/.next/NEXT.md, last 24 h)" % (len(rows) - PARALLEL_CAP))
     if not others:
         print("None")
     return 0
