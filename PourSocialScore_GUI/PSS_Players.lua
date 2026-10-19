@@ -22,6 +22,7 @@ local LINE_H = 16
 -- stored; row: the one table every drawn row is read into
 local V = M.PSS_PlayerListNew()
 local sel
+function ns.SelectedPlayer() return sel end
 local rowBuf = {}
 local page, list, pane, lf, picker, searchButton
 local pickCells = {}

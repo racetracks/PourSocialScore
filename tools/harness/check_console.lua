@@ -1380,7 +1380,15 @@ PH.consysq = function()
 	if not check(M.PSS_ResolveQuery, "M.PSS_ResolveQuery defined") then return end
 	local runs = 0
 	local realRun = pg.qv.Run
-	pg.qv.Run = function(...) runs = runs + 1 return realRun(...) end
+	local inRefresh = false
+	local realRefresh = pg.qv.Refresh
+	pg.qv.Refresh = function(...)
+		inRefresh = true
+		local ok, e = pcall(realRefresh, ...)
+		inRefresh = false
+		if not ok then error(e, 0) end
+	end
+	pg.qv.Run = function(...) if not inRefresh then runs = runs + 1 end return realRun(...) end
 	local realSel = ui.SelectedPlayer
 	local sel
 	ui.SelectedPlayer = function() return sel end

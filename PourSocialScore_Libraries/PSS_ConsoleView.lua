@@ -106,6 +106,18 @@ function VM:Status()
 	return s
 end
 
+-- one value as a query literal: a number as is, anything else quoted
+local function quote(v)
+	if type(v) == "number" then return tostring(v) end
+	return '"' .. tostring(v):gsub("[\\\"]", "\\%0") .. '"'
+end
+
+-- one value as a query literal: a number as is, anything else quoted
+local function quote(v)
+	if type(v) == "number" then return tostring(v) end
+	return '"' .. tostring(v):gsub("[\\\"]", "\\%0") .. '"'
+end
+
 -- the plan's text with each $name put in as one quoted literal (plan:text() keeps the $name)
 function VM:Text()
 	if not self.plan then return nil end
@@ -115,7 +127,7 @@ function VM:Text()
 	return (text:gsub("%$([%a_][%w_]*)", function(name)
 		local v = params[name]
 		if v == nil then return nil end
-		return '"' .. tostring(v):gsub("[\\\"]", "\\%0") .. '"'
+		return quote(v)
 	end))
 end
 
@@ -555,6 +567,34 @@ function M.PSS_DeepDiveText(keyOrText, ctx)
 	if type(keyOrText) == "string" then return keyOrText, ctx, nil end
 	return nil, "unknown query"
 end
+
+-- the values a $name takes when the context has none (nil = nothing to fill in)
+M.PSS_QUERY_SOURCES = {
+	owner = function(ctx) return ctx.owner end,
+	item = function()
+		local ok, set = pcall(M.PSS_Search, "index=inv | sort -count | head 1", {})
+		if not ok or not set or not set[1] then return nil end
+		local i = M.PSS_SetCol(set, "item")
+		return i and set[1][i] or nil
+	end,
+}
+
+-- every $name in text put in as a literal; nil, name for the first one nothing fills
+function M.PSS_ResolveQuery(text, ctx)
+	ctx = ctx or {}
+	local missing
+	local out = text:gsub("%$([%a_][%w_]*)", function(name)
+		if missing then return nil end
+		local v = ctx[name]
+		if v == nil and M.PSS_QUERY_SOURCES[name] then v = M.PSS_QUERY_SOURCES[name](ctx) end
+		if v == nil then missing = name; return nil end
+		return quote(v)
+	end)
+	if missing then return nil, missing end
+	return out
+end
+
+M.PSS_UNBOUND_TEXT = { owner = "Select a player in Player Ignore List first", item = "No item recorded yet", other = "This search needs a value Spyglass cannot fill" }
 
 M.PSS_PANE_OFF = "Event Logging is off. Turn it on in Optional Features."
 

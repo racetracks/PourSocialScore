@@ -216,9 +216,26 @@ ns.TabBuilders.console = function(pg)
 		HookRows()
 	end
 
+	local function Ctx()
+		local s = ns.SelectedPlayer and ns.SelectedPlayer()
+		return { owner = s and M.PSS_PlayerHistoryKey(s) or nil }
+	end
+	local function Unbound(missing)
+		qv.status:SetTextColor(1, 1, 1)
+		qv.status:SetText(M.PSS_UNBOUND_TEXT[missing] or M.PSS_UNBOUND_TEXT.other)
+	end
+
 	function pg.run(load)
 		if dict then dict:Hide() end
 		local text = BarText() or ""
+		if text:find("$", 1, true) then
+			local r, missing = M.PSS_ResolveQuery(text, Ctx())
+			if not r then Unbound(missing); return end
+			text = r
+			SetBar(text)
+		end
+		local _, err = cm:Tokens(text)
+		if err then return end
 		cm:SetText(text)
 		qv:SetQuery(text)
 		qv:SetRange((function() local e, l = picker:Range(); if e or l then return { earliest = e, latest = l } end end)())
@@ -319,8 +336,13 @@ ns.TabBuilders.console = function(pg)
 		if key == "dict" then
 			if not dict then BuildDict() end
 			help:Hide(); dict:Show(); DictFill()
-		elseif d and (d.query or d.insert) then
-			SetBar(d.query or d.insert)
+		elseif d and d.query then
+			local text, missing = M.PSS_ResolveQuery(d.query, Ctx())
+			if not text then Unbound(missing); return end
+			SetBar(text)
+			pg.run(true)
+		elseif d and d.insert then
+			SetBar(d.insert)
 			pg.run(true)
 		end
 	end
@@ -370,6 +392,7 @@ ns.TabBuilders.console = function(pg)
 	pg.bar, pg.qv, pg.cm, pg.picker, pg.help, pg.overlay, pg.underline, pg.sideList, pg.tabs = bar, qv, cm, picker, help, overlay, ul, sideList, tabs
 	pg.highlight, pg.sync, pg.hookRows = Highlight, Sync, HookRows
 	pg.nav, pg.chip, pg.backChip = nav, chip, backChip
+	pg.pick = Pick
 	pg.layout = { PW = PW, PH = PH, resW = resW, resH = resH }
 	if ns.AttachQueryList then ns.AttachQueryList(pg) end
 	function pg.barError() return barErr end
