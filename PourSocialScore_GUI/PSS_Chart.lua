@@ -374,7 +374,7 @@ DRAW.table = function(f, set, spec)
 		end
 		t.list = ns.NewRows(c, { rowH = 18, cols = lc, draw = function(row, i)
 			local r = t.set[i]
-			for k = 1, #t.set.cols do row.cells["c" .. k]:SetText(tostring(r[k])) end
+			for k = 1, #t.set.cols do row.cells["c" .. k]:SetText(M.PSS_CellText(t.set.cols[k], r[k])) end
 		end })
 		f.lists[sig] = t
 		f.listOrder[#f.listOrder + 1] = sig

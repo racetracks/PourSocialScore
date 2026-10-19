@@ -14,6 +14,7 @@
 ------------------------------------------------------------------------
 local addon = PourSocialScore_NS
 local M = addon.M
+local date = date
 
 local type, pairs, pcall, tostring, next = type, pairs, pcall, tostring, next
 local sort, concat = table.sort, table.concat
@@ -62,6 +63,13 @@ function M.PSS_SetCol(set, name)
 		colIndex[set] = idx
 	end
 	return idx[name]
+end
+
+-- text of one table cell: blank for nil and secret values, time as day month hour:minute
+function M.PSS_CellText(col, v)
+	if M.PSS_IsSecret(v) or v == nil then return "" end
+	if col == "time" and type(v) == "number" and v > 0 then return date("%d %b %H:%M", v) end
+	return tostring(v)
 end
 
 ------------------------------------------------------------------------
