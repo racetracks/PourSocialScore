@@ -11,6 +11,11 @@
 6. **Simulate the client while coding:** every change is driven through the harness's simulated WoW client as it is written, its real output read; changed behaviour gets a check that fails on `origin/main`; the PR names what a simulation cannot show (full text in 11).
 7. **Every feature's design and implementation plan name its tests:** per stage, the rules check, the harness checks, the upgrade and data checks, the window compare (`tui_compare.sh`, all three looks) and the real-save run; the release stage also names every release workflow job it needs (`release.yml`, the mirror, the scratch record) and checks it at release.
 8. **Credit other developers (#194, `DEC-00040`):** code, logic or media learned from or used from another developer is credited by name, licence and link in its documentation (`00_References.md`, Credits) and in the release notes (history section and scratch release notes) of every release that ships it.
+9. **Client-form input.** Every test that feeds text to an edit box feeds the form the client stores (the harness feeds both `|` and `||`), and every read of an edit box goes through one unescape helper. (D89, the author, 2026-10-19).
+10. **Stub events match the client.** A stub method that fires an event in the client fires it in the stub; a new widget method used by the addon gets a stub method before it is used. (D89, the author, 2026-10-19).
+11. **Visible means asserted.** A check that expects text on screen asserts its alpha and shown state, and no check counts a hidden native text replaced by a drawn layer as visible; such a layer needs an in-game check before it ships. (D89, the author, 2026-10-19).
+12. **Empty inputs on every entry point.** Every function that takes a selection (an id, a name) is tested with nil, false and an empty table. (D89, the author, 2026-10-19).
+13. **Failing first.** Every fix of an in-game failure lands with a harness check that fails on the build the author tested. (D89, the author, 2026-10-19).
 
 ## 2. TOCs
 - Title `|cff69ccf0PourSocialScore|r <Part>`.

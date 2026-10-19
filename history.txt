@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.127 - Spyglass search fixes
+
+- Spyglass: the console fits its page, System searches fill in the selected player or item (never a $), only valid searches run, Events shows dates and blank cells, the status names the 2000-line history cap; What PSS did is now Items PSS sold or dropped.
+
 => 3.8.0.126 - Spyglass console fixes
 
 - Spyglass: typed pipes work, the search bar shows its text, the left list scrolls, one Load history, pie slices of All open their rows.

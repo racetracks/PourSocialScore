@@ -39,9 +39,17 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.127 - Spyglass search fixes
+
+- Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
+- What changed and why: G2 console fits its page; G3 System searches fill in the selected player or item (never a $); G4 only valid searches run; G5 What PSS did is now Items PSS sold or dropped; G8 the status names the 2000-line history cap; G9 Events shows dates and blank cells; rules 9 to 13 of 02 section 1 (D89). Why: the author's 3.8.0.126 in-game results and the Z02 data validation.
+- Docs updated: `docs/pss/02_RULES.md`, `docs/pss/06_STATUS_AND_NEXT.md`.
+- Ran: pending (G08)
+
 ### 3.8.0.126 - Spyglass console fixes
 
 - Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
+- What changed and why (moved from 06 "Now"): **3.8.0.126, Spyglass console fixes** (same branch, PR #242): fixes the failed checks `CHK-00146` to `CHK-00150` and `CHK-00170` of 3.8.0.125 (typed pipe, invisible bar text (plain text now, D74), left list clip and scroll, status text, pie slices of All); charts re-checked only. **Its in-game results led to the fix build 3.8.0.127.** Ran: rules check rc=0; validate_all 1563 PASS, 0 FAIL, 0 SKIP (14 real saves); console_phases 198 phases, 0 failed; console_mutants 28 of 28 killed; tui_compare vs 8a67167 only the intended diffs (search bar text plain and shown, overlay gone, status timing); conchartpick 2 phases, 0 failed. In-game: `CHK-00146` to `CHK-00150` and `CHK-00170`, each in Modern, Classic and Dark; `/pss q bar` output on open is evidence for F2.
 - What changed and why: F1 typed pipe no longer read as two; F2 search bar shows plain text (D74), overlay dropped; F3 left list clipped and scrolls; F4 one Load history; F5 pie slices of All open their rows; F6 charts re-checked only. Why: the author's in-game results of 3.8.0.125 (`CHK-00146` to `CHK-00150`, `CHK-00170`).
 - F1: `CV.unpipe`/`CV.pipe` at `PourSocialScore_Libraries/PSS_ConsoleView.lua:264`; `BarText`/`SetBar` at `PourSocialScore_GUI/PSS_Console.lua:30`.
 - F2: plain-text bar and `Highlight` at `PourSocialScore_GUI/PSS_Console.lua:60`; `ns.ConsoleBarRaw` at `:371`; `/pss q bar` at `PourSocialScore_Libraries/PSS_IxExport.lua:204`.
