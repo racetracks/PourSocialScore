@@ -1,5 +1,12 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/scripts/next_handoff.py\" start" }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
