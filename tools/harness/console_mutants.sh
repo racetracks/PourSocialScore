@@ -30,7 +30,10 @@ pick-wins-typed|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if range and CV.
 pick-month-30d|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/text = "This month", e = "@mon"/text = "This month", e = "-30d"/|pickpresets
 con-copy-raw|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if M.PSS_IsSecret(v) then/if false then/|concopysecret
 con-rows-hook-once|PourSocialScore_GUI/PSS_Console.lua|s/list.Layout = function(self, ...) local r = layout(self, ...); HookRows(); return r end/list.Layout = layout/|conrowhook
-save-chart-lost|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not cs then return id, nil, cerr or "chart not saved" end/if not cs then return id end/|savepartial'
+save-chart-lost|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not cs then return id, nil, cerr or "chart not saved" end/if not cs then return id end/|savepartial
+con-bar-raw|PourSocialScore_GUI/PSS_Console.lua|s/return CV.unpipe(bar:GetText() or "")/return (bar:GetText() or "")/|conpipe
+nav-no-clip|PourSocialScore_GUI/PSS_Nav.lua|s/nav:SetClipsChildren(true)/nav:SetClipsChildren(false)/|connavclip
+deep-all-unbound|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/M.PSS_BUTTON_QUERIES\[tostring(evKind) .. ".all"\]/M.PSS_BUTTON_QUERIES[tostring(evKind) .. ".none"]/|conslice'
 want="$*"
 total=0; killed=0
 nl='

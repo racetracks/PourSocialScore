@@ -50,7 +50,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - F5: `.all` rows `PourSocialScore_Libraries/PSS_ConsoleView.lua:478`; no-id and `nothing selected` in `M.PSS_DeepDiveText` at `:516`; bar shows `vm:Text()` in `pg.deepDive` at `PourSocialScore_GUI/PSS_Console.lua:343`.
 - In-game check note: `/pss q bar` prints `bar raw: ...` (the raw bar text, pipes doubled); record whether the client stores `|` or `||`.
 - Docs updated: `docs/pss/02_RULES.md` (11 rule 12 retired), `docs/pss/06_STATUS_AND_NEXT.md`, this entry, `history.txt`.
-- Ran: pending (Y06)
+- Ran: rules check rc=0; validate_all 1563 PASS, 0 FAIL, 0 SKIP (14 real saves); console_phases 198 phases, 0 failed; console_mutants 28 of 28 killed; tui_compare vs 8a67167 only the intended diffs (search bar text plain and shown, overlay gone, status timing); conchartpick 2 phases, 0 failed
 
 ### 3.8.0.125 - Spyglass console
 
