@@ -117,12 +117,6 @@ local function quote(v)
 	return '"' .. tostring(v):gsub("[\\\"]", "\\%0") .. '"'
 end
 
--- one value as a query literal: a number as is, anything else quoted
-local function quote(v)
-	if type(v) == "number" then return tostring(v) end
-	return '"' .. tostring(v):gsub("[\\\"]", "\\%0") .. '"'
-end
-
 -- the plan's text with each $name put in as one quoted literal (plan:text() keeps the $name)
 function VM:Text()
 	if not self.plan then return nil end
