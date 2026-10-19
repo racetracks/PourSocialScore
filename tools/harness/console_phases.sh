@@ -10,7 +10,7 @@ export TZ=UTC
 fail=0; n=0; bad=0
 
 ALL=$(echo $(grep -o '^PH\.[a-z0-9]*' "$here/check_console.lua" | sed 's/^PH\.//'))
-REAL="conreal buttonqueries panehistory conpipe conslice"
+REAL="conreal buttonqueries panehistory conpipe conslice consysq concell concap"
 
 want="$*"
 [ -z "$want" ] && want=$(echo $ALL)

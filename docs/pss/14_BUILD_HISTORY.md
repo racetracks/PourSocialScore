@@ -43,6 +43,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 - Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
 - What changed and why: G2 console fits its page; G3 System searches fill in the selected player or item (never a $); G4 only valid searches run; G5 What PSS did is now Items PSS sold or dropped; G8 the status names the 2000-line history cap; G9 Events shows dates and blank cells; rules 9 to 13 of 02 section 1 (D89). Why: the author's 3.8.0.126 in-game results and the Z02 data validation.
+- Harness: phases `consize`, `consysq`, `concell` added (fail on 3.8.0.126 code) and `console_phases.sh` REAL gains `consysq concell concap`.
 - Docs updated: `docs/pss/02_RULES.md`, `docs/pss/06_STATUS_AND_NEXT.md`.
 - Ran: pending (G08)
 

@@ -201,6 +201,8 @@ function W:GetID() return self._id or 0 end
 function W:SetID(i) self._id = i end
 -- a check sets f._focus to give a box the keyboard
 function W:HasFocus() return self._focus or false end
+function W:SetFocus() end
+function W:ClearFocus() end
 function W:Insert(t) self._text = (self._text or "") .. tostring(t or "") end
 function W:GetCursorPosition() return 0 end
 function W:GetVerticalScroll() return self._vscroll or 0 end

@@ -1356,6 +1356,127 @@ PH.conchartpick = function()
 	end
 end
 
+-- fix-126 G2: the page is sized from the constants when the builder runs before the page shows (get 0)
+PH.consize = function()
+	GUI()
+	local pg = CreateFrame("Frame", nil, UIParent)
+	pg:SetPoint("TOPLEFT", UIParent, "TOPLEFT")
+	pg:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT")
+	pg.GetWidth = function() return 0 end
+	pg.GetHeight = function() return 0 end
+	ui.TabBuilders.console(pg)
+	if not check(pg.layout, "pg.layout defined") then return end
+	check(pg.layout.PW == 940, "PW " .. tostring(pg.layout.PW) .. " want 940")
+	check(pg.layout.PH == 400, "PH " .. tostring(pg.layout.PH) .. " want 400")
+	check(pg.qv:GetWidth() == 550, "qv width " .. tostring(pg.qv:GetWidth()) .. " want 550")
+	check(pg.qv:GetHeight() == 306, "qv height " .. tostring(pg.qv:GetHeight()) .. " want 306")
+	check(84 + pg.layout.resH + 10 == 400, "84 + resH + 10 = " .. tostring(84 + (pg.layout.resH or 0) + 10) .. " want 400")
+end
+
+-- fix-126 G3, G4: parameters resolve before the bar; only valid queries run
+PH.consysq = function()
+	local pg = openCon()
+	if not check(pg.pick, "pg.pick defined") then return end
+	if not check(M.PSS_ResolveQuery, "M.PSS_ResolveQuery defined") then return end
+	local runs = 0
+	local realRun = pg.qv.Run
+	pg.qv.Run = function(...) runs = runs + 1 return realRun(...) end
+	local realSel = ui.SelectedPlayer
+	local sel
+	ui.SelectedPlayer = function() return sel end
+	local one = M.PSS_Search("index=log | head 1", {})
+	local owner = one and one.n > 0 and one[1][M.PSS_SetCol(one, "owner") or 1]
+	local name = type(owner) == "string" and owner:match("^p:(.+)$")
+	local function pick(key)
+		local before = pg.bar:GetText()
+		runs = 0
+		pg.pick(key)
+		return before
+	end
+	local function status() return pg.qv.status and pg.qv.status:GetText() end
+	local function unbound(key, want, label)
+		local before = pick(key)
+		check(pg.bar:GetText() == before, label .. ": bar changed")
+		check(runs == 0, label .. ": ran " .. runs)
+		check(status() == want, label .. ": status " .. tostring(status()))
+	end
+	if name then
+		sel = { name = name }
+		for _, k in ipairs({ "sys:log.byday", "sys:log.lines", "sys:log.bytype" }) do
+			pick(k)
+			local b = pg.bar:GetText()
+			check(b:find('owner="p:', 1, true) and not b:find("$", 1, true), "case 1 " .. k .. ": bar " .. b)
+			check(runs == 1, "case 1 " .. k .. ": runs " .. runs)
+			check(pg.qv.vm.state ~= "error", "case 1 " .. k .. ": state error")
+		end
+	else
+		print("NOTE consysq: no p: owner in the save; cases 1 and 7 skipped")
+	end
+	sel = nil
+	unbound("sys:log.byday", M.PSS_UNBOUND_TEXT and M.PSS_UNBOUND_TEXT.owner, "case 2")
+	local inv = M.PSS_Search("index=inv | sort -count | head 1", {})
+	if inv and inv.n > 0 then
+		pick("sys:wh.holders")
+		local b = pg.bar:GetText()
+		check(b:find("item=", 1, true) and not b:find("$", 1, true), "case 3: bar " .. b)
+		check(runs == 1, "case 3: runs " .. runs)
+	else
+		unbound("sys:wh.holders", M.PSS_UNBOUND_TEXT and M.PSS_UNBOUND_TEXT.item, "case 4")
+	end
+	local a1, n1 = M.PSS_ResolveQuery("index=log owner=$owner", { owner = "p:a" })
+	check(a1 == 'index=log owner="p:a"', "case 5a: " .. tostring(a1))
+	local a2 = M.PSS_ResolveQuery("index=inv item=$item", { item = 19019 })
+	check(a2 == "index=inv item=19019", "case 5b: " .. tostring(a2))
+	local a3, n3 = M.PSS_ResolveQuery("index=log owner=$owner", {})
+	check(a3 == nil and n3 == "owner", "case 5c: " .. tostring(a3) .. ", " .. tostring(n3))
+	runs = 0
+	pg.bar:SetText("index=log owner=$owner")
+	pg.run(true)
+	check(runs == 0, "case 6a: ran " .. runs)
+	pg.bar:SetText("index=log | | x")
+	pg.run(true)
+	check(runs == 0, "case 6b: ran " .. runs)
+	if name then
+		sel = { name = name }
+		for _, q in ipairs(M.PSS_SQ_SYSTEM) do
+			pg.pick("sys:" .. q.id)
+			check(not pg.bar:GetText():find("$", 1, true), "case 7 " .. q.id .. ": bar has $")
+		end
+	end
+	ui.SelectedPlayer = realSel
+	pg.qv.Run = realRun
+end
+
+-- fix-126 G9: raw time and nil cells
+PH.concell = function()
+	if not check(M.PSS_CellText, "M.PSS_CellText defined") then return end
+	check(M.PSS_CellText("item", nil) == "", "item nil: " .. tostring(M.PSS_CellText("item", nil)))
+	check(M.PSS_CellText("time", 1792380649) == "19 Oct 03:30", "time: " .. tostring(M.PSS_CellText("time", 1792380649)))
+	check(M.PSS_CellText("n", 5) == "5", "n 5: " .. tostring(M.PSS_CellText("n", 5)))
+	local pg = openCon()
+	pg.qv:SetQuery("index=log | head 100")
+	pg.qv:Run(true)
+	local list = pg.qv.chart and pg.qv.chart.tableList
+	if not (list and #list.rows > 0 and pg.qv.vm.set and pg.qv.vm.set.n > 0) then
+		print("NOTE concell: 0 rows, drawn part skipped")
+		return
+	end
+	for i, r in ipairs(list.rows) do
+		if r:IsShown() then
+			for k, c in pairs(r.cells) do
+				check(c:GetText() ~= "nil", "row " .. i .. " cell " .. tostring(k) .. " reads nil")
+			end
+		end
+	end
+	local cols = pg.qv.vm.set.cols
+	for k = 1, #cols do
+		if cols[k] == "time" then
+			local t = list.rows[1].cells["c" .. k]:GetText()
+			check(not tostring(t):match("^%d+$"), "row 1 time cell is raw: " .. tostring(t))
+		end
+	end
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")
