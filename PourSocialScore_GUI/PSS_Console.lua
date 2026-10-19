@@ -16,12 +16,12 @@ ns.TabBuilders.console = function(pg)
 	local CV = M.PSS_ConsoleView
 	local cm = M.PSS_ConsoleModel()
 	local PW, PH = pg:GetWidth(), pg:GetHeight()
-	if not PW or PW < 400 then PW = 780 end
-	if not PH or PH < 200 then PH = 460 end
+	if not PW or PW < 400 then PW = ns.PAGE_W or 780 end
+	if not PH or PH < 200 then PH = ns.PAGE_H or 460 end
 	local LEFT_W, SIDE_W, PAD = 180, 170, 10
 	local RX = LEFT_W + 2 * PAD
-	local resW, resH = PW - RX - SIDE_W - 2 * PAD, PH - 96 - PAD
-	local qvo = { w = resW, h = resH - 24, rows = M.PSS_Opt("conRows"), deepDive = false, shape = "events" }
+	local resW, resH = PW - RX - SIDE_W - 2 * PAD, PH - 84 - PAD
+	local qvo = { w = resW, h = resH, rows = M.PSS_Opt("conRows"), deepDive = false, shape = "events" }
 	local leftByKey, tabs, tabKey = {}, {}, "results"
 	local qv, bar, picker, nav, chip, help, dict, side, sideList, flat
 
@@ -370,6 +370,7 @@ ns.TabBuilders.console = function(pg)
 	pg.bar, pg.qv, pg.cm, pg.picker, pg.help, pg.overlay, pg.underline, pg.sideList, pg.tabs = bar, qv, cm, picker, help, overlay, ul, sideList, tabs
 	pg.highlight, pg.sync, pg.hookRows = Highlight, Sync, HookRows
 	pg.nav, pg.chip, pg.backChip = nav, chip, backChip
+	pg.layout = { PW = PW, PH = PH, resW = resW, resH = resH }
 	if ns.AttachQueryList then ns.AttachQueryList(pg) end
 	function pg.barError() return barErr end
 	ns.ConsoleBarRaw = function() return pg.lastRaw end

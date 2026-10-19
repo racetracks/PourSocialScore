@@ -33,6 +33,8 @@ local WIN_W, WIN_H = 960, 494
 local PLACE = "PSS_Window"
 local TAB_H, NAV_H = 24, 20
 local TOP = -32
+-- the tab page's size; builders run before the page shows, so GetWidth is 0 there
+ns.PAGE_W, ns.PAGE_H = WIN_W - 20, WIN_H + (TOP - TAB_H - NAV_H - 8) - 10
 -- the arrows' line first, the tab row under it (Dan, 3.4.0.24)
 local NAV_Y = TOP
 local TAB_Y = TOP - NAV_H - 4

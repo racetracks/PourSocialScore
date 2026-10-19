@@ -36,7 +36,7 @@ M.PSS_SQ_SYSTEM = {
 	{ id = "log.byday", name = "Lines a day", scope = "player", q = "index=log owner=$owner | timechart span=1d count", view = "series", owner = "social-manager" },
 	{ id = "log.hours", name = "By weekday and hour", scope = "any", q = "index=log | stats count by weekday, hour", view = "matrix", owner = "social-manager" },
 	{ id = "filters.top", name = "Busiest chat filters", scope = "filter", q = "index=counts kind=filter type=total | sort -total | head 10", view = "table", owner = "social-manager" },
-	{ id = "log.cmp", name = "What PSS did", scope = "any", q = "index=log st=act.* | head 200", view = "events", owner = "search-helper" },
+	{ id = "log.cmp", name = "Items PSS sold or dropped", scope = "any", q = "index=log st=act.* | head 200", view = "events", owner = "search-helper" },
 	{ id = "pss.recent", name = "PSS's own lines", scope = "any", q = "index=pss | head 100", view = "events", owner = "search-helper" },
 	{ id = "wh.holders", name = "Who holds an item", scope = "any", q = "index=inv item=$item | stats sum(count) by ent", view = "table", owner = "warehouse-helper" },
 	{ id = "wh.gold", name = "Gold by holder", scope = "any", q = "index=gold | sort -copper", view = "table", owner = "money-helper" },

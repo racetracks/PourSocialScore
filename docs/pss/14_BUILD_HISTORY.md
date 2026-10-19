@@ -44,7 +44,10 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
 - What changed and why: G2 console fits its page; G3 System searches fill in the selected player or item (never a $); G4 only valid searches run; G5 What PSS did is now Items PSS sold or dropped; G8 the status names the 2000-line history cap; G9 Events shows dates and blank cells; rules 9 to 13 of 02 section 1 (D89). Why: the author's 3.8.0.126 in-game results and the Z02 data validation.
 - Harness: phases `consize`, `consysq`, `concell` added (fail on 3.8.0.126 code) and `console_phases.sh` REAL gains `consysq concell concap`.
-- Docs updated: `docs/pss/02_RULES.md`, `docs/pss/06_STATUS_AND_NEXT.md`.
+- G2 page size: `ns.PAGE_W`, `ns.PAGE_H` (`PourSocialScore_GUI/PSS_Window.lua:37`) size the console page (`PourSocialScore_GUI/PSS_Console.lua:19`), results height `PourSocialScore_GUI/PSS_Console.lua:23`, `pg.layout` at `PourSocialScore_GUI/PSS_Console.lua:373`.
+- G5 rename: What PSS did is Items PSS sold or dropped (`PourSocialScore_Libraries/PSS_SQ.lua:39`).
+- G9 cells: `M.PSS_CellText` (`PourSocialScore_Libraries/PSS_Bus.lua:67`) used at `PourSocialScore_GUI/PSS_Chart.lua:377`.
+- Docs updated: `docs/pss/02_RULES.md`, `docs/pss/06_STATUS_AND_NEXT.md`; code pointers of this section: `PourSocialScore_GUI/PSS_Window.lua`, `PourSocialScore_GUI/PSS_Console.lua`, `PourSocialScore_Libraries/PSS_SQ.lua`, `PourSocialScore_Libraries/PSS_Bus.lua`, `PourSocialScore_GUI/PSS_Chart.lua`.
 - Ran: pending (G08)
 
 ### 3.8.0.126 - Spyglass console fixes
