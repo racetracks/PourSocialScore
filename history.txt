@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.126 - Spyglass console fixes
+
+- Spyglass: typed pipes work, the search bar shows its text, the left list scrolls, one Load history, pie slices of All open their rows.
+
 => 3.8.0.125 - Spyglass console
 
 - Spyglass console (phase B): the Spyglass tab with a colour-coded search bar, time picker, charts, saved searches and charts, the Data dictionary page; View Events and pane histories open in Spyglass; the Events tab is replaced by Spyglass.

@@ -39,10 +39,17 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.126 - Spyglass console fixes
+
+- Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
+- What changed and why: F1 typed pipe no longer read as two; F2 search bar shows plain text (D74), overlay dropped; F3 left list clipped and scrolls; F4 one Load history; F5 pie slices of All open their rows; F6 charts re-checked only. Why: the author's in-game results of 3.8.0.125 (`CHK-00146` to `CHK-00150`, `CHK-00170`).
+- Docs updated: `docs/pss/02_RULES.md` (11 rule 12 retired), `docs/pss/06_STATUS_AND_NEXT.md`, this entry, `history.txt`.
+- Ran: pending (Y06)
+
 ### 3.8.0.125 - Spyglass console
 
 - Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
-- What changed and why: (written in the PR)
+- What changed and why (moved from 06 "Now"): **3.8.0.125, Spyglass phase B, the console** (branch `claude/nice-noether-m6eqsa`, [PR #242](https://github.com/racetracks/PourSocialScore/pull/242); [session temp root](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/10/18/13-08-00-Sun-nice-noether-m6eqsa/README.md)): the Spyglass tab with a colour-coded search bar, time picker, charts, the save dialog (searches, charts and alerts), the Data dictionary page, View Events and the pane histories through Spyglass; the Events tab is retired. Ran: rules check passed; `validate_all.sh` 1529 PASS / 0 FAIL; `console_phases.sh` 164 phases, 0 failed; `console_mutants.sh` 25 of 25 killed; `ix_phases.sh` 327 phases and the bus gate 7 phases, 0 failed; `tui_compare.sh` differs from `origin/main` as intended (the new tab). Sizes (KB): `PSS_Chart.lua` 40.99, `PSS_QueryView.lua` 10.71, `PSS_TimePicker.lua` 29.77, `PSS_Console.lua` 40.95, `PSS_QueryDialog.lua` 24.03, `PSS_ConsoleView.lua` 59.29. Not shown by the simulation: fonts, wrapped text, overlay alignment on the real edit box, client art, hover feel. In-game: `CHK-00146` to `CHK-00150`, each in Modern, Classic and Dark. **Next: the Spyglass release 3.8.0.127 (a pre-release).** Details in `docs/pss/14_BUILD_HISTORY.md`.
 - Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, `docs/pss/02_RULES.md`, `docs/pss/15_ROUTES.md`, `docs/pss/09_PSS_UI_PROJECT.md`, `docs/pss/07_HARNESS.md`, this entry, `history.txt`; renumbered .121 to .125 and the release .122 to .126 after the merge of main.
 - Tests run: (written in the PR)
 - Not shown by the simulation: (written in the PR)
