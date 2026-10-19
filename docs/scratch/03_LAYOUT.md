@@ -1,5 +1,7 @@
 # Layout and naming
 
+Purpose: the scratch repo folder layout and naming · owner scratch pack (`docs/scratch/`) · status current · related docs/scratch/04_USAGE.md, docs/scratch/05_RULES.md
+
 ```
 readme.md                               the index: one line per folder, newest file named
 CLAUDE.md                               Claude's criteria for this repo
@@ -19,7 +21,7 @@ drafts/                                 drafts, same groups as documents/ (DEC-0
   <project-wide>-<date>-draftN/         project-wide drafts at the root
 history/<addon|feature|sub-feature|project>/YYYY-MM-DD-<folder>/   retired documentation and promoted drafts (DEC-00045, DEC-00046)
 temp/<YYYY>/<MM>/<DD>/<hh-mm-ss>-<Ddd>-<workspace>/  workspace memory, prompt log (the one exception to the documentation rules)
-temp/<YYYY-MM-DD[-hh-mm-ss]>-<workspace>/       older roots (before 2026-10-15), kept where they are
+temp/MOVED.md                                 old flat roots (before 2026-10-15) moved into the dated layout, old path to new (DEC-00397)
 summary/                                <project>-<YYYY-MM-DD-hh-mm>.md  status summaries
 ```
 
