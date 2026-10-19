@@ -41,11 +41,11 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ### 3.8.0.128 - Docs: scratch temp folders moved into dated folders
 
 - Branch: `ccr-11709e26-ej241j`; PR: none yet.
-- What changed and why: (written in the PR)
-- Docs updated: (written in the PR)
-- Tests run: (written in the PR)
-- Not shown by the simulation: (written in the PR)
-- In-game checks: (written in the PR)
+- What changed and why: the scratch `temp/` flat roots (60 entries, before 2026-10-15) moved into `temp/<YYYY>/<MM>/<DD>/<hh-mm-ss>-<Ddd>-<name>/` (`DEC-00397`, the author 2026-10-19); old paths map to new in `scratch:temp/MOVED.md`. Here: the 9 links in this file and `docs/pss/reference/06_status-history-3.6.0.69-to-3.8.0.118.md` repointed, `docs/scratch/03_LAYOUT.md` names `temp/MOVED.md`; header lines added to 06 and 03 (`check_context.py` SHAPE). PR #242 holds 3.8.0.125 to 3.8.0.127, so its planned pre-release moves up one to 3.8.0.129. No addon code changes.
+- Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, this file, `docs/scratch/03_LAYOUT.md`, `docs/pss/reference/06_status-history-3.6.0.69-to-3.8.0.118.md`, `history.txt`.
+- Tests run: `check_rules.sh` pass; `check_context.py` clean; `validate_all.sh` with the 15 real saves: 971 PASS then aborts at line 388, identical on `origin/main` (973 PASS, same abort) because the clone was shallow; issue #248. The full re-run after `--unshallow` was stopped on the author's word. `tui_compare.sh` and same-as-main not run (no addon file changed).
+- Not shown by the simulation: nothing; docs only.
+- In-game checks: 1. Install the 3.8.0.128 zip, log in: the upgrade report prints the version change; nothing else differs from 3.8.0.124.
 
 ### 3.8.0.124 (from 06 Now)
 
