@@ -1,5 +1,5 @@
 #!/bin/sh
-# Mutation check of the Spyglass console (search-helper phase B, TST-00932 to TST-00937, TST-00967). Same runner
+# Mutation check of the Spyglass console (search-helper phase B, TST-00932 to TST-00937, TST-00967, 3.8.0.127 fix mutants). Same runner
 # as ix_mutants.sh; each row of MUTANTS is: name|file|sed expression|phases. One sed edit per mutant produces
 # its named fault; at least one phase it names must fail (console_phases.sh), or this script fails.
 # A sed that changes nothing is INVALID and counts as not killed.
@@ -33,7 +33,13 @@ con-rows-hook-once|PourSocialScore_GUI/PSS_Console.lua|s/list.Layout = function(
 save-chart-lost|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not cs then return id, nil, cerr or "chart not saved" end/if not cs then return id end/|savepartial
 con-bar-raw|PourSocialScore_GUI/PSS_Console.lua|s/return CV.unpipe(bar:GetText() or "")/return (bar:GetText() or "")/|conpipe
 nav-no-clip|PourSocialScore_GUI/PSS_Nav.lua|s/nav:SetClipsChildren(true)/nav:SetClipsChildren(false)/|connavclip
-deep-all-unbound|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/M.PSS_BUTTON_QUERIES\[tostring(evKind) .. ".all"\]/M.PSS_BUTTON_QUERIES[tostring(evKind) .. ".none"]/|conslice'
+deep-all-unbound|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/M.PSS_BUTTON_QUERIES\[tostring(evKind) .. ".all"\]/M.PSS_BUTTON_QUERIES[tostring(evKind) .. ".none"]/|conslice
+con-size-fallback|PourSocialScore_GUI/PSS_Console.lua|s/PW = ns.PAGE_W or 780 end/PW = 780 end/|consize
+con-pick-unbound|PourSocialScore_GUI/PSS_Console.lua|s/local text, missing = M.PSS_ResolveQuery(d.query, Ctx())/local text, missing = d.query/|consysq
+con-quote-number|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if type(v) == "number" then return tostring(v) end/if false then return tostring(v) end/|consysq
+con-run-invalid|PourSocialScore_GUI/PSS_Console.lua|s/if not r then Unbound(missing); return end/text = r or text/;s/^\t\tif err then return end$/\t\t_ = err/|consysq
+cell-nil|PourSocialScore_Libraries/PSS_Bus.lua|s/if M.PSS_IsSecret(v) or v == nil then return "" end/if false then return "" end/|concell
+con-cap-note|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/s = s .. ", history holds the newest " .. H.Cap() .. " lines"/s = s/|concap'
 want="$*"
 total=0; killed=0
 nl='

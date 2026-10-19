@@ -43,6 +43,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 - Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
 - What changed and why: G2 console fits its page; G3 System searches fill in the selected player or item (never a $); G4 only valid searches run; G5 What PSS did is now Items PSS sold or dropped; G8 the status names the 2000-line history cap (the save holds up to the cap plus 5 % slack, `History.Trim` at `PourSocialScore/PSS_ChatHistory.lua:619` cuts it to the cap on load; note added at `PourSocialScore_Libraries/PSS_ConsoleView.lua:97`); G9 Events shows dates and blank cells; rules 9 to 13 of 02 section 1 (D89). Why: the author's 3.8.0.126 in-game results and the Z02 data validation.
+- Mutants: six mutants added (34 in total).
 - Harness: phases `consize`, `consysq`, `concell` added (fail on 3.8.0.126 code) and `console_phases.sh` REAL gains `consysq concell concap`.
 - G2 page size: `ns.PAGE_W`, `ns.PAGE_H` (`PourSocialScore_GUI/PSS_Window.lua:37`) size the console page (`PourSocialScore_GUI/PSS_Console.lua:19`), results height `PourSocialScore_GUI/PSS_Console.lua:23`, `pg.layout` at `PourSocialScore_GUI/PSS_Console.lua:373`.
 - G3 parameters: `M.PSS_ResolveQuery`, `M.PSS_QUERY_SOURCES`, `M.PSS_UNBOUND_TEXT` (`PourSocialScore_Libraries/PSS_ConsoleView.lua:583`) fill `$owner` and `$item` before the bar; `Ctx` and `Pick` (`PourSocialScore_GUI/PSS_Console.lua:219`) use them; `ns.SelectedPlayer` (`PourSocialScore_GUI/PSS_Players.lua:25`).
