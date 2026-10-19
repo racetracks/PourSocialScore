@@ -52,7 +52,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - G5 rename: What PSS did is Items PSS sold or dropped (`PourSocialScore_Libraries/PSS_SQ.lua:39`).
 - G9 cells: `M.PSS_CellText` (`PourSocialScore_Libraries/PSS_Bus.lua:67`) used at `PourSocialScore_GUI/PSS_Chart.lua:377`.
 - Docs updated: `docs/pss/02_RULES.md`, `docs/pss/06_STATUS_AND_NEXT.md`; code pointers of this section: `PourSocialScore_GUI/PSS_Window.lua`, `PourSocialScore_GUI/PSS_Console.lua`, `PourSocialScore_Libraries/PSS_SQ.lua`, `PourSocialScore_Libraries/PSS_Bus.lua`, `PourSocialScore_GUI/PSS_Chart.lua`.
-- Ran: rules check rc=0; validate_all 1643 PASS, 1 FAIL (the segcost timing gate, 5.21 us over 5.0; 5.12 and 5.34 on a re-run; 5.13 and 5.15 on ec6cd9a, so a machine-speed gate not caused by this build), 0 SKIP (14 real saves); console_phases 256 phases, 0 failed; console_mutants 34 of 34 killed; data re-validation on 3.8.0.126: 10 compared, 0 mismatched, 5 recorded
+- Ran: rules check rc=0; validate_all 1643 PASS, 1 FAIL (the segcost timing gate, 5.21 us over 5.0; 5.12 and 5.34 on a re-run; 5.13 and 5.15 on ec6cd9a, so a machine-speed gate not caused by this build), 0 SKIP (16 real saves); console_phases 256 phases, 0 failed; console_mutants 34 of 34 killed; data re-validation on 3.8.0.126: 10 compared, 0 mismatched, 5 recorded
 
 ### 3.8.0.126 - Spyglass console fixes
 
