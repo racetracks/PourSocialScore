@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.129 - Phase B brought up to date with main
+
+- No addon changes since 3.8.0.127: the docs changes of 3.8.0.128 merged in; the Spyglass pre-release moves up one to 3.8.0.130.
+
 => 3.8.0.128 - Docs: scratch temp folders moved into dated folders
 
 - No addon changes: links in the docs point to the new dated session folders on scratch.

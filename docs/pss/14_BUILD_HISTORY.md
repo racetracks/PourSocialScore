@@ -39,6 +39,15 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.129 - Phase B brought up to date with main
+
+- Branch: `claude/nice-noether-m6eqsa` (also pushed to `claude/epic-wozniak-2r69ur`); [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
+- What changed and why: `main` (3.8.0.128, [PR #249](https://github.com/racetracks/PourSocialScore/pull/249)) merged into the 3.8.0.127 phase B branch, which was out of date and conflicted (TOCs, `history.txt`, `versions.json`, 06, this file); addon code unchanged from 3.8.0.127, so its in-game checks carry over; the Spyglass pre-release moves up one to 3.8.0.130 (02 section 8, expected builds).
+- Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, this file, `history.txt`, `versions.json`; scratch roadmap Next Steps (`scratch:documents/code-map/Roadmaps/In_Progress/Spyglass_Journal_Bags/Readme.md#2-next-steps`).
+- Tests run: (written in the PR)
+- Not shown by the simulation: nothing new; code as 3.8.0.127.
+- In-game checks: the 3.8.0.127 list in the PR, on the 3.8.0.129 zip; the upgrade report prints the version change.
+
 ### 3.8.0.128 - Docs: scratch temp folders moved into dated folders
 
 - Branch: `ccr-11709e26-ej241j`; [PR #249](https://github.com/racetracks/PourSocialScore/pull/249).
