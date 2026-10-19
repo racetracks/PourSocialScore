@@ -21,6 +21,8 @@ drafts/                                 drafts, same groups as documents/ (DEC-0
   <project-wide>-<date>-draftN/         project-wide drafts at the root
 history/<addon|feature|sub-feature|project>/YYYY-MM-DD-<folder>/   retired documentation and promoted drafts (DEC-00045, DEC-00046)
 temp/<YYYY>/<MM>/<DD>/<hh-mm-ss>-<Ddd>-<workspace>/  workspace memory, prompt log (the one exception to the documentation rules)
+  .next/NEXT.md                         that session's latest next-session handoff, overwritten at every delivery (DEC-00398)
+.next/NEXT.md                           the newest handoff of any session, read first at session start; format in .next/README.md
 temp/MOVED.md                                 old flat roots (before 2026-10-15) moved into the dated layout, old path to new (DEC-00397)
 summary/                                <project>-<YYYY-MM-DD-hh-mm>.md  status summaries
 ```
