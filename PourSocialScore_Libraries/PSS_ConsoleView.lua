@@ -103,6 +103,11 @@ function VM:Status()
 	if not self.set then return "" end
 	local s = format("%d rows, %.2f ms", self.set.n or 0, (self.info and self.info.ms) or 0)
 	if self.state == "partial" then s = s .. ", partial" end
+	local q = self.query or ""
+	local H = M.PSS_History
+	if H and q:find("index=log", 1, true) and not q:find("| head", 1, true) and #H.Log() >= H.Cap() then
+		s = s .. ", history holds the newest " .. H.Cap() .. " lines"
+	end
 	return s
 end
 

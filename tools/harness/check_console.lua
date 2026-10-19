@@ -1485,6 +1485,23 @@ PH.concell = function()
 	end
 end
 
+PH.concap = function()
+	local H = M.PSS_History
+	if #H.Log() < H.Cap() then
+		print("NOTE concap: the save is under the cap, note skipped")
+		local pg = openCon()
+		pg.qv:SetQuery("index=log | stats count"); pg.qv:Run(true)
+		check(not pg.qv.vm:Status():find("history holds", 1, true), "no cap note under the cap")
+		return
+	end
+	local r = M.PSS_Search("index=log | stats count", { load = true })
+	check(r and r.n == 1 and r[1][1] == H.Cap(), "count is the cap " .. H.Cap() .. ", got " .. tostring(r and r[1] and r[1][1]))
+	local pg = openCon()
+	pg.qv:SetQuery("index=log | stats count"); pg.qv:Run(true)
+	local st = pg.qv.vm:Status()
+	check(st:find("newest " .. H.Cap() .. " lines", 1, true), "status names the cap: " .. st)
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")
