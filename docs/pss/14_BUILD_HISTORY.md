@@ -47,6 +47,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - F2: plain-text bar and `Highlight` at `PourSocialScore_GUI/PSS_Console.lua:60`; `ns.ConsoleBarRaw` at `:371`; `/pss q bar` at `PourSocialScore_Libraries/PSS_IxExport.lua:204`.
 - F3: clip and wheel scroll at `PourSocialScore_GUI/PSS_Nav.lua:105`.
 - F4: status text at `PourSocialScore_Libraries/PSS_ConsoleView.lua:98`.
+- F5: `.all` rows `PourSocialScore_Libraries/PSS_ConsoleView.lua:478`; no-id and `nothing selected` in `M.PSS_DeepDiveText` at `:516`; bar shows `vm:Text()` in `pg.deepDive` at `PourSocialScore_GUI/PSS_Console.lua:343`.
 - In-game check note: `/pss q bar` prints `bar raw: ...` (the raw bar text, pipes doubled); record whether the client stores `|` or `||`.
 - Docs updated: `docs/pss/02_RULES.md` (11 rule 12 retired), `docs/pss/06_STATUS_AND_NEXT.md`, this entry, `history.txt`.
 - Ran: pending (Y06)

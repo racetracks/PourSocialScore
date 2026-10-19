@@ -629,8 +629,8 @@ PH.conhighlight = function()
 	local function colored(text)
 		pg.bar:SetText(text)
 		pg.highlight()
-		local toks = M.PSS_Psql.tokens(text)
-		check(pg.overlay:GetText() == CV.colorize(text, toks, ui.SyntaxHex), "overlay matches tokens for " .. text)
+		check(not pg.overlay:IsShown(), "overlay hidden for " .. text)
+		check(select(4, pg.bar:GetTextColor()) == 1, "bar text alpha 1 for " .. text)
 	end
 	for _, h in ipairs(CV.HELP) do colored(h[1]) end
 	for _, t in ipairs(BAD) do
@@ -777,27 +777,6 @@ PH.conchart = function()
 end
 
 local KINDTEXT = "index=log cat=\"x\" n>5 | head 5"
-PH.conhicolors = function()
-	local CV = M.PSS_ConsoleView
-	looks(function(_, name)
-		local pg = openCon()
-		pg.bar:SetText(KINDTEXT)
-		pg.highlight()
-		local toks = M.PSS_Psql.tokens(KINDTEXT)
-		local seen = {}
-		for i = 1, toks.n do
-			local k = toks[i][3]
-			local hex = k ~= "space" and ui.SyntaxHex(k)
-			if hex then
-				local piece = KINDTEXT:sub(toks[i][1], toks[i][1] + toks[i][2] - 1):gsub("|", "||")
-				check(pg.overlay:GetText():find("|cff" .. hex .. piece, 1, true), name .. ": " .. k .. " carries its colour")
-				seen[k] = true
-			end
-		end
-		check(next(seen), name .. ": some kinds coloured")
-	end)
-end
-
 PH.conhilive = function()
 	local pg = openCon()
 	local calls, base = 0, M.PSS_Psql.tokens
@@ -819,24 +798,9 @@ PH.conhierror = function()
 	local text = "index=log | bogus x"
 	pg.bar:SetText(text)
 	pg.highlight()
-	local hex = ui.SyntaxHex("error")
-	check(hex, "error colour defined")
-	local at = pg.overlay:GetText():find("|cff" .. tostring(hex) .. "bogus", 1, true)
-	check(at, "bogus is error coloured: " .. tostring(pg.overlay:GetText()))
+	check(not pg.overlay:IsShown(), "overlay hidden")
+	check(select(4, pg.bar:GetTextColor()) == 1, "bar text alpha 1")
 	check(pg.underline:IsShown(), "underline shown")
-end
-
-PH.conhireadonly = function()
-	local pg = openCon()
-	local CV = M.PSS_ConsoleView
-	local text = "index=log | head 3"
-	local d
-	for _, r in ipairs(pg.cm:LeftRows()) do if r.key and r.key:find("^sys:") then d = r break end end
-	check(d, "a list row exists")
-	pg.nav:Select(d.key, true)
-	check(pg.bar:GetText() == d.query, "list query in the bar")
-	pg.highlight()
-	check(pg.overlay:GetText() == CV.colorize(d.query, M.PSS_Psql.tokens(d.query), ui.SyntaxHex), "coloured as the bar")
 end
 
 -- TST-00935 save dialog (STP-00256)
@@ -1055,7 +1019,7 @@ PH.deepback = function()
 	local view = players.navState and players.navState()
 	ui.DeepDive("index=log | head 5")
 	local con = win.pages[conIndex()]
-	check(con:IsShown() and con.bar:GetText() == "index=log | head 5", "console shown with that text")
+	check(con:IsShown() and M.PSS_ConsoleView.unpipe(con.bar:GetText()) == "index=log | head 5", "console shown with that text")
 	check(con.backChip and con.backChip:IsShown() and con.backChip:GetText() == "Back: Player Ignore List", "Back chip text: " .. tostring(con.backChip and con.backChip:GetText()))
 	click(con.backChip)
 	check(players:IsShown() and not con:IsShown(), "players tab shown again")
@@ -1080,7 +1044,7 @@ PH.deepearly = function()
 	local win = _G.PSS_Window
 	check(win and win:IsShown(), "window built and shown")
 	local con = win.pages[conIndex()]
-	check(con:IsShown() and con.bar:GetText() == "index=log | head 2", "console on the query")
+	check(con:IsShown() and M.PSS_ConsoleView.unpipe(con.bar:GetText()) == "index=log | head 2", "console on the query")
 	check(con.qv.vm.loaded == true, "ran with load")
 	ui.DeepDive("index=log | head 3")
 	check(_G.PSS_Window == win, "one window")
@@ -1288,6 +1252,11 @@ end
 PH.conbarvis = function()
 	local pg = openCon()
 	local CV = M.PSS_ConsoleView
+	M.PSS_SetOpt("conTime", "global", "all")
+	local v = GUI().NewQueryView(UIParent, { w = 400, h = 240, query = "index=log | head 5" })
+	v:Run(false)
+	check(v.vm.state == "needsload", "needsload state " .. tostring(v.vm.state))
+	check(v.vm:Status() == "History not loaded", "needsload status: " .. tostring(v.vm:Status()))
 	local function vis(what)
 		local tc = pg.bar._tc
 		check(not tc or tc[4] == nil or tc[4] == 1, what .. ": box text alpha " .. tostring(tc and tc[4]))
@@ -1298,7 +1267,7 @@ PH.conbarvis = function()
 	vis("builder")
 	plantLog(20)
 	local d
-	for _, r in ipairs(pg.cm:LeftRows()) do if r.key and r.key:find("^sys:") then d = r break end end
+	for _, r in ipairs(pg.cm:LeftRows()) do if r.key and r.key:find("^sys:") and not (r.query or ""):find("$", 1, true) then d = r break end end
 	check(d, "a list row exists")
 	if d then pg.nav:Select(d.key, true); vis("left-list pick") end
 	pg.bar:SetText(CV.HELP[1][1]); pg.run(true); vis("help pick")
@@ -1310,11 +1279,6 @@ PH.conbarvis = function()
 	local text, params = M.PSS_DeepDiveText("player.events", { kind = "player", id = "Owner1-Realm" })
 	check(text, "deep dive text")
 	if text then pg.deepDive(text, params); vis("deep dive") end
-	M.PSS_SetOpt("conTime", "global", "all")
-	local v = GUI().NewQueryView(UIParent, { w = 400, h = 240, query = "index=log | head 5" })
-	v:Run(false)
-	check(v.vm.state == "needsload", "needsload state " .. tostring(v.vm.state))
-	check(v.vm:Status() == "History not loaded", "needsload status: " .. tostring(v.vm:Status()))
 end
 
 -- fix-125 F3: the left list clips and scrolls
@@ -1385,7 +1349,7 @@ PH.conchartpick = function()
 	for _, r in ipairs(pg.cm:LeftRows()) do if r.text == "Lines a day" then d = r break end end
 	check(d, "row Lines a day")
 	if d then
-		pg.nav:Select(d.key, true)
+		pg.deepDive(d.query, { owner = M.PSS_PlayerHistoryKey("Owner1-Realm") })
 		pg.run(true)
 		check(pg.tabs[3]:IsEnabled(), "Chart tab disabled; state " .. tostring(pg.qv.vm.state) .. " " .. tostring(pg.qv.vm:Status()))
 		check(pg.qv.vm.chart and pg.qv.vm.chart.kind ~= "table", "chart kind " .. tostring(pg.qv.vm.chart and pg.qv.vm.chart.kind))

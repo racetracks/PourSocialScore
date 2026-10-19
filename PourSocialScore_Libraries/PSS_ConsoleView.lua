@@ -475,6 +475,11 @@ M.PSS_BUTTON_QUERIES = {
 	["filter.events"] = ownerRow(function(id) return M.PSS_FilterOwnerKey(id) end),
 	["guild.events"] = { query = "index=log guild=$guild | sort -time | head 200", bind = function(ctx) return { guild = ctx.id } end },
 	["group.events"] = { query = "index=log rule=$rule | sort -time | head 200", bind = function(ctx) return { rule = ctx.id } end },
+	["player.all"] = { query = 'index=log owner="p:*" | sort -time | head 200' },
+	["member.all"] = { query = 'index=log owner="g:*" | sort -time | head 200' },
+	["filter.all"] = { query = 'index=log owner="f:*" | sort -time | head 200' },
+	["guild.all"] = { query = 'index=log guild="*" | sort -time | head 200' },
+	["group.all"] = { query = 'index=log guild="*" | sort -time | head 200' },
 	["pane.events"] = { pane = "events" },
 	["pane.slice"] = { pane = "slice" },
 	["wh.holders"] = { sys = "wh.holders", bind = function(ctx) return { item = ctx.item } end },
@@ -518,8 +523,14 @@ function M.PSS_DeepDiveText(keyOrText, ctx)
 	if row then
 		ctx = ctx or {}
 		local base, range = row, nil
+		local evKind = keyOrText:match("^(%a+)%.events$")
 		if row.pane then
 			base = M.PSS_BUTTON_QUERIES[tostring(ctx.kind) .. ".events"]
+			if not base then return nil, "unknown query" end
+			evKind = ctx.kind
+		end
+		if (row.pane or evKind) and not ctx.id then
+			base = M.PSS_BUTTON_QUERIES[tostring(evKind) .. ".all"]
 			if not base then return nil, "unknown query" end
 		end
 		local text = rowText(base, ctx)
@@ -536,6 +547,9 @@ function M.PSS_DeepDiveText(keyOrText, ctx)
 		end
 		local names = type(ctx) == "table" and ctx.cats and sortedNames(ctx.cats) or {}
 		if #names > 0 then text = beforePipe(text, " (" .. orList(names) .. ")") end
+		for name in text:gmatch("%$([%w_]+)") do
+			if params[name] == nil then return nil, "nothing selected" end
+		end
 		return text, params, range
 	end
 	if type(keyOrText) == "string" then return keyOrText, ctx, nil end
