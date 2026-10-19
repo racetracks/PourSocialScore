@@ -622,7 +622,7 @@ PH.contab = function()
 end
 
 local EXAMPLES = nil
-local BAD = { "index=lgo", "| stats", '"open', "a ((", "index=log | chart line", "index=log | head x", "earliest=-7x", "|", "= =", "index=log | bogus" }
+local BAD = { "index=lgo", "| stats", '"open', "a ((", "index=log | chart line", "index=log | head x", "earliest=-7x", "|", "= =", "index=log owner=$nosuch | bogus" }
 PH.conhighlight = function()
 	local pg = openCon()
 	local CV = M.PSS_ConsoleView
@@ -833,7 +833,7 @@ PH.saveround = function()
 	local key = "sq:" .. r[1][1]
 	check(leftRow(pg, key), "left list shows it")
 	-- an error stays on the dialog
-	dlg = ui.SaveQueryDialog("index=log | bogus", pg.picker:Choice())
+	dlg = ui.SaveQueryDialog("index=log owner=$nosuch | bogus", pg.picker:Choice())
 	dlg.name:SetText("bad")
 	click(dlg.save)
 	check(dlg:IsShown() and (dlg.err:GetText() or "") ~= "", "error shown, dialog open")
@@ -965,7 +965,7 @@ end
 PH.savebroken = function()
 	resetSq()
 	local C = M.PSS_Codec
-	PourSocialScoreDB.sqSaved = "1;2\n" .. C.list({ 1, "broken one", "any", "", "index=log | bogus", "" }, "\t")
+	PourSocialScoreDB.sqSaved = "1;2\n" .. C.list({ 1, "broken one", "any", "", "index=log owner=$nosuch | bogus", "" }, "\t")
 	local pg = openCon()
 	pg.refreshLeft()
 	local row = leftRow(pg, "sq:1")
@@ -973,8 +973,10 @@ PH.savebroken = function()
 	pg.bar:SetText("index=pss | head 1")
 	pg.run(true)
 	local before = pg.qv.vm.set
+	local st = pg.qv.status:GetText()
 	click(row)
-	check(pg.bar:GetText() == "index=log | bogus", "its text is loaded")
+	check(pg.bar:GetText() == "index=log owner=$nosuch | bogus", "its text is loaded")
+	check(pg.qv.status:GetText() == st, "a broken row neither runs nor changes the status")
 	check(pg.qv.vm.set == before, "Run did nothing")
 	resetSq()
 end
@@ -1246,6 +1248,7 @@ PH.conpipe = function()
 	pg.bar:SetText("index=log cat=whisper || stats count by cat")
 	pg.run(true)
 	check(pg.qv.vm.state ~= "error", "client-form pipe: state " .. tostring(pg.qv.vm.state) .. " " .. tostring(pg.qv.vm.err and pg.qv.vm.err.msg))
+	check(pg.qv.vm.query == "index=log cat=whisper | stats count by cat", "client-form pipe reached the view: " .. tostring(pg.qv.vm.query))
 end
 
 -- fix-125 F2 and F4: bar text visible; the needsload status
