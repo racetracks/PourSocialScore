@@ -43,6 +43,11 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 - Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
 - What changed and why: F1 typed pipe no longer read as two; F2 search bar shows plain text (D74), overlay dropped; F3 left list clipped and scrolls; F4 one Load history; F5 pie slices of All open their rows; F6 charts re-checked only. Why: the author's in-game results of 3.8.0.125 (`CHK-00146` to `CHK-00150`, `CHK-00170`).
+- F1: `CV.unpipe`/`CV.pipe` at `PourSocialScore_Libraries/PSS_ConsoleView.lua:264`; `BarText`/`SetBar` at `PourSocialScore_GUI/PSS_Console.lua:30`.
+- F2: plain-text bar and `Highlight` at `PourSocialScore_GUI/PSS_Console.lua:60`; `ns.ConsoleBarRaw` at `:371`; `/pss q bar` at `PourSocialScore_Libraries/PSS_IxExport.lua:204`.
+- F3: clip and wheel scroll at `PourSocialScore_GUI/PSS_Nav.lua:105`.
+- F4: status text at `PourSocialScore_Libraries/PSS_ConsoleView.lua:98`.
+- In-game check note: `/pss q bar` prints `bar raw: ...` (the raw bar text, pipes doubled); record whether the client stores `|` or `||`.
 - Docs updated: `docs/pss/02_RULES.md` (11 rule 12 retired), `docs/pss/06_STATUS_AND_NEXT.md`, this entry, `history.txt`.
 - Ran: pending (Y06)
 

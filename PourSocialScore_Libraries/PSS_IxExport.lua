@@ -201,6 +201,12 @@ function M.PSS_QCommand(rest)
 		say(ok and ("Spyglass: alert " .. id .. " " .. on:lower()) or ("|cffff5555Spyglass: " .. tostring(e) .. "|r"))
 		return
 	end
+	if lw == "bar" and rest:lower() == "bar" then
+		local fn = M.PSS_ConsoleBarRaw or addon.ConsoleBarRaw
+		local raw = fn and fn()
+		say(raw and ("bar raw: " .. M.PSS_ConsoleView.pipe(raw)) or "bar raw: (Spyglass not opened)")
+		return
+	end
 	local set, info = M.PSS_Search(unpipe(rest), { load = true })
 	if not set then say(errLine(info)) return end
 	for _, line in ipairs(M.PSS_QLines(set, info)) do say(line) end

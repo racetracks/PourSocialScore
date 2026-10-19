@@ -27,9 +27,11 @@ ns.TabBuilders.console = function(pg)
 
 	------------------------------------------------------------------ top bar
 	bar = ns.NewEditBox(pg, 300, 512)
+	local function BarText() return CV.unpipe(bar:GetText() or "") end
+	local function SetBar(t) bar:SetText(CV.pipe(t or "")) end
 	local help_b = ns.NewButton(pg, "?", 24, function() pg.toggleHelp() end)
 	local save_b = ns.NewButton(pg, "Save", 60, function()
-		if ns.SaveQueryDialog then ns.SaveQueryDialog(bar:GetText(), picker:Choice()) end
+		if ns.SaveQueryDialog then ns.SaveQueryDialog(BarText(), picker:Choice()) end
 	end)
 	local run_b = ns.NewButton(pg, "Run", 60, function() pg.run(true) end, true)
 	picker = ns.NewTimePicker(pg, function() if chip then pg.updateChip() end end)
@@ -40,42 +42,39 @@ ns.TabBuilders.console = function(pg)
 	picker:SetPoint("RIGHT", run_b, "LEFT", -4, 0)
 	bar:SetPoint("TOPLEFT", pg, "TOPLEFT", RX + 6, -PAD)
 	bar:SetPoint("RIGHT", picker, "LEFT", -6, 0)
+	bar:SetTextColor(1, 1, 1, 1)
+	if bar.SetShadowColor then bar:SetShadowColor(0, 0, 0, 1) end
 
-	-- syntax colours: an overlay carries the colours; the box keeps the caret and the text
+	-- plain text (D74): the box shows its own text at alpha 1; overlay stays hidden
 	local overlay = ns.NewText(bar, 12)
 	local meas = ns.NewText(bar, 12)
 	local fo = bar.GetFontObject and bar:GetFontObject()
 	if fo then overlay:SetFontObject(fo); meas:SetFontObject(fo) end
 	overlay:SetPoint("LEFT", bar, "LEFT", 0, 0)
 	overlay:SetJustifyH("LEFT")
+	overlay:Hide()
 	meas:Hide()
 	local ul = bar:CreateTexture(nil, "OVERLAY")
 	ul:SetColorTexture(ERR[1], ERR[2], ERR[3], 1)
 	ul:Hide()
 	local barErr
-	local function BoxText(plain)
-		if plain then bar:SetTextColor(1, 1, 1, 1); if bar.SetShadowColor then bar:SetShadowColor(0, 0, 0, 1) end
-		else bar:SetTextColor(1, 1, 1, 0); if bar.SetShadowColor then bar:SetShadowColor(0, 0, 0, 0) end end
-	end
 	local function Highlight()
-		local text = bar:GetText() or ""
+		local text = BarText()
+		pg.lastRaw = bar:GetText()
 		local toks, err = cm:Tokens(text)
 		barErr = err
 		cm:SetText(text)
-		meas:SetText(text)
+		meas:SetText(CV.pipe(text))
 		local w = meas:GetStringWidth() or 0
 		local room = (bar:GetWidth() or 300) - 12
 		if w > room then
-			overlay:Hide(); BoxText(true); ul:Hide()
+			ul:Hide()
 			return
 		end
-		BoxText(false)
-		overlay:SetText(CV.colorize(text, toks, ns.SyntaxHex))
-		overlay:Show()
 		if err and err.pos and err.pos <= #text then
-			meas:SetText(text:sub(1, err.pos - 1))
+			meas:SetText(CV.pipe(text:sub(1, err.pos - 1)))
 			local x0 = meas:GetStringWidth() or 0
-			meas:SetText(text)
+			meas:SetText(CV.pipe(text))
 			ul:ClearAllPoints()
 			ul:SetHeight(ns.OnePixel(bar))
 			ul:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", x0 + 1, 2)
@@ -129,7 +128,7 @@ ns.TabBuilders.console = function(pg)
 		click = function(row, i)
 			local d = flat[i]
 			if d and d.field then
-				bar:SetText(CV.addTerm(bar:GetText(), CV.term(d.field, d.value)))
+				SetBar(CV.addTerm(BarText(), CV.term(d.field, d.value)))
 				pg.run(true)
 			end
 		end })
@@ -152,7 +151,7 @@ ns.TabBuilders.console = function(pg)
 					if button ~= "RightButton" or not self.index then return end
 					local set = qv.vm.set
 					if not set then return end
-					cm:SetText(bar:GetText())
+					cm:SetText(BarText())
 					local actions, idx = cm:RowActions(set, self.index), self.index
 					ns.ContextMenu(self, function(m)
 						for _, a in ipairs(actions) do
@@ -160,7 +159,7 @@ ns.TabBuilders.console = function(pg)
 								if a.key == "copy" then
 									ns.CopyText({ title = "Copy line", text = cm:CopyLine(set, idx) })
 								else
-									bar:SetText(a.query); pg.run(true)
+									SetBar(a.query); pg.run(true)
 								end
 							end)
 						end
@@ -219,7 +218,7 @@ ns.TabBuilders.console = function(pg)
 
 	function pg.run(load)
 		if dict then dict:Hide() end
-		local text = bar:GetText() or ""
+		local text = BarText() or ""
 		cm:SetText(text)
 		qv:SetQuery(text)
 		qv:SetRange((function() local e, l = picker:Range(); if e or l then return { earliest = e, latest = l } end end)())
@@ -238,7 +237,7 @@ ns.TabBuilders.console = function(pg)
 		draw = function(row, i) row.cells.e:SetText(CV.HELP[i][1]); row.cells.t:SetText(CV.HELP[i][2]) end,
 		click = function(row, i)
 			help:Hide()
-			bar:SetText(CV.HELP[i][1])
+			SetBar(CV.HELP[i][1])
 			pg.run(true)
 		end })
 	helpList:SetCount(#CV.HELP)
@@ -306,7 +305,7 @@ ns.TabBuilders.console = function(pg)
 		dict.search = ns.NewButton(dict, "Search this field", 140, function()
 			if dField then
 				dict:Hide()
-				bar:SetText(CV.addTerm(bar:GetText(), tostring(dField) .. "="))
+				SetBar(CV.addTerm(BarText(), tostring(dField) .. "="))
 				bar:SetFocus()
 			end
 		end)
@@ -321,7 +320,7 @@ ns.TabBuilders.console = function(pg)
 			if not dict then BuildDict() end
 			help:Hide(); dict:Show(); DictFill()
 		elseif d and (d.query or d.insert) then
-			bar:SetText(d.query or d.insert)
+			SetBar(d.query or d.insert)
 			pg.run(true)
 		end
 	end
@@ -343,7 +342,7 @@ ns.TabBuilders.console = function(pg)
 
 	function pg.deepDive(text, params, range, from)
 		pg.from = from
-		bar:SetText(text or "")
+		SetBar(text or "")
 		picker:SetChoice(range or { preset = M.PSS_Opt("conTime") })
 		cm:SetText(text or "")
 		qv:SetQuery(text or "", params)
@@ -355,19 +354,22 @@ ns.TabBuilders.console = function(pg)
 
 	------------------------------------------------------------------ first show: nothing loads (C3)
 	picker:SetChoice({ preset = M.PSS_Opt("conTime") })
-	bar:SetText(DEFAULT_TEXT)
+	SetBar(DEFAULT_TEXT)
 	cm:SetText(DEFAULT_TEXT)
 	qv:SetQuery(DEFAULT_TEXT)
 	qv:SetRange((function() local e, l = picker:Range(); if e or l then return { earliest = e, latest = l } end end)())
 	qv:Run(false)
 	pg.updateChip()
 	Sync()
+	Highlight()
 
 	pg.bar, pg.qv, pg.cm, pg.picker, pg.help, pg.overlay, pg.underline, pg.sideList, pg.tabs = bar, qv, cm, picker, help, overlay, ul, sideList, tabs
 	pg.highlight, pg.sync, pg.hookRows = Highlight, Sync, HookRows
 	pg.nav, pg.chip, pg.backChip = nav, chip, backChip
 	if ns.AttachQueryList then ns.AttachQueryList(pg) end
 	function pg.barError() return barErr end
+	ns.ConsoleBarRaw = function() return pg.lastRaw end
+	M.PSS_ConsoleBarRaw = ns.ConsoleBarRaw
 	function pg.dictPanel() return dict end
 	function pg.sideFlat() return flat end
 	return function() end

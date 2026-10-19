@@ -95,7 +95,7 @@ function VM:Run(load, range)
 end
 
 function VM:Status()
-	if self.state == "needsload" then return "Load history" end
+	if self.state == "needsload" then return "History not loaded" end
 	if self.state == "error" then
 		local e = self.err or {}
 		return format("Error: %s (at %s)", tostring(e.msg), tostring(e.pos))
@@ -259,6 +259,10 @@ end
 local sub, gsub = string.sub, string.gsub
 
 local function esc(s) return (gsub(s, "|", "||")) end
+
+-- PSQL has no || operator, so every || in the bar text is one typed pipe (the client edit box stores a typed | as ||).
+function CV.unpipe(s) return (gsub(s or "", "||", "|")) end
+function CV.pipe(s) return (gsub(s or "", "|", "||")) end
 
 function CV.colorize(text, toks, hexFn)
 	local out, at = {}, 1
