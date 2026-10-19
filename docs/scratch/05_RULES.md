@@ -1,5 +1,7 @@
 # Rules for using scratch
 
+Purpose: the rules the author set for the scratch repo · owner scratch pack (`docs/scratch/`) · status current · related docs/scratch/03_LAYOUT.md, docs/scratch/04_USAGE.md
+
 ## Rules the author has set
 1. **Use the scratch repo for hosting** test zips, handover packs, documentation and SavedVariables.
 2. **Easily human-readable folders**: plain words, dates as `YYYY-MM-DD-hh-mm`, versions in file names.
@@ -16,6 +18,8 @@
 13. **Real saves live here (this repo is the project files), never in an addon repo:** `SavedVariables/<version>/`.
 14. **Always reply with links**, never only a path.
 15. **No pull requests on scratch (2026-10-09):** commit and push straight to `main`, even when a session is given a working branch for this repo; a delivery waiting on a PR is not hosted.
+
+16. **Next-session handoff (2026-10-19, `DEC-00398`):** every session temp root has a `.next/` folder holding `NEXT.md`, that session's latest handoff; the root `.next/NEXT.md` holds the newest of any session. Format: scratch `.next/README.md`.
 
 ## Rules to add
 <!-- The author adds further scratch rules here. -->

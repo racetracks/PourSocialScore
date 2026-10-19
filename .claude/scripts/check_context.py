@@ -28,6 +28,8 @@ Usage:
                                      the pointer rule alone (backticked path:n[-m], path#anchor in prose; lines naming scratch
                                      and scratch-side paths skipped); prints `POINTER <path>: <problem>`; exit 0, 1, 2 (usage);
                                      run by `ledger.py pack` and by `ledger.py ret` on a consultant's specs and context files
+  Handoff (DEC-00398): with no arguments and outside CI, also runs `next_handoff.py check` (scratch
+  .next/NEXT.md and this session's own); its `NEXT <path>: <problem>` lines fail.
   Docs with code: in a file list, code and no document prints `DOCS`; against the base, changed code needs
   the build history entry of the TOC version to fill `- Docs updated:` (docs/pss/14_BUILD_HISTORY.md).
 Exit 1 on a failing problem. Problems print as `SHAPE <path>: <problem>` or `DOCS <problem>`.
@@ -478,6 +480,11 @@ def main():
         else:
             changed = (git("diff", "--name-only", "--diff-filter=AM", base) or "").split()
         bad += check_files(changed, order, base) + docs_in_history(changed)
+        if not os.environ.get("GITHUB_ACTIONS"):
+            r = subprocess.run([sys.executable, str(ROOT / ".claude" / "scripts" / "next_handoff.py"), "check"],
+                               capture_output=True, text=True)
+            bad += [l for l in r.stdout.split("\n") if l.startswith("NEXT ")]
+            info += [l for l in r.stdout.split("\n") if l.startswith("next_handoff: NOTE")]
     if bad:
         print("\n".join(info + bad))
         return 1
