@@ -51,7 +51,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
   - S1: segcost run count 5 to 15 (`tools/harness/check_ix.lua:358`), gate untouched.
 - Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `history.txt`; `versions.json`.
 - Tests run: `ix_phases.sh` IX 333 phases, 0 failed; `console_phases.sh` CONSOLE 144 phases, 0 failed; segcost gate (S1): Append us min/median/max Retail 2.48/2.525/2.67, Camelot 2.48/2.575/2.76 against gate 5; `console_mutants.sh` known survivor from before this build: `con-cap-note` (phase `concap` skips when the save is under the cap; on head 68e1685, not fixed here).
-- Test zip: `raw/main/releases/PourSocialScore-3.8.0.130-2026-10-20-15-31.zip` (not pushed yet).
+- Test zip: [PourSocialScore-3.8.0.130-2026-10-20-15-39.zip](https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/releases/PourSocialScore-3.8.0.130-2026-10-20-15-39.zip).
 - Not shown by the simulation: alerts on a live realm's world chat; wrapped text and real window resizing; client art.
 - In-game checks (each in Modern, Classic and Dark): `CHK-00172` (I1), `CHK-00173` (I2, with CHK-00146 step 3 rewritten), `CHK-00174` (I4), `CHK-00178` (I3 like), `CHK-00185` (I5, CHK-00150 step 5a); steps in `specs/layout.md#9-acceptance-tests` and `specs/fields.md#94-mutants-real-saves-in-game`.
 
