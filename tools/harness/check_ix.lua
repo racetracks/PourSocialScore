@@ -355,7 +355,7 @@ PH.segcost = function()
 	local enc = {}
 	for i = 1, 20000 do enc[i] = L.encode("tst.x", { time = 1000 + i, v = i }, 1000) end
 	local us = math.huge
-	for _ = 1, 5 do		-- the best of five: a loaded machine slows a run, never speeds it up
+	for _ = 1, 15 do		-- the best of fifteen: a loaded machine slows a run, never speeds it up
 		_G.PSS_TestSegDB.s = nil
 		local t0 = os.clock()
 		for i = 1, 20000 do s:append(enc[i], 1000 + i) end
@@ -369,7 +369,7 @@ PH.segcost = function()
 	for _ = 1, 100 do dropped = dropped + s:trim() end
 	local ms = (os.clock() - t0) * 1000 / 100
 	check(ms < 0.5, string.format("a trim %.3f ms", ms))
-	print(string.format("NOTE ix segcost: append %.2f us, trim %.4f ms", us, ms))
+	print(string.format("NOTE ix segcost: append %.2f us (best of 15), trim %.4f ms", us, ms))
 end
 PH.segfuzz = function()
 	local r = rng(913)
