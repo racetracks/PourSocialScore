@@ -22,6 +22,7 @@ local M = addon.M
 
 local type, tonumber, tostring, pairs, ipairs, next, pcall, error, setmetatable = type, tonumber, tostring, pairs, ipairs, next, pcall, error, setmetatable
 local find, lower, gsub, match = string.find, string.lower, string.gsub, string.match
+local date = os.date
 
 local P = {}
 M.PSS_Pred = P
@@ -158,8 +159,18 @@ function compile(node, F, key)
 		return cmpNode(node, F, key)
 	elseif k == "like" then
 		if not F.kind(node.field) then fail(node, "field", "unknown field " .. tostring(node.field)) end
-		local pat, fk = likePattern(node.value), key(node.field)
+		local fk = key(node.field)
 		local neg = node.op == "!="
+		if F.kind(node.field) == "t" then		-- a time stamp yyyymmddhhmmss: the raw seconds never match
+			local tpat = likePattern((gsub(tostring(node.value), "[%-:/ Tt]", "")))
+			return function(r)
+				local x = tonumber(r[fk])
+				local hit = x ~= nil and find(date("%Y%m%d%H%M%S", x), tpat) ~= nil
+				if neg then return not hit end
+				return hit
+			end
+		end
+		local pat = likePattern(node.value)
 		return function(r) local x = r[fk]; local hit = x ~= nil and find(lower(tostring(x)), pat) ~= nil; if neg then return not hit end return hit end
 	elseif k == "text" then
 		local w = lower(tostring(node.value))

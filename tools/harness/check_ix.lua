@@ -2160,6 +2160,41 @@ PH.lazycost = function()
 end
 
 ------------------------------------------------------------------------
+-- B1: the like word operator and time like (fields spec 9.1)
+------------------------------------------------------------------------
+local function plantFixed()
+	local log = logLoaded()
+	for i = #log, 1, -1 do log[i] = nil end
+	local rows = { { utc(2024, 12, 31, 23, 59, 59), "selling gold cheap" }, { utc(2025, 2, 3, 18, 30, 5), "GOLD sellers here" }, { utc(2026, 10, 19, 21, 3, 0), "hello there" } }
+	for i, r in ipairs(rows) do
+		local e = History.NewEntry("whisper", "CHAT_MSG_WHISPER", r[2], "Trade", nil)
+		e.ts = r[1]
+		e.o = "p:Owner1-Realm"
+		log[#log + 1] = e
+	end
+end
+local function nrows(q)
+	local set, e = S(q, { load = true })
+	check(set ~= nil, q .. " raised " .. tostring(e and e.msg))
+	return set and set.n or -1
+end
+PH.timelike = function()
+	plantFixed()
+	for _, c in ipairs({ { "index=log time like 20", 3 }, { "index=log time like 2025", 1 }, { "index=log time like 2025-02", 1 }, { "index=log time=2025*", 1 },
+		{ "index=log not time like 2025", 2 }, { "index=log time like 1792", 0 } }) do
+		local n = nrows(c[1])
+		check(n == c[2], c[1] .. ": " .. n .. " rows, wanted " .. c[2])
+	end
+end
+PH.likeword = function()
+	plantFixed()
+	local a, b = nrows("index=log message like gold"), nrows("index=log message=*gold*")
+	check(a == 2 and a == b, "message like gold: " .. a .. " rows, wanted 2 (as message=*gold*: " .. b .. ")")
+	a, b = nrows('index=log message LIKE "go*d"'), nrows('index=log message="go*d"')
+	check(a == b, 'message LIKE "go*d": ' .. a .. " rows, as message=\"go*d\": " .. b)
+end
+
+------------------------------------------------------------------------
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

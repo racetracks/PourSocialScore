@@ -168,9 +168,12 @@ local function atom(s)
 	take(s)
 	local w = t.s
 	local nx = peek(s)
+	local vt = peek(s, 1)
+	local likeWord = isWord(nx, "like") and s.kinds[w] ~= nil and vt ~= nil and (vt.t == "word" or vt.t == "str")
+	if likeWord then nx = { t = "op", s = "=", p = nx.p, n = nx.n, tok = nx } end
 	if nx and nx.t == "op" then
 		take(s)
-		role(t, "field"); role(nx, "op")
+		role(t, "field"); role(nx.tok or nx, "op")
 		local field = w
 		checkField(s, t, field)
 		known(s, field)
@@ -179,6 +182,7 @@ local function atom(s)
 		local node = { k = "cmp", field = field, op = nx.s, pos = t.p, vpos = v.p }
 		if v.t == "str" then
 			role(v, "string"); node.value = v.v
+			if likeWord then node.k = "like" end
 		elseif byte(v.s, 1) == 36 then
 			node.param = sub(v.s, 2)
 			if not find(node.param, "^[%a_][%w_]*$") then err("arg", v.p, "a parameter is $ and a name") end
@@ -186,8 +190,12 @@ local function atom(s)
 		else
 			node.value = v.s
 			if find(v.s, "*", 1, true) and (nx.s == "=" or nx.s == "!=") then node.k = "like" end
+			if likeWord then node.k = "like" end
 			local tm = M.PSS_Time and M.PSS_Time.parse(v.s)
 			role(v, tonumber(v.s) and "number" or (tm and (byte(v.s, 1) == 45 or byte(v.s, 1) == 64 or find(v.s, "^%d%d%d%d%-")) and "time") or "value")
+		end
+		if likeWord and type(node.value) == "string" and not find(node.value, "*", 1, true) then		-- implicit *: a prefix on time, contains elsewhere
+			node.value = s.kinds[field] == "t" and (node.value .. "*") or ("*" .. node.value .. "*")
 		end
 		return node
 	end
