@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.130 - Spyglass fixes: like on time, alerts on blocked lines, console layout
+
+- Spyglass: "time like" searches work, alerts now fire on blocked world-chat lines, the query view resizes with the window, Events starts blank until you search, and table columns size to their content.
+
 => 3.8.0.129 - Phase B brought up to date with main
 
 - No addon changes since 3.8.0.127: the docs changes of 3.8.0.128 merged in; the Spyglass pre-release moves up one to 3.8.0.130.

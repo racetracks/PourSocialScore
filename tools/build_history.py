@@ -12,8 +12,9 @@
 #   python3 tools/build_history.py check
 #       fails when 06 "Now" holds more than one build entry, or when a
 #       version recorded in versions.json from 3.8.0.119 on has no
-#       "### <version>" entry in the history
-import json, re, sys
+#       "### <version>" entry in the history or in a
+#       docs/pss/reference/14_build-history-*.md file
+import glob, json, re, sys
 
 STATUS = "docs/pss/06_STATUS_AND_NEXT.md"
 HIST = "docs/pss/14_BUILD_HISTORY.md"
@@ -130,6 +131,8 @@ def cmd_check(args):
 		print("build history: 06 'Now' holds %d build entries; only the current build stays there (bump_version.sh moves the rest)" % n)
 		bad += 1
 	hi = "\n".join(read(HIST))
+	for p in glob.glob("docs/pss/reference/14_build-history-*.md"):
+		hi += "\n" + "\n".join(read(p))
 	for v in versions():
 		if key(v) >= FIRST and not re.search(r"^### " + re.escape(v) + r"\b", hi, re.M):
 			print("build history: " + v + " has no entry in " + HIST)

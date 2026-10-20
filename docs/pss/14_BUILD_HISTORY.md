@@ -39,14 +39,21 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
-### 3.8.0.130 - Spyglass alerts now fire on blocked world-chat lines (I5)
+### 3.8.0.130 - Spyglass fixes: like on time, alerts on blocked lines, console layout
 
-- Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
-- What changed and why: `History.Add` (`PourSocialScore/PSS_ChatHistory.lua`) now puts each kept line into the Spyglass log index (`M.PSS_IxPut`, time `GetServerTime()`), as `History.Act` does, so alerts see blocked world-chat lines (I5, cause A); harness phases `alertblock`, `timelike`, `likeword` added to `tools/harness/ix_phases.sh`.
-- Docs updated: this file.
-- Tests run: `sh tools/harness/ix_phases.sh alertblock`, `sh tools/harness/ix_phases.sh`.
-- Not shown by the simulation: alerts on a live realm's world chat.
-- In-game checks: block a world-chat line that matches a saved alert; the alert fires once.
+- Branch: `pensive-davinci-osy66a`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
+- What changed and why:
+  - B1 (I3): `<known field> like <value>` parses to a like node with an implicit `*`; `like` on `t` matches the time stamp (`PSS_Psql.lua` atom, `PSS_Pred.lua`); phases `timelike`, `likeword`.
+  - B1a, B1c (I5): `History.Add` (`PourSocialScore/PSS_ChatHistory.lua`) puts each kept line into the log index (`M.PSS_IxPut`, gated on `PSS_On("logging")`) so alerts see blocked world-chat lines; phase `alertblock` added fail-first.
+  - E1 (I1): query view, chart, history pane and dropdown resize with the window (`PSS_QueryView.lua`, `PSS_Chart.lua`, `PSS_History.lua`); phases `qvresize`, `panefit`.
+  - E2 (I2): Events starts blank until a search is run (`M.PSS_CON_BLANK`, `PSS_Console.lua`, `PSS_ConsoleView.lua`); phase `conblank`.
+  - E3 (I4): table column widths by content (`M.PSS_TableWidths`, `TIME_W`, `COL_MIN`, `PSS_Chart.lua` DRAW.table); phase `colwidths`.
+  - S1: segcost run count 5 to 15 (`tools/harness/check_ix.lua:358`), gate untouched.
+- Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `history.txt`; `versions.json`.
+- Tests run: `ix_phases.sh` IX 333 phases, 0 failed; `console_phases.sh` CONSOLE 144 phases, 0 failed; segcost gate (S1): Append us min/median/max Retail 2.48/2.525/2.67, Camelot 2.48/2.575/2.76 against gate 5; `console_mutants.sh` known survivor from before this build: `con-cap-note` (phase `concap` skips when the save is under the cap; on head 68e1685, not fixed here).
+- Test zip: `raw/main/releases/PourSocialScore-3.8.0.130-2026-10-20-15-31.zip` (not pushed yet).
+- Not shown by the simulation: alerts on a live realm's world chat; wrapped text and real window resizing; client art.
+- In-game checks (each in Modern, Classic and Dark): `CHK-00172` (I1), `CHK-00173` (I2, with CHK-00146 step 3 rewritten), `CHK-00174` (I4), `CHK-00178` (I3 like), `CHK-00185` (I5, CHK-00150 step 5a); steps in `specs/layout.md#9-acceptance-tests` and `specs/fields.md#94-mutants-real-saves-in-game`.
 
 ### 3.8.0.129 - Phase B brought up to date with main
 
@@ -56,6 +63,10 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - Tests run: (written in the PR)
 - Not shown by the simulation: nothing new; code as 3.8.0.127.
 - In-game checks: the 3.8.0.127 list in the PR, on the 3.8.0.129 zip; the upgrade report prints the version change.
+
+### 3.8.0.129 (from 06 Now)
+
+**3.8.0.129, phase B brought up to date with main (PR #242):** `main` (3.8.0.128) merged into the 3.8.0.127 branch; code unchanged from 3.8.0.127; details in the build history (`docs/pss/14_BUILD_HISTORY.md`).
 
 ### 3.8.0.128 - Docs: scratch temp folders moved into dated folders
 
@@ -104,56 +115,14 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - Tests run: (written in the PR)
 - Not shown by the simulation: (written in the PR)
 - In-game checks: (written in the PR)
-### 3.8.0.124 (from 06 Now)
-
-**3.8.0.124, Ignore agent session files (branch `ccr-6fe8cad3-dfamel`, PR #247):** `.gitignore` gains `.claude/.session` and `sessions/` (the agent pack's install step 2, `.claude/README.md#install`); no addon code changes; later planned builds move up one; details in the build history (`docs/pss/14_BUILD_HISTORY.md`).
-
-### 3.8.0.124 - Ignore agent session files
-
-- Branch: `ccr-6fe8cad3-dfamel`; [PR #247](https://github.com/racetracks/PourSocialScore/pull/247).
-- What changed and why: `.gitignore` (`.gitignore:2-4`) gains `.claude/.session` and `sessions/`, the agent pack's install step 2 (`.claude/README.md#install`), missed when the pack landed on main (c5c73fe). Session state was untracked and flagged by the stop hook in every session. Safe: nothing under either path is tracked or was ever committed; `ledger.py` walks the session directory itself (`.claude/scripts/ledger.py:230`, written for a git-ignored session root) and already skips `.claude/.session` (`.claude/scripts/ledger.py:50`); `host_build.sh` and `host_tests.sh` package from `git archive HEAD`. Later planned builds move up one (06 Next; scratch roadmap stage rows). The author chose a build of its own over riding in #242 (2026-10-18, prompt 002).
-- Docs updated: `docs/pss/06_STATUS_AND_NEXT.md` (Now, Next), this entry, `history.txt`; scratch `documents/code-map/Roadmaps/In_Progress/Spyglass_Journal_Bags/Readme.md` stage rows 3 to 8.
-- Tests run: `check_rules.sh` pass; `validate_all.sh` on the 14 real saves from scratch (`build_saves.sh`) 1365 PASS / 0 FAIL, scratch gate on; `tui_compare.sh` and same-as-main not run (no addon file changed).
-- Not shown by the simulation: nothing; no addon file changed.
-- In-game checks: none needed (the zip is the 3.8.0.123 addon with the new version number); optional: the AddOns list shows 3.8.0.124.
-
-### 3.8.0.123 - Docs and tooling: context budget and M1 lane
-
-- Branch: `claude/busy-fermi-qrk4qx`; [PR #246](https://github.com/racetracks/PourSocialScore/pull/246) (supersedes [PR #244](https://github.com/racetracks/PourSocialScore/pull/244)).
-- What changed and why: the author asked for more aggressive context cost reduction and for every code file, artefact, report and plan to be written for M1 to M3 ingestion within the budget plan (scratch `temp/2026/10/18/15-13-57-Sun-cool-meitner-abnxu0/prompts/01.md`).
-  - Startup (`DEC-00383`): `CLAUDE.md` goes from 39,854 to 15,490 bytes; with its imports from 55,159 to 29,117 bytes (about 13.8k to 7.3k tokens) in every session and every sub-agent spawn; a spawn with `consultant.md` from 68,968 to 45,465 bytes. The topic routes, the short form, the build, release and session procedures move word for word to `docs/pss/15_ROUTES.md` (with a route table), the window rules to `docs/pss/16_INTERFACE.md`; the scratch `05_RULES.md` import is dropped (its rules are the scratch `CLAUDE.md` rules 1 to 15 and are read before any scratch delivery). One duplicate bullet (documentation rules trigger) is removed; no rule text changes.
-  - Agent-ready output (`DEC-00384`): a new token rule in `CLAUDE.md`, synced into every `.claude/agents/*.md`: every document is shaped for its next reader (header line, stable anchors, sections inside the caps, tables and pointers before prose, current truth only). Code is not capped; every code change updates its documentation in the same delivery (the author, 2026-10-18, prompt 02): the ledger prints `DOCS` for a return with code and no document, and a PR that changes code must fill its build history `- Docs updated:` line (new in the `bump_version.sh` stub).
-  - Context caps (`DEC-00385`): a CONTEXT-CAPS block in `.claude/agents/consultant.md#context-caps` (startup 30 KB, spawn 46 KB, per document kind: KB, section lines, code block lines, header; no code row); `.claude/scripts/check_context.py` checks it; `ledger.py ret` runs it on every DONE return (`SHAPE` lines, the coordinator continues the agent to reshape, `coordinator.md` C2); `tools/check_rules.sh` runs it and `sync-token-rules.py --check` (new: the token rules sync was not in CI); `rules.yml` check job fetches depth 2 so the base is known. Repo files are ratcheted: a changed file may not gain a problem; new files meet every cap.
-  - Pointers updated: `02_RULES.md` section 11, `09_PSS_UI_PROJECT.md`, `05_RELEASE.md`, `00_README.md`, `tools/bump_version.sh`, `.claude/README.md`.
-  - Build order: phase B keeps 3.8.0.121 and its Spyglass release 3.8.0.122 ([PR #242](https://github.com/racetracks/PourSocialScore/pull/242), as its guide says); this build is 3.8.0.123 and merges after it (`DEC-00388`); the journal, bags and optimisation builds move up by one (3.9.0.124 on).
-  - M1 lane (this PR): `engineer-m1` on Haiku with one Sonnet re-run (`DEC-00389`); token measurement in `ledger.py render` (`DEC-00391`); K0 peel rule, about 6 calls, one M1 spawn per stream (`DEC-00392`); `tools/stage_close.sh` (`DEC-00390`); token rules only in `CLAUDE.md`, `effort: low` on the engineers; K6 peer-review docs in `.claude/roles/peer-review.md`; headers on generated session files; `SHAPE` checks only the agent's own paths.
-- Docs updated: [CLAUDE.md](https://github.com/racetracks/PourSocialScore/blob/claude/cool-meitner-abnxu0/CLAUDE.md), [15_ROUTES.md](https://github.com/racetracks/PourSocialScore/blob/claude/cool-meitner-abnxu0/docs/pss/15_ROUTES.md), [16_INTERFACE.md](https://github.com/racetracks/PourSocialScore/blob/claude/cool-meitner-abnxu0/docs/pss/16_INTERFACE.md), [consultant.md#context-caps](https://github.com/racetracks/PourSocialScore/blob/claude/cool-meitner-abnxu0/.claude/agents/consultant.md#context-caps), [coordinator.md](https://github.com/racetracks/PourSocialScore/blob/claude/cool-meitner-abnxu0/.claude/roles/coordinator.md), [.claude/README.md](https://github.com/racetracks/PourSocialScore/blob/claude/cool-meitner-abnxu0/.claude/README.md), [02_RULES.md](https://github.com/racetracks/PourSocialScore/blob/claude/cool-meitner-abnxu0/docs/pss/02_RULES.md), [05_RELEASE.md](https://github.com/racetracks/PourSocialScore/blob/claude/cool-meitner-abnxu0/docs/pss/05_RELEASE.md), [09_PSS_UI_PROJECT.md](https://github.com/racetracks/PourSocialScore/blob/claude/cool-meitner-abnxu0/docs/pss/09_PSS_UI_PROJECT.md), [00_README.md](https://github.com/racetracks/PourSocialScore/blob/claude/cool-meitner-abnxu0/docs/pss/00_README.md), [docs/linked/](https://github.com/racetracks/PourSocialScore/tree/claude/cool-meitner-abnxu0/docs/linked), this entry; scratch [00_Decisions.md](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/00_Decisions.md#dec-00383) and the [pss-docs copy](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/docs/latest/pss-docs)., `.claude/agents/consultant.md`, `.claude/agents/engineer-m1.md`, `.claude/agents/engineer-m3.md`, `.claude/agents/engineer.md`, `.claude/roles/peer-review.md`, `TASK.template.md`, `docs/pss/06_STATUS_AND_NEXT.md`, `docs/pss/07_HARNESS.md`, `docs/pss/11_PREFERENCES.md`, `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/17_BUILD_PREFERENCES.md`; plan packs: .claude/agents/consultant.md, .claude/roles/coordinator.md, the ledger.py and check_context.py docstrings
-- Tests run: `sh tools/check_rules.sh`; `python3 .claude/scripts/check_context.py` (diff against `origin/main`, 0 new problems); planted violations (brief without header, report section of 46 lines, a 14-line code block in a brief, an unclosed block, a code file with no document) each print `SHAPE` or `DOCS` and exit 1; this PR's own empty `Docs updated:` line printed `DOCS` until filled; `sync-token-rules.py --check`; a ledger round trip (`init`, `spawn`, `ret` DONE with a bad report gives `SHAPE` and `ROUTE cont`; a clean one gives `ACCEPT`). No addon file changes, so the harness, real-save run and look compare are not needed (only the TOC version lines change).
-- Not shown by the simulation: nothing in game changes.
-- In-game checks: log in once; the upgrade report names 3.8.0.123.
-
-### 3.8.0.120 (from 06 Now)
-
-**3.8.0.120, Docs: startup context (imports, documentation rules, reference index, build history) (branch `claude/elegant-dijkstra-2oq5s5`, PR #241):** the files loaded at session start go from 181,607 to about 63,000 bytes: `CLAUDE.md` imports only 11, scratch 05 and 06 (`DEC-00338` a); the documentation rules have one home on scratch (`DEC-00339` a); startup files cite keys and paths through the reference index (`DEC-00340` c); the build history `docs/pss/14_BUILD_HISTORY.md` is written by `bump_version.sh` (`DEC-00341` a). Nothing in the addon changes; details in the build history.
-
-### 3.8.0.120 - Docs: startup context (imports, documentation rules, reference index, build history)
-
-- Branch: `claude/elegant-dijkstra-2oq5s5`; [PR #241](https://github.com/racetracks/PourSocialScore/pull/241).
-- What changed and why: the author answered `DEC-00338` a, `DEC-00339` a, `DEC-00340` c and `DEC-00341` a (2026-10-18, [prompt 04](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/10/18/13-19-00-Sun-elegant-dijkstra-2oq5s5/prompts/04.md)); the files every session loads at start cost about 45k tokens.
-  - `CLAUDE.md` imports only `11_PREFERENCES.md`, scratch `05_RULES.md` and `06_STATUS_AND_NEXT.md`; baseline 02 and PSS 02 are read in full before the first change to the repo, baseline 10 before a design or stage, 01 when the task needs how the addon works ("Read when the task touches the topic").
-  - "Mandatory Documentation Requirements", "Reference framework" and 11's "Records, links and summaries" moved word for word to scratch `documents/reference-framework/12_User_Guides/12_02_Documentation_Rules.md`; `CLAUDE.md` keeps "Requirements for every interaction" word for word and a "Documentation rules" section (when to read the file, the temp root, the reference index).
-  - `CLAUDE.md`, 11 and 06 cite keys and paths bare, resolved through scratch `REGISTRY.md` (`DEC-00068` amended); linked copies for reading on GitHub in `docs/linked/`, written by scratch `link_keys.py --render`.
-  - This file, `tools/build_history.py` (roll, pr, check), its calls in `tools/bump_version.sh` and `tools/check_rules.sh`; the four E1 / E9 rows of `02_RULES.md` section 12 are one row, their approvals moved to Combined builds above; the Service bus and Spyglass bullets of `CLAUDE.md` lose their build lists.
-  - Phase B moves to 3.8.0.121 (the author, 2026-10-18: this PR goes first).
-- Tests run: `sh tools/check_rules.sh` (all passed, `build_history.py check` included); `build_history.py` roll, pr and check on a copy (a second build entry in 06 and a missing entry both fail); the clause check of `CLAUDE.md` (scratch session output, `verify.py`).
-- Not shown by the simulation: nothing in the addon changes.
-- In-game checks: log in once; the upgrade report names 3.8.0.120.
-
-### 3.8.0.119 (from 06 Now)
-
-**3.8.0.119, docs build (branch `claude/elegant-dijkstra-2oq5s5`):** this file keeps only the current and next builds; the per-build history of 3.6.0.69 to 3.8.0.118 moved unchanged to [`reference/06_status-history-3.6.0.69-to-3.8.0.118.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/06_status-history-3.6.0.69-to-3.8.0.118.md) (it loaded in every session, about 15k tokens); the unused prompt hook `.claude/hooks/inject_prefix.py` is deleted and `CLAUDE.md` says the Operating Instructions reach sub-agents through `CLAUDE.md` itself (the leftovers of the closed [PR #239](https://github.com/racetracks/PourSocialScore/pull/239)). Nothing in the addon changes. Every later planned build moves up one (the author, 2026-10-18).
 
 ## Older history
+- 3.8.0.119 to 3.8.0.124: [`reference/14_build-history-3.8.0.119-to-3.8.0.124.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/14_build-history-3.8.0.119-to-3.8.0.124.md)
 - 3.6.0.69 to 3.8.0.118: [`reference/06_status-history-3.6.0.69-to-3.8.0.118.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/06_status-history-3.6.0.69-to-3.8.0.118.md)
 - To 3.4.1.30: [`reference/06_status-history-to-3.4.1.30.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/06_status-history-to-3.4.1.30.md); the combined 3.4.1.52 notes: `reference/combined-3.4.1.52/`
 - Every build: `history.txt` and `versions.json`
+
+## Changelog
+| Date | Reference | Change |
+| --- | --- | --- |
+| 2026-10-20 | REF-15-00-00-Tue-pensive-davinci-osy66a-A11 | entries 3.8.0.119 to 3.8.0.124 moved word for word to `reference/14_build-history-3.8.0.119-to-3.8.0.124.md` (size cap) |
