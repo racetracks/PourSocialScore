@@ -1774,7 +1774,7 @@ PH.alertblock = function()
 	check(M.PSS_IxStats.put > p0, "B1a-A the block path puts a log line, put " .. p0 .. " -> " .. M.PSS_IxStats.put)
 	local hot = M.PSS_IxHot("log")
 	local last = hot and hot[#hot]
-	local lt = last and (last.time or last.ts or last[1])
+	local lt = type(last) == "string" and tonumber(last:match("^(%d+)\t")) or nil
 	check(type(lt) == "number" and math.abs(GetServerTime() - lt) <= 2, "B1a-B newest hot log line time " .. tostring(lt) .. " vs now " .. GetServerTime())
 	local set = S("index=log cat=world", { from = t0, load = false })
 	check(set and set.n >= 1, "B1a-C hot search finds the line, n " .. tostring(set and set.n))

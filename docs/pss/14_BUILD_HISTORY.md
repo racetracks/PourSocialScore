@@ -39,6 +39,15 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.130 - Spyglass alerts now fire on blocked world-chat lines (I5)
+
+- Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
+- What changed and why: `History.Add` (`PourSocialScore/PSS_ChatHistory.lua`) now puts each kept line into the Spyglass log index (`M.PSS_IxPut`, time `GetServerTime()`), as `History.Act` does, so alerts see blocked world-chat lines (I5, cause A); harness phases `alertblock`, `timelike`, `likeword` added to `tools/harness/ix_phases.sh`.
+- Docs updated: this file.
+- Tests run: `sh tools/harness/ix_phases.sh alertblock`, `sh tools/harness/ix_phases.sh`.
+- Not shown by the simulation: alerts on a live realm's world chat.
+- In-game checks: block a world-chat line that matches a saved alert; the alert fires once.
+
 ### 3.8.0.129 - Phase B brought up to date with main
 
 - Branch: `claude/nice-noether-m6eqsa` (also pushed to `claude/epic-wozniak-2r69ur`); [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
