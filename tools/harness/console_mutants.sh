@@ -41,7 +41,8 @@ con-run-invalid|PourSocialScore_GUI/PSS_Console.lua|s/if not r then Unbound(miss
 cell-nil|PourSocialScore_Libraries/PSS_Bus.lua|s/if M.PSS_IsSecret(v) or v == nil then return "" end/if false then return "" end/|concell
 con-cap-note|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/s = s .. ", history holds the newest " .. H.Cap() .. " lines"/s = s/|concap
 qv-no-resize-chart|PourSocialScore_GUI/PSS_QueryView.lua|/v.chart:Resize(w, h - 40 - top)/d|qvresize
-pane-fixed-width|PourSocialScore_GUI/PSS_History.lua|s/from = opts.from, fill = true })/from = opts.from, fill = false })/|panefit'
+pane-fixed-width|PourSocialScore_GUI/PSS_History.lua|s/from = opts.from, fill = true })/from = opts.from, fill = false })/|panefit
+con-runs-default|PourSocialScore_GUI/PSS_Console.lua|/^\t\tif text == "" then qv.status:SetText(M.PSS_CON_BLANK); return end$/d|conblank'
 want="$*"
 total=0; killed=0
 nl='

@@ -1532,6 +1532,19 @@ PH.panefit = function()
 	check(hv.qv.line and hv.qv.line._wrap == true, "line word wrap off")
 end
 
+PH.conblank = function()
+	plantLog(20)
+	local pg = openCon()
+	check(pg.bar and pg.bar:GetText() == "", "bar not blank: " .. tostring(pg.bar and pg.bar:GetText()))
+	check(pg.qv.vm.query == nil, "query set")
+	check(pg.qv.vm.set == nil, "set loaded")
+	check(pg.qv.status:GetText() == M.PSS_CON_BLANK, "status " .. tostring(pg.qv.status:GetText()))
+	check(#pg.sideFlat() == 0, "sidebar not empty")
+	pg.run(true)
+	check(pg.qv.vm.set == nil, "blank run loaded a set")
+	check(pg.qv.vm.query == nil, "blank run set a query")
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

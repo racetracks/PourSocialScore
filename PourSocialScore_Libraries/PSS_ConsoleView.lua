@@ -595,6 +595,8 @@ end
 
 M.PSS_UNBOUND_TEXT = { owner = "Select a player in Player Ignore List first", item = "No item recorded yet", other = "This search needs a value Spyglass cannot fill" }
 
+M.PSS_CON_BLANK = "Type a search, or pick one on the left, then Run."
+
 M.PSS_PANE_OFF = "Event Logging is off. Turn it on in Optional Features."
 
 -- types -> the log categories they stand for (party, raid and BG lines are told apart by channel)

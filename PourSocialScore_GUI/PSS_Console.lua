@@ -9,7 +9,6 @@ local ADDON_NAME, ns = ...
 local M = ns.M
 
 local ERR = { 1, 0.36, 0.36, 1 }
-local DEFAULT_TEXT = "index=log | head 100"
 
 ns.TabBuilders = ns.TabBuilders or {}
 ns.TabBuilders.console = function(pg)
@@ -228,6 +227,8 @@ ns.TabBuilders.console = function(pg)
 	function pg.run(load)
 		if dict then dict:Hide() end
 		local text = BarText() or ""
+		text = text:match("^%s*(.-)%s*$")
+		if text == "" then qv.status:SetText(M.PSS_CON_BLANK); return end
 		if text:find("$", 1, true) then
 			local r, missing = M.PSS_ResolveQuery(text, Ctx())
 			if not r then Unbound(missing); return end
@@ -380,13 +381,17 @@ ns.TabBuilders.console = function(pg)
 
 	------------------------------------------------------------------ first show: nothing loads (C3)
 	picker:SetChoice({ preset = M.PSS_Opt("conTime") })
-	SetBar(DEFAULT_TEXT)
-	cm:SetText(DEFAULT_TEXT)
-	qv:SetQuery(DEFAULT_TEXT)
-	qv:SetRange((function() local e, l = picker:Range(); if e or l then return { earliest = e, latest = l } end end)())
-	qv:Run(false)
+	SetBar("")
+	cm:SetText("")
+	qv.status:SetText(M.PSS_CON_BLANK)
+	qv.status:SetTextColor(1, 1, 1)
+	tabKey = "results"
+	for _, b in ipairs(tabs) do ns.SetTabSelected(b, b.key == tabKey) end
+	tabs[2]:SetEnabled(false)
+	tabs[3]:SetEnabled(false)
+	wipe(flat)
+	sideList:SetCount(0)
 	pg.updateChip()
-	Sync()
 	Highlight()
 
 	pg.bar, pg.qv, pg.cm, pg.picker, pg.help, pg.overlay, pg.underline, pg.sideList, pg.tabs = bar, qv, cm, picker, help, overlay, ul, sideList, tabs
