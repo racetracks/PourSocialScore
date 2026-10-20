@@ -39,6 +39,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.131 - Spyglass load fix: os is nil in the client
+
+- Branch: `claude/pensive-davinci-osy66a`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
+- What changed and why: 3.8.0.130 failed at login (the author, 2026-10-21): `PourSocialScore_Libraries/PSS_Pred.lua:25` read `os.date`, and the WoW client has no `os` table, so Libraries did not load. Now `date or os.date` ([PSS_Pred.lua:25](https://github.com/racetracks/PourSocialScore/blob/claude/nice-noether-m6eqsa/PourSocialScore_Libraries/PSS_Pred.lua?plain=1#L25)); the same fault at [PSS_TimePicker.lua:171](https://github.com/racetracks/PourSocialScore/blob/claude/nice-noether-m6eqsa/PourSocialScore_GUI/PSS_TimePicker.lua?plain=1#L171) (the date picker's "..." button) is fixed too. The harness has `os`, so it never saw it: [tools/check_style.lua](https://github.com/racetracks/PourSocialScore/blob/claude/nice-noether-m6eqsa/tools/check_style.lua) now fails any `os.` in an addon file that is not an `or os.x` fallback (it flags both lines on 3.8.0.130).
+- Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `history.txt`; `versions.json`.
+- Tests run: `sh tools/check_rules.sh` all passed (and fails on the 3.8.0.130 code); `ix_phases.sh` 333 phases, 0 failed; `console_phases.sh` 144 phases, 0 failed.
+- Not shown by the simulation: loading in the client; the harness defines `os`.
+- In-game checks: login with no Lua error, then the 3.8.0.130 list (`CHK-00172`, `CHK-00173`, `CHK-00174`, `CHK-00178`, `CHK-00185`) on the 3.8.0.131 zip, each in Modern, Classic and Dark.
+
+### 3.8.0.130 (from 06 Now)
+
+**3.8.0.130, Spyglass fixes (branch `pensive-davinci-osy66a`, PR #242):** B1 `like` on time; B1a to B1c alerts fire on blocked world-chat lines; E1 query view resizes with the window; E2 Events starts blank; E3 column widths by content; segcost gate (S1): best of 15 runs, Append us min/median/max Retail 2.48/2.525/2.67, Camelot 2.48/2.575/2.76 against gate 5 (`agents/A07/REPORT.md`); known survivor from before this build: mutant `con-cap-note`; details in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.130 - Spyglass fixes: like on time, alerts on blocked lines, console layout
 
 - Branch: `pensive-davinci-osy66a`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).

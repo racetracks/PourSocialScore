@@ -168,7 +168,7 @@ function ns.NewTimePicker(parent, onChange)
 				st.pick = row.date
 				local yy, mm = tonumber(row.date:GetText():match("^(%d%d%d%d)")), tonumber(row.date:GetText():match("^%d%d%d%d%-(%d%d)"))
 				if not (yy and mm and mm >= 1 and mm <= 12) then
-					local d = os.date("*t", T.now())
+					local d = (date or os.date)("*t", T.now())
 					yy, mm = d.year, d.month
 				end
 				cal:SetMonth(yy, mm)

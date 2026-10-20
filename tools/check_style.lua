@@ -10,6 +10,8 @@
 --   * goto or a ::label:: (rule 1, Lua 5.1 only)
 --   * a Lua 5.2+ library call: table.unpack, table.pack, table.move, bit32,
 --     utf8, _ENV, rawlen (rule 1)
+--   * os.* (the WoW client has no os table; use date and time, or
+--     `date or os.date` so the harness still runs)
 --   * indentation with spaces (rule 4)
 --   * code aligned with a run of spaces mid-line (rule 4)
 --   * whitespace at the end of a line
@@ -100,6 +102,13 @@ local function checkFile(path)
 				if s and not (s > 1 and text:sub(s - 1, s - 1):match("[%w_.]")) then
 					report(path, lineAt(s), name .. " is Lua 5.2+")
 				end
+			end
+			local o = 1
+			while true do
+				local s, e = text:find("%f[%w_.]os%.[%a_]", o)
+				if not s then break end
+				if path:match("^%.?/?PourSocialScore") and not text:sub(1, s - 1):match("or%s+$") then report(path, lineAt(s), "os is nil in the WoW client: use date or time") end
+				o = e + 1
 			end
 			local pos = 1
 			while pos <= #text do

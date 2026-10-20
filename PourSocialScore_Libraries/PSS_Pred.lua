@@ -22,7 +22,7 @@ local M = addon.M
 
 local type, tonumber, tostring, pairs, ipairs, next, pcall, error, setmetatable = type, tonumber, tostring, pairs, ipairs, next, pcall, error, setmetatable
 local find, lower, gsub, match = string.find, string.lower, string.gsub, string.match
-local date = os.date
+local date = date or os.date
 
 local P = {}
 M.PSS_Pred = P
