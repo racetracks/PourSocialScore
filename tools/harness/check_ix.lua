@@ -1757,6 +1757,31 @@ PH.alertoff = function()
 	M.PSS_Signal = real
 	check(sig == 0 and #said == 0, "no signal, no line")
 end
+PH.alertblock = function()
+	-- B1a (I5, CHK-00150 step 6): a blocked world-channel line must raise the Spyglass alert; fails on 12bdcf9
+	M.PSS_LoadLogging()
+	capture()
+	local P1 = "Spammer-Realm"
+	M.PSS_AddIgnore(P1, true)
+	local id = put({ name = "World", query = "index=log cat=world | stats count by owner | chart bar", flags = "a" })[1][1]
+	check(M.PSS_SqAlerts[id] and M.PSS_IxWaiting.log, "B1a-0 armed on log")
+	local t0 = GetServerTime()
+	H.SetTime(t0 + 5)
+	local p0 = M.PSS_IxStats.put
+	local hit = M.PSS_CoreFilter(nil, "CHAT_MSG_CHANNEL", "WTS gold cheap", P1, "", "2. Trade", "", "", 2, 2, "Trade", 0, 970001, nil)
+	check(hit == true, "B1a-pre the world line was blocked")
+	H.RunTimers()
+	check(M.PSS_IxStats.put > p0, "B1a-A the block path puts a log line, put " .. p0 .. " -> " .. M.PSS_IxStats.put)
+	local hot = M.PSS_IxHot("log")
+	local last = hot and hot[#hot]
+	local lt = last and (last.time or last.ts or last[1])
+	check(type(lt) == "number" and math.abs(GetServerTime() - lt) <= 2, "B1a-B newest hot log line time " .. tostring(lt) .. " vs now " .. GetServerTime())
+	local set = S("index=log cat=world", { from = t0, load = false })
+	check(set and set.n >= 1, "B1a-C hot search finds the line, n " .. tostring(set and set.n))
+	local n = 0
+	for _, s in ipairs(said) do if s:find("Spyglass alert") and s:find("World") then n = n + 1 end end
+	check(n == 1, "B1a-D one Spyglass alert World line, got " .. n)
+end
 PH.alerttimers = function()
 	local h = io.popen("lua5.1 tools/check_timers.lua 2>&1; echo EXIT $?")
 	local out = h:read("*a")
