@@ -46,6 +46,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `history.txt`; `versions.json`.
 - Tests run: `sh tools/check_rules.sh` all passed (and fails on the 3.8.0.130 code); `ix_phases.sh` 333 phases, 0 failed; `console_phases.sh` 144 phases, 0 failed.
 - Not shown by the simulation: loading in the client; the harness defines `os`.
+- Test zip: [PourSocialScore-3.8.0.131-2026-10-20-15-52.zip](https://github.com/racetracks/Pour-Social-Score_Scratch/raw/main/releases/PourSocialScore-3.8.0.131-2026-10-20-15-52.zip).
 - In-game checks: login with no Lua error, then the 3.8.0.130 list (`CHK-00172`, `CHK-00173`, `CHK-00174`, `CHK-00178`, `CHK-00185`) on the 3.8.0.131 zip, each in Modern, Classic and Dark.
 
 ### 3.8.0.130 (from 06 Now)
