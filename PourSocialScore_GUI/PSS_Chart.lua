@@ -368,9 +368,9 @@ DRAW.table = function(f, set, spec)
 		c:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -PAD, PAD)
 		t.frame = c
 		local lc = {}
-		local w = max(50, floor((f.w - 2 * PAD - 22) / #cols))
+		local widths = M.PSS_TableWidths(cols, f.w - 2 * PAD - 22)
 		for i = 1, #cols do
-			lc[i] = { key = "c" .. i, text = tostring(cols[i]), width = i < #cols and w or nil }
+			lc[i] = { key = "c" .. i, text = tostring(cols[i]), width = widths[i] }
 		end
 		t.list = ns.NewRows(c, { rowH = 18, cols = lc, draw = function(row, i)
 			local r = t.set[i]

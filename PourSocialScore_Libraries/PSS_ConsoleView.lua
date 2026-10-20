@@ -597,6 +597,34 @@ M.PSS_UNBOUND_TEXT = { owner = "Select a player in Player Ignore List first", it
 
 M.PSS_CON_BLANK = "Type a search, or pick one on the left, then Run."
 
+local TIME_W = 86
+local COL_MIN = 50
+
+-- column widths for a table of cols in avail pixels: time columns fixed, the message (else last) column fills (nil)
+function M.PSS_TableWidths(cols, avail)
+	local w = {}
+	local n = #cols
+	if n == 0 then return w end
+	if type(avail) ~= "number" or avail < 0 then avail = 0 end
+	local fill = n
+	for i = 1, n do
+		if cols[i] == "message" then fill = i; break end
+	end
+	local nTime, nOthers = 0, 1
+	for i = 1, n do
+		if i ~= fill then
+			if cols[i] == "time" or cols[i] == "ts" then nTime = nTime + 1 else nOthers = nOthers + 1 end
+		end
+	end
+	local share = math.max(COL_MIN, math.floor((avail - TIME_W * nTime) / math.max(1, nOthers)))
+	for i = 1, n do
+		if i ~= fill then
+			w[i] = (cols[i] == "time" or cols[i] == "ts") and TIME_W or share
+		end
+	end
+	return w
+end
+
 M.PSS_PANE_OFF = "Event Logging is off. Turn it on in Optional Features."
 
 -- types -> the log categories they stand for (party, raid and BG lines are told apart by channel)

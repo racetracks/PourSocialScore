@@ -1545,6 +1545,28 @@ PH.conblank = function()
 	check(pg.qv.vm.query == nil, "blank run set a query")
 end
 
+PH.colwidths = function()
+	local cases = {
+		{ { "time", "cat" }, 500, { 86, false } },
+		{ { "time", "st", "message", "label" }, 500, { 86, 138, false, 138 } },
+		{ { "time", "st", "ent", "cat", "event", "owner", "member", "channel", "rule", "message", "label" }, 500, { 86, 50, 50, 50, 50, 50, 50, 50, 50, false, 50 } },
+		{ { "cat", "n" }, 500, { 250, false } },
+		{ { "time" }, 500, { false } },
+		{ { "ts", "message" }, 300, { 86, false } },
+		{ {}, 500, {} },
+	}
+	for n, c in ipairs(cases) do
+		local w = M.PSS_TableWidths(c[1], c[2])
+		check(type(w) == "table", "case " .. n .. " no table")
+		for i = 1, #c[1] do
+			local want = c[3][i]
+			if want == false then want = nil end
+			check(w and w[i] == want, "case " .. n .. " col " .. i .. " is " .. tostring(w and w[i]) .. " want " .. tostring(want))
+		end
+	end
+	check(next(M.PSS_TableWidths({}, 500)) == nil, "empty not {}")
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

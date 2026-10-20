@@ -42,7 +42,8 @@ cell-nil|PourSocialScore_Libraries/PSS_Bus.lua|s/if M.PSS_IsSecret(v) or v == ni
 con-cap-note|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/s = s .. ", history holds the newest " .. H.Cap() .. " lines"/s = s/|concap
 qv-no-resize-chart|PourSocialScore_GUI/PSS_QueryView.lua|/v.chart:Resize(w, h - 40 - top)/d|qvresize
 pane-fixed-width|PourSocialScore_GUI/PSS_History.lua|s/from = opts.from, fill = true })/from = opts.from, fill = false })/|panefit
-con-runs-default|PourSocialScore_GUI/PSS_Console.lua|/^\t\tif text == "" then qv.status:SetText(M.PSS_CON_BLANK); return end$/d|conblank'
+con-runs-default|PourSocialScore_GUI/PSS_Console.lua|/^\t\tif text == "" then qv.status:SetText(M.PSS_CON_BLANK); return end$/d|conblank
+col-equal|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local TIME_W = 86$/local TIME_W = 50/|colwidths'
 want="$*"
 total=0; killed=0
 nl='
