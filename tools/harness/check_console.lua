@@ -1505,6 +1505,33 @@ PH.concap = function()
 	check(st:find("newest " .. H.Cap() .. " lines", 1, true), "status names the cap: " .. st)
 end
 
+PH.qvresize = function()
+	local v = newView({ w = 400, h = 240, compact = true })
+	check(type(v.Resize) == "function", "no v:Resize")
+	v:Resize(370, 250)
+	check(v:GetWidth() == 370, "view width " .. tostring(v:GetWidth()))
+	check(v.line:GetWidth() == 300, "line width " .. tostring(v.line:GetWidth()))
+	check(v.chart.w == 370, "chart w " .. tostring(v.chart.w))
+	check(v.chart.h == 250 - 40 - 30, "chart h " .. tostring(v.chart.h))
+end
+
+PH.panefit = function()
+	local u = GUI()
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local body = CreateFrame("Frame", nil, UIParent)
+	body:SetSize(400, 400)
+	local hv = u.NewHistory(body, -28, { kind = "player", empty = "" })
+	check(hv.qv ~= nil, "no query view")
+	if not hv.qv then return end
+	local pts = hv.qv._points or {}
+	check(#pts == 2, "points " .. #pts)
+	check(pts[1] and pts[1][1] == "TOPLEFT" and pts[1][2] == hv.qv:GetParent(), "point 1 not TOPLEFT on lf")
+	check(pts[2] and pts[2][1] == "BOTTOMRIGHT" and pts[2][2] == hv.qv:GetParent(), "point 2 not BOTTOMRIGHT on lf")
+	local qp = hv.queries and hv.queries._point
+	check(qp and qp[2] == hv.qv.deep, "Queries dropdown not anchored to the deep button")
+	check(hv.qv.line and hv.qv.line._wrap == true, "line word wrap off")
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

@@ -2,7 +2,7 @@
 -- POUR SOCIAL SCORE - THE QUERY VIEW (search-helper, phase B)
 --   local v = ns.NewQueryView(parent, o)
 --   o = { w, h, query, params, scope, shape = "auto"|"events"|"table"|"chart",
---         deepDive, compact, from, rows }
+--         deepDive, compact, from, rows, fill }
 --   v:SetQuery(text, params)  v:Run(load)  v:Refresh()  v:Result()  v:SetRange(range)
 -- Drawing only: the model is M.PSS_QueryViewModel (Libraries). Heard events
 -- only while the window shows (ns.Listen), redraws coalesced by M.PSS_Throttle.
@@ -24,9 +24,13 @@ function ns.NewQueryView(parent, o)
 		v.line = ns.NewText(v, 11)
 		v.line:SetPoint("TOPLEFT", v, "TOPLEFT", 0, 0)
 		v.line:SetWidth(W - 70)
+		v.line:SetWordWrap(true)
+		v.line:SetNonSpaceWrap(true)
+		v.line:SetHeight(26)
+		v.line:SetJustifyV("TOP")
 		v.run = ns.NewButton(v, "Run", 60, function() v:Run(true) end)
 		v.run:SetPoint("TOPRIGHT", v, "TOPRIGHT", 0, 0)
-		top = 26
+		top = 30
 	end
 	if o.deepDive then
 		v.deep = ns.NewButton(v, "Open in Spyglass", 120, function()
@@ -76,6 +80,21 @@ function ns.NewQueryView(parent, o)
 	function v:Refresh() v:Run(vm.loaded) end
 	function v:Result() return vm.set, vm.info end
 	function v:SetRange(range) v.range = range end
+	function v:Resize(w, h)
+		if not w or not h or w <= 0 or h <= 0 then return end
+		v:SetSize(w, h)
+		if v.line then v.line:SetWidth(w - 70) end
+		v.chart:Resize(w, h - 40 - top)
+		if vm.set then Draw() end
+	end
+	if o.fill then
+		v:ClearAllPoints()
+		v:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
+		v:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 0, 0)
+		v:HookScript("OnSizeChanged", function(_, w, h) v:Resize(w, h) end)
+		local pw, ph = parent:GetWidth(), parent:GetHeight()
+		if pw and ph and pw > 0 and ph > 0 then v:Resize(pw, ph) end
+	end
 
 	v:HookScript("OnShow", function()
 		if vm.state == "idle" and vm.query then v:Run(false) end

@@ -422,6 +422,15 @@ function ns.NewChart(parent, w, h)
 	f.c = { bars = 0, cells = 0, hits = 0, segs = 0, fills = 0 }
 	f.lists, f.listOrder = {}, {}
 	f.Draw, f.Clear, f.Kind = Draw, Clear, Kind
+	function f:Resize(nw, nh)
+		if nw == f.w and nh == f.h then return end
+		f:SetSize(nw, nh)
+		f.w, f.h = nw, nh
+		for _, l in pairs(f.lists) do l.frame:Hide() end
+		wipe(f.lists)
+		wipe(f.listOrder)
+		f.tableList = nil
+	end
 	f.grid, f.ylab, f.xlab = {}, {}, {}
 	for i = 1, 4 do
 		f.grid[i] = f:CreateTexture(nil, "BACKGROUND")

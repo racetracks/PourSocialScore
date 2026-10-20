@@ -39,7 +39,9 @@ con-pick-unbound|PourSocialScore_GUI/PSS_Console.lua|s/local text, missing = M.P
 con-quote-number|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if type(v) == "number" then return tostring(v) end/if false then return tostring(v) end/|consysq
 con-run-invalid|PourSocialScore_GUI/PSS_Console.lua|s/if not r then Unbound(missing); return end/text = r or text/;s/^\t\tif err then return end$/\t\t_ = err/|consysq
 cell-nil|PourSocialScore_Libraries/PSS_Bus.lua|s/if M.PSS_IsSecret(v) or v == nil then return "" end/if false then return "" end/|concell
-con-cap-note|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/s = s .. ", history holds the newest " .. H.Cap() .. " lines"/s = s/|concap'
+con-cap-note|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/s = s .. ", history holds the newest " .. H.Cap() .. " lines"/s = s/|concap
+qv-no-resize-chart|PourSocialScore_GUI/PSS_QueryView.lua|/v.chart:Resize(w, h - 40 - top)/d|qvresize
+pane-fixed-width|PourSocialScore_GUI/PSS_History.lua|s/from = opts.from, fill = true })/from = opts.from, fill = false })/|panefit'
 want="$*"
 total=0; killed=0
 nl='
