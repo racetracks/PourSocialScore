@@ -22,6 +22,7 @@ local M = ns.M
 local type, tonumber, tostring, floor, ceil, max, min = type, tonumber, tostring, math.floor, math.ceil, math.max, math.min
 local format, concat = string.format, table.concat
 
+local MEASURE_ROWS = 100
 local PAD, AXIS_W, LABEL_W, AXIS_H, TITLE_H, PEND_H = 8, 40, 80, 16, 16, 14
 local CAP_BARS, CAP_SERIES, CAP_SLICES, CAP_HEAT_X, CAP_HEAT_Y, KEEP_LISTS = 60, 6, 8, 7, 24, 4
 
@@ -368,7 +369,24 @@ DRAW.table = function(f, set, spec)
 		c:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -PAD, PAD)
 		t.frame = c
 		local lc = {}
-		local widths = M.PSS_TableWidths(cols, f.w - 2 * PAD - 22)
+		local ms = f.measure
+		if not ms then
+			ms = ns.NewText(f, 12)
+			ms:Hide()
+			f.measure = ms
+		end
+		local need = {}
+		for i = 1, #cols do
+			ms:SetText(tostring(cols[i]))
+			local mx = ms:GetStringWidth() or 0
+			for r = 1, math.min(#set, MEASURE_ROWS) do
+				ms:SetText(M.PSS_CellText(cols[i], set[r][i]))
+				local sw = ms:GetStringWidth() or 0
+				if sw > mx then mx = sw end
+			end
+			need[i] = mx
+		end
+		local widths = M.PSS_TableWidths(cols, f.w - 2 * PAD - 22, need)
 		for i = 1, #cols do
 			lc[i] = { key = "c" .. i, text = tostring(cols[i]), width = widths[i] }
 		end

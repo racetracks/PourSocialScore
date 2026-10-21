@@ -471,6 +471,7 @@ CV.HELP = {
 	{ "index=log | stats count by cat | chart bar", "chart: draw the answer (last command)" },
 	{ "gold", "A bare word searches the text of every index" },
 	{ "index=log cat=whisper", "field=value keeps rows where it matches" },
+	{ "index=log time like 21", "time text contains 21 (day, hour or minute)" },
 	{ "earliest=-7d@d", "earliest and latest set the time range" },
 }
 
@@ -597,30 +598,63 @@ M.PSS_UNBOUND_TEXT = { owner = "Select a player in Player Ignore List first", it
 
 M.PSS_CON_BLANK = "Type a search, or pick one on the left, then Run."
 
-local TIME_W = 86
-local COL_MIN = 50
+local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 200, 120, 10
 
--- column widths for a table of cols in avail pixels: time columns fixed, the message (else last) column fills (nil)
-function M.PSS_TableWidths(cols, avail)
+-- column widths for a table of cols in avail pixels from the measured need of each: every column fits its
+-- content (COL_MIN to COL_MAX), the message / summary / label (else the widest text) column fills (nil)
+function M.PSS_TableWidths(cols, avail, need)
 	local w = {}
 	local n = #cols
 	if n == 0 then return w end
 	if type(avail) ~= "number" or avail < 0 then avail = 0 end
-	local fill = n
-	for i = 1, n do
-		if cols[i] == "message" then fill = i; break end
+	need = need or {}
+	local function nd(i) return tonumber(need[i]) or 0 end
+	local fill
+	for _, name in ipairs({ "message", "summary", "label" }) do
+		for i = 1, n do
+			if cols[i] == name then fill = i; break end
+		end
+		if fill then break end
 	end
-	local nTime, nOthers = 0, 1
+	if not fill then
+		local best = -1
+		for i = 1, n do
+			if cols[i] ~= "time" and cols[i] ~= "ts" and nd(i) >= best then fill, best = i, nd(i) end
+		end
+		fill = fill or n
+	end
+	local sum = 0
 	for i = 1, n do
 		if i ~= fill then
-			if cols[i] == "time" or cols[i] == "ts" then nTime = nTime + 1 else nOthers = nOthers + 1 end
+			if need[i] == nil then w[i] = COL_MIN
+			else w[i] = math.min(COL_MAX, math.max(COL_MIN, math.ceil(need[i]) + PADX)) end
+			sum = sum + w[i]
 		end
 	end
-	local share = math.max(COL_MIN, math.floor((avail - TIME_W * nTime) / math.max(1, nOthers)))
+	local rest = avail - sum
+	if rest >= FILL_MIN then return w end
+	local over = FILL_MIN - rest
+	local S = 0
+	for i = 1, n do
+		if i ~= fill then S = S + w[i] - COL_MIN end
+	end
+	if S == 0 then return w end
+	local owed = over
 	for i = 1, n do
 		if i ~= fill then
-			w[i] = (cols[i] == "time" or cols[i] == "ts") and TIME_W or share
+			local give = math.floor(over * (w[i] - COL_MIN) / S)
+			w[i] = w[i] - give
+			owed = owed - give
 		end
+	end
+	while owed > 0 do
+		local pick
+		for i = 1, n do
+			if i ~= fill and w[i] > COL_MIN and (not pick or w[i] > w[pick]) then pick = i end
+		end
+		if not pick then break end
+		w[pick] = w[pick] - 1
+		owed = owed - 1
 	end
 	return w
 end

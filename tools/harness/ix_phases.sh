@@ -30,7 +30,7 @@ segappend segmonth segtrim segskip seghash segnewer segzero segreload segcost se
 putorder putsecret putoff putcap putearly putsignal putact putcost putreal putsoak
 dictjoin dictasync dictmissing dictreal
 timeparse timemonth timebad timebucket timesession timefmt
-predops predlike timelike likeword predbool predpush predvirtual predtype predlegacy predempty
+predops predlike timelike timelike2 likeword predbool predpush predvirtual predtype predlegacy predempty
 statsfns statsby statscap timechartfill timechartby topn dedup calcdiv0 statsempty statsnil statscost statsproperty
 termsame termunknown termpending termreal
 parseexamples parsebad parselimits parseinject parsechart parsetime parsetokens parsenoload parsefuzz parsetokenkinds

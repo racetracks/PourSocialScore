@@ -161,5 +161,7 @@ return {
 	{ "lazy-no-summary", "PourSocialScore_Libraries/PSS_Plan.lua", "if summary then local okS, s = pcall(summary, row); r[7] = okS and s or nil end", "", "lazysummary" },
 	{ "word-eats-pipe", "PourSocialScore_Libraries/PSS_Psql.lua", 'i = (find(text, "[ \\t\\n\\r|()\\"=<>!,]", i) or n + 1)', 'i = (find(text, "[ \\t\\n\\r()\\"=<>!,]", i) or n + 1)', "parsetokens" },
 	{ "string-escape-lost", "PourSocialScore_Libraries/PSS_Psql.lua", "out[#out + 1] = sub(text, k + 1, k + 1); j = k + 2", "j = k + 2", "parsetokens" },
+	{ "like-time-stamp-only", "PourSocialScore_Libraries/PSS_Pred.lua", 'if star or (#bare >= 4 and find(bare, "^%d+$")) then', "if true then", "timelike2" },
+	{ "like-time-case", "PourSocialScore_Libraries/PSS_Pred.lua", 'return "text", lower((gsub(v, "^%s+", "")):gsub("%s+$", ""))', 'return "text", (gsub(v, "^%s+", "")):gsub("%s+$", "")', "timelike2" },
 	{ "pipe-unescape-lost", "PourSocialScore_Libraries/PSS_IxExport.lua", 'local function unpipe(s) return (gsub(s, "||", "|")) end', "local function unpipe(s) return s end", "qpipe" },
 }

@@ -85,6 +85,17 @@ local function likePattern(v)
 end
 P.likePattern = likePattern
 
+-- like on a time field: "stamp", pattern (digits of the stamp yyyymmddhhmmss, a prefix) or "text", needle (the shown text)
+function P.timeLike(value)
+	local v = tostring(value)
+	local bare = gsub(v, "[%-:/ Tt]", "")
+	local star = find(bare, "*", 1, true)
+	if star or (#bare >= 4 and find(bare, "^%d+$")) then
+		return "stamp", likePattern(star and bare or (bare .. "*"))
+	end
+	return "text", lower((gsub(v, "^%s+", "")):gsub("%s+$", ""))
+end
+
 local compile
 
 local function cmpNode(node, F, key)
@@ -162,10 +173,18 @@ function compile(node, F, key)
 		local fk = key(node.field)
 		local neg = node.op == "!="
 		if F.kind(node.field) == "t" then		-- a time stamp yyyymmddhhmmss: the raw seconds never match
-			local tpat = likePattern((gsub(tostring(node.value), "[%-:/ Tt]", "")))
+			local mode, tpat = P.timeLike(node.value)
+			local memoMin, memoText
 			return function(r)
 				local x = tonumber(r[fk])
-				local hit = x ~= nil and find(date("%Y%m%d%H%M%S", x), tpat) ~= nil
+				local hit = false
+				if x ~= nil and mode == "stamp" then
+					hit = find(date("%Y%m%d%H%M%S", x), tpat) ~= nil
+				elseif x ~= nil then
+					local mn = math.floor(x / 60)
+					if mn ~= memoMin then memoMin, memoText = mn, lower(date(M.PSS_TIME_SHOW, x)) end
+					hit = find(memoText, tpat, 1, true) ~= nil
+				end
 				if neg then return not hit end
 				return hit
 			end

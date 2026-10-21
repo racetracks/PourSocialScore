@@ -2211,6 +2211,21 @@ PH.timelike = function()
 		check(n == c[2], c[1] .. ": " .. n .. " rows, wanted " .. c[2])
 	end
 end
+PH.timelike2 = function()
+	local log = logLoaded()
+	for i = #log, 1, -1 do log[i] = nil end
+	for _, t in ipairs({ { 2026, 10, 21, 2, 59 }, { 2026, 10, 19, 21, 3 }, { 2026, 9, 5, 10, 10 } }) do
+		local e = History.NewEntry("whisper", "CHAT_MSG_WHISPER", "x", "Trade", nil)
+		e.ts = os.time({ year = t[1], month = t[2], day = t[3], hour = t[4], min = t[5], sec = 0 })
+		e.o = "p:Owner1-Realm"
+		log[#log + 1] = e
+	end
+	for _, c in ipairs({ { "time like 21", 2 }, { "time like oct", 2 }, { "time like OCT", 2 }, { 'time like "21 oct"', 1 }, { "time like sep", 1 },
+		{ "not time like 21", 1 }, { "time like 2026", 3 }, { "time like 202610", 2 }, { "time like 20261021*", 1 } }) do
+		local n = nrows("index=log " .. c[1])
+		check(n == c[2], c[1] .. ": " .. n .. " rows, wanted " .. c[2])
+	end
+end
 PH.likeword = function()
 	plantFixed()
 	local a, b = nrows("index=log message like gold"), nrows("index=log message=*gold*")

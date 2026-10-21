@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.132 - Spyglass fixes 2: time format, content-fit columns, time like on shown text
+
+- Spyglass: time cells show the full date with the year, table columns size to their content, and "time like" searches match the time as it is shown.
+
 => 3.8.0.131 - Spyglass load fix: os is nil in the client
 
 - Fixes the Lua error at login in 3.8.0.130 (PSS_Pred.lua: attempt to index global 'os'); the date picker's "..." button had the same fault.

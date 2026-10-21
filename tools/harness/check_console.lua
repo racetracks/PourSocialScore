@@ -583,7 +583,7 @@ PH.conmodel = function()
 	for _, x in ipairs(rows) do if x.head then heads[#heads + 1] = x.head end end
 	check(table.concat(heads, ",") == "System,Mine,Indexes,Data dictionary", "four groups: " .. table.concat(heads, ","))
 	check(next(cm:Sidebar(set({ "a" }, {}))) == nil, "empty sidebar")
-	check(#CV.HELP == 15, "15 help rows")
+	check(#CV.HELP == 16, "16 help rows")
 	for i, h in ipairs(CV.HELP) do
 		local ok, e = pcall(M.PSS_Psql.parse, h[1])
 		check(ok, "help " .. i .. " parses: " .. h[1] .. " " .. tostring(type(e) == "table" and e.msg or e))
@@ -1462,7 +1462,7 @@ end
 PH.concell = function()
 	if not check(M.PSS_CellText, "M.PSS_CellText defined") then return end
 	check(M.PSS_CellText("item", nil) == "", "item nil: " .. tostring(M.PSS_CellText("item", nil)))
-	check(M.PSS_CellText("time", 1792380649) == "19 Oct 03:30", "time: " .. tostring(M.PSS_CellText("time", 1792380649)))
+	check(M.PSS_CellText("time", 1792380649) == date(M.PSS_TIME_SHOW, 1792380649), "time: " .. tostring(M.PSS_CellText("time", 1792380649)))
 	check(M.PSS_CellText("n", 5) == "5", "n 5: " .. tostring(M.PSS_CellText("n", 5)))
 	local pg = openCon()
 	pg.qv:SetQuery("index=log | head 100")
@@ -1545,26 +1545,53 @@ PH.conblank = function()
 	check(pg.qv.vm.query == nil, "blank run set a query")
 end
 
-PH.colwidths = function()
+-- R1: the time cell shows the year (CHK-00187)
+PH.timeshow = function()
+	check(M.PSS_TIME_SHOW == "%d %b %Y %H:%M", "format: " .. tostring(M.PSS_TIME_SHOW))
+	local want = date("%d %b %Y %H:%M", 1792234983)
+	check(want:find("%d%d%d%d"), "year in the want: " .. want)
+	check(M.PSS_CellText("time", 1792234983) == want, "time: " .. tostring(M.PSS_CellText("time", 1792234983)))
+	check(M.PSS_CellText("ts", 1792234983) == want, "ts: " .. tostring(M.PSS_CellText("ts", 1792234983)))
+	check(M.PSS_CellText("time", nil) == "", "nil")
+	check(M.PSS_CellText("time", 0) == "0", "zero")
+	local real = M.PSS_IsSecret
+	M.PSS_IsSecret = function() return true end
+	local got = M.PSS_CellText("time", 1792234983)
+	M.PSS_IsSecret = real
+	check(got == "", "secret: " .. tostring(got))
+end
+
+PH.colfit = function()
+	local F = false
 	local cases = {
-		{ { "time", "cat" }, 500, { 86, false } },
-		{ { "time", "st", "message", "label" }, 500, { 86, 138, false, 138 } },
-		{ { "time", "st", "ent", "cat", "event", "owner", "member", "channel", "rule", "message", "label" }, 500, { 86, 50, 50, 50, 50, 50, 50, 50, 50, false, 50 } },
-		{ { "cat", "n" }, 500, { 250, false } },
-		{ { "time" }, 500, { false } },
-		{ { "ts", "message" }, 300, { 86, false } },
-		{ {}, 500, {} },
+		{ { "time", "cat" }, 500, { 102, 30 }, { 112, F } },
+		{ { "time", "st", "message", "label" }, 500, { 102, 60, 300, 30 }, { 112, 70, F, 40 } },
+		{ { "time", "index", "st", "ent", "item", "owner", "summary" }, 600, { 102, 30, 60, 18, 24, 120, 300 }, { 112, 40, 70, 36, 36, 130, F } },
+		{ { "a", "b", "message" }, 450, { 200, 200, 50 }, { 165, 165, F } },
+		{ { "cat", "n" }, 500, nil, { 36, F } },
+		{ { "time" }, 500, { 102 }, { F } },
+		{ { "x", "message" }, 500, { 900, 10 }, { 200, F } },
 	}
 	for n, c in ipairs(cases) do
-		local w = M.PSS_TableWidths(c[1], c[2])
+		local w = M.PSS_TableWidths(c[1], c[2], c[3])
 		check(type(w) == "table", "case " .. n .. " no table")
 		for i = 1, #c[1] do
-			local want = c[3][i]
-			if want == false then want = nil end
+			local want = c[4][i]
+			if want == F then want = nil end
 			check(w and w[i] == want, "case " .. n .. " col " .. i .. " is " .. tostring(w and w[i]) .. " want " .. tostring(want))
 		end
 	end
 	check(next(M.PSS_TableWidths({}, 500)) == nil, "empty not {}")
+	-- drawn: the chart measures its cells (6 px a character in the stub)
+	local pg = openCon()
+	pg.qv:SetQuery("index=log | head 100")
+	pg.qv:Run(true)
+	local list = pg.qv.chart and pg.qv.chart.tableList
+	if not (list and pg.qv.vm.set and pg.qv.vm.set.n > 0) then
+		print("NOTE colfit: 0 rows, drawn part skipped")
+		return
+	end
+	check(pg.qv.chart.measure ~= nil, "chart made no measuring text")
 end
 
 local f = PH[phase]

@@ -43,7 +43,10 @@ con-cap-note|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/s = s .. ", history
 qv-no-resize-chart|PourSocialScore_GUI/PSS_QueryView.lua|/v.chart:Resize(w, h - 40 - top)/d|qvresize
 pane-fixed-width|PourSocialScore_GUI/PSS_History.lua|s/from = opts.from, fill = true })/from = opts.from, fill = false })/|panefit
 con-runs-default|PourSocialScore_GUI/PSS_Console.lua|/^\t\tif text == "" then qv.status:SetText(M.PSS_CON_BLANK); return end$/d|conblank
-col-equal|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local TIME_W = 86$/local TIME_W = 50/|colwidths'
+show-no-year|PourSocialScore_Libraries/PSS_Bus.lua|s/^M.PSS_TIME_SHOW = "%d %b %Y %H:%M"/M.PSS_TIME_SHOW = "%d %b %H:%M"/|timeshow
+col-no-need|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/math.ceil(need\[i\]) + PADX/COL_MIN/|colfit
+col-no-cap|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 200,/local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 2000,/|colfit
+fill-time|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if cols\[i\] ~= "time" and cols\[i\] ~= "ts" and nd(i) >= best/if nd(i) >= best/|colfit'
 want="$*"
 total=0; killed=0
 nl='

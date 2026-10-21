@@ -194,8 +194,8 @@ local function atom(s)
 			local tm = M.PSS_Time and M.PSS_Time.parse(v.s)
 			role(v, tonumber(v.s) and "number" or (tm and (byte(v.s, 1) == 45 or byte(v.s, 1) == 64 or find(v.s, "^%d%d%d%d%-")) and "time") or "value")
 		end
-		if likeWord and type(node.value) == "string" and not find(node.value, "*", 1, true) then		-- implicit *: a prefix on time, contains elsewhere
-			node.value = s.kinds[field] == "t" and (node.value .. "*") or ("*" .. node.value .. "*")
+		if likeWord and type(node.value) == "string" and not find(node.value, "*", 1, true) and s.kinds[field] ~= "t" then		-- implicit *: contains (a time field is matched by Pred.timeLike)
+			node.value = "*" .. node.value .. "*"
 		end
 		return node
 	end

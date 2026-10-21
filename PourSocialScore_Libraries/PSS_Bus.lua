@@ -65,10 +65,13 @@ function M.PSS_SetCol(set, name)
 	return idx[name]
 end
 
--- text of one table cell: blank for nil and secret values, time as day month hour:minute
+-- how a time cell is shown: day month year hour:minute (DEC-00401)
+M.PSS_TIME_SHOW = "%d %b %Y %H:%M"
+
+-- text of one table cell: blank for nil and secret values, time as day month year hour:minute
 function M.PSS_CellText(col, v)
 	if M.PSS_IsSecret(v) or v == nil then return "" end
-	if col == "time" and type(v) == "number" and v > 0 then return date("%d %b %H:%M", v) end
+	if (col == "time" or col == "ts") and type(v) == "number" and v > 0 then return date(M.PSS_TIME_SHOW, v) end
 	return tostring(v)
 end
 
