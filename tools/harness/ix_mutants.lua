@@ -164,4 +164,7 @@ return {
 	{ "like-time-stamp-only", "PourSocialScore_Libraries/PSS_Pred.lua", 'if star or (#bare >= 4 and find(bare, "^%d+$")) then', "if true then", "timelike2" },
 	{ "like-time-case", "PourSocialScore_Libraries/PSS_Pred.lua", 'return "text", lower((gsub(v, "^%s+", "")):gsub("%s+$", ""))', 'return "text", (gsub(v, "^%s+", "")):gsub("%s+$", "")', "timelike2" },
 	{ "pipe-unescape-lost", "PourSocialScore_Libraries/PSS_IxExport.lua", 'local function unpipe(s) return (gsub(s, "||", "|")) end', "local function unpipe(s) return s end", "qpipe" },
+	{ "money-drops-silver", "PourSocialScore_Libraries/PSS_Fields.lua", "if s > 0 then out[#out + 1]", "if s > 0 and k > 0 then out[#out + 1]", "money" },
+	{ "show-ignores-kind", "PourSocialScore_Libraries/PSS_Fields.lua", "local fn = BYKIND[kind]", "local fn = nil", "cellshow" },
+	{ "event-mech", "PourSocialScore_Libraries/PSS_Fields.lua", "local lab = EVENT[v]", "local lab = nil", "showlog" },
 }

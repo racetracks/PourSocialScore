@@ -68,9 +68,11 @@ end
 -- how a time cell is shown: day month year hour:minute (DEC-00401)
 M.PSS_TIME_SHOW = "%d %b %Y %H:%M"
 
--- text of one table cell: blank for nil and secret values, time as day month year hour:minute
-function M.PSS_CellText(col, v)
+-- text of one table cell: blank for nil and secret values; with the column's kind, the friendly text of M.PSS_Fields.show;
+-- else time as day month year hour:minute
+function M.PSS_CellText(col, v, kind)
 	if M.PSS_IsSecret(v) or v == nil then return "" end
+	if kind and M.PSS_Fields then return M.PSS_Fields.show(kind, v, col) end
 	if (col == "time" or col == "ts") and type(v) == "number" and v > 0 then return date(M.PSS_TIME_SHOW, v) end
 	return tostring(v)
 end

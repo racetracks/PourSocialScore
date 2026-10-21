@@ -37,7 +37,7 @@ parseexamples parsebad parselimits parseinject parsechart parsetime parsetokens 
 plantier planload planbudget plancache planmulti planoffmulti planpicker planreal planchaos
 logrows logorder logpush countsequal logsecret logoff logcost
 invst invrows invderive invpush invsum invval whoff invempty invorphan invnewrow invsecret
-socialrows socialfields membersneed socialoff
+socialrows socialfields membersneed socialoff money labels showlog cellshow
 cfgrows cfgreadonly cfgnewer cfgsystem
 pssproduce pssonce psshot psscap pssnolog
 sqsystem sqput sqcaps sqbroken sqcorrupt sqbind sqbuttons sqgolden sqfuzz sqdowngrade

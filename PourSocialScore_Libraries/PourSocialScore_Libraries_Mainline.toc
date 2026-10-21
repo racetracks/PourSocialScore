@@ -51,6 +51,7 @@ PSS_IxSocial.lua
 PSS_IxCfg.lua
 PSS_SQ.lua
 PSS_IxExport.lua
+PSS_Fields.lua
 PSS_ConsoleView.lua
 PSS_ImportExport.lua
 PSS_PlayerRows.lua

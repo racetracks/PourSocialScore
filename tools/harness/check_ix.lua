@@ -2234,6 +2234,72 @@ PH.likeword = function()
 	check(a == b, 'message LIKE "go*d": ' .. a .. " rows, as message=\"go*d\": " .. b)
 end
 
+local function plain(s) return (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
+PH.money = function()
+	local F = M.PSS_Fields
+	for _, c in ipairs({ { 0, "0c" }, { 9199, "91s 99c" }, { 123456789, "12,345g 67s 89c" }, { -150, "-1s 50c" }, { 12300, "1g 23s" }, { 10000, "1g" } }) do
+		local got = plain(F.money(c[1]))
+		check(got == c[2], "money(" .. c[1] .. ") = " .. got .. ", wanted " .. c[2])
+	end
+	check(F.money(9199):find("|cffc7c7cf91s|r", 1, true) and F.money(9199):find("|cffeda55f99c|r", 1, true), "coin colours")
+	for _, c in ipairs({ { "12g50s", 125000 }, { "1,000g", 10000000 }, { "75", 75 }, { "5x", false }, { "", false } }) do
+		local got = F.moneyParse(c[1])
+		check(got == (c[2] or nil), "moneyParse(" .. c[1] .. ") = " .. tostring(got))
+	end
+	for _, bad in ipairs({ false, {} }) do
+		check(F.money(bad) == "" and F.moneyParse(bad) == nil and F.splitName(bad) == nil, "empty input " .. tostring(bad))
+	end
+	check(F.money(nil) == "" and F.moneyParse(nil) == nil and F.splitName(nil) == nil, "nil input")
+end
+PH.labels = function()
+	for _, c in ipairs({ { "st", "Action" }, { "owner", "Blocked by" }, { "member", "From" }, { "xyz", "xyz" }, { nil, "" } }) do
+		local got = M.PSS_FieldLabel(c[1])
+		check(got == c[2], "label of " .. tostring(c[1]) .. " = " .. tostring(got))
+	end
+	check(M.PSS_FieldLabel(false) == "false" and M.PSS_FieldLabel(5) == "5", "non-string")
+	check(M.PSS_INDEX_LABELS.log == "Chat log" and M.PSS_INDEX_LABELS.gold == "Gold", "index labels")
+end
+local function plantEnts()
+	local a = M.PSS_EntityId("c", "Thrall", M.PSS_Fields.myRealm(), true)
+	local b = M.PSS_EntityId("c", "Jaina", "Silvermoon", true)
+	return a, b
+end
+PH.showlog = function()
+	local F = M.PSS_Fields
+	local db = PourSocialScoreDB
+	db.filterList = db.filterList or {}
+	db.filterID = db.filterID or {}
+	local fi = #db.filterList + 1
+	db.filterList[fi], db.filterID[fi] = "gold sellers", "PSS0010"
+	local key = M.PSS_FilterOwnerKey(fi)
+	for _, c in ipairs({ { "k", "guildChat", "cat", "Guild chat" }, { "k", "partyInvite", "cat", "Party invite" }, { "k", "foo", "cat", "Foo" },
+		{ "s", "CHAT_MSG_CHANNEL", "event", "Channel chat" }, { "s", "CHAT_MSG_BN_WHISPER", "event", "Battle.net whisper" }, { "s", "FOO_BAR", "event", "Foo bar" },
+		{ "d", key, "owner", "Filter: gold sellers" }, { "e", 0, "ent", "" }, { "k", "chat.block", "st", "Chat block" }, { "k", "act.dtt", "st", "Drop Cheapest Thing" },
+		{ "d", "Channel", "channel", "" }, { "d", "Trade", "channel", "Trade" }, { "s", "Thrall-" .. F.myRealm(), "member", "Thrall" }, { "s", "Thrall-Elsewhere", "member", "Thrall-Elsewhere" } }) do
+		local got = M.PSS_CellText(c[3], c[2], c[1])
+		check(got == c[4], c[3] .. " " .. tostring(c[2]) .. " shown as " .. got .. ", wanted " .. c[4])
+	end
+end
+PH.cellshow = function()
+	local F = M.PSS_Fields
+	local a, b = plantEnts()
+	local t = utc(2026, 10, 19, 21, 3, 0)
+	for _, c in ipairs({ { "time", t, "t", "19 Oct 2026 21:03" }, { "time", 0, "t", "" }, { "copper", 9199, "c", "91s 99c" }, { "copper", 0, "c", "0c" },
+		{ "ent", a, "e", "Thrall" }, { "ent", b, "e", "Jaina-Silvermoon" }, { "ent", 987654, "e", "#987654" }, { "item", 5336, "i", "Item 5336" },
+		{ "who", "p:thrall-" .. F.myRealm():lower(), "d", "Thrall" }, { "owner", "p:thrall-" .. F.myRealm():lower(), "d", "Player: Thrall" }, { "owner", "f:PSS0099", "d", "Filter: PSS0099" }, { "x", "raw", "s", "raw" }, { "x", 7, "n", "7" } }) do
+		local got = plain(M.PSS_CellText(c[1], c[2], c[3]))
+		if c[3] == "i" then check(got:find("5336"), "item text " .. got) else check(got == c[4], c[1] .. " " .. tostring(c[2]) .. " shown as " .. got .. ", wanted " .. c[4]) end
+	end
+	check(M.PSS_CellText("x", "raw") == "raw" and M.PSS_CellText("time", t) == "19 Oct 2026 21:03", "nil kind keeps today's text")
+	secrets()
+	check(M.PSS_CellText("copper", secret("s1"), "c") == "", "a secret shows nothing")
+	noSecrets()
+	for _, bad in ipairs({ false, {}, "" }) do
+		check(pcall(F.show, "e", bad, "ent") and pcall(F.show, bad, bad, bad) and pcall(F.show, nil, nil, nil), "empty input " .. tostring(bad))
+	end
+	check(F.show(nil, nil, nil) == "" and F.show("c", nil, "copper") == "", "nil value")
+end
+
 ------------------------------------------------------------------------
 local f = PH[phase]
 if not f then
