@@ -101,14 +101,15 @@ function VM:Status()
 		return format("Error: %s (at %s)", tostring(e.msg), tostring(e.pos))
 	end
 	if not self.set then return "" end
-	local s = format("%d rows, %.2f ms", self.set.n or 0, (self.info and self.info.ms) or 0)
+	local n = self.set.n or 0
+	local s = n == 1 and "1 line" or format("%d lines", n)
 	if self.state == "partial" then s = s .. ", partial" end
 	local q = self.query or ""
 	local H = M.PSS_History
 	if H and q:find("index=log", 1, true) and not q:find("| head", 1, true) and #H.Log() >= H.Cap() then
 		s = s .. ", history holds the newest " .. H.Cap() .. " lines"
 	end
-	return s
+	return s, format("%.2f ms", (self.info and self.info.ms) or 0)
 end
 
 -- one value as a query literal: a number as is, anything else quoted
@@ -653,6 +654,148 @@ function M.PSS_ReportCols(set, profile, bound)
 	end
 	if #out == 0 then return nil end
 	return out
+end
+
+-- the kind letter of a log index field (nil when unknown)
+local function logKind(field)
+	local ix = M.PSS_Ix and M.PSS_Ix("log")
+	for i = 1, ix and #ix.fields or 0 do
+		if ix.fields[i][1] == field then return ix.fields[i][2] end
+	end
+end
+
+-- text split at the | outside quotes
+local function splitPipes(text)
+	local out, at, q, i = {}, 1, false, 1
+	while i <= #text do
+		local c = sub(text, i, i)
+		if q then
+			if c == "\\" then i = i + 1 elseif c == '"' then q = false end
+		elseif c == '"' then q = true
+		elseif c == "|" then out[#out + 1] = sub(text, at, i - 1); at = i + 1 end
+		i = i + 1
+	end
+	out[#out + 1] = sub(text, at)
+	return out
+end
+
+-- words split at spaces outside quotes
+local function words(seg)
+	local out, cur, q, i = {}, {}, false, 1
+	while i <= #seg do
+		local c = sub(seg, i, i)
+		if q then
+			cur[#cur + 1] = c
+			if c == "\\" then i = i + 1; cur[#cur + 1] = sub(seg, i, i) elseif c == '"' then q = false end
+		elseif c == '"' then q = true; cur[#cur + 1] = c
+		elseif c:find("%s") then
+			if #cur > 0 then out[#out + 1] = table.concat(cur); cur = {} end
+		else cur[#cur + 1] = c end
+		i = i + 1
+	end
+	if #cur > 0 then out[#out + 1] = table.concat(cur) end
+	return out
+end
+
+local function unquote(v)
+	if sub(v, 1, 1) == '"' and sub(v, -1) == '"' and #v >= 2 then return (gsub(sub(v, 2, -2), "\\(.)", "%1")) end
+	return v
+end
+
+local function shownValue(field, v)
+	return M.PSS_Fields.show(logKind(field), v, field)
+end
+
+local function splitOr(s)
+	local out, at = {}, 1
+	while true do
+		local a, b = s:find("%s+OR%s+", at)
+		if not a then break end
+		out[#out + 1] = sub(s, at, a - 1)
+		at = b + 1
+	end
+	out[#out + 1] = sub(s, at)
+	return out
+end
+
+-- the owner name of a top-level owner="<v>" term, nil with none or a wildcard (a bound report's subject)
+function CV.boundName(text)
+	if type(text) ~= "string" then return nil end
+	local segs = splitPipes(text)
+	local first = gsub(segs[1] or "", "NOT%s*%([^%)]*%)", "")
+	for _, w in ipairs(words(first)) do
+		local v = w:match("^owner=(.+)$")
+		if v then
+			v = unquote(v)
+			if v:find("*", 1, true) then return nil end
+			local name = shownValue("owner", v)
+			name = gsub(name, "^%a[%a ]*: ", "")
+			return name ~= "" and name or nil
+		end
+	end
+end
+
+local SPAN = { ["1h"] = "hour", ["1d"] = "day", ["1w"] = "week", ["1mon"] = "month" }
+
+-- the plain-words summary of a search (ux-review 6.3): parts joined by " . ", "+ more" for what it leaves out;
+-- a search that does not parse is "Custom search"
+function M.PSS_QuerySummary(text, bound, rangeLabel)
+	if type(text) ~= "string" or text == "" then return "Custom search" end
+	local ok, plan = pcall(M.PSS_Psql.compile, text)
+	if not ok or not plan then return "Custom search" end
+	local segs = splitPipes(text)
+	local parts, more = {}, false
+	local first = gsub(segs[1] or "", "^%s+", "")
+	first = gsub(first, "NOT%s*%(([^%)]*)%)", function(inner)
+		local field, vals = nil, {}
+		for _, t in ipairs(splitOr(inner)) do
+			local f, v = t:match("^%s*([%a_][%w_]*)=(.-)%s*$")
+			if not f or (field and f ~= field) then more = true; return "" end
+			field = f
+			vals[#vals + 1] = shownValue(f, unquote(v))
+		end
+		if #vals > 0 then parts[#parts + 1] = "without " .. table.concat(vals, ", ") end
+		return ""
+	end)
+	for _, w in ipairs(words(first)) do
+		local f, v = w:match("^([%a_][%w_]*)=(.+)$")
+		if f == "index" then
+			-- the source: said by the title
+		elseif f and f ~= "earliest" and f ~= "latest" then
+			v = unquote(v)
+			if bound and f == "owner" and not v:find("*", 1, true) then
+				-- the title names it
+			elseif v:find("*", 1, true) then more = true
+			else parts[#parts + 1] = M.PSS_FieldLabel(f) .. ": " .. shownValue(f, v) end
+		else more = true end
+	end
+	local newest = false
+	for i = 2, #segs do
+		local w = words(segs[i])
+		local cmd = w[1]
+		if cmd == "sort" then
+			newest = w[2] == "-time"
+		elseif cmd == "head" and tonumber(w[2]) and #w == 2 then
+			parts[#parts + 1] = (newest and "newest " or "first ") .. w[2]
+		elseif cmd == "stats" and w[2] == "count" and w[3] == "by" and w[4] and #w == 4 then
+			parts[#parts + 1] = "count by " .. M.PSS_FieldLabel(w[4])
+		elseif cmd == "timechart" and #w == 3 and w[3] == "count" and SPAN[(w[2] or ""):match("^span=(.+)$") or ""] then
+			parts[#parts + 1] = "count per " .. SPAN[w[2]:match("^span=(.+)$")]
+		else more = true end
+	end
+	if type(rangeLabel) == "string" and rangeLabel ~= "" then parts[#parts + 1] = rangeLabel end
+	local out = table.concat(parts, " \194\183 ")
+	if more then out = out == "" and "+ more" or (out .. " + more") end
+	return out
+end
+
+-- the header line of a report or a typed search: "<title> . <summary>"
+function CV.header(report, text, rangeLabel)
+	if type(text) ~= "string" or text == "" then return "" end
+	local title = report and report.title or "Custom search"
+	local sum = M.PSS_QuerySummary(text, report and report.bound, rangeLabel)
+	if sum == "" or sum == title then return title end
+	return title .. " \194\183 " .. sum
 end
 
 -- the columns that keep their full width: time, and the first drawn of member, sender, ent, holder

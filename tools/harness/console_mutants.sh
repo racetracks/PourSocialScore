@@ -50,7 +50,10 @@ fill-time|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if cols\[i\] ~= "time"
 label-raw|PourSocialScore_GUI/PSS_Chart.lua|s/text = M.PSS_FieldLabel(cols\[i\]), tip = cols\[i\], width/text = cols[i], tip = cols[i], width/|reportgrid
 profile-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^\tlocal want = type(profile) == "string" and M.PSS_REPORT_COLS\[profile\]$/\tlocal want = nil/|reportcols reportgrid
 bound-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not blank and not (bound and (name == "owner" or same)) then/if not blank then/|reportcols
-keep-ignored|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/return i ~= fill and not keep\[i\]/return i ~= fill/|keepfit'
+keep-ignored|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/return i ~= fill and not keep\[i\]/return i ~= fill/|keepfit
+summary-raw|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^\tif type(text) ~= "string" or text == "" then return "Custom search" end$/\tif type(text) == "string" then return text end/|summary
+report-bar-shown|PourSocialScore_GUI/PSS_Console.lua|s/bar:SetShown(not on); run_b/bar:SetShown(true); run_b/|reportmode
+status-ms|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/local s = n == 1 and "1 line" or format("%d lines", n)/local s = format("%d rows, 0.00 ms", n)/|status'
 want="$*"
 total=0; killed=0
 nl='

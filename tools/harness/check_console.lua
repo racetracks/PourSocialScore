@@ -254,7 +254,7 @@ PH.qvrun = function()
 		v:Run(true)
 		local k = v.chart:Kind()
 		check(k == c[2] or k == c[3], c[1] .. ": kind " .. tostring(k) .. " state " .. tostring(v.vm.state) .. " " .. v.vm:Status())
-		check(v.vm:Status():match("^%d+ rows, [%d.]+ ms") ~= nil, c[1] .. ": status " .. v.vm:Status())
+		check(v.vm:Status():match("^%d+ lines?") ~= nil, c[1] .. ": status " .. v.vm:Status())
 	end
 end
 
@@ -1654,6 +1654,62 @@ PH.reportgrid = function()
 			end
 		end
 	end
+end
+
+PH.summary = function()
+	local S = M.PSS_QuerySummary
+	if not check(type(S) == "function", "M.PSS_QuerySummary missing") then return end
+	local q1 = 'index=log owner="p:lunarian moonwall-classicbetapvp" | sort -time | head 200'
+	check(S(q1, "Lunarian Moonwall", "Last 24 hours") == "newest 200 \194\183 Last 24 hours", "bound: " .. tostring(S(q1, "Lunarian Moonwall", "Last 24 hours")))
+	check(S("index=log | head 5") == "first 5", "first: " .. tostring(S("index=log | head 5")))
+	check(S("index=log | stats count by cat") == "count by Type", "count by: " .. tostring(S("index=log | stats count by cat")))
+	check(S("index=log cat=world | dedup cat") == "Type: World chat + more", "more: " .. tostring(S("index=log cat=world | dedup cat")))
+	check(S("index=log NOT (cat=whisper OR cat=world) | head 3") == "without Whisper, World chat \194\183 first 3", "without: " .. tostring(S("index=log NOT (cat=whisper OR cat=world) | head 3")))
+	check(S("index=log | timechart span=1d count") == "count per day", "per day: " .. tostring(S("index=log | timechart span=1d count")))
+	check(S("bad (") == "Custom search", "bad: " .. tostring(S("bad (")))
+	check(S("") == "Custom search" and S(nil) == "Custom search", "empty inputs")
+	check(S("index=log | head 5", nil, nil) ~= q1, "never raw")
+	local pg = openCon()
+	plantLog(30)
+	pg.deepDive(q1, nil, { preset = "last24h" })
+	local h = pg.header and pg.header:GetText() or ""
+	check(h:find("^Events of ") and h:find("newest 200", 1, true) and h:find("Last 24 hours", 1, true), "header: " .. h)
+	check(not h:find("index=", 1, true), "header holds raw search: " .. h)
+end
+
+PH.reportmode = function()
+	local pg = openCon()
+	plantLog(30)
+	pg.pick("preset:events")
+	check(pg.qv.vm.report and pg.qv.vm.report.title == "Events", "report title: " .. tostring(pg.qv.vm.report and pg.qv.vm.report.title))
+	check(not pg.bar:IsShown() and not pg.runBtn:IsShown() and not pg.saveBtn:IsShown(), "bar, Run, Save shown in report mode")
+	check(pg.editBtn and pg.editBtn:IsShown(), "no Edit search button")
+	check(pg.helpBtn and pg.helpBtn:IsShown() and pg.picker:IsShown(), "? or range picker hidden")
+	local h = pg.header:GetText() or ""
+	check(h == "Events \194\183 first 500", "header: " .. h)
+	click(pg.editBtn)
+	check(pg.qv.vm.report == nil, "report not ended")
+	check(pg.bar:IsShown() and pg.runBtn:IsShown() and pg.saveBtn:IsShown() and not pg.editBtn:IsShown(), "bar not back")
+	check(M.PSS_ConsoleView.unpipe(pg.bar:GetText()) == "index=log | head 500", "bar text: " .. tostring(pg.bar:GetText()))
+	pg.bar:SetText("index=log | head 7"); pg.run(true)
+	check((pg.header:GetText() or ""):find("^Custom search"), "typed header: " .. tostring(pg.header:GetText()))
+	pg.pick("preset:events")
+	click(pg.editBtn)
+	pg.run(true)
+	check(pg.qv.vm.report == nil and pg.bar:IsShown(), "Run ends report mode")
+end
+
+PH.status = function()
+	plantLog(40)
+	local v = newView({ w = 400, h = 200 })
+	v:SetQuery("index=log | head 1"); v:Run(true)
+	local a, ms = v.vm:Status()
+	check(a == "1 line", "1 row: " .. tostring(a))
+	check(type(ms) == "string" and ms:find("ms"), "ms in second value: " .. tostring(ms))
+	v:SetQuery("index=log | head 29"); v:Run(true)
+	a = v.vm:Status()
+	check(a == "29 lines", "29 rows: " .. tostring(a))
+	check(v.status:GetText() == "29 lines", "drawn: " .. tostring(v.status:GetText()))
 end
 
 local f = PH[phase]

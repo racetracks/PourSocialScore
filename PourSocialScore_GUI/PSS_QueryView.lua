@@ -28,6 +28,12 @@ function ns.NewQueryView(parent, o)
 		v.line:SetNonSpaceWrap(true)
 		v.line:SetHeight(26)
 		v.line:SetJustifyV("TOP")
+		v.lineHit = CreateFrame("Frame", nil, v)
+		v.lineHit:SetPoint("TOPLEFT", v.line, "TOPLEFT", 0, 0)
+		v.lineHit:SetPoint("BOTTOMRIGHT", v.line, "BOTTOMRIGHT", 0, 0)
+		v.lineHit:EnableMouse(true)
+		v.lineHit:SetScript("OnEnter", function(self) local t = vm:Text(); if t and t ~= "" then ns.Tip(self, t) end end)
+		v.lineHit:SetScript("OnLeave", function() ns.HideTip() end)
 		v.run = ns.NewButton(v, "Run", 60, function() v:Run(true) end)
 		v.run:SetPoint("TOPRIGHT", v, "TOPRIGHT", 0, 0)
 		top = 30
@@ -46,6 +52,12 @@ function ns.NewQueryView(parent, o)
 	v.status = ns.NewText(v, 11)
 	v.status:SetPoint("BOTTOMLEFT", v, "BOTTOMLEFT", 0, 4)
 	v.status:SetAlpha(0.7)
+	v.statusHit = CreateFrame("Frame", nil, v)
+	v.statusHit:SetPoint("TOPLEFT", v.status, "TOPLEFT", 0, 0)
+	v.statusHit:SetPoint("BOTTOMRIGHT", v.status, "BOTTOMRIGHT", 0, 0)
+	v.statusHit:EnableMouse(true)
+	v.statusHit:SetScript("OnEnter", function(self) local _, ms = vm:Status(); if ms then ns.Tip(self, ms) end end)
+	v.statusHit:SetScript("OnLeave", function() ns.HideTip() end)
 	v.load = ns.NewButton(v, "Load history", 110, function() v:Run(true) end)
 	v.load:SetPoint("BOTTOMRIGHT", v, "BOTTOMRIGHT", 0, 0)
 	v.load:Hide()
@@ -55,23 +67,38 @@ function ns.NewQueryView(parent, o)
 		else v.status:SetTextColor(1, 1, 1) end
 	end
 
+	-- the pane line: the plain summary of the search (its tooltip is the raw text)
+	local function Line()
+		local t = vm:Text() or ""
+		if t == "" then return "" end
+		local sum = M.PSS_QuerySummary(t, M.PSS_ConsoleView.boundName(t))
+		return sum ~= "" and sum or "Events"
+	end
+
 	local function Draw()
 		if vm.state == "error" or not vm.set then
 			v.chart:Clear()
 		else
 			local spec = vm.chart
 			if o.shape == "events" or o.shape == "table" then spec = { kind = "table" } end
+			local rb = vm.report and vm.report.bound
+			if rb then
+				local c = {}
+				for k, x in pairs(spec or {}) do c[k] = x end
+				c.bound = rb
+				spec = c
+			end
 			v.chart:Draw(vm.set, spec or { kind = "table" })
 		end
 		v.status:SetText(vm:Status())
 		Paint()
 		if vm.state == "needsload" then v.load:Show() else v.load:Hide() end
-		if v.line then v.line:SetText(vm:Text() or "") end
+		if v.line then v.line:SetText(Line()) end
 	end
 
 	function v:SetQuery(text, params)
 		vm:SetQuery(text, params)
-		if v.line then v.line:SetText(vm:Text() or "") end
+		if v.line then v.line:SetText(Line()) end
 	end
 	function v:Run(load)
 		vm:Run(load, v.range)

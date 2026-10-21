@@ -33,6 +33,7 @@ ns.TabBuilders.console = function(pg)
 		if ns.SaveQueryDialog then ns.SaveQueryDialog(BarText(), picker:Choice()) end
 	end)
 	local run_b = ns.NewButton(pg, "Run", 60, function() pg.run(true) end, true)
+	local edit_b = ns.NewButton(pg, "Edit search", 100, function() pg.endReport(true) end)
 	picker = ns.NewTimePicker(pg, function() if chip then pg.updateChip() end end)
 	picker:SetWidth(150)
 	help_b:SetPoint("TOPRIGHT", pg, "TOPRIGHT", -PAD, -PAD)
@@ -40,6 +41,8 @@ ns.TabBuilders.console = function(pg)
 	run_b:SetPoint("RIGHT", save_b, "LEFT", -4, 0)
 	picker:SetPoint("RIGHT", run_b, "LEFT", -4, 0)
 	bar:SetPoint("TOPLEFT", pg, "TOPLEFT", RX + 6, -PAD)
+	edit_b:SetPoint("TOPLEFT", pg, "TOPLEFT", RX + 6, -PAD)
+	edit_b:Hide()
 	bar:SetPoint("RIGHT", picker, "LEFT", -6, 0)
 	bar:SetTextColor(1, 1, 1, 1)
 	if bar.SetShadowColor then bar:SetShadowColor(0, 0, 0, 1) end
@@ -92,9 +95,21 @@ ns.TabBuilders.console = function(pg)
 		self:ClearFocus()
 	end)
 
+	-- the header line: title and summary of the search (ux-review 6.3); the range chip sits at its right
+	local header = ns.NewText(pg, 12)
+	header:SetPoint("TOPLEFT", pg, "TOPLEFT", RX + 6, -PAD - 26)
+	header:SetWidth(resW - 150)
+	header:SetJustifyH("LEFT")
+	header:SetWordWrap(false)
 	chip = ns.NewText(pg, 11)
-	chip:SetPoint("TOPLEFT", pg, "TOPLEFT", RX + 6, -PAD - 26)
+	chip:SetPoint("TOPRIGHT", pg, "TOPRIGHT", -PAD - SIDE_W + 10, -PAD - 27)
 	chip:SetAlpha(0.8)
+	local hitf = CreateFrame("Frame", nil, pg)
+	hitf:SetPoint("TOPLEFT", header, "TOPLEFT", 0, 0)
+	hitf:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 0)
+	hitf:EnableMouse(true)
+	hitf:SetScript("OnEnter", function(self) if qv and qv.vm.query and qv.vm.query ~= "" then ns.Tip(self, qv.vm.query) end end)
+	hitf:SetScript("OnLeave", function() ns.HideTip() end)
 
 	------------------------------------------------------------------ result area
 	local holder = CreateFrame("Frame", nil, pg)
@@ -178,6 +193,21 @@ ns.TabBuilders.console = function(pg)
 		chip:SetText((c and c.preset ~= "all" and label) or "")
 		backChip:SetText("Back: " .. tostring(pg.from or ""))
 		backChip:SetShown(pg.from ~= nil)
+		local text = BarText():match("^%s*(.-)%s*$")
+		local rl = (c and c.preset ~= "all" and label) or nil
+		header:SetText(text == "" and "" or CV.header(qv and qv.vm.report, text, rl))
+	end
+
+	-- report mode: the bar, Run and Save give way to Edit search (ux-review 6.3 step 2)
+	local function ApplyMode()
+		local on = qv.vm.report ~= nil
+		bar:SetShown(not on); run_b:SetShown(not on); save_b:SetShown(not on); edit_b:SetShown(on)
+	end
+	function pg.endReport(focus)
+		qv.vm.report = nil
+		ApplyMode()
+		pg.updateChip()
+		if focus then bar:SetFocus() end
 	end
 
 	-- the tab is reset as it opens from a tab click: no way back to a tab it was not sent from
@@ -224,7 +254,7 @@ ns.TabBuilders.console = function(pg)
 		qv.status:SetText(M.PSS_UNBOUND_TEXT[missing] or M.PSS_UNBOUND_TEXT.other)
 	end
 
-	function pg.run(load)
+	function pg.run(load, report)
 		if dict then dict:Hide() end
 		local text = BarText() or ""
 		text = text:match("^%s*(.-)%s*$")
@@ -238,6 +268,9 @@ ns.TabBuilders.console = function(pg)
 		local _, err = cm:Tokens(text)
 		if err then return end
 		cm:SetText(text)
+		if report then report.bound = CV.boundName(text); report.text = text end
+		qv.vm.report = report
+		ApplyMode()
 		qv:SetQuery(text)
 		qv:SetRange((function() local e, l = picker:Range(); if e or l then return { earliest = e, latest = l } end end)())
 		qv:Run(load)
@@ -341,10 +374,10 @@ ns.TabBuilders.console = function(pg)
 			local text, missing = M.PSS_ResolveQuery(d.query, Ctx())
 			if not text then Unbound(missing); return end
 			SetBar(text)
-			pg.run(true)
+			pg.run(true, { title = d.text })
 		elseif d and d.insert then
 			SetBar(d.insert)
-			pg.run(true)
+			pg.run(true, { title = d.text })
 		end
 	end
 	local rows = cm:LeftRows()
@@ -373,6 +406,9 @@ ns.TabBuilders.console = function(pg)
 		SetBar(shown)
 		cm:SetText(shown)
 		qv:SetQuery(shown)
+		local bound = CV.boundName(shown)
+		qv.vm.report = { title = bound and ("Events of " .. bound) or "Events", bound = bound, text = shown }
+		ApplyMode()
 		qv:SetRange((function() local e, l = picker:Range(); if e or l then return { earliest = e, latest = l } end end)())
 		qv:Run(true)
 		pg.updateChip()
@@ -397,6 +433,7 @@ ns.TabBuilders.console = function(pg)
 	pg.bar, pg.qv, pg.cm, pg.picker, pg.help, pg.overlay, pg.underline, pg.sideList, pg.tabs = bar, qv, cm, picker, help, overlay, ul, sideList, tabs
 	pg.highlight, pg.sync, pg.hookRows = Highlight, Sync, HookRows
 	pg.nav, pg.chip, pg.backChip = nav, chip, backChip
+	pg.header, pg.runBtn, pg.saveBtn, pg.editBtn, pg.helpBtn = header, run_b, save_b, edit_b, help_b
 	pg.pick = Pick
 	pg.layout = { PW = PW, PH = PH, resW = resW, resH = resH }
 	if ns.AttachQueryList then ns.AttachQueryList(pg) end
