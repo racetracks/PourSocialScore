@@ -39,6 +39,25 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.133 - Spyglass readable reports: labels, report columns, summary header, Top values, row detail
+
+- Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
+- What changed and why: the author's 3.8.0.132 test showed raw fields, 12 columns and a raw search in reports. B3a: `PourSocialScore_Libraries/PSS_Fields.lua` (new) gives `M.PSS_FieldLabel`, the event and index labels and the display rules; `M.PSS_CellText` takes the column kind (`PSS_Bus.lua`). U2: `M.PSS_ReportCols` and `M.PSS_REPORT_COLS` pick 6 columns (4 in the pane, `log.pane`), `M.PSS_TableWidths` keeps the `keep` columns whole, the chart draws labels (`PSS_ConsoleView.lua`, `PSS_Chart.lua`, `PSS_History.lua`). U3: `M.PSS_QuerySummary` header (`Events of <player> · newest 200 · <range>`), Edit search, status `<n> lines` (`PSS_Console.lua`, `PSS_QueryView.lua`). U4: Top values with label headings, no one-value columns, `No common values`. E6: row detail box `ns.RowDetail` (`PSS_Popups.lua`, `CM:RowDetail`). Check keys: `CHK-00172`, `CHK-00174`, `CHK-00177` and `CHK-00187` are replaced by `CHK-00188` to `CHK-00193` (`specs/plan.md#6-in-game-checks`); `CHK-00178` passed on 3.8.0.132.
+- Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `history.txt`; `versions.json`; code map: scratch `documents/code-map/16_Registries/16_02_Export_Registry.md` and `documents/code-map/09_Current_Features.md`.
+- Tests run: `validate_all.sh` with real saves 1734 passed, 0 failed (409 skipped); `console_phases.sh` 329 phases, 0 failed; `ix_phases.sh` 493 phases, 0 failed; `console_mutants.sh` 53 of 53 killed; `ix_mutants.sh` 143 of 143 killed; segcost append 3.57 us Retail, 3.53 us Camelot (best of 15, gate 5); `sh tools/check_rules.sh` rc 0 (after the secret-order operand swap at PSS_ConsoleView.lua:442 and PSS_Fields.lua:207).
+- Not shown by the simulation: real column widths with the client font, the look in Modern, Classic and Dark, and Escape closing only the copy box (`CHK-00193`).
+- In-game checks (each in Modern, Classic and Dark):
+  - `CHK-00188`: Spyglass > System > Events. Expected: headers Time, From, Type, Channel, Blocked by, Message; no cell shows `CHAT_MSG_`, `p:` or `chat.block`; no empty column.
+  - `CHK-00189`: Options > Optional Features > Event Logging on; Spyglass > System > Events; then Player Ignore List > click a player in the list > Event History. Expected: every time cell reads like `21 Oct 2026 02:59` in full; only Message is cut, and hovering a row shows the whole message.
+  - `CHK-00190`: Options > Optional Features > Event Logging on; Player Ignore List > click a player in the list > Event History. Expected: columns Time, Type, Channel, Message, all inside the pane (Channel only when a line has a channel name); the line above shows `newest 200`, not a search.
+  - `CHK-00191`: Options > Optional Features > Event Logging on; Player Ignore List > click a player in the list > Event History > Open in Spyglass; then Edit search; then Back: Player Ignore List. Expected: header reads `Events of <player> · newest 200 · <range>`, no search text, no From or Blocked by column; Edit search shows the search; Back returns to the pane.
+  - `CHK-00192`: Spyglass > System > Events; look at Top values. Expected: headings are words (Type, Channel), values readable, no heading whose one value covers every line; when no value repeats, the panel reads `No common values`.
+  - `CHK-00193`: Spyglass > System > Events; left click a row; Copy All; Escape. Expected: "Event Details" lists every field by label with readable values; the copy box holds the raw line; Escape closes the box only.
+
+### 3.8.0.132 (from 06 Now)
+
+**3.8.0.132, Spyglass fixes 2: R1 time format, R2 content-fit columns, R3 time like on shown text (branch `claude/nice-noether-m6eqsa`, PR #242):** fixes the 3.8.0.131 test failures `CHK-00174` and `CHK-00178`; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.132 - Spyglass fixes 2: time format, content-fit columns, time like on shown text
 
 - Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).

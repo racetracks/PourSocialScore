@@ -1,17 +1,17 @@
-# Status and next step (release 3.7.0.114; built 3.8.0.116 to 3.8.0.120, 3.8.0.123 to 3.8.0.132)
+# Status and next step (release 3.7.0.114; built 3.8.0.116 to 3.8.0.120, 3.8.0.123 to 3.8.0.133)
 
 Purpose: current status and next step of PSS · owner coordinator · status current, updated every PR · related docs/pss/14_BUILD_HISTORY.md, docs/pss/01_HANDOVER.md
 
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. What each build changed and why: `docs/pss/14_BUILD_HISTORY.md` (written at every build, not loaded at start). Earlier builds: `history.txt`, `versions.json` and the build records on scratch (`16_02_Build_Ledger.md` (`scratch:documents/features/addon-helper/16_Registries/16_02_Build_Ledger.md`)). History: `reference/06_status-history-3.6.0.69-to-3.8.0.118.md`, `reference/06_status-history-to-3.4.1.30.md` and `reference/combined-3.4.1.52/`.
 
 ## Now
-- **3.8.0.132, Spyglass fixes 2: R1 time format, R2 content-fit columns, R3 time like on shown text (branch `claude/nice-noether-m6eqsa`, PR #242):** fixes the 3.8.0.131 test failures `CHK-00174` and `CHK-00178`; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+- **3.8.0.133, Spyglass readable reports: labels, report columns, summary header, Top values, row detail (branch `claude/nice-noether-m6eqsa`, PR #242):** rows B3a, U2, U3, U4 and E6: reports show words not raw fields, 6 report columns, a summary header, readable Top values and a row detail box; replaces `CHK-00172`, `CHK-00174`, `CHK-00177` and `CHK-00187` with `CHK-00188` to `CHK-00193`; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
 - **Last code build: 3.8.0.118, Spyglass phase A with its fixes 3.8.0.117 and 3.8.0.118 (PR #238, merged; the author's re-test passed 2026-10-18).** What each build did: the status history (`docs/pss/reference/06_status-history-3.6.0.69-to-3.8.0.118.md`), `history.txt` and `versions.json`.
-- **Next: 3.8.0.133 (B2a to B2c, time parts); then .134 friendly fields, .135 layout and window resize; the Spyglass pre-release is 3.8.0.136 (#242)** (`DEC-00337`; guide section G0, roadmap Next Steps (`scratch:documents/code-map/Roadmaps/In_Progress/Spyglass_Journal_Bags/Readme.md#2-next-steps`)); journal, bags and optimisation take the next free build numbers after it (roadmap Next Steps).
+- **Next: 3.8.0.134 (B2a to B2c, time parts); then .135 friendly fields, .136 layout and window resize; the Spyglass pre-release is 3.8.0.137 (#242)** (`DEC-00337`; guide section G0, roadmap Next Steps (`scratch:documents/code-map/Roadmaps/In_Progress/Spyglass_Journal_Bags/Readme.md#2-next-steps`)); journal, bags and optimisation take the next free build numbers after it (roadmap Next Steps).
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
-- PR #242: run in-game `CHK-00172`, `CHK-00174`, `CHK-00178` and `CHK-00187` on the 3.8.0.132 zip, each in Modern, Classic and Dark; the asks O1 to O3 (02 section 11 rules 11 and 12, the guild pane) are still open.
+- PR #242: run in-game `CHK-00188` to `CHK-00193` on the 3.8.0.133 zip, each in Modern, Classic and Dark (`CHK-00178` passed on 3.8.0.132); the asks O1 to O3 (02 section 11 rules 11 and 12, the guild pane) are still open.
 - Test a very old save on 3.7.0.113 (the final pre-release), then merge the 3.7.0.114 release PR; then hand phase A its guide (section G0 of 12_02_Phase_A_Spyglass_Engine.md (`scratch:documents/features/search-helper/12_User_Guides/12_02_Phase_A_Spyglass_Engine.md`)).
 - Run `CHK-00110` when the TBC stage opens (#233) and `CHK-00113` on a live realm with a guild bank (#234); `CHK-00117` and `CHK-00118` have no recorded result.
 - #231: the undo check skips the planted 3.4.1.50 save.

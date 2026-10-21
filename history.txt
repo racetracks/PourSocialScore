@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.133 - Spyglass readable reports: labels, report columns, summary header, Top values, row detail
+
+- Spyglass reports now read in plain words: column headers and values are named (Time, From, Type, Channel, Blocked by, Message), the header line says what is shown (for example "Events of <player> - newest 200"), Top values lists only useful values, and clicking a row opens an Event Details box.
+
 => 3.8.0.132 - Spyglass fixes 2: time format, content-fit columns, time like on shown text
 
 - Spyglass: time cells show the full date with the year, table columns size to their content, and "time like" searches match the time as it is shown.

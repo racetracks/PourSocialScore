@@ -204,7 +204,7 @@ local BYKIND = {
 
 -- text of one cell: kind is the column's kind letter (PSS_IxCatalog.lua), nil shows the raw value
 function F.show(kind, v, col)
-	if v == nil or (M.PSS_IsSecret and M.PSS_IsSecret(v)) then return "" end
+	if (M.PSS_IsSecret and M.PSS_IsSecret(v)) or v == nil then return "" end
 	local bc = BYCOL[col]
 	if kind and bc and type(v) == "string" then return bc(v) end
 	local fn = BYKIND[kind]

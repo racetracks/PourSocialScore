@@ -439,7 +439,7 @@ function CM:RowDetail(set, i)
 	for k = 1, #set.cols do
 		local col, v = set.cols[k], row[k]
 		local text = ""
-		if v ~= nil and not M.PSS_IsSecret(v) then text = M.PSS_CellText(col, v, kinds[col]) or "" end
+		if not M.PSS_IsSecret(v) and v ~= nil then text = M.PSS_CellText(col, v, kinds[col]) or "" end
 		out[k] = { field = M.PSS_FieldLabel(col), value = text }
 	end
 	return out
