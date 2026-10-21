@@ -6,7 +6,8 @@
 #   sh tools/harness/console_mutants.sh [name ...]
 here=$(dirname "$0")
 src=$(cd "$here/../.." && pwd)
-MUTANTS='chart-alloc-each|PourSocialScore_GUI/PSS_Chart.lua|s/if not o then o = MAKE\[name\](f); p\[c\] = o end/o = MAKE[name](f); p[c] = o/|chartpool
+MUTANTS='side-no-skip|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if any and not one then out/if true then out/|sidebarux
+chart-alloc-each|PourSocialScore_GUI/PSS_Chart.lua|s/if not o then o = MAKE\[name\](f); p\[c\] = o end/o = MAKE[name](f); p[c] = o/|chartpool
 chart-cap-off|PourSocialScore_GUI/PSS_Chart.lua|s/^\tlocal cap = CAP_BARS$/\tlocal cap = 100000/|chartcaps
 chart-colour-alpha|PourSocialScore_GUI/PSS_Chart.lua|s/fs:SetTextColor(1, 1, 1, 1)/fs:SetTextColor(1, 1, 1, 0.5)/|chartalpha
 chart-onupdate|PourSocialScore_GUI/PSS_Chart.lua|s/b.tex:SetAllPoints(b)/b.tex:SetAllPoints(b); b:SetScript("OnUpdate", function() end)/|charthover

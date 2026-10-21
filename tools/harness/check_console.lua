@@ -641,6 +641,30 @@ PH.conhighlight = function()
 	end
 end
 
+PH.sidebarux = function()
+	local cm = M.PSS_ConsoleModel()
+	local rows = {}
+	for i = 1, 29 do rows[i] = { "world", i <= 15 and "Trade" or "General" } end
+	local s = cm:Sidebar(set({ "cat", "channel" }, rows))
+	check(#s == 1 and s[1].field == "channel", "one-value cat skipped: " .. #s)
+	check(s[1].label == "Channel" and s[1].label == M.PSS_FieldLabel("channel"), "heading is the label")
+	check(#s[1].rows == 2 and s[1].rows[1][3] == M.PSS_CellText("channel", s[1].rows[1][1]), "display text")
+	local one = {}
+	for i = 1, 29 do one[i] = { "world", "Trade" } end
+	check(#cm:Sidebar(set({ "cat", "channel" }, one)) == 0, "all one-value columns skipped")
+	local pg = openCon()
+	plantLog(20)
+	pg.bar:SetText("index=log")
+	pg.run(true)
+	local flat = pg.sideFlat()
+	check(#flat > 0, "sidebar drawn")
+	pg.bar:SetText("index=log | head 1")
+	pg.run(true)
+	flat = pg.sideFlat()
+	check(#flat == 1 and flat[1].empty == "No common values", "empty state: " .. tostring(flat[1] and (flat[1].empty or flat[1].head)))
+	check(flat[1].field == nil, "empty line not clickable")
+end
+
 PH.considebar = function()
 	local pg = openCon()
 	plantLog(20)

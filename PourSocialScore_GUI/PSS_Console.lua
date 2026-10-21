@@ -136,8 +136,11 @@ ns.TabBuilders.console = function(pg)
 		draw = function(row, i)
 			local d = flat[i]
 			if not d then return end
-			row.cells.v:SetText(d.head or tostring(d.value))
-			row.cells.n:SetText(d.head and "" or tostring(d.count))
+			row.cells.v:SetText(d.head or d.empty or ("  " .. (d.text or tostring(d.value))))
+			if d.head then row.cells.v:SetTextColor(1, 0.82, 0, 1)
+			elseif d.empty then row.cells.v:SetTextColor(0.6, 0.6, 0.6, 1)
+			else row.cells.v:SetTextColor(1, 1, 1, 1) end
+			row.cells.n:SetText((d.head or d.empty) and "" or tostring(d.count))
 		end,
 		click = function(row, i)
 			local d = flat[i]
@@ -228,9 +231,10 @@ ns.TabBuilders.console = function(pg)
 		-- the sidebar: top values of each column
 		wipe(flat)
 		for _, g in ipairs(cm:Sidebar(vm.set)) do
-			flat[#flat + 1] = { head = g.field }
-			for _, r in ipairs(g.rows) do flat[#flat + 1] = { field = g.field, value = r[1], count = r[2] } end
+			flat[#flat + 1] = { head = g.label }
+			for _, r in ipairs(g.rows) do flat[#flat + 1] = { field = g.field, value = r[1], count = r[2], text = r[3] } end
 		end
+		if #flat == 0 and vm.set and (vm.set.n or 0) > 0 then flat[1] = { empty = "No common values" } end
 		sideList:SetCount(#flat)
 		sideList:Redraw()
 		HookRows()

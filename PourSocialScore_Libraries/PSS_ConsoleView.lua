@@ -385,9 +385,16 @@ function CM:Sidebar(set)
 		if #out >= 8 then break end
 		if not SKIPCOL[col] then
 			local top = M.PSS_Call("q.top", set, { field = col, n = 5 })
-			local rows = {}
-			for i = 1, top and top.n or 0 do rows[i] = { top[i][1], top[i][2] } end
-			out[#out + 1] = { field = col, rows = rows }
+			local rows, any = {}, false
+			local tn = top and top.n or 0
+			local kind = set.kinds and set.kinds[col]
+			for i = 1, tn do
+				local v = top[i][1]
+				if v ~= nil and v ~= "" then any = true end
+				rows[i] = { v, top[i][2], M.PSS_CellText(col, v, kind) }
+			end
+			local one = tn == 1 and top[1][2] >= set.n		-- one value covers every row
+			if any and not one then out[#out + 1] = { field = col, label = M.PSS_FieldLabel(col), rows = rows } end
 		end
 	end
 	return out
