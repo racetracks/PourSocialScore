@@ -1395,7 +1395,7 @@ PH.consize = function()
 	if not check(pg.layout, "pg.layout defined") then return end
 	check(pg.layout.PW == 940, "PW " .. tostring(pg.layout.PW) .. " want 940")
 	check(pg.layout.PH == 400, "PH " .. tostring(pg.layout.PH) .. " want 400")
-	check(pg.qv:GetWidth() == 550, "qv width " .. tostring(pg.qv:GetWidth()) .. " want 550")
+	check(pg.qv:GetWidth() == 730, "qv width " .. tostring(pg.qv:GetWidth()) .. " want 730")
 	check(pg.qv:GetHeight() == 306, "qv height " .. tostring(pg.qv:GetHeight()) .. " want 306")
 	check(84 + pg.layout.resH + 10 == 400, "84 + resH + 10 = " .. tostring(84 + (pg.layout.resH or 0) + 10) .. " want 400")
 end
@@ -1792,21 +1792,44 @@ PH.reportmode = function()
 	plantLog(30)
 	pg.pick("preset:events")
 	check(pg.qv.vm.report and pg.qv.vm.report.title == "Events", "report title: " .. tostring(pg.qv.vm.report and pg.qv.vm.report.title))
-	check(not pg.bar:IsShown() and not pg.runBtn:IsShown() and not pg.saveBtn:IsShown(), "bar, Run, Save shown in report mode")
-	check(pg.editBtn and pg.editBtn:IsShown(), "no Edit search button")
+	check(pg.bar:IsShown() and pg.runBtn:IsShown() and pg.saveBtn:IsShown(), "bar, Run, Save hidden in report mode")
+	check((pg.bar:GetText() or "") ~= "", "bar empty in report mode")
+	check(pg.editBtn == nil, "Edit search button exists")
 	check(pg.helpBtn and pg.helpBtn:IsShown() and pg.picker:IsShown(), "? or range picker hidden")
 	local h = pg.header:GetText() or ""
 	check(h == "Events \194\183 first 500", "header: " .. h)
-	click(pg.editBtn)
-	check(pg.qv.vm.report == nil, "report not ended")
-	check(pg.bar:IsShown() and pg.runBtn:IsShown() and pg.saveBtn:IsShown() and not pg.editBtn:IsShown(), "bar not back")
-	check(M.PSS_ConsoleView.unpipe(pg.bar:GetText()) == "index=log | head 500", "bar text: " .. tostring(pg.bar:GetText()))
 	pg.bar:SetText("index=log | head 7"); pg.run(true)
 	check((pg.header:GetText() or ""):find("^Custom search"), "typed header: " .. tostring(pg.header:GetText()))
-	pg.pick("preset:events")
-	click(pg.editBtn)
-	pg.run(true)
-	check(pg.qv.vm.report == nil and pg.bar:IsShown(), "Run ends report mode")
+end
+
+PH.conlayout = function()
+	local pg = openCon()
+	local lay = pg.layout
+	local function W(f) return f:GetWidth() end
+	check(lay.PW == 940, "page " .. tostring(lay.PW) .. "x" .. tostring(lay.PH))
+	check(lay.resW == 730 and pg.nav:IsShown() and not pg.side:IsShown(), "open state resW " .. tostring(lay.resW))
+	local side = pg.side
+	local made, cf = 0, CreateFrame
+	CreateFrame = function(...) made = made + 1 return cf(...) end
+	local steps = { { "side", 540 }, { "left", 730 }, { "side", 920 }, { "left", 730 } }
+	local want = { { "<<", ">>" }, { "<<", ">>" }, { ">>", "<<" }, { ">>", "<<" } }
+	local ok, err = pcall(function()
+		for k, st in ipairs(steps) do
+			click(st[1] == "side" and pg.sideToggle or pg.leftToggle)
+			check(lay.resW == st[2], "step " .. k .. " resW " .. tostring(lay.resW) .. " want " .. st[2])
+			check(pg.qv:GetWidth() == lay.resW, "step " .. k .. " qv width " .. tostring(pg.qv:GetWidth()))
+		end
+	end)
+	CreateFrame = cf
+	check(ok, "clicks errored: " .. tostring(err))
+	check(made == 0, "frames created by toggles: " .. made)
+	check(pg.leftToggle:GetText() == "<<" and pg.sideToggle:GetText() == "<<", "texts after steps")
+	click(pg.leftToggle)
+	check(pg.leftToggle:GetText() == ">>" and not pg.nav:IsShown(), "left closed text/nav")
+	click(pg.leftToggle)
+	click(pg.sideToggle)
+	check(side:IsShown() and pg.nav:IsShown() and W(side) == 180 and W(pg.nav) == 180, "widths side " .. tostring(W(side)) .. " nav " .. tostring(W(pg.nav)))
+	check(pg.sideToggle:GetText() == ">>", "side open text")
 end
 
 PH.status = function()
@@ -1883,7 +1906,7 @@ PH.reportchip = function()
 	check(pg.chip:GetParent() == pg.bar:GetParent(), "chip parent is not the bar's page")
 	check(select(2, pg.chip:GetPoint(1)) == pg.picker, "console chip not anchored to the bar's range picker")
 	pg.pick("preset:events")
-	check(pg.qv.vm.report ~= nil and not pg.bar:IsShown(), "not in report mode")
+	check(pg.qv.vm.report ~= nil and pg.bar:IsShown(), "not in report mode")
 	check(pg.chip:GetParent() == pg.bar:GetParent(), "report: chip parent changed")
 	check(anchor() == consoleAnchor, "report anchor " .. anchor() .. " vs " .. consoleAnchor)
 	check(select(2, pg.chip:GetPoint(1)) == pg.picker, "report chip not in the bar")

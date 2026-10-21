@@ -17,12 +17,17 @@ ns.TabBuilders.console = function(pg)
 	local PW, PH = pg:GetWidth(), pg:GetHeight()
 	if not PW or PW < 400 then PW = ns.PAGE_W or 780 end
 	if not PH or PH < 200 then PH = ns.PAGE_H or 460 end
-	local LEFT_W, SIDE_W, PAD = 180, 170, 10
-	local RX = LEFT_W + 2 * PAD
-	local resW, resH = PW - RX - SIDE_W - 2 * PAD, PH - 84 - PAD
+	local PANEL_W, PAD = 180, 10
+	if pg.leftOpen == nil then pg.leftOpen, pg.sideOpen = true, false end
+	local function Geo()
+		local resX = pg.leftOpen and 2 * PAD + PANEL_W or PAD
+		return resX, PW - resX - (pg.sideOpen and PANEL_W + PAD or 0) - PAD
+	end
+	local resX, resW = Geo()
+	local resH = PH - 84 - PAD
 	local qvo = { w = resW, h = resH, rows = M.PSS_Opt("conRows"), deepDive = false, shape = "events", detail = true }
 	local leftByKey, tabs, tabKey = {}, {}, "results"
-	local qv, bar, picker, nav, chip, help, dict, side, sideList, flat
+	local qv, bar, picker, nav, chip, help, dict, side, sideList, flat, holder, lf, rf
 
 	------------------------------------------------------------------ top bar
 	bar = ns.NewEditBox(pg, 300, 512)
@@ -33,16 +38,15 @@ ns.TabBuilders.console = function(pg)
 		if ns.SaveQueryDialog then ns.SaveQueryDialog(BarText(), picker:Choice()) end
 	end)
 	local run_b = ns.NewButton(pg, "Run", 60, function() pg.run(true) end, true)
-	local edit_b = ns.NewButton(pg, "Edit search", 100, function() pg.endReport(true) end)
+	ns.TipOn(run_b, run_b, "Run this search (Enter).")
+	ns.TipOn(save_b, save_b, "Save this search as a report.")
 	picker = ns.NewTimePicker(pg, function() if chip then pg.updateChip() end end)
 	picker:SetWidth(150)
 	help_b:SetPoint("TOPRIGHT", pg, "TOPRIGHT", -PAD, -PAD)
 	save_b:SetPoint("RIGHT", help_b, "LEFT", -4, 0)
 	run_b:SetPoint("RIGHT", save_b, "LEFT", -4, 0)
 	picker:SetPoint("RIGHT", run_b, "LEFT", -4, 0)
-	bar:SetPoint("TOPLEFT", pg, "TOPLEFT", RX + 6, -PAD)
-	edit_b:SetPoint("TOPLEFT", pg, "TOPLEFT", RX + 6, -PAD)
-	edit_b:Hide()
+	bar:SetPoint("TOPLEFT", pg, "TOPLEFT", PAD, -PAD)
 	bar:SetPoint("RIGHT", picker, "LEFT", -6, 0)
 	bar:SetTextColor(1, 1, 1, 1)
 	if bar.SetShadowColor then bar:SetShadowColor(0, 0, 0, 1) end
@@ -97,8 +101,8 @@ ns.TabBuilders.console = function(pg)
 
 	-- the header line: title and summary of the search (ux-review 6.3); the range chip stays under the bar's range picker
 	local header = ns.NewText(pg, 12)
-	header:SetPoint("TOPLEFT", pg, "TOPLEFT", RX + 6, -PAD - 26)
-	header:SetWidth(resW - 150)
+	header:SetPoint("TOPLEFT", pg, "TOPLEFT", PAD + 6, -PAD - 26)
+	header:SetWidth(PW - 2 * PAD - 160)
 	header:SetJustifyH("LEFT")
 	header:SetWordWrap(false)
 	chip = ns.NewText(pg, 11)
@@ -112,14 +116,14 @@ ns.TabBuilders.console = function(pg)
 	hitf:SetScript("OnLeave", function() ns.HideTip() end)
 
 	------------------------------------------------------------------ result area
-	local holder = CreateFrame("Frame", nil, pg)
-	holder:SetPoint("TOPLEFT", pg, "TOPLEFT", RX, -84)
+	holder = CreateFrame("Frame", nil, pg)
+	holder:SetPoint("TOPLEFT", pg, "TOPLEFT", resX, -84)
 	holder:SetSize(resW, resH)
 	for i, t in ipairs({ { "results", "Results" }, { "stats", "Statistics" }, { "chart", "Chart" } }) do
 		local key = t[1]
 		local b = ns.NewTab(pg, t[2], function() pg.selectTab(key) end)
 		b.key = key
-		if i == 1 then b:SetPoint("TOPLEFT", pg, "TOPLEFT", RX, -PAD - 44)
+		if i == 1 then b:SetPoint("TOPLEFT", pg, "TOPLEFT", PAD + 36, -PAD - 44)
 		else b:SetPoint("LEFT", tabs[i - 1], "RIGHT", 2, 0) end
 		tabs[i] = b
 	end
@@ -129,7 +133,8 @@ ns.TabBuilders.console = function(pg)
 	------------------------------------------------------------------ sidebar
 	side = ns.NewPanel(pg, true)
 	side:SetPoint("TOPRIGHT", pg, "TOPRIGHT", -PAD, -84)
-	side:SetSize(SIDE_W, resH)
+	side:SetSize(PANEL_W, resH)
+	side:SetShown(pg.sideOpen)
 	flat = {}
 	sideList = ns.NewRows(side, { rowH = 18,
 		cols = { { key = "v", text = "Top values" }, { key = "n", text = "#", width = 40, justify = "RIGHT" } },
@@ -201,16 +206,9 @@ ns.TabBuilders.console = function(pg)
 		header:SetText(text == "" and "" or CV.header(qv and qv.vm.report, text, rl))
 	end
 
-	-- report mode: the bar, Run and Save give way to Edit search (ux-review 6.3 step 2)
+	-- the bar, Run and Save stay shown in report mode
 	local function ApplyMode()
-		local on = qv.vm.report ~= nil
-		bar:SetShown(not on); run_b:SetShown(not on); save_b:SetShown(not on); edit_b:SetShown(on)
-	end
-	function pg.endReport(focus)
-		qv.vm.report = nil
-		ApplyMode()
-		pg.updateChip()
-		if focus then bar:SetFocus() end
+		bar:SetShown(true); run_b:SetShown(true); save_b:SetShown(true)
 	end
 
 	-- the tab is reset as it opens from a tab click: no way back to a tab it was not sent from
@@ -329,7 +327,7 @@ ns.TabBuilders.console = function(pg)
 		dict.drop:SetPoint("TOPLEFT", dict, "TOPLEFT", 6, -6)
 		dict.drop:SetLabel(dIndex or "")
 		local half = math.floor((resW - 20) / 2)
-		local lf, rf = CreateFrame("Frame", nil, dict), CreateFrame("Frame", nil, dict)
+		lf, rf = CreateFrame("Frame", nil, dict), CreateFrame("Frame", nil, dict)
 		lf:SetPoint("TOPLEFT", dict, "TOPLEFT", 6, -34)
 		lf:SetSize(half, resH - 74)
 		rf:SetPoint("TOPLEFT", lf, "TOPRIGHT", 8, 0)
@@ -386,8 +384,8 @@ ns.TabBuilders.console = function(pg)
 	end
 	local rows = cm:LeftRows()
 	for _, d in ipairs(rows) do if d.key then leftByKey[d.key] = d end end
-	nav = ns.NewNav(pg, { width = LEFT_W, rows = rows, onSelect = Pick })
-	nav:SetPoint("TOPLEFT", pg, "TOPLEFT", PAD, -PAD)
+	nav = ns.NewNav(pg, { width = PANEL_W, rows = rows, onSelect = Pick })
+	nav:SetPoint("TOPLEFT", pg, "TOPLEFT", PAD, -84)
 	nav:SetPoint("BOTTOM", pg, "BOTTOM", 0, PAD)
 
 	------------------------------------------------------------------ closing and deep dive
@@ -436,10 +434,38 @@ ns.TabBuilders.console = function(pg)
 
 	pg.bar, pg.qv, pg.cm, pg.picker, pg.help, pg.overlay, pg.underline, pg.sideList, pg.tabs = bar, qv, cm, picker, help, overlay, ul, sideList, tabs
 	pg.highlight, pg.sync, pg.hookRows = Highlight, Sync, HookRows
-	pg.nav, pg.chip, pg.backChip = nav, chip, backChip
-	pg.header, pg.runBtn, pg.saveBtn, pg.editBtn, pg.helpBtn = header, run_b, save_b, edit_b, help_b
+	pg.nav, pg.chip, pg.backChip, pg.side = nav, chip, backChip, side
+	pg.header, pg.runBtn, pg.saveBtn, pg.helpBtn = header, run_b, save_b, help_b
 	pg.pick = Pick
 	pg.layout = { PW = PW, PH = PH, resW = resW, resH = resH }
+	local leftT = ns.NewButton(pg, "<<", 30, function() pg.leftOpen = not pg.leftOpen; pg.relayout() end)
+	leftT:SetHeight(20)
+	leftT:SetPoint("TOPLEFT", pg, "TOPLEFT", PAD, -PAD - 44)
+	ns.TipOn(leftT, leftT, "Show or hide the list of searches.")
+	local sideT = ns.NewButton(pg, ">>", 30, function() pg.sideOpen = not pg.sideOpen; pg.relayout() end)
+	sideT:SetHeight(20)
+	sideT:SetPoint("TOPRIGHT", pg, "TOPRIGHT", -PAD, -PAD - 44)
+	ns.TipOn(sideT, sideT, "Show or hide Top values.")
+	pg.leftToggle, pg.sideToggle = leftT, sideT
+	function pg.relayout()
+		local x, w = Geo()
+		nav:SetShown(pg.leftOpen)
+		side:SetShown(pg.sideOpen)
+		holder:ClearAllPoints()
+		holder:SetPoint("TOPLEFT", pg, "TOPLEFT", x, -84)
+		holder:SetSize(w, resH)
+		qv:Resize(w, resH)
+		if lf then
+			local half = math.floor((w - 20) / 2)
+			lf:SetSize(half, resH - 74)
+			rf:SetSize(half, resH - 74)
+		end
+		pg.layout.resW = w
+		leftT:SetText(pg.leftOpen and "<<" or ">>")
+		sideT:SetText(pg.sideOpen and ">>" or "<<")
+		HookRows()
+	end
+	pg.relayout()
 	if ns.AttachQueryList then ns.AttachQueryList(pg) end
 	function pg.barError() return barErr end
 	ns.ConsoleBarRaw = function() return pg.lastRaw end

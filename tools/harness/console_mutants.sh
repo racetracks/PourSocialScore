@@ -55,7 +55,9 @@ keep-ignored|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/return i ~= fill an
 summary-raw|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^\tif type(text) ~= "string" or text == "" then return "Custom search" end$/\tif type(text) == "string" then return text end/|summary
 chart-track-late|PourSocialScore_GUI/PSS_Chart.lua|0,/^\t\tf.lists\[sig\] = t$/{/^\t\tf.lists\[sig\] = t$/d}|paneerror
 chart-no-pcall|PourSocialScore_GUI/PSS_Chart.lua|s/pcall(DRAW\[spec.kind\], f, set, spec)/true, DRAW[spec.kind](f, set, spec)/|paneerror
-report-bar-shown|PourSocialScore_GUI/PSS_Console.lua|s/bar:SetShown(not on); run_b/bar:SetShown(true); run_b/|reportmode
+report-bar-shown|PourSocialScore_GUI/PSS_Console.lua|s/bar:SetShown(true); run_b/bar:SetShown(false); run_b/|reportmode
+side-open-default|PourSocialScore_GUI/PSS_Console.lua|s/pg.leftOpen, pg.sideOpen = true, false/pg.leftOpen, pg.sideOpen = true, true/|conlayout
+relayout-no-resize|PourSocialScore_GUI/PSS_Console.lua|/^\t\tqv:Resize(w, resH)$/d|conlayout
 status-ms|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/local s = n == 1 and "1 line" or format("%d lines", n)/local s = format("%d rows, 0.00 ms", n)/|status
 detail-any-button|PourSocialScore_GUI/PSS_QueryView.lua|s/if button ~= "LeftButton" or not self.index/if false or not self.index/|rowdetail
 detail-secret-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if v ~= nil and not M.PSS_IsSecret(v) then text = M.PSS_CellText(col, v, kinds\[col\]) or "" end/if v ~= nil then text = tostring(v) end/|rowdetail
