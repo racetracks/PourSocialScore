@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.134 - Spyglass pane fix and layout: one list per pane, top bar, collapsible panels, wider Message
+
+- Spyglass: a pane no longer keeps old rows under a new query; the search bar, time range, Run, Save and ? sit on one row at the top; both side panels are collapsible and the right one starts closed; the Message column gets at least 40 percent of the table.
+
 => 3.8.0.133 - Spyglass readable reports: labels, report columns, summary header, Top values, row detail
 
 - Spyglass reports now read in plain words: column headers and values are named (Time, From, Type, Channel, Blocked by, Message), the header line says what is shown (for example "Events of <player> - newest 200"), Top values lists only useful values, and clicking a row opens an Event Details box.
