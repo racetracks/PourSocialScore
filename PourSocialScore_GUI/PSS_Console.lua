@@ -20,7 +20,7 @@ ns.TabBuilders.console = function(pg)
 	local LEFT_W, SIDE_W, PAD = 180, 170, 10
 	local RX = LEFT_W + 2 * PAD
 	local resW, resH = PW - RX - SIDE_W - 2 * PAD, PH - 84 - PAD
-	local qvo = { w = resW, h = resH, rows = M.PSS_Opt("conRows"), deepDive = false, shape = "events" }
+	local qvo = { w = resW, h = resH, rows = M.PSS_Opt("conRows"), deepDive = false, shape = "events", detail = true }
 	local leftByKey, tabs, tabKey = {}, {}, "results"
 	local qv, bar, picker, nav, chip, help, dict, side, sideList, flat
 
@@ -95,14 +95,14 @@ ns.TabBuilders.console = function(pg)
 		self:ClearFocus()
 	end)
 
-	-- the header line: title and summary of the search (ux-review 6.3); the range chip sits at its right
+	-- the header line: title and summary of the search (ux-review 6.3); the range chip stays under the bar's range picker
 	local header = ns.NewText(pg, 12)
 	header:SetPoint("TOPLEFT", pg, "TOPLEFT", RX + 6, -PAD - 26)
 	header:SetWidth(resW - 150)
 	header:SetJustifyH("LEFT")
 	header:SetWordWrap(false)
 	chip = ns.NewText(pg, 11)
-	chip:SetPoint("TOPRIGHT", pg, "TOPRIGHT", -PAD - SIDE_W + 10, -PAD - 27)
+	chip:SetPoint("TOPRIGHT", picker, "BOTTOMRIGHT", 0, -6)
 	chip:SetAlpha(0.8)
 	local hitf = CreateFrame("Frame", nil, pg)
 	hitf:SetPoint("TOPLEFT", header, "TOPLEFT", 0, 0)

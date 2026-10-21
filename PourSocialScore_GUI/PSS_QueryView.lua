@@ -2,7 +2,7 @@
 -- POUR SOCIAL SCORE - THE QUERY VIEW (search-helper, phase B)
 --   local v = ns.NewQueryView(parent, o)
 --   o = { w, h, query, params, scope, shape = "auto"|"events"|"table"|"chart",
---         deepDive, compact, from, rows, fill }
+--         deepDive, compact, from, rows, fill, detail }
 --   v:SetQuery(text, params)  v:Run(load)  v:Refresh()  v:Result()  v:SetRange(range)
 -- Drawing only: the model is M.PSS_QueryViewModel (Libraries). Heard events
 -- only while the window shows (ns.Listen), redraws coalesced by M.PSS_Throttle.
@@ -75,6 +75,28 @@ function ns.NewQueryView(parent, o)
 		return sum ~= "" and sum or "Events"
 	end
 
+	local HookDetail
+	-- detail: a left click on a result row opens the row detail box (every row is hooked once; a taller list makes more later)
+	function HookDetail()
+		local list = v.chart.tableList
+		if not o.detail or not list then return end
+		if not list.pssDetailLayout then
+			list.pssDetailLayout = true
+			local layout = list.Layout
+			list.Layout = function(self, ...) local r = layout(self, ...); HookDetail(); return r end
+		end
+		for _, row in pairs(list.rows or {}) do
+			if not row.pssDetail then
+				row.pssDetail = true
+				row:HookScript("OnClick", function(self, button)
+					if button ~= "LeftButton" or not self.index or not vm.set then return end
+					local cm = M.PSS_ConsoleModel()
+					ns.RowDetail({ title = "Event Details", rows = cm:RowDetail(vm.set, self.index), copy = cm:CopyLine(vm.set, self.index) })
+				end)
+			end
+		end
+	end
+
 	local function Draw()
 		if vm.state == "error" or not vm.set then
 			v.chart:Clear()
@@ -89,6 +111,7 @@ function ns.NewQueryView(parent, o)
 				spec = c
 			end
 			v.chart:Draw(vm.set, spec or { kind = "table" })
+			HookDetail()
 		end
 		v.status:SetText(vm:Status())
 		Paint()

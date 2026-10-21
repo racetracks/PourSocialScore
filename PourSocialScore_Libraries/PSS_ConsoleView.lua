@@ -431,6 +431,20 @@ function CM:CopyLine(set, i)
 	return table.concat(cells, "\t")
 end
 
+-- the detail box rows of result row i: field label and display text; a secret cell is "" (PSS 02 section 10)
+function CM:RowDetail(set, i)
+	local row, out = set and set[i], {}
+	if not row then return out end
+	local kinds = M.PSS_SetKinds(set) or {}
+	for k = 1, #set.cols do
+		local col, v = set.cols[k], row[k]
+		local text = ""
+		if v ~= nil and not M.PSS_IsSecret(v) then text = M.PSS_CellText(col, v, kinds[col]) or "" end
+		out[k] = { field = M.PSS_FieldLabel(col), value = text }
+	end
+	return out
+end
+
 function CM:LeftRows()
 	local rows = { { head = "System" } }
 	rows[#rows + 1] = { key = "preset:events", text = "Events", query = "index=log | head 500" }

@@ -42,7 +42,7 @@ con-run-invalid|PourSocialScore_GUI/PSS_Console.lua|s/if not r then Unbound(miss
 cell-nil|PourSocialScore_Libraries/PSS_Bus.lua|s/if M.PSS_IsSecret(v) or v == nil then return "" end/if false then return "" end/|concell
 con-cap-note|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/s = s .. ", history holds the newest " .. H.Cap() .. " lines"/s = s/|concap
 qv-no-resize-chart|PourSocialScore_GUI/PSS_QueryView.lua|/v.chart:Resize(w, h - 40 - top)/d|qvresize
-pane-fixed-width|PourSocialScore_GUI/PSS_History.lua|s/from = opts.from, fill = true })/from = opts.from, fill = false })/|panefit
+pane-fixed-width|PourSocialScore_GUI/PSS_History.lua|s/from = opts.from, fill = true, detail = true })/from = opts.from, fill = false, detail = true })/|panefit
 con-runs-default|PourSocialScore_GUI/PSS_Console.lua|/^\t\tif text == "" then qv.status:SetText(M.PSS_CON_BLANK); return end$/d|conblank
 show-no-year|PourSocialScore_Libraries/PSS_Bus.lua|s/^M.PSS_TIME_SHOW = "%d %b %Y %H:%M"/M.PSS_TIME_SHOW = "%d %b %H:%M"/|timeshow
 col-no-need|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/math.ceil(need\[i\]) + PADX/COL_MIN/|colfit
@@ -54,7 +54,11 @@ bound-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not blank and not
 keep-ignored|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/return i ~= fill and not keep\[i\]/return i ~= fill/|keepfit
 summary-raw|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^\tif type(text) ~= "string" or text == "" then return "Custom search" end$/\tif type(text) == "string" then return text end/|summary
 report-bar-shown|PourSocialScore_GUI/PSS_Console.lua|s/bar:SetShown(not on); run_b/bar:SetShown(true); run_b/|reportmode
-status-ms|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/local s = n == 1 and "1 line" or format("%d lines", n)/local s = format("%d rows, 0.00 ms", n)/|status'
+status-ms|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/local s = n == 1 and "1 line" or format("%d lines", n)/local s = format("%d rows, 0.00 ms", n)/|status
+detail-any-button|PourSocialScore_GUI/PSS_QueryView.lua|s/if button ~= "LeftButton" or not self.index/if false or not self.index/|rowdetail
+detail-secret-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if v ~= nil and not M.PSS_IsSecret(v) then text = M.PSS_CellText(col, v, kinds\[col\]) or "" end/if v ~= nil then text = tostring(v) end/|rowdetail
+detail-raw-label|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/out\[k\] = { field = M.PSS_FieldLabel(col), value = text }/out[k] = { field = col, value = text }/|rowdetail
+chip-in-header|PourSocialScore_GUI/PSS_Console.lua|s/chip:SetPoint("TOPRIGHT", picker, "BOTTOMRIGHT", 0, -6)/chip:SetPoint("TOPRIGHT", header, "TOPRIGHT", 0, 0)/|reportchip'
 want="$*"
 total=0; killed=0
 nl='

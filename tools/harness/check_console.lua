@@ -1736,6 +1736,73 @@ PH.status = function()
 	check(v.status:GetText() == "29 lines", "drawn: " .. tostring(v.status:GetText()))
 end
 
+PH.rowdetail = function()
+	local pg = openCon()
+	plantLog(8)
+	local log = History.Log()
+	log[#log].e = "CHAT_MSG_CHANNEL"
+	local sec = "SECRET_MESSAGE_TEXT"
+	log[#log].m = sec
+	pg.bar:SetText("index=log | head 5")
+	pg.run(true)
+	local list = pg.qv.chart.tableList
+	if not check(list and #list.rows > 0, "no grid") then return end
+	local set = pg.qv.vm.set
+	local real = M.PSS_IsSecret
+	M.PSS_IsSecret = function(v) return v == sec or real(v) end
+	local menus, orig = 0, ui.ContextMenu
+	ui.ContextMenu = function() menus = menus + 1 end
+	click(list.rows[1], "RightButton")
+	local d = _G.PSS_RowDetail
+	check(menus == 1 and not (d and d:IsShown()), "right click: menus " .. menus .. ", box shown " .. tostring(d and d:IsShown()))
+	click(list.rows[1], "MiddleButton")
+	check(not (_G.PSS_RowDetail and _G.PSS_RowDetail:IsShown()), "middle click opened the box")
+	click(list.rows[1], "LeftButton")
+	ui.ContextMenu = orig
+	d = _G.PSS_RowDetail
+	if not check(d and d:IsShown(), "box not shown on left click") then M.PSS_IsSecret = real return end
+	check(d.list.count == #set.cols, "rows " .. tostring(d.list.count) .. " vs " .. #set.cols)
+	d.list:Redraw()
+	local function cellOf(k)
+		local c = { field = {}, value = {} }
+		for _, x in pairs(c) do x.SetText = function(self, t) self.t = t end end
+		d.list.spec.draw({ cells = c }, k)
+		return c.field.t, c.value.t
+	end
+	check(cellOf(1) == "Time", "first field: " .. tostring(cellOf(1)))
+	local stc = M.PSS_SetCol(set, "st")
+	if check(stc, "no st column") then
+		local f, v = cellOf(stc)
+		check(f == M.PSS_FieldLabel("st"), "st label: " .. tostring(f))
+		check(v == M.PSS_CellText("st", set[1][stc], M.PSS_SetKinds(set).st) and v == "Chat block", "st value: " .. tostring(v))
+	end
+	-- a secret cell shows ""
+	local secSet = { n = 1, cols = { "message" }, kinds = {}, { sec } }
+	local rows = M.PSS_ConsoleModel():RowDetail(secSet, 1)
+	check(rows[1].value == "", "secret shown: " .. tostring(rows[1].value))
+	M.PSS_IsSecret = real
+	local empty = M.PSS_ConsoleModel()
+	check(#empty:RowDetail(nil, 1) == 0 and #empty:RowDetail(false, 1) == 0 and #empty:RowDetail({}, 1) == 0, "empty inputs")
+	d:Hide()
+end
+
+PH.reportchip = function()
+	local pg = openCon()
+	plantLog(10)
+	local function anchor()
+		local p, rel, rp, x, y = pg.chip:GetPoint(1)
+		return tostring(p) .. "|" .. tostring(rel) .. "|" .. tostring(rp) .. "|" .. tostring(x) .. "|" .. tostring(y)
+	end
+	local consoleAnchor = anchor()
+	check(pg.chip:GetParent() == pg.bar:GetParent(), "chip parent is not the bar's page")
+	check(select(2, pg.chip:GetPoint(1)) == pg.picker, "console chip not anchored to the bar's range picker")
+	pg.pick("preset:events")
+	check(pg.qv.vm.report ~= nil and not pg.bar:IsShown(), "not in report mode")
+	check(pg.chip:GetParent() == pg.bar:GetParent(), "report: chip parent changed")
+	check(anchor() == consoleAnchor, "report anchor " .. anchor() .. " vs " .. consoleAnchor)
+	check(select(2, pg.chip:GetPoint(1)) == pg.picker, "report chip not in the bar")
+end
+
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")

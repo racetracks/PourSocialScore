@@ -187,7 +187,7 @@ function ns.NewHistory(body, y, opts)
 		if M.PSS_On("logging") then
 			hv.off:Hide()
 			hv.qv = ns.NewQueryView(lf, { compact = true, shape = "events", deepDive = true, w = opts.w or 420, h = opts.h or 250,
-				from = opts.from, fill = true })
+				from = opts.from, fill = true, detail = true })
 			hv.qv.chart.profile = "log.pane"
 			local dd = ns.NewDropdown(f, 120, function(m)
 				for _, q in ipairs(M.PSS_PaneQueries(opts.kind)) do
