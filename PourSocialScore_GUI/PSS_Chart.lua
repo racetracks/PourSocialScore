@@ -354,8 +354,11 @@ DRAW.number = function(f, set, spec)
 end
 
 DRAW.table = function(f, set, spec)
-	local cols = set.cols
-	local sig = concat(cols, "\t")
+	local idx = M.PSS_ReportCols(set, spec.profile or f.profile or "log", spec.bound)
+	local cols, src = {}, set.cols
+	for i = 1, idx and #idx or #src do cols[i] = src[idx and idx[i] or i] end
+	local kinds = M.PSS_SetKinds(set)
+	local sig = concat(cols, "\t") .. "\n" .. (idx and concat(idx, ",") or "")
 	local t = f.lists[sig]
 	if not t then
 		if #f.listOrder >= KEEP_LISTS then
@@ -363,7 +366,7 @@ DRAW.table = function(f, set, spec)
 			f.lists[old].frame:Hide()
 			f.lists[old] = nil
 		end
-		t = { set = set }
+		t = { set = set, idx = idx }
 		local c = CreateFrame("Frame", nil, f)
 		c:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, -PAD)
 		c:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -PAD, PAD)
@@ -377,22 +380,33 @@ DRAW.table = function(f, set, spec)
 		end
 		local need = {}
 		for i = 1, #cols do
-			ms:SetText(tostring(cols[i]))
+			local ci = idx and idx[i] or i
+			ms:SetText(M.PSS_FieldLabel(cols[i]))
 			local mx = ms:GetStringWidth() or 0
 			for r = 1, math.min(#set, MEASURE_ROWS) do
-				ms:SetText(M.PSS_CellText(cols[i], set[r][i]))
+				ms:SetText(M.PSS_CellText(cols[i], set[r][ci], kinds and kinds[cols[i]]))
 				local sw = ms:GetStringWidth() or 0
 				if sw > mx then mx = sw end
 			end
 			need[i] = mx
 		end
-		local widths = M.PSS_TableWidths(cols, f.w - 2 * PAD - 22, need)
+		local avail = f.w - 2 * PAD - 22
+		local widths = M.PSS_TableWidths(cols, avail, need, idx and M.PSS_KeepCols(cols) or nil)
+		local used, open = 0, nil
 		for i = 1, #cols do
-			lc[i] = { key = "c" .. i, text = tostring(cols[i]), width = widths[i] }
+			if widths[i] then used = used + widths[i] else open = i end
+		end
+		if open and avail - used <= 0 then widths[open] = 0 end
+		for i = 1, #cols do
+			lc[i] = { key = "c" .. i, text = M.PSS_FieldLabel(cols[i]), tip = cols[i], width = widths[i] }
 		end
 		t.list = ns.NewRows(c, { rowH = 18, cols = lc, draw = function(row, i)
 			local r = t.set[i]
-			for k = 1, #t.set.cols do row.cells["c" .. k]:SetText(M.PSS_CellText(t.set.cols[k], r[k])) end
+			local ks = M.PSS_SetKinds(t.set)
+			for k = 1, #cols do
+				local ci = t.idx and t.idx[k] or k
+				row.cells["c" .. k]:SetText(M.PSS_CellText(cols[k], r[ci], ks and ks[cols[k]]))
+			end
 		end })
 		f.lists[sig] = t
 		f.listOrder[#f.listOrder + 1] = sig

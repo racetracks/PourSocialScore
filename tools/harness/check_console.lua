@@ -581,7 +581,7 @@ PH.conmodel = function()
 	local cm = M.PSS_ConsoleModel()
 	local rows, heads = cm:LeftRows(), {}
 	for _, x in ipairs(rows) do if x.head then heads[#heads + 1] = x.head end end
-	check(table.concat(heads, ",") == "System,Mine,Indexes,Data dictionary", "four groups: " .. table.concat(heads, ","))
+	check(table.concat(heads, ",") == "System,Mine,Sources,Data dictionary", "four groups: " .. table.concat(heads, ","))
 	check(next(cm:Sidebar(set({ "a" }, {}))) == nil, "empty sidebar")
 	check(#CV.HELP == 16, "16 help rows")
 	for i, h in ipairs(CV.HELP) do
@@ -1592,6 +1592,68 @@ PH.colfit = function()
 		return
 	end
 	check(pg.qv.chart.measure ~= nil, "chart made no measuring text")
+end
+
+-- U2 (3.8.0.133): report columns, kept columns, labels
+local LOGCOLS = { "time", "st", "ent", "cat", "event", "owner", "member", "channel", "rule", "message", "label", "guild" }
+local function logSet(member, owner)
+	local rows = {}
+	for i = 1, 5 do
+		rows[i] = { 1792380649 + i, "chat.block", 0, "world", "CHAT_MSG_CHANNEL", owner or ("p:owner" .. i .. "-realm"), member or ("Sender" .. i), "Trade", nil, "hello " .. i, nil, nil }
+	end
+	return set(LOGCOLS, rows)
+end
+local function colNames(s, idx)
+	local out = {}
+	for i = 1, idx and #idx or 0 do out[i] = s.cols[idx[i]] end
+	return table.concat(out, ",")
+end
+
+PH.reportcols = function()
+	if not check(M.PSS_ReportCols and M.PSS_REPORT_COLS, "M.PSS_ReportCols defined") then return end
+	local s = logSet()
+	check(colNames(s, M.PSS_ReportCols(s, "log")) == "time,member,cat,channel,owner,message", "log: " .. colNames(s, M.PSS_ReportCols(s, "log")))
+	check(colNames(s, M.PSS_ReportCols(s, "log.pane")) == "time,cat,channel,message", "pane: " .. colNames(s, M.PSS_ReportCols(s, "log.pane")))
+	local b = logSet("Lunarian Moonwall", "p:lunarian moonwall-realm")
+	check(colNames(b, M.PSS_ReportCols(b, "log", "Lunarian Moonwall")) == "time,cat,channel,message", "bound: " .. colNames(b, M.PSS_ReportCols(b, "log", "Lunarian Moonwall")))
+	local t = set({ "time", "cat" }, { { 1792380649, "world" } })
+	check(M.PSS_ReportCols(t, "log") == nil, "table set has no profile")
+	check(M.PSS_ReportCols(nil, "log") == nil, "nil set")
+	check(M.PSS_ReportCols(set(LOGCOLS, {}), "log") == nil, "empty set")
+	check(M.PSS_ReportCols(s, "nope") == nil, "unknown profile")
+end
+
+PH.keepfit = function()
+	local cols = { "time", "member", "cat", "channel", "owner", "message" }
+	local need = { 102, 90, 60, 60, 120, 300 }
+	local keep = M.PSS_KeepCols and M.PSS_KeepCols(cols)
+	check(keep and keep[1] and keep[2] and not keep[3], "keep time and member")
+	local function eq(w, want, label)
+		for i = 1, #cols do check(w[i] == want[i], label .. " col " .. i .. " is " .. tostring(w[i]) .. " want " .. tostring(want[i])) end
+	end
+	eq(M.PSS_TableWidths(cols, 500, need, { [1] = true, [2] = true }), { 112, 100, 49, 49, 70 }, "avail 500")
+	eq(M.PSS_TableWidths(cols, 300, need, { [1] = true, [2] = true }), { 112, 100, 36, 36, 36 }, "avail 300")
+end
+
+PH.reportgrid = function()
+	local pg = openCon()
+	local log = plantLog(30)
+	for i = 1, #log do log[i].member = log[i].member or ("Sender" .. (i % 3)) end
+	pg.bar:SetText("index=log | head 500")
+	pg.run(true)
+	local list = pg.qv.chart.tableList
+	if not check(list and #list.rows > 0 and #list.heads > 0, "no grid") then return end
+	local heads = {}
+	for i, h in ipairs(list.heads) do heads[i] = h.text end
+	check(table.concat(heads, ",") == "Time,From,Type,Channel,Blocked by,Message", "headers: " .. table.concat(heads, ","))
+	for i, r in ipairs(list.rows) do
+		if r:IsShown() then
+			for k, c in pairs(r.cells) do
+				local tx = tostring(c:GetText())
+				check(not tx:find("^CHAT_MSG_") and not tx:find("^p:") and tx ~= "chat.block", "row " .. i .. " " .. k .. " raw: " .. tx)
+			end
+		end
+	end
 end
 
 local f = PH[phase]

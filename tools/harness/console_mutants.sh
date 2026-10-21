@@ -46,7 +46,11 @@ con-runs-default|PourSocialScore_GUI/PSS_Console.lua|/^\t\tif text == "" then qv
 show-no-year|PourSocialScore_Libraries/PSS_Bus.lua|s/^M.PSS_TIME_SHOW = "%d %b %Y %H:%M"/M.PSS_TIME_SHOW = "%d %b %H:%M"/|timeshow
 col-no-need|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/math.ceil(need\[i\]) + PADX/COL_MIN/|colfit
 col-no-cap|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 200,/local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 2000,/|colfit
-fill-time|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if cols\[i\] ~= "time" and cols\[i\] ~= "ts" and nd(i) >= best/if nd(i) >= best/|colfit'
+fill-time|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if cols\[i\] ~= "time" and cols\[i\] ~= "ts" and nd(i) >= best/if nd(i) >= best/|colfit
+label-raw|PourSocialScore_GUI/PSS_Chart.lua|s/text = M.PSS_FieldLabel(cols\[i\]), tip = cols\[i\], width/text = cols[i], tip = cols[i], width/|reportgrid
+profile-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^\tlocal want = type(profile) == "string" and M.PSS_REPORT_COLS\[profile\]$/\tlocal want = nil/|reportcols reportgrid
+bound-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not blank and not (bound and (name == "owner" or same)) then/if not blank then/|reportcols
+keep-ignored|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/return i ~= fill and not keep\[i\]/return i ~= fill/|keepfit'
 want="$*"
 total=0; killed=0
 nl='

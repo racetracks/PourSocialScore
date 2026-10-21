@@ -437,10 +437,10 @@ function CM:LeftRows()
 		local r = mine[i]
 		rows[#rows + 1] = { key = "sq:" .. r[1], text = r[2] .. (r[7] and " (cannot run)" or ""), query = r[5], broken = r[7] and true or nil }
 	end
-	rows[#rows + 1] = { head = "Indexes" }
+	rows[#rows + 1] = { head = "Sources" }
 	local ixs = M.PSS_Call("ix.list")
 	for i = 1, ixs and ixs.n or 0 do
-		rows[#rows + 1] = { key = "ix:" .. ixs[i][1], text = ixs[i][1], insert = "index=" .. ixs[i][1] }
+		rows[#rows + 1] = { key = "ix:" .. ixs[i][1], text = M.PSS_INDEX_LABELS[ixs[i][1]] or ixs[i][1], insert = "index=" .. ixs[i][1] }
 	end
 	rows[#rows + 1] = { head = "Data dictionary" }
 	rows[#rows + 1] = { key = "dict", text = "Data dictionary" }
@@ -598,16 +598,86 @@ M.PSS_UNBOUND_TEXT = { owner = "Select a player in Player Ignore List first", it
 
 M.PSS_CON_BLANK = "Type a search, or pick one on the left, then Run."
 
+-- the report profiles (ux-review 4.3): the columns a report draws, in order, when the set has the index's own columns
+M.PSS_REPORT_COLS = {
+	log = { "time", "member", "cat", "channel", "owner", "message" },
+	["log.pane"] = { "time", "cat", "channel", "message" },
+}
+
+local MEASURE_ROWS = 100
+local kindCache = {}
+
+-- the kind of each column of the log index (cached), nil when the set is not that index's own columns
+local function ownKinds(set)
+	local ix = M.PSS_Ix and M.PSS_Ix("log")
+	if not (ix and set and type(set.cols) == "table" and #set.cols == #ix.fields) then return nil end
+	for i = 1, #set.cols do
+		if set.cols[i] ~= ix.fields[i][1] then return nil end
+	end
+	local k = kindCache[ix]
+	if not k then
+		k = {}
+		for i = 1, #ix.fields do k[ix.fields[i][1]] = ix.fields[i][2] end
+		kindCache[ix] = k
+	end
+	return k
+end
+
+-- the kind of each column of a set: its own, else the log index's when it has the log columns
+function M.PSS_SetKinds(set)
+	if type(set) ~= "table" then return nil end
+	return set.kinds or ownKinds(set)
+end
+
+-- indexes into set.cols of the columns a profile draws, hidden ones left out (R9 empty in the first 100 rows,
+-- R13 owner and every column equal to the bound owner's name); nil when there is no profile for this set
+function M.PSS_ReportCols(set, profile, bound)
+	if type(set) ~= "table" or type(set.cols) ~= "table" or (set.n or 0) == 0 then return nil end
+	local want = type(profile) == "string" and M.PSS_REPORT_COLS[profile]
+	if not want then return nil end
+	local kinds = ownKinds(set)
+	if not kinds then return nil end
+	local out = {}
+	local rows = math.min(set.n, MEASURE_ROWS)
+	for _, name in ipairs(want) do
+		local ci = M.PSS_SetCol(set, name)
+		if ci then
+			local blank, same = true, bound ~= nil
+			for r = 1, rows do
+				local t = M.PSS_CellText(name, set[r][ci], kinds[name])
+				if t ~= "" then blank = false end
+				if t ~= bound then same = false end
+			end
+			if not blank and not (bound and (name == "owner" or same)) then out[#out + 1] = ci end
+		end
+	end
+	if #out == 0 then return nil end
+	return out
+end
+
+-- the columns that keep their full width: time, and the first drawn of member, sender, ent, holder
+function M.PSS_KeepCols(cols)
+	local keep, who = {}, false
+	for i = 1, #cols do
+		local c = cols[i]
+		if c == "time" or c == "ts" then keep[i] = true
+		elseif not who and (c == "member" or c == "sender" or c == "ent" or c == "holder") then keep[i] = true; who = true end
+	end
+	return keep
+end
+
 local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 200, 120, 10
 
 -- column widths for a table of cols in avail pixels from the measured need of each: every column fits its
--- content (COL_MIN to COL_MAX), the message / summary / label (else the widest text) column fills (nil)
-function M.PSS_TableWidths(cols, avail, need)
+-- content (COL_MIN to COL_MAX), the message / summary / label (else the widest text) column fills (nil);
+-- a keep[i] column never shrinks
+function M.PSS_TableWidths(cols, avail, need, keep)
 	local w = {}
 	local n = #cols
 	if n == 0 then return w end
 	if type(avail) ~= "number" or avail < 0 then avail = 0 end
 	need = need or {}
+	keep = keep or {}
 	local function nd(i) return tonumber(need[i]) or 0 end
 	local fill
 	for _, name in ipairs({ "message", "summary", "label" }) do
@@ -623,6 +693,9 @@ function M.PSS_TableWidths(cols, avail, need)
 		end
 		fill = fill or n
 	end
+	local function shrinks(i)
+		return i ~= fill and not keep[i]
+	end
 	local sum = 0
 	for i = 1, n do
 		if i ~= fill then
@@ -636,13 +709,13 @@ function M.PSS_TableWidths(cols, avail, need)
 	local over = FILL_MIN - rest
 	local S = 0
 	for i = 1, n do
-		if i ~= fill then S = S + w[i] - COL_MIN end
+		if shrinks(i) then S = S + w[i] - COL_MIN end
 	end
 	if S == 0 then return w end
 	local owed = over
 	for i = 1, n do
-		if i ~= fill then
-			local give = math.floor(over * (w[i] - COL_MIN) / S)
+		if shrinks(i) then
+			local give = math.min(w[i] - COL_MIN, math.floor(over * (w[i] - COL_MIN) / S))
 			w[i] = w[i] - give
 			owed = owed - give
 		end
@@ -650,7 +723,7 @@ function M.PSS_TableWidths(cols, avail, need)
 	while owed > 0 do
 		local pick
 		for i = 1, n do
-			if i ~= fill and w[i] > COL_MIN and (not pick or w[i] > w[pick]) then pick = i end
+			if shrinks(i) and w[i] > COL_MIN and (not pick or w[i] > w[pick]) then pick = i end
 		end
 		if not pick then break end
 		w[pick] = w[pick] - 1

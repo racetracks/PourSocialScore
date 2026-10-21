@@ -188,6 +188,7 @@ function ns.NewHistory(body, y, opts)
 			hv.off:Hide()
 			hv.qv = ns.NewQueryView(lf, { compact = true, shape = "events", deepDive = true, w = opts.w or 420, h = opts.h or 250,
 				from = opts.from, fill = true })
+			hv.qv.chart.profile = "log.pane"
 			local dd = ns.NewDropdown(f, 120, function(m)
 				for _, q in ipairs(M.PSS_PaneQueries(opts.kind)) do
 					m:Button(q.name, function()
