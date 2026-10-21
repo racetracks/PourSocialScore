@@ -831,6 +831,7 @@ function M.PSS_KeepCols(cols)
 end
 
 local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 200, 120, 10
+local FILL_SHARE = 0.4
 
 -- column widths for a table of cols in avail pixels from the measured need of each: every column fits its
 -- content (COL_MIN to COL_MAX), the message / summary / label (else the widest text) column fills (nil);
@@ -840,6 +841,7 @@ function M.PSS_TableWidths(cols, avail, need, keep)
 	local n = #cols
 	if n == 0 then return w end
 	if type(avail) ~= "number" or avail < 0 then avail = 0 end
+	local fillMin = math.max(FILL_MIN, math.floor(avail * FILL_SHARE))
 	need = need or {}
 	keep = keep or {}
 	local function nd(i) return tonumber(need[i]) or 0 end
@@ -869,8 +871,8 @@ function M.PSS_TableWidths(cols, avail, need, keep)
 		end
 	end
 	local rest = avail - sum
-	if rest >= FILL_MIN then return w end
-	local over = FILL_MIN - rest
+	if rest >= fillMin then return w end
+	local over = fillMin - rest
 	local S = 0
 	for i = 1, n do
 		if shrinks(i) then S = S + w[i] - COL_MIN end

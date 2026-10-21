@@ -1676,8 +1676,8 @@ PH.colfit = function()
 	local cases = {
 		{ { "time", "cat" }, 500, { 102, 30 }, { 112, F } },
 		{ { "time", "st", "message", "label" }, 500, { 102, 60, 300, 30 }, { 112, 70, F, 40 } },
-		{ { "time", "index", "st", "ent", "item", "owner", "summary" }, 600, { 102, 30, 60, 18, 24, 120, 300 }, { 112, 40, 70, 36, 36, 130, F } },
-		{ { "a", "b", "message" }, 450, { 200, 200, 50 }, { 165, 165, F } },
+		{ { "time", "index", "st", "ent", "item", "owner", "summary" }, 600, { 102, 30, 60, 18, 24, 120, 300 }, { 89, 39, 60, 36, 36, 100, F } },
+		{ { "a", "b", "message" }, 450, { 200, 200, 50 }, { 135, 135, F } },
 		{ { "cat", "n" }, 500, nil, { 36, F } },
 		{ { "time" }, 500, { 102 }, { F } },
 		{ { "x", "message" }, 500, { 900, 10 }, { 200, F } },
@@ -1741,7 +1741,17 @@ PH.keepfit = function()
 	local function eq(w, want, label)
 		for i = 1, #cols do check(w[i] == want[i], label .. " col " .. i .. " is " .. tostring(w[i]) .. " want " .. tostring(want[i])) end
 	end
-	eq(M.PSS_TableWidths(cols, 500, need, { [1] = true, [2] = true }), { 112, 100, 49, 49, 70 }, "avail 500")
+	local keep2 = { [1] = true, [2] = true }
+	local w7 = M.PSS_TableWidths(cols, 700, { 102, 90, 60, 60, 190, 300 }, keep2)
+	local sum7 = 0
+	for i = 1, #cols do sum7 = sum7 + (w7[i] or 0) end
+	check(w7[1] == 112 and w7[2] == 100 and w7[6] == nil, "avail 700 keeps time and member, message fills")
+	check(700 - sum7 >= 280, "avail 700 fill share " .. (700 - sum7))
+	local w5 = M.PSS_TableWidths(cols, 500, need, keep2)
+	eq(w5, { 112, 100, 36, 36, 36 }, "avail 500")
+	local sum5 = 0
+	for i = 1, #cols do sum5 = sum5 + (w5[i] or 0) end
+	check(w5[6] == nil and 500 - sum5 >= 180, "avail 500 fill " .. (500 - sum5))
 	eq(M.PSS_TableWidths(cols, 300, need, { [1] = true, [2] = true }), { 112, 100, 36, 36, 36 }, "avail 300")
 end
 

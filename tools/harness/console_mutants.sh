@@ -51,6 +51,7 @@ fill-time|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if cols\[i\] ~= "time"
 label-raw|PourSocialScore_GUI/PSS_Chart.lua|s/text = M.PSS_FieldLabel(cols\[i\]), tip = cols\[i\], width/text = cols[i], tip = cols[i], width/|reportgrid
 profile-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^\tlocal want = type(profile) == "string" and M.PSS_REPORT_COLS\[profile\]$/\tlocal want = nil/|reportcols reportgrid
 bound-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not blank and not (bound and (name == "owner" or same)) then/if not blank then/|reportcols
+fill-share-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local FILL_SHARE = 0.4$/local FILL_SHARE = 0/|keepfit
 keep-ignored|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/return i ~= fill and not keep\[i\]/return i ~= fill/|keepfit
 summary-raw|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^\tif type(text) ~= "string" or text == "" then return "Custom search" end$/\tif type(text) == "string" then return text end/|summary
 chart-track-late|PourSocialScore_GUI/PSS_Chart.lua|0,/^\t\tf.lists\[sig\] = t$/{/^\t\tf.lists\[sig\] = t$/d}|paneerror
