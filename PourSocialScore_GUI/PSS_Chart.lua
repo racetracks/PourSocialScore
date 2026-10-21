@@ -371,6 +371,8 @@ DRAW.table = function(f, set, spec)
 		c:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, -PAD)
 		c:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -PAD, PAD)
 		t.frame = c
+		f.lists[sig] = t
+		f.listOrder[#f.listOrder + 1] = sig
 		local lc = {}
 		local ms = f.measure
 		if not ms then
@@ -408,8 +410,6 @@ DRAW.table = function(f, set, spec)
 				row.cells["c" .. k]:SetText(M.PSS_CellText(cols[k], r[ci], ks and ks[cols[k]]))
 			end
 		end })
-		f.lists[sig] = t
-		f.listOrder[#f.listOrder + 1] = sig
 	end
 	t.set = set
 	t.frame:ClearAllPoints()
@@ -419,6 +419,18 @@ DRAW.table = function(f, set, spec)
 	t.list:SetCount(set.n)
 	t.list:Redraw()
 	f.tableList = t.list
+end
+
+local function Purge(f)
+	for sig, t in pairs(f.lists) do
+		if t.list == nil then
+			t.frame:Hide()
+			f.lists[sig] = nil
+			for i = #f.listOrder, 1, -1 do
+				if f.listOrder[i] == sig then table.remove(f.listOrder, i) end
+			end
+		end
+	end
 end
 
 local function Draw(f, set, spec)
@@ -433,7 +445,14 @@ local function Draw(f, set, spec)
 		f.titleText:SetText(spec.title); f.titleText:Show()
 	end
 	if spec.pending == true then f.pendText:Show() end
-	DRAW[spec.kind](f, set, spec)
+	local ok, err = pcall(DRAW[spec.kind], f, set, spec)
+	if not ok then
+		Purge(f)
+		Clear(f)
+		f.noText:Show()
+		local h = geterrorhandler and geterrorhandler()
+		if h then h(err) end
+	end
 end
 
 local function Kind(f) return f.kind end

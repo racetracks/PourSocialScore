@@ -1556,6 +1556,92 @@ PH.panefit = function()
 	check(hv.qv.line and hv.qv.line._wrap == true, "line word wrap off")
 end
 
+-- S1: a pane Queries switch leaves exactly one list shown, and a draw error clears the chart
+local function paneView()
+	local u = GUI()
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local body = CreateFrame("Frame", nil, UIParent)
+	body:SetSize(400, 400)
+	local hv = u.NewHistory(body, -28, { kind = "player", empty = "" })
+	return hv.qv
+end
+local function chartFrames(qv, fn)
+	local made = {}
+	local realCreate = CreateFrame
+	CreateFrame = function(...)
+		local fr = realCreate(...)
+		if select(3, ...) == qv.chart then made[#made + 1] = fr end
+		return fr
+	end
+	local ok, e = pcall(fn)
+	CreateFrame = realCreate
+	if not ok then check(false, "raised: " .. tostring(e)) end
+	return made
+end
+local function shownCount(made)
+	local n = 0
+	for _, fr in ipairs(made) do
+		if fr:IsShown() then n = n + 1 end
+	end
+	return n
+end
+
+PH.paneswitch = function()
+	plantLog(5)
+	local qv = paneView()
+	check(qv ~= nil, "no query view")
+	if not qv then return end
+	local made, last = {}, nil
+	local function run(text, label)
+		local before = #made
+		local m = chartFrames(qv, function()
+			qv:SetQuery(text)
+			qv:Run(true)
+		end)
+		for _, fr in ipairs(m) do made[#made + 1] = fr end
+		local list = qv.chart.tableList
+		check(list ~= nil, label .. ": no table list")
+		check(shownCount(made) == 1, label .. ": shown frames " .. shownCount(made))
+		if list then
+			for i, h in ipairs(list.heads) do
+				check(h.label:GetText() == h.text, label .. ": head " .. i .. " text")
+			end
+			check(list.header:GetParent():IsShown(), label .. ": list frame hidden")
+		end
+		return #made - before
+	end
+	run("index=log | head 5", "run 1")
+	run("index=counts | stats sum(total) by type", "run 2")
+	check(run("index=log | head 5", "run 3") == 0, "run 3 created a frame")
+end
+
+PH.paneerror = function()
+	plantLog(5)
+	local qv = paneView()
+	check(qv ~= nil, "no query view")
+	if not qv then return end
+	local realW, realH = M.PSS_TableWidths, geterrorhandler
+	local called, msg = 0, nil
+	geterrorhandler = function() return function(e) called = called + 1; msg = tostring(e) end end
+	M.PSS_TableWidths = function() error("boom") end
+	local m1 = chartFrames(qv, function()
+		qv:SetQuery("index=counts | stats sum(total) by type")
+		qv:Run(true)
+	end)
+	M.PSS_TableWidths = realW
+	check(shownCount(m1) == 0, "error run: shown frames " .. shownCount(m1))
+	check(qv.chart.noText:IsShown(), "error run: noText hidden")
+	check(called == 1 and msg and msg:find("boom", 1, true), "handler calls " .. called .. " msg " .. tostring(msg))
+	called = 0
+	local m2 = chartFrames(qv, function()
+		qv:SetQuery("index=log | head 5")
+		qv:Run(true)
+	end)
+	geterrorhandler = realH
+	check(shownCount(m2) == 1, "second run: shown frames " .. shownCount(m2))
+	check(called == 0, "second run: handler called")
+end
+
 PH.conblank = function()
 	plantLog(20)
 	local pg = openCon()
