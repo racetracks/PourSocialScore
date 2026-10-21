@@ -7,6 +7,7 @@ local V = addon.V
 -- use this to share methods between addon files
 addon.M = {}
 local M = addon.M
+M.PSS_CONSOLE_NAME = "Spyglass"
 
 ----------------------
 -- SHARED FUNCTIONS --

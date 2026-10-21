@@ -173,18 +173,23 @@ check(pane.counts:GetText() == M.PSS_FilterHistoryLine(M.PSS_FilterRow(nf, rb)),
 check(loaded("PourSocialScore_Logging") == hadLogging, "a blocked line shown in the pane loaded Logging")
 pane.pages:Select("history")
 local hv = pane.hist
+local function HN() local set = hv.qv:Result(); return set and (set.n or #set) or 0 end
 if not hadLogging then
-	check(hv.gate:IsShown() and hv.gate:GetText() == "Show Block History (1)" and hv.list.count == 0, "no Show Block History button")
-	hv.gate._scripts.OnClick(hv.gate)
+	check(hv.qv.load:IsShown(), "no Load history button")
+	hv.qv.load._scripts.OnClick(hv.qv.load)
 end
-check(loaded("PourSocialScore_Logging") and hv.list.count == 1, "Show Block History: " .. hv.list.count)
-check(hv.list.rows[1].cells.name and hv.list.rows[1].cells.name:GetText() == "Seller", "history name")
+hv:Requery()
+check(loaded("PourSocialScore_Logging") and HN() == 1, "Load history: " .. HN())
+local fset = hv.qv:Result()
+local nameCol
+for i, c in ipairs(fset.cols) do if c == "member" then nameCol = i end end
+check(nameCol and tostring(fset[1][nameCol]):find("^Seller") ~= nil, "history name")
 
 -- Reset Count keeps the history
 pane.pages:Select("rule")
 pane.resetCount._scripts.OnClick(pane.resetCount)
 H.RunTimers()
-check(tonumber(db.filterCount[nf]) == 0 and hv.list.count == 1, "Reset Count")
+check(tonumber(db.filterCount[nf]) == 0 and HN() == 1, "Reset Count")
 
 -- a guild rule: View/Edit Rule only, no copy or count
 local gi

@@ -1,0 +1,1932 @@
+-- The Spyglass console (search-helper, phase B, 3.8.0.119), as a run.lua script. The phase is PSS_PHASE;
+-- each prints "PASS console <phase>" or "FAIL console: <phase>: <what>". Run by console_phases.sh.
+local phase = os.getenv("PSS_PHASE") or "skeleton"
+local fail = false
+local function check(ok, msg) if not ok then print("FAIL console: " .. phase .. ": " .. tostring(msg)) fail = true end return ok end
+check(M.PSS_Need("Libraries"), "Libraries did not load")
+local PH = {}
+
+local ui
+local function GUI()
+	if not ui then
+		check(M.PSS_Need("GUI"), "GUI did not load")
+		ui = H.Private("PourSocialScore_GUI")
+	end
+	return ui
+end
+
+-- fn(n, name) in Modern (2), Classic (0), Dark (1); the look is restored to Modern
+local function looks(fn)
+	local u = GUI()
+	for _, p in ipairs({ { 2, "modern" }, { 0, "classic" }, { 1, "dark" } }) do
+		M.PSS_SetOpt("uiSkin", "global", p[1])
+		u.Fresh()
+		fn(p[1], p[2])
+	end
+	M.PSS_SetOpt("uiSkin", "global", 2)
+	u.Fresh()
+end
+
+-- UTC seconds of a civil date (Howard Hinnant's days_from_civil)
+local function utc(y, m, d, h, mi, s)
+	y = m <= 2 and y - 1 or y
+	local era = math.floor(y / 400)
+	local yoe = y - era * 400
+	local mp = (m + 9) % 12
+	local doy = math.floor((153 * mp + 2) / 5) + d - 1
+	local doe = yoe * 365 + math.floor(yoe / 4) - math.floor(yoe / 100) + doy
+	return (era * 146097 + doe - 719468) * 86400 + (h or 0) * 3600 + (mi or 0) * 60 + (s or 0)
+end
+
+-- a record set from column names and rows (n = row count)
+local function set(cols, rows)
+	local s = M.PSS_Set(cols)
+	for i, r in ipairs(rows or {}) do s[i] = r end
+	s.n = #(rows or {})
+	return s
+end
+
+PH.skeleton = function()
+	check(M.PSS_CONSOLE_NAME == "Spyglass", "M.PSS_CONSOLE_NAME is " .. tostring(M.PSS_CONSOLE_NAME))
+end
+
+-- TST-00932 chart kit
+local function COL() local r = {} for i = 1, 5 do r[i] = { string.char(96 + i), i } end return set({ "k", "v" }, r) end
+local function SER(nc)
+	local cols, rows = { "_time" }, {}
+	for c = 1, nc or 2 do cols[#cols + 1] = "s" .. c end
+	for i = 1, 10 do
+		local r = { "t" .. i }
+		for c = 1, nc or 2 do r[#r + 1] = i * c end
+		rows[i] = r
+	end
+	return set(cols, rows)
+end
+local function HEAT(nx, ny)
+	local rows = {}
+	for x = 1, nx do for y = 1, ny do rows[#rows + 1] = { "d" .. x, "h" .. y, x + y } end end
+	return set({ "weekday", "hour", "count" }, rows)
+end
+local function NUM() return set({ "count" }, { { 42 } }) end
+local function TAB() local r = {} for i = 1, 5 do r[i] = { "o" .. i, i } end return set({ "owner", "n" }, r) end
+local function newChart(w, h) return GUI().NewChart(UIParent, w or 300, h or 140) end
+local function nshown(f, pool)
+	local n = 0
+	for _, o in ipairs(f.p[pool]) do if o:IsShown() then n = n + 1 end end
+	return n
+end
+local function geom(f)
+	local t = {}
+	for _, pool in ipairs({ "bars", "cells", "hits", "fills" }) do
+		for i, o in ipairs(f.p[pool]) do
+			if o:IsShown() then
+				local p = o._point or {}
+				t[#t + 1] = pool .. i .. ":" .. tostring(o._w) .. "x" .. tostring(o._h) .. "@" .. tostring(p[1]) .. "," .. tostring(p[4]) .. "," .. tostring(p[5])
+			end
+		end
+	end
+	return table.concat(t, "|")
+end
+
+PH.chartkinds = function()
+	local cases = {
+		{ "column", COL(), function(f) return nshown(f, "bars") == 5 end },
+		{ "bar", COL(), function(f) return nshown(f, "bars") == 5 end },
+		{ "line", SER(), function(f) return nshown(f, "segs") == 18 end },
+		{ "area", SER(), function(f) return nshown(f, "segs") == 18 and nshown(f, "fills") == 20 end },
+		{ "donut", COL(), function(f) return f.pie and f.pie.frame:IsShown() and #f.pie.slices == 5 end },
+		{ "heat", HEAT(7, 24), function(f) return nshown(f, "cells") == 168 end },
+		{ "number", NUM(), function(f) return f.num:IsShown() and f.num:GetText() == "42" end },
+		{ "table", TAB(), function(f) return f.tableList and f.tableList.count == 5 end },
+	}
+	for _, c in ipairs(cases) do
+		local sig
+		looks(function(n, name)
+			local f = newChart()
+			f:Draw(c[2], { kind = c[1] })
+			check(f:Kind() == c[1], c[1] .. " Kind in " .. name)
+			check(c[3](f), c[1] .. " objects in " .. name)
+			local g = geom(f)
+			if sig == nil then sig = g else check(sig == g, c[1] .. " geometry differs in " .. name) end
+		end)
+	end
+end
+
+PH.chartcaps = function()
+	local f = newChart()
+	local rows = {}
+	for i = 1, 61 do rows[i] = { "x" .. i, i } end
+	f:Draw(set({ "k", "v" }, rows), { kind = "column" })
+	check(nshown(f, "bars") == 61, "61 bars, got " .. nshown(f, "bars"))
+	local last = f.p.bars[61]
+	check(last.tipTitle == "other" and last.tipText == "v: 61", "last bar is other = row 61: " .. tostring(last.tipTitle) .. " " .. tostring(last.tipText))
+	f:Draw(SER(7), { kind = "line" })
+	check(nshown(f, "segs") == 7 * 9, "7 series, segments " .. nshown(f, "segs"))
+	local sl = {}
+	for i = 1, 9 do sl[i] = { "x" .. i, i } end
+	f:Draw(set({ "k", "v" }, sl), { kind = "donut" })
+	check(#f.pie.slices == 9, "9 slices (8 + other), got " .. #f.pie.slices)
+	f:Draw(HEAT(8, 25), { kind = "heat" })
+	check(nshown(f, "cells") == 7 * 24, "7 x 24 cells, got " .. nshown(f, "cells"))
+end
+
+PH.chartempty = function()
+	local f = newChart()
+	f:Draw(COL(), { kind = "column" })
+	f:Draw(set({ "k", "v" }, {}), { kind = "column" })
+	check(f.noText:IsShown() and f.noText:GetText() == "No results", "No results not shown")
+	for _, pool in ipairs({ "bars", "segs", "cells", "fills", "hits" }) do check(nshown(f, pool) == 0, pool .. " still shown") end
+	f:Draw(nil, { kind = "heat" })
+	check(f.noText:IsShown(), "nil set not empty")
+end
+
+PH.chartpending = function()
+	local f = newChart()
+	f:Draw(COL(), { kind = "column", pending = true })
+	check(f.pendText:IsShown() and f.pendText:GetText() == "Loading items", "Loading items not shown")
+	f:Draw(COL(), { kind = "column" })
+	check(not f.pendText:IsShown(), "Loading items still shown")
+end
+
+PH.chartrepaint = function()
+	local f = newChart()
+	f:Draw(COL(), { kind = "column" })
+	local u = GUI()
+	-- every frame, texture, line and font string the stub makes is in H.frames
+	local before = #H.frames
+	for _, p in ipairs({ { 0, "classic" }, { 1, "dark" }, { 2, "modern" } }) do
+		M.PSS_SetOpt("uiSkin", "global", p[1])
+		u.Fresh()
+		local c = f.grid[1]._color
+		local want = p[1] == 1 and u.CHART.gridDark or u.CHART.grid
+		check(c and c[1] == want[1] and c[2] == want[2] and c[3] == want[3] and c[4] == want[4], "grid colour in " .. p[2])
+	end
+	M.PSS_SetOpt("uiFont", "global", "Fonts\\FRIZQT__.TTF")
+	u.Fresh()
+	M.PSS_SetOpt("uiFont", "global", nil)
+	u.Fresh()
+	check(#H.frames == before, "repaint created " .. (#H.frames - before) .. " objects")
+end
+
+PH.chartpool = function()
+	local f = newChart()
+	local function creates()
+		local n = 0
+		for _, p in pairs(f.p) do n = n + #p end
+		for _ in pairs(f.lists) do n = n + 1000 end
+		return n
+	end
+	local sets = { { COL(), "column" }, { SER(), "line" }, { HEAT(7, 24), "heat" } }
+	for _, s in ipairs(sets) do f:Draw(s[1], { kind = s[2] }) end
+	local before, frames = creates(), #H.frames
+	for i = 1, 100 do
+		for _, s in ipairs(sets) do f:Draw(s[1], { kind = s[2] }) end
+	end
+	check(creates() == before, "pool grew")
+	check(#H.frames == frames, "objects created after the first draws: " .. (#H.frames - frames))
+end
+
+PH.chartalpha = function()
+	looks(function(n, name)
+		local f = newChart()
+		f:Draw(COL(), { kind = "column" })
+		local ls = { f.ylab[1], f.ylab[2], f.xlab[1], f.xlab[2], f.xlab[3] }
+		for i, fs in ipairs(ls) do
+			local tc = fs:GetTextColor()
+			check(fs:GetAlpha() == 0.7, "label " .. i .. " alpha in " .. name)
+			check(select(4, fs:GetTextColor()) == 1, "label " .. i .. " text alpha in " .. name)
+		end
+	end)
+end
+
+PH.charthover = function()
+	local f = newChart()
+	local u = GUI()
+	local calls = {}
+	local old = u.Tip
+	u.Tip = function(o, t) calls[#calls + 1] = { o, t } end
+	f:Draw(COL(), { kind = "column" })
+	local b = f.p.bars[2]
+	b._scripts.OnEnter(b)
+	check(calls[1] and calls[1][1] == b and calls[1][2].title == "b" and calls[1][2].text == "v: 2", "bar tip")
+	f:Draw(HEAT(2, 2), { kind = "heat" })
+	local c = f.p.cells[1]
+	c._scripts.OnEnter(c)
+	check(calls[2] and calls[2][2].title == "d1" and calls[2][2].text == "h1: 2", "heat tip")
+	f:Draw(SER(), { kind = "line" })
+	local h = f.p.hits[3]
+	h._scripts.OnEnter(h)
+	check(calls[3] and calls[3][2].title == "t3" and calls[3][2].text == "s1: 3\ns2: 6", "line tip")
+	for _, pool in ipairs({ "bars", "cells", "hits" }) do
+		for _, o in ipairs(f.p[pool]) do check(o._scripts.OnUpdate == nil, pool .. " has OnUpdate") end
+	end
+	u.Tip = old
+end
+
+-- TST-00933 query view
+local History = M.PSS_History
+local function plantLog(n)
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local log = History.Log()
+	local t0 = GetServerTime() - n * 60
+	for i = 1, n do
+		local e = History.NewEntry(History.ALL_CATS[i % 6 + 1], "CHAT_MSG_CHANNEL", "hello there " .. i, "Trade", nil)
+		e.ts = t0 + i * 60
+		e.o = "p:Owner" .. (i % 7 + 1) .. "-Realm"
+		log[#log + 1] = e
+	end
+	return log
+end
+local function newView(o)
+	local v = GUI().NewQueryView(UIParent, o)
+	return v
+end
+
+PH.qvrun = function()
+	plantLog(200)
+	local cases = {
+		{ "index=log | head 5", "table" },
+		{ "index=log | stats count by cat", "bar", "table" },
+		{ "index=log | timechart span=1h count", "column" },
+	}
+	for _, c in ipairs(cases) do
+		local v = newView({ w = 400, h = 240, query = c[1] })
+		v:Run(true)
+		local k = v.chart:Kind()
+		check(k == c[2] or k == c[3], c[1] .. ": kind " .. tostring(k) .. " state " .. tostring(v.vm.state) .. " " .. v.vm:Status())
+		check(v.vm:Status():match("^%d+ lines?") ~= nil, c[1] .. ": status " .. v.vm:Status())
+	end
+end
+
+PH.qvtier = function()
+	check(not M.PSS_LoggingReady(), "Logging not loaded at the start")
+	local v = newView({ w = 400, h = 240, query = "index=log | head 5" })
+	v:Run(false)
+	check(v.vm.state == "needsload", "state " .. tostring(v.vm.state))
+	check(not M.PSS_LoggingReady(), "the view loaded Logging")
+	check(v.load:IsShown(), "Load history not shown")
+	v.load._scripts.OnClick(v.load)
+	check(M.PSS_LoggingReady(), "Load history did not load Logging")
+	check(v.vm.state == "shown", "state after load " .. tostring(v.vm.state))
+	check(not v.load:IsShown(), "Load history still shown")
+end
+
+PH.qvlisten = function()
+	local ui = GUI()
+	SlashCmdList["PSS"]("gui")
+	local win = _G.PSS_Window
+	win:Hide()
+	local mine = {}
+	for _, ev in pairs(M.PSS_QV_EVENTS) do mine[ev] = true end
+	local realReg = M.Events.Register
+	local n = 0
+	M.Events.Register = function(ev, ...) if mine[ev] then n = n + 1 end return realReg(ev, ...) end
+	if win:IsShown() then win:Hide() end
+	SlashCmdList["PSS"]("gui")
+	local base = n
+	win:Hide()
+	n = 0
+	local v = newView({ w = 400, h = 240, query = "index=log | head 5" })
+	check(n == 0, "window hidden: " .. n .. " registrations")
+	SlashCmdList["PSS"]("gui")
+	check(n == base + 3, ("window shown: %d registrations, expected %d"):format(n, base + 3))
+	M.Events.Register = realReg
+	win:Hide()
+end
+
+PH.qvburst = function()
+	plantLog(50)
+	GUI()
+	SlashCmdList["PSS"]("gui")
+	local win = _G.PSS_Window
+	local v = newView({ w = 400, h = 240, query = "index=log | head 5" })
+	v:Run(true)
+	local calls = 0
+	local real = M.PSS_Search
+	M.PSS_Search = function(...) calls = calls + 1 return real(...) end
+	for _ = 1, 50 do M.Events.Fire("HISTORY_CHANGED") end
+	check(calls == 0, "searched before the timer: " .. calls)
+	H.RunTimers()
+	M.PSS_Search = real
+	check(calls == 1, "searches after the burst: " .. calls)
+	win:Hide()
+end
+
+PH.qvdeep = function()
+	plantLog(20)
+	local ui = GUI()
+	local got
+	local old = ui.DeepDive
+	ui.DeepDive = function(text, params) got = { text, params } end
+	local v = newView({ w = 400, h = 240, query = "index=log owner=$owner", params = { owner = "p:A-R" }, deepDive = true })
+	v:Run(true)
+	v.deep._scripts.OnClick(v.deep)
+	check(got and type(got[1]) == "string" and got[1]:find("p:A-R", 1, true), "deep dive text: " .. tostring(got and got[1]))
+	ui.DeepDive = old
+end
+
+PH.qvlook = function()
+	plantLog(100)
+	local v = newView({ w = 400, h = 240, query = "index=log | stats count by cat" })
+	v:Run(true)
+	local sig
+	local creates = 0
+	local realCreate = CreateFrame
+	looks(function(n, name)
+		CreateFrame = function(...) creates = creates + 1 return realCreate(...) end
+		v:Refresh()
+		CreateFrame = realCreate
+		local g = geom(v.chart) .. "|" .. v:GetWidth() .. "x" .. v:GetHeight()
+		if sig == nil then sig = g else check(sig == g, "geometry differs in " .. name) end
+	end)
+	CreateFrame = realCreate
+	check(creates == 0, "create calls after the first draw: " .. creates)
+end
+
+PH.qvlayers = function()
+	local p = io.popen("lua5.1 tools/check_layers.lua 2>&1")
+	local out = p:read("*a")
+	p:close()
+	for line in out:gmatch("[^\n]+") do
+		check(not line:find("PSS_QueryView.lua", 1, true), "check_layers: " .. line)
+	end
+end
+
+PH.qvchaos = function()
+	plantLog(100)
+	local v = newView({ w = 400, h = 240, query = "index=log | head 5" })
+	v:Run(true)
+	local real = M.PSS_Search
+	local rnd = 12345
+	local function nextMode()
+		rnd = (rnd * 1103515245 + 12345) % 2147483648
+		return rnd % 3
+	end
+	for i = 1, 200 do
+		local mode = nextMode()
+		M.PSS_Search = function(...)
+			if mode == 0 then error("boom " .. i) end
+			if mode == 1 then return nil, { code = "x", pos = 1, msg = "bad" } end
+			return real(...)
+		end
+		local ok, e = pcall(v.Refresh, v)
+		check(ok, "Refresh raised: " .. tostring(e))
+		if mode < 2 then
+			check(v.vm.state == "error" and v.status:GetText():find("^Error"), "no error state at " .. i)
+		else
+			check(v.vm.state == "shown", "not shown at " .. i .. ": " .. tostring(v.vm.state))
+		end
+	end
+	M.PSS_Search = real
+end
+
+-- TST-00967 time picker
+local CV = M.PSS_ConsoleView
+local NOW = utc(2026, 10, 17, 13, 35)
+local function U(d, h) return utc(2026, 10, d, h or 0) end
+
+PH.pickpresets = function()
+	local want = {
+		last15m = { NOW - 900, NOW }, last60m = { NOW - 3600, NOW }, last4h = { NOW - 14400, NOW },
+		last24h = { NOW - 86400, NOW }, last7d = { NOW - 604800, NOW }, last30d = { NOW - 2592000, NOW },
+		today = { U(17), NOW }, yesterday = { U(16), U(17) }, thisweek = { U(12), NOW },
+		lastweek = { U(5), U(12) }, thismonth = { U(1), NOW }, lastmonth = { utc(2026, 9, 1), U(1) },
+		all = { nil, nil },
+	}
+	check(#CV.PRESETS == 13, "13 presets, got " .. #CV.PRESETS)
+	for _, r in ipairs(CV.PRESETS) do
+		local e, l, label = CV.pickerRange({ preset = r.key }, NOW)
+		local w = want[r.key]
+		check(w ~= nil, "unexpected preset " .. r.key)
+		if w then
+			check(e == w[1], r.key .. ": earliest " .. tostring(e) .. " want " .. tostring(w[1]))
+			check(l == w[2], r.key .. ": latest " .. tostring(l) .. " want " .. tostring(w[2]))
+			check(label == r.text, r.key .. ": label " .. tostring(label))
+		end
+	end
+end
+
+PH.pickrelative = function()
+	local e, l, label, term = CV.pickerRange({ relative = true, n = 3, unit = "d", snap = "d" }, NOW)
+	check(e == U(14) and l == NOW, "3d@d range " .. tostring(e) .. " " .. tostring(l))
+	check(term == "earliest=-3d@d", "term " .. tostring(term))
+	check(label == "Last 3 days, from start of day", "label " .. tostring(label))
+	local a, pos, msg = CV.pickerRange({ relative = true, n = 0, unit = "d" }, NOW)
+	check(a == nil and pos == 1 and msg == "a whole number 1 to 9999", "n = 0 refused: " .. tostring(msg))
+end
+
+PH.pickrange = function()
+	local e, l = CV.pickerRange({ between = true, from = "2026-10-01", to = "2026-10-07T18:00" }, NOW)
+	check(e == U(1) and l == U(7, 18), "between " .. tostring(e) .. " " .. tostring(l))
+	local e2, l2 = CV.pickerRange({ between = true, from = "2026-10-01", to = "2026-10-07" }, NOW)
+	check(l2 == U(8), "date-only end is the next midnight: " .. tostring(l2))
+	local a, pos, msg = CV.pickerRange({ between = true, from = "2026-10-09", to = "2026-10-07" }, NOW)
+	check(a == nil and msg == "the start is after the end", "from after to: " .. tostring(msg))
+	local b = CV.pickerRange({ before = true, to = "2026-10-07T18:00" }, NOW)
+	check(b == nil, "before has no start")
+	local off, days = CV.monthGrid(2026, 10)
+	check(off == 3 and days == 31, "October 2026 grid " .. tostring(off) .. " " .. tostring(days))
+	local y, m = CV.monthStep(2026, 12, 1)
+	check(y == 2027 and m == 1, "monthStep forward")
+	y, m = CV.monthStep(2026, 1, -1)
+	check(y == 2025 and m == 12, "monthStep back")
+	local cal = GUI().NewCalendar(UIParent, function(day) PH.picked = day end)
+	cal:SetMonth(2026, 10)
+	local shown = 0
+	for _, b in ipairs(cal.days) do if b:IsShown() then shown = shown + 1 end end
+	check(shown == 31, "calendar shows 31 days, " .. shown)
+	cal.days[off + 1]:GetScript("OnClick")(cal.days[off + 1])
+	check(PH.picked == "2026-10-01", "day 1 writes " .. tostring(PH.picked))
+end
+
+PH.pickadvanced = function()
+	local e, l = CV.pickerRange({ advanced = true, earliest = "-7d@d", latest = "now" }, NOW)
+	check(e == U(10) and l == NOW, "advanced " .. tostring(e) .. " " .. tostring(l))
+	local a, pos, msg = CV.pickerRange({ advanced = true, earliest = "-7x", latest = "" }, NOW)
+	check(a == nil and tostring(msg):find("^earliest: "), "bad earliest: " .. tostring(msg))
+	a, pos, msg = CV.pickerRange({ advanced = true, earliest = "-7d", latest = "zzz" }, NOW)
+	check(a == nil and tostring(msg):find("^latest: "), "bad latest: " .. tostring(msg))
+end
+
+PH.picktyped = function()
+	check(CV.typedTime("index=log earliest=-7d") == true, "earliest typed")
+	check(CV.typedTime("index=log gold") == false, "no time typed")
+	local seen
+	local real = M.PSS_Search
+	M.PSS_Search = function(q, o) seen = o; return real(q, o) end
+	local v = newView({ w = 400, h = 240, query = "index=log earliest=-7d" })
+	v:SetRange({ earliest = NOW - 86400, latest = NOW })
+	v:Run(true)
+	check(seen and seen.from == nil, "typed time ignores the picker range: " .. tostring(seen and seen.from))
+	local v2 = newView({ w = 400, h = 240, query = "index=log gold" })
+	v2:SetRange({ earliest = NOW - 86400, latest = NOW })
+	v2:Run(true)
+	check(seen and seen.from == NOW - 86400, "plain query uses the range: " .. tostring(seen and seen.from))
+	M.PSS_Search = real
+end
+
+PH.pickaxis = function()
+	local save = GetServerTime
+	GetServerTime = function() return NOW end
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local log = History.Log()
+	for i, d in ipairs({ 9, 11, 13, 13, 17 }) do
+		local e = History.NewEntry(History.ALL_CATS[i % 6 + 1], "CHAT_MSG_CHANNEL", "hello " .. i, "Trade", nil)
+		e.ts = utc(2026, 10, d, 9, 0)
+		e.o = "p:Owner-Realm"
+		log[#log + 1] = e
+	end
+	local v = newView({ w = 400, h = 240, query = "index=log | timechart span=1d count" })
+	local p = GUI().NewTimePicker(UIParent)
+	p:SetChoice({ preset = "last7d" })
+	local e, l = p:Range()
+	v:SetRange({ earliest = e, latest = l })
+	v:Run(true)
+	local rs = v:Result()
+	GetServerTime = save
+	check(rs and rs.n == 8, "8 day rows, got " .. tostring(rs and rs.n) .. " " .. tostring(v.vm:Status()))
+	if rs and rs.n == 8 then
+		check(rs[1][2] == 0 and rs[8][2] == 1, "empty first day 0, last day 1: " .. tostring(rs[1][2]) .. " " .. tostring(rs[8][2]))
+	end
+end
+
+PH.picklooks = function()
+	local function sig(f, out, depth)
+		for _, c in ipairs({ f:GetChildren() }) do
+			if c:IsShown() then
+				local pt, rel, rp, x, y = c:GetPoint(1)
+				out[#out + 1] = format("%d:%s %.1fx%.1f %s %s %.1f %.1f", depth, tostring(c:GetObjectType()), c:GetWidth() or 0, c:GetHeight() or 0, tostring(pt), tostring(rp), x or 0, y or 0)
+				sig(c, out, depth + 1)
+			end
+		end
+	end
+	local ref = {}
+	looks(function(n, name)
+		local p = GUI().NewTimePicker(UIParent)
+		p:SetPoint("CENTER")
+		for _, mode in ipairs({ "relative", "range", "advanced" }) do
+			p:OpenPanel(mode)
+			local panel, cal = p:Panel()
+			if mode == "range" then cal:SetMonth(2026, 10); cal:Show() end
+			local out = {}
+			sig(panel, out, 0)
+			if mode == "range" then sig(cal, out, 0) end
+			local r = ref[mode]
+			if not r then ref[mode] = out
+			else
+				check(#out == #r, name .. " " .. mode .. ": " .. #out .. " shown, modern " .. #r)
+				for i = 1, math.min(#out, #r) do
+					if out[i] ~= r[i] then check(false, name .. " " .. mode .. " #" .. i .. ": " .. out[i] .. " vs " .. r[i]) break end
+				end
+			end
+			panel:Hide()
+		end
+	end)
+end
+
+PH.pickperview = function()
+	local a, b = GUI().NewTimePicker(UIParent), GUI().NewTimePicker(UIParent)
+	a:SetChoice({ preset = "today" })
+	b:SetChoice({ preset = "last4h" })
+	check(a:Choice().preset == "today" and b:Choice().preset == "last4h", "choices are per picker")
+	a:SetTyped(true)
+	check(a:Choice().preset == "today", "typed keeps the choice")
+end
+
+
+-- TST-00934 console tab (model level)
+PH.conopts = function()
+	local all, base = M.PSS_OPTION_REG, nil
+	check(all.conTime and all.conTime.default == "all" and all.conRows.default == 500, "con options declared")
+	local ch = all.conTime.choices
+	check(#ch == 13 and ch[1][1] == "all", "13 conTime choices, got " .. #ch)
+	local CV = M.PSS_ConsoleView
+	for i, r in ipairs(CV.PRESETS) do
+		local found
+		for _, c in ipairs(ch) do if c[1] == r.key and c[2] == r.text then found = true end end
+		check(found, "preset " .. r.key .. " in conTime choices")
+	end
+	local db = PSS_OptionsDB
+	local function dump() local n = 0 for k in pairs(db) do if tostring(k):find("^con") then n = n + 1 end end return n end
+	base = dump()
+	M.PSS_SetOpt("conRows", "global", 800)
+	M.PSS_SetOpt("conTime", "global", "last7d")
+	check(M.PSS_Opt("conRows") == 800 and M.PSS_Opt("conTime") == "last7d", "set values read back")
+	M.PSS_SetOpt("conRows", "global", 500)
+	M.PSS_SetOpt("conTime", "global", "all")
+	check(dump() == base, "defaults stored sparse: " .. dump() .. " vs " .. base)
+	local found
+	for _, t in ipairs(M.PSS_UI_TABS) do if t.key == "console" then found = true end end
+	check(found, "console tab in M.PSS_UI_TABS")
+end
+
+PH.conmodel = function()
+	local CV = M.PSS_ConsoleView
+	check(CV.colorize("a|b", { n = 1, { 1, 3, "word" } }, function() return "ff0000" end) == "|cffff0000a||b|r", "colorize wraps and escapes")
+	check(CV.colorize("a b", { n = 3, { 1, 1, "word" }, { 2, 1, "space" }, { 3, 1, "word" } }, function(k) return k == "word" and "00ff00" or nil end)
+		== "|cff00ff00a|r |cff00ff00b|r", "space plain")
+	check(CV.term("owner", 'a"b') == 'owner="a\\"b"' or CV.term("owner", 'a"b') == 'owner="a\"b"', "term escapes quote")
+	check(CV.term("n", 5) == "n=5", "number bare")
+	check(CV.addTerm("index=log | head 5", 'x="1"') == 'index=log x="1" | head 5', "addTerm before pipe: " .. CV.addTerm("index=log | head 5", 'x="1"'))
+	check(CV.addTerm('index=log m="a|b"', "x=1") == 'index=log m="a|b" x=1', "addTerm pipe inside quotes")
+	check(CV.addTerm("", "x=1") == "x=1", "addTerm empty")
+	local q, p, r = M.PSS_DeepDiveText("index=log")
+	check(q == "index=log", "text passes through")
+	M.PSS_BUTTON_QUERIES.k = { query = "index=pss", bind = function(c) return { a = c }, "R" end }
+	q, p, r = M.PSS_DeepDiveText("k", 7)
+	check(q == "index=pss" and p.a == 7 and r == "R", "key resolves")
+	M.PSS_BUTTON_QUERIES.k = nil
+	q, p = M.PSS_DeepDiveText(42)
+	check(q == nil and p == "unknown query", "bad input")
+	local cm = M.PSS_ConsoleModel()
+	local rows, heads = cm:LeftRows(), {}
+	for _, x in ipairs(rows) do if x.head then heads[#heads + 1] = x.head end end
+	check(table.concat(heads, ",") == "System,Mine,Sources,Data dictionary", "four groups: " .. table.concat(heads, ","))
+	check(next(cm:Sidebar(set({ "a" }, {}))) == nil, "empty sidebar")
+	check(#CV.HELP == 16, "16 help rows")
+	for i, h in ipairs(CV.HELP) do
+		local ok, e = pcall(M.PSS_Psql.parse, h[1])
+		check(ok, "help " .. i .. " parses: " .. h[1] .. " " .. tostring(type(e) == "table" and e.msg or e))
+	end
+	local kinds = cm:ChartKinds("series")
+	check(table.concat(kinds, ",") == "column,line,area,table", "series kinds " .. table.concat(kinds, ","))
+	local s = cm:Sidebar(set({ "owner", "n", "time" }, { { "a", 1, 5 }, { "a", 2, 6 }, { "b", 3, 7 } }))
+	check(#s == 2 and s[1].field == "owner" and s[1].rows[1][1] == "a" and s[1].rows[1][2] == 2, "sidebar owner top")
+end
+
+
+-- TST-00934 console tab (window level)
+local function click(b, button) local fn = b and b:GetScript("OnClick") if fn then fn(b, button or "LeftButton") end end
+local function conIndex() return M.PSS_UITabIndex("console") end
+local function openCon()
+	GUI()
+	if not (_G.PSS_Window and _G.PSS_Window:IsShown()) then SlashCmdList.PSS("gui") end
+	local win = _G.PSS_Window
+	click(win.tabs[conIndex()])
+	return win.pages[conIndex()], win
+end
+local function hexOf(t, text) return ui.SyntaxHex and M.PSS_ConsoleView.colorize(text, t, ui.SyntaxHex) end
+
+PH.contab = function()
+	GUI()
+	local n, orig = 0, ui.TabBuilders.console
+	check(orig, "console builder registered")
+	ui.TabBuilders.console = function(pg) n = n + 1 return orig(pg) end
+	SlashCmdList.PSS("gui")
+	local win = _G.PSS_Window
+	check(win.pages[conIndex()].bar == nil, "no console frame before the tab is opened")
+	click(win.tabs[conIndex()]); click(win.tabs[conIndex()])
+	check(n == 1, "built once, got " .. n)
+	check(win.pages[conIndex()].bar ~= nil, "console built")
+	ui.TabBuilders.console = orig
+end
+
+local EXAMPLES = nil
+local BAD = { "index=lgo", "| stats", '"open', "a ((", "index=log | chart line", "index=log | head x", "earliest=-7x", "|", "= =", "index=log owner=$nosuch | bogus" }
+PH.conhighlight = function()
+	local pg = openCon()
+	local CV = M.PSS_ConsoleView
+	local function colored(text)
+		pg.bar:SetText(text)
+		pg.highlight()
+		check(not pg.overlay:IsShown(), "overlay hidden for " .. text)
+		check(select(4, pg.bar:GetTextColor()) == 1, "bar text alpha 1 for " .. text)
+	end
+	for _, h in ipairs(CV.HELP) do colored(h[1]) end
+	for _, t in ipairs(BAD) do
+		colored(t)
+		local err = pg.barError()
+		check(err and err.msg, "error for " .. t)
+		if err and err.pos <= #t then check(pg.underline:IsShown(), "underline shown for " .. t) end
+	end
+end
+
+PH.sidebarux = function()
+	local cm = M.PSS_ConsoleModel()
+	local rows = {}
+	for i = 1, 29 do rows[i] = { "world", i <= 15 and "Trade" or "General" } end
+	local s = cm:Sidebar(set({ "cat", "channel" }, rows))
+	check(#s == 1 and s[1].field == "channel", "one-value cat skipped: " .. #s)
+	check(s[1].label == "Channel" and s[1].label == M.PSS_FieldLabel("channel"), "heading is the label")
+	check(#s[1].rows == 2 and s[1].rows[1][3] == M.PSS_CellText("channel", s[1].rows[1][1]), "display text")
+	local one = {}
+	for i = 1, 29 do one[i] = { "world", "Trade" } end
+	check(#cm:Sidebar(set({ "cat", "channel" }, one)) == 0, "all one-value columns skipped")
+	local pg = openCon()
+	plantLog(20)
+	pg.bar:SetText("index=log")
+	pg.run(true)
+	local flat = pg.sideFlat()
+	check(#flat > 0, "sidebar drawn")
+	pg.bar:SetText("index=log | head 1")
+	pg.run(true)
+	flat = pg.sideFlat()
+	check(#flat == 1 and flat[1].empty == "No common values", "empty state: " .. tostring(flat[1] and (flat[1].empty or flat[1].head)))
+	check(flat[1].field == nil, "empty line not clickable")
+end
+
+PH.considebar = function()
+	local pg = openCon()
+	plantLog(20)
+	pg.bar:SetText("index=log | head 50")
+	pg.run(true)
+	local set = pg.qv.vm.set
+	check(set and set.n > 0, "rows planted")
+	local side = pg.cm:Sidebar(set)
+	for _, g in ipairs(side) do
+		local top = M.PSS_Call("q.top", set, { field = g.field, n = 5 })
+		check(#g.rows == top.n, g.field .. " row count")
+		for i = 1, top.n do check(g.rows[i][1] == top[i][1] and g.rows[i][2] == top[i][2], g.field .. " value " .. i) end
+	end
+	local flat = pg.sideFlat()
+	check(#flat > 0, "sidebar drawn")
+	for i, d in ipairs(flat) do
+		if d.field then
+			pg.sideList.spec.click(nil, i)
+			check(pg.bar:GetText():find(M.PSS_ConsoleView.term(d.field, d.value), 1, true), "click adds the term")
+			break
+		end
+	end
+end
+
+PH.conactions = function()
+	local pg = openCon()
+	local cm, CV = pg.cm, M.PSS_ConsoleView
+	cm:SetText("index=log | head 5")
+	local s = set({ "owner", "item" }, { { "bob", "item:5" } })
+	local a = cm:RowActions(s, 1)
+	check(#a == 3 and a[1].key == "copy" and a[2].key == "owner" and a[3].key == "item", "three actions")
+	check(a[2].query == CV.addTerm("index=log | head 5", CV.term("owner", "bob")), "owner query " .. tostring(a[2].query))
+	check(a[3].query == "index=inv " .. CV.term("item", "item:5"), "item query " .. tostring(a[3].query))
+end
+
+PH.concopysecret = function()
+	local pg = openCon()
+	local sec = "hidden-text"
+	local real = _G.issecretvalue
+	_G.issecretvalue = function(v) return v == sec or real(v) end
+	local s = set({ "owner", "text" }, { { "bob", sec } })
+	local line = pg.cm:CopyLine(s, 1)
+	_G.issecretvalue = real
+	check(line == "bob\t", "copy line leaked or broke: " .. tostring(line))
+end
+
+PH.conrowhook = function()
+	local pg = openCon()
+	plantLog(40)
+	pg.bar:SetText("index=log | head 50")
+	pg.run(true)
+	local list = pg.qv.chart.tableList
+	check(list and #list.rows > 0, "no rows")
+	local n = #list.rows
+	list.scroll:SetHeight((n + 5) * list.rowH)
+	list:Layout()
+	check(#list.rows > n, "list did not grow (" .. #list.rows .. ")")
+	for i, r in ipairs(list.rows) do check(r.pssConHooked, "row " .. i .. " has no menu hook") end
+end
+
+PH.conescape = function()
+	local pg = openCon()
+	pg.toggleHelp()
+	check(pg.help:IsShown(), "help open")
+	pg.bar:SetFocus()
+	pg.bar:GetScript("OnEscapePressed")(pg.bar)
+	check(not pg.help:IsShown(), "help closed")
+	pg.bar:SetFocus()
+	pg.bar:GetScript("OnEscapePressed")(pg.bar)
+	check(not pg.bar:HasFocus(), "second Escape leaves the box")
+	print("NOTE conescape: window ns.NavUp is E06's")
+end
+
+PH.condict = function()
+	local pg = openCon()
+	click(pg.nav.rows[#pg.nav.rows], "LeftButton")
+	pg.nav:Select("dict", true)
+	local d = pg.dictPanel()
+	check(d and d:IsShown(), "dictionary shown")
+	local names = M.PSS_DictPageModel()
+	local f = M.PSS_DictPageModel(names[1][1])
+	check(f and d.fieldList.count == f.n, "field rows equal ix.dict: " .. tostring(d.fieldList.count) .. " vs " .. tostring(f and f.n))
+	local fc = M.PSS_SetCol(f, "field") or 1
+	d.fieldList.spec.click(nil, 1)
+	local v = M.PSS_DictPageModel(names[1][1], f[1][fc])
+	check(v and d.valueList.count == v.n, "value rows equal ix.values")
+end
+
+PH.conoff = function()
+	check(_G.PSS_Window == nil, "window never opened: no frame")
+	check(not M.PSS_ConsoleBuilt, "no console state")
+end
+
+PH.conlook = function()
+	local sizes = {}
+	looks(function(_, name)
+		local pg = openCon()
+		sizes[name] = { pg.bar:GetWidth(), pg.qv:GetWidth(), pg.qv:GetHeight() }
+	end)
+	for _, k in ipairs({ "classic", "dark" }) do
+		for i = 1, 3 do check(sizes[k][i] == sizes.modern[i], k .. " size " .. i) end
+	end
+end
+
+PH.conreal = function()
+	local pg = openCon()
+	local one = M.PSS_Search("index=log | head 1", {})
+	local owner = one and one.n > 0 and one[1][M.PSS_SetCol(one, "owner") or 1] or "x"
+	local inv = M.PSS_Search("index=inv | head 1", {})
+	local item = inv and inv.n > 0 and inv[1][M.PSS_SetCol(inv, "item") or 1] or "item:1"
+	local function same(text, params)
+		pg.qv:SetQuery(text, params)
+		pg.qv:Run(true)
+		local want = M.PSS_Search(text, { params = params, load = true, rows = pg.qv.vm.o.rows })
+		local got = pg.qv.vm.set
+		check(pg.qv.vm.state ~= "error" or not want, text .. ": " .. tostring(pg.qv.vm.err and pg.qv.vm.err.msg))
+		if want and got then check(got.n == want.n, text .. ": " .. got.n .. " rows vs " .. want.n) end
+	end
+	for _, q in ipairs(M.PSS_SQ_SYSTEM) do same(q.q, { owner = owner, item = item }) end
+	local ex = { "index=log | stats count by cat", "index=log | timechart span=1d count", "index=log | top 5 cat",
+		"index=log | head 20", "index=log | sort -time | head 5", "index=log | dedup cat", "index=log | table time, cat" }
+	for _, t in ipairs(ex) do same(t) end
+	local names = M.PSS_DictPageModel()
+	for i = 1, math.min(3, names and names.n or 0) do same("index=" .. names[i][1] .. " | head 5") end
+end
+
+PH.conchart = function()
+	local pg = openCon()
+	plantLog(30)
+	pg.bar:SetText("index=log | timechart span=1d count | chart line")
+	pg.run(true)
+	check(pg.qv.vm.chart and pg.qv.vm.chart.kind == "line", "chart kind line, got " .. tostring(pg.qv.vm.chart and pg.qv.vm.chart.kind))
+	check(pg.tabs[3].pssSelected, "Chart tab selected")
+end
+
+local KINDTEXT = "index=log cat=\"x\" n>5 | head 5"
+PH.conhilive = function()
+	local pg = openCon()
+	local calls, base = 0, M.PSS_Psql.tokens
+	M.PSS_Psql.tokens = function(...) calls = calls + 1 return base(...) end
+	local text, t0 = "", os.clock()
+	for i = 1, 60 do
+		text = text .. (("index=log | head 10 "):sub(((i - 1) % 19) + 1, ((i - 1) % 19) + 1))
+		pg.bar:SetText(text)	-- the stub fires OnTextChanged, which recolours once
+	end
+	local avg = (os.clock() - t0) / 60 * 1000
+	M.PSS_Psql.tokens = base
+	check(calls == 60, "60 recolours, got " .. calls)
+	check(avg < 20, "tokenize loop average " .. avg .. " ms (harness bound 20)")
+	check(not pg.bar:GetScript("OnUpdate"), "no OnUpdate on the bar")
+end
+
+PH.conhierror = function()
+	local pg = openCon()
+	local text = "index=log | bogus x"
+	pg.bar:SetText(text)
+	pg.highlight()
+	check(not pg.overlay:IsShown(), "overlay hidden")
+	check(select(4, pg.bar:GetTextColor()) == 1, "bar text alpha 1")
+	check(pg.underline:IsShown(), "underline shown")
+end
+
+-- TST-00935 save dialog (STP-00256)
+local function sqRows() return M.PSS_Call("sq.list", { scope = "any" }) end
+local function sqKey() local r = sqRows(); local o = {} for i = 1, r.n do o[#o + 1] = table.concat({ r[i][1], r[i][2], r[i][3], r[i][4], r[i][5], r[i][6], tostring(r[i][7]) }, "|") end return table.concat(o, "\n") end
+local function resetSq() PourSocialScoreDB.sqSaved = nil; PourSocialScoreDB.sqCharts = nil; PourSocialScoreDB.sqSavedBad = nil end
+local function leftRow(pg, key) for _, r in ipairs(pg.nav.rows) do if r.data and r.data.key == key then return r end end end
+local function menuOf(pg, key)
+	local entries, orig = {}, ui.ContextMenu
+	ui.ContextMenu = function(by, build) build({ Button = function(_, t, fn) entries[#entries + 1] = { text = t, fn = fn } end, Divider = function() end, Title = function() end }) end
+	local row = leftRow(pg, key)
+	check(row, "left row " .. key)
+	click(row, "RightButton")
+	ui.ContextMenu = orig
+	return entries
+end
+
+PH.saveround = function()
+	resetSq()
+	local pg = openCon()
+	pg.bar:SetText("index=log | head 7")
+	pg.run(true)
+	local dlg = ui.SaveQueryDialog("index=log | head 7", pg.picker:Choice())
+	check(dlg:IsShown() and dlg.title:GetText() == "Save Search?", "dialog shown with its title")
+	dlg.name:SetText("Mine one")
+	click(dlg.save)
+	local r = sqRows()
+	check(r.n == 1 and r[1][2] == "Mine one" and r[1][5] == "index=log | head 7", "saved")
+	check(not dlg:IsShown(), "dialog closed")
+	local key = "sq:" .. r[1][1]
+	check(leftRow(pg, key), "left list shows it")
+	-- an error stays on the dialog
+	dlg = ui.SaveQueryDialog("index=log owner=$nosuch | bogus", pg.picker:Choice())
+	dlg.name:SetText("bad")
+	click(dlg.save)
+	check(dlg:IsShown() and (dlg.err:GetText() or "") ~= "", "error shown, dialog open")
+	check(sqRows().n == 1, "nothing saved on error")
+	dlg:Hide()
+	-- rename
+	local before = sqKey()
+	local m = menuOf(pg, key)
+	check(#m == 2 and m[1].text == "Rename" and m[2].text == "Delete", "menu entries")
+	m[1].fn()
+	local c = _G.PSS_Confirm
+	c.name:SetText("Renamed")
+	click(c.accept)
+	r = sqRows()
+	check(r.n == 1 and r[1][2] == "Renamed" and r[1][5] == "index=log | head 7", "renamed")
+	check(sqKey() ~= before, "list changed by rename")
+	-- delete without accept leaves it
+	m = menuOf(pg, key)
+	m[2].fn()
+	check(_G.PSS_Confirm.title:GetText() == "Delete Search?" and _G.PSS_Confirm.accept:GetText() == "Delete", "delete confirm")
+	local keep = sqKey()
+	click(_G.PSS_Confirm.cancel)
+	check(sqKey() == keep, "cancel leaves it")
+	m = menuOf(pg, key)
+	m[2].fn()
+	click(_G.PSS_Confirm.accept)
+	check(sqRows().n == 0 and not leftRow(pg, key), "deleted")
+end
+
+PH.savechart = function()
+	resetSq()
+	local pg = openCon()
+	plantLog(30)
+	pg.bar:SetText("index=log | stats count by cat")
+	pg.run(true)
+	local vm = pg.qv.vm
+	local chart = vm.chart
+	check(chart and chart.kind ~= "table", "a chart is available: " .. tostring(chart and chart.kind))
+	local dlg = ui.SaveQueryDialog("index=log | stats count by cat", pg.picker:Choice())
+	check(dlg.chartCheck:IsShown(), "Save chart too shown")
+	dlg.name:SetText("with chart")
+	dlg.chartCheck:SetChecked(true)
+	local kind = dlg.kind
+	click(dlg.save)
+	local q = sqRows()
+	check(q.n == 1, "query saved")
+	local cl = M.PSS_Call("sq.chart.list", { queryId = q[1][1] })
+	check(cl.n == 1 and cl[1][3] == kind and cl[1][2] == q[1][1], "chart listed with kind " .. tostring(kind))
+	local row = {} for i = 1, 6 do row[i] = cl[1][i] end
+	-- reload: write and reread the saved file
+	local saved = PourSocialScoreDB.sqCharts
+	check(type(saved) == "string" and saved:find("^1;"), "sqCharts saved in layout 1")
+	PourSocialScoreDB.sqCharts = nil
+	check(M.PSS_Call("sq.chart.list", {}).n == 0, "cleared")
+	PourSocialScoreDB.sqCharts = saved
+	local cl2 = M.PSS_Call("sq.chart.list", { queryId = q[1][1] })
+	check(cl2.n == 1, "listed after reload")
+	for i = 1, 6 do check(cl2[1][i] == row[i], "field " .. i .. " equal after reload") end
+	check(M.PSS_Call("sq.chart.list", { queryId = 99 }).n == 0, "other query has none")
+	-- arg errors, newer layout, delete cascade
+	local r, err = M.PSS_Call("sq.chart.put", { queryId = q[1][1], kind = "pie" })
+	check(r == nil and tostring(err):find("^arg"), "bad kind is an arg error")
+	r, err = M.PSS_Call("sq.chart.put", { queryId = 99, kind = "bar" })
+	check(r == nil and tostring(err):find("^arg"), "unknown query is an arg error")
+	PourSocialScoreDB.sqCharts = "2;5\nx"
+	check(M.PSS_Call("sq.chart.list", {}).n == 0, "newer layout read as none")
+	r, err = M.PSS_Call("sq.chart.put", { queryId = q[1][1], kind = "bar" })
+	check(r == nil and tostring(err):find("^newer"), "newer layout refuses writes")
+	check(PourSocialScoreDB.sqCharts == "2;5\nx", "newer layout kept untouched")
+	PourSocialScoreDB.sqCharts = saved
+	M.PSS_Call("sq.del", { id = q[1][1] })
+	check(M.PSS_Call("sq.chart.list", {}).n == 0, "sq.del removes its charts")
+end
+
+PH.savepartial = function()
+	resetSq()
+	local CV = M.PSS_ConsoleView
+	local id, err, cerr = CV.saveSearch({ name = "ok", scope = "any", query = "index=log", time = "", flags = "" }, { kind = "bar", chart = { x = "cat", y = "n" } })
+	check(id and not err and not cerr, "saved with chart")
+	PourSocialScoreDB.sqCharts = "2;5\nx"
+	id, err, cerr = CV.saveSearch({ name = "two", scope = "any", query = "index=log", time = "", flags = "" }, { kind = "bar", chart = {} })
+	check(id and not err and cerr, "partial failure: id, no err, chartErr " .. tostring(cerr))
+	check(sqRows().n == 2, "search stays saved")
+	id, err = CV.saveSearch({ name = "", scope = "any", query = "index=log", time = "", flags = "" })
+	check(id == nil and err, "bad name is an err")
+end
+
+PH.savealert = function()
+	resetSq()
+	local pg = openCon()
+	pg.bar:SetText("index=log | head 3")
+	local dlg = ui.SaveQueryDialog("index=log | head 3", pg.picker:Choice())
+	dlg.name:SetText("alerting")
+	dlg.alert:SetChecked(true)
+	click(dlg.save)
+	local q = sqRows()
+	check(q.n == 1 and q[1][4]:find("a", 1, true), "flags contain a")
+	check(M.PSS_SqAlerts[q[1][1]], "alert armed")
+	M.PSS_Call("sq.del", { id = q[1][1] })
+	check(not M.PSS_SqAlerts[q[1][1]], "alert gone with the search")
+end
+
+PH.savecaps = function()
+	resetSq()
+	for i = 1, 200 do check(M.PSS_Call("sq.put", { name = "s" .. i, query = "index=log | head 1" }), "plant " .. i) end
+	local pg = openCon()
+	local st = M.PSS_ConsoleView.saveState(false)
+	check(st.canSave == false and st.why == "You have 200 saved searches. Delete one to save another.", "saveState why")
+	local dlg = ui.SaveQueryDialog("index=log | head 1", pg.picker:Choice())
+	check(not dlg.save:IsEnabled(), "Save disabled")
+	check(dlg.saveWhy == st.why, "tooltip is why")
+	local onEnter = dlg.save:GetScript("OnEnter")
+	check(onEnter, "tooltip script"); if onEnter then onEnter(dlg.save) end
+	ui.HideTip()
+	dlg:Hide()
+	resetSq()
+	for i = 1, 100 do
+		local id = M.PSS_Call("sq.put", { name = "c" .. i, query = "index=log | head 1" })
+		check(M.PSS_Call("sq.chart.put", { queryId = id[1][1], kind = "bar" }), "plant chart " .. i)
+	end
+	local id = M.PSS_Call("sq.list", {})[1][1]
+	local r, err = M.PSS_Call("sq.chart.put", { queryId = id, kind = "bar" })
+	check(r == nil and tostring(err):find("^cap"), "101st chart refused")
+	check(M.PSS_ConsoleView.saveState(true).chartWhy == "You have 100 saved charts.", "chartWhy")
+	check(M.PSS_ConsoleView.saveState(true).canSave, "searches still savable")
+	resetSq()
+end
+
+PH.savebroken = function()
+	resetSq()
+	local C = M.PSS_Codec
+	PourSocialScoreDB.sqSaved = "1;2\n" .. C.list({ 1, "broken one", "any", "", "index=log owner=$nosuch | bogus", "" }, "\t")
+	local pg = openCon()
+	pg.refreshLeft()
+	local row = leftRow(pg, "sq:1")
+	check(row and row.data.broken and row.data.text:find("(cannot run)", 1, true), "row marked (cannot run)")
+	pg.bar:SetText("index=pss | head 1")
+	pg.run(true)
+	local before = pg.qv.vm.set
+	local st = pg.qv.status:GetText()
+	click(row)
+	check(pg.bar:GetText() == "index=log owner=$nosuch | bogus", "its text is loaded")
+	check(pg.qv.status:GetText() == st, "a broken row neither runs nor changes the status")
+	check(pg.qv.vm.set == before, "Run did nothing")
+	resetSq()
+end
+
+-- TST-00937 deep dive (STP-00258)
+PH.deepentry = function()
+	local p = io.popen("lua5.1 tools/check_layers.lua 2>&1")
+	local out = p:read("*a")
+	p:close()
+	check(not out:find("DeepDive", 1, true), "check_layers names a DeepDive line: " .. out:sub(1, 200))
+end
+
+PH.deepservice = function()
+	local tmp = (os.getenv("TMPDIR") or "/tmp") .. "/pss-deep-" .. tostring(os.time()) .. ".lua"
+	local fh = io.open(tmp, "w")
+	fh:write("local x = 1\nns.DeepDive(\"x\")\nfunction ns.DeepDive() end\n")
+	fh:close()
+	local function run(as)
+		local p = io.popen("PSS_LAYERS_ONLY=" .. tmp .. " PSS_LAYERS_AS=" .. as .. " lua5.1 tools/check_layers.lua 2>&1; echo EXIT$?")
+		local o = p:read("*a")
+		p:close()
+		return o
+	end
+	local o = run("PourSocialScore_Libraries/PSS_Planted.lua")
+	check(o:find("PSS_Planted.lua:2: ns.DeepDive is called only from the window's buttons", 1, true), "Libraries call fails: " .. o)
+	check(not o:find("EXIT0"), "non-zero exit")
+	o = run("PourSocialScore_GUI/PSS_Planted.lua")
+	check(o:find("ns.DeepDive is called only", 1, true), "an unlisted GUI file fails")
+	o = run("PourSocialScore_GUI/PSS_Players.lua")
+	check(o:find("EXIT0") and not o:find("only from"), "a listed GUI file passes")
+	os.remove(tmp)
+end
+
+PH.deepback = function()
+	M.PSS_AddPlayer("Deepguy-Realm", "n", 0)
+	GUI()
+	if not (_G.PSS_Window and _G.PSS_Window:IsShown()) then SlashCmdList.PSS("gui") end
+	local win = _G.PSS_Window
+	local pi = M.PSS_UITabIndex("players")
+	click(win.tabs[pi])
+	local players = win.pages[pi]
+	local view = players.navState and players.navState()
+	ui.DeepDive("index=log | head 5")
+	local con = win.pages[conIndex()]
+	check(con:IsShown() and M.PSS_ConsoleView.unpipe(con.bar:GetText()) == "index=log | head 5", "console shown with that text")
+	check(con.backChip and con.backChip:IsShown() and con.backChip:GetText() == "Back: Player Ignore List", "Back chip text: " .. tostring(con.backChip and con.backChip:GetText()))
+	click(con.backChip)
+	check(players:IsShown() and not con:IsShown(), "players tab shown again")
+	check((players.navState and players.navState()) == view, "same selection")
+	-- Escape from the console goes back too
+	ui.DeepDive("index=log | head 5")
+	check(ui.NavUp() == true and players:IsShown(), "NavUp leaves via Back")
+	-- params bound by the engine
+	con.deepDive("index=log | where owner=$who and cat=$n", { who = 'a"b' }, nil, "Players")
+	local vm = con.qv.vm
+	local direct = M.PSS_Search("index=log | where owner=$who and cat=$n", { params = { who = 'a"b' }, load = true, rows = 500 })
+	check((vm.set and vm.set.n) == (direct and direct.n), "rows equal a direct search")
+	check(vm:Text() == 'index=log | where owner="a\\"b" and cat=$n', "Text(): " .. tostring(vm:Text()))
+end
+
+PH.deepearly = function()
+	GUI()
+	check(_G.PSS_Window == nil, "window never built")
+	local n = 0
+	for _, f in pairs({}) do n = n + 1 end
+	ui.DeepDive("index=log | head 2")
+	local win = _G.PSS_Window
+	check(win and win:IsShown(), "window built and shown")
+	local con = win.pages[conIndex()]
+	check(con:IsShown() and M.PSS_ConsoleView.unpipe(con.bar:GetText()) == "index=log | head 2", "console on the query")
+	check(con.qv.vm.loaded == true, "ran with load")
+	ui.DeepDive("index=log | head 3")
+	check(_G.PSS_Window == win, "one window")
+end
+
+
+-- TST-00936 View Events, button queries, panes (STP-00257)
+local function sh(cmd) local f = io.popen(cmd) local o = f:read("*a") f:close() return o end
+local function ctxList()
+	local ctx = {}
+	-- the harness's ignore list is empty: a made-up listed name stands in for the first player
+	ctx.player = { id = (M.PSS_PlayerCount() or 0) > 0 and M.PSS_PlayerEntry(1) or "Foo-Bar" }
+	local gd = PourSocialScoreDB and PourSocialScoreDB.guildData or {}
+	for gk, g in pairs(gd) do
+		if type(g) == "table" then
+			ctx.guild = ctx.guild or { id = gk }
+			if not ctx.member and type(g.members) == "table" then
+				for _, mrec in pairs(g.members) do ctx.member = { id = mrec, guild = gk } break end
+			end
+		end
+	end
+	ctx.filter = { id = 1 }
+	return ctx
+end
+local function runText(text, params)
+	local v = newView({ query = text, params = params, shape = "events" })
+	v:Run(true)
+	return v, v.vm.state
+end
+PH.buttonregistry = function()
+	local files = sh("ls PourSocialScore_GUI/*.lua"):gmatch("[^\n]+")
+	local seen = 0
+	for f in files do
+		if not f:find("PSS_QueryView") and not f:find("PSS_Console%.lua") and not f:find("PSS_Window") then
+			local h = io.open(f) local src = h:read("*a") h:close()
+			for call in src:gmatch("DeepDive%(([^\n]-)[,)]") do
+				seen = seen + 1
+				local key = call:match('^"([^"]+)"')
+				check(key, f .. ": DeepDive needs a literal key: " .. call)
+				if key then check(M.PSS_BUTTON_QUERIES[key], f .. ": key not in registry: " .. key) end
+			end
+		end
+	end
+	check(seen >= 6, "found the GUI calls, got " .. seen)
+end
+PH.buttonqueries = function()
+	GUI()
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local c = ctxList()
+	local jobs = {
+		{ "player.events", c.player }, { "member.events", c.member }, { "filter.events", c.filter }, { "guild.events", c.guild },
+		{ "group.events", { id = "__managed" } }, { "wh.holders", { item = 6948 } },
+		{ "pane.events", c.player and { kind = "player", id = c.player.id, period = "day", cats = { whisper = true, world = true } } },
+		{ "pane.slice", c.player and { kind = "player", id = c.player.id, cat = "whisper" } },
+	}
+	for _, j in ipairs(jobs) do
+		if j[2] then
+			local text, params, range = M.PSS_DeepDiveText(j[1], j[2])
+			check(text, j[1] .. ": no text")
+			if text then
+				local v, st = runText(text, params)
+				check(st ~= "error", j[1] .. " does not run: " .. text .. " -> " .. tostring(v.vm.info and v.vm.info.err or st))
+			end
+		else
+			print("NOTE " .. j[1] .. ": no context in this save")
+		end
+	end
+end
+PH.viewevents = function()
+	local ui = GUI()
+	local t, p = M.PSS_DeepDiveText("player.events", { id = "Bob-Realm" })
+	check(t == "index=log owner=$owner | sort -time | head 200" and p.owner == M.PSS_PlayerHistoryKey("Bob-Realm"), "player.events text and owner")
+	local t2, p2, r2 = M.PSS_DeepDiveText("pane.events", { kind = "guild", id = "g1", period = "session" })
+	check(t2 == "index=log guild=$guild | sort -time | head 200" and p2.guild == "g1" and r2.advanced.earliest == "@session", "pane.events guild session")
+	local t3, _, r3 = M.PSS_DeepDiveText("pane.events", { kind = "filter", id = 2, period = "day", cats = { world = true, whisper = true } })
+	check(t3 == "index=log owner=$owner (cat=whisper OR cat=world) | sort -time | head 200" and r3.preset == "last24h", "cats and day: " .. tostring(t3))
+	local t4, p4 = M.PSS_DeepDiveText("pane.slice", { kind = "player", id = "Bob-Realm", cat = "world" })
+	check(t4 == "index=log owner=$owner cat=$cat | sort -time | head 200" and p4.cat == "world", "slice: " .. tostring(t4))
+	ui.DeepDive("pane.slice", { kind = "player", id = "Bob-Realm", cat = "world" })
+	local con = _G.PSS_Window.pages[conIndex()]
+	check(con.bar:GetText() == t4 or con.bar:GetText():find("cat=", 1, true), "console shows the bound text: " .. tostring(con.bar:GetText()))
+end
+PH.panequeries = function()
+	local t, p = M.PSS_PaneQuery("player", "Bob-Realm", { whisper = true, invite = true })
+	check(t == "index=log owner=$owner NOT (cat=guildInvite OR cat=partyInvite OR cat=whisper) | sort -time | head 200" and p.owner, "hidden types: " .. tostring(t))
+	check(M.PSS_PaneQuery("player", "x") == "index=log owner=$owner | sort -time | head 200", "no hidden types")
+	local q = M.PSS_PaneQueries("member")
+	local g = M.PSS_PaneQueries("guild")
+	check(#q == #g, "member uses the guild scope")
+	local n = 0 for _, r in ipairs(M.PSS_PaneQueries("player")) do if r.id == "log.lines" and r.system then n = n + 1 end end
+	check(n == 1, "log.lines listed for player")
+end
+PH.paneempty = function()
+	local v, st = runText(M.PSS_PaneQuery("player", "Nobody-Nowhere"))
+	local _, info = v:Result()
+	check(st ~= "error", "runs: " .. tostring(st))
+	local set = v:Result()
+	check(st == "needsload" or (set and (set.n or 0) == 0 and v.chart.noText:IsShown()), "No results shown: " .. tostring(v.vm:Status()))
+	check(set == nil or (set.n or 0) == 0, "totals 0")
+end
+PH.paneoff = function()
+	check(M.PSS_PANE_OFF == "Event Logging is off. Turn it on in Optional Features.", "text")
+	local ui = GUI()
+	local on = M.PSS_On
+	M.PSS_On = function(n) if n == "logging" then return false end return on(n) end
+	local hv = ui.NewHistory(UIParent, 0, { kind = "player", empty = "x" })
+	M.PSS_On = on
+	check(hv.qv == nil and hv.off:IsShown(), "off text shown, no view")
+end
+PH.panehistory = function()
+	GUI()
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local cmp
+	function cmp(label, old, kind, id)
+		local lines = {}
+		for i = 1, #old do lines[i] = { ts = old[i].ts, message = M.PSS_HistCells(old[i], {}).message } end
+		local function ord(a, b) if a.ts ~= b.ts then return a.ts > b.ts end return a.message < b.message end
+		table.sort(lines, ord)
+		local text, params = M.PSS_PaneQuery(kind, id)
+		local v = runText(text, params)
+		local set = v:Result()
+		local new = {}
+		if set then
+			local ti, mi
+			for i, c in ipairs(set.cols) do if c == "time" then ti = i elseif c == "message" then mi = i end end
+			for i = 1, math.min(set.n or #set, 200) do new[i] = { ts = set[i][ti], message = set[i][mi] } end
+		end
+		table.sort(new, ord)
+		for i = 1, math.min(200, #lines) do
+			if not (new[i] and new[i].ts == lines[i].ts and new[i].message == lines[i].message) then
+				check(false, label .. " line " .. i .. " differs: old " .. tostring(lines[i].ts) .. " " .. tostring(lines[i].message) ..
+					" new " .. tostring(new[i] and new[i].ts) .. " " .. tostring(new[i] and new[i].message))
+				return
+			end
+		end
+	end
+	-- the real saves hold no player-owned lines (the stub's ignore list is empty): plant some
+	local log = History.Log()
+	local t0 = GetServerTime() - 3000
+	for i = 1, 40 do
+		local e = History.NewEntry(History.ALL_CATS[i % 6 + 1], "CHAT_MSG_CHANNEL", "planted line " .. i, "Trade", nil)
+		e.ts = t0 + (i % 9) * 60
+		e.o = M.PSS_PlayerHistoryKey("Foo-Bar")
+		log[#log + 1] = e
+	end
+	local compared = 0
+	local _cmp = cmp
+	cmp = function(label, old, kind, id) compared = compared + #old; return _cmp(label, old, kind, id) end
+	cmp("player Foo-Bar", M.PSS_GetPlayerBlockHistory("Foo-Bar") or {}, "player", "Foo-Bar")
+	local gks = {}
+	for gk, g in pairs(PourSocialScoreDB.guildData or {}) do if type(g) == "table" then gks[#gks + 1] = gk end end
+	table.sort(gks)
+	local nm = 0
+	for gi, gk in ipairs(gks) do
+		local g = PourSocialScoreDB.guildData[gk]
+		if gi == 1 then print("SKIP guild (old read, E07 round 2)") end
+		local mks = {}
+		for mk in pairs(g.members or {}) do mks[#mks + 1] = mk end
+		table.sort(mks)
+		for _, mk in ipairs(mks) do
+			if nm < 40 then nm = nm + 1; cmp("member " .. tostring(mk), M.PSS_GetMemberBlockHistory(g.members[mk]) or {}, "member", g.members[mk]) end
+		end
+	end
+	for n = 1, 30 do
+		if M.PSS_FilterOwnerKey(n) then cmp("filter " .. n, M.PSS_FilterHistory(n) or {}, "filter", n) end
+	end
+	check(compared > 0, "compared no lines")
+	print("NOTE panehistory: lines compared " .. compared)
+end
+
+-- E07b: the Events tab is retired; a saved "events" opens the console, and the console's
+-- first System row is the Events preset
+PH.eventstab = function()
+	local con = M.PSS_UITabIndex("console")
+	check(con ~= nil and M.PSS_UITabIndex("events") == nil and M.PSS_UI_EVENTS_TAB == nil, "an Events tab is listed")
+	PourSocialScoreDB.windowPoints = PourSocialScoreDB.windowPoints or {}
+	PourSocialScoreDB.windowPoints.PSS_WindowTab = "events"
+	check(M.PSS_UITab() == con, "a saved Events tab did not open the console")
+	SlashCmdList["PSS"]("gui")
+	local win = _G.PSS_Window
+	check(win and win:IsShown() and win.pages[con] and win.pages[con]:IsShown(), "the window did not open on the console")
+	check(win.ShowEventsTab == nil and _G.PSS_Window ~= nil and not M.PSS_TAB_ALIAS.events == false, "alias missing")
+	local rows = M.PSS_ConsoleModel():LeftRows()
+	check(rows[2] and rows[2].text == "Events" and rows[2].query == "index=log | head 500", "the first System row is not Events")
+end
+
+-- fix-125 F1: the client stores a typed pipe as two
+PH.conpipe = function()
+	local CV = M.PSS_ConsoleView
+	check(CV.unpipe and CV.pipe, "CV.unpipe / CV.pipe missing")
+	if CV.unpipe and CV.pipe then
+		local x = "index=log | head 5"
+		check(CV.unpipe("a||b") == "a|b", "unpipe a||b")
+		check(CV.pipe("a|b") == "a||b", "pipe a|b")
+		check(CV.unpipe(CV.pipe(x)) == x, "unpipe(pipe(x)) == x")
+	end
+	local pg = openCon()
+	plantLog(20)
+	pg.bar:SetText("index=log cat=whisper || stats count by cat")
+	pg.run(true)
+	check(pg.qv.vm.state ~= "error", "client-form pipe: state " .. tostring(pg.qv.vm.state) .. " " .. tostring(pg.qv.vm.err and pg.qv.vm.err.msg))
+	check(pg.qv.vm.query == "index=log cat=whisper | stats count by cat", "client-form pipe reached the view: " .. tostring(pg.qv.vm.query))
+end
+
+-- fix-125 F2 and F4: bar text visible; the needsload status
+PH.conbarvis = function()
+	local pg = openCon()
+	local CV = M.PSS_ConsoleView
+	M.PSS_SetOpt("conTime", "global", "all")
+	local v = GUI().NewQueryView(UIParent, { w = 400, h = 240, query = "index=log | head 5" })
+	v:Run(false)
+	check(v.vm.state == "needsload", "needsload state " .. tostring(v.vm.state))
+	check(v.vm:Status() == "History not loaded", "needsload status: " .. tostring(v.vm:Status()))
+	local function vis(what)
+		local tc = pg.bar._tc
+		check(not tc or tc[4] == nil or tc[4] == 1, what .. ": box text alpha " .. tostring(tc and tc[4]))
+		check(not pg.overlay:IsShown(), what .. ": overlay shown")
+		check(pg.barError() == nil, what .. ": bar error " .. tostring(pg.barError() and pg.barError().msg))
+		check(pg.qv.vm.state ~= "error", what .. ": state error " .. tostring(pg.qv.vm.err and pg.qv.vm.err.msg))
+	end
+	vis("builder")
+	plantLog(20)
+	local d
+	for _, r in ipairs(pg.cm:LeftRows()) do if r.key and r.key:find("^sys:") and not (r.query or ""):find("$", 1, true) then d = r break end end
+	check(d, "a list row exists")
+	if d then pg.nav:Select(d.key, true); vis("left-list pick") end
+	pg.bar:SetText(CV.HELP[1][1]); pg.run(true); vis("help pick")
+	pg.bar:SetText("index=log | head 50"); pg.run(true)
+	for i, f in ipairs(pg.sideFlat()) do
+		if f.field then pg.sideList.spec.click(nil, i); break end
+	end
+	vis("side-list click")
+	local text, params = M.PSS_DeepDiveText("player.events", { kind = "player", id = "Owner1-Realm" })
+	check(text, "deep dive text")
+	if text then pg.deepDive(text, params); vis("deep dive") end
+end
+
+-- fix-125 F3: the left list clips and scrolls
+PH.connavclip = function()
+	local pg = openCon()
+	local nav = pg.nav
+	check(nav:GetClipsChildren(), "console nav does not clip")
+	check(nav:IsMouseWheelEnabled(), "console nav wheel not enabled")
+	local wheel = nav:GetScript("OnMouseWheel")
+	check(wheel, "no OnMouseWheel")
+	local function top() local p = nav.rows[1]._point return p and (p[5] or 0) end
+	if wheel then
+		local y0 = top()
+		check(y0 ~= nil, "row 1 has no point")
+		wheel(nav, -1)
+		check(top() == y0 + 60, "wheel -1: row 1 top " .. tostring(top()) .. " want " .. tostring(y0 + 60))
+		for _ = 1, 5 do wheel(nav, 1) end
+		check(top() == y0, "wheel +1 x5: row 1 top " .. tostring(top()) .. " want " .. tostring(y0))
+	end
+	local win = _G.PSS_Window
+	local opt
+	for i, t in ipairs(win.tabs) do if t.key == "options" or (t.GetText and t:GetText() == "Options") then opt = t end end
+	if opt then
+		click(opt)
+		for _, pgx in pairs(win.pages) do
+			local n = pgx.nav
+			if n and n ~= nav and n.IsShown and n:IsShown() and n.rows[1] then
+				local p0 = n.rows[1]._point and n.rows[1]._point[5]
+				local w = n:GetScript("OnMouseWheel")
+				if w then w(n, -1) end
+				check((n.rows[1]._point and n.rows[1]._point[5]) == p0, "Options nav moved on wheel")
+			end
+		end
+	end
+end
+
+-- fix-125 F5: slice deep dive without an owner
+PH.conslice = function()
+	local kinds = { player = "p:*", member = "g:*", filter = "f:*", guild = "guild=\"*\"", group = "guild=\"*\"" }
+	for kind, want in pairs(kinds) do
+		for _, id in ipairs({ false, "nil" }) do
+			local text, params = M.PSS_DeepDiveText("pane.slice", { kind = kind, id = id ~= "nil" and id or nil, cat = "whisper" })
+			local w = kind .. " id=" .. tostring(id)
+			check(text and text:find(want, 1, true), w .. ": text " .. tostring(text))
+			check(text and text:find(" cat=$cat", 1, true), w .. ": no cat slice")
+			check(params and params.cat == "whisper", w .. ": params")
+		end
+	end
+	local t, e = M.PSS_DeepDiveText("player.events", { kind = "player", id = {} })
+	check(t == nil and e == "nothing selected", "no name: " .. tostring(t) .. " / " .. tostring(e))
+	local pg = openCon()
+	plantLog(20)
+	local text, params = M.PSS_DeepDiveText("player.events", { kind = "player", id = "Owner1-Realm" })
+	check(text, "deep dive text")
+	if text then
+		pg.deepDive(text, params)
+		pg.run(true)
+		check(pg.qv.vm.state ~= "error", "run after deep dive: " .. tostring(pg.qv.vm.err and pg.qv.vm.err.msg))
+		check(not pg.bar:GetText():find("$", 1, true), "bar holds $: " .. tostring(pg.bar:GetText()))
+	end
+end
+
+-- fix-125 F6: the System chart row draws a chart
+PH.conchartpick = function()
+	local pg = openCon()
+	plantLog(30)
+	local d
+	for _, r in ipairs(pg.cm:LeftRows()) do if r.text == "Lines a day" then d = r break end end
+	check(d, "row Lines a day")
+	if d then
+		pg.deepDive(d.query, { owner = M.PSS_PlayerHistoryKey("Owner1-Realm") })
+		pg.run(true)
+		check(pg.tabs[3]:IsEnabled(), "Chart tab disabled; state " .. tostring(pg.qv.vm.state) .. " " .. tostring(pg.qv.vm:Status()))
+		check(pg.qv.vm.chart and pg.qv.vm.chart.kind ~= "table", "chart kind " .. tostring(pg.qv.vm.chart and pg.qv.vm.chart.kind))
+	end
+end
+
+-- fix-126 G2: the page is sized from the constants when the builder runs before the page shows (get 0)
+PH.consize = function()
+	GUI()
+	local pg = CreateFrame("Frame", nil, UIParent)
+	pg:SetPoint("TOPLEFT", UIParent, "TOPLEFT")
+	pg:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT")
+	pg.GetWidth = function() return 0 end
+	pg.GetHeight = function() return 0 end
+	ui.TabBuilders.console(pg)
+	if not check(pg.layout, "pg.layout defined") then return end
+	check(pg.layout.PW == 940, "PW " .. tostring(pg.layout.PW) .. " want 940")
+	check(pg.layout.PH == 400, "PH " .. tostring(pg.layout.PH) .. " want 400")
+	check(pg.qv:GetWidth() == 730, "qv width " .. tostring(pg.qv:GetWidth()) .. " want 730")
+	check(pg.qv:GetHeight() == 306, "qv height " .. tostring(pg.qv:GetHeight()) .. " want 306")
+	check(84 + pg.layout.resH + 10 == 400, "84 + resH + 10 = " .. tostring(84 + (pg.layout.resH or 0) + 10) .. " want 400")
+end
+
+-- fix-126 G3, G4: parameters resolve before the bar; only valid queries run
+PH.consysq = function()
+	local pg = openCon()
+	if not check(pg.pick, "pg.pick defined") then return end
+	if not check(M.PSS_ResolveQuery, "M.PSS_ResolveQuery defined") then return end
+	local runs = 0
+	local realRun = pg.qv.Run
+	local inRefresh = false
+	local realRefresh = pg.qv.Refresh
+	pg.qv.Refresh = function(...)
+		inRefresh = true
+		local ok, e = pcall(realRefresh, ...)
+		inRefresh = false
+		if not ok then error(e, 0) end
+	end
+	pg.qv.Run = function(...) if not inRefresh then runs = runs + 1 end return realRun(...) end
+	local realSel = ui.SelectedPlayer
+	local sel
+	ui.SelectedPlayer = function() return sel end
+	local one = M.PSS_Search("index=log | head 1", {})
+	local owner = one and one.n > 0 and one[1][M.PSS_SetCol(one, "owner") or 1]
+	local name = type(owner) == "string" and owner:match("^p:(.+)$")
+	local function pick(key)
+		local before = pg.bar:GetText()
+		runs = 0
+		pg.pick(key)
+		return before
+	end
+	local function status() return pg.qv.status and pg.qv.status:GetText() end
+	local function unbound(key, want, label)
+		local before = pick(key)
+		check(pg.bar:GetText() == before, label .. ": bar changed")
+		check(runs == 0, label .. ": ran " .. runs)
+		check(status() == want, label .. ": status " .. tostring(status()))
+	end
+	if name then
+		sel = { name = name }
+		for _, k in ipairs({ "sys:log.byday", "sys:log.lines", "sys:log.bytype" }) do
+			pick(k)
+			local b = pg.bar:GetText()
+			check(b:find('owner="p:', 1, true) and not b:find("$", 1, true), "case 1 " .. k .. ": bar " .. b)
+			check(runs == 1, "case 1 " .. k .. ": runs " .. runs)
+			check(pg.qv.vm.state ~= "error", "case 1 " .. k .. ": state error")
+		end
+	else
+		print("NOTE consysq: no p: owner in the save; cases 1 and 7 skipped")
+	end
+	sel = nil
+	unbound("sys:log.byday", M.PSS_UNBOUND_TEXT and M.PSS_UNBOUND_TEXT.owner, "case 2")
+	local inv = M.PSS_Search("index=inv | sort -count | head 1", {})
+	if inv and inv.n > 0 then
+		pick("sys:wh.holders")
+		local b = pg.bar:GetText()
+		check(b:find("item=", 1, true) and not b:find("$", 1, true), "case 3: bar " .. b)
+		check(runs == 1, "case 3: runs " .. runs)
+	else
+		unbound("sys:wh.holders", M.PSS_UNBOUND_TEXT and M.PSS_UNBOUND_TEXT.item, "case 4")
+	end
+	local a1, n1 = M.PSS_ResolveQuery("index=log owner=$owner", { owner = "p:a" })
+	check(a1 == 'index=log owner="p:a"', "case 5a: " .. tostring(a1))
+	local a2 = M.PSS_ResolveQuery("index=inv item=$item", { item = 19019 })
+	check(a2 == "index=inv item=19019", "case 5b: " .. tostring(a2))
+	local a3, n3 = M.PSS_ResolveQuery("index=log owner=$owner", {})
+	check(a3 == nil and n3 == "owner", "case 5c: " .. tostring(a3) .. ", " .. tostring(n3))
+	runs = 0
+	pg.bar:SetText("index=log owner=$owner")
+	pg.run(true)
+	check(runs == 0, "case 6a: ran " .. runs)
+	pg.bar:SetText("index=log | | x")
+	pg.run(true)
+	check(runs == 0, "case 6b: ran " .. runs)
+	if name then
+		sel = { name = name }
+		for _, q in ipairs(M.PSS_SQ_SYSTEM) do
+			pg.pick("sys:" .. q.id)
+			check(not pg.bar:GetText():find("$", 1, true), "case 7 " .. q.id .. ": bar has $")
+		end
+	end
+	ui.SelectedPlayer = realSel
+	pg.qv.Run = realRun
+end
+
+-- fix-126 G9: raw time and nil cells
+PH.concell = function()
+	if not check(M.PSS_CellText, "M.PSS_CellText defined") then return end
+	check(M.PSS_CellText("item", nil) == "", "item nil: " .. tostring(M.PSS_CellText("item", nil)))
+	check(M.PSS_CellText("time", 1792380649) == date(M.PSS_TIME_SHOW, 1792380649), "time: " .. tostring(M.PSS_CellText("time", 1792380649)))
+	check(M.PSS_CellText("n", 5) == "5", "n 5: " .. tostring(M.PSS_CellText("n", 5)))
+	local pg = openCon()
+	pg.qv:SetQuery("index=log | head 100")
+	pg.qv:Run(true)
+	local list = pg.qv.chart and pg.qv.chart.tableList
+	if not (list and #list.rows > 0 and pg.qv.vm.set and pg.qv.vm.set.n > 0) then
+		print("NOTE concell: 0 rows, drawn part skipped")
+		return
+	end
+	for i, r in ipairs(list.rows) do
+		if r:IsShown() then
+			for k, c in pairs(r.cells) do
+				check(c:GetText() ~= "nil", "row " .. i .. " cell " .. tostring(k) .. " reads nil")
+			end
+		end
+	end
+	local cols = pg.qv.vm.set.cols
+	for k = 1, #cols do
+		if cols[k] == "time" then
+			local t = list.rows[1].cells["c" .. k]:GetText()
+			check(not tostring(t):match("^%d+$"), "row 1 time cell is raw: " .. tostring(t))
+		end
+	end
+end
+
+PH.concap = function()
+	local H = M.PSS_History
+	if #H.Log() < H.Cap() then
+		print("NOTE concap: the save is under the cap, note skipped")
+		local pg = openCon()
+		pg.qv:SetQuery("index=log | stats count"); pg.qv:Run(true)
+		check(not pg.qv.vm:Status():find("history holds", 1, true), "no cap note under the cap")
+		return
+	end
+	local r = M.PSS_Search("index=log | stats count", { load = true })
+	check(r and r.n == 1 and r[1][1] == H.Cap(), "count is the cap " .. H.Cap() .. ", got " .. tostring(r and r[1] and r[1][1]))
+	local pg = openCon()
+	pg.qv:SetQuery("index=log | stats count"); pg.qv:Run(true)
+	local st = pg.qv.vm:Status()
+	check(st:find("newest " .. H.Cap() .. " lines", 1, true), "status names the cap: " .. st)
+end
+
+PH.qvresize = function()
+	local v = newView({ w = 400, h = 240, compact = true })
+	check(type(v.Resize) == "function", "no v:Resize")
+	v:Resize(370, 250)
+	check(v:GetWidth() == 370, "view width " .. tostring(v:GetWidth()))
+	check(v.line:GetWidth() == 300, "line width " .. tostring(v.line:GetWidth()))
+	check(v.chart.w == 370, "chart w " .. tostring(v.chart.w))
+	check(v.chart.h == 250 - 40 - 30, "chart h " .. tostring(v.chart.h))
+end
+
+PH.panefit = function()
+	local u = GUI()
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local body = CreateFrame("Frame", nil, UIParent)
+	body:SetSize(400, 400)
+	local hv = u.NewHistory(body, -28, { kind = "player", empty = "" })
+	check(hv.qv ~= nil, "no query view")
+	if not hv.qv then return end
+	local pts = hv.qv._points or {}
+	check(#pts == 2, "points " .. #pts)
+	check(pts[1] and pts[1][1] == "TOPLEFT" and pts[1][2] == hv.qv:GetParent(), "point 1 not TOPLEFT on lf")
+	check(pts[2] and pts[2][1] == "BOTTOMRIGHT" and pts[2][2] == hv.qv:GetParent(), "point 2 not BOTTOMRIGHT on lf")
+	local qp = hv.queries and hv.queries._point
+	check(qp and qp[2] == hv.qv.deep, "Queries dropdown not anchored to the deep button")
+	check(hv.qv.line and hv.qv.line._wrap == true, "line word wrap off")
+end
+
+-- S1: a pane Queries switch leaves exactly one list shown, and a draw error clears the chart
+local function paneView()
+	local u = GUI()
+	if not M.PSS_LoggingReady() then M.PSS_LoadLogging() end
+	local body = CreateFrame("Frame", nil, UIParent)
+	body:SetSize(400, 400)
+	local hv = u.NewHistory(body, -28, { kind = "player", empty = "" })
+	return hv.qv
+end
+local function chartFrames(qv, fn)
+	local made = {}
+	local realCreate = CreateFrame
+	CreateFrame = function(...)
+		local fr = realCreate(...)
+		if select(3, ...) == qv.chart then made[#made + 1] = fr end
+		return fr
+	end
+	local ok, e = pcall(fn)
+	CreateFrame = realCreate
+	if not ok then check(false, "raised: " .. tostring(e)) end
+	return made
+end
+local function shownCount(made)
+	local n = 0
+	for _, fr in ipairs(made) do
+		if fr:IsShown() then n = n + 1 end
+	end
+	return n
+end
+
+PH.paneswitch = function()
+	plantLog(5)
+	local qv = paneView()
+	check(qv ~= nil, "no query view")
+	if not qv then return end
+	local made, last = {}, nil
+	local function run(text, label)
+		local before = #made
+		local m = chartFrames(qv, function()
+			qv:SetQuery(text)
+			qv:Run(true)
+		end)
+		for _, fr in ipairs(m) do made[#made + 1] = fr end
+		local list = qv.chart.tableList
+		check(list ~= nil, label .. ": no table list")
+		check(shownCount(made) == 1, label .. ": shown frames " .. shownCount(made))
+		if list then
+			for i, h in ipairs(list.heads) do
+				check(h.label:GetText() == h.text, label .. ": head " .. i .. " text")
+			end
+			check(list.header:GetParent():IsShown(), label .. ": list frame hidden")
+		end
+		return #made - before
+	end
+	run("index=log | head 5", "run 1")
+	run("index=counts | stats sum(total) by type", "run 2")
+	check(run("index=log | head 5", "run 3") == 0, "run 3 created a frame")
+end
+
+PH.paneerror = function()
+	plantLog(5)
+	local qv = paneView()
+	check(qv ~= nil, "no query view")
+	if not qv then return end
+	local realW, realH = M.PSS_TableWidths, geterrorhandler
+	local called, msg = 0, nil
+	geterrorhandler = function() return function(e) called = called + 1; msg = tostring(e) end end
+	M.PSS_TableWidths = function() error("boom") end
+	local m1 = chartFrames(qv, function()
+		qv:SetQuery("index=counts | stats sum(total) by type")
+		qv:Run(true)
+	end)
+	M.PSS_TableWidths = realW
+	check(shownCount(m1) == 0, "error run: shown frames " .. shownCount(m1))
+	check(qv.chart.noText:IsShown(), "error run: noText hidden")
+	check(called == 1 and msg and msg:find("boom", 1, true), "handler calls " .. called .. " msg " .. tostring(msg))
+	called = 0
+	local m2 = chartFrames(qv, function()
+		qv:SetQuery("index=log | head 5")
+		qv:Run(true)
+	end)
+	geterrorhandler = realH
+	check(shownCount(m2) == 1, "second run: shown frames " .. shownCount(m2))
+	check(called == 0, "second run: handler called")
+end
+
+PH.conblank = function()
+	plantLog(20)
+	local pg = openCon()
+	check(pg.bar and pg.bar:GetText() == "", "bar not blank: " .. tostring(pg.bar and pg.bar:GetText()))
+	check(pg.qv.vm.query == nil, "query set")
+	check(pg.qv.vm.set == nil, "set loaded")
+	check(pg.qv.status:GetText() == M.PSS_CON_BLANK, "status " .. tostring(pg.qv.status:GetText()))
+	check(#pg.sideFlat() == 0, "sidebar not empty")
+	pg.run(true)
+	check(pg.qv.vm.set == nil, "blank run loaded a set")
+	check(pg.qv.vm.query == nil, "blank run set a query")
+end
+
+-- R1: the time cell shows the year (CHK-00187)
+PH.timeshow = function()
+	check(M.PSS_TIME_SHOW == "%d %b %Y %H:%M", "format: " .. tostring(M.PSS_TIME_SHOW))
+	local want = date("%d %b %Y %H:%M", 1792234983)
+	check(want:find("%d%d%d%d"), "year in the want: " .. want)
+	check(M.PSS_CellText("time", 1792234983) == want, "time: " .. tostring(M.PSS_CellText("time", 1792234983)))
+	check(M.PSS_CellText("ts", 1792234983) == want, "ts: " .. tostring(M.PSS_CellText("ts", 1792234983)))
+	check(M.PSS_CellText("time", nil) == "", "nil")
+	check(M.PSS_CellText("time", 0) == "0", "zero")
+	local real = M.PSS_IsSecret
+	M.PSS_IsSecret = function() return true end
+	local got = M.PSS_CellText("time", 1792234983)
+	M.PSS_IsSecret = real
+	check(got == "", "secret: " .. tostring(got))
+end
+
+PH.colfit = function()
+	local F = false
+	local cases = {
+		{ { "time", "cat" }, 500, { 102, 30 }, { 112, F } },
+		{ { "time", "st", "message", "label" }, 500, { 102, 60, 300, 30 }, { 112, 70, F, 40 } },
+		{ { "time", "index", "st", "ent", "item", "owner", "summary" }, 600, { 102, 30, 60, 18, 24, 120, 300 }, { 89, 39, 60, 36, 36, 100, F } },
+		{ { "a", "b", "message" }, 450, { 200, 200, 50 }, { 135, 135, F } },
+		{ { "cat", "n" }, 500, nil, { 36, F } },
+		{ { "time" }, 500, { 102 }, { F } },
+		{ { "x", "message" }, 500, { 900, 10 }, { 200, F } },
+	}
+	for n, c in ipairs(cases) do
+		local w = M.PSS_TableWidths(c[1], c[2], c[3])
+		check(type(w) == "table", "case " .. n .. " no table")
+		for i = 1, #c[1] do
+			local want = c[4][i]
+			if want == F then want = nil end
+			check(w and w[i] == want, "case " .. n .. " col " .. i .. " is " .. tostring(w and w[i]) .. " want " .. tostring(want))
+		end
+	end
+	check(next(M.PSS_TableWidths({}, 500)) == nil, "empty not {}")
+	-- drawn: the chart measures its cells (6 px a character in the stub)
+	local pg = openCon()
+	pg.qv:SetQuery("index=log | head 100")
+	pg.qv:Run(true)
+	local list = pg.qv.chart and pg.qv.chart.tableList
+	if not (list and pg.qv.vm.set and pg.qv.vm.set.n > 0) then
+		print("NOTE colfit: 0 rows, drawn part skipped")
+		return
+	end
+	check(pg.qv.chart.measure ~= nil, "chart made no measuring text")
+end
+
+-- U2 (3.8.0.133): report columns, kept columns, labels
+local LOGCOLS = { "time", "st", "ent", "cat", "event", "owner", "member", "channel", "rule", "message", "label", "guild" }
+local function logSet(member, owner)
+	local rows = {}
+	for i = 1, 5 do
+		rows[i] = { 1792380649 + i, "chat.block", 0, "world", "CHAT_MSG_CHANNEL", owner or ("p:owner" .. i .. "-realm"), member or ("Sender" .. i), "Trade", nil, "hello " .. i, nil, nil }
+	end
+	return set(LOGCOLS, rows)
+end
+local function colNames(s, idx)
+	local out = {}
+	for i = 1, idx and #idx or 0 do out[i] = s.cols[idx[i]] end
+	return table.concat(out, ",")
+end
+
+PH.reportcols = function()
+	if not check(M.PSS_ReportCols and M.PSS_REPORT_COLS, "M.PSS_ReportCols defined") then return end
+	local s = logSet()
+	check(colNames(s, M.PSS_ReportCols(s, "log")) == "time,member,cat,channel,owner,message", "log: " .. colNames(s, M.PSS_ReportCols(s, "log")))
+	check(colNames(s, M.PSS_ReportCols(s, "log.pane")) == "time,cat,channel,message", "pane: " .. colNames(s, M.PSS_ReportCols(s, "log.pane")))
+	local b = logSet("Lunarian Moonwall", "p:lunarian moonwall-realm")
+	check(colNames(b, M.PSS_ReportCols(b, "log", "Lunarian Moonwall")) == "time,cat,channel,message", "bound: " .. colNames(b, M.PSS_ReportCols(b, "log", "Lunarian Moonwall")))
+	local t = set({ "time", "cat" }, { { 1792380649, "world" } })
+	check(M.PSS_ReportCols(t, "log") == nil, "table set has no profile")
+	check(M.PSS_ReportCols(nil, "log") == nil, "nil set")
+	check(M.PSS_ReportCols(set(LOGCOLS, {}), "log") == nil, "empty set")
+	check(M.PSS_ReportCols(s, "nope") == nil, "unknown profile")
+end
+
+PH.keepfit = function()
+	local cols = { "time", "member", "cat", "channel", "owner", "message" }
+	local need = { 102, 90, 60, 60, 120, 300 }
+	local keep = M.PSS_KeepCols and M.PSS_KeepCols(cols)
+	check(keep and keep[1] and keep[2] and not keep[3], "keep time and member")
+	local function eq(w, want, label)
+		for i = 1, #cols do check(w[i] == want[i], label .. " col " .. i .. " is " .. tostring(w[i]) .. " want " .. tostring(want[i])) end
+	end
+	local keep2 = { [1] = true, [2] = true }
+	local w7 = M.PSS_TableWidths(cols, 700, { 102, 90, 60, 60, 190, 300 }, keep2)
+	local sum7 = 0
+	for i = 1, #cols do sum7 = sum7 + (w7[i] or 0) end
+	check(w7[1] == 112 and w7[2] == 100 and w7[6] == nil, "avail 700 keeps time and member, message fills")
+	check(700 - sum7 >= 280, "avail 700 fill share " .. (700 - sum7))
+	local w5 = M.PSS_TableWidths(cols, 500, need, keep2)
+	eq(w5, { 112, 100, 36, 36, 36 }, "avail 500")
+	local sum5 = 0
+	for i = 1, #cols do sum5 = sum5 + (w5[i] or 0) end
+	check(w5[6] == nil and 500 - sum5 >= 180, "avail 500 fill " .. (500 - sum5))
+	eq(M.PSS_TableWidths(cols, 300, need, { [1] = true, [2] = true }), { 112, 100, 36, 36, 36 }, "avail 300")
+end
+
+PH.reportgrid = function()
+	local pg = openCon()
+	local log = plantLog(30)
+	for i = 1, #log do log[i].member = log[i].member or ("Sender" .. (i % 3)) end
+	pg.bar:SetText("index=log | head 500")
+	pg.run(true)
+	local list = pg.qv.chart.tableList
+	if not check(list and #list.rows > 0 and #list.heads > 0, "no grid") then return end
+	local heads = {}
+	for i, h in ipairs(list.heads) do heads[i] = h.text end
+	check(table.concat(heads, ",") == "Time,From,Type,Channel,Blocked by,Message", "headers: " .. table.concat(heads, ","))
+	for i, r in ipairs(list.rows) do
+		if r:IsShown() then
+			for k, c in pairs(r.cells) do
+				local tx = tostring(c:GetText())
+				check(not tx:find("^CHAT_MSG_") and not tx:find("^p:") and tx ~= "chat.block", "row " .. i .. " " .. k .. " raw: " .. tx)
+			end
+		end
+	end
+end
+
+PH.summary = function()
+	local S = M.PSS_QuerySummary
+	if not check(type(S) == "function", "M.PSS_QuerySummary missing") then return end
+	local q1 = 'index=log owner="p:lunarian moonwall-classicbetapvp" | sort -time | head 200'
+	check(S(q1, "Lunarian Moonwall", "Last 24 hours") == "newest 200 \194\183 Last 24 hours", "bound: " .. tostring(S(q1, "Lunarian Moonwall", "Last 24 hours")))
+	check(S("index=log | head 5") == "first 5", "first: " .. tostring(S("index=log | head 5")))
+	check(S("index=log | stats count by cat") == "count by Type", "count by: " .. tostring(S("index=log | stats count by cat")))
+	check(S("index=log cat=world | dedup cat") == "Type: World chat + more", "more: " .. tostring(S("index=log cat=world | dedup cat")))
+	check(S("index=log NOT (cat=whisper OR cat=world) | head 3") == "without Whisper, World chat \194\183 first 3", "without: " .. tostring(S("index=log NOT (cat=whisper OR cat=world) | head 3")))
+	check(S("index=log | timechart span=1d count") == "count per day", "per day: " .. tostring(S("index=log | timechart span=1d count")))
+	check(S("bad (") == "Custom search", "bad: " .. tostring(S("bad (")))
+	check(S("") == "Custom search" and S(nil) == "Custom search", "empty inputs")
+	check(S("index=log | head 5", nil, nil) ~= q1, "never raw")
+	local pg = openCon()
+	plantLog(30)
+	pg.deepDive(q1, nil, { preset = "last24h" })
+	local h = pg.header and pg.header:GetText() or ""
+	check(h:find("^Events of ") and h:find("newest 200", 1, true) and h:find("Last 24 hours", 1, true), "header: " .. h)
+	check(not h:find("index=", 1, true), "header holds raw search: " .. h)
+end
+
+PH.reportmode = function()
+	local pg = openCon()
+	plantLog(30)
+	pg.pick("preset:events")
+	check(pg.qv.vm.report and pg.qv.vm.report.title == "Events", "report title: " .. tostring(pg.qv.vm.report and pg.qv.vm.report.title))
+	check(pg.bar:IsShown() and pg.runBtn:IsShown() and pg.saveBtn:IsShown(), "bar, Run, Save hidden in report mode")
+	check((pg.bar:GetText() or "") ~= "", "bar empty in report mode")
+	check(pg.editBtn == nil, "Edit search button exists")
+	check(pg.helpBtn and pg.helpBtn:IsShown() and pg.picker:IsShown(), "? or range picker hidden")
+	local h = pg.header:GetText() or ""
+	check(h == "Events \194\183 first 500", "header: " .. h)
+	pg.bar:SetText("index=log | head 7"); pg.run(true)
+	check((pg.header:GetText() or ""):find("^Custom search"), "typed header: " .. tostring(pg.header:GetText()))
+end
+
+PH.conlayout = function()
+	local pg = openCon()
+	local lay = pg.layout
+	local function W(f) return f:GetWidth() end
+	check(lay.PW == 940, "page " .. tostring(lay.PW) .. "x" .. tostring(lay.PH))
+	check(lay.resW == 730 and pg.nav:IsShown() and not pg.side:IsShown(), "open state resW " .. tostring(lay.resW))
+	local side = pg.side
+	local made, cf = 0, CreateFrame
+	CreateFrame = function(...) made = made + 1 return cf(...) end
+	local steps = { { "side", 540 }, { "left", 730 }, { "side", 920 }, { "left", 730 } }
+	local want = { { "<<", ">>" }, { "<<", ">>" }, { ">>", "<<" }, { ">>", "<<" } }
+	local ok, err = pcall(function()
+		for k, st in ipairs(steps) do
+			click(st[1] == "side" and pg.sideToggle or pg.leftToggle)
+			check(lay.resW == st[2], "step " .. k .. " resW " .. tostring(lay.resW) .. " want " .. st[2])
+			check(pg.qv:GetWidth() == lay.resW, "step " .. k .. " qv width " .. tostring(pg.qv:GetWidth()))
+		end
+	end)
+	CreateFrame = cf
+	check(ok, "clicks errored: " .. tostring(err))
+	check(made == 0, "frames created by toggles: " .. made)
+	check(pg.leftToggle:GetText() == "<<" and pg.sideToggle:GetText() == "<<", "texts after steps")
+	click(pg.leftToggle)
+	check(pg.leftToggle:GetText() == ">>" and not pg.nav:IsShown(), "left closed text/nav")
+	click(pg.leftToggle)
+	click(pg.sideToggle)
+	check(side:IsShown() and pg.nav:IsShown() and W(side) == 180 and W(pg.nav) == 180, "widths side " .. tostring(W(side)) .. " nav " .. tostring(W(pg.nav)))
+	check(pg.sideToggle:GetText() == ">>", "side open text")
+end
+
+PH.status = function()
+	plantLog(40)
+	local v = newView({ w = 400, h = 200 })
+	v:SetQuery("index=log | head 1"); v:Run(true)
+	local a, ms = v.vm:Status()
+	check(a == "1 line", "1 row: " .. tostring(a))
+	check(type(ms) == "string" and ms:find("ms"), "ms in second value: " .. tostring(ms))
+	v:SetQuery("index=log | head 29"); v:Run(true)
+	a = v.vm:Status()
+	check(a == "29 lines", "29 rows: " .. tostring(a))
+	check(v.status:GetText() == "29 lines", "drawn: " .. tostring(v.status:GetText()))
+end
+
+PH.rowdetail = function()
+	local pg = openCon()
+	plantLog(8)
+	local log = History.Log()
+	log[#log].e = "CHAT_MSG_CHANNEL"
+	local sec = "SECRET_MESSAGE_TEXT"
+	log[#log].m = sec
+	pg.bar:SetText("index=log | head 5")
+	pg.run(true)
+	local list = pg.qv.chart.tableList
+	if not check(list and #list.rows > 0, "no grid") then return end
+	local set = pg.qv.vm.set
+	local real = M.PSS_IsSecret
+	M.PSS_IsSecret = function(v) return v == sec or real(v) end
+	local menus, orig = 0, ui.ContextMenu
+	ui.ContextMenu = function() menus = menus + 1 end
+	click(list.rows[1], "RightButton")
+	local d = _G.PSS_RowDetail
+	check(menus == 1 and not (d and d:IsShown()), "right click: menus " .. menus .. ", box shown " .. tostring(d and d:IsShown()))
+	click(list.rows[1], "MiddleButton")
+	check(not (_G.PSS_RowDetail and _G.PSS_RowDetail:IsShown()), "middle click opened the box")
+	click(list.rows[1], "LeftButton")
+	ui.ContextMenu = orig
+	d = _G.PSS_RowDetail
+	if not check(d and d:IsShown(), "box not shown on left click") then M.PSS_IsSecret = real return end
+	check(d.list.count == #set.cols, "rows " .. tostring(d.list.count) .. " vs " .. #set.cols)
+	d.list:Redraw()
+	local function cellOf(k)
+		local c = { field = {}, value = {} }
+		for _, x in pairs(c) do x.SetText = function(self, t) self.t = t end end
+		d.list.spec.draw({ cells = c }, k)
+		return c.field.t, c.value.t
+	end
+	check(cellOf(1) == "Time", "first field: " .. tostring(cellOf(1)))
+	local stc = M.PSS_SetCol(set, "st")
+	if check(stc, "no st column") then
+		local f, v = cellOf(stc)
+		check(f == M.PSS_FieldLabel("st"), "st label: " .. tostring(f))
+		check(v == M.PSS_CellText("st", set[1][stc], M.PSS_SetKinds(set).st) and v == "Chat block", "st value: " .. tostring(v))
+	end
+	-- a secret cell shows ""
+	local secSet = { n = 1, cols = { "message" }, kinds = {}, { sec } }
+	local rows = M.PSS_ConsoleModel():RowDetail(secSet, 1)
+	check(rows[1].value == "", "secret shown: " .. tostring(rows[1].value))
+	M.PSS_IsSecret = real
+	local empty = M.PSS_ConsoleModel()
+	check(#empty:RowDetail(nil, 1) == 0 and #empty:RowDetail(false, 1) == 0 and #empty:RowDetail({}, 1) == 0, "empty inputs")
+	d:Hide()
+end
+
+PH.reportchip = function()
+	local pg = openCon()
+	plantLog(10)
+	local function anchor()
+		local p, rel, rp, x, y = pg.chip:GetPoint(1)
+		return tostring(p) .. "|" .. tostring(rel) .. "|" .. tostring(rp) .. "|" .. tostring(x) .. "|" .. tostring(y)
+	end
+	local consoleAnchor = anchor()
+	check(pg.chip:GetParent() == pg.bar:GetParent(), "chip parent is not the bar's page")
+	check(select(2, pg.chip:GetPoint(1)) == pg.picker, "console chip not anchored to the bar's range picker")
+	pg.pick("preset:events")
+	check(pg.qv.vm.report ~= nil and pg.bar:IsShown(), "not in report mode")
+	check(pg.chip:GetParent() == pg.bar:GetParent(), "report: chip parent changed")
+	check(anchor() == consoleAnchor, "report anchor " .. anchor() .. " vs " .. consoleAnchor)
+	check(select(2, pg.chip:GetPoint(1)) == pg.picker, "report chip not in the bar")
+end
+
+local f = PH[phase]
+if not f then
+	check(false, "no such phase")
+else
+	local ok, e = xpcall(f, debug.traceback)
+	if not ok then check(false, "raised: " .. tostring(e)) end
+end
+if not fail then print("PASS console " .. phase) end

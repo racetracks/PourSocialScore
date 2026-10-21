@@ -30,18 +30,18 @@ segappend segmonth segtrim segskip seghash segnewer segzero segreload segcost se
 putorder putsecret putoff putcap putearly putsignal putact putcost putreal putsoak
 dictjoin dictasync dictmissing dictreal
 timeparse timemonth timebad timebucket timesession timefmt
-predops predlike predbool predpush predvirtual predtype predlegacy predempty
+predops predlike timelike timelike2 likeword predbool predpush predvirtual predtype predlegacy predempty
 statsfns statsby statscap timechartfill timechartby topn dedup calcdiv0 statsempty statsnil statscost statsproperty
 termsame termunknown termpending termreal
 parseexamples parsebad parselimits parseinject parsechart parsetime parsetokens parsenoload parsefuzz parsetokenkinds
 plantier planload planbudget plancache planmulti planoffmulti planpicker planreal planchaos
 logrows logorder logpush countsequal logsecret logoff logcost
 invst invrows invderive invpush invsum invval whoff invempty invorphan invnewrow invsecret
-socialrows socialfields membersneed socialoff
+socialrows socialfields membersneed socialoff money labels showlog cellshow
 cfgrows cfgreadonly cfgnewer cfgsystem
 pssproduce pssonce psshot psscap pssnolog
 sqsystem sqput sqcaps sqbroken sqcorrupt sqbind sqbuttons sqgolden sqfuzz sqdowngrade
-alerton alertfire alertrate alertoff alerttimers
+alerton alertfire alertrate alertoff alertblock alerttimers
 qcmd qpipe csvquote pssio pssiobad reader
 covpass covfail covlist
 budgetfiles budgetcalls budgetcore budgetci

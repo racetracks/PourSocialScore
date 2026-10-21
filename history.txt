@@ -1,9 +1,44 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.134 - Spyglass pane fix and layout: one list per pane, top bar, collapsible panels, wider Message
+
+- Spyglass: a pane no longer keeps old rows under a new query; the search bar, time range, Run, Save and ? sit on one row at the top; both side panels are collapsible and the right one starts closed; the Message column gets at least 40 percent of the table.
+
+=> 3.8.0.133 - Spyglass readable reports: labels, report columns, summary header, Top values, row detail
+
+- Spyglass reports now read in plain words: column headers and values are named (Time, From, Type, Channel, Blocked by, Message), the header line says what is shown (for example "Events of <player> - newest 200"), Top values lists only useful values, and clicking a row opens an Event Details box.
+
+=> 3.8.0.132 - Spyglass fixes 2: time format, content-fit columns, time like on shown text
+
+- Spyglass: time cells show the full date with the year, table columns size to their content, and "time like" searches match the time as it is shown.
+
+=> 3.8.0.131 - Spyglass load fix: os is nil in the client
+
+- Fixes the Lua error at login in 3.8.0.130 (PSS_Pred.lua: attempt to index global 'os'); the date picker's "..." button had the same fault.
+
+=> 3.8.0.130 - Spyglass fixes: like on time, alerts on blocked lines, console layout
+
+- Spyglass: "time like" searches work, alerts now fire on blocked world-chat lines, the query view resizes with the window, Events starts blank until you search, and table columns size to their content.
+
+=> 3.8.0.129 - Phase B brought up to date with main
+
+- No addon changes since 3.8.0.127: the docs changes of 3.8.0.128 merged in; the Spyglass pre-release moves up one to 3.8.0.130.
+
 => 3.8.0.128 - Docs: scratch temp folders moved into dated folders
 
 - No addon changes: links in the docs point to the new dated session folders on scratch.
+=> 3.8.0.127 - Spyglass search fixes
+
+- Spyglass: the console fits its page, System searches fill in the selected player or item (never a $), only valid searches run, Events shows dates and blank cells, the status names the 2000-line history cap; What PSS did is now Items PSS sold or dropped.
+
+=> 3.8.0.126 - Spyglass console fixes
+
+- Spyglass: typed pipes work, the search bar shows its text, the left list scrolls, one Load history, pie slices of All open their rows.
+
+=> 3.8.0.125 - Spyglass console
+
+- Spyglass console (phase B): the Spyglass tab with a colour-coded search bar, time picker, charts, saved searches and charts, the Data dictionary page; View Events and pane histories open in Spyglass; the Events tab is replaced by Spyglass.
 
 => 3.8.0.124 - Ignore agent session files
 

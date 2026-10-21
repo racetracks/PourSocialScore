@@ -4,6 +4,7 @@
 --   M.PSS_SQ_SYSTEM       the system queries (code, never saved): { id, name, scope, q, view, owner }
 --   sq.list { scope }     id name scope flags query time broken (saved, then system)
 --   sq.get { id }  sq.put { id?, name, scope, query, time, flags } -> id  sq.del { id }  sq.system { scope }
+--   sq.chart.put { id?, queryId, kind, x, y, series, opts } -> id (the cap: nil, "cap: ...")  sq.chart.list { queryId? }  sq.chart.del { id }
 --   M.PSS_SqAlert(id, on) the alert flag: a matching line prints one chat line, at most once a minute
 -- Saved as PSS_OptionsDB.sqSaved = "1;<next id>\n" .. records, a record
 -- C.list({ id, name, scope, flags, query, time }, "\t"); caps 200 records,
@@ -35,7 +36,7 @@ M.PSS_SQ_SYSTEM = {
 	{ id = "log.byday", name = "Lines a day", scope = "player", q = "index=log owner=$owner | timechart span=1d count", view = "series", owner = "social-manager" },
 	{ id = "log.hours", name = "By weekday and hour", scope = "any", q = "index=log | stats count by weekday, hour", view = "matrix", owner = "social-manager" },
 	{ id = "filters.top", name = "Busiest chat filters", scope = "filter", q = "index=counts kind=filter type=total | sort -total | head 10", view = "table", owner = "social-manager" },
-	{ id = "log.cmp", name = "What PSS did", scope = "any", q = "index=log st=act.* | head 200", view = "events", owner = "search-helper" },
+	{ id = "log.cmp", name = "Items PSS sold or dropped", scope = "any", q = "index=log st=act.* | head 200", view = "events", owner = "search-helper" },
 	{ id = "pss.recent", name = "PSS's own lines", scope = "any", q = "index=pss | head 100", view = "events", owner = "search-helper" },
 	{ id = "wh.holders", name = "Who holds an item", scope = "any", q = "index=inv item=$item | stats sum(count) by ent", view = "table", owner = "warehouse-helper" },
 	{ id = "wh.gold", name = "Gold by holder", scope = "any", q = "index=gold | sort -copper", view = "table", owner = "money-helper" },
@@ -85,6 +86,7 @@ local function save()
 	storeRaw = s
 end
 
+local chartLoad, chartSave, chartNewer
 local broken = {}
 local function isBroken(q)
 	local b = broken[q]
@@ -159,6 +161,89 @@ M.PSS_Provide("sq.put", function(input)
 	return { cols = { "id" }, n = 1, { r.id } }
 end, { accepts = { "name", "scope", "query", "time", "flags" }, returns = { "id" }, doc = "saves a query (a new one or by id)", writes = true })
 
+------------------------------------------------------------------------
+-- Saved charts (STP-00256, SAV-00081): PSS_OptionsDB.sqCharts = "1;<next id>\n"
+-- .. records, a record C.list({ id, queryId, kind, x, y, series, opts }, "\t");
+-- opts a C.map; cap 100. A newer layout is kept and read as no charts.
+------------------------------------------------------------------------
+local CHART_CAP = 100
+CAP.charts = CHART_CAP
+local KINDS = { column = true, bar = true, line = true, area = true, donut = true, heat = true, number = true, table = true }
+local cstore, cstoreRaw
+local function chartRaw() return type(PourSocialScoreDB) == "table" and PourSocialScoreDB.sqCharts or nil end
+
+function chartLoad()
+	local s = chartRaw()
+	if cstore and cstoreRaw == s then return cstore end
+	cstore, cstoreRaw, chartNewer = { next = 1, list = {} }, s, false
+	if type(s) ~= "string" then return cstore end
+	local v, nextId, body = match(s, "^(%d+);(%d+)\n?(.*)$")
+	if not v then return cstore end
+	if tonumber(v) > 1 then chartNewer = true return cstore end
+	cstore.next = tonumber(nextId)
+	for line in gmatch(body, "[^\n]+") do
+		local f = C.unlist(line, "\t")
+		if #f == 7 and tonumber(f[1]) and tonumber(f[2]) then
+			cstore.list[#cstore.list + 1] = { id = tonumber(f[1]), queryId = tonumber(f[2]), kind = f[3], x = f[4], y = f[5], series = f[6], opts = C.unmap(f[7]) }
+		end
+	end
+	return cstore
+end
+
+function chartSave()
+	local out = { "1;" .. cstore.next }
+	for _, r in ipairs(cstore.list) do out[#out + 1] = C.list({ r.id, r.queryId, r.kind, r.x, r.y, r.series, C.map(r.opts or {}) }, "\t") end
+	local s = #cstore.list == 0 and cstore.next == 1 and nil or concat(out, "\n")
+	PourSocialScoreDB.sqCharts = s
+	cstoreRaw = s
+end
+
+local CCOLS = { "id", "queryId", "kind", "x", "y", "series", "opts" }
+
+M.PSS_Provide("sq.chart.put", function(input)
+	local cs = chartLoad()
+	if chartNewer then error("newer: the saved charts were written by a newer version and are kept as they are", 0) end
+	local id, qid, kind = tonumber(arg(input, "id")), tonumber(arg(input, "queryId")), arg(input, "kind")
+	if not qid or not find1(qid) then error("arg: no saved query " .. tostring(arg(input, "queryId")), 0) end
+	if not KINDS[kind] then error("arg: a chart kind is column, bar, line, area, donut, heat, number or table", 0) end
+	local x, y, series, opts = arg(input, "x") or "", arg(input, "y") or "", arg(input, "series") or "", arg(input, "opts")
+	if type(opts) ~= "table" then opts = {} end
+	local r
+	for _, c in ipairs(cs.list) do if c.id == id then r = c end end
+	if not r then
+		if #cs.list >= CHART_CAP then error("cap: at most " .. CHART_CAP .. " saved charts", 0) end
+		r = { id = cs.next }
+		cs.next = cs.next + 1
+		cs.list[#cs.list + 1] = r
+	end
+	r.queryId, r.kind, r.x, r.y, r.series, r.opts = qid, kind, tostring(x), tostring(y), tostring(series), opts
+	chartSave()
+	return { cols = { "id" }, n = 1, { r.id } }
+end, { accepts = { "id", "queryId", "kind", "x", "y", "series", "opts" }, returns = { "id" }, doc = "saves a chart of a saved query", writes = true })
+
+M.PSS_Provide("sq.chart.list", function(input)
+	local qid = tonumber(arg(input, "queryId"))
+	local out = { cols = CCOLS, n = 0 }
+	for _, r in ipairs(chartLoad().list) do
+		if not qid or r.queryId == qid then
+			out.n = out.n + 1
+			out[out.n] = { r.id, r.queryId, r.kind, r.x, r.y, r.series, r.opts }
+		end
+	end
+	return out
+end, { accepts = { "queryId" }, returns = CCOLS, doc = "the saved charts", writes = false, onError = "empty" })
+
+M.PSS_Provide("sq.chart.del", function(input)
+	local id = tonumber(arg(input, "id") or arg(input, "key"))
+	local cs, done = chartLoad(), false
+	if not chartNewer then
+		for i, r in ipairs(cs.list) do
+			if r.id == id then table.remove(cs.list, i); chartSave(); done = true break end
+		end
+	end
+	return { cols = { "id", "done" }, n = 1, { id, done } }
+end, { accepts = { "id" }, returns = { "id", "done" }, doc = "deletes a saved chart", writes = true })
+
 M.PSS_Provide("sq.del", function(input)
 	local id = tonumber(arg(input, "id") or arg(input, "key"))
 	local r, i = find1(id)
@@ -166,6 +251,9 @@ M.PSS_Provide("sq.del", function(input)
 		M.PSS_SqAlert(id, false)
 		table.remove(store.list, i)
 		save()
+		local cs, kept = chartLoad(), {}
+		for _, c in ipairs(cs.list) do if c.queryId ~= id then kept[#kept + 1] = c end end
+		if #kept ~= #cs.list and not chartNewer then cs.list = kept; chartSave() end
 	end
 	return { cols = { "id", "done" }, n = 1, { id, r ~= nil } }
 end, { accepts = { "id" }, returns = { "id", "done" }, doc = "deletes a saved query", writes = true })
@@ -241,7 +329,7 @@ M.PSS_IxDeclare({
 	name = "sq", kind = "state", owner = "search-helper", residency = 0,
 	fields = { { "st", "k", "sq.user or sq.system" }, { "id", "s", "the query id" }, { "name", "s", "its name" }, { "scope", "k", "where it is offered" },
 		{ "flags", "s", "h hidden, a alert, p pinned" }, { "query", "s", "the PSQL text" }, { "time", "s", "its time range" }, { "broken", "b", "no longer compiles" } },
-	pushdown = { "st" }, schemaKeys = { "options.sqSaved", "options.sqSavedBad" },
+	pushdown = { "st" }, schemaKeys = { "options.sqSaved", "options.sqSavedBad", "options.sqCharts" },
 	doc = "the saved and system queries",
 	newer = function() load() return newerKept end,
 	scan = function(pd, emit)

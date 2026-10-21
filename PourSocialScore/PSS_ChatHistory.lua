@@ -684,7 +684,10 @@ function History.Add(owner, counts, entry, ruleTag)
 	end
 	History.CountRecent(owner, entry.ts, entry.cat)
 	-- Event Logging off: counted, but the line is not kept (issue 181)
-	return Store(entry)
+	Store(entry)
+	-- the Spyglass log sees a kept line at once (I5, cause A)
+	if M.PSS_IxPut and M.PSS_On("logging") then M.PSS_IxPut("log", "act." .. entry.cat, { time = GetServerTime(), event = entry.event, label = entry.channel, message = entry.message }) end
+	return entry
 end
 
 -- An act of PSS Drop Cheapest Thing (money-helper, DEC-00122): one line,

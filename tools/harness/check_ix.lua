@@ -355,7 +355,7 @@ PH.segcost = function()
 	local enc = {}
 	for i = 1, 20000 do enc[i] = L.encode("tst.x", { time = 1000 + i, v = i }, 1000) end
 	local us = math.huge
-	for _ = 1, 5 do		-- the best of five: a loaded machine slows a run, never speeds it up
+	for _ = 1, 15 do		-- the best of fifteen: a loaded machine slows a run, never speeds it up
 		_G.PSS_TestSegDB.s = nil
 		local t0 = os.clock()
 		for i = 1, 20000 do s:append(enc[i], 1000 + i) end
@@ -369,7 +369,7 @@ PH.segcost = function()
 	for _ = 1, 100 do dropped = dropped + s:trim() end
 	local ms = (os.clock() - t0) * 1000 / 100
 	check(ms < 0.5, string.format("a trim %.3f ms", ms))
-	print(string.format("NOTE ix segcost: append %.2f us, trim %.4f ms", us, ms))
+	print(string.format("NOTE ix segcost: append %.2f us (best of 15), trim %.4f ms", us, ms))
 end
 PH.segfuzz = function()
 	local r = rng(913)
@@ -1757,6 +1757,31 @@ PH.alertoff = function()
 	M.PSS_Signal = real
 	check(sig == 0 and #said == 0, "no signal, no line")
 end
+PH.alertblock = function()
+	-- B1a (I5, CHK-00150 step 6): a blocked world-channel line must raise the Spyglass alert; fails on 12bdcf9
+	M.PSS_LoadLogging()
+	capture()
+	local P1 = "Spammer-Realm"
+	M.PSS_AddIgnore(P1, true)
+	local id = put({ name = "World", query = "index=log cat=world | stats count by owner | chart bar", flags = "a" })[1][1]
+	check(M.PSS_SqAlerts[id] and M.PSS_IxWaiting.log, "B1a-0 armed on log")
+	local t0 = GetServerTime()
+	H.SetTime(t0 + 5)
+	local p0 = M.PSS_IxStats.put
+	local hit = M.PSS_CoreFilter(nil, "CHAT_MSG_CHANNEL", "WTS gold cheap", P1, "", "2. Trade", "", "", 2, 2, "Trade", 0, 970001, nil)
+	check(hit == true, "B1a-pre the world line was blocked")
+	H.RunTimers()
+	check(M.PSS_IxStats.put > p0, "B1a-A the block path puts a log line, put " .. p0 .. " -> " .. M.PSS_IxStats.put)
+	local hot = M.PSS_IxHot("log")
+	local last = hot and hot[#hot]
+	local lt = type(last) == "string" and tonumber(last:match("^(%d+)\t")) or nil
+	check(type(lt) == "number" and math.abs(GetServerTime() - lt) <= 2, "B1a-B newest hot log line time " .. tostring(lt) .. " vs now " .. GetServerTime())
+	local set = S("index=log cat=world", { from = t0, load = false })
+	check(set and set.n >= 1, "B1a-C hot search finds the line, n " .. tostring(set and set.n))
+	local n = 0
+	for _, s in ipairs(said) do if s:find("Spyglass alert") and s:find("World") then n = n + 1 end end
+	check(n == 1, "B1a-D one Spyglass alert World line, got " .. n)
+end
 PH.alerttimers = function()
 	local h = io.popen("lua5.1 tools/check_timers.lua 2>&1; echo EXIT $?")
 	local out = h:read("*a")
@@ -2157,6 +2182,122 @@ PH.lazycost = function()
 	local B = dofile(here .. "/bus_budgets.lua")
 	check(build <= B.us.namebuild.gate / 1000 and look <= 0.05, string.format("build %.1f ms, lookup %.4f ms", build, look))
 	print(string.format("NOTE ix lazycost: name index build %.1f ms (5,011 items), lookup %.4f ms", build, look))
+end
+
+------------------------------------------------------------------------
+-- B1: the like word operator and time like (fields spec 9.1)
+------------------------------------------------------------------------
+local function plantFixed()
+	local log = logLoaded()
+	for i = #log, 1, -1 do log[i] = nil end
+	local rows = { { utc(2024, 12, 31, 23, 59, 59), "selling gold cheap" }, { utc(2025, 2, 3, 18, 30, 5), "GOLD sellers here" }, { utc(2026, 10, 19, 21, 3, 0), "hello there" } }
+	for i, r in ipairs(rows) do
+		local e = History.NewEntry("whisper", "CHAT_MSG_WHISPER", r[2], "Trade", nil)
+		e.ts = r[1]
+		e.o = "p:Owner1-Realm"
+		log[#log + 1] = e
+	end
+end
+local function nrows(q)
+	local set, e = S(q, { load = true })
+	check(set ~= nil, q .. " raised " .. tostring(e and e.msg))
+	return set and set.n or -1
+end
+PH.timelike = function()
+	plantFixed()
+	for _, c in ipairs({ { "index=log time like 20", 3 }, { "index=log time like 2025", 1 }, { "index=log time like 2025-02", 1 }, { "index=log time=2025*", 1 },
+		{ "index=log not time like 2025", 2 }, { "index=log time like 1792", 0 } }) do
+		local n = nrows(c[1])
+		check(n == c[2], c[1] .. ": " .. n .. " rows, wanted " .. c[2])
+	end
+end
+PH.timelike2 = function()
+	local log = logLoaded()
+	for i = #log, 1, -1 do log[i] = nil end
+	for _, t in ipairs({ { 2026, 10, 21, 2, 59 }, { 2026, 10, 19, 21, 3 }, { 2026, 9, 5, 10, 10 } }) do
+		local e = History.NewEntry("whisper", "CHAT_MSG_WHISPER", "x", "Trade", nil)
+		e.ts = os.time({ year = t[1], month = t[2], day = t[3], hour = t[4], min = t[5], sec = 0 })
+		e.o = "p:Owner1-Realm"
+		log[#log + 1] = e
+	end
+	for _, c in ipairs({ { "time like 21", 2 }, { "time like oct", 2 }, { "time like OCT", 2 }, { 'time like "21 oct"', 1 }, { "time like sep", 1 },
+		{ "not time like 21", 1 }, { "time like 2026", 3 }, { "time like 202610", 2 }, { "time like 20261021*", 1 } }) do
+		local n = nrows("index=log " .. c[1])
+		check(n == c[2], c[1] .. ": " .. n .. " rows, wanted " .. c[2])
+	end
+end
+PH.likeword = function()
+	plantFixed()
+	local a, b = nrows("index=log message like gold"), nrows("index=log message=*gold*")
+	check(a == 2 and a == b, "message like gold: " .. a .. " rows, wanted 2 (as message=*gold*: " .. b .. ")")
+	a, b = nrows('index=log message LIKE "go*d"'), nrows('index=log message="go*d"')
+	check(a == b, 'message LIKE "go*d": ' .. a .. " rows, as message=\"go*d\": " .. b)
+end
+
+local function plain(s) return (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
+PH.money = function()
+	local F = M.PSS_Fields
+	for _, c in ipairs({ { 0, "0c" }, { 9199, "91s 99c" }, { 123456789, "12,345g 67s 89c" }, { -150, "-1s 50c" }, { 12300, "1g 23s" }, { 10000, "1g" } }) do
+		local got = plain(F.money(c[1]))
+		check(got == c[2], "money(" .. c[1] .. ") = " .. got .. ", wanted " .. c[2])
+	end
+	check(F.money(9199):find("|cffc7c7cf91s|r", 1, true) and F.money(9199):find("|cffeda55f99c|r", 1, true), "coin colours")
+	for _, c in ipairs({ { "12g50s", 125000 }, { "1,000g", 10000000 }, { "75", 75 }, { "5x", false }, { "", false } }) do
+		local got = F.moneyParse(c[1])
+		check(got == (c[2] or nil), "moneyParse(" .. c[1] .. ") = " .. tostring(got))
+	end
+	for _, bad in ipairs({ false, {} }) do
+		check(F.money(bad) == "" and F.moneyParse(bad) == nil and F.splitName(bad) == nil, "empty input " .. tostring(bad))
+	end
+	check(F.money(nil) == "" and F.moneyParse(nil) == nil and F.splitName(nil) == nil, "nil input")
+end
+PH.labels = function()
+	for _, c in ipairs({ { "st", "Action" }, { "owner", "Blocked by" }, { "member", "From" }, { "xyz", "xyz" }, { nil, "" } }) do
+		local got = M.PSS_FieldLabel(c[1])
+		check(got == c[2], "label of " .. tostring(c[1]) .. " = " .. tostring(got))
+	end
+	check(M.PSS_FieldLabel(false) == "false" and M.PSS_FieldLabel(5) == "5", "non-string")
+	check(M.PSS_INDEX_LABELS.log == "Chat log" and M.PSS_INDEX_LABELS.gold == "Gold", "index labels")
+end
+local function plantEnts()
+	local a = M.PSS_EntityId("c", "Thrall", M.PSS_Fields.myRealm(), true)
+	local b = M.PSS_EntityId("c", "Jaina", "Silvermoon", true)
+	return a, b
+end
+PH.showlog = function()
+	local F = M.PSS_Fields
+	local db = PourSocialScoreDB
+	db.filterList = db.filterList or {}
+	db.filterID = db.filterID or {}
+	local fi = #db.filterList + 1
+	db.filterList[fi], db.filterID[fi] = "gold sellers", "PSS0010"
+	local key = M.PSS_FilterOwnerKey(fi)
+	for _, c in ipairs({ { "k", "guildChat", "cat", "Guild chat" }, { "k", "partyInvite", "cat", "Party invite" }, { "k", "foo", "cat", "Foo" },
+		{ "s", "CHAT_MSG_CHANNEL", "event", "Channel chat" }, { "s", "CHAT_MSG_BN_WHISPER", "event", "Battle.net whisper" }, { "s", "FOO_BAR", "event", "Foo bar" },
+		{ "d", key, "owner", "Filter: gold sellers" }, { "e", 0, "ent", "" }, { "k", "chat.block", "st", "Chat block" }, { "k", "act.dtt", "st", "Drop Cheapest Thing" },
+		{ "d", "Channel", "channel", "" }, { "d", "Trade", "channel", "Trade" }, { "s", "Thrall-" .. F.myRealm(), "member", "Thrall" }, { "s", "Thrall-Elsewhere", "member", "Thrall-Elsewhere" } }) do
+		local got = M.PSS_CellText(c[3], c[2], c[1])
+		check(got == c[4], c[3] .. " " .. tostring(c[2]) .. " shown as " .. got .. ", wanted " .. c[4])
+	end
+end
+PH.cellshow = function()
+	local F = M.PSS_Fields
+	local a, b = plantEnts()
+	local t = utc(2026, 10, 19, 21, 3, 0)
+	for _, c in ipairs({ { "time", t, "t", "19 Oct 2026 21:03" }, { "time", 0, "t", "" }, { "copper", 9199, "c", "91s 99c" }, { "copper", 0, "c", "0c" },
+		{ "ent", a, "e", "Thrall" }, { "ent", b, "e", "Jaina-Silvermoon" }, { "ent", 987654, "e", "#987654" }, { "item", 5336, "i", "Item 5336" },
+		{ "who", "p:thrall-" .. F.myRealm():lower(), "d", "Thrall" }, { "owner", "p:thrall-" .. F.myRealm():lower(), "d", "Player: Thrall" }, { "owner", "f:PSS0099", "d", "Filter: PSS0099" }, { "x", "raw", "s", "raw" }, { "x", 7, "n", "7" } }) do
+		local got = plain(M.PSS_CellText(c[1], c[2], c[3]))
+		if c[3] == "i" then check(got:find("5336"), "item text " .. got) else check(got == c[4], c[1] .. " " .. tostring(c[2]) .. " shown as " .. got .. ", wanted " .. c[4]) end
+	end
+	check(M.PSS_CellText("x", "raw") == "raw" and M.PSS_CellText("time", t) == "19 Oct 2026 21:03", "nil kind keeps today's text")
+	secrets()
+	check(M.PSS_CellText("copper", secret("s1"), "c") == "", "a secret shows nothing")
+	noSecrets()
+	for _, bad in ipairs({ false, {}, "" }) do
+		check(pcall(F.show, "e", bad, "ent") and pcall(F.show, bad, bad, bad) and pcall(F.show, nil, nil, nil), "empty input " .. tostring(bad))
+	end
+	check(F.show(nil, nil, nil) == "" and F.show("c", nil, "copper") == "", "nil value")
 end
 
 ------------------------------------------------------------------------

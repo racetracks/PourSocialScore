@@ -142,6 +142,19 @@ for _, skin in ipairs({ 2, 0, 1 }) do
 	for i = 1, #(win and win.tabs or {}) do
 		step(look .. " tab " .. i, function() click(win.tabs[i]) end)
 	end
+	local ci = TAB("console")
+	if ci then
+		local function pgc() return win.pages[ci] end
+		step(look .. " console", function() click(win.tabs[ci]) end)
+		step(look .. " console typed", function()
+			pgc().bar:SetText("index=log | stats count by cat")
+			local f = pgc().bar:GetScript("OnEnterPressed")
+			if f then f(pgc().bar) end
+		end)
+		step(look .. " console chart", function() pgc().selectTab("chart") end)
+		step(look .. " console help", function() pgc().toggleHelp() end)
+		step(look .. " console help closed", function() pgc().navClose() end)
+	end
 	for i = 1, 3 do
 		step(look .. " list tab " .. i, function() click(win.tabs[i]) end)
 		local page = win.pages[i]
@@ -238,7 +251,7 @@ for _, skin in ipairs({ 2, 0, 1 }) do
 		ui.Confirm({ title = "Disable All AddOns?", text = "Tour disable all", accept = "Disable All" })
 	end)
 	step(look .. " addons disable all closed", function() _G.PSS_Confirm:Hide() end)
-	step(look .. " events", function() click(win.tabs[TAB("events")]) end)
+	step(look .. " console", function() click(win.tabs[TAB("console")]) end)
 	step(look .. " close", function() win:Hide() end)
 end
 

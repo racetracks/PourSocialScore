@@ -117,7 +117,18 @@ end
 function W:GetShadowOffset() return 1, -1 end
 function W:GetShadowColor() return 0, 0, 0, 1 end
 function W:IsPlaying() return false end
-function W:SetText(t) self._text = t == nil and "" or tostring(t) end
+function W:SetText(t)
+	self._text = t == nil and "" or tostring(t)
+	-- as the client: an EditBox reports a text change at once (programmatic, userInput false)
+	if self._kind == "EditBox" then
+		local h = self._scripts.OnTextChanged
+		if h then h(self, false) end
+	end
+end
+function W:SetClipsChildren(b) self._clips = b and true or false end
+function W:GetClipsChildren() return self._clips == true end
+function W:EnableMouseWheel(b) self._wheel = b and true or false end
+function W:IsMouseWheelEnabled() return self._wheel == true end
 function W:SetColorTexture(r, g, b, a) self._color = { r, g, b, a } end
 function W:GetText() return self._text end
 function W:SetFormattedText(fmt, ...) self._text = string.format(fmt, ...) end
@@ -190,6 +201,8 @@ function W:GetID() return self._id or 0 end
 function W:SetID(i) self._id = i end
 -- a check sets f._focus to give a box the keyboard
 function W:HasFocus() return self._focus or false end
+function W:SetFocus() end
+function W:ClearFocus() end
 function W:Insert(t) self._text = (self._text or "") .. tostring(t or "") end
 function W:GetCursorPosition() return 0 end
 function W:GetVerticalScroll() return self._vscroll or 0 end

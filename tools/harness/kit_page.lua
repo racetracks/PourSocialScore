@@ -138,7 +138,7 @@ function ns.BuildKitPage(win)
 	local menus = ns.BuildKitMenus(pages[3])
 	Select(1)
 
-	win.kit = { tabs = tabs, pages = pages, page = page, lists = lists, menus = menus, buttons = { b1, b2, b3 }, checks = { c1, c2 }, boxes = { e1, n1, s1, h1 }, itemList = il, moneyLine = ml, textArea = ta, allowed = allowed, line = line, label = lbl, scroll = sf, tipOwner = hit }
+	win.kit = { tabs = tabs, pages = pages, page = page, lists = lists, menus = menus, buttons = { b1, b2, b3 }, checks = { c1, c2 }, boxes = { e1, n1, s1, h1 }, itemList = il, moneyLine = ml, chart = lists.chart, textArea = ta, allowed = allowed, line = line, label = lbl, scroll = sf, tipOwner = hit }
 end
 
 -- Page 2: a sortable list of 200 sample entries and a pie
@@ -186,13 +186,21 @@ function ns.BuildKitLists(page)
 		{ value = 25, r = 0.58, g = 0.46, b = 0.80, text = "Earlier" },
 	})
 	pie.tip = function(i) return ({ "This session", "Last 24 hours", "Earlier" })[i] end
+	local chart = ns.NewChart(page, 300, 140)
+	chart:SetPoint("TOPLEFT", pie.frame, "BOTTOMLEFT", -20, -12)
+	local crow = {}
+	for i = 1, 5 do crow[i] = { string.char(96 + i), i } end
+	local cset = ns.M.PSS_Set({ "k", "v" })
+	for i, r in ipairs(crow) do cset[i] = r end
+	cset.n = 5
+	chart:Draw(cset, { kind = "column" })
 	local note = ns.NewText(page, 11)
-	note:SetPoint("TOPLEFT", pie.frame, "BOTTOMLEFT", -20, -12)
+	note:SetPoint("TOPLEFT", chart, "BOTTOMLEFT", 0, -12)
 	note:SetWidth(240)
 	note:SetWordWrap(true)
 	note:SetTextColor(1, 1, 1, 0.7)
 	note:SetText("Hover a slice: the others dim and its count shows. The last 24 hours lights this session too.")
-	return { list = list, data = data, pie = pie }
+	return { list = list, data = data, pie = pie, chart = chart }
 end
 
 -- Page 3: drop-downs, a right-click menu and the three popups

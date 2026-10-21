@@ -496,16 +496,16 @@ function phases.options()
 	ChatFrameUtil.InsertLink = function() return false end
 	SlashCmdList["PSS"]("gui")
 	local win = _G.PSS_Window
-	win.tabs[4]._scripts.OnClick(win.tabs[4])
+	win.tabs[M.PSS_UITabIndex("addons")]._scripts.OnClick(win.tabs[M.PSS_UITabIndex("addons")])
 	local ui = H.Private("PourSocialScore_GUI")
-	local nav = win.pages[4].nav
+	local nav = win.pages[M.PSS_UITabIndex("addons")].nav
 	local rows = M.PSS_MgrNav()
 	local heads = {}
 	for _, r in ipairs(rows) do if r.head then heads[#heads + 1] = r.head end end
 	check(table.concat(heads, ",") == "Global Settings,Social Services,Feature Options,Options", "nav headings " .. table.concat(heads, ","))
 	check(M.PSS_MgrHas("dtt") and M.PSS_MgrRow("dtt").text == "Drop The Cheapest Thing", "nav entry")
 	ui.ManagerShow("dtt")
-	local pg = win.pages[4].pages.dtt
+	local pg = win.pages[M.PSS_UITabIndex("addons")].pages.dtt
 	check(pg and pg:IsShown() and pg.groups and #pg.groups == 1, "the page is not built")
 	local g = pg.groups[1]
 	check(g.title == "Drop The Cheapest Thing" and g.groupHeading and g.groupHeading:IsShown(), "title or group heading")
@@ -551,9 +551,9 @@ function phases.options()
 		check(g.off and g.off:find("Turn on PSS Drop Cheapest Thing") and g.offNote:IsShown() and not g.items[1].row, "disabled note or rows")
 	end
 	-- Optional Features holds the switch
-	local f = win.pages[4].pages.features
+	local f = win.pages[M.PSS_UITabIndex("addons")].pages.features
 	ui.ManagerShow("features")
-	f = win.pages[4].pages.features
+	f = win.pages[M.PSS_UITabIndex("addons")].pages.features
 	local found
 	for _, gg in ipairs(f.groups) do for _, it in ipairs(gg.items) do if it.o.key == "useDtt" then found = it.row end end end
 	check(found and found.check, "no switch on Optional Features")
@@ -607,12 +607,12 @@ function phases.refresh()
 	ChatFrameUtil.InsertLink = function() return false end
 	SlashCmdList["PSS"]("gui")
 	local win = _G.PSS_Window
-	win.tabs[4]._scripts.OnClick(win.tabs[4])
+	win.tabs[M.PSS_UITabIndex("addons")]._scripts.OnClick(win.tabs[M.PSS_UITabIndex("addons")])
 	local ui = H.Private("PourSocialScore_GUI")
 	-- every nav entry that draws options (a section page, Optional Features, All Options)
 	for _, key in ipairs({ "features", "options", "dtt" }) do
 		ui.ManagerShow(key)
-		local pg = win.pages[4].pages[key]
+		local pg = win.pages[M.PSS_UITabIndex("addons")].pages[key]
 		check(pg and pg:IsShown() and pg.groups, key .. ": page not built")
 		local calls = 0
 		local old = pg.refresh
@@ -624,7 +624,7 @@ function phases.refresh()
 	end
 	-- two lists, one focused: only that one takes the link; none focused: nothing
 	ui.ManagerShow("dtt")
-	local g = win.pages[4].pages.dtt.groups[1]
+	local g = win.pages[M.PSS_UITabIndex("addons")].pages.dtt.groups[1]
 	local la, lb = g.items[#g.items - 1].row.itemlist, g.items[#g.items].row.itemlist
 	lb.box._focus = true
 	ChatFrameUtil.InsertLink("|Hitem:9001::::|h[A]|h")

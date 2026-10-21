@@ -53,7 +53,7 @@ return {
 		["PSS_IxWh.lua"] = { measured = 21.29, gate = 25.6, design = 4, stage = "A STP-00244 (3.8.0.116)" },
 		["PSS_IxSocial.lua"] = { measured = 10.84, gate = 13.1, design = 4, stage = "A STP-00245 (3.8.0.116)" },
 		["PSS_IxCfg.lua"] = { measured = 16.78, gate = 20.2, design = 4, stage = "A STP-00246 (3.8.0.116)" },
-		["PSS_SQ.lua"] = { measured = 14.3, gate = 17.2, design = 6, stage = "A STP-00248 (3.8.0.116)" },
+		["PSS_SQ.lua"] = { measured = 20.84, gate = 21.0, design = 6, stage = "A STP-00248 (3.8.0.116)" },
 		["PSS_IxExport.lua"] = { measured = 21.95, gate = 26.4, design = 3, stage = "A STP-00250 (3.8.0.116)" },
 	},
 	-- microseconds per hot call

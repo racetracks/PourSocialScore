@@ -22,6 +22,7 @@ local M = addon.M
 
 local type, tonumber, tostring, pairs, ipairs, next, pcall, error, setmetatable = type, tonumber, tostring, pairs, ipairs, next, pcall, error, setmetatable
 local find, lower, gsub, match = string.find, string.lower, string.gsub, string.match
+local date = date or os.date
 
 local P = {}
 M.PSS_Pred = P
@@ -83,6 +84,17 @@ local function likePattern(v)
 	return "^" .. p .. "$"
 end
 P.likePattern = likePattern
+
+-- like on a time field: "stamp", pattern (digits of the stamp yyyymmddhhmmss, a prefix) or "text", needle (the shown text)
+function P.timeLike(value)
+	local v = tostring(value)
+	local bare = gsub(v, "[%-:/ Tt]", "")
+	local star = find(bare, "*", 1, true)
+	if star or (#bare >= 4 and find(bare, "^%d+$")) then
+		return "stamp", likePattern(star and bare or (bare .. "*"))
+	end
+	return "text", lower((gsub(v, "^%s+", "")):gsub("%s+$", ""))
+end
 
 local compile
 
@@ -158,8 +170,26 @@ function compile(node, F, key)
 		return cmpNode(node, F, key)
 	elseif k == "like" then
 		if not F.kind(node.field) then fail(node, "field", "unknown field " .. tostring(node.field)) end
-		local pat, fk = likePattern(node.value), key(node.field)
+		local fk = key(node.field)
 		local neg = node.op == "!="
+		if F.kind(node.field) == "t" then		-- a time stamp yyyymmddhhmmss: the raw seconds never match
+			local mode, tpat = P.timeLike(node.value)
+			local memoMin, memoText
+			return function(r)
+				local x = tonumber(r[fk])
+				local hit = false
+				if x ~= nil and mode == "stamp" then
+					hit = find(date("%Y%m%d%H%M%S", x), tpat) ~= nil
+				elseif x ~= nil then
+					local mn = math.floor(x / 60)
+					if mn ~= memoMin then memoMin, memoText = mn, lower(date(M.PSS_TIME_SHOW, x)) end
+					hit = find(memoText, tpat, 1, true) ~= nil
+				end
+				if neg then return not hit end
+				return hit
+			end
+		end
+		local pat = likePattern(node.value)
 		return function(r) local x = r[fk]; local hit = x ~= nil and find(lower(tostring(x)), pat) ~= nil; if neg then return not hit end return hit end
 	elseif k == "text" then
 		local w = lower(tostring(node.value))
