@@ -264,7 +264,7 @@ end
 
 ------------------------------------------------------------------------
 -- Console tab model (STP-00255): highlight, sidebar, row actions, left list, help
---   M.PSS_ConsoleModel() -> cm   cm:Tokens, Sidebar, Fields, ChartKinds, RowActions, LeftRows, SetText
+--   M.PSS_ConsoleModel() -> cm   cm:Tokens, Fields, ChartKinds, RowActions, LeftRows, SetText
 --   CV.colorize(text, toks, hexFn)  CV.term(field, value)  CV.addTerm(text, term)
 --   M.PSS_DictPageModel(index, field)  CV.HELP  M.PSS_BUTTON_QUERIES  M.PSS_DeepDiveText(keyOrText, ctx)
 ------------------------------------------------------------------------
@@ -326,7 +326,6 @@ function CV.addTerm(text, term)
 end
 
 local KIND_ORDER = { "column", "line", "area", "bar", "donut", "heat", "number", "table" }
-local SKIPCOL = { time = true, ts = true, message = true, label = true }
 
 local CM = {}
 CM.__index = CM
@@ -376,28 +375,6 @@ function CM:Tokens(text)
 		err = type(e) == "table" and { pos = e.pos or 1, msg = tostring(e.msg) } or { pos = 1, msg = tostring(e) }
 	end
 	return toks, err
-end
-
-function CM:Sidebar(set)
-	local out = {}
-	if not set or (set.n or 0) == 0 then return out end
-	for _, col in ipairs(set.cols or {}) do
-		if #out >= 8 then break end
-		if not SKIPCOL[col] then
-			local top = M.PSS_Call("q.top", set, { field = col, n = 5 })
-			local rows, any = {}, false
-			local tn = top and top.n or 0
-			local kind = (M.PSS_SetKinds(set) or {})[col]
-			for i = 1, tn do
-				local v = top[i][1]
-				if v ~= nil and v ~= "" then any = true end
-				rows[i] = { v, top[i][2], M.PSS_CellText(col, v, kind) }
-			end
-			local one = tn == 1 and top[1][2] >= set.n		-- one value covers every row
-			if any and not one then out[#out + 1] = { field = col, label = M.PSS_FieldLabel(col), rows = rows } end
-		end
-	end
-	return out
 end
 
 -- the Fields panel (F135a): the set's columns in order, then its virtual fields; each with its distinct count and

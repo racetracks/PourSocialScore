@@ -582,7 +582,6 @@ PH.conmodel = function()
 	local rows, heads = cm:LeftRows(), {}
 	for _, x in ipairs(rows) do if x.head then heads[#heads + 1] = x.head end end
 	check(table.concat(heads, ",") == "System,Mine,Sources,Data dictionary", "four groups: " .. table.concat(heads, ","))
-	check(next(cm:Sidebar(set({ "a" }, {}))) == nil, "empty sidebar")
 	check(#CV.HELP == 16, "16 help rows")
 	for i, h in ipairs(CV.HELP) do
 		local ok, e = pcall(M.PSS_Psql.parse, h[1])
@@ -590,8 +589,6 @@ PH.conmodel = function()
 	end
 	local kinds = cm:ChartKinds("series")
 	check(table.concat(kinds, ",") == "column,line,area,table", "series kinds " .. table.concat(kinds, ","))
-	local s = cm:Sidebar(set({ "owner", "n", "time" }, { { "a", 1, 5 }, { "a", 2, 6 }, { "b", 3, 7 } }))
-	check(#s == 2 and s[1].field == "owner" and s[1].rows[1][1] == "a" and s[1].rows[1][2] == 2, "sidebar owner top")
 end
 
 
