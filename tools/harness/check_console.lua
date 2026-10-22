@@ -1782,8 +1782,8 @@ PH.summary = function()
 	local q1 = 'index=log owner="p:lunarian moonwall-classicbetapvp" | sort -time | head 200'
 	check(S(q1, "Lunarian Moonwall", "Last 24 hours") == "newest 200 \194\183 Last 24 hours", "bound: " .. tostring(S(q1, "Lunarian Moonwall", "Last 24 hours")))
 	check(S("index=log | head 5") == "first 5", "first: " .. tostring(S("index=log | head 5")))
-	check(S("index=log | stats count by cat") == "count by Type", "count by: " .. tostring(S("index=log | stats count by cat")))
-	check(S("index=log cat=world | dedup cat") == "Type: World chat + more", "more: " .. tostring(S("index=log cat=world | dedup cat")))
+	check(S("index=log | stats count by cat") == "count by cat", "count by: " .. tostring(S("index=log | stats count by cat")))
+	check(S("index=log cat=world | dedup cat") == "cat=world + more", "more: " .. tostring(S("index=log cat=world | dedup cat")))
 	check(S("index=log NOT (cat=whisper OR cat=world) | head 3") == "without Whisper, World chat \194\183 first 3", "without: " .. tostring(S("index=log NOT (cat=whisper OR cat=world) | head 3")))
 	check(S("index=log | timechart span=1d count") == "count per day", "per day: " .. tostring(S("index=log | timechart span=1d count")))
 	check(S("bad (") == "Custom search", "bad: " .. tostring(S("bad (")))
@@ -1795,6 +1795,75 @@ PH.summary = function()
 	local h = pg.header and pg.header:GetText() or ""
 	check(h:find("^Events of ") and h:find("newest 200", 1, true) and h:find("Last 24 hours", 1, true), "header: " .. h)
 	check(not h:find("index=", 1, true), "header holds raw search: " .. h)
+end
+
+PH.fieldspanel = function()
+	local cm = M.PSS_ConsoleModel()
+	local cols, rows = {}, {}
+	for c = 1, 31 do cols[c] = "c" .. c end
+	for r = 1, 4 do
+		local row = {}
+		for c = 1, 31 do row[c] = c == 5 and "same" or ("v" .. c .. "_" .. r) end
+		rows[r] = row
+	end
+	local f = cm:Fields(set(cols, rows))
+	check(#f.fields == 30 and f.more == 1, "cap: " .. #f.fields .. " more " .. f.more)
+	check(f.fields[5].name == "c5" and f.fields[5].one == true and f.fields[4].one == false, "one-value field kept")
+	for i = 1, 30 do check(f.fields[i].name == cols[i], "order " .. i) end
+	local s = set({ "cat", "member" }, { { "world", "a" }, { "world", "b" } })
+	s.vfields = { "server", "sender", "filter" }
+	local ok = pcall(cm.Fields, cm, s)
+	check(ok, "virtual fields do not raise")
+	local g = cm:Fields(s)
+	check(g.fields[1].name == "cat" and g.fields[2].name == "member", "columns first")
+	local last = 2
+	for i = 3, #g.fields do
+		check(g.fields[i].name > g.fields[i - 1].name or i == 3, "virtuals alphabetical")
+		last = i
+	end
+	local pg = openCon()
+	plantLog(10)
+	pg.bar:SetText("index=log | head 10")
+	pg.run(true)
+	local ls = pg.qv.vm.set
+	local lf = cm:Fields(ls)
+	local nm = {}
+	for _, x in ipairs(lf.fields) do nm[#nm + 1] = x.name end
+	nm = "," .. table.concat(nm, ",")
+	check(nm:find(",sender,server$") ~= nil, "log virtuals last: " .. nm)
+	for _, bad in ipairs({ false, {} }) do
+		local e = cm:Fields(bad)
+		check(#e.fields == 0 and e.more == 0, "empty input")
+	end
+	local e = cm:Fields(nil)
+	check(#e.fields == 0 and e.more == 0, "nil input")
+end
+
+PH.fieldstop = function()
+	local cm = M.PSS_ConsoleModel()
+	local vals, rows = { "a", "b", "c", "d", "e", "f" }, {}
+	local counts = { 5, 5, 3, 2, 1, 1 }
+	for i, c in ipairs(counts) do for _ = 1, c do rows[#rows + 1] = { vals[i] } end end
+	check(#rows == 17, "17 rows")
+	local f = cm:Fields(set({ "member" }, rows), "member").fields[1]
+	check(f.top and #f.top == 5, "5 rows")
+	check(f.top[1].raw == "a" and f.top[2].raw == "b" and f.top[3].raw == "c", "ties by text")
+	check(f.top[1].pct == 29.4, "pct " .. tostring(f.top[1].pct))
+	check(cm:Fields(set({ "member" }, rows)).fields[1].top == nil, "closed field has no top")
+end
+
+PH.rowraw = function()
+	local cm = M.PSS_ConsoleModel()
+	local s = set({ "owner", "message" }, { { "p:thrall", "hi" } })
+	local d = cm:RowDetail(s, 1)
+	check(d[1].field == "owner" and d[2].field == "message", "raw names")
+	check(d[1].raw == "p:thrall" and d[1].value:find("^p:thrall"), "raw value " .. tostring(d[1].value))
+	check(d[1].dim == nil or d[1].dim ~= "p:thrall", "dim differs")
+end
+
+PH.sumraw = function()
+	local t = M.PSS_QuerySummary("index=log | stats count by cat")
+	check(t:find("count by cat", 1, true) and not t:find("Type", 1, true), "summary " .. tostring(t))
 end
 
 PH.reportmode = function()
@@ -1880,7 +1949,7 @@ PH.rowdetail = function()
 	ui.ContextMenu = orig
 	d = _G.PSS_RowDetail
 	if not check(d and d:IsShown(), "box not shown on left click") then M.PSS_IsSecret = real return end
-	check(d.list.count == #set.cols, "rows " .. tostring(d.list.count) .. " vs " .. #set.cols)
+	check(d.list.count == #set.cols + #(set.vfields or {}), "rows " .. tostring(d.list.count) .. " vs " .. #set.cols)
 	d.list:Redraw()
 	local function cellOf(k)
 		local c = { field = {}, value = {} }
@@ -1888,12 +1957,12 @@ PH.rowdetail = function()
 		d.list.spec.draw({ cells = c }, k)
 		return c.field.t, c.value.t
 	end
-	check(cellOf(1) == "Time", "first field: " .. tostring(cellOf(1)))
+	check(cellOf(1) == "time", "first field: " .. tostring(cellOf(1)))
 	local stc = M.PSS_SetCol(set, "st")
 	if check(stc, "no st column") then
 		local f, v = cellOf(stc)
-		check(f == M.PSS_FieldLabel("st"), "st label: " .. tostring(f))
-		check(v == M.PSS_CellText("st", set[1][stc], M.PSS_SetKinds(set).st) and v == "Chat block", "st value: " .. tostring(v))
+		check(f == "st", "st raw name: " .. tostring(f))
+		check(v:find(tostring(set[1][stc]), 1, true) == 1 and v:find("Chat block", 1, true), "st value: " .. tostring(v))
 	end
 	-- a secret cell shows ""
 	local secSet = { n = 1, cols = { "message" }, kinds = {}, { sec } }
