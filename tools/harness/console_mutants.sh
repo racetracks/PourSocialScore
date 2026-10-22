@@ -48,7 +48,7 @@ show-no-year|PourSocialScore_Libraries/PSS_Bus.lua|s/^M.PSS_TIME_SHOW = "%d %b %
 col-no-need|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/math.ceil(need\[i\]) + PADX/COL_MIN/|colfit
 col-no-cap|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 200,/local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 2000,/|colfit
 fill-time|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if cols\[i\] ~= "time" and cols\[i\] ~= "ts" and nd(i) >= best/if nd(i) >= best/|colfit
-label-raw|PourSocialScore_GUI/PSS_Chart.lua|s/text = M.PSS_FieldLabel(cols\[i\]), tip = cols\[i\], width/text = cols[i], tip = cols[i], width/|reportgrid
+label-raw|PourSocialScore_GUI/PSS_Chart.lua|s/tip = { title = cols\[i\], text/tip = { title = lab, text/|rawheaders
 profile-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^\tlocal want = type(profile) == "string" and M.PSS_REPORT_COLS\[profile\]$/\tlocal want = nil/|reportcols reportgrid
 bound-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not blank and not (bound and (name == "owner" or same)) then/if not blank then/|reportcols
 fill-share-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local FILL_SHARE = 0.4$/local FILL_SHARE = 0/|keepfit

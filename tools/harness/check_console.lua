@@ -717,6 +717,15 @@ PH.rawheaders = function()
 	for _, c in ipairs(set.cols) do isCol[c] = true end
 	check(#h > 0, "headers drawn")
 	for i, t in ipairs(h) do check(isCol[t], "raw header " .. i .. ": " .. tostring(t)) end
+	do
+		local u, old, got = GUI(), GUI().Tip, nil
+		u.Tip = function(o, t) got = t end
+		local hd = pg.qv.chart.tableList.heads[1]
+		local oe = hd._scripts and hd._scripts.OnEnter
+		if oe then oe(hd) end
+		u.Tip = old
+		check(got and got.title == h[1], "header tip title is the raw name: " .. tostring(got and got.title))
+	end
 	runq("index=log | stats count by cat")
 	h = heads()
 	check(h[1] == "cat" and h[2] == "count", "stats headers: " .. table.concat(h, ","))
