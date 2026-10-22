@@ -61,7 +61,7 @@ side-open-default|PourSocialScore_GUI/PSS_Console.lua|s/pg.leftOpen, pg.sideOpen
 relayout-no-resize|PourSocialScore_GUI/PSS_Console.lua|/^\t\tqv:Resize(w, resH)$/d|conlayout
 status-ms|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/local s = n == 1 and "1 line" or format("%d lines", n)/local s = format("%d rows, 0.00 ms", n)/|status
 detail-any-button|PourSocialScore_GUI/PSS_QueryView.lua|s/if button ~= "LeftButton" or not self.index/if false or not self.index/|rowdetail
-detail-secret-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if v ~= nil and not M.PSS_IsSecret(v) then$/if v ~= nil then/|rowdetail
+detail-secret-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not M.PSS_IsSecret(v) and v ~= nil then$/if v ~= nil then/|rowdetail
 detail-raw-label|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/local e = { field = col, value = "" }/local e = { field = M.PSS_FieldLabel(col), value = "" }/|rowdetail
 chip-in-header|PourSocialScore_GUI/PSS_Console.lua|s/chip:SetPoint("TOPRIGHT", picker, "BOTTOMRIGHT", 0, -6)/chip:SetPoint("TOPRIGHT", header, "TOPRIGHT", 0, 0)/|reportchip'
 want="$*"

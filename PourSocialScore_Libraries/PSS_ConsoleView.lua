@@ -484,7 +484,7 @@ function CM:RowDetail(set, i)
 		local v
 		if k <= #set.cols then v = row[k] else v = M.PSS_SetVirtual(set, i, col) end
 		local e = { field = col, value = "" }
-		if v ~= nil and not M.PSS_IsSecret(v) then
+		if not M.PSS_IsSecret(v) and v ~= nil then
 			local raw = tostring(v)
 			local text = M.PSS_CellText(col, v, kinds[col]) or ""
 			e.raw, e.value = raw, raw
