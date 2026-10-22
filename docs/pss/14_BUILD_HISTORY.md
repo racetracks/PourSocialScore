@@ -41,7 +41,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.8.0.135 - Spyglass fields: Fields panel, raw column names, chat-filter names
 
-- Branch: `claude/serene-bell-sdez3f`; PR: pending.
+- Branch: `claude/serene-bell-sdez3f`; PR #253.
 - What changed and why: author results: `CHK-00190` to `CHK-00193` and `CHK-00195` to `CHK-00198` passed 2026-10-22; asks O1 to O3 answered (`DEC-00368`, `DEC-00369`). F135b (`PSS_Fields.lua`, `PSS_Psql.lua`, `PSS_Plan.lua`): chat-filter names as virtual fields `filter`, `sender`, `server` (`Q.VIRTUAL`, built per row only when named), no spaces in field names; the base had no virtual registry, so a minimal one was added. F135a (`PSS_ConsoleView.lua`): `CM:Fields` model, raw names in row detail and summary. F135c (`PSS_Console.lua`, `PSS_Chart.lua`): Fields panel opened by `>>` (heading click, Alt+click, value click, tooltips, `+N more`), raw column headers with tooltips. F135d: dead `CM:Sidebar` and `SKIPCOL` removed, two mutants repaired. Why: readable fields that match the query language.
 - Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `history.txt`; `versions.json`.
 - Tests run: `ix_phases.sh` 343 phases, 0 failed, plus `names filterdesc nospace` 6 pass (Retail and Camelot); `console_phases.sh` 182 phases, 0 failed; `ix_mutants.sh` 3 killed (`filter-pattern`, `virtual-text-field`, `name-spaces-allowed`); `console_mutants.sh` `fields-cap-8`, `header-label`, `detail-secret-shown`, `detail-raw-label` killed; `tui_compare.sh` vs origin/main: window differs (42 normalised lines, raw-name rows), not split per look; full harness, mutants and real saves run by the coordinator (pending).
