@@ -125,8 +125,11 @@ local function role(t, r) if t then t.role = r end end
 
 local VTIME = { weekday = true, hour = true }		-- computed from time on event rows, only when a query names them
 Q.VTIME = VTIME
+local VIRTUAL = { sender = true, server = true, filter = true }		-- text names computed per row of log and counts, only when a query names them; never searched as bare words
+Q.VIRTUAL = VIRTUAL
 local function known(s, f)
 	if VTIME[f] and s.kinds[f] then s.vtime = true end
+	if VIRTUAL[f] and s.kinds[f] and s.vnames then s.vnames[f] = true end
 	if s.any then return s.kinds[f] or "s" end
 	return s.kinds[f]
 end
@@ -339,6 +342,13 @@ local function setKinds(s, kinds) s.kinds, s.any = kinds, false end
 
 local FN = { count = true, sum = true, avg = true, min = true, max = true, dc = true, latest = true, earliest = true, count_if = true }
 
+-- a name given by as: letters, digits and _ only (a name with a space or symbol would never be typeable)
+local function newName(t)
+	local n = t.t == "str" and t.v or t.s
+	if not match(n, "^[%a_][%w_]*$") then err("arg", t.p, "a field name has no spaces or symbols: " .. n) end
+	return n
+end
+
 -- fn(field) [as name] | count | count_if(f=v)
 local function fnSpec(s)
 	local t = take(s)
@@ -373,9 +383,9 @@ local function fnSpec(s)
 	if isWord(peek(s), "as") then
 		role(take(s), "arg")
 		local nm = take(s)
-		if not nm or nm.t ~= "word" then err("parse", nm and nm.p or s.len + 1, "a name is needed after as") end
+		if not nm or (nm.t ~= "word" and nm.t ~= "str") then err("parse", nm and nm.p or s.len + 1, "a name is needed after as") end
 		role(nm, "field")
-		f.as = nm.s
+		f.as = newName(nm)
 	end
 	return f
 end
@@ -458,10 +468,11 @@ CMD.rename = function(s, c)
 			if not isWord(as, "as") then err("parse", as and as.p or s.len + 1, "rename takes a as b") end
 			role(as, "arg")
 			local b = take(s)
-			if not b or b.t ~= "word" then err("parse", b and b.p or s.len + 1, "a new name is needed") end
+			if not b or (b.t ~= "word" and b.t ~= "str") then err("parse", b and b.p or s.len + 1, "a new name is needed") end
 			role(b, "field")
-			map[a.s] = b.s
-			s.kinds[b.s], s.kinds[a.s] = s.kinds[a.s], nil
+			local bn = newName(b)
+			map[a.s] = bn
+			s.kinds[bn], s.kinds[a.s] = s.kinds[a.s], nil
 		end
 	end
 	if not next(map) then err("parse", c.pos, "rename takes a as b") end
@@ -660,6 +671,7 @@ local function searchKinds(s)
 			if x then for _, f in ipairs(x.fields) do if not kinds[f[1]] then kinds[f[1]] = f[2] end end end
 		end
 		kinds.weekday, kinds.hour = "n", "n"
+		for f in pairs(VIRTUAL) do if not kinds[f] then kinds[f] = "s" end end
 		return kinds
 	end
 	for _, it in ipairs(list) do
@@ -670,6 +682,12 @@ local function searchKinds(s)
 	for f, k in pairs(ENVELOPE) do if not kinds[f] and (f ~= "time" or kinds.st) then kinds[f] = k end end
 	if #list > 1 then kinds.index = "k" end
 	if kinds.time and kinds.st then kinds.weekday, kinds.hour = "n", "n" end
+	for _, it in ipairs(list) do
+		if it.name == "log" or it.name == "counts" then
+			for f in pairs(VIRTUAL) do if not kinds[f] then kinds[f] = "s" end end
+			break
+		end
+	end
 	return kinds
 end
 
@@ -697,7 +715,7 @@ local function run(text, now, all)
 	if not all then error(terr, 0) end
 	local toks = {}
 	for _, t in ipairs(all) do if t.t ~= "ws" then toks[#toks + 1] = t end end
-	local s = { text = text, len = #text, toks = toks, i = 1, terms = 0, params = {}, now = now, top = true, all = all }
+	local s = { text = text, len = #text, toks = toks, i = 1, terms = 0, params = {}, now = now, top = true, all = all, vnames = {} }
 	local pre = preIndexes(s)
 	s.indexes = nil
 	s.kinds = searchKinds({ indexes = pre })
@@ -749,6 +767,7 @@ local function run(text, now, all)
 	ast.shape = s.shape
 	ast.finalKinds = s.kinds
 	ast.vtime = s.vtime
+	ast.vnames = s.vnames
 	return ast, s
 end
 
@@ -782,7 +801,7 @@ local function kindFn(kinds) return function(f) return kinds[f] end end
 
 local function textFieldsOf(kinds, ast)
 	local list = {}
-	for f, k in pairs(kinds) do if k == "s" then list[#list + 1] = f end end
+	for f, k in pairs(kinds) do if k == "s" and not VIRTUAL[f] then list[#list + 1] = f end end
 	sort(list)
 	return list
 end

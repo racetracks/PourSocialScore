@@ -167,4 +167,8 @@ return {
 	{ "money-drops-silver", "PourSocialScore_Libraries/PSS_Fields.lua", "if s > 0 then out[#out + 1]", "if s > 0 and k > 0 then out[#out + 1]", "money" },
 	{ "show-ignores-kind", "PourSocialScore_Libraries/PSS_Fields.lua", "local fn = BYKIND[kind]", "local fn = nil", "cellshow" },
 	{ "event-mech", "PourSocialScore_Libraries/PSS_Fields.lua", "local lab = EVENT[v]", "local lab = nil", "showlog" },
+	-- build 3.8.0.135 F135b
+	{ "filter-pattern", "PourSocialScore_Libraries/PSS_Fields.lua", "if type(d) == \"string\" and d ~= \"\" then out[key] = d", "if false then out[key] = d", "filterdesc" },
+	{ "virtual-text-field", "PourSocialScore_Libraries/PSS_Psql.lua", "if k == \"s\" and not VIRTUAL[f] then", "if k == \"s\" then", "names" },
+	{ "name-spaces-allowed", "PourSocialScore_Libraries/PSS_Psql.lua", "if not match(n, \"^[%a_][%w_]*$\") then", "if false then", "nospace" },
 }

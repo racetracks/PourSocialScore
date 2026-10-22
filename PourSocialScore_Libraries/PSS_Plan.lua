@@ -28,6 +28,34 @@ local BUDGET = 200000
 local CACHE = 32
 M.PSS_IX_BUDGET = BUDGET
 
+-- virtual text names of a log or counts row (PSS_Fields.sourceName / splitName / filterNames)
+local function virt(name, row, fmap)
+	local F = M.PSS_Fields
+	if not F then return nil end
+	if name == "filter" then
+		local o = row.owner
+		if M.PSS_IsSecret and M.PSS_IsSecret(o) then return nil end
+		if type(o) == "string" and o:sub(1, 2) == "f:" then return fmap[o] or o:sub(3) end
+		return nil
+	end
+	local n = F.sourceName(row)
+	if not n then return nil end
+	local sender, server = F.splitName(n)
+	if name == "sender" then return sender end
+	return server
+end
+
+-- one virtual value of row r of a set (the Fields panel, a click); the filter map is kept on the set
+function M.PSS_SetVirtual(set, r, name)
+	if type(set) ~= "table" or type(r) ~= "number" or not Q.VIRTUAL[name] or not set[r] then return nil end
+	local F = M.PSS_Fields
+	if not F then return nil end
+	local mc, oc = M.PSS_SetCol(set, "member"), M.PSS_SetCol(set, "owner")
+	local row = { member = mc and set[r][mc], owner = oc and set[r][oc] }
+	if name == "filter" and not set.vmap then set.vmap = F.filterNames() end
+	return virt(name, row, set.vmap)
+end
+
 local cache, order = {}, {}
 M.PSS_SearchStats = { hits = 0, misses = 0 }
 
@@ -117,6 +145,15 @@ function M.PSS_Search(textOrPlan, opts)
 	if vtime then
 		for _, c in ipairs({ "weekday", "hour" }) do if not at[c] then cols[#cols + 1] = c; at[c] = #cols end end
 	end
+	local vn = {}
+	for _, v in ipairs({ "filter", "sender", "server" }) do
+		if plan.ast.vnames and plan.ast.vnames[v] then
+			vn[#vn + 1] = v
+			if not at[v] then cols[#cols + 1] = v; at[v] = #cols end
+		end
+	end
+	local fmap = {}
+	if plan.ast.vnames and plan.ast.vnames.filter and M.PSS_Fields then fmap = M.PSS_Fields.filterNames() end
 	local set = { cols = cols, n = 0 }
 	local budget = opts.budget or M.PSS_IX_BUDGET
 	local scanned, stopped = 0, false
@@ -149,12 +186,14 @@ function M.PSS_Search(textOrPlan, opts)
 				scanned = scanned + 1
 				if scanned > budget then stopped = true return false end
 				if vtime and row.time then row.weekday, row.hour = vtime.weekday(row.time), vtime.hour(row.time) end
+				for i = 1, #vn do row[vn[i]] = virt(vn[i], row, fmap) end
 				if test(row) then
 					local r = {}
 					if lazy then
 						r[1], r[2], r[3], r[4], r[5], r[6] = row.time, name, row.st, row.ent, row.item, row.owner
 						if summary then local okS, s = pcall(summary, row); r[7] = okS and s or nil end
 						if vtime then r[at.weekday], r[at.hour] = row.weekday, row.hour end
+						for i = 1, #vn do r[at[vn[i]]] = row[vn[i]] end
 					else
 						for i = 1, #cols do r[i] = row[cols[i]] end
 						if multi then r[at.index] = name end
@@ -224,6 +263,15 @@ function M.PSS_Search(textOrPlan, opts)
 		return nil, { code = code, pos = 1, msg = msg }
 	end
 	set = out
+	local vf = {}
+	for _, n in ipairs(names) do
+		if n == "log" or n == "counts" then vf = { "filter", "sender", "server" } break end
+	end
+	for _, c in ipairs(plan.ast.commands) do
+		local n = c.name
+		if n == "stats" or n == "top" or n == "rare" or n == "timechart" or n == "chart" then vf = {} break end
+	end
+	set.vfields = vf
 	local rows = opts.rows or Q.conRows
 	if rows > (Q.maxRows or 5000) then rows = Q.maxRows or 5000 end
 	if set.n > rows then

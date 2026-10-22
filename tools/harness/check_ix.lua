@@ -2301,6 +2301,63 @@ PH.cellshow = function()
 end
 
 ------------------------------------------------------------------------
+-- build 3.8.0.135 F135b: chat-filter names and source names as fields
+------------------------------------------------------------------------
+local function plantOne(o, member)
+	local log = logLoaded()
+	local e = History.NewEntry("whisper", "CHAT_MSG_CHANNEL", "hello", "Trade", nil)
+	e.ts = GetServerTime()
+	e.o = o
+	e.member = member
+	log[#log + 1] = e
+end
+PH.names = function()
+	local F = M.PSS_Fields
+	local realGet = M.PSS_GetPlayerRecord
+	M.PSS_GetPlayerRecord = function(k) if k == "jaina" then return { name = "Jaina" } end return realGet and realGet(k) end
+	plantOne("p:owner9-Realm", "Thrall-ArgentDawn")
+	plantOne("p:jaina", nil)
+	local a = S('index=log sender=Thrall server=ArgentDawn', { load = true })
+	check(a and a.n == 1, "sender=Thrall server=ArgentDawn: " .. tostring(a and a.n))
+	local b = S('index=log sender=Jaina server=' .. F.myRealm(), { load = true })
+	check(b and b.n == 1 and colv(b, 1, "sender") == "Jaina" and colv(b, 1, "server") == F.myRealm(), "own realm for a name with no server")
+	local c = S('index=log server=' .. F.myRealm(), { load = true })
+	check(c and c.n >= 1, "server=<own realm>")
+	local d = S('index=log sender=Jaina server=*' .. F.myRealm():sub(2, 5) .. '* ' .. F.myRealm(), { load = true })
+	check(d and d.n == 0, "a bare word does not match through server: " .. tostring(d and d.n))
+	local bw = Q.compile('index=log sender=Jaina Jaina')
+	check(bw and bw.pred:test({ sender = "Jaina", message = "x" }) == false and bw.pred:test({ sender = "Jaina", message = "jaina" }) == true, "virtual names are not text fields")
+	local p = Q.compile('index=log nosuchfield=1')
+	check(p == nil, "an unknown field is still an error")
+	M.PSS_GetPlayerRecord = realGet
+end
+PH.filterdesc = function()
+	local db = PourSocialScoreDB
+	local F = M.PSS_Fields
+	db.filterDesc = db.filterDesc or {}
+	local fi = #db.filterList + 1
+	db.filterList[fi], db.filterID[fi], db.filterDesc[fi] = "*gold*", "PSS0010", "gold sellers"
+	local fj = fi + 1
+	db.filterList[fj], db.filterID[fj], db.filterDesc[fj] = "spam", "PSS0011", ""
+	local key, key2 = M.PSS_FilterOwnerKey(fi), M.PSS_FilterOwnerKey(fj)
+	plantOne(key, nil)
+	local set = S('index=log filter="gold sellers"', { load = true })
+	check(set and set.n == 1, "filter=\"gold sellers\" 1 row: " .. tostring(set and set.n))
+	check(plain(M.PSS_CellText("owner", key, "d")) == "Filter: gold sellers", "shown as Filter: gold sellers: " .. plain(M.PSS_CellText("owner", key, "d")))
+	check(F.filterNames()[key2] == "spam", "an empty description falls back to the pattern")
+	check(F.filterNames()[key] == "gold sellers", "the description wins")
+end
+PH.nospace = function()
+	local p, e = Q.compile('index=log | rename cat as "a b"')
+	check(p == nil and e and e.code == "arg" and e.msg == "a field name has no spaces or symbols: a b", "rename error: " .. tostring(e and e.code) .. " " .. tostring(e and e.msg))
+	p, e = Q.compile('index=log | stats count as "x y" by cat')
+	check(p == nil and e and e.code == "arg", "stats as error ")
+	logLoaded()
+	local set = S('index=log | stats count as n by cat', { load = true })
+	check(set ~= nil and at(set, "n") ~= nil, "stats count as n runs")
+end
+
+------------------------------------------------------------------------
 local f = PH[phase]
 if not f then
 	check(false, "no such phase")
