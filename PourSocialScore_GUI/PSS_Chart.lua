@@ -383,7 +383,7 @@ DRAW.table = function(f, set, spec)
 		local need = {}
 		for i = 1, #cols do
 			local ci = idx and idx[i] or i
-			ms:SetText(M.PSS_FieldLabel(cols[i]))
+			ms:SetText(cols[i])
 			local mx = ms:GetStringWidth() or 0
 			for r = 1, math.min(#set, MEASURE_ROWS) do
 				ms:SetText(M.PSS_CellText(cols[i], set[r][ci], kinds and kinds[cols[i]]))
@@ -400,9 +400,27 @@ DRAW.table = function(f, set, spec)
 		end
 		if open and avail - used <= 0 then widths[open] = 0 end
 		for i = 1, #cols do
-			lc[i] = { key = "c" .. i, text = M.PSS_FieldLabel(cols[i]), tip = cols[i], width = widths[i] }
+			local lab = M.PSS_FieldLabel(cols[i])
+			lc[i] = { key = "c" .. i, text = cols[i], width = widths[i],
+				tip = { title = cols[i], text = (lab ~= cols[i] and (lab .. "\n") or "") .. "Click to sort." } }
 		end
-		t.list = ns.NewRows(c, { rowH = 18, cols = lc, draw = function(row, i)
+		t.list = ns.NewRows(c, { rowH = 18, cols = lc,
+		enter = function(row, i)
+			local r, ks = t.set[i], M.PSS_SetKinds(t.set)
+			local lines, head = nil, nil
+			for k = 1, #cols do
+				local raw = r[t.idx and t.idx[k] or k]
+				local txt = M.PSS_CellText(cols[k], raw, ks and ks[cols[k]])
+				local fs = row.cells["c" .. k]
+				local cut = fs and fs.IsTruncated and fs:IsTruncated()
+				if raw ~= nil and (txt ~= tostring(raw) or cut) then
+					head = head or tostring(raw)
+					lines = (lines and (lines .. "\n") or "") .. cols[k] .. ": " .. tostring(raw) .. (txt ~= tostring(raw) and ("  " .. txt) or "")
+				end
+			end
+			if lines then ns.Tip(row, { title = head, text = lines }) end
+		end,
+		draw = function(row, i)
 			local r = t.set[i]
 			local ks = M.PSS_SetKinds(t.set)
 			for k = 1, #cols do

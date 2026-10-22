@@ -7,7 +7,7 @@
 here=$(dirname "$0")
 src=$(cd "$here/../.." && pwd)
 MUTANTS='fields-cap-8|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local FIELDS_CAP = 30$/local FIELDS_CAP = 8/|fieldspanel
-side-no-skip|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if any and not one then out/if true then out/|sidebarux
+header-label|PourSocialScore_GUI/PSS_Chart.lua|s/text = cols\[i\], width = widths\[i\],/text = lab, width = widths[i],/|rawheaders
 chart-alloc-each|PourSocialScore_GUI/PSS_Chart.lua|s/if not o then o = MAKE\[name\](f); p\[c\] = o end/o = MAKE[name](f); p[c] = o/|chartpool
 chart-cap-off|PourSocialScore_GUI/PSS_Chart.lua|s/^\tlocal cap = CAP_BARS$/\tlocal cap = 100000/|chartcaps
 chart-colour-alpha|PourSocialScore_GUI/PSS_Chart.lua|s/fs:SetTextColor(1, 1, 1, 1)/fs:SetTextColor(1, 1, 1, 0.5)/|chartalpha
@@ -16,7 +16,6 @@ qv-run-tier1|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/self.loaded = self.
 qv-listen-hidden|PourSocialScore_GUI/PSS_Skin.lua|s/if listening then l.id = M.Events.Register/if true then l.id = M.Events.Register/|qvlisten
 qv-redraw-each|PourSocialScore_GUI/PSS_QueryView.lua|s/M.PSS_Throttle(function() if v:IsVisible() then v:Refresh() end end)/(function() if v:IsVisible() then v:Refresh() end end)/|qvburst
 con-build-early|PourSocialScore_GUI/PSS_Window.lua|s/^local function SelectTab(id)$/local function SelectTab(id)\n\tfor i = 1, #TABS do BuildTab(i) end/|contab
-con-sidebar-own-count|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/{ field = col, n = 5 }/{ field = col, n = 4 }/|considebar
 con-chart-ignored|PourSocialScore_GUI/PSS_Console.lua|s/if vm.plan and vm.plan.chart and chartOn then/if false and chartOn then/|conchart
 save-no-confirm|PourSocialScore_GUI/PSS_QueryDialog.lua|s/m:Button("Delete", function()/m:Button("Delete", function() M.PSS_ConsoleView.call("sq.del", { id = id }) pg.refreshLeft() if true then return end/|saveround
 save-cap-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/q.n >= (caps.records or 200)/q.n >= 1e9/|savecaps
