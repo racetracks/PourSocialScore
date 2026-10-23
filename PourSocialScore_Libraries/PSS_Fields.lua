@@ -9,7 +9,8 @@
 --   F.moneyParse(text) -> copper | nil    "12g50s", "1,000g", "75" (plain digits are copper)
 --   F.splitName(name) -> sender, server   server is myRealm() when the name has no "-"
 --   F.myRealm() -> text                   normalised realm of this character
---   F.filterNames() -> { [ownerKey] = text }   one entry per chat filter
+--   F.filterNames() -> { [ownerKey] = text }   one entry per chat filter: its name (filterDesc), else its pattern
+--   F.sourceName(row) -> name | nil       the sender of a log or counts row (member, else its owner's name)
 --   M.PSS_FieldLabel(field) -> label      M.PSS_FIELD_LABELS, M.PSS_INDEX_LABELS, M.PSS_EVENT_LABELS
 -- Loaded with Libraries, after PSS_Time.lua.
 ------------------------------------------------------------------------
@@ -79,11 +80,31 @@ function F.filterNames()
 	local db = PourSocialScoreDB
 	local list = db and db.filterList
 	if type(list) ~= "table" or not M.PSS_FilterOwnerKey then return out end
+	local desc = db.filterDesc
 	for i = 1, #list do
 		local key = M.PSS_FilterOwnerKey(i)
-		if key and type(list[i]) == "string" then out[key] = list[i] end
+		if key then
+			local d = type(desc) == "table" and desc[i]
+			if type(d) == "string" and d ~= "" then out[key] = d
+			elseif type(list[i]) == "string" then out[key] = list[i] end
+		end
 	end
 	return out
+end
+
+-- the source name of a row: member when non-empty, else the record name of a p: owner, the text of a g: owner
+function F.sourceName(row)
+	local m = row.member
+	if M.PSS_IsSecret and M.PSS_IsSecret(m) then m = nil end
+	if type(m) == "string" and m ~= "" then return m end
+	local o = row.owner
+	if (M.PSS_IsSecret and M.PSS_IsSecret(o)) or type(o) ~= "string" then return nil end
+	local k, rest = match(o, "^(%a):(.+)$")
+	if k == "p" then
+		local rec = M.PSS_GetPlayerRecord and M.PSS_GetPlayerRecord(rest)
+		return rec and type(rec.name) == "string" and rec.name ~= "" and rec.name or rest
+	elseif k == "g" then return rest end
+	return nil
 end
 
 ------------------------------------------------------------------------

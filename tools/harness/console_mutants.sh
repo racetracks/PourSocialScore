@@ -6,7 +6,8 @@
 #   sh tools/harness/console_mutants.sh [name ...]
 here=$(dirname "$0")
 src=$(cd "$here/../.." && pwd)
-MUTANTS='side-no-skip|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if any and not one then out/if true then out/|sidebarux
+MUTANTS='fields-cap-8|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local FIELDS_CAP = 30$/local FIELDS_CAP = 8/|fieldspanel
+header-label|PourSocialScore_GUI/PSS_Chart.lua|s/text = cols\[i\], width = widths\[i\],/text = lab, width = widths[i],/|rawheaders
 chart-alloc-each|PourSocialScore_GUI/PSS_Chart.lua|s/if not o then o = MAKE\[name\](f); p\[c\] = o end/o = MAKE[name](f); p[c] = o/|chartpool
 chart-cap-off|PourSocialScore_GUI/PSS_Chart.lua|s/^\tlocal cap = CAP_BARS$/\tlocal cap = 100000/|chartcaps
 chart-colour-alpha|PourSocialScore_GUI/PSS_Chart.lua|s/fs:SetTextColor(1, 1, 1, 1)/fs:SetTextColor(1, 1, 1, 0.5)/|chartalpha
@@ -15,7 +16,6 @@ qv-run-tier1|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/self.loaded = self.
 qv-listen-hidden|PourSocialScore_GUI/PSS_Skin.lua|s/if listening then l.id = M.Events.Register/if true then l.id = M.Events.Register/|qvlisten
 qv-redraw-each|PourSocialScore_GUI/PSS_QueryView.lua|s/M.PSS_Throttle(function() if v:IsVisible() then v:Refresh() end end)/(function() if v:IsVisible() then v:Refresh() end end)/|qvburst
 con-build-early|PourSocialScore_GUI/PSS_Window.lua|s/^local function SelectTab(id)$/local function SelectTab(id)\n\tfor i = 1, #TABS do BuildTab(i) end/|contab
-con-sidebar-own-count|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/{ field = col, n = 5 }/{ field = col, n = 4 }/|considebar
 con-chart-ignored|PourSocialScore_GUI/PSS_Console.lua|s/if vm.plan and vm.plan.chart and chartOn then/if false and chartOn then/|conchart
 save-no-confirm|PourSocialScore_GUI/PSS_QueryDialog.lua|s/m:Button("Delete", function()/m:Button("Delete", function() M.PSS_ConsoleView.call("sq.del", { id = id }) pg.refreshLeft() if true then return end/|saveround
 save-cap-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/q.n >= (caps.records or 200)/q.n >= 1e9/|savecaps
@@ -48,7 +48,7 @@ show-no-year|PourSocialScore_Libraries/PSS_Bus.lua|s/^M.PSS_TIME_SHOW = "%d %b %
 col-no-need|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/math.ceil(need\[i\]) + PADX/COL_MIN/|colfit
 col-no-cap|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 200,/local COL_MIN, COL_MAX, FILL_MIN, PADX = 36, 2000,/|colfit
 fill-time|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if cols\[i\] ~= "time" and cols\[i\] ~= "ts" and nd(i) >= best/if nd(i) >= best/|colfit
-label-raw|PourSocialScore_GUI/PSS_Chart.lua|s/text = M.PSS_FieldLabel(cols\[i\]), tip = cols\[i\], width/text = cols[i], tip = cols[i], width/|reportgrid
+label-raw|PourSocialScore_GUI/PSS_Chart.lua|s/tip = { title = cols\[i\], text/tip = { title = lab, text/|rawheaders
 profile-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^\tlocal want = type(profile) == "string" and M.PSS_REPORT_COLS\[profile\]$/\tlocal want = nil/|reportcols reportgrid
 bound-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not blank and not (bound and (name == "owner" or same)) then/if not blank then/|reportcols
 fill-share-off|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/^local FILL_SHARE = 0.4$/local FILL_SHARE = 0/|keepfit
@@ -61,8 +61,8 @@ side-open-default|PourSocialScore_GUI/PSS_Console.lua|s/pg.leftOpen, pg.sideOpen
 relayout-no-resize|PourSocialScore_GUI/PSS_Console.lua|/^\t\tqv:Resize(w, resH)$/d|conlayout
 status-ms|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/local s = n == 1 and "1 line" or format("%d lines", n)/local s = format("%d rows, 0.00 ms", n)/|status
 detail-any-button|PourSocialScore_GUI/PSS_QueryView.lua|s/if button ~= "LeftButton" or not self.index/if false or not self.index/|rowdetail
-detail-secret-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if v ~= nil and not M.PSS_IsSecret(v) then text = M.PSS_CellText(col, v, kinds\[col\]) or "" end/if v ~= nil then text = tostring(v) end/|rowdetail
-detail-raw-label|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/out\[k\] = { field = M.PSS_FieldLabel(col), value = text }/out[k] = { field = col, value = text }/|rowdetail
+detail-secret-shown|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/if not M.PSS_IsSecret(v) and v ~= nil then$/if v ~= nil then/|rowdetail
+detail-raw-label|PourSocialScore_Libraries/PSS_ConsoleView.lua|s/local e = { field = col, value = "" }/local e = { field = M.PSS_FieldLabel(col), value = "" }/|rowdetail
 chip-in-header|PourSocialScore_GUI/PSS_Console.lua|s/chip:SetPoint("TOPRIGHT", picker, "BOTTOMRIGHT", 0, -6)/chip:SetPoint("TOPRIGHT", header, "TOPRIGHT", 0, 0)/|reportchip'
 want="$*"
 total=0; killed=0

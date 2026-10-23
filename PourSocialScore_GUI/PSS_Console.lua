@@ -137,19 +137,45 @@ ns.TabBuilders.console = function(pg)
 	side:SetShown(pg.sideOpen)
 	flat = {}
 	sideList = ns.NewRows(side, { rowH = 18,
-		cols = { { key = "v", text = "Top values" }, { key = "n", text = "#", width = 40, justify = "RIGHT" } },
+		cols = { { key = "v", text = "Fields" }, { key = "n", text = "#", width = 70, justify = "RIGHT" } },
 		draw = function(row, i)
 			local d = flat[i]
 			if not d then return end
-			row.cells.v:SetText(d.head or d.empty or ("  " .. (d.text or tostring(d.value))))
+			local txt, num = "", ""
+			if d.head then txt, num = d.head, tostring(d.dc)
+			elseif d.more then txt = "+" .. d.more .. " more"
+			elseif d.empty then txt = d.empty
+			else txt, num = "  " .. (d.text or tostring(d.value)), d.count .. "  " .. d.pct .. "%" end
+			row.cells.v:SetText(txt)
 			if d.head then row.cells.v:SetTextColor(1, 0.82, 0, 1)
-			elseif d.empty then row.cells.v:SetTextColor(0.6, 0.6, 0.6, 1)
+			elseif d.more or d.empty then row.cells.v:SetTextColor(0.6, 0.6, 0.6, 1)
 			else row.cells.v:SetTextColor(1, 1, 1, 1) end
-			row.cells.n:SetText((d.head or d.empty) and "" or tostring(d.count))
+			row.cells.n:SetText(num)
+			row:SetAlpha(d.one and 0.5 or 1)
+		end,
+		enter = function(row, i)
+			local d = flat[i]
+			if not d then return end
+			if d.head then
+				ns.Tip(row, { title = d.head, text = (d.label ~= d.head and (d.label .. "\n") or "") ..
+					d.dc .. " values in " .. d.n .. " events. Click: top 5. Alt+click: table it." })
+			elseif d.field then
+				ns.Tip(row, { title = tostring(d.value), text = (d.text and d.text ~= tostring(d.value) and (d.text .. "\n") or "") ..
+					"Click: search " .. CV.term(d.field, d.value) .. "." })
+			end
 		end,
 		click = function(row, i)
 			local d = flat[i]
-			if d and d.field then
+			if not d then return end
+			if d.head then
+				if IsAltKeyDown() then
+					SetBar((BarText() or "") .. " | table " .. d.field)
+					pg.run(true)
+				else
+					pg.fieldOpen = (pg.fieldOpen ~= d.field) and d.field or nil
+					pg.sync()
+				end
+			elseif d.field then
 				SetBar(CV.addTerm(BarText(), CV.term(d.field, d.value)))
 				pg.run(true)
 			end
@@ -226,12 +252,16 @@ ns.TabBuilders.console = function(pg)
 		for _, b in ipairs(tabs) do ns.SetTabSelected(b, b.key == tabKey) end
 		qvo.shape = (tabKey == "chart") and "chart" or ((tabKey == "results" and shape == "events") and "events" or "table")
 		qv:Refresh()
-		-- the sidebar: top values of each column
+		-- the Fields panel: each field, the open one with its top values
 		wipe(flat)
-		for _, g in ipairs(cm:Sidebar(vm.set)) do
-			flat[#flat + 1] = { head = g.label }
-			for _, r in ipairs(g.rows) do flat[#flat + 1] = { field = g.field, value = r[1], count = r[2], text = r[3] } end
+		local fl = cm:Fields(vm.set, pg.fieldOpen)
+		for _, f in ipairs(fl.fields) do
+			flat[#flat + 1] = { head = f.name, field = f.name, label = f.label, dc = f.dc, n = f.n, one = f.one }
+			for _, r in ipairs(f.top or {}) do
+				flat[#flat + 1] = { field = f.name, value = r.raw, text = r.text, count = r.count, pct = r.pct }
+			end
 		end
+		if fl.more > 0 then flat[#flat + 1] = { more = fl.more } end
 		if #flat == 0 and vm.set and (vm.set.n or 0) > 0 then flat[1] = { empty = "No common values" } end
 		sideList:SetCount(#flat)
 		sideList:Redraw()
@@ -445,7 +475,7 @@ ns.TabBuilders.console = function(pg)
 	local sideT = ns.NewButton(pg, ">>", 30, function() pg.sideOpen = not pg.sideOpen; pg.relayout() end)
 	sideT:SetHeight(20)
 	sideT:SetPoint("TOPRIGHT", pg, "TOPRIGHT", -PAD, -PAD - 44)
-	ns.TipOn(sideT, sideT, "Show or hide Top values.")
+	ns.TipOn(sideT, sideT, "Show or hide Fields.")
 	pg.leftToggle, pg.sideToggle = leftT, sideT
 	function pg.relayout()
 		local x, w = Geo()

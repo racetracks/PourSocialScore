@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.135 - Spyglass fields: Fields panel, raw column names, chat-filter names
+
+- Spyglass: a Fields panel (opened with >>) lists every column with counts; click a value to filter by it. Columns and details show the raw field names, and chat-filter blocks can be searched by filter name (filter, sender, server).
+
 => 3.8.0.134 - Spyglass pane fix and layout: one list per pane, top bar, collapsible panels, wider Message
 
 - Spyglass: a pane no longer keeps old rows under a new query; the search bar, time range, Run, Save and ? sit on one row at the top; both side panels are collapsible and the right one starts closed; the Message column gets at least 40 percent of the table.

@@ -582,7 +582,6 @@ PH.conmodel = function()
 	local rows, heads = cm:LeftRows(), {}
 	for _, x in ipairs(rows) do if x.head then heads[#heads + 1] = x.head end end
 	check(table.concat(heads, ",") == "System,Mine,Sources,Data dictionary", "four groups: " .. table.concat(heads, ","))
-	check(next(cm:Sidebar(set({ "a" }, {}))) == nil, "empty sidebar")
 	check(#CV.HELP == 16, "16 help rows")
 	for i, h in ipairs(CV.HELP) do
 		local ok, e = pcall(M.PSS_Psql.parse, h[1])
@@ -590,8 +589,6 @@ PH.conmodel = function()
 	end
 	local kinds = cm:ChartKinds("series")
 	check(table.concat(kinds, ",") == "column,line,area,table", "series kinds " .. table.concat(kinds, ","))
-	local s = cm:Sidebar(set({ "owner", "n", "time" }, { { "a", 1, 5 }, { "a", 2, 6 }, { "b", 3, 7 } }))
-	check(#s == 2 and s[1].field == "owner" and s[1].rows[1][1] == "a" and s[1].rows[1][2] == 2, "sidebar owner top")
 end
 
 
@@ -642,27 +639,16 @@ PH.conhighlight = function()
 end
 
 PH.sidebarux = function()
-	local cm = M.PSS_ConsoleModel()
-	local rows = {}
-	for i = 1, 29 do rows[i] = { "world", i <= 15 and "Trade" or "General" } end
-	local s = cm:Sidebar(set({ "cat", "channel" }, rows))
-	check(#s == 1 and s[1].field == "channel", "one-value cat skipped: " .. #s)
-	check(s[1].label == "Channel" and s[1].label == M.PSS_FieldLabel("channel"), "heading is the label")
-	check(#s[1].rows == 2 and s[1].rows[1][3] == M.PSS_CellText("channel", s[1].rows[1][1]), "display text")
-	local one = {}
-	for i = 1, 29 do one[i] = { "world", "Trade" } end
-	check(#cm:Sidebar(set({ "cat", "channel" }, one)) == 0, "all one-value columns skipped")
 	local pg = openCon()
 	plantLog(20)
 	pg.bar:SetText("index=log")
 	pg.run(true)
 	local flat = pg.sideFlat()
-	check(#flat > 0, "sidebar drawn")
+	check(#flat > 0 and flat[1].head, "fields panel drawn")
 	pg.bar:SetText("index=log | head 1")
 	pg.run(true)
 	flat = pg.sideFlat()
-	check(#flat == 1 and flat[1].empty == "No common values", "empty state: " .. tostring(flat[1] and (flat[1].empty or flat[1].head)))
-	check(flat[1].field == nil, "empty line not clickable")
+	check(#flat > 0 and flat[1].head and flat[1].one == true, "one-value fields stay listed")
 end
 
 PH.considebar = function()
@@ -672,21 +658,80 @@ PH.considebar = function()
 	pg.run(true)
 	local set = pg.qv.vm.set
 	check(set and set.n > 0, "rows planted")
-	local side = pg.cm:Sidebar(set)
-	for _, g in ipairs(side) do
-		local top = M.PSS_Call("q.top", set, { field = g.field, n = 5 })
-		check(#g.rows == top.n, g.field .. " row count")
-		for i = 1, top.n do check(g.rows[i][1] == top[i][1] and g.rows[i][2] == top[i][2], g.field .. " value " .. i) end
-	end
+	local fl = pg.cm:Fields(set)
 	local flat = pg.sideFlat()
-	check(#flat > 0, "sidebar drawn")
-	for i, d in ipairs(flat) do
-		if d.field then
-			pg.sideList.spec.click(nil, i)
-			check(pg.bar:GetText():find(M.PSS_ConsoleView.term(d.field, d.value), 1, true), "click adds the term")
-			break
-		end
+	local heads = 0
+	for _, d in ipairs(flat) do if d.head then heads = heads + 1 end end
+	check(heads == #fl.fields, "one heading per field " .. heads .. " " .. #fl.fields)
+end
+
+PH.fieldclick = function()
+	local pg = openCon()
+	local log = plantLog(10)
+	local e = History.NewEntry(History.ALL_CATS[1], "CHAT_MSG_CHANNEL", "x", "Trade", nil)
+	e.ts = GetServerTime()
+	e.o = "f:PSS0010"
+	log[#log + 1] = e
+	pg.bar:SetText("index=log")
+	pg.run(true)
+	local runs, run = 0, pg.run
+	pg.run = function(...) runs = runs + 1; return run(...) end
+	local function find(pred) for i, d in ipairs(pg.sideFlat()) do if pred(d) then return i, d end end end
+	local hi = find(function(d) return d.head == "owner" end)
+	check(hi, "owner heading")
+	if not hi then pg.run = run; return end
+	pg.sideList.spec.click(nil, hi)
+	local vi = find(function(d) return d.field == "owner" and d.value == "f:PSS0010" end)
+	check(vi, "open heading lists its value")
+	if vi then
+		pg.sideList.spec.click(nil, vi)
+		local t = pg.bar:GetText() or ""
+		check(t:sub(-#'owner="f:PSS0010"') == 'owner="f:PSS0010"', "bar ends with the term: " .. t)
+		check(runs == 1, "value click ran: " .. runs)
 	end
+	pg.bar:SetText("index=log")
+	local old = IsAltKeyDown
+	IsAltKeyDown = function() return true end
+	hi = find(function(d) return d.head == "cat" end)
+	if hi then pg.sideList.spec.click(nil, hi) end
+	IsAltKeyDown = old
+	local t = pg.bar:GetText() or ""
+	check(t:sub(-#"| table cat") == "| table cat", "alt click table: " .. t)
+	check(runs == 2, "alt click ran: " .. runs)
+	pg.run = run
+end
+
+PH.rawheaders = function()
+	local pg = openCon()
+	plantLog(20)
+	local function heads()
+		local out = {}
+		for i, h in ipairs(pg.qv.chart.tableList.heads) do out[i] = h.label:GetText() end
+		return out
+	end
+	local function runq(q) pg.bar:SetText(q); pg.run(true) end
+	runq("index=log")
+	local set = pg.qv.vm.set
+	local h = heads()
+	local isCol = {}
+	for _, c in ipairs(set.cols) do isCol[c] = true end
+	check(#h > 0, "headers drawn")
+	for i, t in ipairs(h) do check(isCol[t], "raw header " .. i .. ": " .. tostring(t)) end
+	do
+		local u, old, got = GUI(), GUI().Tip, nil
+		u.Tip = function(o, t) got = t end
+		local hd = pg.qv.chart.tableList.heads[1]
+		local oe = hd._scripts and hd._scripts.OnEnter
+		if oe then oe(hd) end
+		u.Tip = old
+		check(got and got.title == h[1], "header tip title is the raw name: " .. tostring(got and got.title))
+	end
+	runq("index=log | stats count by cat")
+	h = heads()
+	check(h[1] == "cat" and h[2] == "count", "stats headers: " .. table.concat(h, ","))
+	runq("index=log | top cat")
+	h = heads()
+	check(h[1] == "cat" and h[2] == "count" and h[3] == "percent", "top headers: " .. table.concat(h, ","))
 end
 
 PH.conactions = function()
@@ -1765,7 +1810,7 @@ PH.reportgrid = function()
 	if not check(list and #list.rows > 0 and #list.heads > 0, "no grid") then return end
 	local heads = {}
 	for i, h in ipairs(list.heads) do heads[i] = h.text end
-	check(table.concat(heads, ",") == "Time,From,Type,Channel,Blocked by,Message", "headers: " .. table.concat(heads, ","))
+	check(table.concat(heads, ",") == "time,member,cat,channel,owner,message", "headers: " .. table.concat(heads, ","))
 	for i, r in ipairs(list.rows) do
 		if r:IsShown() then
 			for k, c in pairs(r.cells) do
@@ -1782,8 +1827,8 @@ PH.summary = function()
 	local q1 = 'index=log owner="p:lunarian moonwall-classicbetapvp" | sort -time | head 200'
 	check(S(q1, "Lunarian Moonwall", "Last 24 hours") == "newest 200 \194\183 Last 24 hours", "bound: " .. tostring(S(q1, "Lunarian Moonwall", "Last 24 hours")))
 	check(S("index=log | head 5") == "first 5", "first: " .. tostring(S("index=log | head 5")))
-	check(S("index=log | stats count by cat") == "count by Type", "count by: " .. tostring(S("index=log | stats count by cat")))
-	check(S("index=log cat=world | dedup cat") == "Type: World chat + more", "more: " .. tostring(S("index=log cat=world | dedup cat")))
+	check(S("index=log | stats count by cat") == "count by cat", "count by: " .. tostring(S("index=log | stats count by cat")))
+	check(S("index=log cat=world | dedup cat") == "cat=world + more", "more: " .. tostring(S("index=log cat=world | dedup cat")))
 	check(S("index=log NOT (cat=whisper OR cat=world) | head 3") == "without Whisper, World chat \194\183 first 3", "without: " .. tostring(S("index=log NOT (cat=whisper OR cat=world) | head 3")))
 	check(S("index=log | timechart span=1d count") == "count per day", "per day: " .. tostring(S("index=log | timechart span=1d count")))
 	check(S("bad (") == "Custom search", "bad: " .. tostring(S("bad (")))
@@ -1795,6 +1840,75 @@ PH.summary = function()
 	local h = pg.header and pg.header:GetText() or ""
 	check(h:find("^Events of ") and h:find("newest 200", 1, true) and h:find("Last 24 hours", 1, true), "header: " .. h)
 	check(not h:find("index=", 1, true), "header holds raw search: " .. h)
+end
+
+PH.fieldspanel = function()
+	local cm = M.PSS_ConsoleModel()
+	local cols, rows = {}, {}
+	for c = 1, 31 do cols[c] = "c" .. c end
+	for r = 1, 4 do
+		local row = {}
+		for c = 1, 31 do row[c] = c == 5 and "same" or ("v" .. c .. "_" .. r) end
+		rows[r] = row
+	end
+	local f = cm:Fields(set(cols, rows))
+	check(#f.fields == 30 and f.more == 1, "cap: " .. #f.fields .. " more " .. f.more)
+	check(f.fields[5].name == "c5" and f.fields[5].one == true and f.fields[4].one == false, "one-value field kept")
+	for i = 1, 30 do check(f.fields[i].name == cols[i], "order " .. i) end
+	local s = set({ "cat", "member" }, { { "world", "a" }, { "world", "b" } })
+	s.vfields = { "server", "sender", "filter" }
+	local ok = pcall(cm.Fields, cm, s)
+	check(ok, "virtual fields do not raise")
+	local g = cm:Fields(s)
+	check(g.fields[1].name == "cat" and g.fields[2].name == "member", "columns first")
+	local last = 2
+	for i = 3, #g.fields do
+		check(g.fields[i].name > g.fields[i - 1].name or i == 3, "virtuals alphabetical")
+		last = i
+	end
+	local pg = openCon()
+	plantLog(10)
+	pg.bar:SetText("index=log | head 10")
+	pg.run(true)
+	local ls = pg.qv.vm.set
+	local lf = cm:Fields(ls)
+	local nm = {}
+	for _, x in ipairs(lf.fields) do nm[#nm + 1] = x.name end
+	nm = "," .. table.concat(nm, ",")
+	check(nm:find(",sender,server$") ~= nil, "log virtuals last: " .. nm)
+	for _, bad in ipairs({ false, {} }) do
+		local e = cm:Fields(bad)
+		check(#e.fields == 0 and e.more == 0, "empty input")
+	end
+	local e = cm:Fields(nil)
+	check(#e.fields == 0 and e.more == 0, "nil input")
+end
+
+PH.fieldstop = function()
+	local cm = M.PSS_ConsoleModel()
+	local vals, rows = { "a", "b", "c", "d", "e", "f" }, {}
+	local counts = { 5, 5, 3, 2, 1, 1 }
+	for i, c in ipairs(counts) do for _ = 1, c do rows[#rows + 1] = { vals[i] } end end
+	check(#rows == 17, "17 rows")
+	local f = cm:Fields(set({ "member" }, rows), "member").fields[1]
+	check(f.top and #f.top == 5, "5 rows")
+	check(f.top[1].raw == "a" and f.top[2].raw == "b" and f.top[3].raw == "c", "ties by text")
+	check(f.top[1].pct == 29.4, "pct " .. tostring(f.top[1].pct))
+	check(cm:Fields(set({ "member" }, rows)).fields[1].top == nil, "closed field has no top")
+end
+
+PH.rowraw = function()
+	local cm = M.PSS_ConsoleModel()
+	local s = set({ "owner", "message" }, { { "p:thrall", "hi" } })
+	local d = cm:RowDetail(s, 1)
+	check(d[1].field == "owner" and d[2].field == "message", "raw names")
+	check(d[1].raw == "p:thrall" and d[1].value:find("^p:thrall"), "raw value " .. tostring(d[1].value))
+	check(d[1].dim == nil or d[1].dim ~= "p:thrall", "dim differs")
+end
+
+PH.sumraw = function()
+	local t = M.PSS_QuerySummary("index=log | stats count by cat")
+	check(t:find("count by cat", 1, true) and not t:find("Type", 1, true), "summary " .. tostring(t))
 end
 
 PH.reportmode = function()
@@ -1880,7 +1994,7 @@ PH.rowdetail = function()
 	ui.ContextMenu = orig
 	d = _G.PSS_RowDetail
 	if not check(d and d:IsShown(), "box not shown on left click") then M.PSS_IsSecret = real return end
-	check(d.list.count == #set.cols, "rows " .. tostring(d.list.count) .. " vs " .. #set.cols)
+	check(d.list.count == #set.cols + #(set.vfields or {}), "rows " .. tostring(d.list.count) .. " vs " .. #set.cols)
 	d.list:Redraw()
 	local function cellOf(k)
 		local c = { field = {}, value = {} }
@@ -1888,12 +2002,12 @@ PH.rowdetail = function()
 		d.list.spec.draw({ cells = c }, k)
 		return c.field.t, c.value.t
 	end
-	check(cellOf(1) == "Time", "first field: " .. tostring(cellOf(1)))
+	check(cellOf(1) == "time", "first field: " .. tostring(cellOf(1)))
 	local stc = M.PSS_SetCol(set, "st")
 	if check(stc, "no st column") then
 		local f, v = cellOf(stc)
-		check(f == M.PSS_FieldLabel("st"), "st label: " .. tostring(f))
-		check(v == M.PSS_CellText("st", set[1][stc], M.PSS_SetKinds(set).st) and v == "Chat block", "st value: " .. tostring(v))
+		check(f == "st", "st raw name: " .. tostring(f))
+		check(v:find(tostring(set[1][stc]), 1, true) == 1 and v:find("Chat block", 1, true), "st value: " .. tostring(v))
 	end
 	-- a secret cell shows ""
 	local secSet = { n = 1, cols = { "message" }, kinds = {}, { sec } }

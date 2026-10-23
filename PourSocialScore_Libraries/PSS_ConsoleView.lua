@@ -264,7 +264,7 @@ end
 
 ------------------------------------------------------------------------
 -- Console tab model (STP-00255): highlight, sidebar, row actions, left list, help
---   M.PSS_ConsoleModel() -> cm   cm:Tokens, Sidebar, ChartKinds, RowActions, LeftRows, SetText
+--   M.PSS_ConsoleModel() -> cm   cm:Tokens, Fields, ChartKinds, RowActions, LeftRows, SetText
 --   CV.colorize(text, toks, hexFn)  CV.term(field, value)  CV.addTerm(text, term)
 --   M.PSS_DictPageModel(index, field)  CV.HELP  M.PSS_BUTTON_QUERIES  M.PSS_DeepDiveText(keyOrText, ctx)
 ------------------------------------------------------------------------
@@ -326,7 +326,6 @@ function CV.addTerm(text, term)
 end
 
 local KIND_ORDER = { "column", "line", "area", "bar", "donut", "heat", "number", "table" }
-local SKIPCOL = { time = true, ts = true, message = true, label = true }
 
 local CM = {}
 CM.__index = CM
@@ -378,26 +377,64 @@ function CM:Tokens(text)
 	return toks, err
 end
 
-function CM:Sidebar(set)
+-- the Fields panel (F135a): the set's columns in order, then its virtual fields; each with its distinct count and
+-- row count; the open field also gets its top 5 values. Computed only while the panel is open.
+local FIELDS_CAP = 30
+local floor = math.floor
+local function sortedCopy(list)
 	local out = {}
-	if not set or (set.n or 0) == 0 then return out end
-	for _, col in ipairs(set.cols or {}) do
-		if #out >= 8 then break end
-		if not SKIPCOL[col] then
-			local top = M.PSS_Call("q.top", set, { field = col, n = 5 })
-			local rows, any = {}, false
-			local tn = top and top.n or 0
-			local kind = set.kinds and set.kinds[col]
-			for i = 1, tn do
-				local v = top[i][1]
-				if v ~= nil and v ~= "" then any = true end
-				rows[i] = { v, top[i][2], M.PSS_CellText(col, v, kind) }
+	for i = 1, #list do out[i] = list[i] end
+	table.sort(out)
+	return out
+end
+
+function CM:Fields(set, open)
+	local res = { fields = {}, more = 0 }
+	if type(set) ~= "table" or type(set.cols) ~= "table" or (set.n or 0) == 0 then return res end
+	local kinds = M.PSS_SetKinds(set) or {}
+	local names, isCol = {}, {}
+	for _, c in ipairs(set.cols) do names[#names + 1] = c; isCol[c] = true end
+	local vf = type(set.vfields) == "table" and set.vfields or {}
+	for _, v in ipairs(sortedCopy(vf)) do
+		if not isCol[v] then names[#names + 1] = v; isCol[v] = true end
+	end
+	local nf = 0
+	for _, name in ipairs(names) do
+		local ci = M.PSS_SetCol(set, name)
+		local seen, dc, n = {}, 0, 0
+		for r = 1, set.n do
+			local v
+			if ci then v = set[r][ci] else v = M.PSS_SetVirtual(set, r, name) end
+			if v ~= nil then
+				n = n + 1
+				if M.PSS_IsSecret(v) then dc = dc + 1
+				elseif seen[v] then seen[v] = seen[v] + 1
+				else seen[v] = 1; dc = dc + 1 end
 			end
-			local one = tn == 1 and top[1][2] >= set.n		-- one value covers every row
-			if any and not one then out[#out + 1] = { field = col, label = M.PSS_FieldLabel(col), rows = rows } end
+		end
+		if n > 0 then
+			if nf >= FIELDS_CAP then
+				res.more = res.more + 1
+			else
+				nf = nf + 1
+				local f = { name = name, label = M.PSS_FieldLabel(name), dc = dc, n = n, one = dc <= 1 }
+				if name == open then
+					local top = {}
+					for v, c in pairs(seen) do
+						top[#top + 1] = { raw = v, text = M.PSS_CellText(name, v, kinds[name]) or "", count = c, pct = floor(c * 1000 / set.n + 0.5) / 10 }
+					end
+					table.sort(top, function(a, b)
+						if a.count ~= b.count then return a.count > b.count end
+						return a.text < b.text
+					end)
+					for i = #top, 6, -1 do top[i] = nil end
+					f.top = top
+				end
+				res.fields[nf] = f
+			end
 		end
 	end
-	return out
+	return res
 end
 
 function CM:ChartKinds(shape)
@@ -431,16 +468,29 @@ function CM:CopyLine(set, i)
 	return table.concat(cells, "\t")
 end
 
--- the detail box rows of result row i: field label and display text; a secret cell is "" (PSS 02 section 10)
+-- the detail box rows of result row i: raw field name and raw value, the display text dimmed after it when it
+-- differs; set columns in order, then the virtual fields; a secret cell is "" (PSS 02 section 10)
 function CM:RowDetail(set, i)
-	local row, out = set and set[i], {}
+	local row, out = type(set) == "table" and type(set.cols) == "table" and set[i], {}
 	if not row then return out end
 	local kinds = M.PSS_SetKinds(set) or {}
-	for k = 1, #set.cols do
-		local col, v = set.cols[k], row[k]
-		local text = ""
-		if not M.PSS_IsSecret(v) and v ~= nil then text = M.PSS_CellText(col, v, kinds[col]) or "" end
-		out[k] = { field = M.PSS_FieldLabel(col), value = text }
+	local names, isCol = {}, {}
+	for k = 1, #set.cols do names[k] = set.cols[k]; isCol[set.cols[k]] = true end
+	local vf = type(set.vfields) == "table" and set.vfields or {}
+	for _, v in ipairs(sortedCopy(vf)) do
+		if not isCol[v] then names[#names + 1] = v; isCol[v] = true end
+	end
+	for k, col in ipairs(names) do
+		local v
+		if k <= #set.cols then v = row[k] else v = M.PSS_SetVirtual(set, i, col) end
+		local e = { field = col, value = "" }
+		if not M.PSS_IsSecret(v) and v ~= nil then
+			local raw = tostring(v)
+			local text = M.PSS_CellText(col, v, kinds[col]) or ""
+			e.raw, e.value = raw, raw
+			if text ~= raw then e.dim = text; e.value = raw .. "  |cff999999" .. text .. "|r" end
+		end
+		out[k] = e
 	end
 	return out
 end
@@ -787,7 +837,7 @@ function M.PSS_QuerySummary(text, bound, rangeLabel)
 			if bound and f == "owner" and not v:find("*", 1, true) then
 				-- the title names it
 			elseif v:find("*", 1, true) then more = true
-			else parts[#parts + 1] = M.PSS_FieldLabel(f) .. ": " .. shownValue(f, v) end
+			else parts[#parts + 1] = f .. "=" .. v end
 		else more = true end
 	end
 	local newest = false
@@ -799,7 +849,7 @@ function M.PSS_QuerySummary(text, bound, rangeLabel)
 		elseif cmd == "head" and tonumber(w[2]) and #w == 2 then
 			parts[#parts + 1] = (newest and "newest " or "first ") .. w[2]
 		elseif cmd == "stats" and w[2] == "count" and w[3] == "by" and w[4] and #w == 4 then
-			parts[#parts + 1] = "count by " .. M.PSS_FieldLabel(w[4])
+			parts[#parts + 1] = "count by " .. w[4]
 		elseif cmd == "timechart" and #w == 3 and w[3] == "count" and SPAN[(w[2] or ""):match("^span=(.+)$") or ""] then
 			parts[#parts + 1] = "count per " .. SPAN[w[2]:match("^span=(.+)$")]
 		else more = true end

@@ -39,6 +39,23 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.135 - Spyglass fields: Fields panel, raw column names, chat-filter names
+
+- Branch: `claude/serene-bell-sdez3f`; PR #253.
+- What changed and why: author results: `CHK-00190` to `CHK-00193` and `CHK-00195` to `CHK-00198` passed 2026-10-22; asks O1 to O3 answered (`DEC-00368`, `DEC-00369`). F135b (`PSS_Fields.lua`, `PSS_Psql.lua`, `PSS_Plan.lua`): chat-filter names as virtual fields `filter`, `sender`, `server` (`Q.VIRTUAL`, built per row only when named), no spaces in field names; the base had no virtual registry, so a minimal one was added. F135a (`PSS_ConsoleView.lua`): `CM:Fields` model, raw names in row detail and summary. F135c (`PSS_Console.lua`, `PSS_Chart.lua`): Fields panel opened by `>>` (heading click, Alt+click, value click, tooltips, `+N more`), raw column headers with tooltips. F135d: dead `CM:Sidebar` and `SKIPCOL` removed, two mutants repaired. Why: readable fields that match the query language.
+- Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `history.txt`; `versions.json`.
+- Tests run: `ix_phases.sh` 343 phases, 0 failed, plus `names filterdesc nospace` 6 pass (Retail and Camelot); `console_phases.sh` 182 phases, 0 failed; `ix_mutants.sh` 3 killed (`filter-pattern`, `virtual-text-field`, `name-spaces-allowed`); `console_mutants.sh` `fields-cap-8`, `header-label`, `detail-secret-shown`, `detail-raw-label` killed; `tui_compare.sh` vs origin/main: window differs (42 normalised lines, raw-name rows), not split per look; full run at 6383d98 with `PSS_SCRATCH` set and 15 real saves: `validate_all.sh` 1758 PASS, 0 FAIL, 0 SKIP; `ix_mutants.sh` 146 killed; `wh_mutants.sh` 76 killed; `console_mutants.sh` 58 of 58 killed after `label-raw` was repointed (header tooltip title, assertion added to `rawheaders`); `check_rules.sh` clean.
+- Not shown by the simulation: client font widths, the three looks, tooltips and clicks in the client.
+- Author results: `CHK-00204` to `CHK-00206` passed 2026-10-22. Found while testing: `owner="f:*"` (quoted wildcard) returns 0 rows, the unquoted `owner=f:*` works; same on 3.8.0.134; Splunk behaviour planned for a later build (the author).
+- In-game checks (each in Modern, Classic and Dark):
+  - `CHK-00204`: Spyglass > System > Events; click `>>` at the right of the Results row. Expected: the panel reads `Fields` and lists every column with a count (`owner  12`); click `member`: five names with counts and percents; click one name: the bar ends `member="<that name>"` and the results narrow to that player; Alt+click `cat`: the bar ends `| table cat`; /reload and open Spyglass: Fields is closed.
+  - `CHK-00205`: Spyglass > System > Events; hover the `owner` header; click a row. Expected: headers read raw names (`time`, `cat`, `owner`, `message`); the tooltip shows `Blocked by`; Event Details lists raw names and raw values, with the readable text dimmed beside values that read differently.
+  - `CHK-00206`: Spyglass, bar `index=log owner="f:*"`, open Fields, click `filter`. Expected: your chat filters' names (as in Options > Chat Filters), not their patterns; click one: the bar gains `filter="<name>"` and only that filter's blocks remain.
+
+### 3.8.0.134 (from 06 Now)
+
+**3.8.0.134, Spyglass pane fix and layout: one list per pane, top bar, collapsible panels, wider Message (branch `claude/nice-noether-m6eqsa`, PR #242):** rows S1, L134a, L134b: stale pane rows purged, search bar always on row 1, side panels collapsible (right closed by default), Message column at least 40 % wide, Edit search removed; replaces `CHK-00176` with `CHK-00195` to `CHK-00198`; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.134 - Spyglass pane fix and layout: one list per pane, top bar, collapsible panels, wider Message
 
 - Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
