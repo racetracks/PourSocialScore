@@ -41,7 +41,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.8.0.136 - TBC B1: flavour module and capability flags
 
-- Branch: `claude/gracious-johnson-wddwc5`; PR: none yet.
+- Branch: `claude/gracious-johnson-wddwc5`; [PR #257](https://github.com/racetracks/PourSocialScore/pull/257).
 - What changed and why: TBC B1 (STP-00306, DEC-00423 order). One flavour module `PSS_Flavour.lua` (core, after `PSS_Globals.lua`; `M.PSS_FLV`, `M.PSS_Can`, `M.PSS_CapLevel`) replaces detectors 1 and 2 and the five further client tests (macros, macro data, gfx, options, options view); Forever-only features read capability flags; surnames are off on Retail (design.md#surnames, a same-realm unit gives no realm there); the compartment entry stays off on Forever as today; harness per flavour (`PSS_FLAVOUR`, `PSS_CAMELOT` kept as alias), ten misdetection mutants, real saves per client, save-size tool. Retail and Forever behave as 3.8.0.135. Why: TBC compatibility needs one place that knows the client.
 - Measured: `PSS_Flavour.lua` 1.48 KB resident (`mem` phase, M and V pre-filled, bytecode not counted), 1.48 KB on each of retail, forever, tbc, era (limit 2 KB). `save_size.sh origin/main`: 17 saves, 0 grew, every delta 0 B (bytes, ref = tree): forever/2.0.44 392774; 3.0.0 398802; 3.2.0-dev011 442072; 3.4.0.28 462776; 3.4.1.50 433528; 3.4.2.54 492269; 3.5.0.61 537940; 3.5.0.62 407158; 3.7.0.100-global-profiles 402081; 3.7.0.100 393521; 3.7.0.102 457990; 3.7.0.106 502750; 3.7.0.107 502873; 3.7.0.98 393253; 3.8.0.126 458939; fresh/retail 54057; fresh/forever 54057.
 - Docs updated: this file; `docs/pss/01_HANDOVER.md`; `docs/pss/06_STATUS_AND_NEXT.md`; `docs/pss/07_HARNESS.md`; `history.txt`; `versions.json`.
