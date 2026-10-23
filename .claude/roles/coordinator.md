@@ -39,9 +39,12 @@ Run `L next` after every return and act on its lines. Provision exactly what `pr
 | `REVIEW` | continue the stream consultant with `--review`; for a consultant's own design, spawn a fresh consultant |
 | `SHAPE`, `DOCS` | `L cont <id>` with the printed lines (no budget extension); the agent reshapes its documents to the context caps, or updates the docs its code change needs |
 | `SCOPE` | reject the work, `git restore` the listed paths, route to triage for re-provisioning |
+| `EXTEND` | `L cont <id>` as printed: the agent had progress and the extension is cheaper than a re-run; no consultant turn |
+| `ACCEPT`, `OVERRUN` | accept as printed; an OVERRUN within 1.5x needs no re-run. When a consultant accepts work whose agent cannot be continued: `L accept <task> --by <consultant-id>` |
 | `CAP` | stop spawning; ask the user |
 | user changes scope | continue the triage consultant with the change, then `L init` |
 
+- Hand off to a fresh session at a stream milestone when your context passes 300k tokens.
 - Reuse (`--reuse`, `cont`) when the next step reuses most of what the agent has read; spawn fresh when inputs are disjoint or its context is mostly irrelevant.
 - Issue independent spawns in parallel, in one turn.
 - Engineers start only once their brief has an acceptance check; `L spawn` refuses a brief without one.

@@ -12,7 +12,7 @@ LEDGER = str(pathlib.Path(__file__).resolve().parent / "ledger.py")
 HEAD = "| Task | Class | Fit | Agent | Stream | Context | Writes | Brief | Calls | Out | Depends | Review | Why |"
 BRIEF = ("# Brief\nPurpose: test\n- Writes: `tmp/none`\n"
          "- Read: `docs/baseline/02_RULES.md` and `docs/pss/02_RULES.md` in full.\n"
-         "- Edit `.claude/README.md:1`: x becomes y.\nPermitted judgement: none\n"
+         "- Edit `.claude/README.md:1`: x becomes y, by script.\nPermitted judgement: none\n"
          "## Acceptance\n```sh\ntrue\n```\nExpected: ok\n")
 fails = []
 

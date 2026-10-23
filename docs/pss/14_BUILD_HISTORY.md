@@ -39,6 +39,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.137 - Re-entry cost cuts: model by brief, extend, accept, stale head
+
+- Branch: `claude/zen-dijkstra-kv3gaa`; [PR #258](https://github.com/racetracks/PourSocialScore/pull/258).
+- What changed and why: tooling build, no addon code. `ledger.py`: engineer-m1 rows whose brief is not "by script" spawn on engineer (`MODEL engineer`); return line 3 gains `progress yes|no · need ~N` (DONE within 1.5x: ACCEPT + OVERRUN; BUDGET with progress: EXTEND when cheaper than a re-run, cap 1.5x); stale check against the head stored at init; `accept TASK --by AID`; spawn prints every BRIEF line at once; `init --pack --draft` prints each row's agent, model and budget. Budgets: support 12/120, engineer-m3 25/300, engineer-M1 15/200.
+- Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `.claude/README.md`; `.claude/agents/*.md`; `.claude/roles/coordinator.md`; `CLAUDE.md`; `history.txt`; `versions.json`.
+- Tests run: all `.claude/scripts/test_ledger_*.py` (new `test_ledger_reentry.py`, 14 checks); `sync-token-rules.py --check`; `CI=1 sh tools/check_rules.sh`.
+- Not shown by the simulation: the EXTEND token figures on a real transcript.
+- In-game checks: none (no addon code).
+
+### 3.8.0.136 (from 06 Now)
+
+**3.8.0.136, TBC B1: flavour module and capability flags (branch `claude/gracious-johnson-wddwc5`, PR #257):** one flavour module (`PSS_Flavour.lua`) replaces the client detectors and feeds capability flags; Retail and Forever unchanged; keys `CHK-00223`, `CHK-00224`; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.136 - TBC B1: flavour module and capability flags
 
 - Branch: `claude/gracious-johnson-wddwc5`; [PR #257](https://github.com/racetracks/PourSocialScore/pull/257).

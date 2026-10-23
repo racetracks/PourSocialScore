@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.137 - Re-entry cost cuts: model by brief, extend, accept, stale head
+
+- Behind the scenes: developer tooling only, nothing changes for players.
+
 => 3.8.0.136 - TBC B1: flavour module and capability flags
 
 - Behind the scenes: one place now decides which game client PSS runs on (Retail or Forever), and client-only features read it. Nothing changes for players on Retail or Forever.

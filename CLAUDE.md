@@ -47,7 +47,7 @@ Classes (assigned by the consultant from scope and complexity, consultant K0): *
 
 ## 3. Communication
 - Only the coordinator spawns or continues agents. Work moves through files; prompts carry paths, never content.
-- Every return is ≤5 lines: line 1 status, line 2 as below, line 3 `spend: calls a/b · out c/d` (since this spawn or continue).
+- Every return is ≤5 lines: line 1 status, line 2 as below, line 3 `spend: calls a/b · out c/d · progress yes|no · need ~N` (spend since this spawn or continue; `need` is the calls still required, 0 when done).
 
 | Status | Meaning | Line 2 |
 |---|---|---|
