@@ -47,6 +47,9 @@ Read only: `EllesmereGaming/EllesmereUI` (all rights reserved; the reference fra
 | `PourSocialScore_Libraries` | On demand | Commands, the window's logic and rarely used core work: PSS_ImportExport, PSS_PlayerRows, PSS_Validate, PSS_WhoisHarvest (the Scan All planner), PSS_Camelot (the name repair), PSS_GuildQuery, PSS_FilterQuery, PSS_TotalsQuery, PSS_EventsQuery, PSS_DetailQuery, the view files PSS_ViewNav, PSS_PlayerView, PSS_GuildView, PSS_FilterView, PSS_EventsView, PSS_OptionsView, PSS_RowMenus (09), PSS_Graphics and PSS_MacroData / PSS_Macros (Camelot only; return at the top on other clients), PSS_Commands. (P6 moved the player rows, save check, planner and repair here from core: -63 KB resident at login) |
 | `PourSocialScore_Logging` | On demand, only when logs are called | `PSS_LoggingDB` (blockLog, blockKeep); PSS_SavedLog.lua, PSS_LoggingData.lua |
 | `PourSocialScore_Communities` | On demand | Packed shipped lists (~460 KB) |
+| `tools/gen_toc.lua` | Dev tool | Writes every TOC of the six folders from `tools/toc/manifest.txt` (`--check`, `--install`); never edit a suffixed TOC by hand (`specs/architecture.md#toc-set`, ARC-00031) |
+| `tools/toc/manifest.txt` | Dev data | `interface` lines and `install` lines (the one place for each client's folder, Forever's included; how to change it: issue [#255](https://github.com/racetracks/PourSocialScore/issues/255)), then per folder its files in load order with optional `forever` tag (the three Libraries files `PSS_Macros.lua`, `PSS_MacroData.lua`, `PSS_Graphics.lua`) |
+| `<Folder>_TBC.toc` (six) | Generated | TBC Anniversary TOC, `## Interface: 20506`; base TOCs list `120007, 16001, 20506` |
 
 ## 4. Real names (the project's own objects)
 - **Namespace:** everything hangs on `M`, shared through the global `PourSocialScore_NS`. The window's private file table is `ns` (`PourSocialScore_GUI`).

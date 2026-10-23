@@ -1,4 +1,4 @@
-## Interface: 120007, 16001
+## Interface: 120007, 16001, 20506
 ## Title: |cff69ccf0PourSocialScore|r Libraries
 ## Notes: PourSocialScore commands and import/export, loaded when first used
 ## Category: PSS
@@ -73,9 +73,9 @@ PSS_EventsView.lua
 PSS_OptionsView.lua
 PSS_AddonsView.lua
 PSS_RowMenus.lua
-PSS_Graphics.lua
-PSS_MacroData.lua
-PSS_Macros.lua
+PSS_Graphics.lua [AllowLoadGameType camelot][ExcludeLoadGameType standard, tbc]
+PSS_MacroData.lua [AllowLoadGameType camelot][ExcludeLoadGameType standard, tbc]
+PSS_Macros.lua [AllowLoadGameType camelot][ExcludeLoadGameType standard, tbc]
 PSS_MapButton.lua
 PSS_DttScan.lua
 PSS_DttAct.lua

@@ -1,4 +1,4 @@
-## Interface: 120007, 16001
+## Interface: 120007, 16001, 20506
 ## Title: |cff69ccf0PourSocialScore|r Core
 ## Notes: Sometimes you dont wanna know when a man gotta slur a little
 ## Category: PSS
@@ -8,6 +8,7 @@
 ## Version: 3.8.0.137
 ## SavedVariables: PourSocialScoreDB
 ## Dependencies: PourSocialScore_Options
+## OptionalDeps: PoorSocialScore, GlobalIgnoreList
 
 PSS_Localization.lua
 PSS_Globals.lua

@@ -73,9 +73,6 @@ PSS_EventsView.lua
 PSS_OptionsView.lua
 PSS_AddonsView.lua
 PSS_RowMenus.lua
-PSS_Graphics.lua
-PSS_MacroData.lua
-PSS_Macros.lua
 PSS_MapButton.lua
 PSS_DttScan.lua
 PSS_DttAct.lua

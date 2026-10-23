@@ -83,7 +83,13 @@ jobs:
           cp readme.txt history.txt build/PourSocialScore/
           (cd build && zip -qr "../PourSocialScore-$ver.zip" .)
           {
-            echo "**Install:** extract the zip into \`World of Warcraft/_retail_/Interface/AddOns/\` so you get \`AddOns/PourSocialScore/PourSocialScore.toc\` (and any \`AddOns/PourSocialScore_*\` folders next to it). Retail (Midnight) and Camelot are supported."
+            echo "**Install:** extract the zip into your client's AddOns folder:"
+            lua5.1 tools/gen_toc.lua --install | while read -r fl folder; do
+              case $fl in retail) c=Retail;; forever) c=Forever;; tbc) c="TBC Anniversary";; *) c=$fl;; esac
+              echo "- $c: \`World of Warcraft/$folder/Interface/AddOns/\`"
+            done
+            echo
+            echo "so you get \`AddOns/PourSocialScore/PourSocialScore.toc\` and the \`AddOns/PourSocialScore_*\` folders next to it."
             echo
             if [ "${{ steps.v.outputs.kind }}" = release ]; then
               prev=$(python3 -c 'import json; print(json.load(open("versions.json"))["releases"][0]["previous"])')
