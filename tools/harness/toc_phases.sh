@@ -1,6 +1,6 @@
 #!/bin/sh
-# TOC set checks (TST-00978 rows 1 to 4). Run from the repo root.
-# Last line: "TOC 4 rows, <f> failed"; exit 1 when <f> is not 0.
+# TOC set checks (TST-00978 rows 1 to 4, TBC interface rows 5 and 6). Run from the repo root.
+# Last line: "TOC 6 rows, <f> failed"; exit 1 when <f> is not 0.
 f=0
 T=PourSocialScore/PourSocialScore_TBC.toc
 L=PourSocialScore_Libraries
@@ -27,5 +27,11 @@ rm -f "$bak"
 # 4: Macros line in the base Libraries TOC is gated to camelot
 grep -q '^PSS_Macros.lua \[AllowLoadGameType camelot\]\[ExcludeLoadGameType standard, \?tbc\]$' $L/$L.toc && ok "4 macros gated" ok || ok "4 macros gated" no
 
-echo "TOC 4 rows, $f failed"
+# 5: TBC TOC interface
+grep -q '^## Interface: 20506$' $T && ok "5 tbc interface" ok || ok "5 tbc interface" no
+
+# 6: base TOC list includes 20506
+grep '^## Interface' PourSocialScore/PourSocialScore.toc | grep -q '20506' && ok "6 base has 20506" ok || ok "6 base has 20506" no
+
+echo "TOC 6 rows, $f failed"
 [ "$f" -eq 0 ]

@@ -15,6 +15,11 @@ if [ -z "$src" ] || [ ! -d "$src/SavedVariables" ]; then
 	echo "usage: sh tools/harness/build_saves.sh <scratch checkout> [out dir]"
 	exit 1
 fi
+iw=$(lua5.1 tools/gen_toc.lua --install) || exit 1
+rf=$(echo "$iw" | awk '$1=="retail"{print $2}')
+ff=$(echo "$iw" | awk '$1=="forever"{print $2}')
+if [ "$rf" = "$ff" ]; then p1=shared; else p1=separate; fi
+echo "install forever $ff, retail $rf: P1 $p1"
 n=0
 clients="retail forever tbc era mists"
 # one save: <dir> <client> <version>
