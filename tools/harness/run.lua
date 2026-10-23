@@ -33,7 +33,7 @@ _G.H = H
 -- (fixtures/wh_world.lua; PSS_WH_CLIENT retail | camelot | era, PSS_WH_CHAR the character number)
 if os.getenv("PSS_WH_SEED") == "1" then
 	local F = dofile(here .. "/fixtures/wh_world.lua")
-	F.apply(H, F.world(), tonumber(os.getenv("PSS_WH_CHAR") or "1"), os.getenv("PSS_WH_CLIENT") or (os.getenv("PSS_CAMELOT") == "1" and "camelot" or "retail"))
+	F.apply(H, F.world(), tonumber(os.getenv("PSS_WH_CHAR") or "1"), os.getenv("PSS_WH_CLIENT") or ((os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1") and "camelot" or "retail"))
 end
 
 if svIn and svIn ~= "-" then

@@ -1,4 +1,5 @@
 #!/bin/sh
+. "$(dirname "$0")/flavours.sh"
 # Service bus checks (service-bus-helper; check_bus.lua, check_trig.lua), on Retail and on
 # Camelot. Run from the repo root (validate_all.sh and CI call it); exit 1
 # when any phase fails. The gate phase runs the scratch design-proof gate
@@ -9,24 +10,24 @@
 here=$(dirname "$0")
 fail=0
 for ph in sets calls chain errors act budget gui listen store query strict; do
-	for cam in "" "PSS_CAMELOT=1"; do
+	for cam in $FLAVOUR_ENVS; do
 		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=logging $cam lua5.1 "$here/run.lua" . - - "$here/check_bus.lua" 2>&1 | grep -v '^|cff')
-		echo "$out" | sed "s/^PASS bus $ph/PASS bus $ph ${cam:+(Camelot)}/"
+		echo "$out" | sed "s/^PASS bus $ph/PASS bus $ph (${cam#PSS_FLAVOUR=})/"
 		echo "$out" | grep -q "PASS bus $ph" || { fail=1; echo "$out" | head -5; }
 		echo "$out" | grep -q "FAIL" && fail=1
 	done
 done
 for ph in off rows engine rules shipped retry cost; do
-	for cam in "" "PSS_CAMELOT=1"; do
+	for cam in $FLAVOUR_ENVS; do
 		out=$(env PSS_PHASE=$ph PSS_COMPONENTS=addons,logging $cam lua5.1 "$here/run.lua" . - - "$here/check_trig.lua" 2>&1 | grep -v '^|cff')
-		echo "$out" | sed "s/^PASS trig $ph/PASS trig $ph ${cam:+(Camelot)}/"
+		echo "$out" | sed "s/^PASS trig $ph/PASS trig $ph (${cam#PSS_FLAVOUR=})/"
 		echo "$out" | grep -q "PASS trig $ph" || { fail=1; echo "$out" | head -5; }
 		echo "$out" | grep -q "FAIL" && fail=1
 	done
 done
-for cam in "" "PSS_CAMELOT=1"; do
+for cam in $FLAVOUR_ENVS; do
 	out=$(env PSS_COMPONENTS=logging $cam lua5.1 "$here/run.lua" . - - "$here/check_owned.lua" 2>&1 | grep -v '^|cff')
-	echo "$out" | sed "s/^PASS owned/PASS owned ${cam:+(Camelot)}/"
+	echo "$out" | sed "s/^PASS owned/PASS owned (${cam#PSS_FLAVOUR=})/"
 	echo "$out" | grep -q "PASS owned" || { fail=1; echo "$out" | head -5; }
 	echo "$out" | grep -q "FAIL" && fail=1
 done

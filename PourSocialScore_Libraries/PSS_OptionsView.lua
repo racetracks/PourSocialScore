@@ -121,7 +121,7 @@ function M.PSS_OptGate(o)
 	local name = COMPONENT_NAME[o.key]
 	if not name then return true, "" end
 	local enabled, note = true, ""
-	if name == "gfx" and not M.PSS_IsCamelot() then
+	if name == "gfx" and not M.PSS_Can("gfxCommand") then
 		enabled, note = false, " (Camelot only)"
 	end
 	if M.PSS_ComponentPending(name) then note = note .. " (after reload)" end
@@ -132,7 +132,7 @@ end
 -- code even inside a click: only the player's own click on a secure "/reload"
 -- macro reloads, which ns.Confirm { reload = true } sets up), else "direct"
 function M.PSS_ReloadMode()
-	return M.PSS_IsCamelot and M.PSS_IsCamelot() and "press" or "direct"
+	return M.PSS_Can("reloadButton") and "press" or "direct"
 end
 
 -- the one reload call (allowed in combat: the player chose it, the author,

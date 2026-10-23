@@ -9,7 +9,7 @@ local here = (arg[0] or ""):match("^(.*)/[^/]*$") or "."
 check(M.PSS_Need("Libraries"), "Libraries did not load")
 local History = M.PSS_History
 local L, P, T, Q = M.PSS_Line, M.PSS_Pred, M.PSS_Time, M.PSS_Psql
-local CAMELOT = os.getenv("PSS_CAMELOT") == "1"
+local CAMELOT = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
 
 local function S(q, o) return M.PSS_Search(q, o) end
 local function at(set, name) return set and M.PSS_SetCol(set, name) end

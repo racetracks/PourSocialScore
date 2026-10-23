@@ -17,17 +17,14 @@ local iface = GetBuildInfo and select(4, GetBuildInfo())
 if type(iface) ~= "number" then iface = nil end
 
 local flavour
-local rows = {
-	{ WOW_PROJECT_MAINLINE, "retail" },
-	{ WOW_PROJECT_CAMELOT, "forever" },
-	{ WOW_PROJECT_BURNING_CRUSADE_CLASSIC, "tbc" },
-	{ WOW_PROJECT_CLASSIC, "era" },
-	{ WOW_PROJECT_MISTS_CLASSIC, "mists" },
-}
-for i = 1, #rows do
-	local r = rows[i]
-	if r[1] ~= nil and r[1] == pid then flavour = r[2]; break end
+local function pick(const, name)
+	if const ~= nil and const == pid then flavour = name end
 end
+pick(WOW_PROJECT_MISTS_CLASSIC, "mists")
+pick(WOW_PROJECT_CLASSIC, "era")
+pick(WOW_PROJECT_BURNING_CRUSADE_CLASSIC, "tbc")
+pick(WOW_PROJECT_CAMELOT, "forever")
+pick(WOW_PROJECT_MAINLINE, "retail")
 if not flavour then
 	if iface then
 		if iface >= 100000 then flavour = "retail"
@@ -47,24 +44,26 @@ elseif flavour == "unknown" and (iface or 0) >= 100000 then family = "mainline"
 elseif flavour == "unknown" then family = "classic"
 else family = "classic" end
 
-local DIGITS = { retail = "1", forever = "2", tbc = "3", era = "4", mists = "5" }
 
 -- levels per flavour: { retail, forever, tbc, era, mists } (design.md#capability-table)
 local S, O = "supported", "off"
+local caps = {}
+do
+-- one letter per flavour (retail, forever, tbc, era, mists): s supported, o off
 local LEVELS = {
-	reloadButton = { O, S, O, O, O },
-	gfxCommand = { O, S, O, O, O },
-	macroCommand = { O, S, O, O, O },
-	surnames = { O, S, O, O, O },
-	compartment = { S, O, S, S, S },
-	modernMenu = { S, S, S, S, S },
-	cContainer = { S, S, S, S, S },
-	secretValues = { S, S, O, O, O },
-	guildBank = { S, S, S, O, S },
-	friendsAnchor = { O, O, S, O, O },
+	reloadButton = "osooo",
+	gfxCommand = "osooo",
+	macroCommand = "osooo",
+	surnames = "osooo",
+	compartment = "sosss",
+	modernMenu = "sssss",
+	cContainer = "sssss",
+	secretValues = "ssooo",
+	guildBank = "sssos",
+	friendsAnchor = "oosoo",
 }
-local COL = { retail = 1, forever = 2, tbc = 3, era = 4, mists = 5 }
-local col = COL[flavour]
+local col = (flavour == "retail" and 1) or (flavour == "forever" and 2) or (flavour == "tbc" and 3)
+	or (flavour == "era" and 4) or (flavour == "mists" and 5)
 if not col then col = (family == "mainline") and 1 or 4 end
 
 -- probes: a false probe forces the level to off
@@ -77,17 +76,19 @@ local PROBES = {
 	friendsAnchor = function() return FriendsFrame and FriendsFrame.NineSlice end,
 }
 
-local caps = {}
 for cap, row in pairs(LEVELS) do
-	local lvl = row[col]
+	local lvl = row:sub(col, col) == "s" and S or O
 	local probe = PROBES[cap]
 	if lvl ~= O and probe and not probe() then lvl = O end
 	caps[cap] = lvl
 end
+end
 
 M.PSS_FLV = {
 	flavour = flavour, family = family, interface = iface, projectId = pid,
-	digit = DIGITS[flavour] or "0", caps = caps,
+	digit = (flavour == "retail" and "1") or (flavour == "forever" and "2") or (flavour == "tbc" and "3")
+		or (flavour == "era" and "4") or (flavour == "mists" and "5") or "0",
+	caps = caps,
 }
 local FLV = M.PSS_FLV
 

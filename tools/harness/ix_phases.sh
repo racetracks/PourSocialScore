@@ -1,4 +1,5 @@
 #!/bin/sh
+. "$(dirname "$0")/flavours.sh"
 # The Spyglass engine (search-helper, phase A; check_ix.lua), on Retail and on Camelot. Run from the repo
 # root (validate_all.sh and CI call it); exit 1 when any phase fails. Each phase starts from a save made by
 # one login with the same components (so Logging is not loaded at login, as in the game). With
@@ -57,7 +58,7 @@ want="$*"
 prime() {	# $1 components, $2 camelot flag, $3 seed -> a save after one login
 	key=$(echo "$1-$2-$3" | tr ',' '_')
 	if [ ! -f "$work/prime-$key.lua" ]; then
-		env PSS_COMPONENTS="$1" ${2:+PSS_CAMELOT=1} PSS_WH_SEED="$3" lua5.1 "$here/run.lua" . - "$work/prime-$key.lua" > /dev/null 2>&1
+		env PSS_COMPONENTS="$1" PSS_FLAVOUR=${2:-retail} PSS_WH_SEED="$3" lua5.1 "$here/run.lua" . - "$work/prime-$key.lua" > /dev/null 2>&1
 	fi
 	echo "$work/prime-$key.lua"
 }
@@ -77,16 +78,16 @@ result() {	# $1 label, $2 output
 run1() {	# $1 phase, $2 camelot, [$3 save in], [$4 save out]
 	c=$(comps "$1"); s=$(seed "$c")
 	src=${3:-$(prime "$c" "$2" "$s")}
-	env PSS_PHASE="$1" PSS_COMPONENTS="$c" ${2:+PSS_CAMELOT=1} PSS_WH_SEED="$s" ${5:+$5} lua5.1 "$here/run.lua" . "$src" "${4:--}" "$here/check_ix.lua" 2>&1 | grep -v '^|cff'
+	env PSS_PHASE="$1" PSS_COMPONENTS="$c" PSS_FLAVOUR=${2:-retail} PSS_WH_SEED="$s" ${5:+$5} lua5.1 "$here/run.lua" . "$src" "${4:--}" "$here/check_ix.lua" 2>&1 | grep -v '^|cff'
 }
 
 for ph in $want; do
-	for cam in "" 1; do
-		label="$ph${cam:+ (Camelot)}"
+	for cam in $FLAVOURS; do
+		label="$ph ($cam)"
 		case "$ph" in
 		psshot)
 			out=$(run1 psshot "$cam" "" "$work/hot-$cam.lua")
-			out2=$(env PSS_PHASE=psshot2 PSS_COMPONENTS=logging ${cam:+PSS_CAMELOT=1} lua5.1 "$here/run.lua" . "$work/hot-$cam.lua" - "$here/check_ix.lua" 2>&1 | grep -v '^|cff')
+			out2=$(env PSS_PHASE=psshot2 PSS_COMPONENTS=logging PSS_FLAVOUR=$cam lua5.1 "$here/run.lua" . "$work/hot-$cam.lua" - "$here/check_ix.lua" 2>&1 | grep -v '^|cff')
 			result "$label" "$out
 $out2" ;;
 		sqdowngrade)
@@ -99,7 +100,7 @@ $out2" ;;
 				git archive "$ref" 2>/dev/null | tar -x -C "$work/ref" 2>/dev/null
 			fi
 			if [ -f "$work/ref/PourSocialScore/PourSocialScore.toc" ]; then
-				env PSS_COMPONENTS=logging ${cam:+PSS_CAMELOT=1} lua5.1 "$here/run.lua" "$work/ref" "$work/down-$cam.lua" "$work/down2-$cam.lua" > /dev/null 2>&1
+				env PSS_COMPONENTS=logging PSS_FLAVOUR=$cam lua5.1 "$here/run.lua" "$work/ref" "$work/down-$cam.lua" "$work/down2-$cam.lua" > /dev/null 2>&1
 				cmp=$(lua5.1 -e '
 					local function load(p) local e = {} local f = assert(loadfile(p)) setfenv(f, e) f() return e end
 					local a, b = load(arg[1]), load(arg[2])
@@ -122,7 +123,7 @@ FAIL ix: sqdowngrade: no reference tree"
 			out=$(run1 reader "$cam" "$work/reader-$cam.lua" "" "PSS_READER_SAVE=$work/reader-$cam.lua")
 			result "$label" "$out" ;;
 		covpass|covfail|covlist)
-			if [ -n "$cam" ]; then continue; fi
+			if [ "$cam" != retail ]; then continue; fi
 			rm -rf "$work/cov"; mkdir -p "$work/cov"
 			tar cf - PourSocialScore PourSocialScore_Libraries PourSocialScore_Options PourSocialScore_GUI PourSocialScore_Logging PourSocialScore_Communities tools | (cd "$work/cov" && tar xf -)
 			case "$ph" in

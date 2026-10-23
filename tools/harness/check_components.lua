@@ -8,7 +8,7 @@
 local phase = os.getenv("PSS_PHASE") or "defaults"
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL components: " .. phase .. ": " .. msg) fail = true end return ok end
-local camelot = os.getenv("PSS_CAMELOT") == "1"
+local camelot = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
 local realPrint = print
 local said
 local function pss(cmd)
@@ -77,7 +77,7 @@ function phases.options()
 	local cf = _G.PSS_Confirm
 	check(cf and cf:IsShown() and cf.text:GetText():find("Reload now?", 1, true), "no reload question")
 	local before = H.reloads
-	if os.getenv("PSS_CAMELOT") == "1" then
+	if (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1") then
 		check(_G.PSS_ReloadClick and _G.PSS_ReloadClick:IsShown(), "Camelot: no reload button over Accept")
 		H.SecureClick(_G.PSS_ReloadClick)
 	else
@@ -111,7 +111,7 @@ function phases.options()
 	before = H.reloads
 	H.combat = true
 	local c2 = _G.PSS_Confirm
-	if os.getenv("PSS_CAMELOT") == "1" then H.SecureClick(_G.PSS_ReloadClick) else c2.accept._scripts.OnClick(c2.accept) end
+	if (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1") then H.SecureClick(_G.PSS_ReloadClick) else c2.accept._scripts.OnClick(c2.accept) end
 	check(H.reloads == before + 1, "the player's reload in combat did not run")
 	H.combat = false
 end

@@ -239,7 +239,7 @@ function M.PSS_UnitMenuPlayer (owner, root, contextData)
 	if type(server) ~= "nil" and (type(server) ~= "string" or M.PSS_IsSecret(server)) then server = nil end
 	if unit and UnitIsUnit and UnitIsUnit(unit, "player") then return end
 
-	-- one join for every name: a unit's surname (Camelot) is not a realm
+	-- one join for every name: a unit's surname (Forever) is not a realm
 	target = M.PSS_NormName(target, server, unit)
 	if not target then return end
 

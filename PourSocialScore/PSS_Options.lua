@@ -236,7 +236,7 @@ function liveOn(name)
 	if name == "items" then return liveOn("bags") or liveOn("warehouse") end		-- the shared item layer runs for either
 	local key = COMPONENT_KEY[name]
 	if not key then return false end
-	if name == "gfx" and not camelot() then return false end
+	if name == "gfx" and not M.PSS_Can("gfxCommand") then return false end
 	return M.PSS_Opt(key) == true
 end
 

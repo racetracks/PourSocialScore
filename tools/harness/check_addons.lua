@@ -52,7 +52,7 @@ end
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL addons: " .. phase .. ": " .. msg) fail = true end return ok end
 local loaded = function(name) return C_AddOns.IsAddOnLoaded(name) end
-local camelot = os.getenv("PSS_CAMELOT") == "1"
+local camelot = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
 local DIGIT = camelot and "2" or "1"
 local GUID = "Player-1-0001"
 

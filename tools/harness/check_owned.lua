@@ -16,7 +16,7 @@ local function eq(what, got, want)
 	if got ~= want then realPrint(("  FAIL owned: %s: %s, expected %s"):format(what, tostring(got), tostring(want))); fails = fails + 1 end
 end
 local function ok(what, v) eq(what, v and true or false, true) end
-local camelot = os.getenv("PSS_CAMELOT") == "1"
+local camelot = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
 
 -- the character name without its realm, as M.PSS_NormName builds it
 local function short(name)

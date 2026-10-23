@@ -5,7 +5,7 @@
 -- not from the code. Phases are added with their packages:
 --   stub (TST-p001..p006)  err (TST-p010..p025)  codec (TST-p026..p029, p223)  codecprop (TST-p130..p135)  store2 (TST-p031..p036)  mapstore (TST-p037..p039, p061, p062)  idx (TST-p042..p049)  watch (TST-p064, p065, p069, p218, p219)  upg (TST-p030, p160..p169, p228..p230)  registry (TST-p007, p008)  schema (TST-p009, p214)  off (TST-00119, p142)  layers (TST-p225)  dict (TST-p050..p057, p215..p217)  live (TST-p040, p041, p058, p059)  name (TST-p224)  track (TST-p060, p063, p066..p068, p077, p079, TST-00120)  caps (TST-p070..p074, TST-00124)  delete (TST-p075, p076)  ent (TST-p080..p082)  numbers (TST-p090..p095, TST-00125 part)  sv1 sv2 sv3 (TST-00121)  syn (TST-p078)
 local phase = os.getenv("PSS_PHASE") or "stub"
-local camelot = os.getenv("PSS_CAMELOT") == "1"
+local camelot = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL wh: " .. phase .. ": " .. msg) fail = true end return ok end
 local here = (arg[0] or ""):match("^(.*)/[^/]*$") or "."

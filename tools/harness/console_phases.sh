@@ -1,4 +1,5 @@
 #!/bin/sh
+. "$(dirname "$0")/flavours.sh"
 # The Spyglass console (search-helper, phase B; check_console.lua), on Retail and on Camelot. Run from the
 # repo root (validate_all.sh and CI call it); exit 1 when any phase fails. Phases come from the file.
 # With PSS_REAL_SAVES (build_saves.sh's out dir) the phases in REAL also run on every save.
@@ -18,7 +19,7 @@ want="$*"
 prime() {	# $1 camelot flag -> a save after one login
 	key=${1:-0}
 	if [ ! -f "$work/prime-$key.lua" ]; then
-		env PSS_COMPONENTS=logging ${1:+PSS_CAMELOT=1} lua5.1 "$here/run.lua" . - "$work/prime-$key.lua" > /dev/null 2>&1
+		env PSS_COMPONENTS=logging PSS_FLAVOUR=${1:-retail} lua5.1 "$here/run.lua" . - "$work/prime-$key.lua" > /dev/null 2>&1
 	fi
 	echo "$work/prime-$key.lua"
 }
@@ -36,9 +37,9 @@ result() {	# $1 label, $2 output
 }
 
 for ph in $want; do
-	for cam in "" 1; do
-		label="$ph${cam:+ (Camelot)}"
-		out=$(env PSS_PHASE="$ph" PSS_COMPONENTS=logging ${cam:+PSS_CAMELOT=1} lua5.1 "$here/run.lua" . "$(prime "$cam")" - "$here/check_console.lua" 2>&1 | grep -v '^|cff')
+	for cam in $FLAVOURS; do
+		label="$ph ($cam)"
+		out=$(env PSS_PHASE="$ph" PSS_COMPONENTS=logging PSS_FLAVOUR=$cam lua5.1 "$here/run.lua" . "$(prime "$cam")" - "$here/check_console.lua" 2>&1 | grep -v '^|cff')
 		result "$label" "$out"
 	done
 	if [ -n "$PSS_REAL_SAVES" ] && echo " $REAL " | grep -q " $ph " && echo " $ALL " | grep -q " $ph "; then

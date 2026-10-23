@@ -1,4 +1,5 @@
 #!/bin/sh
+. "$(dirname "$0")/flavours.sh"
 # SavedVariables upgrade test for 2.0.1, 2.0.8, 2.0.17, 2.0.18, 2.0.19,
 # 2.0.22, 2.0.35, 2.0.36, 2.0.37, 2.0.38, 2.0.39, 2.0.40, 2.0.41, 2.0.42, 2.0.43 and 2.0.44, and removals (run from the
 # repo root, needs lua5.1 and git).
@@ -134,8 +135,8 @@ echo "$out" | grep -q "PASS alerts" || fail=1
 
 # the ignore auto-reply echo (issue 183): hidden only while the option is off
 section "ignore reply echo"
-for camel in 0 1; do
-	out=$(PSS_CAMELOT=$camel lua5.1 "$here/run.lua" . - - "$here/check_ignorereply.lua" 2>&1 | grep -v '^|cff')
+for fl in $FLAVOURS; do
+	out=$(PSS_FLAVOUR=$fl lua5.1 "$here/run.lua" . - - "$here/check_ignorereply.lua" 2>&1 | grep -v '^|cff')
 	echo "$out"
 	echo "$out" | grep -q "PASS ignorereply" || fail=1
 done

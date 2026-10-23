@@ -372,7 +372,7 @@ if phase == "login" or phase == "again" then
 end
 
 if phase == "camelot" then
-	local camelot = os.getenv("PSS_CAMELOT") == "1"
+	local camelot = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
 	local mk = managedKey()
 	local ms = members(mk)
 	local function has(k) return ms[k] ~= nil end
