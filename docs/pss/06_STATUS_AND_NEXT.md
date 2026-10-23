@@ -13,7 +13,7 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 
 ## Waiting on the author
 - 3.8.0.138 (TBC B2): in-game `CHK-00217` (TBC Anniversary: every folder loads, upgrade report prints, note the WTF folder path) and `CHK-00226` (TBC Anniversary: not out of date, flavour TBC).
-- 3.8.0.136 (TBC B1): in-game `CHK-00223` (Forever) and `CHK-00224` (Retail), each in Modern, Classic and Dark.
+- 3.8.0.136 (TBC B1): in-game `CHK-00224` (Retail), in Modern, Classic and Dark. `CHK-00223` (Forever) is **blocked: Forever beta down** (the author, 2026-10-23); Forever is covered by the harness flavours only until the beta returns, then one build re-runs every Forever check.
 - 3.8.0.135: in-game `CHK-00204` to `CHK-00206` passed (the author, 2026-10-22); merge PR #253.
 - Test a very old save on 3.7.0.113 (the final pre-release), then merge the 3.7.0.114 release PR; then hand phase A its guide (section G0 of 12_02_Phase_A_Spyglass_Engine.md (`scratch:documents/features/search-helper/12_User_Guides/12_02_Phase_A_Spyglass_Engine.md`)).
 - Run `CHK-00110` when the TBC stage opens (#233) and `CHK-00113` on a live realm with a guild bank (#234); `CHK-00117` and `CHK-00118` have no recorded result.
