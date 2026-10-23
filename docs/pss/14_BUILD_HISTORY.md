@@ -41,7 +41,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.8.0.138 - TBC B2: TOC set for TBC Anniversary
 
-- Branch: `claude/admiring-ride-vtgwfe`; PR: none yet.
+- Branch: `claude/admiring-ride-vtgwfe`; [PR #259](https://github.com/racetracks/PourSocialScore/pull/259).
 - What changed and why: TBC Anniversary TOC set (STP-00307): `tools/gen_toc.lua` writes every TOC of the six folders from `tools/toc/manifest.txt` (`--check`, `--install`); a `_TBC.toc` per folder with Interface 20506 (Macros gated out); `check_toc.sh` checks four TOCs per folder; `release.yml` install line built from the manifest (Forever folder is one `install forever` setting); `readme.txt` install paragraph names no client folder; flavour check gains a `blank` phase (FLV is now 10 phases, replacing the old quoted total of 30). Nothing changes for Retail and Forever players.
 - Docs updated: this file; `docs/pss/reference/14_build-history-3.8.0.130-to-3.8.0.132.md` (entries moved); `docs/pss/06_STATUS_AND_NEXT.md`; `docs/pss/01_HANDOVER.md`; `docs/pss/07_HARNESS.md`; `readme.txt`; `history.txt`; `versions.json`; every TOC.
 - Tests run: `gen_toc.lua --check` clean; `toc_phases.sh` TOC 6 rows, 0 failed; `check_toc.sh` per folder and `check_rules.sh`; `validate_all.sh` 15 real saves, 0 failed; `save_size.sh` SIZE 17 saves, 0 grew; `flv_phases.sh` FLV 10 phases, 0 failed; `flv_mutants.sh` MUTANTS 11: 11 killed, 0 survived, 0 invalid; `install_phases.sh` INSTALL 4 rows, 0 failed.
