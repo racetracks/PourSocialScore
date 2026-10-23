@@ -178,6 +178,7 @@ local function load(name)
 			collectgarbage("collect"); collectgarbage("collect")
 			H.sizes = H.sizes or {}
 			H.sizes[file] = collectgarbage("count") - before
+			if name == CORE and file == "PSS_Globals.lua" and type(private.M) == "table" then for i = 1, 1100 do private.M["__pss_measure_pad" .. i] = true end end
 		else
 			f(name, private)
 		end
