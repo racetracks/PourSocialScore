@@ -39,6 +39,20 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.136 - TBC B1: flavour module and capability flags
+
+- Branch: `claude/gracious-johnson-wddwc5`; PR: none yet.
+- What changed and why: TBC B1 (STP-00306, DEC-00423 order). One flavour module `PSS_Flavour.lua` (core, after `PSS_Globals.lua`; `M.PSS_FLV`, `M.PSS_Can`, `M.PSS_CapLevel`) replaces detectors 1 and 2 and the five further client tests (macros, macro data, gfx, options, options view); Forever-only features read capability flags; surnames are off on Retail (design.md#surnames, a same-realm unit gives no realm there); the compartment entry stays off on Forever as today; harness per flavour (`PSS_FLAVOUR`, `PSS_CAMELOT` kept as alias), ten misdetection mutants, real saves per client, save-size tool. Retail and Forever behave as 3.8.0.135. Why: TBC compatibility needs one place that knows the client.
+- Measured: `PSS_Flavour.lua` 1.48 KB resident (`mem` phase, M and V pre-filled, bytecode not counted), 1.48 KB on each of retail, forever, tbc, era (limit 2 KB). `save_size.sh origin/main`: 17 saves, 0 grew, every delta 0 B (bytes, ref = tree): forever/2.0.44 392774; 3.0.0 398802; 3.2.0-dev011 442072; 3.4.0.28 462776; 3.4.1.50 433528; 3.4.2.54 492269; 3.5.0.61 537940; 3.5.0.62 407158; 3.7.0.100-global-profiles 402081; 3.7.0.100 393521; 3.7.0.102 457990; 3.7.0.106 502750; 3.7.0.107 502873; 3.7.0.98 393253; 3.8.0.126 458939; fresh/retail 54057; fresh/forever 54057.
+- Docs updated: this file; `docs/pss/01_HANDOVER.md`; `docs/pss/06_STATUS_AND_NEXT.md`; `docs/pss/07_HARNESS.md`; `history.txt`; `versions.json`.
+- Tests run: `flv_phases.sh` FLV 30 phases, 0 failed; `flv_mutants.sh` 10 killed, 0 survived, 0 invalid; `save_size.sh` SIZE 17 saves, 0 grew; `tui_compare.sh` 191 snapshots, 0 errors, new window identical to origin/main (191 steps); `check_toc.sh` per folder and `check_rules.sh` pass except the session-output check (NEXT.md, written after the PR). This session's `validate_all.sh` with 15 real saves: 1754 PASS, 287 FAIL, all on the known Forever old-save member loss below (285 `rule ... lost members`, 2 `player record lost`); no Retail failure. Earlier full `validate_all.sh` history run with 15 real saves (D24): 1757 PASS, 1 FAIL (`ix lazycost` 25.2 ms, a timing; three re-runs 11 to 17 ms pass on both flavours); every real save passes. Known, not from this build (D26, D27): on Forever, old saves 2.0.44 to 3.4.1.50 lose guild rule members on upgrade (134 to 146 keys per save); the same happens on main 7ba422a with `PSS_CAMELOT=1`; B1 only exposes it by running real saves on Forever; a GitHub issue and a decision card follow.
+- Not shown by the simulation: the real TBC and Forever clients, the three looks, the compartment and unit menu in the client.
+- In-game checks (each in Modern, Classic and Dark): `CHK-00223` (Forever): log in; `/pss gfx`; a macro command; the Options reload button. Expected: every feature as before; gfx, macro and reload button present. `CHK-00224` (Retail): log in; open the window; right-click a player name; open the compartment entry. Expected: behaviour as the previous build; menus and compartment work; no Lua error.
+
+### 3.8.0.135 (from 06 Now)
+
+**3.8.0.135, Spyglass fields: Fields panel, raw column names, chat-filter names (branch `claude/serene-bell-sdez3f`, PR #253):** rows F135a to F135d: Fields model replaces the sidebar, Fields panel (`>>`), raw column names, chat-filter names as `filter`, `sender`, `server` fields, dead Sidebar code removed; keys `CHK-00204` to `CHK-00206`; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.135 - Spyglass fields: Fields panel, raw column names, chat-filter names
 
 - Branch: `claude/serene-bell-sdez3f`; PR #253.
