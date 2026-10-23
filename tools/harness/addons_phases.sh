@@ -1,4 +1,5 @@
 #!/bin/sh
+. "$(dirname "$0")/flavours.sh"
 # The addon manager's harness checks (3.6.0; check_addons.lua): the list and
 # its groupings, ticks and dependencies, Disable / Enable All, Load, Undo,
 # sets and protected addons in both save scopes, pruning, the API
@@ -16,10 +17,10 @@ fail=0
 adn=0
 adphase() {
 	ph=$1; shift
-	for cam in "" "PSS_CAMELOT=1"; do
+	for cam in $FLAVOUR_ENVS; do
 		adn=$((adn + 1))
 		out=$(env PSS_PHASE=$ph $cam "$@" lua5.1 "$here/run.lua" . - "$work/addons-$adn.lua" "$here/check_addons.lua" 2>&1 | grep -v '^|cff')
-		echo "$out" | sed "s/^PASS addons $ph/PASS addons $ph ${cam:+(Camelot)}$*/"
+		echo "$out" | sed "s/^PASS addons $ph/PASS addons $ph (${cam#PSS_FLAVOUR=})$*/"
 		echo "$out" | grep -q "PASS addons $ph" || fail=1
 		echo "$out" | grep -q "FAIL" && fail=1
 		if [ -f "$work/addons-$adn.lua" ] && grep -q "PSS_CharDB" "$work/addons-$adn.lua" && [ "$ph" = login ]; then

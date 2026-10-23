@@ -22,8 +22,8 @@
 local addon = PourSocialScore_NS
 local M = addon.M
 
-local iface = select(4, GetBuildInfo())
-if type(iface) ~= "number" or iface >= 20000 then return end
+if not M.PSS_Can("macroCommand") then return end
+if not M.PSS_Can("macroCommand") then return end
 
 function M.PSS_MacroData()
 	return {

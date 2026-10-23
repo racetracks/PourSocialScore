@@ -23,7 +23,7 @@
 -- stub.Interact(kind, on) opens or closes bank | mail | guildbank | void |
 -- auction | account. stub.LoadItemData() answers every pending request.
 return function(stub)
-	local camelotEnv = os.getenv("PSS_CAMELOT") == "1"
+	local camelotEnv = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
 	local W = {}
 	stub.world = W
 

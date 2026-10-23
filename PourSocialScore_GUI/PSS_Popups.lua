@@ -154,7 +154,7 @@ local function BuildConfirm()
 	confirm.accept:SetPoint("BOTTOMRIGHT", confirm, "BOTTOM", -8, 13)
 	confirm.cancel:SetPoint("BOTTOMLEFT", confirm, "BOTTOM", 8, 13)
 	Above(confirm, confirm.accept, confirm.cancel, confirm.number, confirm.name)
-	-- reload prompts (opts.reload) on Camelot: it blocks the client reload call from
+	-- reload prompts (opts.reload) where the reloadButton cap holds (Forever): it blocks the client reload call from
 	-- addon code even inside a click, so the player's own click is the reload:
 	-- an action button over Accept (and a twin on Enter) runs the macro
 	-- "/reload"; the caller's onAccept runs as its post-click. Created once,

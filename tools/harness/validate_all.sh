@@ -1,4 +1,5 @@
 #!/bin/sh
+. "$(dirname "$0")/flavours.sh"
 # SavedVariables upgrade test for 2.0.1, 2.0.8, 2.0.17, 2.0.18, 2.0.19,
 # 2.0.22, 2.0.35, 2.0.36, 2.0.37, 2.0.38, 2.0.39, 2.0.40, 2.0.41, 2.0.42, 2.0.43 and 2.0.44, and removals (run from the
 # repo root, needs lua5.1 and git).
@@ -134,8 +135,8 @@ echo "$out" | grep -q "PASS alerts" || fail=1
 
 # the ignore auto-reply echo (issue 183): hidden only while the option is off
 section "ignore reply echo"
-for camel in 0 1; do
-	out=$(PSS_CAMELOT=$camel lua5.1 "$here/run.lua" . - - "$here/check_ignorereply.lua" 2>&1 | grep -v '^|cff')
+for fl in $FLAVOURS; do
+	out=$(PSS_FLAVOUR=$fl lua5.1 "$here/run.lua" . - - "$here/check_ignorereply.lua" 2>&1 | grep -v '^|cff')
 	echo "$out"
 	echo "$out" | grep -q "PASS ignorereply" || fail=1
 done
@@ -328,9 +329,11 @@ echo "$out" | grep -q "PASS secrets" || fail=1
 # names (core uplift N1, 3.4.1.32): M.PSS_NormName joins every name; keys
 # unchanged, the Camelot surname rule, secrets
 section "names"
-out=$(lua5.1 "$here/run.lua" . - - "$here/check_names.lua" 2>&1 | grep -v '^|cff')
-echo "$out" | grep -E "names:|PASS|FAIL"
-echo "$out" | grep -q "PASS names" || fail=1
+for fl in $FLAVOURS; do
+	out=$(PSS_FLAVOUR=$fl lua5.1 "$here/run.lua" . - - "$here/check_names.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | grep -E "names:|PASS|FAIL"
+	echo "$out" | grep -q "PASS names" || fail=1
+done
 
 # Blizzard's ignore list (core uplift B1, 3.4.1.35): PSS is authoritative.
 # Flow on a fresh save: the per-player tick, a Blizzard ignore moving into
@@ -742,38 +745,41 @@ sh "$here/check_multi.sh" || fail=1
 if [ -n "$PSS_REAL_SAVES" ]; then
 	for sv in $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua'); do
 		section "real save $sv"
-		lua5.1 "$here/run.lua" . "$sv" "$work/real-1.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
-		lua5.1 "$here/run.lua" . "$work/real-1.lua" "$work/real-2.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
-		lua5.1 "$here/check_real.lua" "$sv" "$work/real-2.lua" || fail=1
-		lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_validate.lua" | grep -v '^|cff' || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_names.lua" 2>&1 | grep -v '^|cff')
+		flv=$(basename "$(dirname "$(dirname "$sv")")")
+		case "$flv" in retail|forever|tbc|era|mists) ;; *) flv= ;; esac
+		fe=; [ -n "$flv" ] && fe="env PSS_FLAVOUR=$flv"
+		$fe lua5.1 "$here/run.lua" . "$sv" "$work/real-1.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
+		$fe lua5.1 "$here/run.lua" . "$work/real-1.lua" "$work/real-2.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1
+		$fe lua5.1 "$here/check_real.lua" "$sv" "$work/real-2.lua" || fail=1
+		$fe lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_validate.lua" | grep -v '^|cff' || fail=1
+		out=$($fe lua5.1 "$here/run.lua" . "$sv" - "$here/check_names.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | grep -E "names:|PASS|FAIL"
 		echo "$out" | grep -q "PASS names" || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_viewquery.lua" 2>&1 | grep -v '^|cff')
+		out=$($fe lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_viewquery.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS viewquery" || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_players.lua" 2>&1 | grep -v '^|cff')
+		out=$($fe lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_players.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS players" || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_menus.lua" 2>&1 | grep -v '^|cff')
+		out=$($fe lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_menus.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS menus" || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_guilds.lua" 2>&1 | grep -v '^|cff')
+		out=$($fe lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_guilds.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS guilds" || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_filters.lua" 2>&1 | grep -v '^|cff')
+		out=$($fe lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_filters.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS filters" || fail=1
-		out=$(PSS_COMPONENTS=addons,gfx lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_events.lua" 2>&1 | grep -v '^|cff')
+		out=$($fe env PSS_COMPONENTS=addons,gfx lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_events.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS events" || fail=1
-		out=$(PSS_COMPONENTS=addons,gfx lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
+		out=$($fe env PSS_COMPONENTS=addons,gfx lua5.1 "$here/run.lua" . "$work/real-2.lua" - "$here/check_options.lua" 2>&1 | grep -v '^|cff')
 		echo "$out" | grep -E "PASS|FAIL"
 		echo "$out" | grep -q "PASS options" || fail=1
-		out=$(lua5.1 "$here/run.lua" . "$sv" - "$here/check_upgrade_steps.lua" 2>&1 | grep -v '^|cff')
+		out=$($fe lua5.1 "$here/run.lua" . "$sv" - "$here/check_upgrade_steps.lua" 2>&1 | grep -v '^|cff')
 		echo "$out"
 		echo "$out" | grep -q "PASS upgrade steps" || fail=1
-		lua5.1 tools/check_schema.lua --saves "$work/real-1.lua" "$work/real-2.lua" || fail=1
+		$fe lua5.1 tools/check_schema.lua --saves "$work/real-1.lua" "$work/real-2.lua" || fail=1
 	done
 fi
 

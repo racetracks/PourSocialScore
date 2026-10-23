@@ -416,7 +416,28 @@ function CreateFont(name)
 	return f
 end
 CANCEL, OKAY, ACCEPT, YES, NO, UNKNOWN, CLOSE = "Cancel", "Okay", "Accept", "Yes", "No", "Unknown", "Close"
-WOW_PROJECT_ID, WOW_PROJECT_MAINLINE = 1, 1
+-- one flavour table (tests#stub-per-flavour): PSS_FLAVOUR retail|forever|tbc|era; PSS_CAMELOT=1 is the alias of forever
+local FLAVOURS = {
+	retail = { pid = 1, ver = "12.0.7", iface = 120007, realm = "Realm", secret = true },
+	forever = { pid = 18, ver = "1.0.0", iface = 16001, realm = "ClassicBetaPvP", secret = true },
+	tbc = { pid = 5, ver = "2.5.5", iface = 20506, realm = "Realm" },
+	era = { pid = 2, ver = "1.15.8", iface = 11509, realm = "Realm" },
+}
+local envFlavour, envCamelot = os.getenv("PSS_FLAVOUR"), os.getenv("PSS_CAMELOT")
+if envFlavour == "" then envFlavour = nil end
+if envFlavour and not FLAVOURS[envFlavour] then error("unknown PSS_FLAVOUR: " .. envFlavour, 0) end
+if envCamelot == "1" and envFlavour and envFlavour ~= "forever" then error("PSS_FLAVOUR=" .. envFlavour .. " conflicts with PSS_CAMELOT=1", 0) end
+local flavour = envFlavour or (envCamelot == "1" and "forever") or "retail"
+stub.flavour = flavour
+local FL = FLAVOURS[flavour]
+local function envNum(name, default)
+	local v = os.getenv(name)
+	if v == nil or v == "" then return default end
+	if v == "nil" then return nil end
+	return tonumber(v)
+end
+WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC, WOW_PROJECT_BURNING_CRUSADE_CLASSIC, WOW_PROJECT_CAMELOT, WOW_PROJECT_MISTS_CLASSIC = 1, 2, 5, 18, 19
+WOW_PROJECT_ID = envNum("PSS_STUB_PID", FL.pid)
 LE_PARTY_CATEGORY_HOME = 1
 Enum = setmetatable({}, { __index = function(t, k) local v = setmetatable({}, { __index = function() return 0 end }); rawset(t, k, v); return v end })
 -- the console's categories and command types (the auto Enum answers 0 for any other name)
@@ -451,12 +472,16 @@ function UnitClass()
 	return token:sub(1, 1) .. token:sub(2):lower(), token, CLASS_NAMES[token] or 0
 end
 function UnitRace() return "Human", "Human" end
--- PSS_CAMELOT=1: the Camelot client (interface 16001, realm ClassicBetaPvP)
-local camelot = os.getenv("PSS_CAMELOT") == "1"
-function GetRealmName() return camelot and "ClassicBetaPvP" or "Realm" end
-function GetNormalizedRealmName() return camelot and "ClassicBetaPvP" or "Realm" end
+-- the Forever client (PSS_FLAVOUR=forever or PSS_CAMELOT=1; interface 16001, realm ClassicBetaPvP)
+local camelot = flavour == "forever"
+function GetRealmName() return FL.realm end
+function GetNormalizedRealmName() return FL.realm end
 function GetLocale() return "enUS" end
-function GetBuildInfo() return camelot and "1.0.0" or "12.0.7", "1", "Oct 1 2026", camelot and 16001 or 120007 end
+function GetBuildInfo()
+	local iface = envNum("PSS_STUB_IFACE", FL.iface)
+	if iface == nil then return FL.ver, "1", "Oct 1 2026" end
+	return FL.ver, "1", "Oct 1 2026", iface
+end
 function GetCVar(name)
 	if name == "addonPerformanceMsgWarning" then return os.getenv("PSS_ADDON_WARN") or "1" end
 	local c = stub.cvars[name]
@@ -1180,4 +1205,8 @@ function stub.CloseMerchant() MerchantFrame:Hide(); stub.Fire("MERCHANT_CLOSED")
 local here = debug.getinfo(1, "S").source:match("^@(.*)/[^/]*$") or "."
 dofile(here .. "/wh_stub.lua")(stub)
 
+-- flavour presence rows, then the env overrides (PSS_STUB_NOCONST, PSS_STUB_OFF)
+if not FL.secret then issecretvalue, canaccessvalue = nil, nil end
+for name in (os.getenv("PSS_STUB_NOCONST") or ""):gmatch("[^,]+") do _G[name] = nil end
+for name in (os.getenv("PSS_STUB_OFF") or ""):gmatch("[^,]+") do _G[name] = nil end
 return stub

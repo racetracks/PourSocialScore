@@ -8,7 +8,7 @@
 local phase = os.getenv("PSS_PHASE") or "defaults"
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL components: " .. phase .. ": " .. msg) fail = true end return ok end
-local camelot = os.getenv("PSS_CAMELOT") == "1"
+local camelot = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
 local realPrint = print
 local said
 local function pss(cmd)
@@ -77,7 +77,7 @@ function phases.options()
 	local cf = _G.PSS_Confirm
 	check(cf and cf:IsShown() and cf.text:GetText():find("Reload now?", 1, true), "no reload question")
 	local before = H.reloads
-	if os.getenv("PSS_CAMELOT") == "1" then
+	if (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1") then
 		check(_G.PSS_ReloadClick and _G.PSS_ReloadClick:IsShown(), "Camelot: no reload button over Accept")
 		H.SecureClick(_G.PSS_ReloadClick)
 	else
@@ -111,14 +111,14 @@ function phases.options()
 	before = H.reloads
 	H.combat = true
 	local c2 = _G.PSS_Confirm
-	if os.getenv("PSS_CAMELOT") == "1" then H.SecureClick(_G.PSS_ReloadClick) else c2.accept._scripts.OnClick(c2.accept) end
+	if (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1") then H.SecureClick(_G.PSS_ReloadClick) else c2.accept._scripts.OnClick(c2.accept) end
 	check(H.reloads == before + 1, "the player's reload in combat did not run")
 	H.combat = false
 end
 
 function phases.addonsoff()
 	check(SlashCmdList["PSSACP"] == nil and SLASH_PSSACP1 == nil, "/acp exists while the Addon Manager is off")
-	check(#AddonCompartmentFrame.registered == 1, "compartment entries: " .. #AddonCompartmentFrame.registered)
+	check(#AddonCompartmentFrame.registered == (camelot and 0 or 1), "compartment entries: " .. #AddonCompartmentFrame.registered)
 	check(M.PSS_Need("Libraries"), "Libraries")
 	check(M.PSS_AddonList == nil and M.PSS_AddonView == nil and M.PSS_AddonCommand == nil, "the addon manager files loaded")
 	check(keysOf(M.PSS_UI_TABS):find("addons", 1, true) and not M.PSS_MgrHas("addons") and M.PSS_MgrPage() == "features", "the Addon Manager tab or its pages: " .. keysOf(M.PSS_UI_TABS))
@@ -140,7 +140,7 @@ end
 
 function phases.addonson()
 	check(type(SlashCmdList["PSSACP"]) == "function", "no /acp")
-	check(#AddonCompartmentFrame.registered == 2, "compartment entries: " .. #AddonCompartmentFrame.registered)
+	check(#AddonCompartmentFrame.registered == (camelot and 0 or 2), "compartment entries: " .. #AddonCompartmentFrame.registered)
 	check(M.PSS_Need("Libraries") and type(M.PSS_AddonList) == "function" and type(M.PSS_AddonCommand) == "function", "the addon manager did not load")
 	check(keysOf(M.PSS_UI_TABS) == "players,guilds,filters,console,addons", "tabs: " .. keysOf(M.PSS_UI_TABS))
 	check(BINDING_NAME_PSS_OPEN_ADDONS == "Open Addon Manager", "the key's label")

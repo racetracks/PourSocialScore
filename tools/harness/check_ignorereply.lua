@@ -18,7 +18,7 @@ _G.issecretvalue = function(v) return v ~= nil and SECRET[v] == true end
 local sent = {}
 SendChatMessage = function(text, kind, _, to) sent[#sent + 1] = { text, kind, to } end
 local MSG = "[Pour Social Score] You are being ignored."
-local camelot = os.getenv("PSS_CAMELOT") == "1"
+local camelot = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
 local NAME = camelot and "Bob Smith" or "Badguy"
 local FROM = camelot and ("Bob Smith-" .. GetRealmName()) or ("Badguy-" .. GetRealmName())
 

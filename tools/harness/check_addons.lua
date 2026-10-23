@@ -52,7 +52,7 @@ end
 local fail = false
 local function check(ok, msg) if not ok then print("FAIL addons: " .. phase .. ": " .. msg) fail = true end return ok end
 local loaded = function(name) return C_AddOns.IsAddOnLoaded(name) end
-local camelot = os.getenv("PSS_CAMELOT") == "1"
+local camelot = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
 local DIGIT = camelot and "2" or "1"
 local GUID = "Player-1-0001"
 
@@ -1763,14 +1763,20 @@ function phases.access()
 	for _, info in ipairs(AddonCompartmentFrame.registered) do
 		if info.text == "Pour Social Score: Addon Manager" then entry = info end
 	end
-	-- (the stub is always the Retail project: a Camelot client has no compartment)
-	check(entry ~= nil, "no second Addon Compartment entry")
-	entry.func()
-	local win = _G.PSS_Window
-	check(win and win:IsShown() and win.pages[M.PSS_UITabIndex("addons")]:IsShown(), "the compartment entry did not open the AddOns tab")
-	win:Hide()
+	-- (Forever has no Addon Compartment: no entry, design capability table row 13)
+	local win
+	if camelot then
+		check(entry == nil and #AddonCompartmentFrame.registered == 0, "a compartment entry on Forever")
+	else
+		check(entry ~= nil, "no second Addon Compartment entry")
+		entry.func()
+		win = _G.PSS_Window
+		check(win and win:IsShown() and win.pages[M.PSS_UITabIndex("addons")]:IsShown(), "the compartment entry did not open the AddOns tab")
+		win:Hide()
+	end
 	PSS_AddonsBinding()
-	check(win:IsShown() and win.pages[M.PSS_UITabIndex("addons")]:IsShown(), "the key binding did not open the AddOns tab")
+	win = _G.PSS_Window
+	check(win and win:IsShown() and win.pages[M.PSS_UITabIndex("addons")]:IsShown(), "the key binding did not open the AddOns tab")
 	PSS_AddonsBinding()
 	check(not win:IsShown(), "the key binding again closes it")
 	win:Show()

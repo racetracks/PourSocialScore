@@ -1,4 +1,5 @@
 #!/bin/sh
+. "$(dirname "$0")/flavours.sh"
 # The chat filter's registration checks (3.7.0.110, W-8; check_filterreg.lua), on Retail and Camelot, with the client's
 # list in both shapes. Run from the repo root (validate_all.sh and the Rules CI job call it); exit 1 when any phase fails.
 #   sh tools/harness/filterreg_phases.sh [work dir]
@@ -11,11 +12,11 @@ n=0
 fphase() {
 	ph=$1; shift
 	[ -z "$FR_ONLY" ] || echo " $FR_ONLY " | grep -q " $ph " || return 0
-	for cam in "" "PSS_CAMELOT=1"; do
+	for cam in $FLAVOUR_ENVS; do
 		for shape in object functions entries; do
 			n=$((n + 1))
 			out=$(env PSS_PHASE=$ph PSS_COMPONENTS=none PSS_FILTER_SHAPE=$shape $cam "$@" lua5.1 "$here/run.lua" . - "$work/f-$n.lua" "$here/check_filterreg.lua" 2>&1 | grep -v '^|cff')
-			echo "$out" | sed "s/^PASS filterreg $ph/PASS filterreg $ph ${cam:+(Camelot) }[$shape]/"
+			echo "$out" | sed "s/^PASS filterreg $ph/PASS filterreg $ph (${cam#PSS_FLAVOUR=}) [$shape]/"
 			echo "$out" | grep -q "PASS filterreg $ph" || { fail=1; echo "$out" | head -6; }
 			echo "$out" | grep -q "FAIL" && fail=1
 		done

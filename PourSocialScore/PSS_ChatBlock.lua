@@ -63,7 +63,9 @@ M.PSS_OwnRealm = ownRealm
 -- Your own character is always on your own realm, so its second value is
 -- always a surname.
 local REALM_SAME = LE_REALM_RELATION_SAME or 1
+local SURNAMES = M.PSS_Can("surnames")
 local function isSurname(unit)
+	if not SURNAMES then return false end
 	if unit == "player" then return true end
 	if not unit or not UnitRealmRelationship then return false end
 	local rel = UnitRealmRelationship(unit)

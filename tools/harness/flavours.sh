@@ -1,0 +1,3 @@
+FLAVOURS=${PSS_FLAVOURS:-retail forever}
+FLAVOUR_ENVS=""
+for f in $FLAVOURS; do FLAVOUR_ENVS="$FLAVOUR_ENVS PSS_FLAVOUR=$f"; done

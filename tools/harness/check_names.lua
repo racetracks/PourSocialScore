@@ -11,6 +11,8 @@
 -- 4. Every caller (N2): the unit menu, Blizzard's Ignore hook, your own
 --    character, typed multi-word names, the managed flush and the import.
 local fail = false
+local FL = os.getenv("PSS_FLAVOUR") or "retail"
+local SUR = (FL == "forever") -- surnames run on forever only (design capability table row 7)
 local function check(ok, msg) if not ok then print("FAIL names: " .. msg) fail = true end end
 
 ------------------------------------------------------------------------
@@ -97,19 +99,27 @@ local function unit(name, realm, relation, want, wantKey, wantCanon, wantDisplay
 		("%s: %s %s %s"):format(what, tostring(k), tostring(c), tostring(d)))
 end
 local R = own
+local RD = M.Proper(R)
 -- Camelot: the surname on your own realm
-unit("Bynathalador", "Darkwind", 1, "Bynathalador Darkwind-" .. R, "bynathalador darkwind-" .. R:lower(),
-	"bynathalador darkwind-" .. R:lower(), "Bynathalador Darkwind-" .. R, "Camelot surname")
--- the same person as chat and /who write them: one key
-check(M.PSS_CanonPlayer("Bynathalador Darkwind") == "bynathalador darkwind-" .. R:lower(), "the chat form gives another key")
+if SUR then
+	unit("Bynathalador", "Darkwind", 1, "Bynathalador Darkwind-" .. R, "bynathalador darkwind-" .. R:lower(),
+		"bynathalador darkwind-" .. R:lower(), "Bynathalador Darkwind-" .. RD, "Camelot surname")
+	-- the same person as chat and /who write them: one key
+	check(M.PSS_CanonPlayer("Bynathalador Darkwind") == "bynathalador darkwind-" .. R:lower(), "the chat form gives another key")
+else
+	-- no surname split off forever: a plain Name-Realm
+	unit("Bynathalador", "Darkwind", 1, "Bynathalador-Darkwind", "bynathalador-darkwind",
+		"bynathalador-darkwind", "Bynathalador-Darkwind", "no surname off forever")
+end
 -- Retail: your realm (no second value), another realm, a connected realm
-unit("Name", nil, 1, "Name", "name-" .. R:lower(), "name-" .. R:lower(), "Name-" .. R, "own realm")
-unit("Name", "", 1, "Name", "name-" .. R:lower(), "name-" .. R:lower(), "Name-" .. R, "own realm, empty")
+unit("Name", nil, 1, "Name", "name-" .. R:lower(), "name-" .. R:lower(), "Name-" .. RD, "own realm")
+unit("Name", "", 1, "Name", "name-" .. R:lower(), "name-" .. R:lower(), "Name-" .. RD, "own realm, empty")
 unit("Name", "Area52", 2, "Name-Area52", "name-area52", "name-area52", "Name-Area52", "another realm")
 unit("Name", "Aman'Thul", 3, "Name-Aman'Thul", "name-aman'thul", "name-amanthul", "Name-Aman'thul", "connected realm")
 -- /pss add with no name, on that Camelot target: the whole name is listed,
 -- and a chat line from "First Last" (as chat writes it) is blocked
 unitName, unitRealm, rel = "Bynathalador", "Darkwind", 1
+if SUR then
 local realControlled = _G.UnitPlayerControlled
 _G.UnitPlayerControlled = function() return true end
 M.ignoreFromCmd("")
@@ -118,6 +128,7 @@ check((M.PSS_ListedPosition(M.PSS_CanonPlayer("Bynathalador Darkwind")) or 0) > 
 check((M.PSS_ListedPosition(M.PSS_CanonPlayer("Bynathalador")) or 0) == 0, "/pss add on a surname target listed the first name only")
 local ok, hit = pcall(M.PSS_CoreFilter, nil, "CHAT_MSG_WHISPER", "hi", "Bynathalador Darkwind", "", "", "", "", 0, 0, "", 0, 812345)
 check(ok and hit == true, "a whisper from the listed First Last was not blocked")
+end
 -- without UnitRealmRelationship (or no unit): the second value is a realm
 _G.UnitRealmRelationship = nil
 unit("First", "Last", nil, "First-Last", "first-last", "first-last", "First-Last", "no relationship API")
@@ -164,8 +175,8 @@ _G.UnitName = function(u)
 	if u == "target" then return unitName, unitRealm end
 	return realUnitName(u)
 end
-check(M.PSS_PlayerDisplayName() == "Dan Surname-" .. R, "own name: " .. tostring(M.PSS_PlayerDisplayName()))
-check(select(2, M.PSS_NormName("Dan", "Surname", "player")) == "dan surname-" .. R:lower(), "own key")
+check(M.PSS_PlayerDisplayName() == (SUR and "Dan Surname-" .. RD or "Dan-Surname"), "own name: " .. tostring(M.PSS_PlayerDisplayName()))
+check(select(2, M.PSS_NormName("Dan", "Surname", "player")) == (SUR and "dan surname-" .. R:lower() or "dan-surname"), "own key")
 -- the unit menu (PSS entry) on a Camelot surname target
 unitName, unitRealm, rel = "Erlirrin", "Softgale", 1
 local btn
@@ -173,9 +184,9 @@ local root = { CreateDivider = function() end, CreateTitle = function() end, Cre
 M.PSS_UnitMenuPlayer(nil, root, { unit = "target" })
 check(btn ~= nil, "the unit menu made no entry")
 if btn then btn() end
-check(listed("Erlirrin Softgale"), "the unit menu did not list First Last")
-check(not listed("Erlirrin-Softgale"), "the unit menu listed First-Last")
-unlist("Erlirrin Softgale")
+check(listed(SUR and "Erlirrin Softgale" or "Erlirrin-Softgale"), "the unit menu did not list the target")
+check(not listed(SUR and "Erlirrin-Softgale" or "Erlirrin Softgale"), "the unit menu listed the other form")
+unlist(SUR and "Erlirrin Softgale" or "Erlirrin-Softgale")
 -- the menu from a name in chat (no unit): name and realm as chat gives them
 btn = nil
 M.PSS_UnitMenuPlayer(nil, root, { name = "Hatti Fnatt", server = "" })
@@ -185,9 +196,9 @@ unlist("Hatti Fnatt")
 -- Blizzard's Ignore on that target hands "First-Last" to the hook
 V.PSS_Loaded = true
 C_FriendList.AddIgnore("Erlirrin-Softgale")
-check(listed("Erlirrin Softgale"), "Blizzard's Ignore on a surname target did not list First Last")
-check(not listed("Erlirrin-Softgale"), "Blizzard's Ignore on a surname target listed First-Last")
-unlist("Erlirrin Softgale")
+check(listed(SUR and "Erlirrin Softgale" or "Erlirrin-Softgale"), "Blizzard's Ignore on the target did not list it")
+check(not listed(SUR and "Erlirrin-Softgale" or "Erlirrin Softgale"), "Blizzard's Ignore listed the other form")
+unlist(SUR and "Erlirrin Softgale" or "Erlirrin-Softgale")
 -- a cross-realm "Name-Realm" is left as it is (relationship 2)
 unitName, unitRealm, rel = "Name", "Area52", 2
 check(M.PSS_FixUnitName("Name-Area52") == "Name-Area52", "a realm was taken for a surname")
