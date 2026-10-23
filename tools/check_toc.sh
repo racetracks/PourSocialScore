@@ -17,7 +17,7 @@ for t in "$base" "$dir/${name}_Mainline.toc" "$dir/${name}_Camelot.toc" "$dir/${
 		b=$(sed -n "s/^## $key: *//p" "$t" | tr -d '\r')
 		[ "$a" = "$b" ] || { echo "$t: ## $key differs from $base"; fail=1; }
 	done
-	for f in $(grep -v '^#' "$t" | tr -d '\r'); do
+	for f in $(grep -v '^#' "$t" | tr -d '\r' | awk 'NF{print $1}'); do
 		[ -f "$dir/$f" ] || { echo "$t: lists $f, which does not exist"; fail=1; }
 	done
 done

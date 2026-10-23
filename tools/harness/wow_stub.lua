@@ -479,6 +479,7 @@ function GetNormalizedRealmName() return FL.realm end
 function GetLocale() return "enUS" end
 function GetBuildInfo()
 	local iface = envNum("PSS_STUB_IFACE", FL.iface)
+	if os.getenv("PSS_STUB_BLANK") == "1" then return "", " ", "", iface end
 	if iface == nil then return FL.ver, "1", "Oct 1 2026" end
 	return FL.ver, "1", "Oct 1 2026", iface
 end
