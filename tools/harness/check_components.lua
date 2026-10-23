@@ -118,7 +118,7 @@ end
 
 function phases.addonsoff()
 	check(SlashCmdList["PSSACP"] == nil and SLASH_PSSACP1 == nil, "/acp exists while the Addon Manager is off")
-	check(#AddonCompartmentFrame.registered == 1, "compartment entries: " .. #AddonCompartmentFrame.registered)
+	check(#AddonCompartmentFrame.registered == (camelot and 0 or 1), "compartment entries: " .. #AddonCompartmentFrame.registered)
 	check(M.PSS_Need("Libraries"), "Libraries")
 	check(M.PSS_AddonList == nil and M.PSS_AddonView == nil and M.PSS_AddonCommand == nil, "the addon manager files loaded")
 	check(keysOf(M.PSS_UI_TABS):find("addons", 1, true) and not M.PSS_MgrHas("addons") and M.PSS_MgrPage() == "features", "the Addon Manager tab or its pages: " .. keysOf(M.PSS_UI_TABS))
@@ -140,7 +140,7 @@ end
 
 function phases.addonson()
 	check(type(SlashCmdList["PSSACP"]) == "function", "no /acp")
-	check(#AddonCompartmentFrame.registered == 2, "compartment entries: " .. #AddonCompartmentFrame.registered)
+	check(#AddonCompartmentFrame.registered == (camelot and 0 or 2), "compartment entries: " .. #AddonCompartmentFrame.registered)
 	check(M.PSS_Need("Libraries") and type(M.PSS_AddonList) == "function" and type(M.PSS_AddonCommand) == "function", "the addon manager did not load")
 	check(keysOf(M.PSS_UI_TABS) == "players,guilds,filters,console,addons", "tabs: " .. keysOf(M.PSS_UI_TABS))
 	check(BINDING_NAME_PSS_OPEN_ADDONS == "Open Addon Manager", "the key's label")

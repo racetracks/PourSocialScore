@@ -1763,14 +1763,20 @@ function phases.access()
 	for _, info in ipairs(AddonCompartmentFrame.registered) do
 		if info.text == "Pour Social Score: Addon Manager" then entry = info end
 	end
-	-- (the stub is always the Retail project: a Camelot client has no compartment)
-	check(entry ~= nil, "no second Addon Compartment entry")
-	entry.func()
-	local win = _G.PSS_Window
-	check(win and win:IsShown() and win.pages[M.PSS_UITabIndex("addons")]:IsShown(), "the compartment entry did not open the AddOns tab")
-	win:Hide()
+	-- (Forever has no Addon Compartment: no entry, design capability table row 13)
+	local win
+	if camelot then
+		check(entry == nil and #AddonCompartmentFrame.registered == 0, "a compartment entry on Forever")
+	else
+		check(entry ~= nil, "no second Addon Compartment entry")
+		entry.func()
+		win = _G.PSS_Window
+		check(win and win:IsShown() and win.pages[M.PSS_UITabIndex("addons")]:IsShown(), "the compartment entry did not open the AddOns tab")
+		win:Hide()
+	end
 	PSS_AddonsBinding()
-	check(win:IsShown() and win.pages[M.PSS_UITabIndex("addons")]:IsShown(), "the key binding did not open the AddOns tab")
+	win = _G.PSS_Window
+	check(win and win:IsShown() and win.pages[M.PSS_UITabIndex("addons")]:IsShown(), "the key binding did not open the AddOns tab")
 	PSS_AddonsBinding()
 	check(not win:IsShown(), "the key binding again closes it")
 	win:Show()

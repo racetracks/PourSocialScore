@@ -329,9 +329,11 @@ echo "$out" | grep -q "PASS secrets" || fail=1
 # names (core uplift N1, 3.4.1.32): M.PSS_NormName joins every name; keys
 # unchanged, the Camelot surname rule, secrets
 section "names"
-out=$(lua5.1 "$here/run.lua" . - - "$here/check_names.lua" 2>&1 | grep -v '^|cff')
-echo "$out" | grep -E "names:|PASS|FAIL"
-echo "$out" | grep -q "PASS names" || fail=1
+for fl in $FLAVOURS; do
+	out=$(PSS_FLAVOUR=$fl lua5.1 "$here/run.lua" . - - "$here/check_names.lua" 2>&1 | grep -v '^|cff')
+	echo "$out" | grep -E "names:|PASS|FAIL"
+	echo "$out" | grep -q "PASS names" || fail=1
+done
 
 # Blizzard's ignore list (core uplift B1, 3.4.1.35): PSS is authoritative.
 # Flow on a fresh save: the per-player tick, a Blizzard ignore moving into
