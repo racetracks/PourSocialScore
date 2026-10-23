@@ -15,6 +15,6 @@ You produce exactly what your brief specifies. You make no design decisions.
 5. Never spawn agents, re-classify, re-plan, or edit specs, briefs, `provision.md` or `CONTEXT.md`.
 6. Docs move with code: update the docs the brief lists in the same task. Not done until they match.
 7. Done = acceptance command run and passing. If the brief says `Review: yes`, write `git diff` of your changes to `agents/<id>/diff.patch`. Write `agents/<id>/REPORT.md` (≤15 lines, understandable without the thread: ref ID; inputs = brief path; method in one line; findings = check command and result; artefacts = files changed; open issues; next steps) and return `DONE`.
-8. At either ceiling: write `agents/<id>/STATE.md` (done, remaining, next step) and return `BUDGET`.
+8. At either ceiling: write `agents/<id>/STATE.md` (done, remaining, next step) and return `BUDGET` with `progress yes|no · need ~N` on line 3 (yes when the work so far is kept and N more calls finish it).
 9. Work or inputs outside the brief: write `agents/<id>/NEEDS.md` and return `NEEDS`.
 10. When continued: re-read only the changed brief/spec sections or your `STATE.md`.

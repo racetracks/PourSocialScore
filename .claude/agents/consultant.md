@@ -29,7 +29,7 @@ Choose the cheapest consumption model before any work happens. Read only what cl
 
 | Fit | Class | Agent |
 |---|---|---|
-| `WL` | M1 | `engineer-m1` (Haiku); "by script" when expressible as code; `Review: yes` during the pilot (`DEC-00389`) |
+| `WL` | M1 | `engineer-m1` (Haiku) only when the brief is marked "by script" (expressible as code); any other WL brief spawns on `engineer` (Sonnet), the ledger prints `MODEL engineer`; `Review: yes` during the pilot (`DEC-00389`) |
 | `WM` | M2 | `engineer`, permitted judgement listed in the brief |
 | `WH` | M3 | `engineer-m3` only through K5; otherwise lower H by design and re-grade |
 | `P*`, `U*` | M3 | `consultant`: design until the follow-on engineer rows grade `W`, which then depend on it |
@@ -37,7 +37,7 @@ Choose the cheapest consumption model before any work happens. Read only what cl
 Two special rows: work with no source reading and no code or test writing, ≤3 calls, goes to `coordinator` (`Fit` = `-`); when grading itself needs a picture of a large code area, provision a `WL` recon task for `engineer-m1` first (script-built `context/<stream>-index.md`: tree, signatures, call sites, grep hits) and grade the rest after it.
 
 When unsure between two grades, take the more conservative one: lower scope, higher complexity. That costs one design pass; an optimistic grade costs a blocked engineer and a re-run.
-M1 lane (`DEC-00392`): peel a mechanical tail out of an M2 task into its own `WL` row only when it is about 6 or more calls; a stream's M1 rows share one brief and one spawn. The ledger re-runs a failed or blocked `engineer-m1` task once on `engineer`.
+M1 lane (`DEC-00392`): peel a mechanical tail out of an M2 task into its own `WL` row only when it is about 6 or more calls; a stream's M1 rows share one brief and one spawn. The ledger re-runs a failed or blocked `engineer-m1` task once on `engineer`, and spawns a WL row whose brief is not marked "by script" on `engineer` from the start.
 4. Size budgets from the defaults below, scaled down to the context listed. Engineer budgets include 2 calls to read `docs/baseline/02_RULES.md` and `docs/pss/02_RULES.md` in full.
 5. Write `provision.md` as one table, no prose:
 
@@ -63,12 +63,12 @@ Ceilings per spawn or continue. `out` counts lines the agent writes itself; scri
 |---|---|---|---|
 | triage | consultant, triage mode | 10 | 60 |
 | consultant | consultant, design, per task | 30 | 400 |
-| support | consultant, one QUESTIONS/NEEDS/ESCALATE answer | 5 | 60 |
+| support | consultant, one QUESTIONS/NEEDS/ESCALATE answer | 12 | 120 |
 | review | consultant, one review | 8 | 30 |
-| engineer-M1 | engineer, M1 task | 10 | 150 |
+| engineer-M1 | engineer, M1 task | 15 | 200 |
 | engineer-M2 | engineer, M2 task | 20 | 400 |
 | engineer-m1 | engineer-m1, M1 task (Haiku; context under 100K tokens) | 10 | 150 |
-| engineer-m3 | engineer-m3, fenced task | 15 | 300 |
+| engineer-m3 | engineer-m3, fenced task | 25 | 300 |
 <!-- BUDGETS:END -->
 
 ## Context caps
@@ -138,7 +138,7 @@ The engineer receives nothing else, so it must be complete:
 - `Review: yes` → "write `git diff` to `agents/<id>/diff.patch`"
 
 Batch tasks with shared inputs into one brief. Keep it to pointers; target ≤40 lines.
-`ledger.py spawn` refuses an engineer brief that fails `check_context.py --brief <class> <brief>` (rules in its docstring): a Writes line; `path:line` edits or "by script" with Input, Output and Rule; one `## Acceptance` code block and an `Expected:` line; the judgement line; the rules read; no hedge words; every file reference `path:line`, `path#anchor`, Full or (new).
+`ledger.py spawn` refuses an engineer brief that fails `check_context.py --brief <class> <brief>` (rules in its docstring): a Writes line; `path:line` edits or "by script" with Input, Output and Rule; one `## Acceptance` code block and an `Expected:` line; the judgement line; the rules read; no hedge words; every file reference `path:line`, `path#anchor`, Full or (new). The spawn prints every BRIEF line of every brief at once (a missing brief or acceptance included), so fix them all in one support turn.
 
 ## K4. Support and review
 - **Support** (continued with `QUESTIONS.md`, `NEEDS.md`, `HANDOFF.md` or an `ESCALATE?` line): answer by amending the brief or spec with a Changelog line, never in your return. Re-grade the task: a block usually means scope was lower or complexity higher than graded; if so, amend its Fit, Class and Agent in `provision.md`. A design flaw → fix the spec and list affected tasks. `HANDOFF.md` items → new engineer rows (re-triage format). Return `DONE` + what changed.

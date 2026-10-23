@@ -5,6 +5,7 @@
   ledger.py spawn TASKS [--reuse AID]    gate, allocate agent ID, snapshot repo, print the spawn line
   ledger.py cont AID [--support|--review] [--add-calls N --add-out N --reason TEXT]
   ledger.py ret AID "<return line 1>" "<return line 3: spend: calls a/b · out c/d>" [--failed]
+  ledger.py accept TASK --by AID         DONE on a consultant's acceptance (agent cannot be continued)
   ledger.py done TASKS                   mark coordinator-inline tasks done
   ledger.py next                         ready tasks, grouped for batching, plus totals
   ledger.py decide "<one line>" [PATH]   append a decision to CONTEXT.md
@@ -17,9 +18,14 @@
 
 TASKS is comma-separated. TRIAGE is a built-in task for the triage consultant.
 Budget defaults: .claude/agents/consultant.md (BUDGETS block). Scope fence: provision.md Writes column.
+Model: spawn of an engineer-m1 row whose brief is not marked "by script" runs on engineer (Sonnet) and prints `MODEL engineer`.
+Return line 3: `spend: calls a/b · out c/d · progress yes|no · need ~N`. DONE within 1.5x the ceiling: ACCEPT + OVERRUN note.
+  BUDGET with progress yes: EXTEND by N when N x context x 0.1 < startup x 1.25 (transcript tokens), total capped at 1.5x original.
+  ledger.py accept TASK --by AID         mark DONE on a consultant's acceptance when the agent cannot be continued (writes a decision)
 Re-run: an engineer-m1 task that returns BUDGET, or DONE with --failed, is re-run once on engineer (Sonnet); BLOCKED goes to its consultant.
 Shape: ret runs check_context.py (CONTEXT-CAPS block; code needs its docs) on the files a DONE return changed.
-Stale pack: init compares each new row's Writes with `git diff --name-only <Base commit>` of provision.md: RETRIAGE (status stale),
+Stale pack: init compares each new row's Writes with `git diff --name-only <head stored at the last init>` (first init of a pack: the
+  provision.md Base commit): RETRIAGE (status stale),
   WARN when the base is not in the clone, NOTE when the `Index hash:` differs; init and spawn rebuild context/repo-index.json.
 Brief check: spawn runs check_context.py --brief on each M1/M2 engineer brief; BRIEF lines refuse the spawn (ROUTE to its consultant).
 Pointers: ret runs check_context.py --pointers on a consultant's DONE specs/ and context/ files; POINTER lines block it.
@@ -326,12 +332,17 @@ def build_index():
     return idx, m.group(1)
 
 
+def git_head():
+    r = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
 def stale_check(L, new, prov_text):
     """Spec ledger-m1 7.6: new rows whose Writes changed since the pack's Base commit become stale."""
     m = re.search(r"(?m)^Base commit:\s*`?([0-9a-f]{7,40})`?\s*$", prov_text)
-    if not m:
+    base = L.get("head") or (m.group(1) if m else "")
+    if not base:
         return
-    base = m.group(1)
     g = ["git", "-C", str(ROOT)]
     if subprocess.run(g + ["cat-file", "-e", base + "^{commit}"], capture_output=True).returncode != 0:
         print(f"WARN stale-plan check skipped: base {base} not in this clone (git fetch --depth=2000 origin main, then init)")
@@ -484,6 +495,7 @@ def finish_init(L, new, n, src):
             new[t] = v
     L["tasks"] = new
     L["cap"], L["prefix"] = task_meta()
+    L["head"] = git_head()
     save(L)
     c, o = projected(L)
     print(f"loaded {n} tasks from {src} · projected calls {c} out {o}{capstr(L)}")
@@ -767,6 +779,13 @@ def cmd_init_pack(a):
         print("\n".join(errs))
         sys.exit(1)
     if a.draft:
+        for t, nt in new.items():
+            ag = nt["agent"]
+            bp = d / nt["brief"].split("#")[0] if nt["brief"] else None
+            if ag == "engineer-m1" and not (bp and bp.is_file() and "by script" in bp.read_text().lower()):
+                ag = "engineer"
+            print(f"ROW {t}: agent {ag} · model {model_of(ag)} · budget calls {nt['calls']} out {nt['out']}"
+                  + (" · MODEL engineer (not by script)" if ag != nt["agent"] else ""))
         print(f"loaded {len(rows)} tasks from pack.json (dry run)")
         print("DRY RUN draft pack: nothing copied, nothing saved")
         return
@@ -851,6 +870,16 @@ def open_segment(L, aid, tasks, calls, out):
     ag["status"] = "running"
 
 
+def by_script(x):
+    b = x["brief"]
+    if not b:
+        return False
+    if b.startswith("TASK.md"):
+        return "by script" in task_md().lower()
+    bp = SD / b.split("#")[0]
+    return bp.exists() and "by script" in bp.read_text().lower()
+
+
 def cmd_spawn(a):
     L = load()
     D = defaults()
@@ -871,15 +900,21 @@ def cmd_spawn(a):
         die("coordinator task: do it inline (no code/tests), then `ledger.py done " + ",".join(tasks) + "`")
     if kind == "engineer-m3" and len(tasks) > 1:
         die("engineer-m3 tasks are never batched")
-    for t, x in zip(tasks, T):
+    if kind == "engineer-m1" and not all(by_script(x) for x in T):  # Haiku only for "by script" briefs
+        kind = "engineer"
+        for x in T:
+            x["agent"] = "engineer"
+        print("MODEL engineer: brief not marked \"by script\"; spawned on engineer (Sonnet) instead of engineer-m1")
+    idx, ihash = build_index()
+    tool, probs, who = ROOT / ".claude" / "scripts" / "check_context.py", [], None
+    for t, x in zip(tasks, T):  # every brief, every problem, in one pass
         b = x["brief"]
         if kind != "consultant" and not b.startswith("TASK.md"):
             bp = SD / b.split("#")[0]
             if not bp.exists() or "acceptance" not in bp.read_text().lower():
-                die(f"{t}: brief {b} missing or has no acceptance check: continue its consultant")
-    idx, ihash = build_index()
-    tool, probs, who = ROOT / ".claude" / "scripts" / "check_context.py", [], None
-    for t, x in zip(tasks, T):
+                probs.append(f"BRIEF {b}: missing or has no acceptance check ({t})")
+                who = who or L["streams"].get(x["stream"]) or L.get("triage") or "the triage consultant"
+                continue
         if kind in ("engineer", "engineer-m1") and not x["brief"].startswith("TASK.md") and x["cls"] in ("M1", "M2"):
             cmd = [sys.executable, str(tool), "--brief", x["cls"]] + (["--index", str(idx)] if idx else [])
             r = subprocess.run(cmd + [str(SD / x["brief"].split("#")[0])], capture_output=True, text=True)
@@ -966,6 +1001,52 @@ def cmd_cont(a):
     print(f"CONTINUE {ag['kind']}: ID {a.aid} · {mode} · budget calls {c} out {o}")
 
 
+def agent_tokens(L, aid):
+    """(startup, context) prompt tokens of an agent's transcript: first and last assistant message; None when unmeasured."""
+    try:
+        seq = {}
+        for f in transcripts(L, aid):
+            with open(f, errors="replace") as fh:
+                for n, line in enumerate(fh):
+                    try:
+                        d = json.loads(line)
+                    except ValueError:
+                        continue
+                    m = d.get("message") if isinstance(d, dict) and d.get("type") == "assistant" else None
+                    u = m.get("usage") if isinstance(m, dict) else None
+                    if isinstance(u, dict):
+                        seq[m.get("id") or f"{f}:{n}"] = (u.get("input_tokens") or 0) + (u.get("cache_read_input_tokens") or 0) \
+                            + (u.get("cache_creation_input_tokens") or 0)
+        vals = list(seq.values())
+        return (vals[0], vals[-1]) if vals else None
+    except Exception:
+        return None
+
+
+def extend_ok(L, aid, ag, need, sc, so, tasks, out):
+    """EXTEND rule: continue for `need` more calls when N x context x 0.1 < startup x 1.25, total ceiling capped at 1.5x original."""
+    tk = agent_tokens(L, aid)
+    if not tk or need * tk[1] * 0.1 >= tk[0] * 1.25:
+        return False
+    c0, o0 = ag["orig"]
+    if not c0 or not o0:
+        return False
+    sp = ag["spent"]  # already includes this segment
+    cc, co = c0 + ag["ext"][0], o0 + ag["ext"][1]
+    nc = max(cc, min(sp[0] + need, c0 * 3 // 2))
+    no = max(co, min(sp[1] + -(-need * o0 // c0), o0 * 3 // 2))
+    if nc <= sp[0] or no <= sp[1]:
+        return False
+    ag["ext"][0] += nc - cc
+    ag["ext"][1] += no - co
+    for t in tasks:
+        L["tasks"][t]["status"] = "budget"
+    decide(L, f"EXTEND {aid} to calls {nc} out {no} (need ~{need}; context {tk[1]}, startup {tk[0]})")
+    out.append(f"EXTEND {aid}: progress yes, need ~{need}; ceiling now calls {nc} out {no} (cap 1.5x original); "
+               f"`cont {aid}` with agents/{aid}/STATE.md, no consultant turn")
+    return True
+
+
 def cmd_ret(a):
     L = load()
     aid = a.aid
@@ -990,7 +1071,18 @@ def cmd_ret(a):
     kind = ag["kind"]
     out = []
     rerun_route = False
-    if sc > seg["budget"][0] or so > seg["budget"][1]:
+    extended = False
+    mp = re.search(r"progress\s*:?\s*(yes|no)", a.spend, re.I)
+    mn = re.search(r"need\D{0,3}(\d+)", a.spend, re.I)
+    progress = mp.group(1).lower() == "yes" if mp else False
+    need = int(mn.group(1)) if mn else 0
+    over = sc > seg["budget"][0] or so > seg["budget"][1]
+    if over and status == "DONE" and sc <= 1.5 * seg["budget"][0] and so <= 1.5 * seg["budget"][1]:
+        out.append(f"OVERRUN {aid}: spent calls {sc} out {so} past budget {seg['budget'][0]}/{seg['budget'][1]} "
+                   f"but within 1.5x; DONE accepted, no re-run")
+        over = False
+    accepted_over = not over and (sc > seg["budget"][0] or so > seg["budget"][1])
+    if over:
         out.append(f"OVERRUN {aid}: spent calls {sc} out {so} past budget {seg['budget'][0]}/{seg['budget'][1]}; treated as BUDGET")
         status = "BUDGET"
 
@@ -1054,6 +1146,8 @@ def cmd_ret(a):
                     out.append(f"REVIEW {t}: `cont {who} --review` with agents/{aid}/diff.patch")
         if kind == "engineer-m3":
             out.append(f"ROUTE if agents/{aid}/HANDOFF.md exists: `cont {L['streams'].get(L['tasks'][tasks[0]]['stream']) or triage} --support` with it")
+    elif status == "BUDGET" and progress and need > 0 and extend_ok(L, aid, ag, need, sc, so, tasks, out):
+        extended = True
     elif kind == "engineer-m1" and (status == "BUDGET" or a.failed) and any(not L["tasks"][t].get("rerun") for t in tasks):
         rerun_route = True
         for t in tasks:
@@ -1091,7 +1185,7 @@ def cmd_ret(a):
         die(f"unknown status '{status}': expected DONE, BLOCKED, NEEDS or BUDGET")
 
     o0, o1 = ag["orig"]
-    if not bad and o0 and (ag["spent"][0] >= 1.5 * o0 or ag["spent"][1] >= 1.5 * o1):
+    if not bad and o0 and not extended and not accepted_over and (ag["spent"][0] >= 1.5 * o0 or ag["spent"][1] >= 1.5 * o1):
         out.append(f"RETRIAGE {aid}: cumulative spend {ag['spent'][0]}/{ag['spent'][1]} ≥1.5× original {o0}/{o1}")
     if cap_hit(L, *spent_total(L)):
         out.append("CAP reached: stop spawning; ask the user")
@@ -1099,6 +1193,21 @@ def cmd_ret(a):
     print("\n".join(out))
     if (status == "DONE" and not bad and not shape and not rules and not ptrs) or rerun_route:
         cmd_next(None, header=False)
+
+
+def cmd_accept(a):
+    L = load()
+    ag = L["agents"].get(a.by) or die(f"unknown agent {a.by}")
+    if ag["kind"] != "consultant":
+        die(f"accept --by takes a consultant, {a.by} is a {ag['kind']}")
+    x = L["tasks"].get(a.task) or die(f"unknown task {a.task}")
+    if x["status"] in ("todo", "running", "done"):
+        die(f"{a.task} is {x['status']}: accept applies to a blocked, budget, needs, rejected or stale task")
+    x["status"] = "done"
+    n = decide(L, f"accepted {a.task} on {a.by}'s review: its agent cannot be continued")
+    save(L)
+    print(f"ACCEPT {a.task} by {a.by} (D{n})")
+    cmd_next(None, header=False)
 
 
 def cmd_done(a):
@@ -1386,6 +1495,9 @@ def main():
     s.add_argument("line1")
     s.add_argument("spend")
     s.add_argument("--failed", action="store_true")
+    s = sub.add_parser("accept")
+    s.add_argument("task")
+    s.add_argument("--by", required=True)
     s = sub.add_parser("done")
     s.add_argument("tasks")
     sub.add_parser("next")
@@ -1398,7 +1510,7 @@ def main():
     if a.cmd != "promote":
         SD, _ = _session.current(create=a.cmd in ("init", "spawn"))
         LEDGER = SD / "ledger.json"
-    {"init": cmd_init, "pack": cmd_pack, "promote": cmd_promote, "spawn": cmd_spawn, "cont": cmd_cont, "ret": cmd_ret, "done": cmd_done,
+    {"init": cmd_init, "pack": cmd_pack, "promote": cmd_promote, "spawn": cmd_spawn, "cont": cmd_cont, "ret": cmd_ret, "accept": cmd_accept, "done": cmd_done,
      "next": cmd_next, "decide": cmd_decide, "render": cmd_render, "close": cmd_close}[a.cmd](a)
 
 
