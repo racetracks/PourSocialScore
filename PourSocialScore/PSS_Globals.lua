@@ -213,13 +213,6 @@ V.playerName		= M.addServer(GetUnitName("player"), true)
 -- Color Horde red: ffe60000
 -- Color Cyan: ff69CCF0
 
--- Client flavour. This package is built for the Mainline client (Interface
--- 120007); the Camelot TOC loads the same files. wowIsRetail is true only on
--- the real Mainline client, so Mainline-only extras (e.g. the addon
--- compartment) are skipped elsewhere; everything else checks that an API
--- exists before using it.
-V.wowIsRetail	= (WOW_PROJECT_ID == nil) or (WOW_PROJECT_MAINLINE ~= nil and WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
-
 ------------------------------------------------------------------------
 -- Messages (shared by every module)
 ------------------------------------------------------------------------

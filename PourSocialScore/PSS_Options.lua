@@ -131,7 +131,7 @@ local DTT = {
 for _, o in ipairs(DTT) do OPTIONS[#OPTIONS + 1] = o end
 -- Warehouse options (section 8, shown under Feature Options; SAV-p09). A tooltip line for every holder
 -- of the item, from the Warehouse.
-local WHCAM = (select(4, GetBuildInfo()) or 0) < 20000
+local WHCAM = M.PSS_IsForever()
 local WH = {
 	{ key = "whTooltips",		kind = "bool",		default = true,		section = 8, label = "Show who holds an item in its tooltip" },
 	{ key = "whTipGuilds",		kind = "bool",		default = true,		section = 8, label = "Include guild banks" },
@@ -230,12 +230,6 @@ end
 -- component. M.PSS_OnNow(name) is the option as set now (the Options tab).
 local COMPONENT_KEY = { addons = "useAddons", gfx = "useGfx", logging = "useLogging", filtering = "useFiltering", dtt = "useDtt", warehouse = "useWarehouse", bags = "useBags" }
 local snap
-
-local function camelot()
-	local build = select(4, GetBuildInfo())
-	return type(build) == "number" and build < 20000
-end
-M.PSS_IsCamelot = camelot
 
 local liveOn
 function liveOn(name)
