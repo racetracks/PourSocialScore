@@ -437,17 +437,18 @@ end
 
 function phases.prune()
 	-- seeded before the first call (validate_all passes no seed: done here)
-	PourSocialScoreDB.addonSets = { [3] = "1Retail\nAtlas\nGone1", [4] = "2Camelot\nAtlas\nGone2" }
-	PourSocialScoreDB.addonLock = { ["1"] = "Atlas\nGone1", ["2"] = "Atlas\nGone2" }
+	local OTHER = DIGIT == "1" and "2" or "1"
+	PourSocialScoreDB.addonSets = { [3] = DIGIT .. "Mine\nAtlas\nGone" .. DIGIT, [4] = OTHER .. "Other\nAtlas\nGone" .. OTHER }
+	PourSocialScoreDB.addonLock = { [DIGIT] = "Atlas\nGone" .. DIGIT, [OTHER] = "Atlas\nGone" .. OTHER }
 	needLibraries()
 	PUT({ addonLock = "Atlas\nGone3", addonSets = { [1] = "Mine\nAtlas\nGone4" } })
 	M.PSS_AddonLocked("Atlas")
 	local sets, lock = PSS_OptionsDB.addonSets, PSS_OptionsDB.addonLock
-	local mine, other = DIGIT, DIGIT == "1" and "2" or "1"
+	local mine, other = DIGIT, OTHER
 	check(lock[mine] == "Atlas", "this client's names are pruned: " .. tostring(lock[mine]))
 	check(lock[other] == "Atlas\nGone" .. other, "the other client's are kept: " .. tostring(lock[other]))
 	check(CD().addonLock == "Atlas" and CD().addonSets[1] == "Mine\nAtlas", "the character's are pruned")
-	local mineSet, otherSet = sets[camelot and 4 or 3], sets[camelot and 3 or 4]
+	local mineSet, otherSet = sets[3], sets[4]
 	check(not mineSet:find("Gone", 1, true) and otherSet:find("Gone" .. other, 1, true), "sets: this client pruned, the other kept")
 	-- once only: a name that goes missing later stays until the next load
 	M.PSS_AddonLock("LibFoo", true, "me")

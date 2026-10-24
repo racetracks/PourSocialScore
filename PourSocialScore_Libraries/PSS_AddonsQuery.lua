@@ -1003,7 +1003,7 @@ local function parse(str, withDigit)
 	local pos = e and e + 1 or #str + 1
 	if withDigit then
 		local d = sub(head, 1, 1)
-		if d ~= "1" and d ~= "2" then return nil end
+		if not (d and d:match("^[0-5]$")) then return nil end
 		return sub(head, 2), pos, d
 	end
 	return head, pos
