@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.139 - TBC B3: compat shim, TBC adapters, Friends anchor
+
+- Bug fix: the Syndicator compatibility layer no longer reports Retail as Forever (IsForever false, IsRetail true), so other addons that ask Syndicator pick the right client.
+- Behind the scenes: PSS reads bags, the guild bank, menus and the Friends window through one compatibility layer so the core addon loads on TBC Anniversary; two small saved flags (SAV-00092, SAV-00093) add 0 bytes to every save. Nothing else changes for players on Retail.
+
 => 3.8.0.138 - TBC B2: TOC set for TBC Anniversary
 
 - Behind the scenes: PSS now ships a table-of-contents set for the TBC Anniversary client, and the install text names no client folder. Nothing changes for players on Retail or Forever.

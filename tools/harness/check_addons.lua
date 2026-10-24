@@ -676,7 +676,7 @@ end
 
 function phases.forward()
 	-- a newer version's data is left alone
-	PourSocialScoreDB.addonSets = { [5] = "3Newer\nAtlas", [6] = "1Old\nAtlas" }
+	PourSocialScoreDB.addonSets = { [5] = "9Newer\nAtlas", [6] = "1Old\nAtlas" }
 	PourSocialScoreDB.addonLock = { [ALIEN] = "Other" }
 	_G["PSS_CharDB"] = { newerKey = { 1, 2 } }
 	needLibraries()
@@ -688,7 +688,7 @@ function phases.forward()
 	check(not ok and text:find("newer version", 1, true), "nor applied")
 	M.PSS_AddonLock("LibFoo", true, "me")
 	M.PSS_AddonLock("LibFoo", false, "me")
-	check(PSS_OptionsDB.addonSets[5] == "3Newer\nAtlas", "the newer set is kept as written")
+	check(PSS_OptionsDB.addonSets[5] == "9Newer\nAtlas", "the newer set is kept as written")
 	check(PSS_OptionsDB.addonLock[ALIEN] == "Other", "so is the newer lock list")
 	check(PSS_CharDB and PSS_CharDB.newerKey and PSS_CharDB.newerKey[2] == 2, "an unknown field in PSS_CharDB is kept")
 end
