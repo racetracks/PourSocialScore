@@ -45,8 +45,7 @@ local floor = math.floor
 local tremove = table.remove
 local InCombatLockdown, UnitGUID, UnitClass = InCombatLockdown, UnitGUID, UnitClass
 
-local iface = select(4, GetBuildInfo())
-local DIGIT = (type(iface) == "number" and iface < 20000) and "2" or "1"	-- the client in a set: 1 Retail, 2 Camelot
+local DIGIT = M.PSS_FLV.digit	-- the client in a set (SAV-00092)
 local PRESETS_MAX = 25
 local CORE_MAX = 5	-- places 1 to 5 are the Core Addon Profiles, the rest Layered
 local NAME_MAX = 32

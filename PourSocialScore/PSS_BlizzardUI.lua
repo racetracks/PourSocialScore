@@ -274,8 +274,8 @@ end
 -- Called once by core's ADDON_LOADED handler (issue 181): the second entry,
 -- which opens the AddOns tab, exists only while the Addon Manager is on.
 function M.PSS_StartCompartment(addonsOn, dttOn)
-	if not (V.wowIsRetail == true and AddonCompartmentFrame and AddonCompartmentFrame.RegisterAddon) then return end
-	AddonCompartmentFrame:RegisterAddon({
+	if not M.PSS_Can("compartment") then return end
+	M.PSS_CompatCompartment({
 		text = "Pour Social Score",
 		icon = "Interface\\Icons\\ui_chat.blp",
 		notCheckable = true,
@@ -284,7 +284,7 @@ function M.PSS_StartCompartment(addonsOn, dttOn)
 		end,
 	})
 	if addonsOn then
-		AddonCompartmentFrame:RegisterAddon({
+		M.PSS_CompatCompartment({
 			text = "Pour Social Score: Addon Manager",
 			icon = "Interface\\Icons\\ui_chat.blp",
 			notCheckable = true,
@@ -294,7 +294,7 @@ function M.PSS_StartCompartment(addonsOn, dttOn)
 		})
 	end
 	if dttOn then
-		AddonCompartmentFrame:RegisterAddon({
+		M.PSS_CompatCompartment({
 			text = "PSS Drop Cheapest Thing",
 			icon = "Interface\\Icons\\INV_Misc_Bag_22",
 			notCheckable = true,
@@ -317,7 +317,7 @@ local lfgHooked = false
 local function hookLFG()
 	if lfgHooked then return true end
 	if not (PourSocialScoreDB and M.PSS_Opt("useLFGHacks") == true) then return true end
-	if not (C_LFGList and Menu and Menu.ModifyMenu) then return true end
+	if not (C_LFGList and M.PSS_Can("modernMenu")) then return true end
 
 	if type(_G.LFGListSearchEntry_Update) ~= "function"
 		or type(_G.LFGListSearchEntry_OnEnter) ~= "function" then
@@ -326,7 +326,7 @@ local function hookLFG()
 
 	hooksecurefunc("LFGListSearchEntry_Update", M.PSS_LFG_Update)
 	hooksecurefunc("LFGListSearchEntry_OnEnter", M.PSS_LFG_Tooltip)
-	Menu.ModifyMenu("MENU_LFG_FRAME_SEARCH_ENTRY", M.PSS_LFG_ApplicantMenu)
+	M.PSS_CompatMenu("MENU_LFG_FRAME_SEARCH_ENTRY", M.PSS_LFG_ApplicantMenu)
 
 	lfgHooked = true
 	return true
@@ -351,14 +351,14 @@ end
 local unitHooked = false
 local function hookUnit()
 	if unitHooked then return end
-	if not (M.PSS_Opt("useUnitHacks") == true and Menu and Menu.ModifyMenu) then return end
+	if not (M.PSS_Opt("useUnitHacks") == true and M.PSS_Can("modernMenu")) then return end
 	-- FRIEND is the menu for a name clicked in chat; the COMMUNITIES and
 	-- GUILD ones are the guild / community rosters. (Battle.net friend
 	-- menus are left alone: they carry a Battle.net name, not a character.)
 	for _, tag in ipairs({ "MENU_UNIT_ENEMY_PLAYER", "MENU_UNIT_PLAYER", "MENU_UNIT_PARTY", "MENU_UNIT_RAID_PLAYER",
 							"MENU_UNIT_FRIEND", "MENU_UNIT_FRIEND_OFFLINE", "MENU_UNIT_CHAT_ROSTER", "MENU_UNIT_GUILD",
 							"MENU_UNIT_COMMUNITIES_GUILD_MEMBER", "MENU_UNIT_COMMUNITIES_MEMBER", "MENU_UNIT_COMMUNITIES_WOW_MEMBER" }) do
-		pcall(Menu.ModifyMenu, tag, M.PSS_UnitMenuPlayer)
+		M.PSS_CompatMenu(tag, M.PSS_UnitMenuPlayer)
 	end
 	unitHooked = true
 end

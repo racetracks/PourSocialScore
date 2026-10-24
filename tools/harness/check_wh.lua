@@ -2064,7 +2064,7 @@ if phase == "synapi" or phase == "shimfault" or phase == "gwlint" or phase == "s
 		local blade = { itemLink = V.blade_a.link, itemID = 207791 }
 		check(S.Search.CheckItem(blade, "epic") == true and S.Search.CheckItem(blade, "rare") == false and S.Search.CheckItem(blade, "harbinger") == true, "TST-p185: CheckItem")
 		check(#S.API.GetSearchKeywords() >= 70 and S.API.GetContainerNumSlots(0) == C_Container.GetContainerNumSlots(0), "TST-p185: keywords and slot counts")
-		check(S.Constants.BattlePetCageID == 82800 and S.Constants.IsForever == (M.PSS_IsCamelot and true or false) and #S.Constants.AllBagIndexes >= 5 and #S.Constants.KeywordGroupOrder == 8, "TST-p185: constants")
+		check(S.Constants.BattlePetCageID == 82800 and S.Constants.IsForever == M.PSS_IsForever() and #S.Constants.AllBagIndexes >= 5 and #S.Constants.KeywordGroupOrder == 8, "TST-p185: constants")
 		check(S.Search.GetSearchEverywhereInterface() == nil and S.Search.GetSearchBuilder() == nil and not C_AddOns.IsAddOnLoaded("PourSocialScore_GUI"), "TST-p186: no window, the GUI not loaded")
 		check(S.Locales.Anything == "Anything" and type(S.OptionsCategory) == "string", "TST-p191: Locales and OptionsCategory")
 		local shown

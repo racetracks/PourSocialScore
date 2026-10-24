@@ -35,9 +35,9 @@ local L = addon.L
 ------------------------------------------------------------------------
 -- Shared helpers (used by every module)
 ------------------------------------------------------------------------
-local function isSecret(v)
-	return v ~= nil and issecretvalue ~= nil and issecretvalue(v) == true
-end
+local isSecret = M.PSS_Can("secretValues")
+	and function(v) return v ~= nil and issecretvalue(v) == true end
+	or function() return false end
 M.PSS_IsSecret = isSecret
 
 local trim = M.trim

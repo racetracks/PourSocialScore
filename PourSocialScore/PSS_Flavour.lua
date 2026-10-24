@@ -112,3 +112,9 @@ function M.PSS_Can(cap)
 	end
 	return lvl ~= O
 end
+local CONST = { retail = { guildBankSlots = 98, maxBagSize = 36, lastBagIndex = 5, battlePetCage = 82800 },
+	forever = { guildBankSlots = 98, maxBagSize = 36, lastBagIndex = 5, battlePetCage = 82800 },
+	tbc = { guildBankSlots = 98, maxBagSize = 36, lastBagIndex = 4, battlePetCage = 0 },
+	era = { guildBankSlots = 0, maxBagSize = 36, lastBagIndex = 4, battlePetCage = 0 },
+	mists = { guildBankSlots = 98, maxBagSize = 36, lastBagIndex = 4, battlePetCage = 82800 } }
+M.PSS_FLV.const = CONST[M.PSS_FLV.flavour] or CONST[M.PSS_FLV.family == "mainline" and "retail" or "era"]
