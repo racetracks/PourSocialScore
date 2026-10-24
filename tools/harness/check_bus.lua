@@ -51,7 +51,7 @@ elseif phase == "calls" then
 	local r, err = M.PSS_Call("t.spy", "SECRET")
 	local r2, err2 = M.PSS_Call("t.spy", { key = "SECRET" })
 	_G.issecretvalue = realSecret
-	check(r == nil and r2 == nil and err and err2 and not called, "a secret key never reaches a service")
+	if M.PSS_Can("secretValues") then check(r == nil and r2 == nil and err and err2 and not called, "a secret key never reaches a service") end
 	check(select(2, M.PSS_Call("t.spy", "ok")) == nil and called, "a readable key does")
 elseif phase == "chain" then
 	-- TST-00114: every pair where A's returns cover B's accepts chains

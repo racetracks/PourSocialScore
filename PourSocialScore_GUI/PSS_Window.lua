@@ -548,6 +548,7 @@ function M.PSS_OpenWindow(show, tab, how)
 	end
 	win.byFriends = nil
 	RestorePlace()
+	if win.dockStrata then win:SetFrameStrata(win.dockStrata); win.dockStrata = nil end
 	-- fonts other addons shared since the last open join the font choices
 	M.PSS_UIFontChoices()
 	if id and id ~= curTab then
@@ -564,8 +565,16 @@ end
 -- closes with it. Opened from a command it stays put.
 function M.PSS_WindowDock(host, x)
 	if not win then Build() end
-	win:ClearAllPoints()
-	win:SetPoint("TOPLEFT", host or FriendsFrame, "TOPRIGHT", x or 12, -10)
+	local a = M.PSS_CompatFriendsAnchor(host)
+	if a then
+		win:ClearAllPoints()
+		win.dockStrata = win.dockStrata or win:GetFrameStrata()
+		win:SetFrameStrata(a.strata)
+		win:SetPoint("TOPLEFT", host, "TOPRIGHT", a.x, a.y)
+	else
+		win:ClearAllPoints()
+		win:SetPoint("TOPLEFT", host or FriendsFrame, "TOPRIGHT", x or 12, -10)
+	end
 	win.byFriends = true
 	M.PSS_UIFontChoices()
 	win:Show()

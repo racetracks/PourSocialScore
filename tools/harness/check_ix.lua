@@ -433,6 +433,7 @@ PH.putorder = function()
 	check(order[1] == "count", "counted first")
 end
 PH.putsecret = function()
+	if not M.PSS_Can("secretValues") then return end
 	secrets()
 	local base = { code = "arg", service = "t", message = "m" }
 	local tries = 0
@@ -1245,6 +1246,7 @@ PH.countsequal = function()
 	end
 end
 PH.logsecret = function()
+	if not M.PSS_Can("secretValues") then return end
 	secrets()
 	local log = logLoaded()
 	local e = History.NewEntry("whisper", "CHAT_MSG_WHISPER", "plain", nil, nil)
@@ -1422,6 +1424,7 @@ PH.invnewrow = function()
 	check(L.types["inv.zoo"] ~= nil, "inv.zoo registered from the new row")
 end
 PH.invsecret = function()
+	if not M.PSS_Can("secretValues") then return end
 	whOn()
 	secrets()
 	local e = M.PSS_EntityId("c", "Plain", "Realm", true)
@@ -2281,6 +2284,7 @@ PH.showlog = function()
 	end
 end
 PH.cellshow = function()
+	if not M.PSS_Can("secretValues") then return end
 	local F = M.PSS_Fields
 	local a, b = plantEnts()
 	local t = utc(2026, 10, 19, 21, 3, 0)

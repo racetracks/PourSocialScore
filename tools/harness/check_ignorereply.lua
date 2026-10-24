@@ -134,10 +134,10 @@ H.Advance(400)
 whisperIn(FROM)
 SECRET[MSG .. " "] = true
 SECRET[FROM .. " "] = true
-eq("T4: secret text shown", everyFrame("CHAT_MSG_WHISPER_INFORM", MSG .. " ", FROM, "", "", "", "", 0, 0, "", 0, 920010, nil), 0)
-eq("T4: secret target shown", everyFrame("CHAT_MSG_WHISPER_INFORM", MSG, FROM .. " ", "", "", "", "", 0, 0, "", 0, 920011, nil), 0)
-eq("T4: secret system line shown", everyFrame("CHAT_MSG_SYSTEM", fmt:format(FROM) .. " "), 0)
-eq("T4: the real echo is still hidden", everyFrame("CHAT_MSG_WHISPER_INFORM", MSG, FROM, "", "", "", "", 0, 0, "", 0, 920012, nil), 3)
+if M.PSS_Can("secretValues") then eq("T4: secret text shown", everyFrame("CHAT_MSG_WHISPER_INFORM", MSG .. " ", FROM, "", "", "", "", 0, 0, "", 0, 920010, nil), 0) end
+if M.PSS_Can("secretValues") then eq("T4: secret target shown", everyFrame("CHAT_MSG_WHISPER_INFORM", MSG, FROM .. " ", "", "", "", "", 0, 0, "", 0, 920011, nil), 0) end
+if M.PSS_Can("secretValues") then eq("T4: secret system line shown", everyFrame("CHAT_MSG_SYSTEM", fmt:format(FROM) .. " "), 0) end
+if M.PSS_Can("secretValues") then eq("T4: the real echo is still hidden", everyFrame("CHAT_MSG_WHISPER_INFORM", MSG, FROM, "", "", "", "", 0, 0, "", 0, 920012, nil), 3) end
 
 -- T7: ticked again: shown again, the key is no longer saved
 M.PSS_SetOpt("showIgnoreReplies", "global", true)

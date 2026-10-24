@@ -171,10 +171,7 @@ end
 -- Step 10: is this a Camelot save (the client, and its realm)? The name
 -- repair only runs on one: a Retail realm has the same name shapes.
 local function isCamelot()
-	local iface = GetBuildInfo and select(4, GetBuildInfo())
-	if type(iface) ~= "number" or iface >= 20000 then return false end
-	local realm = M.PSS_CanonRealm(M.PSS_OwnRealm())
-	return realm ~= nil and realm:find("^classicbetapvp") ~= nil
+	return M.PSS_FLV.flavour == "forever"
 end
 
 -- anything saved that carries a name (worth loading the repair for)

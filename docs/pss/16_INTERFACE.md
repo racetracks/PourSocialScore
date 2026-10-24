@@ -35,8 +35,10 @@ The saved values never change (old saves keep their look). Nothing ships that wo
 - **Zero cost until opened:** `/pss gui` loads Libraries and the GUI folder; each tab is built on first open; core events are heard only while the window shows (`ns.Listen`); the window drops what it read and requests a GC on close.
 - **Taint and secrets:** baseline 02 J and PSS 02 section 10 apply to every UI hook and every unit or chat value the window shows or acts on.
 - **Saved state:** window place, last tab and new settings live in `PSS_OptionsDB` (routed `PourSocialScoreDB` UI keys); no new SavedVariables for the window. `PSS_CharDB` (the addon manager's per-character profiles up to 3.7.0.101) is read only by upgrade step 11 (3.7.0.102): they are now the owned keys `addonSetsOf`, `addonLockOf`, `addonSelOf`, `addonPickOf` in `PSS_OptionsDB`.
+- **Docking beside the Friends list:** with `openWithFriends` the window docks right of the host; on TBC Anniversary it anchors flush to `FriendsFrame` (x 2, y 0) at the host's strata through `M.PSS_CompatFriendsAnchor` (cap `friendsAnchor`); Retail and Forever keep x 12 or 55, y -10.
 
 ## Changelog
 | Date | Reference | Change | Reason | Context |
 | --- | --- | --- | --- | --- |
 | 2026-10-18 | this file | created: `CLAUDE.md` lines 144 to 172 (section Interface) moved word for word | `DEC-00383`: startup context | scratch `temp/2026/10/18/15-13-57-Sun-cool-meitner-abnxu0/prompts/01.md`; before: new |
+| 2026-10-24 | REF-16-08-38-Sat-b3-compat-shim-k4w9tq-A05 | new last bullet in "The other interface rules": docking beside the Friends list (TBC flush anchor) | `DDS-00047`, build B3 | brief B3T10; before: 3.8.0.138 |
