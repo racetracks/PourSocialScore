@@ -477,7 +477,7 @@ elseif phase == "rows" then
 	local c0 = calls["t.bags"]
 	H.Fire("BAG_UPDATE", 77); H.Fire("BAG_UPDATE_DELAYED")
 	_G.issecretvalue = realSecret
-	check(calls["t.bags"] == c0, "a secret key is not marked and not counted")
+	if M.PSS_Can("secretValues") then check(calls["t.bags"] == c0, "a secret key is not marked and not counted") end
 	-- a malformed row is refused
 	local n0 = M.PSS_Triggers().n
 	M.PSS_Trigger({ id = "x" }); M.PSS_Trigger("x"); M.PSS_Trigger({ id = "y", run = "r" })

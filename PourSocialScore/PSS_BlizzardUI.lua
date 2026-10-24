@@ -34,7 +34,8 @@ end
 -- the window follows whichever opened. SocialUIFrame has its tabs on its
 -- right edge, so the window sits clear of them (x offset).
 local hosts = { FriendsFrame }
-local HOST_X = { [FriendsFrame] = 12 }
+local HOST_X = {}
+if FriendsFrame then HOST_X[FriendsFrame] = 12 end
 if SocialUIFrame then
 	hosts[#hosts + 1] = SocialUIFrame
 	HOST_X[SocialUIFrame] = 55

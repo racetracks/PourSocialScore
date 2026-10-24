@@ -128,6 +128,8 @@ elseif phase == "outcome" then
 	local calls = tonumber(out:match("reached our filter since login: (%d+)"))
 	check(calls and calls >= 4 and not out:find("No line has reached", 1, true), "/pssguild chat does not show the lines that reached the filter:\n" .. out)
 
+elseif phase == "secretsweep" and not M.PSS_Can("secretValues") then
+	-- no secretValues cap on this client: nothing can be secret, nothing to sweep
 elseif phase == "secretsweep" then
 	-- 3.7.0.111 (W-8, CON01-R-009): every argument of the filter and of each game-event handler is made secret in turn
 	-- (the stub's secret is a plain string the test names, so a wrong order cannot raise here; tools/check_secretorder.lua
@@ -212,8 +214,8 @@ elseif phase == "passwhy" then
 	-- an author whose list entry allows this type: W I G P C ticked = allowed (whisper)
 	local keepSecret = _G.issecretvalue
 	_G.issecretvalue = function(v) return v == "Hidden-Testrealm" end
-	check(not deliver("CHAT_MSG_WHISPER", "Hidden-Testrealm", "hello"), "a secret author was hidden")
-	check(tostring(M.PSS_CoreStats.why):find("secret", 1, true), "why for a secret author: " .. tostring(M.PSS_CoreStats.why))
+	if M.PSS_Can("secretValues") then check(not deliver("CHAT_MSG_WHISPER", "Hidden-Testrealm", "hello"), "a secret author was hidden") end
+	if M.PSS_Can("secretValues") then check(tostring(M.PSS_CoreStats.why):find("secret", 1, true), "why for a secret author: " .. tostring(M.PSS_CoreStats.why)) end
 	_G.issecretvalue = keepSecret
 
 	-- 3.7.0.112: an error while checking a line replaces the stale reason, and is counted and shown

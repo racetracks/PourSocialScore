@@ -1,3 +1,3 @@
-FLAVOURS=${PSS_FLAVOURS:-retail forever}
+FLAVOURS=${PSS_FLAVOURS:-retail forever tbc}
 FLAVOUR_ENVS=""
 for f in $FLAVOURS; do FLAVOUR_ENVS="$FLAVOUR_ENVS PSS_FLAVOUR=$f"; done

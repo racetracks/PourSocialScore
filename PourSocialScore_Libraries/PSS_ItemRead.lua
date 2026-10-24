@@ -141,12 +141,19 @@ local function locEquip(slot)
 	if ItemLocation and ItemLocation.CreateFromEquipmentSlot then return ItemLocation:CreateFromEquipmentSlot(slot) end
 end
 
+local bagSet = { cols = { "bag" }, n = 1, { 0 } }		-- the one-row key set and the reused out of the bag reads
+local bagOut = {}
+local bagOpts = { out = bagOut }
+
 local function readBagLike(row, code, out, ent)
 	local bag = row.bagId(tonumber(code:sub(2)))
 	if bag == nil then return end
-	local n = C_Container.GetContainerNumSlots(bag) or 0
+	bagSet[1][1] = bag
+	local r = M.PSS_Call("compat.containers.size", bagSet)
+	local n = r and r[1] and r[1][1] or 0
+	M.PSS_Call("compat.containers.read", bagSet, bagOpts)
 	for slot = 1, n do
-		local info = C_Container.GetContainerItemInfo(bag, slot)
+		local info = bagOut[slot]
 		if info and not secret(info.hyperlink) then
 			add(out, ent, code, slot, info.hyperlink, info.itemID, info.stackCount, bagFlags(info))
 		elseif not info and C_Item.DoesItemExist then
@@ -160,7 +167,11 @@ local function readBagLike(row, code, out, ent)
 end
 
 local function readEquipped(row, code, out, ent)
-	local top = C_Container.ContainerIDToInventoryID(1) - 1
+	bagSet[1][1] = 1
+	local r = M.PSS_Call("compat.containers.invId", bagSet)
+	local inv = r and r[1] and r[1][1]
+	if not inv then return false end
+	local top = inv - 1
 	for slot = 0, top do
 		local id = GetInventoryItemID("player", slot)
 		if id then
@@ -214,13 +225,12 @@ end
 
 local function readGuild(row, code, out, ent)
 	local tab = tonumber(code:sub(2))
-	if select(3, GetGuildBankTabInfo(tab)) == false then return false end		-- a tab we may not view is never read: its saved copy stays
-	for slot = 1, 98 do
-		local link = GetGuildBankItemLink(tab, slot)
-		if link and not secret(link) then
-			local _, n = GetGuildBankItemInfo(tab, slot)
-			add(out, ent, code, slot, link, nil, n, "")
-		end
+	bagSet[1][1] = tab
+	local res = M.PSS_Call("compat.guildBank.read", bagSet, bagOpts)
+	if not res or res.n == 0 then return false end		-- a tab we may not view is never read: its saved copy stays (the bus turns the service's false into an empty answer; a viewable tab always has its slots)
+	for slot = 1, res.n do
+		local t = res[slot]
+		if t and not secret(t.link) then add(out, ent, code, slot, t.link, nil, t.count, "") end
 	end
 end
 
@@ -264,7 +274,9 @@ M.PSS_Provide("item.slots", function(input)
 	for i = 1, input.n do
 		local bag = tonumber(input[i][1])
 		out.n = out.n + 1
-		out[out.n] = { bag, bag and C_Container.GetContainerNumSlots(bag) or 0 }
+		local size = 0
+		if bag then bagSet[1][1] = bag; local r = M.PSS_Call("compat.containers.size", bagSet); size = r and r[1] and r[1][1] or 0 end
+		out[out.n] = { bag, size }
 	end
 	return out
 end, { accepts = { "key" }, returns = { "bag", "slots" }, doc = "the number of slots of a bag id", cost = "O(1)", writes = false, onError = "default",

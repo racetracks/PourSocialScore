@@ -170,8 +170,8 @@ if phase == "err" then
 	local first, ferr
 	for i = 1, 100 do local a, b = M.PSS_Call("t.e8", "SECRET"); if i == 1 then first, ferr = a, b end end
 	_G.issecretvalue = realSecret
-	check(sc == 0 and not M.PSS_ErrOpen("t.e8") and M.PSS_ErrCount("t.e8") == 0 and ringCount("t.e8") == 100, "TST-p019: refused, never counted toward the breaker")
-	check(first and first.n == 0 and ferr and ferr:find("^secret: "), "TST-p019: a secret code and the policy set")
+	if M.PSS_Can("secretValues") then check(sc == 0 and not M.PSS_ErrOpen("t.e8") and M.PSS_ErrCount("t.e8") == 0 and ringCount("t.e8") == 100, "TST-p019: refused, never counted toward the breaker") end
+	if M.PSS_Can("secretValues") then check(first and first.n == 0 and ferr and ferr:find("^secret: "), "TST-p019: a secret code and the policy set") end
 	-- TST-p020, p021: a failed write is retried once after the next settle, out of combat
 	local runs, failOnce = 0, true
 	M.PSS_Provide("t.w1", function(set) runs = runs + 1 if failOnce then failOnce = false error("busy") end return set end, { returns = { "*" }, retry = 1, writes = true })
@@ -266,7 +266,7 @@ if phase == "err" then
 	M.PSS_Provide("t.e9", function() return "str" end, {})
 	texts[#texts + 1] = select(2, M.PSS_Call("t.e9", "x"))
 	_G.issecretvalue = function(v) return v == "SECRET" end
-	texts[#texts + 1] = select(2, M.PSS_Call("t.e9", "SECRET"))
+	if M.PSS_Can("secretValues") then texts[#texts + 1] = select(2, M.PSS_Call("t.e9", "SECRET")) end
 	_G.issecretvalue = realSecret
 	texts[#texts + 1] = select(2, M.PSS_Query({ from = "nonsense" }))
 	for i = 1, 5 do M.PSS_Call("t.e0", "x") end
@@ -885,7 +885,7 @@ if phase == "dict" then
 	-- TST-p057: a secret link is refused, nothing stored
 	local realSecret = issecretvalue
 	_G.issecretvalue = function(v) return v == "SECRETLINK" end
-	check(M.PSS_ItemKey("SECRETLINK") == nil, "TST-p057: a secret link has no key")
+	if M.PSS_Can("secretValues") then check(M.PSS_ItemKey("SECRETLINK") == nil, "TST-p057: a secret link has no key") end
 	_G.issecretvalue = realSecret
 	-- TST-p215 and p216: a holder registers, a compaction remaps it
 	PSS_WarehouseDB = { v = 1, item = {}, itemN = 0 }
@@ -2064,7 +2064,7 @@ if phase == "synapi" or phase == "shimfault" or phase == "gwlint" or phase == "s
 		local blade = { itemLink = V.blade_a.link, itemID = 207791 }
 		check(S.Search.CheckItem(blade, "epic") == true and S.Search.CheckItem(blade, "rare") == false and S.Search.CheckItem(blade, "harbinger") == true, "TST-p185: CheckItem")
 		check(#S.API.GetSearchKeywords() >= 70 and S.API.GetContainerNumSlots(0) == C_Container.GetContainerNumSlots(0), "TST-p185: keywords and slot counts")
-		check(S.Constants.BattlePetCageID == 82800 and S.Constants.IsForever == M.PSS_IsForever() and #S.Constants.AllBagIndexes >= 5 and #S.Constants.KeywordGroupOrder == 8, "TST-p185: constants")
+		check(S.Constants.BattlePetCageID == M.PSS_FLV.const.battlePetCage and S.Constants.IsForever == M.PSS_IsForever() and #S.Constants.AllBagIndexes >= 5 and #S.Constants.KeywordGroupOrder == 8, "TST-p185: constants")
 		check(S.Search.GetSearchEverywhereInterface() == nil and S.Search.GetSearchBuilder() == nil and not C_AddOns.IsAddOnLoaded("PourSocialScore_GUI"), "TST-p186: no window, the GUI not loaded")
 		check(S.Locales.Anything == "Anything" and type(S.OptionsCategory) == "string", "TST-p191: Locales and OptionsCategory")
 		local shown
@@ -2577,7 +2577,7 @@ if phase == "tooltip" then
 	-- a secret id
 	local realSecret = issecretvalue
 	_G.issecretvalue = function(v) return v == 2589 end
-	check(#hover(GameTooltip, T.Item, { id = 2589 }) == 0, "J7: a secret id adds nothing")
+	if M.PSS_Can("secretValues") then check(#hover(GameTooltip, T.Item, { id = 2589 }) == 0, "J7: a secret id adds nothing") end
 	_G.issecretvalue = realSecret
 	-- TST-p196: wh.sum failing
 	M.PSS_Test.fault = "wh.sum"
@@ -3296,12 +3296,12 @@ if phase == "edges" then
 	_G.issecretvalue = function(v) return v == "SECRET" end
 	local S = rawget(_G, "Syndicator")
 	local okc, res = pcall(S.API.GetInventoryInfo, "SECRET")
-	check(okc and type(res) == "table" and #res.characters == 0, "the gateway refuses a secret argument without an error")
+	if M.PSS_Can("secretValues") then check(okc and type(res) == "table" and #res.characters == 0, "the gateway refuses a secret argument without an error") end
 	local calls = 0
 	M.PSS_Provide("t.sec", function(set) calls = calls + 1 return set end, { returns = { "*" }, writes = true })
 	M.PSS_Trigger({ id = "t.secrow", gate = "logging", on = { "BAG_UPDATE" }, settle = "now", run = "t.sec", key = function() return "SECRET" end })
 	H.Fire("BAG_UPDATE", 1)
-	check(calls == 0, "a secret key is never kept or written")
+	if M.PSS_Can("secretValues") then check(calls == 0, "a secret key is never kept or written") end
 	_G.issecretvalue = realSecret
 	-- the order of equal rows is the order they came in, both ways
 	local eq = { cols = { "id", "n" }, n = 6 }

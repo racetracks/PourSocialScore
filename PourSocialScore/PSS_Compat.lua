@@ -84,3 +84,13 @@ function M.PSS_CompatTemplate(kind)
 	chosen[kind] = name or false
 	return name
 end
+
+-- TBC Anniversary: the PSS window anchors flush beside FriendsFrame (cap
+-- friendsAnchor). One reused table; the strata is read per call. nil unless
+-- the cap is on and host is FriendsFrame.
+local friendsAnchor = { x = 2, y = 0 }
+function M.PSS_CompatFriendsAnchor(host)
+	if not (on("friendsAnchor") and host ~= nil and host == FriendsFrame) then return nil end
+	friendsAnchor.strata = FriendsFrame:GetFrameStrata()
+	return friendsAnchor
+end

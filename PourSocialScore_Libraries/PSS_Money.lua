@@ -69,10 +69,11 @@ M.PSS_Provide("money.write", function()
 		local ok, v = pcall(C_Bank.FetchDepositedMoney, Enum.BankType.Account)
 		if ok and v then one(M.PSS_EntityId("w", "Warband", "", true), v) end
 	end
-	if GetGuildBankMoney and GetGuildInfo then
+	if GetGuildInfo then
 		local name, _, _, realm = GetGuildInfo("player")
-		local bank = tonumber(GetNumGuildBankTabs and GetNumGuildBankTabs() or 0) > 0
-		if name and bank then one(M.PSS_EntityId("g", name, realm or GetRealmName(), true), GetGuildBankMoney()) end
+		local r = M.PSS_Call("compat.guildBank.money")
+		local copper = r and r[1] and r[1][1]
+		if name and copper then one(M.PSS_EntityId("g", name, realm or GetRealmName(), true), copper) end
 	end
 	changed(out)
 	return out

@@ -1205,9 +1205,13 @@ function stub.CloseMerchant() MerchantFrame:Hide(); stub.Fire("MERCHANT_CLOSED")
 -- the warehouse client APIs (one-build plan, STP-p00): stub.SeedWorld(spec)
 local here = debug.getinfo(1, "S").source:match("^@(.*)/[^/]*$") or "."
 dofile(here .. "/wh_stub.lua")(stub)
+-- the client defines the guild bank API at load (the guildBank probe); stub.SeedWorld replaces it
+GetGuildBankItemInfo = GetGuildBankItemInfo or function() return nil end
 
 -- flavour presence rows, then the env overrides (PSS_STUB_NOCONST, PSS_STUB_OFF)
 if not FL.secret then issecretvalue, canaccessvalue = nil, nil end
+-- friendsAnchor probe (design-adapters#friends-anchor): only the TBC Anniversary Friends window has a NineSlice
+if flavour == "tbc" then FriendsFrame.NineSlice = new("Frame", nil, FriendsFrame) end
 for name in (os.getenv("PSS_STUB_NOCONST") or ""):gmatch("[^,]+") do _G[name] = nil end
 for name in (os.getenv("PSS_STUB_OFF") or ""):gmatch("[^,]+") do _G[name] = nil end
 return stub
