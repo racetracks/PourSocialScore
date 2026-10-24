@@ -21,7 +21,7 @@
 - Title `|cff69ccf0PourSocialScore|r <Part>`.
 - Core Notes are the author's wording: "Sometimes you dont wanna know when a man gotta slur a little". Never change Title or Notes unless asked.
 - Every TOC: `## Category: PSS`, `## Group: PourSocialScore`, `## IconTexture: Interface\FriendsFrame\Battlenet-Portrait`.
-- Base TOC interface `120007, 16001`; `_Mainline`; `_Camelot`. Every TOC in the repo carries one version.
+- TOCs are generated: change `tools/toc/manifest.txt` or a base TOC header, then run `lua5.1 tools/gen_toc.lua`; a suffixed TOC is never edited by hand. Built clients: Retail 120007, Forever 16001, TBC Anniversary 20506. Every TOC in the repo carries one version.
 
 ## 3. Behaviour rules
 - **Counting:** counters are never derived from log lines; nothing counted twice; guild rule blocks count only as guild blocks (the Chat Filters row shows "n/a"); a rule turned off disables every guild in it (`M.PSS_GuildRuleActive`).

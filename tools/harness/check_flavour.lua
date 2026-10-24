@@ -47,6 +47,9 @@ else
 			local got = out:match("ROW ([^\n]*)")
 			ok(got == r[4], "detect row " .. i .. " got " .. tostring(got) .. " expected " .. r[4])
 		end
+	elseif phase == "blank" then
+		ok(FLV.flavour == "tbc", "blank flavour " .. tostring(FLV.flavour))
+		ok(FLV.interface == 20506, "blank interface " .. tostring(FLV.interface))
 	elseif phase == "can" then
 		local t = M.PSS_Test
 		local was = t.strict

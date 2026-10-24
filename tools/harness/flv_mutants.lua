@@ -13,4 +13,5 @@ return {
 	{ "degradedoff", F, "return lvl ~= O\nend", 'return lvl ~= O and lvl ~= "degraded"\nend', "can" },
 	{ "unknowntrue", F, "\t\treturn false\n\tend\n\treturn lvl ~= O", "\t\treturn true\n\tend\n\treturn lvl ~= O", "can" },
 	{ "aliascopy", F, "M.PSS_IsCamelot = M.PSS_IsForever", "function M.PSS_IsCamelot() return false end", "alias" },
+	{ "readsversion", F, "local iface = GetBuildInfo and select(4, GetBuildInfo())", "local iface = GetBuildInfo and select(1, GetBuildInfo())", "blank" },
 }

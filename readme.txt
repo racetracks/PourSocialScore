@@ -13,9 +13,10 @@ for the chat command list.
 
 == INSTALLING AND UPDATING
 
-Pour Social Score is six folders. Extract the zip into World of Warcraft/
-_retail_/Interface/AddOns/ (or your Camelot client's AddOns folder) so the
-folders sit side by side:
+Pour Social Score is six folders. Extract the zip into the Interface/AddOns
+folder of your client; the release notes name each client's folder. Retail
+(Midnight), Forever and TBC Anniversary are supported. The folders sit side
+by side:
 
   PourSocialScore              always loaded: chat filtering, warnings,
                                declines, guild member capture
