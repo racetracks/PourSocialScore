@@ -111,7 +111,7 @@ end
 -- Labels: Blizzard's gold / white / grey button fonts; Dark white, grey
 -- when disabled (the shared font objects follow the look).
 function ns.NewButton(parent, text, w, onClick, primary)
-	local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	local b = CreateFrame("Button", nil, parent, ns.M.PSS_CompatTemplate("button"))
 	b.pssPrimary = primary
 	b:SetSize(w, 22)
 	b:SetNormalFontObject(ns.Font(12, "GameFontNormal"))
@@ -148,7 +148,7 @@ end
 -- Dark: a near-black box inset 4 with a grey edge; Blizzard's tick kept
 -- and tinted with the accent.
 function ns.NewCheck(parent)
-	local c = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+	local c = CreateFrame("CheckButton", nil, parent, ns.M.PSS_CompatTemplate("check"))
 	c:SetSize(24, 24)
 	local box = ns.Own(c:CreateTexture(nil, "BACKGROUND", nil, -6))
 	box:SetPoint("TOPLEFT", 4, -4)
@@ -230,7 +230,7 @@ local function BoxHint(e, text, size, x, white)
 end
 
 function ns.NewEditBox(parent, w, maxLetters, hint)
-	local e = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+	local e = CreateFrame("EditBox", nil, parent, ns.M.PSS_CompatTemplate("input"))
 	e:SetSize(w, 20)
 	e:SetAutoFocus(false)
 	if maxLetters then e:SetMaxLetters(maxLetters) end
@@ -479,7 +479,7 @@ end
 -- grey edge.
 function ns.NewPanel(parent, inset)
 	local p = CreateFrame("Frame", nil, parent)
-	local ok, art = pcall(CreateFrame, "Frame", nil, p, "InsetFrameTemplate")
+	local ok, art = pcall(CreateFrame, "Frame", nil, p, ns.M.PSS_CompatTemplate("inset"))
 	if ok and art then
 		art:SetAllPoints(p)
 		art:SetFrameLevel(p:GetFrameLevel())
@@ -520,8 +520,9 @@ end
 local BAR_BUTTONS = { "Back", "Forward", "ScrollUpButton", "ScrollDownButton" }
 
 function ns.NewScrollFrame(parent)
-	local ok, sf = pcall(CreateFrame, "ScrollFrame", nil, parent, "ScrollFrameTemplate")
-	if not (ok and sf) then sf = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate") end
+	local tpl = ns.M.PSS_CompatTemplate("scroll")
+	local ok, sf = pcall(CreateFrame, "ScrollFrame", nil, parent, tpl)
+	if not (ok and sf) then sf = CreateFrame("ScrollFrame", nil, parent) end
 	local bar = sf.ScrollBar
 	if type(bar) ~= "table" then return sf end
 	-- new bars: Back, Forward, Track with a Thumb frame; old: up / down
@@ -557,14 +558,13 @@ end
 -- wash and a one-pixel underline in the accent. Labels fade with SetAlpha,
 -- never text colour alpha (that leaves the shadow as a second label).
 ------------------------------------------------------------------------
-local TAB_TEMPLATES = { "PanelTopTabButtonTemplate", "TabButtonTemplate" }
 -- the template's art for an unselected and a selected tab
 local TAB_IDLE = { "Left", "Middle", "Right" }
 local TAB_ACTIVE = { "LeftActive", "MiddleActive", "RightActive" }
 
 function ns.NewTab(parent, text, onClick)
 	local tab
-	for _, t in ipairs(TAB_TEMPLATES) do
+	for _, t in ipairs({ ns.M.PSS_CompatTemplate("tab") }) do
 		local ok, f = pcall(CreateFrame, "Button", nil, parent, t)
 		if ok and f then
 			tab = f
