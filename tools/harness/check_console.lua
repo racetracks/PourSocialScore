@@ -753,7 +753,7 @@ PH.concopysecret = function()
 	local s = set({ "owner", "text" }, { { "bob", sec } })
 	local line = pg.cm:CopyLine(s, 1)
 	_G.issecretvalue = real
-	check(line == "bob\t", "copy line leaked or broke: " .. tostring(line))
+	if M.PSS_Can("secretValues") then check(line == "bob\t", "copy line leaked or broke: " .. tostring(line)) end
 end
 
 PH.conrowhook = function()

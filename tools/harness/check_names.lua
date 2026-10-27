@@ -143,11 +143,11 @@ _G.issecretvalue = function(v) return v ~= nil and SECRET[v] == true end
 _G.UnitRealmRelationship = function(u) if u == "target" then return rel end end
 SECRET["Hidden"], SECRET["HiddenRealm"] = true, true
 unitName, unitRealm, rel = "Hidden", "Realm", 1
-check(M.PSS_UnitFullName("target") == nil, "a secret name")
-check(M.PSS_NormName("Hidden") == nil and M.PSS_NormalizePlayer("Hidden") == nil and M.PSS_CanonPlayer("Hidden") == nil, "a secret name string")
-check(M.PSS_DisplayPlayer("Hidden") == "", "a secret display")
+if M.PSS_Can("secretValues") then check(M.PSS_UnitFullName("target") == nil, "a secret name") end
+if M.PSS_Can("secretValues") then check(M.PSS_NormName("Hidden") == nil and M.PSS_NormalizePlayer("Hidden") == nil and M.PSS_CanonPlayer("Hidden") == nil, "a secret name string") end
+if M.PSS_Can("secretValues") then check(M.PSS_DisplayPlayer("Hidden") == "", "a secret display") end
 unitName, unitRealm = "Shown", "HiddenRealm"
-check(M.PSS_UnitFullName("target") == "Shown", "a secret realm is dropped")
+if M.PSS_Can("secretValues") then check(M.PSS_UnitFullName("target") == "Shown", "a secret realm is dropped") end
 local secretRel = {}
 SECRET[secretRel] = true
 unitName, unitRealm, rel = "First", "Last", secretRel

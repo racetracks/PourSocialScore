@@ -128,13 +128,6 @@ function M.PSS_OptGate(o)
 	return enabled, note
 end
 
--- how this client reloads: "press" on Camelot (it blocks ReloadUI from addon
--- code even inside a click: only the player's own click on a secure "/reload"
--- macro reloads, which ns.Confirm { reload = true } sets up), else "direct"
-function M.PSS_ReloadMode()
-	return M.PSS_Can("reloadButton") and "press" or "direct"
-end
-
 -- the one reload call (allowed in combat: the player chose it, the author,
 -- 2026-10-10); C_UI.Reload where the client has it, else ReloadUI. On "press" clients the call is blocked
 -- from addon code (the click's macro does the reload), so a reload prompt's

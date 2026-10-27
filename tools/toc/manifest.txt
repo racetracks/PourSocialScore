@@ -8,6 +8,7 @@ folder PourSocialScore
 PSS_Localization.lua
 PSS_Globals.lua
 PSS_Flavour.lua
+PSS_Compat.lua
 PSS_Loader.lua
 PSS_SavedData.lua
 PSS_Schema.lua
@@ -56,6 +57,7 @@ PSS_Window.lua
 folder PourSocialScore_Libraries
 PSS_Err.lua
 PSS_Bus.lua
+PSS_CompatBus.lua
 PSS_Codec.lua
 PSS_Store.lua
 PSS_Index.lua

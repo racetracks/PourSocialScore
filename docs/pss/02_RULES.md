@@ -101,7 +101,7 @@ PSS is a chat filter: on Retail 12.x its inputs are the values most likely to be
    - the AddOns tab's change tooltip (`ns.Tip` with `{ title, bold, text }`): `GameTooltip` lines through its own API, and on the one bold line `SetFontObject(GameTooltipHeaderText)` (Blizzard's tooltip header font object, no other change to the tooltip).
 
    Anything else that touches a Blizzard frame, table or function needs the author's OK first and a note in the PR naming the J rules it meets.
-4. Menus use `MenuUtil` / `Menu.ModifyMenu` (Retail), never `UIDropDownMenu`. Camelot paths feature-detect the Menu API and skip the menu when it is missing (as `PSS_BlizzardUI.lua` does).
+4. Unit menus and the addon compartment are used wherever the client has them, through `M.PSS_CompatMenu` and `M.PSS_CompatCompartment` (caps `modernMenu`, `compartment`).
 5. PSS creates no secure frames and calls no protected functions. The decline calls (`DeclineGroup`, `DeclineGuild` / `C_GuildInfo.DeclineGuild`, `CancelDuel`) run from their invite events and stay feature-detected; `C_FriendList.SendWho` runs only straight from a click or keybind (it needs a hardware event). A feature that would need a secure frame or a protected call is a design question for the author.
 6. **In-game checks for any change on a chat, unit or hook path** include a run with `/console addonChatRestrictionsForced 1` and `/console addonCombatRestrictionsForced 1`: no Lua errors, no blocked-action message, and unreadable lines pass through unfiltered.
 

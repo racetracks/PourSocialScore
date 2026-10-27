@@ -53,7 +53,8 @@ local fail = false
 local function check(ok, msg) if not ok then print("FAIL addons: " .. phase .. ": " .. msg) fail = true end return ok end
 local loaded = function(name) return C_AddOns.IsAddOnLoaded(name) end
 local camelot = (os.getenv("PSS_FLAVOUR") == "forever" or os.getenv("PSS_CAMELOT") == "1")
-local DIGIT = camelot and "2" or "1"
+local DIGIT = ({ retail = "1", forever = "2", tbc = "3", era = "4", mists = "5" })[os.getenv("PSS_FLAVOUR") or ""] or (camelot and "2" or "1")
+local ALIEN = DIGIT == "3" and "5" or "3"	-- another client's digit
 local GUID = "Player-1-0001"
 
 local realPrint = print
@@ -436,17 +437,18 @@ end
 
 function phases.prune()
 	-- seeded before the first call (validate_all passes no seed: done here)
-	PourSocialScoreDB.addonSets = { [3] = "1Retail\nAtlas\nGone1", [4] = "2Camelot\nAtlas\nGone2" }
-	PourSocialScoreDB.addonLock = { ["1"] = "Atlas\nGone1", ["2"] = "Atlas\nGone2" }
+	local OTHER = DIGIT == "1" and "2" or "1"
+	PourSocialScoreDB.addonSets = { [3] = DIGIT .. "Mine\nAtlas\nGone" .. DIGIT, [4] = OTHER .. "Other\nAtlas\nGone" .. OTHER }
+	PourSocialScoreDB.addonLock = { [DIGIT] = "Atlas\nGone" .. DIGIT, [OTHER] = "Atlas\nGone" .. OTHER }
 	needLibraries()
 	PUT({ addonLock = "Atlas\nGone3", addonSets = { [1] = "Mine\nAtlas\nGone4" } })
 	M.PSS_AddonLocked("Atlas")
 	local sets, lock = PSS_OptionsDB.addonSets, PSS_OptionsDB.addonLock
-	local mine, other = DIGIT, camelot and "1" or "2"
+	local mine, other = DIGIT, OTHER
 	check(lock[mine] == "Atlas", "this client's names are pruned: " .. tostring(lock[mine]))
 	check(lock[other] == "Atlas\nGone" .. other, "the other client's are kept: " .. tostring(lock[other]))
 	check(CD().addonLock == "Atlas" and CD().addonSets[1] == "Mine\nAtlas", "the character's are pruned")
-	local mineSet, otherSet = sets[camelot and 4 or 3], sets[camelot and 3 or 4]
+	local mineSet, otherSet = sets[3], sets[4]
 	check(not mineSet:find("Gone", 1, true) and otherSet:find("Gone" .. other, 1, true), "sets: this client pruned, the other kept")
 	-- once only: a name that goes missing later stays until the next load
 	M.PSS_AddonLock("LibFoo", true, "me")
@@ -674,8 +676,8 @@ end
 
 function phases.forward()
 	-- a newer version's data is left alone
-	PourSocialScoreDB.addonSets = { [5] = "3Newer\nAtlas", [6] = "1Old\nAtlas" }
-	PourSocialScoreDB.addonLock = { ["3"] = "Other" }
+	PourSocialScoreDB.addonSets = { [5] = "9Newer\nAtlas", [6] = "1Old\nAtlas" }
+	PourSocialScoreDB.addonLock = { [ALIEN] = "Other" }
 	_G["PSS_CharDB"] = { newerKey = { 1, 2 } }
 	needLibraries()
 	local list = M.PSS_AddonPresets()
@@ -686,8 +688,8 @@ function phases.forward()
 	check(not ok and text:find("newer version", 1, true), "nor applied")
 	M.PSS_AddonLock("LibFoo", true, "me")
 	M.PSS_AddonLock("LibFoo", false, "me")
-	check(PSS_OptionsDB.addonSets[5] == "3Newer\nAtlas", "the newer set is kept as written")
-	check(PSS_OptionsDB.addonLock["3"] == "Other", "so is the newer lock list")
+	check(PSS_OptionsDB.addonSets[5] == "9Newer\nAtlas", "the newer set is kept as written")
+	check(PSS_OptionsDB.addonLock[ALIEN] == "Other", "so is the newer lock list")
 	check(PSS_CharDB and PSS_CharDB.newerKey and PSS_CharDB.newerKey[2] == 2, "an unknown field in PSS_CharDB is kept")
 end
 
@@ -1684,7 +1686,7 @@ end
 
 -- A newer version's selection and picks are kept untouched (3.6.0.68)
 function phases.selforward()
-	PourSocialScoreDB.addonSel = { ["3"] = "9 8" }
+	PourSocialScoreDB.addonSel = { [ALIEN] = "9 8" }
 	PourSocialScoreDB.addonPick = "newer layout"
 	needLibraries()
 	PUT({ addonSel = { 1, 2 }, addonPick = { "x" } })
@@ -1692,14 +1694,14 @@ function phases.selforward()
 	M.PSS_AddonPresetSave(1, "A", "all")
 	M.PSS_AddonPresetSave(2, "B", "me")
 	check(M.PSS_AddonProfileSelect(1, true, "all"), "select on the account")
-	check(PSS_OptionsDB.addonSel["3"] == "9 8" and PSS_OptionsDB.addonSel[DIGIT] == "1", "the other client's selection is kept")
+	check(PSS_OptionsDB.addonSel[ALIEN] == "9 8" and PSS_OptionsDB.addonSel[DIGIT] == "1", "the other client's selection is kept")
 	M.PSS_AddonTick(idx("ZedOne"), true, "all", false)
 	check(PSS_OptionsDB.addonPick == "newer layout", "a pick of a newer layout is not replaced")
 	M.PSS_AddonProfileSelect(2, true, "me")
 	M.PSS_AddonTick(idx("ZedOne"), true, "me", false)
 	check(type(CD().addonSel) == "table" and CD().addonSel[2] == 2 and type(CD().addonPick) == "table", "the character's newer values are kept")
 	M.PSS_AddonAll(true, "all")
-	check(PSS_OptionsDB.addonSel["3"] == "9 8" and PSS_OptionsDB.addonSel[DIGIT] == nil, "Enable All clears only this client's")
+	check(PSS_OptionsDB.addonSel[ALIEN] == "9 8" and PSS_OptionsDB.addonSel[DIGIT] == nil, "Enable All clears only this client's")
 end
 
 -- Renaming any addon profile (3.6.0.68, issue 176): every kind, a free place

@@ -39,6 +39,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.139 - TBC B3: compat shim, TBC adapters, Friends anchor
+
+- Branch: `claude/b3-compat-shim-k4w9tq`; [PR #260](https://github.com/racetracks/PourSocialScore/pull/260).
+- What changed and why: TBC B3 (STP-00308): `PSS_Compat.lua` adapters (containers, guild bank, secret values, menus, addon compartment, reload, templates) so core loads on TBC Anniversary; Friends window anchor (`PSS_BlizzardUI.lua`, DEC-00429); SAV-00092 and SAV-00093 digit reader (0 to 5; 0 bytes per save, DEC-00425). **Bug fix, named (DEC-00426):** `PSS_GwSyndicator` no longer reports Retail as Forever (Retail `IsForever` false, `IsRetail` true). Product fixes found in B3: bagMeta early return, `PSS_Call` guards, FriendsFrame nil guard.
+- Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `docs/pss/01_HANDOVER.md`; `docs/pss/07_HARNESS.md`; `history.txt`; `versions.json`; every TOC.
+- Tests run: `compat_phases.sh` COMPAT 8 phases, 0 failed (retail forever tbc, era); `flv_phases.sh` FLV 10 phases, 0 failed, `nogrep` 0 hits; `flv_mutants.sh` MUTANTS 11: 11 killed, 0 survived, 0 invalid; `validate_all.sh` real saves (15): counters identical to origin/main, the pre-existing FAIL lines are the same set as on origin/main (not caused by B3); `save_size.sh origin/main` SIZE 18 saves, 0 grew (SAV-00092 and SAV-00093: 0 B per save); `tui_compare.sh` 191 steps identical to origin/main; `gen_toc.lua --check` clean; `check_toc.sh` per folder and `check_rules.sh`.
+- Not shown by the simulation: the real TBC client (Friends anchor, bag and guild bank reads, menus), the Retail Syndicator flags with a real Syndicator, Modern/Classic looks on TBC (out of scope, B4 or later).
+- In-game checks: CHK-00221, CHK-00222, CHK-00110, CHK-00225, CHK-00227 (TBC Anniversary / Retail) and the CHK-00224 re-run (Retail); CHK-00223 (Forever) blocked until 2026-11-04.
+
+### 3.8.0.138 (from 06 Now)
+
+**3.8.0.138, TBC B2: TOC set for TBC Anniversary (branch `claude/admiring-ride-vtgwfe`, PR #259; awaiting the author's `CHK-00217` and `CHK-00226`):** TBC Anniversary TOC set: generated TOCs, `_TBC.toc` per folder (Interface 20506), install text without client folders; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.138 - TBC B2: TOC set for TBC Anniversary
 
 - Branch: `claude/admiring-ride-vtgwfe`; [PR #259](https://github.com/racetracks/PourSocialScore/pull/259).
