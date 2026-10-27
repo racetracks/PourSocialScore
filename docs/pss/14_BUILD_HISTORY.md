@@ -41,7 +41,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.8.0.140 - TBC B4: Modern and Classic looks on TBC Anniversary, TBC pre-release
 
-- Branch: `claude/modest-pasteur-7z5d3x`; PR: none yet.
+- Branch: `claude/modest-pasteur-7z5d3x`; [PR #261](https://github.com/racetracks/PourSocialScore/pull/261).
 - What changed and why: TBC B4 (STP-00309): the GUI picks every template through `M.PSS_CompatTemplate` (`PSS_Kit.lua`, `PSS_Skin.lua`, `PSS_DttMerchant.lua`) so the Modern and Classic looks work on TBC Anniversary; the looks text names what each client has (B4T1, commit 5251cfd); this build is the TBC pre-release (the full release waits for the author).
 - Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `docs/pss/01_HANDOVER.md`; `docs/pss/16_INTERFACE.md`; `history.txt`; `versions.json`; every TOC.
 - Tests run: `build_saves.sh` 15 forever saves and 1 tbc save (tbc/3.8.0.139: 116,848 bytes; forever 346,053 to 1,110,065 bytes); `validate_all.sh` real saves on each client's stub, totals 2272 PASS, 287 FAIL, 0 SKIP, the 289 FAIL/summary lines the same set as origin/main (SAME, pre-existing, not caused by B4); `save_size.sh origin/main` SIZE 19 saves, 0 grew (fresh/tbc delta 0 B); `tui_compare.sh` on tbc 191 steps identical to origin/main; `compat_phases.sh` COMPAT 8 phases, 0 failed; `flv_phases.sh` FLV 10 phases, 0 failed; Era bus phases (report only): bus gate 7 phases, 0 failed, no Lua error; `gen_toc.lua --check` clean; `check_toc.sh` per folder and `check_rules.sh`.
