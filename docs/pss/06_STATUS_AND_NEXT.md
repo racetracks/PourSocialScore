@@ -12,7 +12,7 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
-- 3.8.0.139 (TBC B3): in-game `CHK-00221`, `CHK-00222`, `CHK-00110`, `CHK-00225`, `CHK-00227` (TBC Anniversary / Retail) and the `CHK-00224` re-run (Retail), in Modern, Classic and Dark; `CHK-00223` (Forever) blocked until 2026-11-04.
+- 3.8.0.139 (TBC B3): in-game `CHK-00221`, `CHK-00222`, `CHK-00110` and `CHK-00225` on TBC Anniversary (`CHK-00225` in Modern, Classic and Dark; steps: scratch `temp/2026/10/24/16-08-38-Sat-b3-compat-shim-k4w9tq/in-game-checks/README.md`). Retail is out of scope (the author, 2026-10-27): the `CHK-00224` re-run and `CHK-00227` are not run; `CHK-00223` (Forever) blocked until 2026-11-04.
 - 3.8.0.138 (TBC B2): `CHK-00217` and `CHK-00226` passed (the author, 2026-10-24).
 - 3.8.0.136 (TBC B1): in-game `CHK-00224` (Retail), in Modern, Classic and Dark. `CHK-00223` (Forever) is **blocked: Forever beta down until launch on 2026-11-04** (the author, 2026-10-23): no Forever in-game checks and no new Forever saves until then; Forever is covered by the harness flavours only (scratch holds no Forever save yet); after launch one build re-runs every Forever check and captures the first Forever save; that build goes first after 2026-11-04, ahead of any build in progress (the author, 2026-10-23).
 - 3.8.0.135: in-game `CHK-00204` to `CHK-00206` passed (the author, 2026-10-22); merge PR #253.
