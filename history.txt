@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.140 - TBC B4: Modern and Classic looks on TBC Anniversary, TBC pre-release
+
+- TBC pre-release: the window's Modern and Classic looks now also work on TBC Anniversary; nothing changes on other clients.
+
 => 3.8.0.139 - TBC B3: compat shim, TBC adapters, Friends anchor
 
 - Bug fix: the Syndicator compatibility layer no longer reports Retail as Forever (IsForever false, IsRetail true), so other addons that ask Syndicator pick the right client.
