@@ -553,14 +553,14 @@ end
 
 ------------------------------------------------------------------------
 -- Tabs: the port's tab row. Blizzard: a Blizzard top tab where the client
--- has one, else the Dark plate in Blizzard's font. Dark: a dark plate,
+-- has one (PanelTopTabButtonTemplate; on TBC it inherits TabButtonTemplate), else the Dark plate in Blizzard's font. Dark: a dark plate,
 -- the label at half strength unless selected; the selected tab gets a faint
 -- wash and a one-pixel underline in the accent. Labels fade with SetAlpha,
 -- never text colour alpha (that leaves the shadow as a second label).
 ------------------------------------------------------------------------
--- the template's art for an unselected and a selected tab
+-- the template's art for an unselected tab, and the selected art's key sets: [1] Retail and Forever, [2] TBC (kept under *Disabled)
 local TAB_IDLE = { "Left", "Middle", "Right" }
-local TAB_ACTIVE = { "LeftActive", "MiddleActive", "RightActive" }
+local TAB_ACTIVE = { { "LeftActive", "MiddleActive", "RightActive" }, { "LeftDisabled", "MiddleDisabled", "RightDisabled" } }
 
 function ns.NewTab(parent, text, onClick)
 	local tab
@@ -659,7 +659,7 @@ function ns.SetTabSelected(tab, selected)
 		for _, k in ipairs(TAB_IDLE) do
 			if tab[k] then tab[k]:SetShown(not selected) end
 		end
-		for _, k in ipairs(TAB_ACTIVE) do
+		for _, k in ipairs(tab.LeftActive and TAB_ACTIVE[1] or TAB_ACTIVE[2]) do
 			if tab[k] then tab[k]:SetShown(selected) end
 		end
 		tab:SetNormalFontObject(ns.Font(11, selected and "GameFontHighlightSmall" or "GameFontNormalSmall"))
