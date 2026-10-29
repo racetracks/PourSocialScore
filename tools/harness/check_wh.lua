@@ -1242,6 +1242,11 @@ if phase == "track" then
 	local zero = #H.world.auctions
 	H.Fire("OWNED_AUCTIONS_UPDATED")
 	check(savedMap(me, "a0")[zero] == nil, "G8: an owned auction with count 0 is not saved")
+	-- G4: a guild bank holder is named first in a search row, then "and N more"
+	local g4 = M.PSS_WhSearchRows("blade")[1]
+	local g4list = g4 and M.PSS_WhHolderList(g4.key)
+	check(g4list and #g4list == 2 and g4list[1][5] ~= "g", "G4: setup, a character holds more of the blade than the guild bank")
+	check(g4 and g4.where == "Guild One (guild bank) and 1 more", "G4: the guild bank is named first (" .. tostring(g4 and g4.where) .. ")")
 	-- TST-p077: wh.status
 	local st = M.PSS_Call("wh.status")
 	local seenMe
