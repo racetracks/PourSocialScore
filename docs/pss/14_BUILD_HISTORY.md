@@ -39,6 +39,31 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.141 - TBC B4 fix: tab art and guild bank
+
+- Branch: `claude/modest-pasteur-7z5d3x`.
+- What changed and why:
+  - L03: TBC selected-tab art: TAB_ACTIVE per template keys (`PSS_Kit.lua`); TBC uses `PanelTopTabButtonTemplate`, which inherits `TabButtonTemplate` and keeps its selected art under `*Disabled` (L01b recon).
+  - L02: stub template parts per flavour, `C_XMLUtil`; `check_tabs.lua` (TST-00983, TST-00984).
+  - G01, G02: guild bank reads loaded tabs only, keeps saved tabs, item ids, count-0 auctions; import writes no live meta.
+  - G03: a search row names the guild bank first (`<Guild> (guild bank) and N more`): holder entries carry the entity kind (`PSS_WhTooltip.lua:108`), `holders` in `PSS_WhRows.lua:35-41` picks the first guild holder; check G4 in `check_wh.lua`.
+- Docs updated: `docs/pss/16_INTERFACE.md:22` (L03); the `docs/pss/07_HARNESS.md` row of `check_tabs.lua` (L02); the `PourSocialScore_Libraries/PSS_ItemRead.lua:15-20` header comment (G01); `PourSocialScore_Libraries/PSS_WhTooltip.lua:74` (G03).
+- Tests run: `wh_phases.sh` WH 196 phases, 0 failed.
+- Not shown by the simulation: the real TBC client tab art and a live realm guild bank.
+
+### 3.8.0.140 - TBC B4: Modern and Classic looks on TBC Anniversary, TBC pre-release
+
+- Branch: `claude/modest-pasteur-7z5d3x`; [PR #261](https://github.com/racetracks/PourSocialScore/pull/261).
+- What changed and why: TBC B4 (STP-00309): the GUI picks every template through `M.PSS_CompatTemplate` (`PSS_Kit.lua`, `PSS_Skin.lua`, `PSS_DttMerchant.lua`) so the Modern and Classic looks work on TBC Anniversary; the looks text names what each client has (B4T1, commit 5251cfd); this build is the TBC pre-release (the full release waits for the author).
+- Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `docs/pss/01_HANDOVER.md`; `docs/pss/16_INTERFACE.md`; `history.txt`; `versions.json`; every TOC.
+- Tests run: `build_saves.sh` 15 forever saves and 1 tbc save (tbc/3.8.0.139: 116,848 bytes; forever 346,053 to 1,110,065 bytes); `validate_all.sh` real saves on each client's stub, totals 2272 PASS, 287 FAIL, 0 SKIP, the 289 FAIL/summary lines the same set as origin/main (SAME, pre-existing, not caused by B4); `save_size.sh origin/main` SIZE 19 saves, 0 grew (fresh/tbc delta 0 B); `tui_compare.sh` on tbc 191 steps identical to origin/main; `compat_phases.sh` COMPAT 8 phases, 0 failed; `flv_phases.sh` FLV 10 phases, 0 failed; Era bus phases (report only): bus gate 7 phases, 0 failed, no Lua error; `gen_toc.lua --check` clean; `check_toc.sh` per folder and `check_rules.sh`.
+- Not shown by the simulation: the real TBC client in Modern, Classic and Dark; a live realm guild bank; Retail and Forever in game (out of scope and blocked until 2026-11-04).
+- In-game checks: CHK-00218 (Modern), CHK-00219 (Classic), CHK-00220 (Dark), CHK-00113 (live realm with a guild bank; closes #234), all on TBC Anniversary; CHK-00223 (Forever) blocked.
+
+### 3.8.0.139 (from 06 Now)
+
+**3.8.0.139, TBC B3: compat shim, TBC adapters, Friends anchor (branch `claude/b3-compat-shim-k4w9tq`, PR #260):** compat shim for TBC Anniversary, Friends anchor, SAV-00092/93 (0 B), Syndicator IsForever on Retail bug fix (`DEC-00426`); the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.139 - TBC B3: compat shim, TBC adapters, Friends anchor
 
 - Branch: `claude/b3-compat-shim-k4w9tq`; [PR #260](https://github.com/racetracks/PourSocialScore/pull/260).
@@ -61,83 +86,8 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - Not shown by the simulation: whether the TBC Anniversary client lists every folder as current, loads them and prints the upgrade report.
 - In-game checks: `CHK-00217` (TBC Anniversary: every folder loads, upgrade report prints, note the WTF folder path), `CHK-00226` (TBC Anniversary: not out of date, flavour TBC).
 
-### 3.8.0.137 (from 06 Now)
-
-**3.8.0.137, Re-entry cost cuts: model by brief, extend, accept, stale head (branch `claude/zen-dijkstra-kv3gaa`, PR #258):** tooling only: engineer-m1 on Sonnet unless the brief is by script, EXTEND/ACCEPT on returns, `ledger.py accept`, stale check against the init head; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
-
-### 3.8.0.137 - Re-entry cost cuts: model by brief, extend, accept, stale head
-
-- Branch: `claude/zen-dijkstra-kv3gaa`; [PR #258](https://github.com/racetracks/PourSocialScore/pull/258).
-- What changed and why: tooling build, no addon code. `ledger.py`: engineer-m1 rows whose brief is not "by script" spawn on engineer (`MODEL engineer`); return line 3 gains `progress yes|no · need ~N` (DONE within 1.5x: ACCEPT + OVERRUN; BUDGET with progress: EXTEND when cheaper than a re-run, cap 1.5x); stale check against the head stored at init; `accept TASK --by AID`; spawn prints every BRIEF line at once; `init --pack --draft` prints each row's agent, model and budget. Budgets: support 12/120, engineer-m3 25/300, engineer-M1 15/200.
-- Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `.claude/README.md`; `.claude/agents/*.md`; `.claude/roles/coordinator.md`; `CLAUDE.md`; `history.txt`; `versions.json`.
-- Tests run: all `.claude/scripts/test_ledger_*.py` (new `test_ledger_reentry.py`, 14 checks); `sync-token-rules.py --check`; `CI=1 sh tools/check_rules.sh`.
-- Not shown by the simulation: the EXTEND token figures on a real transcript.
-- In-game checks: none (no addon code).
-
-### 3.8.0.136 (from 06 Now)
-
-**3.8.0.136, TBC B1: flavour module and capability flags (branch `claude/gracious-johnson-wddwc5`, PR #257):** one flavour module (`PSS_Flavour.lua`) replaces the client detectors and feeds capability flags; Retail and Forever unchanged; keys `CHK-00223`, `CHK-00224`; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
-
-### 3.8.0.136 - TBC B1: flavour module and capability flags
-
-- Branch: `claude/gracious-johnson-wddwc5`; [PR #257](https://github.com/racetracks/PourSocialScore/pull/257).
-- What changed and why: TBC B1 (STP-00306, DEC-00423 order). One flavour module `PSS_Flavour.lua` (core, after `PSS_Globals.lua`; `M.PSS_FLV`, `M.PSS_Can`, `M.PSS_CapLevel`) replaces detectors 1 and 2 and the five further client tests (macros, macro data, gfx, options, options view); Forever-only features read capability flags; surnames are off on Retail (design.md#surnames, a same-realm unit gives no realm there); the compartment entry stays off on Forever as today; harness per flavour (`PSS_FLAVOUR`, `PSS_CAMELOT` kept as alias), ten misdetection mutants, real saves per client, save-size tool. Retail and Forever behave as 3.8.0.135. Why: TBC compatibility needs one place that knows the client.
-- Measured: `PSS_Flavour.lua` 1.48 KB resident (`mem` phase, M and V pre-filled, bytecode not counted), 1.48 KB on each of retail, forever, tbc, era (limit 2 KB). `save_size.sh origin/main`: 17 saves, 0 grew, every delta 0 B (bytes, ref = tree): forever/2.0.44 392774; 3.0.0 398802; 3.2.0-dev011 442072; 3.4.0.28 462776; 3.4.1.50 433528; 3.4.2.54 492269; 3.5.0.61 537940; 3.5.0.62 407158; 3.7.0.100-global-profiles 402081; 3.7.0.100 393521; 3.7.0.102 457990; 3.7.0.106 502750; 3.7.0.107 502873; 3.7.0.98 393253; 3.8.0.126 458939; fresh/retail 54057; fresh/forever 54057.
-- Docs updated: this file; `docs/pss/01_HANDOVER.md`; `docs/pss/06_STATUS_AND_NEXT.md`; `docs/pss/07_HARNESS.md`; `history.txt`; `versions.json`.
-- Tests run: `flv_phases.sh` FLV 30 phases, 0 failed; `flv_mutants.sh` 10 killed, 0 survived, 0 invalid; `save_size.sh` SIZE 17 saves, 0 grew; `tui_compare.sh` 191 snapshots, 0 errors, new window identical to origin/main (191 steps); `check_toc.sh` per folder and `check_rules.sh` pass except the session-output check (NEXT.md, written after the PR). This session's `validate_all.sh` with 15 real saves: 1754 PASS, 287 FAIL, all on the known Forever old-save member loss below (285 `rule ... lost members`, 2 `player record lost`); no Retail failure. Earlier full `validate_all.sh` history run with 15 real saves (D24): 1757 PASS, 1 FAIL (`ix lazycost` 25.2 ms, a timing; three re-runs 11 to 17 ms pass on both flavours); every real save passes. Known, not from this build (D26, D27): on Forever, old saves 2.0.44 to 3.4.1.50 lose guild rule members on upgrade (134 to 146 keys per save); the same happens on main 7ba422a with `PSS_CAMELOT=1`; B1 only exposes it by running real saves on Forever; a GitHub issue and a decision card follow.
-- Not shown by the simulation: the real TBC and Forever clients, the three looks, the compartment and unit menu in the client.
-- In-game checks (each in Modern, Classic and Dark): `CHK-00223` (Forever): log in; `/pss gfx`; a macro command; the Options reload button. Expected: every feature as before; gfx, macro and reload button present. `CHK-00224` (Retail): log in; open the window; right-click a player name; open the compartment entry. Expected: behaviour as the previous build; menus and compartment work; no Lua error.
-
-### 3.8.0.135 (from 06 Now)
-
-**3.8.0.135, Spyglass fields: Fields panel, raw column names, chat-filter names (branch `claude/serene-bell-sdez3f`, PR #253):** rows F135a to F135d: Fields model replaces the sidebar, Fields panel (`>>`), raw column names, chat-filter names as `filter`, `sender`, `server` fields, dead Sidebar code removed; keys `CHK-00204` to `CHK-00206`; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
-
-### 3.8.0.135 - Spyglass fields: Fields panel, raw column names, chat-filter names
-
-- Branch: `claude/serene-bell-sdez3f`; PR #253.
-- What changed and why: author results: `CHK-00190` to `CHK-00193` and `CHK-00195` to `CHK-00198` passed 2026-10-22; asks O1 to O3 answered (`DEC-00368`, `DEC-00369`). F135b (`PSS_Fields.lua`, `PSS_Psql.lua`, `PSS_Plan.lua`): chat-filter names as virtual fields `filter`, `sender`, `server` (`Q.VIRTUAL`, built per row only when named), no spaces in field names; the base had no virtual registry, so a minimal one was added. F135a (`PSS_ConsoleView.lua`): `CM:Fields` model, raw names in row detail and summary. F135c (`PSS_Console.lua`, `PSS_Chart.lua`): Fields panel opened by `>>` (heading click, Alt+click, value click, tooltips, `+N more`), raw column headers with tooltips. F135d: dead `CM:Sidebar` and `SKIPCOL` removed, two mutants repaired. Why: readable fields that match the query language.
-- Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `history.txt`; `versions.json`.
-- Tests run: `ix_phases.sh` 343 phases, 0 failed, plus `names filterdesc nospace` 6 pass (Retail and Camelot); `console_phases.sh` 182 phases, 0 failed; `ix_mutants.sh` 3 killed (`filter-pattern`, `virtual-text-field`, `name-spaces-allowed`); `console_mutants.sh` `fields-cap-8`, `header-label`, `detail-secret-shown`, `detail-raw-label` killed; `tui_compare.sh` vs origin/main: window differs (42 normalised lines, raw-name rows), not split per look; full run at 6383d98 with `PSS_SCRATCH` set and 15 real saves: `validate_all.sh` 1758 PASS, 0 FAIL, 0 SKIP; `ix_mutants.sh` 146 killed; `wh_mutants.sh` 76 killed; `console_mutants.sh` 58 of 58 killed after `label-raw` was repointed (header tooltip title, assertion added to `rawheaders`); `check_rules.sh` clean.
-- Not shown by the simulation: client font widths, the three looks, tooltips and clicks in the client.
-- Author results: `CHK-00204` to `CHK-00206` passed 2026-10-22. Found while testing: `owner="f:*"` (quoted wildcard) returns 0 rows, the unquoted `owner=f:*` works; same on 3.8.0.134; Splunk behaviour planned for a later build (the author).
-- In-game checks (each in Modern, Classic and Dark):
-  - `CHK-00204`: Spyglass > System > Events; click `>>` at the right of the Results row. Expected: the panel reads `Fields` and lists every column with a count (`owner  12`); click `member`: five names with counts and percents; click one name: the bar ends `member="<that name>"` and the results narrow to that player; Alt+click `cat`: the bar ends `| table cat`; /reload and open Spyglass: Fields is closed.
-  - `CHK-00205`: Spyglass > System > Events; hover the `owner` header; click a row. Expected: headers read raw names (`time`, `cat`, `owner`, `message`); the tooltip shows `Blocked by`; Event Details lists raw names and raw values, with the readable text dimmed beside values that read differently.
-  - `CHK-00206`: Spyglass, bar `index=log owner="f:*"`, open Fields, click `filter`. Expected: your chat filters' names (as in Options > Chat Filters), not their patterns; click one: the bar gains `filter="<name>"` and only that filter's blocks remain.
-
-### 3.8.0.134 (from 06 Now)
-
-**3.8.0.134, Spyglass pane fix and layout: one list per pane, top bar, collapsible panels, wider Message (branch `claude/nice-noether-m6eqsa`, PR #242):** rows S1, L134a, L134b: stale pane rows purged, search bar always on row 1, side panels collapsible (right closed by default), Message column at least 40 % wide, Edit search removed; replaces `CHK-00176` with `CHK-00195` to `CHK-00198`; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
-
-### 3.8.0.134 - Spyglass pane fix and layout: one list per pane, top bar, collapsible panels, wider Message
-
-- Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
-- What changed and why: author results for 3.8.0.133: `CHK-00188` PASS ("too small", so L134 replaces E5); `CHK-00189` PASS (reported as `CHK-00187`); `CHK-00190` to `CHK-00193` not reported, kept waiting. S1 (`PSS_Chart.lua`): list frames tracked at creation, stale ones purged, `Draw` under `pcall` (defensive: `paneswitch` did not reproduce on the base, `paneerror` did; proof is in game). L134a (`PSS_Console.lua`): search bar, time picker, Run, Save and `?` always on row 1; side panels 180 wide, collapsible, right closed by default; Edit search removed (reverses `DEC-00404`); R4 moved to the full-window roadmap. L134b (`PSS_ConsoleView.lua`): `FILL_SHARE`, Message at least 40 % of the table width. Open: mutant `detail-secret-shown` is INVALID (edit changes nothing; pre-existing, outside the fence).
-- Docs updated: this file; `docs/pss/reference/14_build-history-3.8.0.125-to-3.8.0.129.md` (new, 3.8.0.125 to .129 moved here); `docs/pss/06_STATUS_AND_NEXT.md`; `history.txt`; `versions.json`.
-- Tests run: `console_phases.sh` 170 phases, 0 failed; `validate_all.sh` with 15 real saves and the IX phases pass except the timing phases `segcost`, `budgetcalls` and `lazycost`, which fail identically on base f02140e (container speed, rerun 3 times); `console_mutants.sh` 56 of 58 killed (survivors: `con-cap-note`, known; `detail-secret-shown`, INVALID); `check_rules.sh` rc 0; `tui_compare.sh` vs f02140e: only Spyglass sections change, same in all three looks.
-- Not shown by the simulation: client font widths, the three looks, the stale rows in the client.
-- In-game checks (each in Modern, Classic and Dark):
-  - `CHK-00195`: Options > Optional Features > Event Logging on; Player Ignore List > click a player in the list > Event History > Queries > Blocks by type; then Queries > the first query; then Blocks by type again. Expected: one header row each time; no old header or old line shows under the new ones.
-  - `CHK-00196`: Spyglass > System > Events. Expected: the search box runs across the top with the time range, Run, Save and `?` beside it and holds the search; no Edit search button.
-  - `CHK-00197`: Spyglass; click `>>` at the right of the Results row; then `<<` at its left; then /reload and open Spyglass. Expected: Top values opens as wide as the list on the left, same top and bottom; the left list hides and results widen; after /reload the left list is open and Top values closed.
-  - `CHK-00198`: Spyglass > System > Events, Top values closed. Expected: the Message column shows about 45 characters of each line before it is cut.
-
-### 3.8.0.133 - Spyglass readable reports: labels, report columns, summary header, Top values, row detail
-
-- Branch: `claude/nice-noether-m6eqsa`; [PR #242](https://github.com/racetracks/PourSocialScore/pull/242).
-- What changed and why: the author's 3.8.0.132 test showed raw fields, 12 columns and a raw search in reports. B3a: `PourSocialScore_Libraries/PSS_Fields.lua` (new) gives `M.PSS_FieldLabel`, the event and index labels and the display rules; `M.PSS_CellText` takes the column kind (`PSS_Bus.lua`). U2: `M.PSS_ReportCols` and `M.PSS_REPORT_COLS` pick 6 columns (4 in the pane, `log.pane`), `M.PSS_TableWidths` keeps the `keep` columns whole, the chart draws labels (`PSS_ConsoleView.lua`, `PSS_Chart.lua`, `PSS_History.lua`). U3: `M.PSS_QuerySummary` header (`Events of <player> · newest 200 · <range>`), Edit search, status `<n> lines` (`PSS_Console.lua`, `PSS_QueryView.lua`). U4: Top values with label headings, no one-value columns, `No common values`. E6: row detail box `ns.RowDetail` (`PSS_Popups.lua`, `CM:RowDetail`). Check keys: `CHK-00172`, `CHK-00174`, `CHK-00177` and `CHK-00187` are replaced by `CHK-00188` to `CHK-00193` (`specs/plan.md#6-in-game-checks`); `CHK-00178` passed on 3.8.0.132.
-- Docs updated: this file; `docs/pss/06_STATUS_AND_NEXT.md`; `history.txt`; `versions.json`; code map: scratch `documents/code-map/16_Registries/16_02_Export_Registry.md` and `documents/code-map/09_Current_Features.md`.
-- Tests run: `validate_all.sh` with real saves 1734 passed, 0 failed (409 skipped); `console_phases.sh` 329 phases, 0 failed; `ix_phases.sh` 493 phases, 0 failed; `console_mutants.sh` 53 of 53 killed; `ix_mutants.sh` 143 of 143 killed; segcost append 3.57 us Retail, 3.53 us Camelot (best of 15, gate 5); `sh tools/check_rules.sh` rc 0 (after the secret-order operand swap at PSS_ConsoleView.lua:442 and PSS_Fields.lua:207).
-- Not shown by the simulation: real column widths with the client font, the look in Modern, Classic and Dark, and Escape closing only the copy box (`CHK-00193`).
-- In-game checks (each in Modern, Classic and Dark):
-  - `CHK-00188`: Spyglass > System > Events. Expected: headers Time, From, Type, Channel, Blocked by, Message; no cell shows `CHAT_MSG_`, `p:` or `chat.block`; no empty column.
-  - `CHK-00189`: Options > Optional Features > Event Logging on; Spyglass > System > Events; then Player Ignore List > click a player in the list > Event History. Expected: every time cell reads like `21 Oct 2026 02:59` in full; only Message is cut, and hovering a row shows the whole message.
-  - `CHK-00190`: Options > Optional Features > Event Logging on; Player Ignore List > click a player in the list > Event History. Expected: columns Time, Type, Channel, Message, all inside the pane (Channel only when a line has a channel name); the line above shows `newest 200`, not a search.
-  - `CHK-00191`: Options > Optional Features > Event Logging on; Player Ignore List > click a player in the list > Event History > Open in Spyglass; then Edit search; then Back: Player Ignore List. Expected: header reads `Events of <player> · newest 200 · <range>`, no search text, no From or Blocked by column; Edit search shows the search; Back returns to the pane.
-  - `CHK-00192`: Spyglass > System > Events; look at Top values. Expected: headings are words (Type, Channel), values readable, no heading whose one value covers every line; when no value repeats, the panel reads `No common values`.
-  - `CHK-00193`: Spyglass > System > Events; left click a row; Copy All; Escape. Expected: "Event Details" lists every field by label with readable values; the copy box holds the raw line; Escape closes the box only.
-
 ## Older history
+- 3.8.0.133 to 3.8.0.137: [`reference/14_build-history-3.8.0.133-to-3.8.0.137.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/14_build-history-3.8.0.133-to-3.8.0.137.md)
 - 3.8.0.130 to 3.8.0.132: [`reference/14_build-history-3.8.0.130-to-3.8.0.132.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/14_build-history-3.8.0.130-to-3.8.0.132.md)
 - 3.8.0.125 to 3.8.0.129: [`reference/14_build-history-3.8.0.125-to-3.8.0.129.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/14_build-history-3.8.0.125-to-3.8.0.129.md)
 - 3.8.0.119 to 3.8.0.124: [`reference/14_build-history-3.8.0.119-to-3.8.0.124.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/14_build-history-3.8.0.119-to-3.8.0.124.md)
@@ -149,3 +99,4 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 | Date | Reference | Change |
 | --- | --- | --- |
 | 2026-10-20 | REF-15-00-00-Tue-pensive-davinci-osy66a-A11 | entries 3.8.0.119 to 3.8.0.124 moved word for word to `reference/14_build-history-3.8.0.119-to-3.8.0.124.md` (size cap) |
+| 2026-10-29 | REF-00-27-50-Thu-ccr-0503e1ee-d9m6t2-A09 | entries 3.8.0.133 to 3.8.0.137 moved word for word to `reference/14_build-history-3.8.0.133-to-3.8.0.137.md` (size cap) |

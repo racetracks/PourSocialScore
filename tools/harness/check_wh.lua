@@ -1193,10 +1193,60 @@ if phase == "track" then
 	check(#rows == 3 and rows[1][2] == "Raid; mats" and rows[2][2] == "Trade%" and rows[3][4] == "0", "TST-p079: tab names with ; and % come back exactly, the hidden tab is flagged (" .. tostring(metaT) .. ")")
 	-- the tab becomes unreadable later: its old name and icon stay
 	H.world.guildbank.tabs[1].viewable = false
+	H.world.guildbank.current = 1
+	H.Fire("GUILDBANKBAGSLOTS_CHANGED")		-- tab 1 is unviewable: it writes nothing
+	H.world.guildbank.current = 2		-- the next current tab carries the meta
 	H.Fire("GUILDBANKBAGSLOTS_CHANGED")
 	local rows2 = M.PSS_WhMetaUnpack(PSS_WarehouseDB.meta[g].t)
 	check(rows2[1][2] == "Raid; mats" and rows2[1][4] == "0", "TST-p079: a tab that cannot be viewed keeps its saved name")
 	check(savedMap(g, "t1")[1] and savedMap(g, "t1")[1].count == 400, "TST-p079: and its saved contents")
+	-- TST-00985 to TST-00987, G8: the guild bank reads loaded tabs only
+	local gb = H.world.guildbank
+	gb.tabs[1].viewable = true
+	local function visit() H.Interact("guildbank", false); H.Interact("guildbank", true) end
+	local function tabsOf(code) local m = savedMap(g, code); return m end
+	visit()
+	gb.current, gb.loaded = 1, { [1] = true }
+	H.Fire("GUILDBANKBAGSLOTS_CHANGED")
+	gb.current, gb.loaded = 2, { [2] = true }
+	H.Fire("GUILDBANKBAGSLOTS_CHANGED")
+	local s1, s2 = tabsOf("t1"), tabsOf("t2")
+	check(s1[1] and s2[1] and s2[1].key == "190000", "TST-00985: setup, tabs 1 and 2 saved")
+	visit()
+	gb.current, gb.loaded = 1, {}
+	H.Fire("GUILDBANK_UPDATE_TABS")
+	check(sameMaps(tabsOf("t1"), s1) and sameMaps(tabsOf("t2"), s2), "TST-00985: tabs with no client data keep their saved copy")
+	-- TST-00986: switching tabs
+	visit()
+	gb.tabs[2].items[1].count = 31
+	gb.tabs[1].items[9] = { id = 230001, count = 2 }
+	H.items[230001] = { name = "Guildbound Idol", quality = 3, price = 1, icon = 133440, unknown = true, class = 4 }
+	gb.current, gb.loaded = 1, {}
+	gb.loaded[1] = true
+	H.Fire("GUILDBANKBAGSLOTS_CHANGED")
+	local n1 = tabsOf("t1")
+	check(n1[9] and n1[9].key == "230001", "TST-00986: the loaded tab 1 is read")
+	gb.loaded = { [2] = true }
+	gb.current = 2
+	H.Fire("GUILDBANKBAGSLOTS_CHANGED")
+	check(sameMaps(tabsOf("t1"), n1), "TST-00986: tab 1 keeps its rows after the switch")
+	check(tabsOf("t2")[1].count == 31, "TST-00986: tab 2 shows its items")
+	-- TST-00987: an item held only in a guild tab is found by name once its data arrives
+	H.LoadItemData()
+	local sr = M.PSS_CallSet("item.search", nil, { text = "Guildbound Idol" })
+	local found
+	for i = 1, sr.n do if sr[i][1] == "230001" then found = true end end
+	check(found, "TST-00987: item.search finds the guild-only item by name (its id was asked)")
+	-- G8: a count 0 owned auction is not saved
+	H.world.auctions[#H.world.auctions + 1] = { id = 2589, count = 0, time = 3600 }
+	local zero = #H.world.auctions
+	H.Fire("OWNED_AUCTIONS_UPDATED")
+	check(savedMap(me, "a0")[zero] == nil, "G8: an owned auction with count 0 is not saved")
+	-- G4: a guild bank holder is named first in a search row, then "and N more"
+	local g4 = M.PSS_WhSearchRows("blade")[1]
+	local g4list = g4 and M.PSS_WhHolderList(g4.key)
+	check(g4list and #g4list == 2 and g4list[1][5] ~= "g", "G4: setup, a character holds more of the blade than the guild bank")
+	check(g4 and g4.where == "Guild One (guild bank) and 1 more", "G4: the guild bank is named first (" .. tostring(g4 and g4.where) .. ")")
 	-- TST-p077: wh.status
 	local st = M.PSS_Call("wh.status")
 	local seenMe
@@ -1364,6 +1414,11 @@ if phase == "import0" or phase == "synimport" then
 		-- TST-p173: a character that raises is skipped and counted
 		local realGet = Syndicator.API.GetCharacter
 		Syndicator.API.GetCharacter = function(n) if n == "Charlie-OtherRealm" then error("boom") end return realGet(n) end
+		local g7 = {}
+		for _, c in ipairs(W0.chars) do
+			local e = M.PSS_EntityId("c", c.name, c.realm, false)
+			if e then local m = PSS_WarehouseDB and PSS_WarehouseDB.meta and PSS_WarehouseDB.meta[e]; g7[e] = { m and m.u, m and m.q, had = m ~= nil } end
+		end
 		local r1 = M.PSS_Call("wh.import")
 		local skipped = 0
 		for i = 1, r1.n do skipped = skipped + r1[i][5] end
@@ -1387,6 +1442,16 @@ if phase == "import0" or phase == "synimport" then
 		local after1 = dump(PSS_WarehouseDB)
 		M.PSS_Call("wh.import")
 		check(dump(PSS_WarehouseDB) == after1, "TST-p172: a second import changes nothing")
+		local g7bad = 0
+		for _, c in ipairs(W0.chars) do
+			local e = M.PSS_EntityId("c", c.name, c.realm, false)
+			if e and not g7[e] then g7[e] = { nil, nil } end
+		end
+		for e, was in pairs(g7) do
+			local m = PSS_WarehouseDB.meta and PSS_WarehouseDB.meta[e]
+			if (m and m.u) ~= was[1] or (m and m.q) ~= was[2] or (m and not was.had) then g7bad = g7bad + 1 end
+		end
+		check(g7bad == 0, "G7: import leaves meta u and q of every imported character unchanged (" .. g7bad .. " changed)")
 		check(dump(Syndicator) == synBefore, "TST-00127: nothing was written to the other addon")
 	end
 	M.ShowMsg, M.PSS_RequestGC = realShow, realGC

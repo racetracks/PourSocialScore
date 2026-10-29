@@ -149,6 +149,14 @@ out=$(lua5.1 "$here/run.lua" . - - "$here/check_tui.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS tui" || fail=1
 
+# the selected tab's art per flavour (3.8.0.141, TST-00984)
+section "tab art per flavour"
+for fl in $FLAVOURS; do
+	out=$(PSS_FLAVOUR=$fl lua5.1 "$here/run.lua" . - - "$here/check_tabs.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS tabs" || fail=1
+done
+
 # graphics settings (3.5.0, /pss gfx, Camelot): the logic, the history, keep
 # and revert, Retail and a client without the console API; the popup, the
 # keep prompt after a /reload (the apply run writes a save with a change

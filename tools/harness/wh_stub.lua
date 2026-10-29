@@ -352,18 +352,21 @@ return function(stub)
 		function GetGuildBankItemInfo(t, s)
 			local tab = W.guildbank and W.guildbank.tabs[t]
 			local r = tab and tab.items and tab.items[s]
-			if not r then return nil end
+			if not r or (type(W.guildbank.loaded) == "table" and W.guildbank.loaded[t] ~= true) then return nil end
 			local d = stub.items[r.id] or {}
 			return d.icon or 134400, r.count or 1, false, false, r.quality or d.quality or 0
 		end
 		function GetGuildBankItemLink(t, s)
 			local tab = W.guildbank and W.guildbank.tabs[t]
 			local r = tab and tab.items and tab.items[s]
+			if type(W.guildbank.loaded) == "table" and W.guildbank.loaded[t] ~= true then return nil end
 			return r and (r.link or itemLink(r.id)) or nil
 		end
 		function GetGuildBankMoney() return W.guildbank and W.guildbank.money or 0 end
-		function GetCurrentGuildBankTab() return 1 end
-		function QueryGuildBankTab() end
+		function GetCurrentGuildBankTab() return W.guildbank and W.guildbank.current or 1 end
+		function QueryGuildBankTab(t)
+			if W.guildbank and type(W.guildbank.loaded) == "table" then W.guildbank.loaded[t] = true end
+		end
 
 		-- currencies
 		local expanded = {}
