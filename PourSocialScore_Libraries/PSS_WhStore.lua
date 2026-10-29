@@ -216,11 +216,11 @@ M.PSS_Provide("wh.write", function(input)
 			end
 		end
 	end
-	-- guild tabs, bank tabs and the bags you carry are read again whenever their containers were read
+	-- guild tabs, bank tabs and the bags you carry are read again whenever their containers were read; import payloads never write live meta
 	if M.PSS_WhMeta then
 		for _, p in ipairs(payloads(input)) do
 			local byEnt = {}
-			for code, ent in pairs(p.conts or {}) do
+			for code, ent in pairs(not p.import and p.conts or {}) do
 				if ent and ent ~= 0 then byEnt[ent] = byEnt[ent] or {}; byEnt[ent][code] = true end
 			end
 			for ent, codes in pairs(byEnt) do
