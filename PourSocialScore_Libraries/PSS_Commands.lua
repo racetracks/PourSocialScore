@@ -28,6 +28,26 @@ local firstClear		= false
 -- /pss          --
 -------------------
 
+local CLIENT_NAMES = { retail = "Retail", forever = "Forever", tbc = "TBC Anniversary", era = "Classic Era", mists = "Mists of Pandaria" }
+
+-- /pss version: the version this client loaded, mixed installs and the save's upgrade record
+local function versionReport ()
+	local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+	local function ver (name)
+		local ok, v = pcall(get, name, "Version")
+		if ok and type(v) == "string" then return v end
+	end
+	local flv = M.PSS_FLV or {}
+	local core, gui, lib = ver("PourSocialScore"), ver("PourSocialScore_GUI"), ver("PourSocialScore_Libraries")
+	M.ShowMsg ("Pour Social Score " .. (core or "not installed") .. " on " .. (CLIENT_NAMES[flv.flavour] or tostring(flv.flavour)) .. " (interface " .. tostring(flv.interface or "?") .. ")")
+	if gui ~= core or lib ~= core then
+		M.ShowMsg ("Mixed install: PourSocialScore_GUI " .. (gui or "not installed") .. ", PourSocialScore_Libraries " .. (lib or "not installed") .. ". Reinstall the 3 folders from one zip.")
+	end
+	local up = PourSocialScoreDB and PourSocialScoreDB.upgrade
+	if type(up) ~= "table" then up = {} end
+	M.ShowMsg ("Save upgrade record: " .. tostring(up.version or "none") .. ", step " .. tostring(tonumber(up.step) or 0))
+end
+
 local function OnOff (value)
 	if value == nil or value == false then
 		return "|cffffff00" .. L["OFF"] .. "|cffffffff"
@@ -351,6 +371,10 @@ function M.PSS_SlashPSS (msg)
 			M.PruneIgnoreList(tonumber(args[2]), true)
 		end
 
+	elseif args[1] == "version" then
+
+		versionReport()
+
 	else
 		M.ShowMsg (L["HELP_1"])
 		M.ShowMsg ("")
@@ -368,6 +392,7 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  " .. L["HELP_19"])
 		M.ShowMsg ("  |cffffff00gfx|cffffffff: Export, import and restore graphics settings (Forever)" .. (M.PSS_On("gfx") and "" or " (off)"))
 		M.ShowMsg ("  |cffffff00macro|cffffffff: Create the preloaded macros (Forever): /pss macro global create, /pss macro <class> create [account|character]")
+		M.ShowMsg ("  |cffffff00version|cffffffff: Show the PSS version this client loaded and the save's upgrade record")
 		M.ShowMsg ("  |cffffff00dtt|cffffffff: Destroy or sell the cheapest junk item: /pss dtt | list | sell | never | always | forget | options | log | icon" .. (M.PSS_On("dtt") and "" or " (off)"))
 		M.ShowMsg ("  |cffffff00wh|cffffffff: Search every character, guild bank and the warband: /pss wh | search <text> | status | import | sweep | hide | delete; /pss money" .. (M.PSS_On("warehouse") and "" or " (off)"))
 		M.ShowMsg ("  |cffffff00q|cffffffff: Spyglass, search everything PSS knows: /pss q <query> | status | export <query> [as pssio] | alert <id> on|off")

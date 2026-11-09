@@ -228,6 +228,13 @@ out=$(PSS_PHASE=retail lua5.1 "$here/run.lua" . - "$work/macro-retail.lua" "$her
 echo "$out"
 echo "$out" | grep -q "PASS macro retail" || fail=1
 
+# /pss version (TST-00995): the rows of check_version.lua on each flavour
+for flv in retail forever tbc; do
+	out=$(PSS_FLAVOUR=$flv lua5.1 "$here/run.lua" . - - "$here/check_version.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS version $flv" || fail=1
+done
+
 # addon manager (3.6.0, /pss acp, /acp and the AddOns tab): every phase of
 # check_addons.lua on Retail and on Camelot (addons_phases.sh)
 section "addon manager"
