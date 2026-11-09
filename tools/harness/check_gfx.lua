@@ -409,7 +409,7 @@ end
 ------------------------------------------------------------------------
 function phases.retail()
 	local out = capture(M.PSS_SlashPSS, "gfx")
-	check(has(out, "Graphics settings are for Camelot only."), "/pss gfx on Retail said: " .. tostring(out[1]))
+	check(has(out, "Graphics settings are for Forever only."), "/pss gfx on Retail said: " .. tostring(out[1]))
 	check(loaded("PourSocialScore_Libraries"), "the command did not load Libraries")
 	check(not loaded("PourSocialScore_GUI"), "the GUI was loaded on Retail")
 	check(M.PSS_GfxList == nil and M.PSS_GfxOpen == nil, "graphics functions exist on Retail")

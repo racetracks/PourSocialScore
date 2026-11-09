@@ -283,7 +283,7 @@ function M.PSS_SlashPSS (msg)
 
 		-- graphics settings export, import and history (3.5.0, Camelot only;
 		-- PSS_Graphics.lua defines nothing on other clients)
-		if not M.PSS_Can("gfxCommand") then M.ShowMsg("Graphics settings are for Camelot only.")
+		if not M.PSS_Can("gfxCommand") then M.ShowMsg("Graphics settings are for Forever only.")
 		elseif M.PSS_GfxOpen then M.PSS_GfxOpen()
 		else M.ShowMsg(M.PSS_OFF_TEXT.gfx) end
 
@@ -291,7 +291,7 @@ function M.PSS_SlashPSS (msg)
 
 		-- the macro helper (3.5.0, Camelot only; PSS_Macros.lua defines
 		-- nothing on other clients)
-		if M.PSS_Can("macroCommand") and M.PSS_MacroCommand then M.PSS_MacroCommand(args) else M.ShowMsg("The macro helper is for Camelot only.") end
+		if M.PSS_Can("macroCommand") and M.PSS_MacroCommand then M.PSS_MacroCommand(args) else M.ShowMsg("The macro helper is for Forever only.") end
 
 	elseif args[1] == "dtt" then
 
@@ -366,8 +366,8 @@ function M.PSS_SlashPSS (msg)
 		M.ShowMsg ("  " .. L["HELP_17"])
 		M.ShowMsg ("  " .. L["HELP_18"])
 		M.ShowMsg ("  " .. L["HELP_19"])
-		M.ShowMsg ("  |cffffff00gfx|cffffffff: Export, import and restore graphics settings (Camelot)" .. (M.PSS_On("gfx") and "" or " (off)"))
-		M.ShowMsg ("  |cffffff00macro|cffffffff: Create the preloaded macros (Camelot): /pss macro global create, /pss macro <class> create [account|character]")
+		M.ShowMsg ("  |cffffff00gfx|cffffffff: Export, import and restore graphics settings (Forever)" .. (M.PSS_On("gfx") and "" or " (off)"))
+		M.ShowMsg ("  |cffffff00macro|cffffffff: Create the preloaded macros (Forever): /pss macro global create, /pss macro <class> create [account|character]")
 		M.ShowMsg ("  |cffffff00dtt|cffffffff: Destroy or sell the cheapest junk item: /pss dtt | list | sell | never | always | forget | options | log | icon" .. (M.PSS_On("dtt") and "" or " (off)"))
 		M.ShowMsg ("  |cffffff00wh|cffffffff: Search every character, guild bank and the warband: /pss wh | search <text> | status | import | sweep | hide | delete; /pss money" .. (M.PSS_On("warehouse") and "" or " (off)"))
 		M.ShowMsg ("  |cffffff00q|cffffffff: Spyglass, search everything PSS knows: /pss q <query> | status | export <query> [as pssio] | alert <id> on|off")

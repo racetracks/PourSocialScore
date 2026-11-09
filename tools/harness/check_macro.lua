@@ -268,7 +268,7 @@ end
 
 function phases.retail()
 	local out = pss("macro global create")
-	expectLine(out, "The macro helper is for Camelot only.", "retail")
+	expectLine(out, "The macro helper is for Forever only.", "retail")
 	check(M.PSS_MacroData == nil and M.PSS_MacroCommand == nil and M.PSS_MacroPlan == nil, "defined on Retail")
 	check(#H.macroWrites == 0, "written on Retail")
 end
