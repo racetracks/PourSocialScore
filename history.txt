@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.142 - Fix: TBC tabs, Forever wording, version proof
+
+- What changed, in plain words.
+
 => 3.8.0.141 - TBC B4 fix: tab art and guild bank
 
 - Bug fix (TBC Anniversary): in the Classic look the selected window tab now shows its highlighted art again.
