@@ -50,6 +50,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
   - The 4 macros (`DEC-00439`): 3 global and 7 warrior macros.
 - Docs updated: `docs/pss/16_INTERFACE.md`, `docs/pss/07_HARNESS.md`, `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md`.
 - Tests run: `TST-00991` to `TST-00997`; real-save run (`build_saves.sh` lists `forever 3.8.0.139-forever-launch`, `validate_all.sh` with `PSS_REAL_SAVES`).
+  - Step 2 result: real saves: 288 FAIL, identical to main cd64591 (pre-existing, follow-up issue). Duplicate stub (#262): one 3.8.0.142 entry in history.txt and in this file.
 - Not shown by the simulation: the TBC tab look, the Forever client loading this version, the macros' icons and casts.
 - In-game checks: `CHK-00235` to `CHK-00243`, re-runs `CHK-00218` to `CHK-00220`, `CHK-00229`.
 
