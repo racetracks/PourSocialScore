@@ -31,10 +31,20 @@ function M.PSS_MacroData()
 			store = "account",
 			{ name = "Trinket 1", body = "#showtooltip\n/use 13" },
 			{ name = "Trinket 2", body = "#showtooltip\n/use 14" },
+			{ name = "Mark-Skull", icon = 132095, body = "/tm 8" },
+			{ name = "Mark-X", icon = 132094, body = "/tm 7" },
+			{ name = "Mark-Moon", icon = 133938, body = "/tm 5" },
 		},
 		warrior = {
 			store = "character",
 			{ name = "Attack", body = "#showtooltip\n/startattack" },
+			{ name = "BT", body = "#showtooltip\n/cast bloodthirst\n/startattack" },
+			{ name = "SS", body = "#showtooltip\n/cast shield slam\n/startattack" },
+			{ name = "TC", body = "#showtooltip\n/cast thunder clap\n/startattack" },
+			{ name = "Sunder", body = "#showtooltip\n/cast sunder armor\n/startattack" },
+			{ name = "Revenge", body = "#showtooltip\n/cast revenge\n/startattack" },
+			{ name = "HS", body = "#showtooltip\n/cast heroic strike\n/startattack" },
+			{ name = "Cleave", body = "#showtooltip\n/cast cleave\n/startattack" },
 		},
 	}
 end
