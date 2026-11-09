@@ -293,20 +293,32 @@ local TEMPLATE_PARTS = {
 	PanelTabButtonTemplate = { "Left", "Right", "Middle", "LeftActive", "RightActive", "MiddleActive", "Text" },
 	CharacterFrameTabTemplate = { "Left", "Right", "Middle", "LeftActive", "RightActive", "MiddleActive", "Text" },
 	CharacterFrameTabButtonTemplate = { "Left", "Right", "Middle", "LeftDisabled", "RightDisabled", "MiddleDisabled", "Text" },
-	TabButtonTemplate = { "Left", "Right", "Middle", "Text" },
+	TabButtonTemplate = { "Left", "Right", "Middle", "LeftDisabled", "RightDisabled", "MiddleDisabled", "Text" },
 	UICheckButtonTemplate = { "Text" },
 	WhoFrameColumnHeaderTemplate = { "Left", "Right", "Middle" },
 	FriendsFrameColumnHeaderTemplate = { "Left", "Right", "Middle" },
 }
 
+-- per-flavour template parts and absent templates (set after the flavour is read)
+local FLAVOUR_PARTS, ABSENT_TEMPLATES
+
 function CreateFrame(kind, name, parent, template)
+	if template then
+		local absent = ABSENT_TEMPLATES and ABSENT_TEMPLATES[stub.flavour]
+		for t in tostring(template):gmatch("[^,%s]+") do
+			if absent and absent[t] then error("CreateFrame: unknown template " .. t .. " on " .. stub.flavour, 2) end
+		end
+	end
 	local f = new(kind, name, parent)
 	f._template = template
 	if template then
 		for t in tostring(template):gmatch("[^,%s]+") do
-			for _, part in ipairs(TEMPLATE_PARTS[t] or {}) do
+			local fp = FLAVOUR_PARTS and FLAVOUR_PARTS[stub.flavour]
+			for _, part in ipairs((fp and fp[t]) or TEMPLATE_PARTS[t] or {}) do
 				local child = new("Frame", name and (name .. part) or nil, f)
 				f[part] = child
+				-- the client template draws its *Disabled art only on a disabled tab
+				if part:find("Disabled$") then child:Hide() end
 				if part == "ScrollBar" then
 					child.ScrollUpButton = new("Button", name and (name .. "ScrollBarScrollUpButton") or nil, child)
 					child.ScrollDownButton = new("Button", name and (name .. "ScrollBarScrollDownButton") or nil, child)
@@ -430,6 +442,15 @@ if envCamelot == "1" and envFlavour and envFlavour ~= "forever" then error("PSS_
 local flavour = envFlavour or (envCamelot == "1" and "forever") or "retail"
 stub.flavour = flavour
 local FL = FLAVOURS[flavour]
+-- TBC's PanelTopTabButtonTemplate inherits TabButtonTemplate (selected art is *Disabled); Retail has no TabButtonTemplate
+FLAVOUR_PARTS = { tbc = { PanelTopTabButtonTemplate = TEMPLATE_PARTS.TabButtonTemplate } }
+ABSENT_TEMPLATES = { retail = { TabButtonTemplate = true } }
+C_XMLUtil = {}
+function C_XMLUtil.GetTemplateInfo(name)
+	local absent = ABSENT_TEMPLATES[flavour]
+	if absent and absent[name] then return nil end
+	return {}
+end
 local function envNum(name, default)
 	local v = os.getenv(name)
 	if v == nil or v == "" then return default end

@@ -18,6 +18,7 @@
 -- empties the saved copy. An item whose data the client has not loaded is
 -- saved at once with its id and count; its name is awaited (class await-data)
 -- for display only. A secret value is skipped.
+-- A guild tab is read only while current and sent this visit; any other tab keeps its saved copy.
 -- The file returns at the top while the Warehouse and the Bag manager are off.
 -- Loaded with Libraries. No frame, no OnUpdate.
 ------------------------------------------------------------------------
@@ -32,6 +33,7 @@ local floor = math.floor
 local COLS = { "ent", "cont", "slot", "item", "count", "flags" }
 local OPEN = {}				-- [kind] = true while that window is open
 local KIND_OF_TYPE			-- [interaction type] = kind, built on first need
+local LOADED = {}			-- [tab] = true: the client sent this guild tab's slots while it was current, this visit
 local pending = {}			-- [itemID] = true: data asked for, not yet here
 
 local function now() return GetServerTime and GetServerTime() or time() end
@@ -212,25 +214,26 @@ local function readAuctions(row, code, out, ent)
 	if C_AuctionHouse then
 		for i = 1, C_AuctionHouse.GetNumOwnedAuctions() do
 			local a = C_AuctionHouse.GetOwnedAuctionInfo(i)
-			if a then add(out, ent, code, i, a.itemLink, a.itemKey and a.itemKey.itemID, a.quantity, "t" .. floor(t + (a.timeLeftSeconds or 3600))) end
+			if a and a.quantity ~= 0 then add(out, ent, code, i, a.itemLink, a.itemKey and a.itemKey.itemID, a.quantity, "t" .. floor(t + (a.timeLeftSeconds or 3600))) end
 		end
 	else
 		for i = 1, GetNumAuctionItems("owner") do
 			local _, _, n = GetAuctionItemInfo("owner", i)
 			local link = GetAuctionItemLink("owner", i)
-			if link then add(out, ent, code, i, link, nil, n, "t" .. floor(t + (LEFT[GetAuctionItemTimeLeft("owner", i)] or 3600))) end
+			if link and n ~= 0 then add(out, ent, code, i, link, nil, n, "t" .. floor(t + (LEFT[GetAuctionItemTimeLeft("owner", i)] or 3600))) end
 		end
 	end
 end
 
 local function readGuild(row, code, out, ent)
 	local tab = tonumber(code:sub(2))
+	if not LOADED[tab] or not GetCurrentGuildBankTab or GetCurrentGuildBankTab() ~= tab then return false end
 	bagSet[1][1] = tab
 	local res = M.PSS_Call("compat.guildBank.read", bagSet, bagOpts)
 	if not res or res.n == 0 then return false end		-- a tab we may not view is never read: its saved copy stays (the bus turns the service's false into an empty answer; a viewable tab always has its slots)
 	for slot = 1, res.n do
 		local t = res[slot]
-		if t and not secret(t.link) then add(out, ent, code, slot, t.link, nil, t.count, "") end
+		if t and not secret(t.link) then add(out, ent, code, slot, t.link, type(t.link) == "string" and tonumber(t.link:match("item:(%d+)")) or nil, t.count, "") end
 	end
 end
 
@@ -303,6 +306,7 @@ function M.PSS_ItemKeyFn(row)
 	return function(event, a1)
 		if event == "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" or event == "PLAYER_INTERACTION_MANAGER_FRAME_HIDE" then
 			local k = kinds()[a1]
+			if k == "guildbank" then for tb in pairs(LOADED) do LOADED[tb] = nil end end
 			if k then OPEN[k] = event == "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" or nil end
 			if k and k == w and OPEN[k] then return row.code .. "*" end
 			return nil
@@ -323,6 +327,14 @@ function M.PSS_ItemKeyFn(row)
 			if w and not M.PSS_ItemOpen(w) then return nil end
 			if C_Bank and C_Bank.FetchPurchasedBankTabData then return type(a1) == "number" and "k" .. a1 or "k*" end
 			return "k0"
+		elseif event == "GUILDBANKBAGSLOTS_CHANGED" then
+			if kind ~= "guild" or not M.PSS_ItemOpen("guildbank") then return nil end
+			local cur = GetCurrentGuildBankTab and GetCurrentGuildBankTab()
+			if type(cur) == "number" and cur > 0 then
+				LOADED[cur] = true
+				return "t" .. cur
+			end
+			return nil
 		elseif event == "PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED" then
 			if kind ~= "warband" or not M.PSS_ItemOpen("account") then return nil end
 			return type(a1) == "number" and "w" .. a1 or "w*"

@@ -101,7 +101,7 @@ function ns.IsDark()
 end
 
 -- The art of Blizzard's new Social window (12.x), every atlas Modern draws;
--- a client without one of them (Camelot) shows the Blizzard look when
+-- a client without one of them (Forever and the Classic clients) shows the Blizzard look when
 -- Modern is picked.
 local MODERN_ART = {
 	"128-RedButton-Left", "128-RedButton-Left-Pressed", "128-RedButton-Left-Disabled",
@@ -320,10 +320,9 @@ end
 -- inset hidden (ours are used). Modern puts the frame on black, as
 -- Blizzard's new Social window does (art.pssBlack). nil when the client
 -- has no such template (the Dark art is used then).
-local FRAME_TEMPLATES = { "ButtonFrameTemplate", "PortraitFrameTemplate", "BasicFrameTemplateWithInset" }
 
 function ns.NewFrameArt(parent)
-	for _, t in ipairs(FRAME_TEMPLATES) do
+	for _, t in ipairs({ M.PSS_CompatTemplate("frame") }) do
 		local ok, f = pcall(CreateFrame, "Frame", nil, parent, t)
 		if ok and f then
 			f:SetAllPoints(parent)
