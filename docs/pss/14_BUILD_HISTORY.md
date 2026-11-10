@@ -35,9 +35,50 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 | E1 / E9 One step per PR and per session | All of phase 2 of the Warehousing and Journaling roadmap (packages `STP-p00` to `STP-p19`: the item layer, the warehouse, money, search, import, the gateway and Syndicator shim, the interface) in one build, 3.7.0.106 (its in-game test fixes are 3.7.0.107 and 3.7.0.108, the same PR), each package proven by its own check phases and its own commit ([`DEC-00263`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/00_Decisions.md)). The author, 2026-10-16 |
 | E1 / E9 One step per PR and per session | Phase A of the Spyglass, Journal and Bags roadmap ([`STP-00232`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/search-helper/12_User_Guides/12_02_Phase_A_Spyglass_Engine.md#stp-00232) to [`STP-00252`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/search-helper/12_User_Guides/12_02_Phase_A_Spyglass_Engine.md#stp-00252), [`STP-00285`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/search-helper/12_User_Guides/12_02_Phase_A_Spyglass_Engine.md#stp-00285) to [`STP-00287`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/search-helper/12_User_Guides/12_02_Phase_A_Spyglass_Engine.md#stp-00287)) in one build, 3.8.0.116, each component proven by its own check phases (`ix_phases.sh`) and its own commit. The author, 2026-10-17: one PR and one pre-release per phase ([`DEC-00320`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/search-helper/00_Decisions.md#dec-00320) b) |
 | E1 / E9 One step per PR and per session | Phase B of the Spyglass, Journal and Bags roadmap ([`STP-00253`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/search-helper/12_User_Guides/12_03_Phase_B_Spyglass_Console.md#stp-00253) to [`STP-00258`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/search-helper/12_User_Guides/12_03_Phase_B_Spyglass_Console.md#stp-00258), [`STP-00288`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/search-helper/12_User_Guides/12_03_Phase_B_Spyglass_Console.md#stp-00288), [`STP-00292`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/search-helper/12_User_Guides/12_03_Phase_B_Spyglass_Console.md#stp-00292)) in one build, 3.8.0.125, each component proven by its own check phases (`console_phases.sh`) and its own commit. The author, 2026-10-17: one PR and one pre-release per phase ([`DEC-00320`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/search-helper/00_Decisions.md#dec-00320) b) |
+| E1 / E9 One step per PR and per session | The Macro Helper Priest set, 3.8.0.146, added to the Shaman set's PR #270 (3.8.0.145) as its own build and commit, each proven by its own `check_macro.lua` phase. The author, 2026-11-10, this session (scratch `temp/2026/11/10/09-04-54-Tue-tender-knuth-moxuz4/prompts/02.md`): "Same PR #270" |
+| E1 / E9 One step per PR and per session | The Shaman Stormstrike macro, 3.8.0.147, added to PR #270 (3.8.0.145, 3.8.0.146) as its own build and commit. The author, 2026-11-10, this session (scratch `temp/2026/11/10/09-04-54-Tue-tender-knuth-moxuz4/prompts/03.md`): "Same PR #270" |
 
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
+
+### 3.8.0.147 - Shaman Stormstrike macro
+
+- Branch: `claude/tender-knuth-moxuz4`; PR #270 (with 3.8.0.145 and 3.8.0.146; combined build row above).
+- What changed and why: the author asked for a Shaman `SS` (Stormstrike). `SS` is also the Warrior's Shield Slam; the author, 2026-11-10: "its a shaman macro, it's unique to shaman, SS in warrior context means shield slam and in shaman context means stormstrike". So names are unique within a set, and a global name across every set; two class sets may share one (each is created only on its class, in its character store). Only the data check enforced the old rule; no code path changed.
+- Docs updated: `history.txt`, `docs/pss/06_STATUS_AND_NEXT.md`, this entry and the combined build row, the comment in `PSS_MacroData.lua`; scratch `docs/latest/macro-helper/01_DESIGN.md` (name rule), `docs/latest/issues/macro-sets/159-umbrella.md` (step 1), `168-shaman.md`.
+- Tests run: `check_macro.lua` `data` (5 shaman macros, SS body; the name rule now per set plus global names, a mutant reusing `Trinket 1` in a class set fails it) and `shaman` (created 5, `already current 5`) fail on 3.8.0.146 and pass here; the rules check; `validate_all.sh` with the real saves and `PSS_SAME_AS=origin/main` (issue #268).
+- Not shown by the simulation: the Stormstrike cast and auto attack, the icon on a bar.
+- In-game checks: in PR #270: on a Shaman, create gives 5 with `SS` casting Stormstrike; on a Warrior, `SS` stays Shield Slam.
+
+### 3.8.0.146 (from 06 Now)
+
+**3.8.0.146, Priest macros (branch `claude/tender-knuth-moxuz4`, PR #270, with 3.8.0.145):** Macro Helper `priest` set (13 macros; issue #166 of umbrella #159), data and its harness phase only; 3.8.0.145 added the `shaman` set (issue #168); the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
+### 3.8.0.146 - Priest macros
+
+- Branch: `claude/tender-knuth-moxuz4`; PR #270 (with 3.8.0.145; combined build row above).
+- What changed and why: the author asked for the Priest macros (issue #166, umbrella #159). `PSS_MacroData.lua` gains a `priest` set, store `character` (the class default): PWS, RN, Dispel, FH, H, GH, PoM, AD, Fort, DS, SP, PI, MS, bodies as pasted. The author pasted two macros named `GH`; the author chose to name the Heal one `H` (2026-11-10, this session). No code path changed.
+- Docs updated: `history.txt`, `docs/pss/06_STATUS_AND_NEXT.md`, this entry and the combined build row; scratch `docs/latest/issues/macro-sets/166-priest.md`.
+- Tests run: `check_macro.lua` phase `priest` (new, `PSS_CLASS=PRIEST`) and the priest rows of `data`, `wrongclass`, `list` fail on 3.8.0.145 and pass here; the rules check; `validate_all.sh` with the real saves and `PSS_SAME_AS=origin/main`, compared with main (issue #268). `PSS_MacroData.lua` resident 2.37 KB.
+- Not shown by the simulation: whether the client knows each spell (Prayer of Mending and Shadow Word: Death are later-expansion spells on some clients), the mouseover casts, the Shift buffs, the icons on a bar.
+- In-game checks: in PR #270 (Forever, on a Priest): `/pss macro` lists `priest (13)`; preview 13 `new` (character); create, character tab, icons; run again `already current 13`; on another class: refused.
+
+### 3.8.0.145 (from 06 Now)
+
+**3.8.0.145, Shaman macros (branch `claude/tender-knuth-moxuz4`, PR #270):** Macro Helper `shaman` set (HW, LHW, CH, RT; issue #168 of umbrella #159), data and its harness phase only; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
+### 3.8.0.145 - Shaman macros
+
+- Branch: `claude/tender-knuth-moxuz4`; [PR #270](https://github.com/racetracks/PourSocialScore/pull/270).
+- What changed and why: the author asked for four Shaman macros (issue #168, umbrella #159; one build per ask). `PSS_MacroData.lua` gains a `shaman` set, store `character` (the class default; the author named none): `HW`, `LHW`, `CH`, `RT`, each `#showtooltip <spell>` then `/cast [help, target=mouseover,exists,help,nodead][]<spell>`, as pasted. No code path changed.
+- Docs updated: `history.txt`, `docs/pss/06_STATUS_AND_NEXT.md`, this entry; scratch `docs/latest/issues/macro-sets/168-shaman.md`.
+- Tests run: `check_macro.lua` phase `shaman` (new, `PSS_CLASS=SHAMAN`) and the shaman rows of `data`, `wrongclass`, `list` fail on `origin/main` and pass here; the rules check; `validate_all.sh` with the real saves and `PSS_SAME_AS=origin/main`, compared with main (issue #268 keeps real-saves red on both).
+- Not shown by the simulation: whether the client knows each spell (Riptide is a later-expansion spell; an unknown spell shows the question mark and does nothing), the mouseover cast, the icon on a bar.
+- In-game checks: issue #168's five (Forever, on a Shaman): `/pss macro` lists `shaman (4)`; preview shows 4 `new` (character); create, the character tab of `/macro`, icons follow the spells; run again: `already current 4`; on another class: refused.
+
+### 3.8.0.144 (from 06 Now)
+
+**3.8.0.144, Search speed (branch `claude/upbeat-fermat-481m3i`, PR #269):** search timing harness only; the freeze (F-1) is not reproduced in the harness; in game one press of `f` froze 32 s (the author, 2026-11-10), the in-game `CHK-00232` quick `f` run finds where; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
 
 ### 3.8.0.144 - Search speed
 

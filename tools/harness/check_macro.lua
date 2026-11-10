@@ -3,6 +3,8 @@
 --   data       (PSS_CAMELOT=1) the shipped sets: keys, stores, names, bodies
 --   global     (PSS_CAMELOT=1) global create: account macros, then current
 --   class      (PSS_CAMELOT=1 PSS_CLASS=WARRIOR) warrior create: character macro
+--   priest     (PSS_CAMELOT=1 PSS_CLASS=PRIEST) priest create: 13 character macros
+--   shaman     (PSS_CAMELOT=1 PSS_CLASS=SHAMAN) shaman create: 5 character macros
 --   wrongclass (PSS_CAMELOT=1) a class set on another class; unknown sets
 --   stores     (PSS_CAMELOT=1 PSS_CLASS=WARRIOR) account or character per
 --              macro: macro over set over default; the command word; store
@@ -58,6 +60,23 @@ end
 
 local phases = {}
 
+-- the Priest set as shipped (3.8.0.146), in order
+	local PRIEST = {
+		{ "PWS", "#showtooltip Power Word: Shield\n/cast [target=mouseover,exists,help][help][target=player][]Power Word: Shield" },
+		{ "RN", "#showtooltip Renew\n/cast [harm] Shadow Word: Pain\n/cast [help, target=mouseover,exists,help][]Renew" },
+		{ "Dispel", "#showtooltip dispel magic\n/cast [help, target=mouseover,exists,help]dispel magic\n/cast [harm] dispel magic" },
+		{ "FH", "#showtooltip flash heal\n/cast [target=mouseover,exists,help][]flash heal\n/cast [harm] smite" },
+		{ "H", "#showtooltip Heal\n/cast [target=mouseover,exists,help][]Heal\n/cast [harm] Mind Blast" },
+		{ "GH", "#showtooltip Greater Heal\n/cast [target=mouseover,exists,help][]Greater Heal\n/cast [harm] Holy Fire" },
+		{ "PoM", "#showtooltip Prayer of Mending\n/cast [target=mouseover,exists,help][]Prayer of Mending\n/cast [harm] Shadow Word: Death" },
+		{ "AD", "#showtooltip abolish disease\n/cast [target=mouseover,exists,help][]abolish disease" },
+		{ "Fort", "#showtooltip\n/cast [nomodifier] Power Word: Fortitude\n/cast [mod:shift] Prayer of Fortitude" },
+		{ "DS", "#showtooltip\n/cast [nomodifier] Divine Spirit\n/cast [mod:shift] Prayer of Spirit" },
+		{ "SP", "#showtooltip\n/cast [nomodifier] shadow protection\n/cast [mod:shift] prayer of shadow protection" },
+		{ "PI", "#showtooltip Power Infusion\n/cast [target=mouseover,exists,help][]Power Infusion" },
+		{ "MS", "#showtooltip mind soothe\n/cast [target=mouseover,exists,harm][]mind soothe" },
+	}
+
 function phases.data()
 	needLibraries()
 	local data = M.PSS_MacroData and M.PSS_MacroData()
@@ -65,8 +84,12 @@ function phases.data()
 	local CLASSES = { global = true, druid = true, hunter = true, mage = true, paladin = true, priest = true,
 		rogue = true, shaman = true, warlock = true, warrior = true }
 	local STORE = { account = true, character = true }
-	local seen = {}
+	-- names: unique within a set; a global name unique across every set (a
+	-- class set may reuse another class's name: the author, 2026-11-10)
+	local globalName = {}
+	for _, m in ipairs(data.global or {}) do globalName[m.name or ""] = true end
 	for key, set in pairs(data) do
+		local seen = {}
 		check(CLASSES[key], "unknown set " .. tostring(key))
 		check(type(set) == "table", "set " .. tostring(key) .. " is not a table")
 		check(set.store == nil or STORE[set.store], "set " .. tostring(key) .. " store " .. tostring(set.store))
@@ -81,6 +104,7 @@ function phases.data()
 			check(m.store == nil or STORE[m.store], where .. " store " .. tostring(m.store))
 			for k in pairs(m) do check(k == "name" or k == "body" or k == "icon" or k == "store", where .. " has field " .. tostring(k)) end
 			check(not seen[m.name], where .. " repeats the name " .. tostring(m.name))
+			check(key == "global" or not globalName[m.name or ""], where .. " repeats the global name " .. tostring(m.name))
 			seen[m.name or ""] = true
 		end
 	end
@@ -102,6 +126,20 @@ function phases.data()
 		local m = data.warrior[1 + i]
 		check(m and m.name == NAMW[i] and m.icon == nil and m.body == "#showtooltip\n/cast " .. spell .. "\n/startattack", NAMW[i] .. " differs")
 	end
+	local NAMS = { "HW", "LHW", "CH", "RT" }
+	local SPLS = { "Healing Wave", "Lesser Healing Wave", "Chain Heal", "Riptide" }
+	check(data.shaman and data.shaman.store == "character" and #data.shaman == 5, "shaman is not 5 character macros")
+	for i, spell in ipairs(SPLS) do
+		local m = data.shaman and data.shaman[i]
+		check(m and m.name == NAMS[i] and m.icon == nil and m.body == "#showtooltip " .. spell .. "\n/cast [help, target=mouseover,exists,help,nodead][]" .. spell, NAMS[i] .. " differs")
+	end
+	check(data.priest and data.priest.store == "character" and #data.priest == 13, "priest is not 13 character macros")
+	for i, v in ipairs(PRIEST) do
+		local m = data.priest and data.priest[i]
+		check(m and m.name == v[1] and m.icon == nil and m.body == v[2], v[1] .. " differs")
+	end
+	local ss = data.shaman and data.shaman[5]
+	check(ss and ss.name == "SS" and ss.icon == nil and ss.body == "#showtooltip Stormstrike\n/cast stormstrike\n/startattack", "shaman SS differs")
 	-- a fresh table on every call (nothing kept)
 	check(M.PSS_MacroData() ~= data, "M.PSS_MacroData returned the same table twice")
 end
@@ -143,6 +181,44 @@ function phases.class()
 	check(count("account") == 0, "an account macro was made")
 end
 
+function phases.priest()
+	needLibraries()
+	reset()
+	local out = pss("macro priest create")
+	expectLine(out, "Priest macros: created 13 (PWS (character), RN (character), Dispel (character), FH (character), H (character), GH (character), PoM (character), AD (character) +5 more).", "priest create")
+	for _, v in ipairs(PRIEST) do
+		local m = macro("char", v[1])
+		check(m and m.body == v[2] and m.icon == 134400, v[1] .. " not as shipped")
+	end
+	check(count("account") == 0, "an account macro was made")
+	local n = #H.macroWrites
+	out = pss("macro priest create")
+	expectLine(out, "already current 13", "second create")
+	check(#H.macroWrites == n, "the second create wrote")
+	out = pss("macro shaman create")
+	expectLine(out, "Shaman macros are for a Shaman: log in a Shaman to create them.", "shaman on a priest")
+end
+
+function phases.shaman()
+	needLibraries()
+	reset()
+	local out = pss("macro shaman create")
+	expectLine(out, "Shaman macros: created 5 (HW (character), LHW (character), CH (character), RT (character), SS (character)).", "shaman create")
+	for name, spell in pairs({ HW = "Healing Wave", LHW = "Lesser Healing Wave", CH = "Chain Heal", RT = "Riptide" }) do
+		local m = macro("char", name)
+		check(m and m.body == "#showtooltip " .. spell .. "\n/cast [help, target=mouseover,exists,help,nodead][]" .. spell and m.icon == 134400, name .. " not as shipped")
+	end
+	local ss = macro("char", "SS")
+	check(ss and ss.body == "#showtooltip Stormstrike\n/cast stormstrike\n/startattack" and ss.icon == 134400, "SS not as shipped")
+	check(count("account") == 0, "an account macro was made")
+	local n = #H.macroWrites
+	out = pss("macro shaman create")
+	expectLine(out, "already current 5", "second create")
+	check(#H.macroWrites == n, "the second create wrote")
+	out = pss("macro warrior create")
+	expectLine(out, "Warrior macros are for a Warrior: log in a Warrior to create them.", "warrior on a shaman")
+end
+
 function phases.wrongclass()
 	needLibraries()
 	reset()
@@ -152,8 +228,12 @@ function phases.wrongclass()
 	expectLine(out, "Warrior macros are for a Warrior", "preview on a mage")
 	out = pss("macro rogue")
 	expectLine(out, "There are no Rogue macros yet.", "class without a set")
+	out = pss("macro shaman create")
+	expectLine(out, "Shaman macros are for a Shaman: log in a Shaman to create them.", "shaman on a mage")
+	out = pss("macro priest create")
+	expectLine(out, "Priest macros are for a Priest: log in a Priest to create them.", "priest on a mage")
 	out = pss("macro foo create")
-	expectLine(out, "No macro set \"foo\". Sets: global (5), warrior (8).", "unknown set")
+	expectLine(out, "No macro set \"foo\". Sets: global (5), priest (13), shaman (5), warrior (8).", "unknown set")
 	check(#H.macroWrites == 0, "something was written")
 end
 
@@ -267,7 +347,7 @@ function phases.list()
 	needLibraries()
 	reset()
 	local out = pss("macro")
-	expectLine(out, "Macro sets: global (5), warrior (8). Free slots: account 120 of 120, character 18 of 18.", "sets")
+	expectLine(out, "Macro sets: global (5), priest (13), shaman (5), warrior (8). Free slots: account 120 of 120, character 18 of 18.", "sets")
 	expectLine(out, "/pss macro <set> create", "usage")
 	out = pss("macro global")
 	expectLine(out, "Global macros:", "preview head")

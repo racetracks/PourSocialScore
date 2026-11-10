@@ -1,6 +1,18 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.147 - Shaman Stormstrike macro
+
+- Macro Helper: the Shaman set gains SS (Stormstrike, then start attacking). A class set may now reuse a name another class uses (the Warrior's SS is Shield Slam); each is created only on its own class.
+
+=> 3.8.0.146 - Priest macros
+
+- Macro Helper: Priest macros. /pss macro priest create (on a Priest, Forever) makes 13 character macros: PWS, RN, Dispel, FH, H, GH, PoM, AD, Fort, DS, SP, PI, MS. The heals, shield and buffs go to your mouseover, else your target; several cast a damage spell on an enemy target instead; Fort, DS and SP cast the group buff with Shift.
+
+=> 3.8.0.145 - Shaman macros
+
+- Macro Helper: Shaman macros. /pss macro shaman create (on a Shaman, Forever) makes four character macros that heal your mouseover, else your target: HW (Healing Wave), LHW (Lesser Healing Wave), CH (Chain Heal) and RT (Riptide).
+
 => 3.8.0.144 - Search speed
 
 - Search timing harness: measures search speed on real saves; the search freeze is not reproduced yet, in-game check next.
