@@ -1176,19 +1176,19 @@ local memberCountCache = setmetatable({}, { __mode = "k" })		-- g -> { gen, key,
 G.bumpMemberCount = function() memberCountGen = memberCountGen + 1 end
 M.PSS_PruneManagedMarks = function()
 	if not part() then return 0 end
-	return P.PruneMarks(true)
+	return part().PruneMarks(true)
 end
 
 -- Load the shipped member lists (PourSocialScore_Communities) if they are
 -- not loaded yet. Returns true when they are available.
 ensureManagedData = function()
-	if part() and part().Loaded() then P.PruneMarks() return true end
+	if part() and part().Loaded() then part().PruneMarks() return true end
 	if not addon.MANAGED_DATA and not (M.PSS_Need and M.PSS_Need("Communities")) then return false end
 	managed = nil
 	memberCountGen = memberCountGen + 1
 	if not part() then return false end
 	local ok = part().Build()
-	if ok then P.PruneMarks() end
+	if ok then part().PruneMarks() end
 	return ok
 end
 G.ensure = ensureManagedData
