@@ -79,7 +79,7 @@ Other checks in `validate_all.sh`: `check_forget` (removals), `check_guildrule`,
 `sh tools/harness/dtt_phases.sh` runs every phase on Retail and Camelot (`off options scan filters act cmd icon roundtrip mapbutton dttlog merchant bus refresh`; `PSS_PHASE`, `PSS_COMPONENTS=dtt` or `none`); fixtures `tools/harness/fixtures/dtt_bags.lua`; the stub's bag, item, cursor and merchant model is in `wow_stub.lua` (`H.items`, `H.bags`, `H.OpenMerchant`). `GetGuildBankItemInfo` exists from load (it answers nil until `stub.SeedWorld`), as on a client, so the guildBank cap probe passes. `bus` fixes the `M.Events` payloads (the service bus: `DTT_CHANGED`, `DTT_ACTED`, `OPTION_CHANGED`); The scan, act and `item.live` bag reads go through `compat.containers` (B3T4). `refresh` proves every options page redraws on `OPTION_CHANGED`, a shift-clicked link goes to the focused list only, and item lists lay out. Look at the result of an event (the drawn chip) before reopening a page: a test that reopens first hides a missing redraw.
 
 ## Changelog
-- 2026-11-10: `build_saves.sh` `build()` uses its own names (`bd bc bv`), so each `SavedVariables/<client>/<version>/` lands at `<out>/<client>/<version>/` (#268).
+- 2026-11-10: `build_saves.sh` `build()` uses its own names (`bd bc bv`), so each `SavedVariables/<client>/<version>/` lands at `<out>/<client>/<version>/`.
 - 2026-11-09 A06: added `check_version.lua` (`TST-00995`, `/pss version`).
 - 2026-11-10 A01: version check covers six folders and the Save record differs line (`TST-00998`).
 - 2026-11-10 A02: tab art and `/pss version` loops read `$FLAVOURS`; section `pss version` (`TST-00999`).
