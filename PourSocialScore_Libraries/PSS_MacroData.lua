@@ -35,6 +35,13 @@ function M.PSS_MacroData()
 			{ name = "Mark-X", icon = 132094, body = "/tm 7" },
 			{ name = "Mark-Moon", icon = 133938, body = "/tm 5" },
 		},
+		shaman = {
+			store = "character",
+			{ name = "HW", body = "#showtooltip Healing Wave\n/cast [help, target=mouseover,exists,help,nodead][]Healing Wave" },
+			{ name = "LHW", body = "#showtooltip Lesser Healing Wave\n/cast [help, target=mouseover,exists,help,nodead][]Lesser Healing Wave" },
+			{ name = "CH", body = "#showtooltip Chain Heal\n/cast [help, target=mouseover,exists,help,nodead][]Chain Heal" },
+			{ name = "RT", body = "#showtooltip Riptide\n/cast [help, target=mouseover,exists,help,nodead][]Riptide" },
+		},
 		warrior = {
 			store = "character",
 			{ name = "Attack", body = "#showtooltip\n/startattack" },

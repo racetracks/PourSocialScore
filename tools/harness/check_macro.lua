@@ -3,6 +3,7 @@
 --   data       (PSS_CAMELOT=1) the shipped sets: keys, stores, names, bodies
 --   global     (PSS_CAMELOT=1) global create: account macros, then current
 --   class      (PSS_CAMELOT=1 PSS_CLASS=WARRIOR) warrior create: character macro
+--   shaman     (PSS_CAMELOT=1 PSS_CLASS=SHAMAN) shaman create: 4 character macros
 --   wrongclass (PSS_CAMELOT=1) a class set on another class; unknown sets
 --   stores     (PSS_CAMELOT=1 PSS_CLASS=WARRIOR) account or character per
 --              macro: macro over set over default; the command word; store
@@ -102,6 +103,13 @@ function phases.data()
 		local m = data.warrior[1 + i]
 		check(m and m.name == NAMW[i] and m.icon == nil and m.body == "#showtooltip\n/cast " .. spell .. "\n/startattack", NAMW[i] .. " differs")
 	end
+	local NAMS = { "HW", "LHW", "CH", "RT" }
+	local SPLS = { "Healing Wave", "Lesser Healing Wave", "Chain Heal", "Riptide" }
+	check(data.shaman and data.shaman.store == "character" and #data.shaman == 4, "shaman is not 4 character macros")
+	for i, spell in ipairs(SPLS) do
+		local m = data.shaman and data.shaman[i]
+		check(m and m.name == NAMS[i] and m.icon == nil and m.body == "#showtooltip " .. spell .. "\n/cast [help, target=mouseover,exists,help,nodead][]" .. spell, NAMS[i] .. " differs")
+	end
 	-- a fresh table on every call (nothing kept)
 	check(M.PSS_MacroData() ~= data, "M.PSS_MacroData returned the same table twice")
 end
@@ -143,6 +151,24 @@ function phases.class()
 	check(count("account") == 0, "an account macro was made")
 end
 
+function phases.shaman()
+	needLibraries()
+	reset()
+	local out = pss("macro shaman create")
+	expectLine(out, "Shaman macros: created 4 (HW (character), LHW (character), CH (character), RT (character)).", "shaman create")
+	for name, spell in pairs({ HW = "Healing Wave", LHW = "Lesser Healing Wave", CH = "Chain Heal", RT = "Riptide" }) do
+		local m = macro("char", name)
+		check(m and m.body == "#showtooltip " .. spell .. "\n/cast [help, target=mouseover,exists,help,nodead][]" .. spell and m.icon == 134400, name .. " not as shipped")
+	end
+	check(count("account") == 0, "an account macro was made")
+	local n = #H.macroWrites
+	out = pss("macro shaman create")
+	expectLine(out, "already current 4", "second create")
+	check(#H.macroWrites == n, "the second create wrote")
+	out = pss("macro warrior create")
+	expectLine(out, "Warrior macros are for a Warrior: log in a Warrior to create them.", "warrior on a shaman")
+end
+
 function phases.wrongclass()
 	needLibraries()
 	reset()
@@ -152,8 +178,10 @@ function phases.wrongclass()
 	expectLine(out, "Warrior macros are for a Warrior", "preview on a mage")
 	out = pss("macro rogue")
 	expectLine(out, "There are no Rogue macros yet.", "class without a set")
+	out = pss("macro shaman create")
+	expectLine(out, "Shaman macros are for a Shaman: log in a Shaman to create them.", "shaman on a mage")
 	out = pss("macro foo create")
-	expectLine(out, "No macro set \"foo\". Sets: global (5), warrior (8).", "unknown set")
+	expectLine(out, "No macro set \"foo\". Sets: global (5), shaman (4), warrior (8).", "unknown set")
 	check(#H.macroWrites == 0, "something was written")
 end
 
@@ -267,7 +295,7 @@ function phases.list()
 	needLibraries()
 	reset()
 	local out = pss("macro")
-	expectLine(out, "Macro sets: global (5), warrior (8). Free slots: account 120 of 120, character 18 of 18.", "sets")
+	expectLine(out, "Macro sets: global (5), shaman (4), warrior (8). Free slots: account 120 of 120, character 18 of 18.", "sets")
 	expectLine(out, "/pss macro <set> create", "usage")
 	out = pss("macro global")
 	expectLine(out, "Global macros:", "preview head")

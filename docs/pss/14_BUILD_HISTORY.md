@@ -39,6 +39,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.145 - Shaman macros
+
+- Branch: `claude/tender-knuth-moxuz4`; PR: none yet.
+- What changed and why: the author asked for four Shaman macros (issue #168, umbrella #159; one build per ask). `PSS_MacroData.lua` gains a `shaman` set, store `character` (the class default; the author named none): `HW`, `LHW`, `CH`, `RT`, each `#showtooltip <spell>` then `/cast [help, target=mouseover,exists,help,nodead][]<spell>`, as pasted. No code path changed.
+- Docs updated: `history.txt`, `docs/pss/06_STATUS_AND_NEXT.md`, this entry; scratch `docs/latest/issues/macro-sets/168-shaman.md`.
+- Tests run: `check_macro.lua` phase `shaman` (new, `PSS_CLASS=SHAMAN`) and the shaman rows of `data`, `wrongclass`, `list` fail on `origin/main` and pass here; the rules check; `validate_all.sh` with the real saves and `PSS_SAME_AS=origin/main`, compared with main (issue #268 keeps real-saves red on both).
+- Not shown by the simulation: whether the client knows each spell (Riptide is a later-expansion spell; an unknown spell shows the question mark and does nothing), the mouseover cast, the icon on a bar.
+- In-game checks: issue #168's five (Forever, on a Shaman): `/pss macro` lists `shaman (4)`; preview shows 4 `new` (character); create, the character tab of `/macro`, icons follow the spells; run again: `already current 4`; on another class: refused.
+
+### 3.8.0.144 (from 06 Now)
+
+**3.8.0.144, Search speed (branch `claude/upbeat-fermat-481m3i`, PR #269):** search timing harness only; the freeze (F-1) is not reproduced in the harness; in game one press of `f` froze 32 s (the author, 2026-11-10), the in-game `CHK-00232` quick `f` run finds where; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.144 - Search speed
 
 - Branch: `claude/upbeat-fermat-481m3i`; PR #269.

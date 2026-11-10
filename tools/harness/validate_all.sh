@@ -210,6 +210,9 @@ for ph in class stores; do
 	echo "$out"
 	echo "$out" | grep -q "PASS macro $ph" || fail=1
 done
+out=$(PSS_PHASE=shaman PSS_CAMELOT=1 PSS_CLASS=SHAMAN lua5.1 "$here/run.lua" . - "$work/macro-shaman.lua" "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS macro shaman" || fail=1
 out=$(PSS_PHASE=existing PSS_CAMELOT=1 PSS_MACRO_SEED="a:Trinket 1=/say hi;a:Other=/dance;c:Trinket 2=/say char" lua5.1 "$here/run.lua" . - - "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS macro existing" || fail=1
