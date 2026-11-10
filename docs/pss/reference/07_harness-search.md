@@ -7,7 +7,7 @@ Purpose: detail of the three search harness files (TST-00988, TST-00989, CHK-002
 | `lua5.1 tools/harness/run.lua . <save or -> - tools/harness/search_results.lua` ([search_results.lua:1](../../tools/harness/search_results.lua)) | The result dump: `R` rows for eight search texts, `H` holder lines, then after a `wh.delete` of the first other entity the `R2` rows (same environment as above) |
 
 ## Bench
-Code: `tools/harness/bench_search.lua:1`. Lines: `CASE <case> <label> k=v` (holders, keys, watch, rows, restale, mine, spyglass), `TERM <client> <version> <term> max_ms= total_ms=` (terms a, ar, ore), `TYPED <client> <version> a/ar/are max_ms= total_ms= loads= refreshes=` (cold item cache, typed through the box, 20 loads per slice), `ADMIT <id> yes|no k=v`. Environment: `PSS_WH_SEED=1`, `PSS_COMPONENTS=addons,gfx,warehouse,bags`, `PSS_BENCH_LABEL=<client>/<version>`.
+Code: `tools/harness/bench_search.lua:1`. Lines: `CASE <case> <label> k=v` (holders, keys, watch, rows, restale, mine, spyglass), `TERM <client> <version> <term> max_ms= total_ms=` (terms a, ar, ore), `TYPED <client> <version> a/ar/are max_ms= total_ms= loads= refreshes=` (cold item cache, typed through the box, 50 loads per slice, every saved item id unknown), `ADMIT <id> yes|no k=v`. Environment: `PSS_WH_SEED=1`, `PSS_COMPONENTS=addons,gfx,warehouse,bags`, `PSS_BENCH_LABEL=<client>/<version>`.
 
 ## Results
 Code: `tools/harness/search_results.lua:1`. Lines `R`, `H`, `DEL`, `R2`; the first entity other than the current character is deleted.

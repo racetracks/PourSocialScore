@@ -155,10 +155,30 @@ for _, t in ipairs({ "a", "ar", "ore" }) do
 	print(("TERM %s %s %s max_ms=%.3f total_ms=%.3f"):format(client, version, t, worst, total))
 end
 
--- TYPED (CHK-00232, brief Q01 step 5): a cold item cache, typed through the box as in game; items load 20 per slice
+-- TYPED (CHK-00232, brief Q01 step 5): a cold item cache, typed through the box as in game; items load 50 per slice
 do
-	local was, queue = {}, {}
-	for id, it in pairs(H.items) do was[id] = it.unknown; it.unknown = true end
+	local was, added, queue, nitems = {}, {}, {}, 0
+	local st = M.PSS_WhStore
+	local function cold(id)
+		if not id or was[id] ~= nil or added[id] then return end
+		local it = H.items[id]
+		if it then was[id] = it.unknown or false
+		else
+			it = { name = (id % 2 == 0 and "Rare Arcane " or "Old Stone ") .. id }
+			H.items[id] = it
+			added[id] = true
+		end
+		it.unknown = true
+		nitems = nitems + 1
+	end
+	for _, ent in ipairs(st.Ents()) do
+		for _, code in ipairs(st.Codes(ent)) do
+			local str = st.Get(ent, code)
+			local body = str and str:match("^%d+;%d+;%d+;%d+;(.*)$") or ""
+			for ref in body:gmatch("%d+%.([^.,]+)%.?%d*") do cold(M.PSS_ItemId(ref)) end
+		end
+	end
+	for id, it in pairs(H.items) do cold(id) end
 	local realReq = C_Item.RequestLoadItemDataByID
 	C_Item.RequestLoadItemDataByID = function(id) queue[#queue + 1] = id end
 	local refreshes, loads = 0, 0
@@ -168,7 +188,7 @@ do
 	local function slice(pre)
 		local t0 = clock()
 		if pre then pre() end
-		for _ = 1, 20 do
+		for _ = 1, 50 do
 			local id = table.remove(queue, 1)
 			if not id then break end
 			if H.items[id] then H.items[id].unknown = nil end
@@ -190,10 +210,11 @@ do
 		if M.PSS_ItemSearchDone("are") and #queue == 0 then break end
 		slice()
 	end
-	print(("TYPED %s %s a/ar/are max_ms=%.3f total_ms=%.3f loads=%d refreshes=%d"):format(client, version, worst, total, loads, refreshes))
+	print(("TYPED %s %s a/ar/are max_ms=%.3f total_ms=%.3f loads=%d items=%d refreshes=%d"):format(client, version, worst, total, loads, nitems, refreshes))
 	win.Refresh = realRefresh
 	C_Item.RequestLoadItemDataByID = realReq
-	for id, it in pairs(H.items) do it.unknown = was[id] end
+	for id in pairs(added) do H.items[id] = nil end
+	for id, w in pairs(was) do H.items[id].unknown = w or nil end
 end
 
 local function yn(v, lim) return v > lim and "yes" or "no" end
