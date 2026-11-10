@@ -60,6 +60,16 @@ end
 
 local phases = {}
 
+-- the global macros after Mark-Moon as shipped (3.8.0.149, issue #160), in
+-- order: name, icon (nil: the question mark), body
+local GLOBAL2 = {
+	{ "Face", 132202, "/s {square}{square}{square}{square}{square}\n/s {square}{circle}{square}{circle}{square}\n/s {square}{square}{square}{square}{square}\n/s {square}{triangle}{triangle}{triangle}{square}\n/s {square}{square}{square}{square}{square}" },
+	{ "RaidGroup", nil, "/invite Neo\n/script ConvertToRaid()\n/run LeaveParty()" },
+	{ "Focus", 132089, "/focus" },
+	{ "TarFocus", 132094, "/tar focus" },
+	{ "HolyWater", nil, "#showtooltip Stratholme Holy Water\n/use [@player] Stratholme Holy Water" },
+}
+
 -- the Priest set as shipped (3.8.0.146), in order
 	local PRIEST = {
 		{ "PWS", "#showtooltip Power Word: Shield\n/cast [target=mouseover,exists,help][help][target=player][]Power Word: Shield" },
@@ -109,7 +119,7 @@ function phases.data()
 		end
 	end
 	-- the macros shipped, exactly (TST-00997)
-	check(data.global and data.global.store == "account" and #data.global == 5, "global is not 5 account macros")
+	check(data.global and data.global.store == "account" and #data.global == 10, "global is not 10 account macros")
 	check(data.warrior and data.warrior.store == "character" and #data.warrior == 8, "warrior is not 8 character macros")
 	local g1, g2, w1 = data.global and data.global[1], data.global and data.global[2], data.warrior and data.warrior[1]
 	check(g1 and g1.name == "Trinket 1" and g1.body == "#showtooltip\n/use 13", "Trinket 1 differs")
@@ -118,6 +128,10 @@ function phases.data()
 	local NEWG = { { "Mark-Skull", 132095, "/tm 8" }, { "Mark-X", 132094, "/tm 7" }, { "Mark-Moon", 133938, "/tm 5" } }
 	for i, v in ipairs(NEWG) do
 		local m = data.global[2 + i]
+		check(m and m.name == v[1] and m.icon == v[2] and m.body == v[3], v[1] .. " differs")
+	end
+	for i, v in ipairs(GLOBAL2) do
+		local m = data.global[5 + i]
 		check(m and m.name == v[1] and m.icon == v[2] and m.body == v[3], v[1] .. " differs")
 	end
 	local NEWW = { "bloodthirst", "shield slam", "thunder clap", "sunder armor", "revenge", "heroic strike", "cleave" }
@@ -148,7 +162,7 @@ function phases.global()
 	needLibraries()
 	reset()
 	local out = pss("macro global create")
-	expectLine(out, "Global macros: created 5 (Trinket 1 (account), Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account)).", "first create")
+	expectLine(out, "Global macros: created 10 (Trinket 1 (account), Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account), Face (account), RaidGroup (account), Focus (account) +2 more).", "first create")
 	local t1, t2 = macro("account", "Trinket 1"), macro("account", "Trinket 2")
 	check(t1 and t1.body == "#showtooltip\n/use 13" and t1.icon == 134400, "Trinket 1 not as shipped")
 	check(t2 and t2.body == "#showtooltip\n/use 14" and t2.icon == 134400, "Trinket 2 not as shipped")
@@ -156,12 +170,16 @@ function phases.global()
 		local m = macro("account", name)
 		check(m and m.icon == v[1] and m.body == v[2], name .. " not as shipped")
 	end
+	for _, v in ipairs(GLOBAL2) do
+		local m = macro("account", v[1])
+		check(m and m.icon == (v[2] or 134400) and m.body == v[3], v[1] .. " not as shipped")
+	end
 	check(count("char") == 0, "a character macro was made")
 	local n = #H.macroWrites
 	out = pss("macro global create")
-	expectLine(out, "already current 5", "second create")
+	expectLine(out, "already current 10", "second create")
 	check(#H.macroWrites == n, "the second create wrote")
-	check(count("account") == 5, "macros doubled")
+	check(count("account") == 10, "macros doubled")
 	-- the alias
 	out = pss("macros global")
 	expectLine(out, "Trinket 1 (account): current", "/pss macros")
@@ -233,7 +251,7 @@ function phases.wrongclass()
 	out = pss("macro priest create")
 	expectLine(out, "Priest macros are for a Priest: log in a Priest to create them.", "priest on a mage")
 	out = pss("macro foo create")
-	expectLine(out, "No macro set \"foo\". Sets: global (5), priest (13), shaman (5), warrior (8).", "unknown set")
+	expectLine(out, "No macro set \"foo\". Sets: global (10), priest (13), shaman (5), warrior (8).", "unknown set")
 	check(#H.macroWrites == 0, "something was written")
 end
 
@@ -298,13 +316,13 @@ function phases.existing()
 	expectLine(out, "Trinket 1 (account): update", "preview update")
 	expectLine(out, "Trinket 2 (account): new", "preview new")
 	out = pss("macro global create")
-	expectLine(out, "created 4 (Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account))", "create")
+	expectLine(out, "created 9 (Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account), Face (account), RaidGroup (account), Focus (account), TarFocus (account) +1 more)", "create")
 	expectLine(out, "updated 1 (Trinket 1 (account))", "update")
 	local t1 = macro("account", "Trinket 1")
 	check(t1 and t1.body == "#showtooltip\n/use 13" and t1.icon == 134400, "Trinket 1 not set to PSS's")
 	check(macro("account", "Other").body == "/dance", "Other was touched")
 	check(macro("char", "Trinket 2").body == "/say char", "the character Trinket 2 was touched")
-	check(count("account") == 6, "account has " .. count("account") .. " macros, wanted 6")
+	check(count("account") == 11, "account has " .. count("account") .. " macros, wanted 11")
 end
 
 function phases.dynicon()
@@ -313,7 +331,7 @@ function phases.dynicon()
 	pss("macro global create")
 	local n = #H.macroWrites
 	local out = pss("macro global create")
-	expectLine(out, "already current 5", "dynamic icon")
+	expectLine(out, "already current 10", "dynamic icon")
 	check(#H.macroWrites == n, "the dynamic icon caused a write")
 end
 
@@ -322,11 +340,11 @@ function phases.full()
 	-- PSS_MACRO_MAX=1,18 or 2,18; PSS_MACRO_SEED="a:Keep=/x"
 	local out = pss("macro global create")
 	if MAX_ACCOUNT_MACROS == 1 then
-		expectLine(out, "No room for 5 (Trinket 1 (account), Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account))", "no room")
+		expectLine(out, "No room for 10 (Trinket 1 (account), Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account), Face (account), RaidGroup (account), Focus (account) +2 more)", "no room")
 		check(count("account") == 1, "a macro was made in a full store")
 	else
 		expectLine(out, "created 1 (Trinket 1 (account))", "room for one")
-		expectLine(out, "No room for 4 (Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account))", "room for one")
+		expectLine(out, "No room for 9 (Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account), Face (account), RaidGroup (account), Focus (account), TarFocus (account) +1 more)", "room for one")
 	end
 	check(macro("account", "Keep").body == "/x", "Keep was touched")
 end
@@ -347,7 +365,7 @@ function phases.list()
 	needLibraries()
 	reset()
 	local out = pss("macro")
-	expectLine(out, "Macro sets: global (5), priest (13), shaman (5), warrior (8). Free slots: account 120 of 120, character 18 of 18.", "sets")
+	expectLine(out, "Macro sets: global (10), priest (13), shaman (5), warrior (8). Free slots: account 120 of 120, character 18 of 18.", "sets")
 	expectLine(out, "/pss macro <set> create", "usage")
 	out = pss("macro global")
 	expectLine(out, "Global macros:", "preview head")
@@ -409,8 +427,10 @@ function phases.memory()
 	local kd, kl = cost("PSS_MacroData.lua"), cost("PSS_Macros.lua")
 	print(("MEASURE macro resident: PSS_MacroData.lua %.2f KB, PSS_Macros.lua %.2f KB"):format(kd, kl))
 	check(kd + kl < 40, "resident cost over the 40 KB budget")
-	-- garbage per command (GC stopped) and what is left after a full
-	-- collect: nothing of ours (the stub's store and the chat lines aside)
+	-- garbage per command (GC stopped), less what the stub allocates for
+	-- its own macro records (H.macroKB; the client keeps macros outside
+	-- Lua; the author, 2026-11-10), and what is left after a full collect:
+	-- nothing of ours (the stub's store and the chat lines aside)
 	local cmds = { "macro", "macro global", "macro global create", "macro warrior create" }
 	for _, cmd in ipairs(cmds) do -- each from an empty store
 		pss(cmd)	-- warm: first-call string interning
@@ -418,14 +438,16 @@ function phases.memory()
 		collectgarbage("collect")
 		local a = collectgarbage("count")
 		collectgarbage("stop")
+		H.macroKB = 0
 		pss(cmd)
-		local b = collectgarbage("count")
+		local stubKB = H.macroKB
+		local b = collectgarbage("count") - stubKB
 		collectgarbage("restart")
 		reset()
 		said = nil
 		collectgarbage("collect")
 		local c = collectgarbage("count")
-		print(("MEASURE macro %-24s garbage %.2f KB, kept %.2f KB"):format("/pss " .. cmd, b - a, c - a))
+		print(("MEASURE macro %-24s garbage %.2f KB (stub %.2f KB not counted), kept %.2f KB"):format("/pss " .. cmd, b - a, stubKB, c - a))
 		check(b - a < 16, "/pss " .. cmd .. " made over 16 KB of garbage")
 		check(c - a < 0.5, "/pss " .. cmd .. " kept " .. ("%.2f"):format(c - a) .. " KB after a full collect")
 	end

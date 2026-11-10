@@ -35,6 +35,11 @@ function M.PSS_MacroData()
 			{ name = "Mark-Skull", icon = 132095, body = "/tm 8" },
 			{ name = "Mark-X", icon = 132094, body = "/tm 7" },
 			{ name = "Mark-Moon", icon = 133938, body = "/tm 5" },
+			{ name = "Face", icon = 132202, body = "/s {square}{square}{square}{square}{square}\n/s {square}{circle}{square}{circle}{square}\n/s {square}{square}{square}{square}{square}\n/s {square}{triangle}{triangle}{triangle}{square}\n/s {square}{square}{square}{square}{square}" },
+			{ name = "RaidGroup", body = "/invite Neo\n/script ConvertToRaid()\n/run LeaveParty()" },
+			{ name = "Focus", icon = 132089, body = "/focus" },
+			{ name = "TarFocus", icon = 132094, body = "/tar focus" },
+			{ name = "HolyWater", body = "#showtooltip Stratholme Holy Water\n/use [@player] Stratholme Holy Water" },
 		},
 		priest = {
 			store = "character",

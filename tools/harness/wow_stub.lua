@@ -830,11 +830,14 @@ stub.frames = frames
 -- limits; PSS_MACRO_SEED="a:Name=body;c:Name=body" ("|" for a new line)
 -- seeds the stores; PSS_MACRO_DYNICON=1 answers icon 999 for a body that
 -- starts "#showtooltip" (the client's dynamic icon); PSS_MACRO_NOAPI=1
--- leaves the four functions out.
+-- leaves the four functions out. stub.macroKB adds up the KB the stub
+-- itself allocates in each accepted CreateMacro and EditMacro (its own
+-- records; the client keeps macros outside Lua), so check_macro's memory
+-- phase counts only the addon's garbage.
 do
 	local maxA, maxC = (os.getenv("PSS_MACRO_MAX") or ""):match("^(%d+),(%d+)$")
 	MAX_ACCOUNT_MACROS, MAX_CHARACTER_MACROS = tonumber(maxA) or 120, tonumber(maxC) or 18
-	stub.macros, stub.macroWrites = { account = {}, char = {} }, {}
+	stub.macros, stub.macroWrites, stub.macroKB = { account = {}, char = {} }, {}, 0
 	local function byName(a, b) return a.name < b.name end
 	local function store(i)
 		if i <= MAX_ACCOUNT_MACROS then return stub.macros.account, i end
@@ -871,6 +874,7 @@ do
 			return m.name, icon, m.body
 		end
 		function CreateMacro(name, icon, body, perChar)
+			local kb = collectgarbage("count")
 			stub.macroWrites[#stub.macroWrites + 1] = { "create", name, perChar and true or false }
 			check(name, body)
 			local t = perChar and stub.macros.char or stub.macros.account
@@ -878,9 +882,11 @@ do
 			local m = { name = name, icon = icon, body = body }
 			t[#t + 1] = m
 			table.sort(t, byName)
+			stub.macroKB = stub.macroKB + collectgarbage("count") - kb
 			return indexOf(t, m, perChar)
 		end
 		function EditMacro(i, name, icon, body)
+			local kb = collectgarbage("count")
 			stub.macroWrites[#stub.macroWrites + 1] = { "edit", name, i > MAX_ACCOUNT_MACROS }
 			check(name, body)
 			local t, j = store(i)
@@ -888,6 +894,7 @@ do
 			if not m then error("no such macro") end
 			m.name, m.icon, m.body = name, icon, body
 			table.sort(t, byName)
+			stub.macroKB = stub.macroKB + collectgarbage("count") - kb
 			return indexOf(t, m, i > MAX_ACCOUNT_MACROS)
 		end
 	end
