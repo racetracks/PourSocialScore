@@ -30,7 +30,7 @@ local firstClear		= false
 
 local CLIENT_NAMES = { retail = "Retail", forever = "Forever", tbc = "TBC Anniversary", era = "Classic Era", mists = "Mists of Pandaria" }
 
--- /pss version: the version this client loaded, mixed installs and the save's upgrade record
+-- /pss version: the version this client loaded, any of the 5 other folders that differs (mixed install), the save's upgrade record, and a save record from another version
 local function versionReport ()
 	local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
 	local function ver (name)
@@ -38,14 +38,23 @@ local function versionReport ()
 		if ok and type(v) == "string" then return v end
 	end
 	local flv = M.PSS_FLV or {}
-	local core, gui, lib = ver("PourSocialScore"), ver("PourSocialScore_GUI"), ver("PourSocialScore_Libraries")
+	local FOLDERS = { "PourSocialScore_Options", "PourSocialScore_Libraries", "PourSocialScore_GUI", "PourSocialScore_Logging", "PourSocialScore_Communities" }
+	local core = ver("PourSocialScore")
 	M.ShowMsg ("Pour Social Score " .. (core or "not installed") .. " on " .. (CLIENT_NAMES[flv.flavour] or tostring(flv.flavour)) .. " (interface " .. tostring(flv.interface or "?") .. ")")
-	if gui ~= core or lib ~= core then
-		M.ShowMsg ("Mixed install: PourSocialScore_GUI " .. (gui or "not installed") .. ", PourSocialScore_Libraries " .. (lib or "not installed") .. ". Reinstall the 3 folders from one zip.")
+	local bad = {}
+	for i = 1, #FOLDERS do
+		local v = ver(FOLDERS[i])
+		if v ~= core then bad[#bad + 1] = FOLDERS[i] .. " " .. (v or "not installed") end
+	end
+	if #bad > 0 then
+		M.ShowMsg ("Mixed install: " .. table.concat(bad, ", ") .. ". Reinstall the 6 folders from one zip.")
 	end
 	local up = PourSocialScoreDB and PourSocialScoreDB.upgrade
 	if type(up) ~= "table" then up = {} end
 	M.ShowMsg ("Save upgrade record: " .. tostring(up.version or "none") .. ", step " .. tostring(tonumber(up.step) or 0))
+	if type(up.version) == "string" and core ~= nil and up.version ~= core then
+		M.ShowMsg ("Save record differs: this save was last upgraded by " .. up.version .. ", this client loaded " .. core .. ".")
+	end
 end
 
 local function OnOff (value)

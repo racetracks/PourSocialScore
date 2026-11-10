@@ -151,7 +151,7 @@ echo "$out" | grep -q "PASS tui" || fail=1
 
 # the selected tab's art per flavour (3.8.0.141, TST-00984)
 section "tab art per flavour"
-for fl in tbc retail forever; do
+for fl in $FLAVOURS; do
 	out=$(PSS_FLAVOUR=$fl lua5.1 "$here/run.lua" . - - "$here/check_tabs.lua" 2>&1 | grep -v '^|cff')
 	echo "$out"
 	echo "$out" | grep -q "PASS tabs" || fail=1
@@ -229,7 +229,8 @@ echo "$out"
 echo "$out" | grep -q "PASS macro retail" || fail=1
 
 # /pss version (TST-00995): the rows of check_version.lua on each flavour
-for flv in retail forever tbc; do
+section "pss version"
+for flv in $FLAVOURS; do
 	out=$(PSS_FLAVOUR=$flv lua5.1 "$here/run.lua" . - - "$here/check_version.lua" 2>&1 | grep -v '^|cff')
 	echo "$out"
 	echo "$out" | grep -q "PASS version $flv" || fail=1

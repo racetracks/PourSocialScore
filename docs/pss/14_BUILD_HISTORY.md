@@ -39,6 +39,22 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.143 - Fix: /pss version checks all six folders
+
+- Branch: `claude/clever-fermat-uesj4v`; [PR #266](https://github.com/racetracks/PourSocialScore/pull/266).
+- What changed and why:
+  - `DEC-00440`: `/pss version` checks all six folders and adds a save record line (save last upgraded by another version).
+  - `DEC-00441`: flavour loops, section.
+  - `DEC-00442`: not built.
+- Docs updated: `docs/pss/07_HARNESS.md:41`, `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md:1`.
+- Tests run: `TST-00998`, `TST-00999`.
+- Not shown by the simulation: a real stale folder reporting its own TOC version.
+- In-game checks: `CHK-00244`, `CHK-00235` at 3.8.0.143.
+
+### 3.8.0.142 (from 06 Now)
+
+**3.8.0.142, Fix: TBC tabs, Forever wording, version proof (branch `claude/forever-rerun-142`, PR #265):** F-3 Forever wording, F-2 TBC tab art, F-5 `/pss version`, 10 macros; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.142 - Fix: TBC tabs, Forever wording, version proof
 
 - Branch: `claude/forever-rerun-142`; [PR #265](https://github.com/racetracks/PourSocialScore/pull/265).
