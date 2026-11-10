@@ -155,6 +155,47 @@ for _, t in ipairs({ "a", "ar", "ore" }) do
 	print(("TERM %s %s %s max_ms=%.3f total_ms=%.3f"):format(client, version, t, worst, total))
 end
 
+-- TYPED (CHK-00232, brief Q01 step 5): a cold item cache, typed through the box as in game; items load 20 per slice
+do
+	local was, queue = {}, {}
+	for id, it in pairs(H.items) do was[id] = it.unknown; it.unknown = true end
+	local realReq = C_Item.RequestLoadItemDataByID
+	C_Item.RequestLoadItemDataByID = function(id) queue[#queue + 1] = id end
+	local refreshes, loads = 0, 0
+	local realRefresh = win.Refresh
+	win.Refresh = function(...) refreshes = refreshes + 1; return realRefresh(...) end
+	local worst, total = 0, 0
+	local function slice(pre)
+		local t0 = clock()
+		if pre then pre() end
+		for _ = 1, 20 do
+			local id = table.remove(queue, 1)
+			if not id then break end
+			if H.items[id] then H.items[id].unknown = nil end
+			loads = loads + 1
+			H.Fire("ITEM_DATA_LOAD_RESULT", id, true)
+		end
+		H.RunTimers(1)
+		if not M.PSS_ItemSearchDone(win.search:GetText()) then M.PSS_ItemSearchStep() end
+		local d = ms(t0)
+		total = total + d
+		if d > worst then worst = d end
+	end
+	slice(function() win.search:SetText("a") end)
+	for _ = 1, 2 do slice() end
+	slice(function() win.search:SetText("ar") end)
+	for _ = 1, 2 do slice() end
+	slice(function() win.search:SetText("are") end)
+	for _ = 1, 3000 do
+		if M.PSS_ItemSearchDone("are") and #queue == 0 then break end
+		slice()
+	end
+	print(("TYPED %s %s a/ar/are max_ms=%.3f total_ms=%.3f loads=%d refreshes=%d"):format(client, version, worst, total, loads, refreshes))
+	win.Refresh = realRefresh
+	C_Item.RequestLoadItemDataByID = realReq
+	for id, it in pairs(H.items) do it.unknown = was[id] end
+end
+
 local function yn(v, lim) return v > lim and "yes" or "no" end
 print(("ADMIT J1 %s watches=%d redraws=%d"):format((adm.J1w > 1 or adm.J1r > 1) and "yes" or "no", adm.J1w, adm.J1r))
 print(("ADMIT J2a %s ms_max=%s"):format(yn(adm.J2a, PULSE_MS), f3(adm.J2a)))
