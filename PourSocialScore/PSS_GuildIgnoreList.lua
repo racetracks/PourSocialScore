@@ -757,6 +757,10 @@ M.PSS_MergeMemberBlockData = mergeBlockData
 -- Every other shipped member is "virtual": built from the shipped list when
 -- needed and never written to SavedVariables.
 --
+-- DEC-00443: the list logic is the community part (M.PSS_Community, between
+-- the COMMUNITY-PART markers below); core keeps the wrappers, the group
+-- descriptors and the row tagging. See
+-- https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/08-14-00-Tue-epic-turing-wqqpmr/projects/managed-communities/specs/managed-communities.md#dec-00443
 -- 3.0: PSS_Communities.lua in the core is only the manifest (groups,
 -- guild names and member counts). The member lists and their index are in
 -- the on-demand PourSocialScore_Communities addon (addon.MANAGED_DATA),
@@ -765,30 +769,23 @@ M.PSS_MergeMemberBlockData = mergeBlockData
 -- member of a shipped guild in the world). Chat never loads it: with the
 -- rule off, shipped guilds block nothing.
 ------------------------------------------------------------------------
+local G = {}
+M.PSS_GuildCore = G
+local function part() return M.PSS_Community end
+G.normalizeGuild, G.canonPlayer, G.memberCanon, G.memberPlayerKey = normalizeGuild, canonPlayer, memberCanon, memberPlayerKey
+G.newShippedRecord, G.shippedOnly, G.shippedCanon, G.shippedRule = newShippedRecord, shippedOnly, shippedCanon, shippedRule
 local MANAGED = addon.MANAGED or { groups = {} }
 local managed = nil				-- guild-level data, built on first use
 local ensureManagedData			-- loads PourSocialScore_Communities (below)
--- canon -> record for shipped members looked at this session. Weak: a record
--- nobody uses any more is freed by the garbage collector. Records you
--- changed are also held in vkeep until they are saved at logout.
-local vcache = setmetatable({}, { __mode = "v" })
-local vkeep = {}
 
--- Guild-level data (cheap: one entry per guild). The per-member index
--- (canon key -> guild number * 65536 + position) ships prebuilt in
--- the data file (tools/PSS_BuildManaged.lua), so nothing is
--- built per member at login and every shipped member matches from the
--- first chat line. It is packed (3.0.0-dev17): buckets[realm key][first
--- two bytes of the name key] is one string "\n<name key>=<number>..."
--- searched with a plain find, and each guild's members are one string
--- ("Name-<realm number>\n..."), split only while a list is looked at.
+-- Guild-level data (cheap: one entry per guild). The per-member index and
+-- the member lists are in the community part (between the markers below).
 local function buildManaged()
 	if managed then return managed end
 	local data = addon.MANAGED_DATA
-	managed = { lists = {}, names = {}, groupOf = {}, guildName = {}, groups = {}, count = {}, dataLoaded = data ~= nil }
+	managed = { groupOf = {}, guildName = {}, groups = {}, count = {}, gkeys = {}, data = data }
 	for _, grp in ipairs(MANAGED.groups or {}) do
 		managed.groups[grp.key] = grp
-		local gdata = data and data[grp.key]
 		local gkeys = {}
 		for gi, entry in ipairs(grp.guilds or {}) do
 			local gkey = normalizeGuild(entry.name)
@@ -797,14 +794,139 @@ local function buildManaged()
 				managed.groupOf[gkey] = grp.key
 				managed.guildName[gkey] = entry.name
 				managed.count[gkey] = tonumber(entry.n) or 0
-				local list = gdata and gdata.guilds and gdata.guilds[gi]
-				if list and list.name == entry.name then managed.names[gkey] = { packed = list.members, realms = gdata.realms } end
 			end
 		end
-		if gdata then managed.lists[#managed.lists + 1] = { buckets = gdata.buckets or {}, gkeys = gkeys } end
+		managed.gkeys[grp.key] = gkeys
 	end
 	return managed
 end
+G.guildLevel = buildManaged
+
+-- Wrappers: call the community part when it is there, else answer "not loaded".
+local function shippedOf(ck)
+	local p = part()
+	if p then return p.ShippedOf(ck) end
+	return nil
+end
+local function shippedNames(gkey)
+	local p = part()
+	if p then return p.ShippedNames(gkey) end
+	return nil
+end
+local function vrec(ck, gkey)
+	local p = part()
+	if p then return p.Record(ck, gkey) end
+	return nil
+end
+local function heldRecord(ck)
+	local p = part()
+	if p then return p.Held(ck) end
+	return nil
+end
+local function keepManaged(r)
+	local p = part()
+	if p then p.Keep(r) end
+end
+local function tombstone(gkey, ck)
+	local p = part()
+	if p then p.Tombstone(gkey, ck) end
+end
+M.PSS_ShippedNames = shippedNames
+M.PSS_ManagedRecord = vrec
+M.PSS_KeepManaged = keepManaged
+M.PSS_ManagedTombstone = tombstone
+
+-- numbers for /pss mem
+function M.PSS_ManagedStats()
+	local p = part()
+	if p then return p.Stats() end
+	local shipped = 0
+	for _, n in pairs(buildManaged().count) do shipped = shipped + n end
+	return { shipped = shipped, indexed = 0, kept = 0, cached = 0, loaded = false }
+end
+function M.PSS_ManagedDataLoaded()
+	local p = part()
+	if p then return p.Loaded() end
+	return false
+end
+
+function M.PSS_ManagedGroups() return buildManaged().groups end
+
+-- shipped (static) guild rule? (those can't be removed)
+local function isStaticGuild(gkey) return buildManaged().groupOf[gkey] ~= nil end
+M.PSS_IsStaticManagedGuild = isStaticGuild
+
+local function isGone(g, ck) return type(g) == "table" and type(g.managedGone) == "table" and g.managedGone[ck] == true end
+G.isGone = isGone
+
+-- the shipped guild a character belongs to (nil if none, or they left it)
+local function staticGuildOf(ck)
+	local gkey = shippedOf(ck)
+	if not gkey then return nil end
+	local g = PourSocialScoreDB and PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[gkey]
+	if not g or isGone(g, ck) then return nil end
+	return gkey, g
+end
+
+local function isStaticMember(gkey, ck)
+	if ck == nil then return false end
+	return shippedOf(ck) == gkey
+end
+M.PSS_IsManagedStaticMember = isStaticMember
+
+-- has the record got anything worth saving?
+local function managedDirty(r)
+	if type(r) ~= "table" then return false end
+	if type(r.note) == "string" and r.note ~= "" then return true end
+	if type(r.block) == "table" and next(r.block) ~= nil then return true end
+	if type(r.opts) == "table" and next(r.opts) ~= nil then return true end
+	if History.CountTotal(r.blockCounts) > 0 then return true end
+	if (r.lastBlockedInvite or "") ~= "" then return true end
+	return false
+end
+G.managedDirty = managedDirty
+
+-- COMMUNITY-PART:BEGIN
+local P = {}
+-- canon -> record for shipped members looked at this session. Weak: a record
+-- nobody uses any more is freed by the garbage collector. Records you
+-- changed are also held in vkeep until they are saved at logout.
+local vcache = setmetatable({}, { __mode = "v" })
+local vkeep = {}
+P.vkeep, P.vcache = vkeep, vcache
+
+-- The member lists and the index of the guild-level table G.guildLevel()
+-- (rebuilt when core drops that table, as the data file loads). The index
+-- (canon key -> guild number * 65536 + position) ships prebuilt in the data
+-- file (tools/PSS_BuildManaged.lua). It is packed (3.0.0-dev17):
+-- buckets[realm key][first two bytes of the name key] is one string
+-- "\n<name key>=<number>..." searched with a plain find, and each guild's
+-- members are one string ("Name-<realm number>\n..."), split only while a
+-- list is looked at.
+local pm, pmFor
+local function state()
+	local m = G.guildLevel()
+	if pmFor ~= m then
+		pmFor = m
+		local data = m.data
+		pm = { lists = {}, names = {}, dataLoaded = data ~= nil }
+		for _, grp in ipairs((addon.MANAGED or {}).groups or {}) do
+			local gdata = data and data[grp.key]
+			local gkeys = m.gkeys[grp.key]
+			for gi, entry in ipairs(grp.guilds or {}) do
+				local gkey = gkeys[gi]
+				if gkey then
+					local list = gdata and gdata.guilds and gdata.guilds[gi]
+					if list and list.name == entry.name then pm.names[gkey] = { packed = list.members, realms = gdata.realms } end
+				end
+			end
+			if gdata then pm.lists[#pm.lists + 1] = { buckets = gdata.buckets or {}, gkeys = gkeys } end
+		end
+	end
+	return pm
+end
+function P.Build() return state().dataLoaded end
+function P.Loaded() return state().dataLoaded end
 
 -- canon key -> shipped guild key, position in its list (nil if not shipped).
 -- A character listed by two groups belongs to the first.
@@ -830,9 +952,9 @@ local function bucketValue(bucket, base)
 	end
 end
 
-local function shippedOf(ck)
+function P.ShippedOf(ck)
 	if not ck then return nil end
-	local lists = (managed or buildManaged()).lists
+	local lists = state().lists
 	if #lists == 0 then return nil end
 	local dash = find(ck, "-", 1, true)
 	if not dash or dash < 2 then return nil end
@@ -854,8 +976,8 @@ end
 -- A shipped guild's members as a list of names (split from its packed
 -- string while someone holds it; weak, so the garbage collector frees it).
 local splitCache = setmetatable({}, { __mode = "v" })
-local function shippedNames(gkey)
-	local entry = (managed or buildManaged()).names[gkey]
+function P.ShippedNames(gkey)
+	local entry = state().names[gkey]
 	if not entry then return nil end
 	local list = splitCache[gkey]
 	if list then return list end
@@ -868,14 +990,13 @@ local function shippedNames(gkey)
 	splitCache[gkey] = list
 	return list
 end
-M.PSS_ShippedNames = shippedNames
 
--- numbers for /pss mem
-function M.PSS_ManagedStats()
-	local m = buildManaged()
+function P.Stats()
+	local m = G.guildLevel()
+	local st = state()
 	local shipped, indexed = 0, 0
 	for _, n in pairs(m.count) do shipped = shipped + n end
-	for _, l in ipairs(m.lists) do
+	for _, l in ipairs(st.lists) do
 		for _, rb in pairs(l.buckets) do
 			for _, bucket in pairs(rb) do
 				for _ in bucket:gmatch("\n") do indexed = indexed + 1 end
@@ -885,80 +1006,48 @@ function M.PSS_ManagedStats()
 	local kept, cached = 0, 0
 	for _ in pairs(vkeep) do kept = kept + 1 end
 	for _ in pairs(vcache) do cached = cached + 1 end
-	return { shipped = shipped, indexed = indexed, kept = kept, cached = cached, loaded = m.dataLoaded }
+	return { shipped = shipped, indexed = indexed, kept = kept, cached = cached, loaded = st.dataLoaded }
 end
-
-function M.PSS_ManagedGroups() return buildManaged().groups end
-
--- shipped (static) guild rule? (those can't be removed)
-local function isStaticGuild(gkey) return buildManaged().groupOf[gkey] ~= nil end
-M.PSS_IsStaticManagedGuild = isStaticGuild
-
-local function isGone(g, ck) return type(g) == "table" and type(g.managedGone) == "table" and g.managedGone[ck] == true end
-
--- the shipped guild a character belongs to (nil if none, or they left it)
-local function staticGuildOf(ck)
-	local gkey = shippedOf(ck)
-	if not gkey then return nil end
-	local g = PourSocialScoreDB and PourSocialScoreDB.guildData and PourSocialScoreDB.guildData[gkey]
-	if not g or isGone(g, ck) then return nil end
-	return gkey, g
-end
-
-local function isStaticMember(gkey, ck)
-	if ck == nil then return false end
-	return shippedOf(ck) == gkey
-end
-M.PSS_IsManagedStaticMember = isStaticMember
 
 -- The record for a shipped member (one per character while in use).
-local function vrec(ck, gkey)
+function P.Record(ck, gkey)
 	local r = vkeep[ck] or vcache[ck]
-	if r and shippedRule(r) == gkey then return r end
-	local m = buildManaged()
-	local gk, pos = shippedOf(ck)
-	local names = gk == gkey and shippedNames(gkey)
+	if r and G.shippedRule(r) == gkey then return r end
+	local m = G.guildLevel()
+	local gk, pos = P.ShippedOf(ck)
+	local names = gk == gkey and P.ShippedNames(gkey)
 	local name = names and names[pos]
 	if not name then return nil end
 	-- flags, counts and block choices are created when first set
-	r = newShippedRecord(name, m.guildName[gkey] or gkey, ck, gkey)
+	r = G.newShippedRecord(name, m.guildName[gkey] or gkey, ck, gkey)
 	vcache[ck] = r
 	return r
 end
-M.PSS_ManagedRecord = vrec
+
+-- The record kept or cached for a character (nil if none).
+function P.Held(ck) return vkeep[ck] or vcache[ck] end
 
 -- A shipped member's record was changed: hold it until it is saved.
-local function keepManaged(r)
-	if shippedOnly(r) and shippedCanon(r) then vkeep[shippedCanon(r)] = r end
-end
-M.PSS_KeepManaged = keepManaged
-
--- has the record got anything worth saving?
-local function managedDirty(r)
-	if type(r) ~= "table" then return false end
-	if type(r.note) == "string" and r.note ~= "" then return true end
-	if type(r.block) == "table" and next(r.block) ~= nil then return true end
-	if type(r.opts) == "table" and next(r.opts) ~= nil then return true end
-	if History.CountTotal(r.blockCounts) > 0 then return true end
-	if (r.lastBlockedInvite or "") ~= "" then return true end
-	return false
+function P.Keep(r)
+	if G.shippedOnly(r) and G.shippedCanon(r) then vkeep[G.shippedCanon(r)] = r end
 end
 
 -- A shipped member is no longer in that guild (seen elsewhere, or removed).
-local function tombstone(gkey, ck)
+function P.Tombstone(gkey, ck)
 	local g = PourSocialScoreDB.guildData[gkey]
 	if not g then return end
 	g.managedGone = type(g.managedGone) == "table" and g.managedGone or {}
 	g.managedGone[ck] = true
-	if vcache[ck] and shippedRule(vcache[ck]) == gkey then vcache[ck] = nil end
-	if vkeep[ck] and shippedRule(vkeep[ck]) == gkey then vkeep[ck] = nil end
+	if vcache[ck] and G.shippedRule(vcache[ck]) == gkey then vcache[ck] = nil end
+	if vkeep[ck] and G.shippedRule(vkeep[ck]) == gkey then vkeep[ck] = nil end
 	local key
 	for k, mm in pairs(g.members or {}) do
-		if type(mm) == "table" and (memberCanon(mm, k)) == ck then key = k break end
+		if type(mm) == "table" and (G.memberCanon(mm, k)) == ck then key = k break end
 	end
 	if key then g.members[key] = nil end
 end
-M.PSS_ManagedTombstone = tombstone
+M.PSS_Community = P
+-- COMMUNITY-PART:END
 
 -- Members of a guild rule including shipped members:
 -- fn(member, storedKey or nil, isVirtual)
@@ -990,7 +1079,7 @@ local function forEachMember(g, gkey, fn, includeUntouched)
 		end
 	else
 		local done = {}
-		for _, t in ipairs({ vkeep, vcache }) do
+		for _, t in ipairs({ P.vkeep, P.vcache }) do
 			for ck, r in pairs(t) do
 				if shippedRule(r) == gkey and not seen[ck] and not done[ck] and not isGone(g, ck) then
 					done[ck] = true
@@ -1018,7 +1107,7 @@ local memberCountCache = setmetatable({}, { __mode = "k" })		-- g -> { gen, key,
 -- marks until then. Empty mark tables are not saved.
 local marksPruned = false
 local function pruneMarks()
-	if marksPruned or not (managed and managed.dataLoaded) then return 0 end
+	if marksPruned or not (managed and part() and part().Loaded()) then return 0 end
 	local gd = PourSocialScoreDB and PourSocialScoreDB.guildData
 	if type(gd) ~= "table" then return 0 end
 	marksPruned = true
@@ -1042,16 +1131,15 @@ M.PSS_PruneManagedMarks = function() marksPruned = false return pruneMarks() end
 -- Load the shipped member lists (PourSocialScore_Communities) if they are
 -- not loaded yet. Returns true when they are available.
 ensureManagedData = function()
-	if managed and managed.dataLoaded then pruneMarks() return true end
+	if managed and part() and part().Loaded() then pruneMarks() return true end
 	if not addon.MANAGED_DATA and not (M.PSS_Need and M.PSS_Need("Communities")) then return false end
 	managed = nil
 	memberCountGen = memberCountGen + 1
-	local ok = buildManaged().dataLoaded
+	local ok = part() and part().Loaded() or false
 	if ok then pruneMarks() end
 	return ok
 end
 M.PSS_LoadManagedData = ensureManagedData
-function M.PSS_ManagedDataLoaded() return buildManaged().dataLoaded end
 
 -- Login and ticking a rule: load the lists when any group's rule is on.
 function M.PSS_LoadActiveManagedData()
@@ -1164,7 +1252,7 @@ end
 -- the guild record; unchanged shipped members are dropped from it.
 function M.PSS_FlushManaged()
 	if not PourSocialScoreDB or not PourSocialScoreDB.guildData then return end
-	for _, t in ipairs({ vkeep, vcache }) do
+	for _, t in ipairs({ P.vkeep, P.vcache }) do
 		for ck, r in pairs(t) do
 			local g = PourSocialScoreDB.guildData[shippedRule(r)]
 			if g and not isGone(g, ck) and managedDirty(r) then
@@ -2269,7 +2357,7 @@ function M.PSS_MoveOtherCopies(playerName, keepKey, target)
 	-- a shipped member of ANOTHER managed guild: they left it
 	local sk = staticGuildOf(ck)
 	if sk and sk ~= keepKey then
-		local r = vkeep[ck] or vcache[ck]
+		local r = heldRecord(ck)
 		if r and r ~= target and shippedRule(r) == sk then keepManaged(target); mergeMemberRecord(target, r) end
 		tombstone(sk, ck)
 		moved = moved + 1
