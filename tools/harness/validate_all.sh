@@ -151,7 +151,7 @@ echo "$out" | grep -q "PASS tui" || fail=1
 
 # the selected tab's art per flavour (3.8.0.141, TST-00984)
 section "tab art per flavour"
-for fl in $FLAVOURS; do
+for fl in tbc retail forever; do
 	out=$(PSS_FLAVOUR=$fl lua5.1 "$here/run.lua" . - - "$here/check_tabs.lua" 2>&1 | grep -v '^|cff')
 	echo "$out"
 	echo "$out" | grep -q "PASS tabs" || fail=1
@@ -227,6 +227,13 @@ echo "$out" | grep -q "PASS macro noapi" || fail=1
 out=$(PSS_PHASE=retail lua5.1 "$here/run.lua" . - "$work/macro-retail.lua" "$here/check_macro.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS macro retail" || fail=1
+
+# /pss version (TST-00995): the rows of check_version.lua on each flavour
+for flv in retail forever tbc; do
+	out=$(PSS_FLAVOUR=$flv lua5.1 "$here/run.lua" . - - "$here/check_version.lua" 2>&1 | grep -v '^|cff')
+	echo "$out"
+	echo "$out" | grep -q "PASS version $flv" || fail=1
+done
 
 # addon manager (3.6.0, /pss acp, /acp and the AddOns tab): every phase of
 # check_addons.lua on Retail and on Camelot (addons_phases.sh)

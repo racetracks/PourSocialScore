@@ -410,7 +410,7 @@ if phase == "camelot" then
 			local fh = assert(io.open(out))
 			local text = fh:read("*a")
 			fh:close()
-			check(text:find("Camelot name%(s%) repaired", 1) ~= nil, "the repair is not in the report")
+			check(text:find("Forever name%(s%) repaired", 1) ~= nil, "the repair is not in the report")
 			check(text:find("Archdruid%-Classicbetapvp", 1) ~= nil and text:find("may have lost their surname", 1, true) ~= nil, "the names that may be first name only are not listed")
 		end
 	else

@@ -49,7 +49,7 @@ function phases.options()
 	-- greyed rows
 	local en, note = M.PSS_OptGate(M.PSS_OPTION_REG.useGfx)
 	check(en == camelot, "Graphics enabled on Camelot only: " .. tostring(en))
-	check(camelot or note == " (Camelot only)", "the Retail note: " .. note)
+	check(camelot or note == " (Forever only)", "the Retail note: " .. note)
 	M.PSS_SetOpt("useFiltering", "global", false)
 	check(M.PSS_OptGate(M.PSS_OPTION_REG.useLogging), "Event Logging row is not greyed while filtering is off")
 	check(PSS_OptionsDB.useFiltering == false, "only the non-default is saved")
@@ -154,7 +154,7 @@ function phases.gfxoff()
 	if camelot then
 		check(has(l, "The Graphics Settings Exporter is off"), "/pss gfx: " .. table.concat(l, "|"))
 	else
-		check(has(l, "Camelot only"), "Retail: " .. table.concat(l, "|"))
+		check(has(l, "Forever only"), "Retail: " .. table.concat(l, "|"))
 	end
 end
 

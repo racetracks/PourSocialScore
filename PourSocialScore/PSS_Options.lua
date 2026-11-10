@@ -82,7 +82,7 @@ local COMPONENTS = {
 		tip = "Keeps a line for every blocked chat line or request (the Events tab, Block History). Off: no line is stored and the Events tab goes; every count stays as it is. Applies after a reload.",
 		warn = "Turn off Event Logging? From now on nothing is recorded about what Pour Social Score blocks: the Events tab and every Event History page go, and you will not be able to track or review anything in the addon (the counts still run). OK turns it off after a reload; Cancel keeps it on." },
 	{ key = "useGfx",			kind = "bool",		default = false, section = 6, reload = true, label = "Graphics Settings Exporter",
-		tip = "/pss gfx: export, import and restore the graphics settings with a 15 second keep prompt (Camelot only). Off: /pss gfx does nothing and its code is not loaded. Applies after a reload." },
+		tip = "/pss gfx: export, import and restore the graphics settings with a 15 second keep prompt (Forever only). Off: /pss gfx does nothing and its code is not loaded. Applies after a reload." },
 	{ key = "useFiltering",		kind = "bool",		default = true,		section = 6, reload = true, label = "Social Filtering",
 		tip = "Everything that blocks: chat filtering, invite, duel and trade declines, the party warning, the Blizzard ignore sync, the Block menu items and capture. Off: nothing is blocked; your lists, rules and counts are kept and editable. Applies after a reload." },
 }

@@ -141,7 +141,7 @@ M.PSS_IxDeclare({
 M.PSS_IxDeclare({
 	name = "macros", kind = "state", owner = "macro-helper", residency = 0,
 	fields = { { "set", "k", "global or a class" }, { "name", "s", "the macro" }, { "store", "k", "account or character" } },
-	pushdown = {}, doc = "the macros Macro Helper writes (Camelot)",
+	pushdown = {}, doc = "the macros Macro Helper writes (Forever)",
 	scan = function(pd, emit)
 		if not M.PSS_MacroData then return 0 end
 		local data = M.PSS_MacroData()

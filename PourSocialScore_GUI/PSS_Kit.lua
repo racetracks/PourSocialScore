@@ -562,6 +562,25 @@ end
 local TAB_IDLE = { "Left", "Middle", "Right" }
 local TAB_ACTIVE = { { "LeftActive", "MiddleActive", "RightActive" }, { "LeftDisabled", "MiddleDisabled", "RightDisabled" } }
 
+-- TBC's tab art is fixed-width parts chained from the left: span the tab
+local TAB_ART_SETS = { { "Left", "Middle", "Right" }, { "LeftDisabled", "MiddleDisabled", "RightDisabled" } }
+local function LayoutTabArt(tab)
+	for _, set in ipairs(TAB_ART_SETS) do
+		local left, mid, right = tab[set[1]], tab[set[2]], tab[set[3]]
+		if left and mid and right then
+			left:ClearAllPoints()
+			left:SetPoint("TOPLEFT", tab, "TOPLEFT", 0, 0)
+			left:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", 0, 0)
+			right:ClearAllPoints()
+			right:SetPoint("TOPRIGHT", tab, "TOPRIGHT", 0, 0)
+			right:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", 0, 0)
+			mid:ClearAllPoints()
+			mid:SetPoint("TOPLEFT", left, "TOPRIGHT", 0, 0)
+			mid:SetPoint("BOTTOMRIGHT", right, "BOTTOMLEFT", 0, 0)
+		end
+	end
+end
+
 function ns.NewTab(parent, text, onClick)
 	local tab
 	for _, t in ipairs({ ns.M.PSS_CompatTemplate("tab") }) do
@@ -587,6 +606,7 @@ function ns.NewTab(parent, text, onClick)
 	local label = tab:GetFontString()
 	label:SetWidth(0)
 	tab:SetSize(label:GetStringWidth() + 32, 24)
+	if tab.pssTemplate and tab.LeftDisabled and not tab.LeftActive then LayoutTabArt(tab) end
 	tab:SetScript("OnClick", onClick)
 	local plate = ns.Own(ns.Fill(tab, DARK.tab, -6))
 	local wash = ns.Own(tab:CreateTexture(nil, "ARTWORK", nil, 7))

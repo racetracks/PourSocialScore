@@ -31,6 +31,31 @@ art(tabs[1], false, 1)
 tabs[1]._scripts.OnClick(tabs[1])
 art(tabs[1], true, 1)
 
+-- TST-00993 (tbc) / TST-00994 (retail, forever): TBC art spans the tab, the others stay untouched
+local function last(f, n) local p = f._points or {} return p[#p - n] end
+if fl == "tbc" then
+	for _, set in ipairs({ { "Left", "Middle", "Right" }, { "LeftDisabled", "MiddleDisabled", "RightDisabled" } }) do
+		local t = tabs[1]
+		local l, m, r = t[set[1]], t[set[2]], t[set[3]]
+		local function anch(f, a, b, ra, rb, rel1, rel2, name)
+			local p2, p1 = last(f, 0), last(f, 1)
+			if not (p1 and p2 and p1[1] == a and p1[2] == rel1 and p1[3] == ra and p2[1] == b and p2[2] == rel2 and p2[3] == rb) then
+				check(false, "TST-00993 " .. name .. " not anchored") print("tabs: TST-00993 " .. name .. " not anchored")
+			end
+		end
+		anch(l, "TOPLEFT", "BOTTOMLEFT", "TOPLEFT", "BOTTOMLEFT", t, t, set[1])
+		anch(r, "TOPRIGHT", "BOTTOMRIGHT", "TOPRIGHT", "BOTTOMRIGHT", t, t, set[3])
+		anch(m, "TOPLEFT", "BOTTOMRIGHT", "TOPRIGHT", "BOTTOMLEFT", l, r, set[2])
+	end
+else
+	local t = tabs[1]
+	for _, k in ipairs({ "Middle", "MiddleActive" }) do
+		for _, p in ipairs(t[k] and t[k]._points or {}) do
+			if p[2] == t.Left then check(false, "TST-00994 Middle re-anchored on " .. fl) print("tabs: TST-00994 Middle re-anchored on " .. fl) end
+		end
+	end
+end
+
 M.PSS_SetOpt("uiSkin", "global", 1)
 check(tabs[1].pssLine and tabs[1].pssLine:IsShown() and tabs[2].pssLine and not tabs[2].pssLine:IsShown(),
 	"Dark underline not on the selected tab only")

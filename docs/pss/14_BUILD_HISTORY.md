@@ -39,6 +39,21 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.142 - Fix: TBC tabs, Forever wording, version proof
+
+- Branch: `claude/forever-rerun-142`; [PR #265](https://github.com/racetracks/PourSocialScore/pull/265).
+- What changed and why:
+  - F-3 (`DEC-00436`): player text says Forever, not Camelot (commands, Options note, gfx tip, upgrade line).
+  - F-2 (`DEC-00435`): TBC tab art spans the whole tab label, selected and not (3.8.0.141 regression).
+  - F-5 (`DEC-00437`): `/pss version` proves which version the client loaded.
+  - F-1 (search freeze) moved to the search speed build, 3.8.0.143 (`DEC-00438`).
+  - The 10 macros (`DEC-00439`): 3 global and 7 warrior macros.
+- Docs updated: `docs/pss/16_INTERFACE.md`, `docs/pss/07_HARNESS.md`, `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md`.
+- Tests run: `TST-00991` to `TST-00997`; real-save run (`build_saves.sh` lists `forever 3.8.0.139-forever-launch`, `validate_all.sh` with `PSS_REAL_SAVES`).
+  - Step 2 result: real saves: 288 FAIL, identical to main cd64591 (pre-existing, follow-up issue). Duplicate stub (#262): one 3.8.0.142 entry in history.txt and in this file.
+- Not shown by the simulation: the TBC tab look, the Forever client loading this version, the macros' icons and casts.
+- In-game checks: `CHK-00235` to `CHK-00243`, re-runs `CHK-00218` to `CHK-00220`, `CHK-00229`.
+
 ### 3.8.0.141 - TBC B4 fix: tab art and guild bank
 
 - Branch: `claude/modest-pasteur-7z5d3x`.

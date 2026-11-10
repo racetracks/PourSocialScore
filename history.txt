@@ -1,6 +1,13 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.142 - Fix: TBC tabs, Forever wording, version proof
+
+- Bug fix (TBC Anniversary): window tabs are whole again in the Modern and Classic looks; each tab's art now spans its label, selected or not.
+- Wording: the addon now says Forever, not Camelot: `/pss gfx`, `/pss macro`, the Graphics Settings Exporter note in Options, the `/pss` help and the upgrade line "Forever name(s) repaired".
+- New: `/pss version` shows which Pour Social Score version this client loaded, warns when the 3 folders come from different zips, and shows the save's upgrade record.
+- New macros (Forever, `/pss macro`): Mark-Skull, Mark-X and Mark-Moon for everyone (each marks your target), and BT, SS, TC, Sunder, Revenge, HS and Cleave for warriors (each shows its spell, casts it and starts attacking).
+
 => 3.8.0.141 - TBC B4 fix: tab art and guild bank
 
 - Bug fix (TBC Anniversary): in the Classic look the selected window tab now shows its highlighted art again.

@@ -84,13 +84,24 @@ function phases.data()
 			seen[m.name or ""] = true
 		end
 	end
-	-- the three macros of stage 1, exactly
-	check(data.global and data.global.store == "account" and #data.global == 2, "global is not 2 account macros")
-	check(data.warrior and data.warrior.store == "character" and #data.warrior == 1, "warrior is not 1 character macro")
+	-- the macros shipped, exactly (TST-00997)
+	check(data.global and data.global.store == "account" and #data.global == 5, "global is not 5 account macros")
+	check(data.warrior and data.warrior.store == "character" and #data.warrior == 8, "warrior is not 8 character macros")
 	local g1, g2, w1 = data.global and data.global[1], data.global and data.global[2], data.warrior and data.warrior[1]
 	check(g1 and g1.name == "Trinket 1" and g1.body == "#showtooltip\n/use 13", "Trinket 1 differs")
 	check(g2 and g2.name == "Trinket 2" and g2.body == "#showtooltip\n/use 14", "Trinket 2 differs")
 	check(w1 and w1.name == "Attack" and w1.body == "#showtooltip\n/startattack", "Attack differs")
+	local NEWG = { { "Mark-Skull", 132095, "/tm 8" }, { "Mark-X", 132094, "/tm 7" }, { "Mark-Moon", 133938, "/tm 5" } }
+	for i, v in ipairs(NEWG) do
+		local m = data.global[2 + i]
+		check(m and m.name == v[1] and m.icon == v[2] and m.body == v[3], v[1] .. " differs")
+	end
+	local NEWW = { "bloodthirst", "shield slam", "thunder clap", "sunder armor", "revenge", "heroic strike", "cleave" }
+	local NAMW = { "BT", "SS", "TC", "Sunder", "Revenge", "HS", "Cleave" }
+	for i, spell in ipairs(NEWW) do
+		local m = data.warrior[1 + i]
+		check(m and m.name == NAMW[i] and m.icon == nil and m.body == "#showtooltip\n/cast " .. spell .. "\n/startattack", NAMW[i] .. " differs")
+	end
 	-- a fresh table on every call (nothing kept)
 	check(M.PSS_MacroData() ~= data, "M.PSS_MacroData returned the same table twice")
 end
@@ -99,16 +110,20 @@ function phases.global()
 	needLibraries()
 	reset()
 	local out = pss("macro global create")
-	expectLine(out, "Global macros: created 2 (Trinket 1 (account), Trinket 2 (account)).", "first create")
+	expectLine(out, "Global macros: created 5 (Trinket 1 (account), Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account)).", "first create")
 	local t1, t2 = macro("account", "Trinket 1"), macro("account", "Trinket 2")
 	check(t1 and t1.body == "#showtooltip\n/use 13" and t1.icon == 134400, "Trinket 1 not as shipped")
 	check(t2 and t2.body == "#showtooltip\n/use 14" and t2.icon == 134400, "Trinket 2 not as shipped")
+	for name, v in pairs({ ["Mark-Skull"] = { 132095, "/tm 8" }, ["Mark-X"] = { 132094, "/tm 7" }, ["Mark-Moon"] = { 133938, "/tm 5" } }) do
+		local m = macro("account", name)
+		check(m and m.icon == v[1] and m.body == v[2], name .. " not as shipped")
+	end
 	check(count("char") == 0, "a character macro was made")
 	local n = #H.macroWrites
 	out = pss("macro global create")
-	expectLine(out, "already current 2", "second create")
+	expectLine(out, "already current 5", "second create")
 	check(#H.macroWrites == n, "the second create wrote")
-	check(count("account") == 2, "macros doubled")
+	check(count("account") == 5, "macros doubled")
 	-- the alias
 	out = pss("macros global")
 	expectLine(out, "Trinket 1 (account): current", "/pss macros")
@@ -118,7 +133,11 @@ function phases.class()
 	needLibraries()
 	reset()
 	local out = pss("macro warrior create")
-	expectLine(out, "Warrior macros: created 1 (Attack (character)).", "warrior create")
+	expectLine(out, "Warrior macros: created 8 (Attack (character), BT (character), SS (character), TC (character), Sunder (character), Revenge (character), HS (character), Cleave (character)).", "warrior create")
+	for name, spell in pairs({ BT = "bloodthirst", SS = "shield slam", TC = "thunder clap", Sunder = "sunder armor", Revenge = "revenge", HS = "heroic strike", Cleave = "cleave" }) do
+		local m = macro("char", name)
+		check(m and m.body == "#showtooltip\n/cast " .. spell .. "\n/startattack" and m.icon == 134400, name .. " not as shipped")
+	end
 	local a = macro("char", "Attack")
 	check(a and a.body == "#showtooltip\n/startattack" and a.icon == 134400, "Attack not as shipped")
 	check(count("account") == 0, "an account macro was made")
@@ -134,7 +153,7 @@ function phases.wrongclass()
 	out = pss("macro rogue")
 	expectLine(out, "There are no Rogue macros yet.", "class without a set")
 	out = pss("macro foo create")
-	expectLine(out, "No macro set \"foo\". Sets: global (2), warrior (1).", "unknown set")
+	expectLine(out, "No macro set \"foo\". Sets: global (5), warrior (8).", "unknown set")
 	check(#H.macroWrites == 0, "something was written")
 end
 
@@ -199,13 +218,13 @@ function phases.existing()
 	expectLine(out, "Trinket 1 (account): update", "preview update")
 	expectLine(out, "Trinket 2 (account): new", "preview new")
 	out = pss("macro global create")
-	expectLine(out, "created 1 (Trinket 2 (account))", "create")
+	expectLine(out, "created 4 (Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account))", "create")
 	expectLine(out, "updated 1 (Trinket 1 (account))", "update")
 	local t1 = macro("account", "Trinket 1")
 	check(t1 and t1.body == "#showtooltip\n/use 13" and t1.icon == 134400, "Trinket 1 not set to PSS's")
 	check(macro("account", "Other").body == "/dance", "Other was touched")
 	check(macro("char", "Trinket 2").body == "/say char", "the character Trinket 2 was touched")
-	check(count("account") == 3, "account has " .. count("account") .. " macros, wanted 3")
+	check(count("account") == 6, "account has " .. count("account") .. " macros, wanted 6")
 end
 
 function phases.dynicon()
@@ -214,7 +233,7 @@ function phases.dynicon()
 	pss("macro global create")
 	local n = #H.macroWrites
 	local out = pss("macro global create")
-	expectLine(out, "already current 2", "dynamic icon")
+	expectLine(out, "already current 5", "dynamic icon")
 	check(#H.macroWrites == n, "the dynamic icon caused a write")
 end
 
@@ -223,11 +242,11 @@ function phases.full()
 	-- PSS_MACRO_MAX=1,18 or 2,18; PSS_MACRO_SEED="a:Keep=/x"
 	local out = pss("macro global create")
 	if MAX_ACCOUNT_MACROS == 1 then
-		expectLine(out, "No room for 2 (Trinket 1 (account), Trinket 2 (account))", "no room")
+		expectLine(out, "No room for 5 (Trinket 1 (account), Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account))", "no room")
 		check(count("account") == 1, "a macro was made in a full store")
 	else
 		expectLine(out, "created 1 (Trinket 1 (account))", "room for one")
-		expectLine(out, "No room for 1 (Trinket 2 (account))", "room for one")
+		expectLine(out, "No room for 4 (Trinket 2 (account), Mark-Skull (account), Mark-X (account), Mark-Moon (account))", "room for one")
 	end
 	check(macro("account", "Keep").body == "/x", "Keep was touched")
 end
@@ -248,7 +267,7 @@ function phases.list()
 	needLibraries()
 	reset()
 	local out = pss("macro")
-	expectLine(out, "Macro sets: global (2), warrior (1). Free slots: account 120 of 120, character 18 of 18.", "sets")
+	expectLine(out, "Macro sets: global (5), warrior (8). Free slots: account 120 of 120, character 18 of 18.", "sets")
 	expectLine(out, "/pss macro <set> create", "usage")
 	out = pss("macro global")
 	expectLine(out, "Global macros:", "preview head")
@@ -268,7 +287,7 @@ end
 
 function phases.retail()
 	local out = pss("macro global create")
-	expectLine(out, "The macro helper is for Camelot only.", "retail")
+	expectLine(out, "The macro helper is for Forever only.", "retail")
 	check(M.PSS_MacroData == nil and M.PSS_MacroCommand == nil and M.PSS_MacroPlan == nil, "defined on Retail")
 	check(#H.macroWrites == 0, "written on Retail")
 end

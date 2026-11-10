@@ -122,7 +122,7 @@ function M.PSS_OptGate(o)
 	if not name then return true, "" end
 	local enabled, note = true, ""
 	if name == "gfx" and not M.PSS_Can("gfxCommand") then
-		enabled, note = false, " (Camelot only)"
+		enabled, note = false, " (Forever only)"
 	end
 	if M.PSS_ComponentPending(name) then note = note .. " (after reload)" end
 	return enabled, note
