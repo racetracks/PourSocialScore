@@ -893,7 +893,6 @@ local P = {}
 -- changed are also held in vkeep until they are saved at logout.
 local vcache = setmetatable({}, { __mode = "v" })
 local vkeep = {}
-P.vkeep, P.vcache = vkeep, vcache
 
 -- The member lists and the index of the guild-level table G.guildLevel()
 -- (rebuilt when core drops that table, as the data file loads). The index
@@ -1046,6 +1045,101 @@ function P.Tombstone(gkey, ck)
 	end
 	if key then g.members[key] = nil end
 end
+
+-- every shipped member of a guild not in seen: fn(record, nil, true)
+function P.EachShipped(g, gkey, fn, seen, includeUntouched)
+	if includeUntouched then
+		for _, name in ipairs(P.ShippedNames(gkey) or {}) do
+			local ck = G.canonPlayer(name)
+			if ck and P.ShippedOf(ck) == gkey and not seen[ck] and not G.isGone(g, ck) then
+				seen[ck] = true
+				local r = P.Record(ck, gkey)
+				if r then fn(r, nil, true) end
+			end
+		end
+	else
+		local done = {}
+		for _, t in ipairs({ vkeep, vcache }) do
+			for ck, r in pairs(t) do
+				if G.shippedRule(r) == gkey and not seen[ck] and not done[ck] and not G.isGone(g, ck) then
+					done[ck] = true
+					fn(r, nil, true)
+				end
+			end
+		end
+	end
+end
+
+-- "Left this guild" marks the shipped list no longer needs (3.0): a mark
+-- only matters while the shipped list still has that character in that
+-- guild. Runs once per session (force resets that), when the lists are
+-- loaded; empty mark tables are not saved.
+local marksPruned = false
+function P.PruneMarks(force)
+	if force then marksPruned = false end
+	if marksPruned or not P.Loaded() then return 0 end
+	local gd = PourSocialScoreDB and PourSocialScoreDB.guildData
+	if type(gd) ~= "table" then return 0 end
+	marksPruned = true
+	local n = 0
+	for gkey, g in pairs(gd) do
+		if type(g) == "table" and type(g.managedGone) == "table" then
+			for ck in pairs(g.managedGone) do
+				if P.ShippedOf(ck) ~= gkey then
+					g.managedGone[ck] = nil
+					n = n + 1
+				end
+			end
+			if next(g.managedGone) == nil then g.managedGone = nil end
+		end
+	end
+	if n > 0 then G.bumpMemberCount() end
+	return n
+end
+
+-- member count of a managed guild whose lists are loaded
+function P.Count(g, gkey)
+	local m = G.guildLevel()
+	local n = state().names[gkey] and (m.count[gkey] or 0) or 0
+	for k, mm in pairs(g.members or {}) do
+		local ck = G.memberCanon(mm, k)
+		if not (ck and P.ShippedOf(ck) == gkey) then n = n + 1 end
+	end
+	for ck in pairs(g.managedGone or {}) do
+		if P.ShippedOf(ck) == gkey then n = n - 1 end
+	end
+	return math.max(0, n)
+end
+
+-- Logout: changed shipped members are written into the guild record;
+-- unchanged shipped members are dropped from it.
+function P.Flush()
+	for _, t in ipairs({ vkeep, vcache }) do
+		for ck, r in pairs(t) do
+			local g = PourSocialScoreDB.guildData[G.shippedRule(r)]
+			if g and not G.isGone(g, ck) and G.managedDirty(r) then
+				g.members = g.members or {}
+				local key = G.memberPlayerKey(r)
+				if key and not g.members[key] then
+					-- saved sparse: the runtime fields and what the key and the rule
+					-- give back are rebuilt when the lists load (S3)
+					g.members[key] = r
+					G.sparseMember(r, key, g)
+				end
+			end
+		end
+	end
+	for gkey, g in pairs(PourSocialScoreDB.guildData) do
+		if type(g) == "table" and g.managed and type(g.members) == "table" then
+			local drop = {}
+			for k, mm in pairs(g.members) do
+				local ck = G.memberCanon(mm, k)
+				if ck and P.ShippedOf(ck) == gkey and not G.managedDirty(mm) then drop[#drop + 1] = k end
+			end
+			for _, k in ipairs(drop) do g.members[k] = nil end
+		end
+	end
+end
 M.PSS_Community = P
 -- COMMUNITY-PART:END
 
@@ -1066,28 +1160,8 @@ local function forEachMember(g, gkey, fn, includeUntouched)
 		end
 	end
 	if not g.managed then return end
-	if includeUntouched then
-		ensureManagedData()
-		local mm = buildManaged()
-		for _, name in ipairs(shippedNames(gkey) or {}) do
-			local ck = canonPlayer(name)
-			if ck and shippedOf(ck) == gkey and not seen[ck] and not isGone(g, ck) then
-				seen[ck] = true
-				local r = vrec(ck, gkey)
-				if r then fn(r, nil, true) end
-			end
-		end
-	else
-		local done = {}
-		for _, t in ipairs({ P.vkeep, P.vcache }) do
-			for ck, r in pairs(t) do
-				if shippedRule(r) == gkey and not seen[ck] and not done[ck] and not isGone(g, ck) then
-					done[ck] = true
-					fn(r, nil, true)
-				end
-			end
-		end
-	end
+	if includeUntouched then ensureManagedData() end
+	if part() then part().EachShipped(g, gkey, fn, seen, includeUntouched) end
 end
 M.PSS_ForEachGuildMember = forEachMember
 
@@ -1099,46 +1173,26 @@ M.PSS_ForEachGuildMember = forEachMember
 local memberCountGen = 0
 local memberCountCache = setmetatable({}, { __mode = "k" })		-- g -> { gen, key, stored, gone, n }
 
--- "Left this guild" marks the shipped list no longer needs (3.0): a mark
--- only matters while the shipped list still has that character in that
--- guild. Once a new list has dropped or moved them, the mark is removed, so
--- the saved marks keep themselves small. Runs once per session, when the
--- lists are loaded (it needs them); a rule that stays off keeps its few
--- marks until then. Empty mark tables are not saved.
-local marksPruned = false
-local function pruneMarks()
-	if marksPruned or not (managed and part() and part().Loaded()) then return 0 end
-	local gd = PourSocialScoreDB and PourSocialScoreDB.guildData
-	if type(gd) ~= "table" then return 0 end
-	marksPruned = true
-	local n = 0
-	for gkey, g in pairs(gd) do
-		if type(g) == "table" and type(g.managedGone) == "table" then
-			for ck in pairs(g.managedGone) do
-				if shippedOf(ck) ~= gkey then
-					g.managedGone[ck] = nil
-					n = n + 1
-				end
-			end
-			if next(g.managedGone) == nil then g.managedGone = nil end
-		end
-	end
-	if n > 0 then memberCountGen = memberCountGen + 1 end
-	return n
+G.bumpMemberCount = function() memberCountGen = memberCountGen + 1 end
+M.PSS_PruneManagedMarks = function()
+	if not part() then return 0 end
+	return P.PruneMarks(true)
 end
-M.PSS_PruneManagedMarks = function() marksPruned = false return pruneMarks() end
 
 -- Load the shipped member lists (PourSocialScore_Communities) if they are
 -- not loaded yet. Returns true when they are available.
 ensureManagedData = function()
-	if managed and part() and part().Loaded() then pruneMarks() return true end
+	if part() and part().Loaded() then P.PruneMarks() return true end
 	if not addon.MANAGED_DATA and not (M.PSS_Need and M.PSS_Need("Communities")) then return false end
 	managed = nil
 	memberCountGen = memberCountGen + 1
-	local ok = part() and part().Loaded() or false
-	if ok then pruneMarks() end
+	if not part() then return false end
+	local ok = part().Build()
+	if ok then P.PruneMarks() end
 	return ok
 end
+G.ensure = ensureManagedData
+G.sparseMember = sparseMember
 M.PSS_LoadManagedData = ensureManagedData
 
 -- Login and ticking a rule: load the lists when any group's rule is on.
@@ -1162,7 +1216,7 @@ function M.PSS_GuildMemberCount(g, gkey)
 	local c = memberCountCache[g]
 	if c and c.gen == memberCountGen and c.key == gkey and c.stored == stored and c.gone == gone then return c.n end
 	local m = buildManaged()
-	if not m.dataLoaded then
+	if not (part() and part().Loaded()) then
 		-- lists not loaded: shipped count from the manifest, minus those who
 		-- left, plus stored members that are not shipped ones (a changed
 		-- shipped member is saved marked as one, memberShipped)
@@ -1176,15 +1230,7 @@ function M.PSS_GuildMemberCount(g, gkey)
 		memberCountCache[g] = c
 		return n
 	end
-	n = m.names[gkey] and (m.count[gkey] or 0) or 0
-	for k, mm in pairs(g.members or {}) do
-		local ck = memberCanon(mm, k)
-		if not (ck and shippedOf(ck) == gkey) then n = n + 1 end
-	end
-	for ck in pairs(g.managedGone or {}) do
-		if shippedOf(ck) == gkey then n = n - 1 end
-	end
-	n = math.max(0, n)
+	n = part().Count(g, gkey)
 	c = c or {}
 	c.gen, c.key, c.stored, c.gone, c.n = memberCountGen, gkey, stored, gone, n
 	memberCountCache[g] = c
@@ -1252,31 +1298,7 @@ end
 -- the guild record; unchanged shipped members are dropped from it.
 function M.PSS_FlushManaged()
 	if not PourSocialScoreDB or not PourSocialScoreDB.guildData then return end
-	for _, t in ipairs({ P.vkeep, P.vcache }) do
-		for ck, r in pairs(t) do
-			local g = PourSocialScoreDB.guildData[shippedRule(r)]
-			if g and not isGone(g, ck) and managedDirty(r) then
-				g.members = g.members or {}
-				local key = memberPlayerKey(r)
-				if key and not g.members[key] then
-					-- saved sparse: the runtime fields and what the key and the rule
-					-- give back are rebuilt when the lists load (S3)
-					g.members[key] = r
-					sparseMember(r, key, g)
-				end
-			end
-		end
-	end
-	for gkey, g in pairs(PourSocialScoreDB.guildData) do
-		if type(g) == "table" and g.managed and type(g.members) == "table" then
-			local drop = {}
-			for k, mm in pairs(g.members) do
-				local ck = memberCanon(mm, k)
-				if ck and isStaticMember(gkey, ck) and not managedDirty(mm) then drop[#drop + 1] = k end
-			end
-			for _, k in ipairs(drop) do g.members[k] = nil end
-		end
-	end
+	if part() then part().Flush() end
 	M.PSS_CapAllMembers()
 	compactAllMembers()
 end
