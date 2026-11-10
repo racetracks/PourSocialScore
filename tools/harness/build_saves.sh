@@ -22,16 +22,16 @@ if [ "$rf" = "$ff" ]; then p1=shared; else p1=separate; fi
 echo "install forever $ff, retail $rf: P1 $p1"
 n=0
 clients="retail forever tbc era mists"
-# one save: <dir> <client> <version>
+# one save: <dir> <client> <version>; own names (bd bc bv), never the loop's d or v
 build() {
-	d=$1; c=$2; v=$3
-	mkdir -p "$out/$c/$v"
-	: > "$out/$c/$v/PourSocialScore.lua"
+	bd=$1; bc=$2; bv=$3
+	mkdir -p "$out/$bc/$bv"
+	: > "$out/$bc/$bv/PourSocialScore.lua"
 	for part in "" _Options _Options.char _Logging _EllesmereUI; do
-		f="$d/PourSocialScore$part.lua"
-		[ -f "$f" ] && cat "$f" >> "$out/$c/$v/PourSocialScore.lua"
+		f="$bd/PourSocialScore$part.lua"
+		[ -f "$f" ] && cat "$f" >> "$out/$bc/$bv/PourSocialScore.lua"
 	done
-	echo "$c/$v: $(wc -c < "$out/$c/$v/PourSocialScore.lua") bytes"
+	echo "$bc/$bv: $(wc -c < "$out/$bc/$bv/PourSocialScore.lua") bytes"
 	n=$((n + 1))
 }
 for d in "$src"/SavedVariables/*/; do
