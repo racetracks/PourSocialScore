@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.144 - Search speed
+
+- Search timing harness: measures search speed on real saves; the search freeze is not reproduced yet, in-game check next.
+
 => 3.8.0.143 - Fix: /pss version checks all six folders
 
 - `/pss version` now checks all 6 Pour Social Score folders and names each one that is a different version or missing.
