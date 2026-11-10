@@ -10,7 +10,8 @@
 -- "global", character for a class. /pss macro <set> create account (or
 -- character) puts the whole run in one store. PSS owns these names: a
 -- macro with the same name in the same store is set to this icon and
--- body. name: 1 to 16 letters, unique across every set; body: up to 255,
+-- body. name: 1 to 16 letters, unique within its set (two class sets
+-- may share one, a global name is unique across every set); body: up to 255,
 -- "\n" between lines; icon: a file ID (134400 is the question mark,
 -- which #showtooltip turns into the used item's or spell's icon), or
 -- leave it out for the question mark. ASCII only. Macros run in the
@@ -57,6 +58,7 @@ function M.PSS_MacroData()
 			{ name = "LHW", body = "#showtooltip Lesser Healing Wave\n/cast [help, target=mouseover,exists,help,nodead][]Lesser Healing Wave" },
 			{ name = "CH", body = "#showtooltip Chain Heal\n/cast [help, target=mouseover,exists,help,nodead][]Chain Heal" },
 			{ name = "RT", body = "#showtooltip Riptide\n/cast [help, target=mouseover,exists,help,nodead][]Riptide" },
+			{ name = "SS", body = "#showtooltip Stormstrike\n/cast stormstrike\n/startattack" },
 		},
 		warrior = {
 			store = "character",
