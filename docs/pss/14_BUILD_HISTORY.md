@@ -39,6 +39,18 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.144 - Search timing harness (no fix)
+
+- Branch: `claude/upbeat-fermat-481m3i`; [PR #267](https://github.com/racetracks/PourSocialScore/pull/267).
+- What changed and why:
+  - Harness only, no addon code: [bench_search.lua](https://github.com/racetracks/PourSocialScore/blob/claude/upbeat-fermat-481m3i/tools/harness/bench_search.lua) (`TERM` and `TYPED` timing, cold item cache seed), [search_results.lua](https://github.com/racetracks/PourSocialScore/blob/claude/upbeat-fermat-481m3i/tools/harness/search_results.lua) (result dump) and [search_same.sh](https://github.com/racetracks/PourSocialScore/blob/claude/upbeat-fermat-481m3i/tools/harness/search_same.sh) (same rows as a reference, then timing, `REPRO yes|no`); detail in [07_harness-search.md](reference/07_harness-search.md). Commits d37b1a6, 88d4356, e402f90.
+  - Why: F-1, the freeze the author reported (`CHK-00230`: search freezes the game up to 10 s on TBC and Forever).
+  - Result: not reproduced (`REPRO no`) in 3 harness runs. Largest `TERM` max_ms 4.850 and largest `TYPED` max_ms 4.697 (both TBC 3.8.0.139 save), against the 200 ms threshold; Forever saves stay under 1 ms.
+  - The fix builds (Q02 to Q04) are deferred until a freeze is reproduced.
+- Docs updated: `docs/pss/07_HARNESS.md:65-67`, `docs/pss/reference/07_harness-search.md:1-16`, `docs/pss/14_BUILD_HISTORY.md:42`, `docs/pss/06_STATUS_AND_NEXT.md:1`, `docs/pss/06_STATUS_AND_NEXT.md:8`, `docs/pss/06_STATUS_AND_NEXT.md:11`.
+- Not shown by the simulation: the in-game freeze (the harness item-request queue fills only as the addon requests ids).
+- In-game checks: `CHK-00232` (the author runs it in game).
+
 ### 3.8.0.143 - Fix: /pss version checks all six folders
 
 - Branch: `claude/clever-fermat-uesj4v`; [PR #266](https://github.com/racetracks/PourSocialScore/pull/266).
