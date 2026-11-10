@@ -41,9 +41,9 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.8.0.144 - Search speed
 
-- Branch: `claude/upbeat-fermat-481m3i`; PR: none yet.
+- Branch: `claude/upbeat-fermat-481m3i`; PR #269.
 - What changed and why: (written in the PR)
-- Docs updated: (written in the PR)
+- Docs updated: `docs/pss/07_HARNESS.md`, `docs/pss/reference/07_harness-search.md`, `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md`
 - Tests run: (written in the PR)
 - Not shown by the simulation: (written in the PR)
 - In-game checks: (written in the PR)

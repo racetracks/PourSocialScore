@@ -3,7 +3,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 
 => 3.8.0.144 - Search speed
 
-- What changed, in plain words.
+- Search timing harness: measures search speed on real saves; the search freeze is not reproduced yet, in-game check next.
 
 => 3.8.0.143 - Fix: /pss version checks all six folders
 
