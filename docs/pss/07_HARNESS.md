@@ -79,3 +79,4 @@ Other checks in `validate_all.sh`: `check_forget` (removals), `check_guildrule`,
 ## Changelog
 - 2026-11-09 A06: added `check_version.lua` (`TST-00995`, `/pss version`).
 - 2026-11-10 A01: version check covers six folders and the Save record differs line (`TST-00998`).
+- 2026-11-10 A02: tab art and `/pss version` loops read `$FLAVOURS`; section `pss version` (`TST-00999`).

@@ -40,7 +40,7 @@ if fl == "tbc" then
 		local function anch(f, a, b, ra, rb, rel1, rel2, name)
 			local p2, p1 = last(f, 0), last(f, 1)
 			if not (p1 and p2 and p1[1] == a and p1[2] == rel1 and p1[3] == ra and p2[1] == b and p2[2] == rel2 and p2[3] == rb) then
-				check(false, "TST-00993 " .. name .. " not anchored") print("tabs: TST-00993 " .. name .. " not anchored")
+				check(false, "TST-00993 " .. name .. " not anchored")
 			end
 		end
 		anch(l, "TOPLEFT", "BOTTOMLEFT", "TOPLEFT", "BOTTOMLEFT", t, t, set[1])
@@ -51,7 +51,7 @@ else
 	local t = tabs[1]
 	for _, k in ipairs({ "Middle", "MiddleActive" }) do
 		for _, p in ipairs(t[k] and t[k]._points or {}) do
-			if p[2] == t.Left then check(false, "TST-00994 Middle re-anchored on " .. fl) print("tabs: TST-00994 Middle re-anchored on " .. fl) end
+			if p[2] == t.Left then check(false, "TST-00994 Middle re-anchored on " .. fl) end
 		end
 	end
 end
