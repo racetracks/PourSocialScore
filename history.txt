@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.148 - Communities: the managed community logic moves into the Communities addon
+
+- Communities: the Managed Communities code now loads with the Communities addon, only while a Managed Communities rule is on. Nothing changes in what is blocked.
+
 => 3.8.0.147 - Shaman Stormstrike macro
 
 - Macro Helper: the Shaman set gains SS (Stormstrike, then start attacking). A class set may now reuse a name another class uses (the Warrior's SS is Shield Slam); each is created only on its own class.
