@@ -39,6 +39,23 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.144 - Search speed
+
+- Branch: `claude/upbeat-fermat-481m3i`; PR: none yet.
+- What changed and why: (written in the PR)
+- Docs updated: (written in the PR)
+- Tests run: (written in the PR)
+- Not shown by the simulation: (written in the PR)
+- In-game checks: (written in the PR)
+
+### 3.8.0.144 (from 06 Now)
+
+**3.8.0.144, search timing harness only (branch `claude/upbeat-fermat-481m3i`, [PR #267](https://github.com/racetracks/PourSocialScore/pull/267) open):** the freeze (F-1, `CHK-00230`) was not reproduced by the harness; waits on the author's in-game `CHK-00232`; details in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
+### 3.8.0.143 (from 06 Now)
+
+**3.8.0.143, Fix: /pss version checks all six folders (branch `claude/clever-fermat-uesj4v`, PR #266):** `/pss version` checks all six folders and adds a save record line; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.144 - Search timing harness (no fix)
 
 - Branch: `claude/upbeat-fermat-481m3i`; [PR #267](https://github.com/racetracks/PourSocialScore/pull/267).
