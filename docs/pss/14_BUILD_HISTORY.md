@@ -41,6 +41,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.148 - Communities: the managed community logic moves into the Communities addon
+
+- Branch: `claude/pss-managed-communities-build-a-nf0alx`; [PR #271](https://github.com/racetracks/PourSocialScore/pull/271).
+- What changed and why: the managed community logic moves into the Communities addon, behind the seam [`DEC-00443`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/08-14-00-Tue-epic-turing-wqqpmr/projects/managed-communities/specs/managed-communities.md#dec-00443) (`M.PSS_GuildCore` and `M.PSS_Community`); build A of three ([`DEC-00444`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/08-14-00-Tue-epic-turing-wqqpmr/projects/managed-communities/specs/managed-communities.md#dec-00444)). Nothing changes in what is blocked.
+- Docs updated: `docs/pss/07_HARNESS.md:41`, this file and `docs/pss/06_STATUS_AND_NEXT.md:1`.
+- Tests run: [`TST-01000`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/08-14-00-Tue-epic-turing-wqqpmr/projects/managed-communities/specs/managed-communities.md#tst-01000), [`TST-01001`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/08-14-00-Tue-epic-turing-wqqpmr/projects/managed-communities/specs/managed-communities.md#tst-01001).
+- Not shown by the simulation: the in-game load of the Communities addon.
+- In-game checks: [`CHK-00245`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/08-14-00-Tue-epic-turing-wqqpmr/projects/managed-communities/specs/managed-communities.md#chk-00245).
+
+### 3.8.0.147 (from 06 Now)
+
+**3.8.0.147, Shaman Stormstrike macro (branch `claude/tender-knuth-moxuz4`, PR #270, with 3.8.0.145 and 3.8.0.146):** `SS` added to the `shaman` set (issue #168); class sets may share a name (the author, 2026-11-10); 3.8.0.146 added the `priest` set (issue #166), 3.8.0.145 the `shaman` set; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.147 - Shaman Stormstrike macro
 
 - Branch: `claude/tender-knuth-moxuz4`; PR #270 (with 3.8.0.145 and 3.8.0.146; combined build row above).

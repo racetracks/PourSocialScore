@@ -412,6 +412,9 @@ echo "$out" | grep -q "PASS communities" || fail=1
 out=$(lua5.1 "$here/run.lua" . - - "$here/check_communities_seen.lua" 2>&1 | grep -v '^|cff')
 echo "$out"
 echo "$out" | grep -q "PASS communities seen" || fail=1
+out=$(lua5.1 "$here/run.lua" . - - "$here/check_seam.lua" 2>&1 | grep -v '^|cff')
+echo "$out"
+echo "$out" | grep -q "PASS seam" || fail=1
 
 # packed lists (3.0 Step 5.1): the same members as the unpacked dev16 list
 section "packed lists"

@@ -30,6 +30,7 @@ PSS_Options.lua
 PSS_BlizzardUI.lua
 folder PourSocialScore_Communities
 PSS_GuildIgnore_Managed.lua
+PSS_CommunityLogic.lua
 folder PourSocialScore_GUI
 PSS_Skin.lua
 PSS_Kit.lua
