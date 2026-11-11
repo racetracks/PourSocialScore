@@ -29,8 +29,8 @@ local function load(path)
 	for _, t in ipairs({ PSS_OptionsDB or {}, PSS_PlayersDB or {}, PSS_GuildsDB or {}, PSS_RulesDB or {}, PSS_CountsDB or {}, PSS_LoggingDB or {} }) do
 		for k, v in pairs(t) do if db[k] == nil then db[k] = v end end
 	end
-	local s = { rules = {}, members = {}, players = {}, filters = {}, total = 0 }
-	for k, g in pairs(db.guildData or {}) do s.rules[k] = count(g.members); s.members[k] = g.members end
+	local s = { rules = {}, members = {}, managed = {}, players = {}, filters = {}, total = 0 }
+	for k, g in pairs(db.guildData or {}) do s.rules[k] = count(g.members); s.members[k] = g.members; s.managed[k] = g.managed end
 	local listed = {}
 	-- (a save of either layout: the list's records from 3.4.1.51, the arrays before)
 	-- (a legacy duplicate of one kind and name is merged by the migration: counted once)
@@ -67,11 +67,12 @@ local bad = 0
 local function fail(msg) bad = bad + 1; print("FAIL real save: " .. msg) end
 local forever = os.getenv("PSS_FLAVOUR") == "forever"
 -- a forever save: "first-last" re-keyed as "first last-<realm>" by upgrade step 10 is kept
-local function kept(t, k)
+local function kept(t, k, merged)
 	if t[k] ~= nil then return true end
 	if not forever then return false end
 	local base, tail = k:match("^([^%-%s]+)%-([^%-%s]+)$")
 	if not base then return false end
+	if merged then return true end
 	local pre = (base .. " " .. tail):lower() .. "-"
 	for K in pairs(t) do
 		if type(K) == "string" and K:lower():sub(1, #pre) == pre then return true end
@@ -83,7 +84,7 @@ for k, n in pairs(a.rules) do
 	elseif b.rules[k] < n then
 		local lost = 0
 		if forever and type(a.members) == "table" and type(a.members[k]) == "table" then
-			for mk in pairs(a.members[k]) do if not kept(b.members and b.members[k] or {}, mk) then lost = lost + 1 end end
+			for mk in pairs(a.members[k]) do if not kept(b.members and b.members[k] or {}, mk, b.managed[k] ~= nil) then lost = lost + 1 end end
 		else lost = n - b.rules[k] end
 		if lost > 0 then fail(("rule %s lost members: %d -> %d"):format(k, n, n - lost)) end
 	end

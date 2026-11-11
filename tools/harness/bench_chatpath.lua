@@ -10,7 +10,6 @@
 --   guild       a stored member of a guild rule, whisper (blocked, counted)
 --   shipped     a shipped list member (only when the Communities lists load)
 --   outbox      History.Add with the outbox at its cap (Logging not loaded)
---   logged      History.Add with Logging loaded, the log at its cap (PSS_BENCH_CAP sets the cap)
 local N = tonumber(os.getenv("PSS_BENCH_N") or "") or 60000
 local lineID = 900000
 local function filterLine(author, msg)
@@ -51,9 +50,3 @@ print(("BENCH outbox size %d (cap %d)"):format(#rawget(db, "outbox") or {}, cap)
 local octx = {}
 run("d-listed", function(i) M.PSS_PersonHits("Listed-Realm", "whisper", octx) end)
 run("d-guild", function(i) M.PSS_PersonHits("Gmember-Realm", "whisper", octx) end)
-M.PSS_LoadLogging()
-local bcap = tonumber(os.getenv("PSS_BENCH_CAP") or "")
-if bcap then M.PSS_SetOpt("historyTotal", bcap) end
-for _ = 1, History.Cap() + 50 do History.Add("p:bench", nil, { ts = 1, cat = "whisper" }) end
-run("logged", function(i) History.Add("p:bench", nil, { ts = 1, cat = "whisper" }) end)
-print(("BENCH logged size %d (cap %d)"):format(#History.Log(), History.Cap()))

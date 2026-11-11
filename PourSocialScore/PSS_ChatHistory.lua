@@ -612,7 +612,8 @@ function History.Each(fn)
 	end
 end
 
--- Keep the newest `cap` lines. A write (Store) trims at once, so the log never holds more than the cap (3.8.0.150); without force a call waits until the log is 5 % over.
+-- Keep the newest `cap` lines. Done in batches (when the log is 5 % over)
+-- so adding a line never shifts the whole list.
 function History.Trim(force)
 	local log = History.Log()
 	local cap = History.Cap()
@@ -668,7 +669,7 @@ local function Store(entry)
 	end
 	local log = History.Log()
 	log[#log + 1] = entry
-	History.Trim(true)
+	History.Trim(false)
 	return entry
 end
 
