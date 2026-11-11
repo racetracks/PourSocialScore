@@ -22,7 +22,7 @@ size() {
 }
 list=
 for sv in $(find -L "$saves/" -name 'PourSocialScore.lua' | sort); do
-	v=$(basename "$(dirname "$sv")"); c=$(basename "$(dirname "$(dirname "$sv")")")
+	save_key "$sv"; v=$sk_id; c=$sk_c
 	list="$list $c/$v|$sv|$c"
 done
 for f in $FLAVOURS; do list="$list fresh/$f|-|$f"; done

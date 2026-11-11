@@ -1,7 +1,7 @@
 # Runs tools/check_rules.sh (Lua 5.1, ASCII only, tab indentation), the
 # harness's window checks, and validate_all.sh (upgrades, data, on demand,
 # growth; no real saves here) on every pull request and every push to main,
-# plus an informational window compare and, with a scratch token, the real saves.
+# plus an informational window compare and, with a scratch token, the real saves (sharded).
 name: Rules
 
 on:
@@ -149,30 +149,128 @@ jobs:
 
   # The real saves live on the private scratch repo and are never committed
   # here (baseline 02 D10). With a SCRATCH_TOKEN secret (contents: read on
-  # racetracks/Pour-Social-Score_Scratch) the full harness runs on them; without
-  # one (forks, or no secret yet) the job says so and passes.
-  real-saves:
+  # racetracks/Pour-Social-Score_Scratch) the real-save checks run sharded by
+  # save (speed spec 7.2): real-saves-prep builds the saves once per scratch
+  # commit (cached) and plans the shards, real-saves-shard runs each shard in
+  # real-only mode, real-saves (the check) gathers the summaries. Without a
+  # token (forks, or no secret yet) the check says so and passes.
+  real-saves-prep:
     runs-on: ubuntu-latest
+    outputs:
+      have: ${{ steps.t.outputs.have }}
+      shards: ${{ steps.plan.outputs.shards }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for the scratch token
+        id: t
+        env:
+          T: ${{ secrets.SCRATCH_TOKEN }}
+        run: |
+          if [ -n "$T" ]; then
+            echo "have=true" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git ls-remote "https://x-access-token:$T@github.com/racetracks/Pour-Social-Score_Scratch" main | cut -f1)" >> "$GITHUB_OUTPUT"
+          else echo "::notice::No SCRATCH_TOKEN secret: the real-save run is local only"; fi
+      - name: Cache the built saves
+        if: steps.t.outputs.have == 'true'
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/pss
+          key: pss-saves-v1-${{ steps.t.outputs.sha }}-${{ hashFiles('tools/harness/build_saves.sh') }}
+      - name: Install Lua 5.1
+        if: steps.t.outputs.have == 'true' && steps.cache.outputs.cache-hit != 'true'
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Build the real saves from scratch
+        if: steps.t.outputs.have == 'true' && steps.cache.outputs.cache-hit != 'true'
+        env:
+          T: ${{ secrets.SCRATCH_TOKEN }}
+        run: |
+          SCRATCH_TOKEN="$T" sh tools/ci_scratch.sh "$RUNNER_TEMP/scratch"
+          sh tools/harness/build_saves.sh "$RUNNER_TEMP/scratch" "$RUNNER_TEMP/pss/saves"
+          mkdir -p "$RUNNER_TEMP/pss/scratch"
+          cp -R "$RUNNER_TEMP/scratch/documents" "$RUNNER_TEMP/pss/scratch/documents"
+      - name: Plan the shards
+        id: plan
+        run: |
+          if [ "${{ steps.t.outputs.have }}" = true ]; then s=$(sh tools/harness/shard_saves.sh plan "$RUNNER_TEMP/pss/saves"); else s='[]'; fi
+          echo "shards=$s" >> "$GITHUB_OUTPUT"
+          echo "count=$(echo "$s" | tr -cd 0-9, | tr , '\n' | grep -c .)" >> "$GITHUB_OUTPUT"
+          echo "shards $s"
+      - name: Upload the built saves
+        if: steps.t.outputs.have == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pss-saves
+          path: ${{ runner.temp }}/pss
+          retention-days: 1
+
+  real-saves-shard:
+    needs: real-saves-prep
+    if: needs.real-saves-prep.outputs.shards != '[]' && needs.real-saves-prep.outputs.shards != ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.real-saves-prep.outputs.shards) }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install Lua 5.1
         run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
-      - name: Check for the scratch token
-        id: t
-        env:
-          T: ${{ secrets.SCRATCH_TOKEN }}
-        run: |
-          if [ -n "$T" ]; then echo "have=true" >> "$GITHUB_OUTPUT"
-          else echo "::notice::No SCRATCH_TOKEN secret: the real-save run is local only"; fi
-      - name: Build the real saves from scratch
-        if: steps.t.outputs.have == 'true'
-        env:
-          T: ${{ secrets.SCRATCH_TOKEN }}
-        run: |
-          SCRATCH_TOKEN="$T" sh tools/ci_scratch.sh "$RUNNER_TEMP/scratch"
-          sh tools/harness/build_saves.sh "$RUNNER_TEMP/scratch" "$RUNNER_TEMP/saves"
+      - name: Download the built saves
+        uses: actions/download-artifact@v4
+        with:
+          name: pss-saves
+          path: ${{ runner.temp }}/pss
+      - name: Link shard ${{ matrix.shard }}
+        run: sh tools/harness/shard_saves.sh link "$RUNNER_TEMP/pss/saves" ${{ matrix.shard }} ${{ needs.real-saves-prep.outputs.count }} "$RUNNER_TEMP/shard"
       - name: Real-save checks (real-only)
-        if: steps.t.outputs.have == 'true'
-        run: PSS_REAL_ONLY=1 PSS_GATE_STRICT=1 PSS_SCRATCH="$RUNNER_TEMP/scratch" PSS_REAL_SAVES="$RUNNER_TEMP/saves" PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh
+        run: |
+          echo 0 > "$RUNNER_TEMP/rc"
+          ( PSS_REAL_ONLY=1 PSS_GATE_STRICT=1 PSS_SCRATCH="$RUNNER_TEMP/pss/scratch" PSS_REAL_SAVES="$RUNNER_TEMP/shard" PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh 2>&1 || echo $? > "$RUNNER_TEMP/rc" ) | tee "$RUNNER_TEMP/real.log"
+          exit "$(cat "$RUNNER_TEMP/rc")"
+      - name: Fail summary
+        if: always()
+        run: |
+          sh tools/harness/fail_summary.sh ${{ matrix.shard }} "$RUNNER_TEMP/real.log" > "$RUNNER_TEMP/summary-${{ matrix.shard }}.md"
+          cat "$RUNNER_TEMP/summary-${{ matrix.shard }}.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: summary-${{ matrix.shard }}
+          path: ${{ runner.temp }}/summary-${{ matrix.shard }}.md
+          retention-days: 7
+
+  real-saves:
+    needs: [real-saves-prep, real-saves-shard]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the shard summaries
+        if: needs.real-saves-prep.outputs.have == 'true'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: summary-*
+          path: ${{ runner.temp }}/summaries
+          merge-multiple: true
+      - name: Real-save result
+        env:
+          HAVE: ${{ needs.real-saves-prep.outputs.have }}
+          PREP: ${{ needs.real-saves-prep.result }}
+          SHARD: ${{ needs.real-saves-shard.result }}
+          COUNT: ${{ needs.real-saves-prep.outputs.count }}
+        run: |
+          if [ "$PREP" = success ] && [ "$HAVE" != true ]; then echo "::notice::No SCRATCH_TOKEN secret: the real-save run is local only"; exit 0; fi
+          i=0
+          while [ "$i" -lt "${COUNT:-0}" ]; do
+            f="$RUNNER_TEMP/summaries/summary-$i.md"
+            if [ -f "$f" ]; then cat "$f"; else echo "### Real saves shard $i: no summary"; fi >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"; i=$((i + 1))
+          done
+          echo "prep $PREP, shards $SHARD"
+          [ "$PREP" = success ] || exit 1
+          case "$SHARD" in failure|cancelled) exit 1 ;; esac

@@ -167,7 +167,7 @@ FAIL ix: sqdowngrade: no reference tree"
 	done
 	if [ -n "$PSS_REAL_SAVES" ] && echo " $REAL " | grep -q " $ph "; then
 		for sv in $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua' | sort); do
-			v=$(basename "$(dirname "$sv")")
+			save_key "$sv"; v=$sk_id
 			if [ "$ph" = reader ]; then
 				# the reader reads what this version saves (loading Logging trims an old log to its cap first)
 				env PSS_PHASE=loadlog PSS_COMPONENTS=logging lua5.1 "$here/run.lua" . "$sv" "$work/rd.lua" "$here/check_ix.lua" > /dev/null 2>&1

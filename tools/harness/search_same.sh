@@ -6,6 +6,7 @@
 # Last lines: `same: <n> saves, <d> differ`, nine ADMIT lines, REPRO yes|no (any tbc/forever TERM or TYPED max_ms >= 200).
 #   sh tools/harness/search_same.sh <ref> <saves dir>        (run from the repo root)
 here=$(dirname "$0")
+. "$here/flavours.sh"
 ref=${1:?usage: search_same.sh <ref> <saves dir>}
 saves=${2:-$PSS_REAL_SAVES}
 [ -d "$saves/tbc" ] && [ -d "$saves/forever" ] || { echo "BLOCKED: $saves needs the client folders tbc and forever"; exit 2; }
@@ -21,7 +22,7 @@ for sv in "$@"; do
 	i=$((i + 1))
 	if [ "$sv" = - ]; then label=fresh; flav=
 	else
-		ver=$(basename "$(dirname "$sv")"); client=$(basename "$(dirname "$(dirname "$sv")")")
+		save_key "$sv"; ver=$sk_id; client=$sk_c
 		label="$client/$ver"; flav=$client
 	fi
 	if [ -n "$flav" ]; then export PSS_FLAVOUR=$flav; else unset PSS_FLAVOUR; fi

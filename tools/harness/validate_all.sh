@@ -841,7 +841,7 @@ fi
 if [ -n "$PSS_REAL_SAVES" ]; then
 	for sv in $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua'); do
 		section "real save $sv"
-		flv=$(basename "$(dirname "$(dirname "$sv")")")
+		save_key "$sv"; flv=$sk_c
 		case "$flv" in retail|forever|tbc|era|mists) ;; *) flv= ;; esac
 		fe=; [ -n "$flv" ] && fe="env PSS_FLAVOUR=$flv"
 		$fe lua5.1 "$here/run.lua" . "$sv" "$work/real-1.lua" "$here/check_real.lua" | grep -v '^|cff' || fail=1

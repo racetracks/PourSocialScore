@@ -42,6 +42,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.152 - Harness: sharded real saves
+
+- Branch: `claude/festive-wozniak-3uoj74`; PR: none yet.
+- What changed and why: speed steps S02 and D02: [`build_saves.sh`](https://github.com/racetracks/PourSocialScore/blob/claude/festive-wozniak-3uoj74/tools/harness/build_saves.sh) builds several saves per version (`<client>/<version>/<save>/`, `DEC-00461`); new [`shard_saves.sh`](https://github.com/racetracks/PourSocialScore/blob/claude/festive-wozniak-3uoj74/tools/harness/shard_saves.sh) (shard plan and links) and [`fail_summary.sh`](https://github.com/racetracks/PourSocialScore/blob/claude/festive-wozniak-3uoj74/tools/harness/fail_summary.sh) (per-version FAIL tables); the CI `real-saves` check is split into `real-saves-prep` (saves built once per scratch commit, cached), `real-saves-shard` (matrix, real-only) and `real-saves` (summaries, result). `save_key` ([`flavours.sh`](https://github.com/racetracks/PourSocialScore/blob/claude/festive-wozniak-3uoj74/tools/harness/flavours.sh)) reads client, version and save for the loops that took them from the folder levels (`validate_all.sh`, `ix_phases.sh`, `console_phases.sh`, `save_size.sh`, `search_same.sh`); without it the new `<save>` level lost each save's flavour. No addon code changed.
+- Docs updated: `docs/pss/07_HARNESS.md`, `docs/pss/harness/01_COMMANDS.md`, `docs/pss/04_DATA_AND_LOGGING.md`, `docs/pss/05_RELEASE.md`, `history.txt`, this entry, `docs/pss/06_STATUS_AND_NEXT.md`.
+- Tests run: S02 and D02 acceptance as briefed; real-only on the 21 saves in the new layout (results in the session temp root).
+- Not shown by the simulation: the GitHub Actions jobs themselves (cache, artifacts, matrix) run only on the PR.
+- In-game checks: none (no game change).
+
+### 3.8.0.151 (from 06 Now)
+
+**3.8.0.151, Harness: real-only mode (branch `claude/upbeat-planck-26jtkp`, PR #275):** `PSS_REAL_ONLY=1` runs only the real-save checks and the CI `real-saves` job uses it (speed step S01); no addon code changed; planreal on tbc/3.8.0.142 and tbc/3.8.0.143 stays red for the search speed build; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.151 - Harness: real-only mode
 
 - Branch: `claude/upbeat-planck-26jtkp`; [PR #275](https://github.com/racetracks/PourSocialScore/pull/275).
@@ -128,71 +141,8 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - Not shown by the simulation: whether the client knows each spell (Riptide is a later-expansion spell; an unknown spell shows the question mark and does nothing), the mouseover cast, the icon on a bar.
 - In-game checks: issue #168's five (Forever, on a Shaman): `/pss macro` lists `shaman (4)`; preview shows 4 `new` (character); create, the character tab of `/macro`, icons follow the spells; run again: `already current 4`; on another class: refused.
 
-### 3.8.0.144 (from 06 Now)
-
-**3.8.0.144, Search speed (branch `claude/upbeat-fermat-481m3i`, PR #269):** search timing harness only; the freeze (F-1) is not reproduced in the harness; in game one press of `f` froze 32 s (the author, 2026-11-10), the in-game `CHK-00232` quick `f` run finds where; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
-
-### 3.8.0.144 - Search speed
-
-- Branch: `claude/upbeat-fermat-481m3i`; PR #269.
-- What changed and why: (written in the PR)
-- Docs updated: `docs/pss/07_HARNESS.md`, `docs/pss/reference/07_harness-search.md`, `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md`
-- Tests run: (written in the PR)
-- Not shown by the simulation: (written in the PR)
-- In-game checks: (written in the PR)
-
-### 3.8.0.144 (from 06 Now)
-
-**3.8.0.144, search timing harness only (branch `claude/upbeat-fermat-481m3i`, [PR #267](https://github.com/racetracks/PourSocialScore/pull/267) open):** the freeze (F-1, `CHK-00230`) was not reproduced by the harness; waits on the author's in-game `CHK-00232`; details in the build history (`docs/pss/14_BUILD_HISTORY.md`).
-
-### 3.8.0.143 (from 06 Now)
-
-**3.8.0.143, Fix: /pss version checks all six folders (branch `claude/clever-fermat-uesj4v`, PR #266):** `/pss version` checks all six folders and adds a save record line; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
-
-### 3.8.0.144 - Search timing harness (no fix)
-
-- Branch: `claude/upbeat-fermat-481m3i`; [PR #267](https://github.com/racetracks/PourSocialScore/pull/267).
-- What changed and why:
-  - Harness only, no addon code: [bench_search.lua](https://github.com/racetracks/PourSocialScore/blob/claude/upbeat-fermat-481m3i/tools/harness/bench_search.lua) (`TERM` and `TYPED` timing, cold item cache seed), [search_results.lua](https://github.com/racetracks/PourSocialScore/blob/claude/upbeat-fermat-481m3i/tools/harness/search_results.lua) (result dump) and [search_same.sh](https://github.com/racetracks/PourSocialScore/blob/claude/upbeat-fermat-481m3i/tools/harness/search_same.sh) (same rows as a reference, then timing, `REPRO yes|no`); detail in [07_harness-search.md](reference/07_harness-search.md). Commits d37b1a6, 88d4356, e402f90.
-  - Why: F-1, the freeze the author reported (`CHK-00230`: search freezes the game up to 10 s on TBC and Forever).
-  - Result: not reproduced (`REPRO no`) in 3 harness runs. Largest `TERM` max_ms 4.850 and largest `TYPED` max_ms 4.697 (both TBC 3.8.0.139 save), against the 200 ms threshold; Forever saves stay under 1 ms.
-  - The fix builds (Q02 to Q04) are deferred until a freeze is reproduced.
-- Docs updated: `docs/pss/07_HARNESS.md:65-67`, `docs/pss/reference/07_harness-search.md:1-16`, `docs/pss/14_BUILD_HISTORY.md:42`, `docs/pss/06_STATUS_AND_NEXT.md:1`, `docs/pss/06_STATUS_AND_NEXT.md:8`, `docs/pss/06_STATUS_AND_NEXT.md:11`.
-- Not shown by the simulation: the in-game freeze (the harness item-request queue fills only as the addon requests ids).
-- In-game checks: `CHK-00232` (the author runs it in game).
-
-### 3.8.0.143 - Fix: /pss version checks all six folders
-
-- Branch: `claude/clever-fermat-uesj4v`; [PR #266](https://github.com/racetracks/PourSocialScore/pull/266).
-- What changed and why:
-  - `DEC-00440`: `/pss version` checks all six folders and adds a save record line (save last upgraded by another version).
-  - `DEC-00441`: flavour loops, section.
-  - `DEC-00442`: not built.
-- Docs updated: `docs/pss/07_HARNESS.md:41`, `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md:1`.
-- Tests run: `TST-00998`, `TST-00999`.
-- Not shown by the simulation: a real stale folder reporting its own TOC version.
-- In-game checks: `CHK-00244`, `CHK-00235` at 3.8.0.143.
-
-### 3.8.0.142 (from 06 Now)
-
-**3.8.0.142, Fix: TBC tabs, Forever wording, version proof (branch `claude/forever-rerun-142`, PR #265):** F-3 Forever wording, F-2 TBC tab art, F-5 `/pss version`, 10 macros; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
-
-### 3.8.0.142 - Fix: TBC tabs, Forever wording, version proof
-
-- Branch: `claude/forever-rerun-142`; [PR #265](https://github.com/racetracks/PourSocialScore/pull/265).
-- What changed and why:
-  - F-3 (`DEC-00436`): player text says Forever, not Camelot (commands, Options note, gfx tip, upgrade line).
-  - F-2 (`DEC-00435`): TBC tab art spans the whole tab label, selected and not (3.8.0.141 regression).
-  - F-5 (`DEC-00437`): `/pss version` proves which version the client loaded.
-  - F-1 (search freeze) moved to the search speed build, 3.8.0.143 (`DEC-00438`).
-  - The 10 macros (`DEC-00439`): 3 global and 7 warrior macros.
-- Docs updated: `docs/pss/16_INTERFACE.md`, `docs/pss/07_HARNESS.md`, `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md`.
-- Tests run: `TST-00991` to `TST-00997`; real-save run (`build_saves.sh` lists `forever 3.8.0.139-forever-launch`, `validate_all.sh` with `PSS_REAL_SAVES`).
-  - Step 2 result: real saves: 288 FAIL, identical to main cd64591 (pre-existing, follow-up issue). Duplicate stub (#262): one 3.8.0.142 entry in history.txt and in this file.
-- Not shown by the simulation: the TBC tab look, the Forever client loading this version, the macros' icons and casts.
-- In-game checks: `CHK-00235` to `CHK-00243`, re-runs `CHK-00218` to `CHK-00220`, `CHK-00229`.
-
 ## Older history
+- 3.8.0.142 to 3.8.0.144: [`reference/14_build-history-3.8.0.142-to-3.8.0.144.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/14_build-history-3.8.0.142-to-3.8.0.144.md)
 - 3.8.0.138 to 3.8.0.141: [`reference/14_build-history-3.8.0.138-to-3.8.0.141.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/14_build-history-3.8.0.138-to-3.8.0.141.md)
 - 3.8.0.133 to 3.8.0.137: [`reference/14_build-history-3.8.0.133-to-3.8.0.137.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/14_build-history-3.8.0.133-to-3.8.0.137.md)
 - 3.8.0.130 to 3.8.0.132: [`reference/14_build-history-3.8.0.130-to-3.8.0.132.md`](https://github.com/racetracks/PourSocialScore/blob/main/docs/pss/reference/14_build-history-3.8.0.130-to-3.8.0.132.md)
@@ -208,3 +158,4 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 | 2026-10-20 | REF-15-00-00-Tue-pensive-davinci-osy66a-A11 | entries 3.8.0.119 to 3.8.0.124 moved word for word to `reference/14_build-history-3.8.0.119-to-3.8.0.124.md` (size cap) |
 | 2026-10-29 | REF-00-27-50-Thu-ccr-0503e1ee-d9m6t2-A09 | entries 3.8.0.133 to 3.8.0.137 moved word for word to `reference/14_build-history-3.8.0.133-to-3.8.0.137.md` (size cap) |
 | 2026-11-10 | 3.8.0.149, branch claude/great-pascal-ja1q5e | entries 3.8.0.138 to 3.8.0.141 moved word for word to `reference/14_build-history-3.8.0.138-to-3.8.0.141.md` (size cap) |
+| 2026-11-11 | 3.8.0.152, branch claude/festive-wozniak-3uoj74 | entries 3.8.0.142 to 3.8.0.144 moved word for word to `reference/14_build-history-3.8.0.142-to-3.8.0.144.md` (size cap) |
