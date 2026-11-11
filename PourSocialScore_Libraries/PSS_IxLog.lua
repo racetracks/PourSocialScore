@@ -108,27 +108,27 @@ M.PSS_IxDeclare({
 		local stf = pd.st or pd.stPrefix
 		local words = pd.text
 		local nw = words and #words or 0
+		local sec = issecretvalue
 		local function each(h)
 			if type(h) ~= "table" then return true end
 			if hi and (tonumber(h.ts) or 0) > hi then return true end
 			if pd.owner and not pd.owner[h.o] then return true end
 			if stf and not stWanted(pd, stOf(h)) then return true end
-			-- skip before fill: the haystack holds exactly the predicate's text fields as fill gives them (message, event, member, rule, label), so a line lacking a word cannot pass
+			-- skip before fill: the haystack holds exactly the predicate's text fields as fill gives them (message, event, member, rule, label), so a line lacking a word cannot pass; the secret check and act test run only where they can change a value
 			if nw > 0 then
-				local act = h.o == h.cat and not ALL[h.cat]
-				local m, ev, mem = h.message, rawget(h, "event"), rawget(h, "member")
-				if issecretvalue then
+				local m, ev, mem, ru, ch = h.message, rawget(h, "event"), rawget(h, "member"), rawget(h, "r"), rawget(h, "channel")
+				if sec then
 					if isSecret(m) then m = HIDDEN end
-					if isSecret(ev) then ev = nil end
-					if isSecret(mem) then mem = nil end
+					if ev ~= nil and isSecret(ev) then ev = nil end
+					if mem ~= nil and isSecret(mem) then mem = nil end
 				end
-				local lb = act and rawget(h, "channel") or nil
-				if type(m) ~= "string" then m = m == nil and "" or tostring(m) end
-				if type(ev) ~= "string" then ev = ev == nil and "" or tostring(ev) end
-				if type(mem) ~= "string" then mem = mem == nil and "" or tostring(mem) end
-				local ru = rawget(h, "r")
-				if type(ru) ~= "string" then ru = ru == nil and "" or tostring(ru) end
-				if type(lb) ~= "string" then lb = lb == nil and "" or tostring(lb) end
+				local lb = nil
+				if ch ~= nil and h.o == h.cat and not ALL[h.cat] then lb = ch end
+				if m == nil then m = "" elseif type(m) ~= "string" then m = tostring(m) end
+				if ev == nil then ev = "" elseif type(ev) ~= "string" then ev = tostring(ev) end
+				if mem == nil then mem = "" elseif type(mem) ~= "string" then mem = tostring(mem) end
+				if ru == nil then ru = "" elseif type(ru) ~= "string" then ru = tostring(ru) end
+				if lb == nil then lb = "" elseif type(lb) ~= "string" then lb = tostring(lb) end
 				local hay = lower(m .. "\1" .. ev .. "\1" .. mem .. "\1" .. ru .. "\1" .. lb)
 				for k = 1, nw do if not find(hay, words[k], 1, true) then return true end end
 			end
