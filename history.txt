@@ -3,7 +3,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 
 => 3.8.0.150 - Real-saves job fixes
 
-- What changed, in plain words.
+- No change in game: the test checks for old and Forever saves are corrected (issue #268).
 
 => 3.8.0.149 - Global macros
 
