@@ -1275,6 +1275,35 @@ PH.logcost = function()
 	check(best <= B.us.text2k.gate / 1000, string.format("text search on 2,000 lines %.2f ms", best))
 	print(string.format("NOTE ix logcost: %.2f ms (design %.1f ms)", best, B.us.text2k.design / 1000))
 end
+-- D1 exact prefilter and proven text terms (specs/spec.md#91-phase-textexact of the search-speed pack)
+PH.textexact = function()
+	local log = logLoaded()
+	for i = #log, 1, -1 do log[i] = nil end
+	local t = GetServerTime() - 3600
+	local function put(cat, ev, msg, ch, o, k)
+		local e = History.NewEntry(cat, ev, msg, ch, nil)
+		e.ts = t + k * 60
+		e.o = o
+		log[#log + 1] = e
+		return e
+	end
+	put("chat", "CHAT_MSG_CHANNEL", "hello", "GoldTrade", "p:Owner1-Realm", 1)
+	put("dtt", "DTT", "x", "Gold run", "dtt", 2)
+	put("chat", "CHAT_MSG_CHANNEL", "Selling GOLD", "Trade", "p:Owner1-Realm", 3)
+	local set = S("index=log gold", { load = true })
+	check(set and set.n == 2, "textexact 4: lines 1 to 3 give 2 rows")
+	local found = false
+	for i = 1, set and set.n or 0 do if colv(set, i, "label") == "Gold run" then found = true end end
+	check(found, "textexact 2: the act row has label Gold run")
+	local e = put("chat", "CHAT_MSG_CHANNEL", "gold", "Trade", "p:Owner1-Realm", 4)
+	e.member = "Seller-Realm"
+	set = S("index=log gold seller", { load = true })
+	check(set and set.n == 1, "textexact 5: gold seller gives 1 row")
+	check(Q.compile("index=log gold").pred.fn({ message = "silver" }) == false, "textexact 6: false")
+	check(Q.compile("index=log gold").pred.fn({ message = "silver" }, true) == true, "textexact 7: true")
+	check(Q.compile("index=log gol*").pred.fn({ message = "silver" }, true) == false, "textexact 8: false")
+	check(M.PSS_Ix("log").textExact == true, "textexact 9: textExact is true")
+end
 
 ------------------------------------------------------------------------
 -- TST-00923 inventory indexes
