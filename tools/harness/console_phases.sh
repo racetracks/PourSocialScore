@@ -14,6 +14,12 @@ ALL=$(echo $(grep -o '^PH\.[a-z0-9]*' "$here/check_console.lua" | sed 's/^PH\.//
 REAL="conreal buttonqueries panehistory conpipe conslice consysq concell concap conblank colfit rowdetail"
 
 want="$*"
+# PSS_REAL_ONLY=1 and no phase named: only the REAL phases, on the real saves only (no synthetic run)
+cams=$FLAVOURS
+if [ -z "$want" ] && [ "$PSS_REAL_ONLY" = 1 ]; then
+	[ -n "$PSS_REAL_SAVES" ] || { echo "real-only needs PSS_REAL_SAVES"; exit 2; }
+	want=$REAL; cams=
+fi
 [ -z "$want" ] && want=$(echo $ALL)
 
 prime() {	# $1 camelot flag -> a save after one login
@@ -37,7 +43,7 @@ result() {	# $1 label, $2 output
 }
 
 for ph in $want; do
-	for cam in $FLAVOURS; do
+	for cam in $cams; do
 		label="$ph ($cam)"
 		out=$(env PSS_PHASE="$ph" PSS_COMPONENTS=logging PSS_FLAVOUR=$cam lua5.1 "$here/run.lua" . "$(prime "$cam")" - "$here/check_console.lua" 2>&1 | grep -v '^|cff')
 		result "$label" "$out"
