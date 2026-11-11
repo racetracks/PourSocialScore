@@ -50,7 +50,7 @@ for ph in $want; do
 	done
 	if [ -n "$PSS_REAL_SAVES" ] && echo " $REAL " | grep -q " $ph " && echo " $ALL " | grep -q " $ph "; then
 		for sv in $(find -L "$PSS_REAL_SAVES/" -name 'PourSocialScore.lua' | sort); do
-			v=$(basename "$(dirname "$sv")")
+			save_key "$sv"; v=$sk_id
 			out=$(env PSS_PHASE="$ph" PSS_COMPONENTS=logging,warehouse lua5.1 "$here/run.lua" . "$sv" - "$here/check_console.lua" 2>&1 | grep -v '^|cff')
 			result "$ph (real $v)" "$out"
 		done

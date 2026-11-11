@@ -74,4 +74,4 @@ Not started: pack the in-play chat filter log like the keep (06, Parked).
 | 3.4.0.28 | core (19 KB), _Options (398 KB), _Logging (212 KB) | First save from the one window; Camelot names with spaces |
 | 3.4.1.50 | core (6.3 KB), _Options (394 KB), _Logging (202 KB) | First save with listed players; two planted "Newer test" filters (unusable-rule check); Camelot |
 
-Folders are named by the save's `upgrade.version` (the version last run). `sh tools/harness/build_saves.sh <scratch checkout> <out dir>` concatenates each 3.x set into `<out dir>/<version>/PourSocialScore.lua`; 2.0.44 is copied as is. The split check in validate_all.sh only takes 2.0-layout saves (no `PSS_OptionsDB`).
+Folders are named by the save's `upgrade.version` (the version last run). `sh tools/harness/build_saves.sh <scratch checkout> <out dir>` concatenates each 3.x set into `<out dir>/<client>/<version>/<save>/PourSocialScore.lua` (save `main`, or a subfolder of the version folder); 2.0.44 is copied as is. The split check in validate_all.sh only takes 2.0-layout saves (no `PSS_OptionsDB`).
