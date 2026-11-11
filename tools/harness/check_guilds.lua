@@ -401,12 +401,19 @@ if hk then
 	-- (3.4.1.44, G26) the rule switched on the Chat Filters tab: the rows'
 	-- dim follows
 	M.PSS_SetManagedGroupActive(hk, not was)
+	-- a closed list draws no rows (groupOn is nil): open it for the read, restore it after
+	local open1 = M.PSS_GuildGroupOpen(hk)
+	M.PSS_SetGuildGroupOpen(hk, true)
+	V.dirty = true
 	H.RunTimers()
 	page.refresh()
 	local g1 = V.rows.groups and V.rows.groups[hk] and V.rows.groups[hk][1]
-	check(g1 and (g1.groupOn and true or false) == (not was), "rule switched on the Chat Filters tab: the rows keep the old dim")
+	check(g1 and g1.groupOn == (not was), "rule switched on the Chat Filters tab: the rows keep the old dim")
 	M.PSS_SetManagedGroupActive(hk, was)
 	H.RunTimers()
+	M.PSS_SetGuildGroupOpen(hk, open1)
+	V.dirty = true
+	page.refresh()
 	local open0 = M.PSS_GuildGroupOpen(hk)
 	gp.open._scripts.OnClick(gp.open)
 	check(M.PSS_GuildGroupOpen(hk) ~= open0, "Expand / Collapse")

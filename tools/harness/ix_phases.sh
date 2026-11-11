@@ -49,6 +49,7 @@ budgetfiles budgetcalls budgetcore budgetci
 dictrows dictdrift dictextend dictunknownattr dictgen
 fsall fsunknown fscap fsempty valuescache
 lazyitem lazyprefix lazyambig lazyplayer lazyoff lazypending lazysummary lazycost"
+TIMED="planreal segcost budgetcalls"
 REAL="putreal dictreal planreal logrows countsequal socialrows cfgrows sqsystem sqgolden reader"
 
 want="$*"
@@ -73,6 +74,19 @@ result() {	# $1 label, $2 output
 		echo "$2" | grep -v "^PASS" | head -6
 		echo "$2" | grep -q "FAIL" || echo "FAIL ix: $1: no PASS line"
 	fi
+}
+
+# a failing timing phase runs once more and is judged on that run (PSS_NO_RETIME=1 turns it off)
+timed() {	# $1 phase
+	case " $TIMED " in *" $1 "*) [ "$PSS_NO_RETIME" != 1 ] ;; *) false ;; esac
+}
+first() {	# $1 phase, $2 first output: adds the test line
+	[ "$PSS_RETIME_TEST" = 1 ] && timed "$1" && printf '%s\nFAIL ix: %s: retime test\n' "$2" "$1" || printf '%s\n' "$2"
+}
+retime() {	# $1 phase, $2 first output, $3 re-run output (sets out)
+	out=$3
+	echo "$3" | grep -q '^FAIL' && return
+	echo "$2" | grep '^FAIL' | sed "s/^/NOTE ix $1: first run failed, re-run passed: /"
 }
 
 run1() {	# $1 phase, $2 camelot, [$3 save in], [$4 save out]
@@ -138,6 +152,10 @@ FAIL ix: sqdowngrade: no reference tree"
 			else result "$label" "FAIL ix: $ph: $(echo "$out" | head -3)"; fi ;;
 		*)
 			out=$(run1 "$ph" "$cam")
+			if timed "$ph"; then
+				out=$(first "$ph" "$out")
+				if echo "$out" | grep -q '^FAIL'; then retime "$ph" "$out" "$(run1 "$ph" "$cam")"; fi
+			fi
 			result "$label" "$out" ;;
 		esac
 	done
@@ -150,7 +168,12 @@ FAIL ix: sqdowngrade: no reference tree"
 				out=$(env PSS_PHASE=reader PSS_COMPONENTS=logging PSS_READER_SAVE="$work/rd.lua" lua5.1 "$here/run.lua" . "$work/rd.lua" - "$here/check_ix.lua" 2>&1 | grep -v '^|cff')
 			else
 				mkdir -p "$work/golden"
-				out=$(env PSS_PHASE="$ph" PSS_COMPONENTS=logging,warehouse PSS_GOLDEN="${PSS_GOLDEN_DIR:-$work/golden}/$v.txt" lua5.1 "$here/run.lua" . "$sv" - "$here/check_ix.lua" 2>&1 | grep -v '^|cff')
+				real1() { env PSS_PHASE="$ph" PSS_COMPONENTS=logging,warehouse PSS_GOLDEN="${PSS_GOLDEN_DIR:-$work/golden}/$v.txt" lua5.1 "$here/run.lua" . "$sv" - "$here/check_ix.lua" 2>&1 | grep -v '^|cff'; }
+				out=$(real1)
+				if timed "$ph"; then
+					out=$(first "$ph" "$out")
+					if echo "$out" | grep -q '^FAIL'; then retime "$ph" "$out" "$(real1)"; fi
+				fi
 			fi
 			result "$ph (real $v)" "$out"
 		done

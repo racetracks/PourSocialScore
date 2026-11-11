@@ -1,6 +1,10 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.8.0.150 - Real-saves job fixes
+
+- No change in game: the test checks for old and Forever saves are corrected (issue #268).
+
 => 3.8.0.149 - Global macros
 
 - Macro Helper: five more global macros. /pss macro global create (Forever) now makes 10 account macros: Face (says a face drawn in raid marks), RaidGroup (invites Neo, converts to a raid, leaves the party), Focus (/focus), TarFocus (targets your focus) and HolyWater (uses Stratholme Holy Water on yourself).

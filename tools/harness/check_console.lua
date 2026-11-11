@@ -1557,6 +1557,7 @@ PH.concell = function()
 	end
 end
 
+-- index=log counts the log, the keep and the outbox (PSS_IxLog.lua); the log alone holds at most the cap plus the trim slack (3.8.0.150)
 PH.concap = function()
 	local H = M.PSS_History
 	if #H.Log() < H.Cap() then
@@ -1567,7 +1568,10 @@ PH.concap = function()
 		return
 	end
 	local r = M.PSS_Search("index=log | stats count", { load = true })
-	check(r and r.n == 1 and r[1][1] == H.Cap(), "count is the cap " .. H.Cap() .. ", got " .. tostring(r and r[1] and r[1][1]))
+	local want = #H.Log() + H.Waiting()
+	for _, list in pairs(H.Keep()) do want = want + #list end
+	check(r and r.n == 1 and r[1][1] == want, "count is log + keep + outbox " .. want .. ", got " .. tostring(r and r[1] and r[1][1]))
+	check(#H.Log() <= H.Cap() + math.max(20, math.floor(H.Cap() / 20)), "log over its cap and trim slack: " .. #H.Log())
 	local pg = openCon()
 	pg.qv:SetQuery("index=log | stats count"); pg.qv:Run(true)
 	local st = pg.qv.vm:Status()
