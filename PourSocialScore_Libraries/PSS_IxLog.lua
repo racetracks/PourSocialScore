@@ -86,7 +86,7 @@ local LOGFIELDS = { { "time", "t", "server time of the block or act" }, { "st", 
 	{ "label", "s", "an act's text" }, { "guild", "d", "the guild key" } }
 
 M.PSS_IxDeclare({
-	name = "log", kind = "event", owner = "social-manager", gate = "logging", residency = 1, needs = "Logging",
+	name = "log", kind = "event", textExact = true, owner = "social-manager", gate = "logging", residency = 1, needs = "Logging",
 	loaded = function() return History.Loaded() end,
 	fields = LOGFIELDS, dicts = { owner = "owner", channel = "channel", event = "evt" },
 	pushdown = { "time", "st", "owner" },
@@ -113,10 +113,23 @@ M.PSS_IxDeclare({
 			if hi and (tonumber(h.ts) or 0) > hi then return true end
 			if pd.owner and not pd.owner[h.o] then return true end
 			if stf and not stWanted(pd, stOf(h)) then return true end
-			-- skip before fill: a line that holds none of the words in any text field cannot pass
+			-- skip before fill: the haystack holds exactly the predicate's text fields as fill gives them (message, event, member, rule, label), so a line lacking a word cannot pass
 			if nw > 0 then
-				local m, ch = h.message, rawget(h, "channel")
-				local hay = lower((type(m) == "string" and m or "") .. "\1" .. (rawget(h, "event") or "") .. "\1" .. (rawget(h, "member") or "") .. "\1" .. (type(ch) == "string" and ch or "") .. "\1" .. (rawget(h, "r") or ""))
+				local act = h.o == h.cat and not ALL[h.cat]
+				local m, ev, mem = h.message, rawget(h, "event"), rawget(h, "member")
+				if issecretvalue then
+					if isSecret(m) then m = HIDDEN end
+					if isSecret(ev) then ev = nil end
+					if isSecret(mem) then mem = nil end
+				end
+				local lb = act and rawget(h, "channel") or nil
+				if type(m) ~= "string" then m = m == nil and "" or tostring(m) end
+				if type(ev) ~= "string" then ev = ev == nil and "" or tostring(ev) end
+				if type(mem) ~= "string" then mem = mem == nil and "" or tostring(mem) end
+				local ru = rawget(h, "r")
+				if type(ru) ~= "string" then ru = ru == nil and "" or tostring(ru) end
+				if type(lb) ~= "string" then lb = lb == nil and "" or tostring(lb) end
+				local hay = lower(m .. "\1" .. ev .. "\1" .. mem .. "\1" .. ru .. "\1" .. lb)
 				for k = 1, nw do if not find(hay, words[k], 1, true) then return true end end
 			end
 			n = n + 1

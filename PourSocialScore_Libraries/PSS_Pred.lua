@@ -8,6 +8,7 @@
 --                { k = "in", field, set }   { k = "like", field, value }   { k = "text", value }
 --                { k = "term", value, pos } (#keyword)   { k = "lazy", words, items, owners, ents }
 --     F = { kind = function(field) -> kind, textFields = { ... } }
+--   pred.fn(row, proven) -> bool  (proven: the scan proved every pushed top-level text word; a pushed node then returns true unread)
 --   pred:test(row) -> bool      (row keyed by field name)
 --   pred:pushdown() -> pd = { lo, hi, st = set, stPrefix, ent = set, item = set, owner = set, text = { words } }
 --   pred:forCols(cols) -> a pred over positional rows (q.where's record sets)
@@ -160,7 +161,7 @@ function compile(node, F, key)
 		if n == 0 then return function() return true end end
 		if n == 1 then return list[1] end
 		if k == "and" then
-			return function(r) for i = 1, n do if not list[i](r) then return false end end return true end
+			return function(r, proven) for i = 1, n do if not list[i](r, proven) then return false end end return true end
 		end
 		return function(r) for i = 1, n do if list[i](r) then return true end end return false end
 	elseif k == "not" then
@@ -201,6 +202,13 @@ function compile(node, F, key)
 			pat = gsub(pat, "%$$", "")
 			return function(r)
 				for i = 1, #fields do local x = r[fields[i]]; if x and find(lower(tostring(x)), pat) then return true end end
+				return false
+			end
+		end
+		if node.pushed then
+			return function(r, proven)
+				if proven then return true end
+				for i = 1, #fields do local x = r[fields[i]]; if x and find(lower(tostring(x)), w, 1, true) then return true end end
 				return false
 			end
 		end
@@ -294,6 +302,11 @@ local function byName(f) return f end
 
 function P.compile(ast, F)
 	if ast == nil then ast = { k = "and" } end
+	local top = (ast and ast.k == "and") and ast or { ast }
+	for i = 1, #top do
+		local n = top[i]
+		if n and n.k == "text" and not find(lower(tostring(n.value)), "*", 1, true) then n.pushed = true end
+	end
 	local ok, fn = pcall(compile, ast, F, byName)
 	if not ok then
 		if type(fn) == "table" then return nil, fn end
