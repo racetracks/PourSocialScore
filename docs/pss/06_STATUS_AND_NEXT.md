@@ -14,7 +14,7 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
-- 3.8.0.149: the global set's in-game checks (issue #160) in PR #273, then merge it.
+- 3.8.0.149: the global set's in-game checks (issue #160, PR #273) passed (the author, 2026-11-11); merge PR #273.
 - 3.8.0.148: in-game [`CHK-00245`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/08-14-00-Tue-epic-turing-wqqpmr/projects/managed-communities/specs/managed-communities.md#chk-00245); then merge PR #271.
 - 3.8.0.145 to 3.8.0.147: the Shaman (issue #168) and Priest (issue #166) sets' in-game checks in PR #270, then merge it.
 - 3.8.0.143: in-game `CHK-00244` passed on Forever and TBC (the author, 2026-11-10; saves `SavedVariables/3.8.0.143-forever` and `tbc/3.8.0.143` on scratch); the 3.8.0.142 checks passed (the author, 2026-11-10), `CHK-00229` parked (no guild bank); merge PR #266.

@@ -48,7 +48,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - Docs updated: `history.txt`, `docs/pss/06_STATUS_AND_NEXT.md`, this entry; scratch `docs/latest/issues/macro-sets/160-global.md`.
 - Tests run: `check_macro.lua` phases `data` and `global` (the five new macros) fail on 3.8.0.148 and pass here; `existing`, `full`, `dynicon`, `wrongclass`, `list`, `memory` updated to 10 global macros; every macro phase passes; the rules check; `validate_all.sh` with the real saves and `PSS_SAME_AS=origin/main` (issue #268). Measured: `PSS_MacroData.lua` resident 2.74 KB (2.41 KB before); `/pss macro global create` garbage 12.17 KB (stub 3.78 KB not counted).
 - Not shown by the simulation: the raid marks in /say, the invite, convert and leave, the focus commands, the Holy Water use and its tooltip icon, the icons on a bar.
-- In-game checks: in the PR (Forever): `/pss macro` lists `global (10)`; preview 10, 5 `new`; create, the account tab of `/macro`, icons; run again `already current 10`.
+- In-game checks: in the PR (Forever): `/pss macro` lists `global (10)`; preview 10, 5 `new`; create, the account tab of `/macro`, icons; run again `already current 10`. Passed (the author, 2026-11-11).
 
 ### 3.8.0.148 (from 06 Now)
 
