@@ -119,8 +119,8 @@ M.PSS_IxDeclare({
 				local m, ev, mem, ru, ch = h.message, rawget(h, "event"), rawget(h, "member"), rawget(h, "r"), rawget(h, "channel")
 				if sec then
 					if isSecret(m) then m = HIDDEN end
-					if ev ~= nil and isSecret(ev) then ev = nil end
-					if mem ~= nil and isSecret(mem) then mem = nil end
+					if isSecret(ev) then ev = nil end
+					if isSecret(mem) then mem = nil end
 				end
 				local lb = nil
 				if ch ~= nil and h.o == h.cat and not ALL[h.cat] then lb = ch end
