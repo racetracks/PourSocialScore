@@ -42,6 +42,18 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.151 - Harness: real-only mode
+
+- Branch: `claude/upbeat-planck-26jtkp`; [PR #275](https://github.com/racetracks/PourSocialScore/pull/275).
+- What changed and why: speed step S01: `PSS_REAL_ONLY=1` runs only the real-save checks of [`validate_all.sh`](https://github.com/racetracks/PourSocialScore/blob/claude/upbeat-planck-26jtkp/tools/harness/validate_all.sh), `ix_phases.sh` and `console_phases.sh`; the CI `real-saves` job uses it (`docs/pss/07_HARNESS.md`). A build because every PR owns a version (the author, 2026-11-11). No addon code changed.
+- Docs updated: `docs/pss/07_HARNESS.md`, `history.txt`, this entry, `docs/pss/06_STATUS_AND_NEXT.md`.
+- Tests run: real-only on 21 saves rc 0, 171 s (full 390 s); same real-save checks; only planreal timing differs ([results](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/11/04-34-07-Wed-upbeat-planck-26jtkp/S01/README.md)).
+- Not shown by the simulation, in-game checks: none (no game change).
+
+### 3.8.0.150 (from 06 Now)
+
+**3.8.0.150, Real-saves job fixes (branch `claude/dazzling-gates-kgpqlm`):** issue #268's causes fixed in the checks; planreal on tbc/3.8.0.142 and tbc/3.8.0.143 stays red for the search speed build; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.150 - Real-saves job fixes
 
 - Branch: `claude/dazzling-gates-kgpqlm`; [PR #274](https://github.com/racetracks/PourSocialScore/pull/274).
