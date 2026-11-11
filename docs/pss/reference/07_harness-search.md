@@ -13,4 +13,7 @@ Code: `tools/harness/bench_search.lua:1`. Lines: `CASE <case> <label> k=v` (hold
 Code: `tools/harness/search_results.lua:1`. Lines `R`, `H`, `DEL`, `R2`; the first entity other than the current character is deleted.
 
 ## Runner
-Code: `tools/harness/search_same.sh:1`. Last lines: `same: n saves, d differ`, nine `ADMIT`, `REPRO yes|no` (a tbc or forever `TERM` or `TYPED` `max_ms` of 200 or more).
+Code: `tools/harness/search_same.sh:1`. Last lines: `same: n saves, d differ`, nine `ADMIT`, `REPRO yes|no` (a tbc or forever `TERM` or `TYPED` `max_ms` of 200 or more). `tools/harness/search_same.sh:33` also compares the `L` lines of `tools/harness/log_results.lua`; a difference prints `DIFF log: <label>`, no `L` lines `FAIL log: <label>`.
+
+## Log results
+Code: `tools/harness/log_results.lua:1`. Command: `lua5.1 tools/harness/run.lua . <save|-> - tools/harness/log_results.lua`. Environment: `PSS_COMPONENTS=logging,warehouse`. Lines `L <q> n=<rows>` and `L <q> <i> <col>...` (tab-separated, `set.cols` order) for seven queries.
