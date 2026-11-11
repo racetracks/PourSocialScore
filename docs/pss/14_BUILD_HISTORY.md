@@ -41,6 +41,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.150 - Real-saves job fixes
+
+- Branch: `claude/dazzling-gates-kgpqlm`; PR: none yet.
+- What changed and why: (written in the PR)
+- Docs updated: (written in the PR)
+- Tests run: (written in the PR)
+- Not shown by the simulation: (written in the PR)
+- In-game checks: (written in the PR)
+
+### 3.8.0.149 (from 06 Now)
+
+**3.8.0.149, Global macros (branch `claude/great-pascal-ja1q5e`, PR #273):** Macro Helper `global` set gains Face, RaidGroup, Focus, TarFocus, HolyWater (issue #160 of umbrella #159), data and its harness phases only; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.149 - Global macros
 
 - Branch: `claude/great-pascal-ja1q5e`; [PR #273](https://github.com/racetracks/PourSocialScore/pull/273).
