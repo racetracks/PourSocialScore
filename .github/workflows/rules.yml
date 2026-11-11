@@ -173,6 +173,6 @@ jobs:
         run: |
           SCRATCH_TOKEN="$T" sh tools/ci_scratch.sh "$RUNNER_TEMP/scratch"
           sh tools/harness/build_saves.sh "$RUNNER_TEMP/scratch" "$RUNNER_TEMP/saves"
-      - name: Full harness on the real saves
+      - name: Real-save checks (real-only)
         if: steps.t.outputs.have == 'true'
-        run: PSS_GATE_STRICT=1 PSS_SCRATCH="$RUNNER_TEMP/scratch" PSS_REAL_SAVES="$RUNNER_TEMP/saves" PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh
+        run: PSS_REAL_ONLY=1 PSS_GATE_STRICT=1 PSS_SCRATCH="$RUNNER_TEMP/scratch" PSS_REAL_SAVES="$RUNNER_TEMP/saves" PSS_SPARSE_AS="${{ vars.PSS_SPARSE_AS }}" sh tools/harness/validate_all.sh

@@ -54,6 +54,12 @@ REAL="putreal dictreal planreal logrows countsequal socialrows cfgrows sqsystem 
 
 want="$*"
 [ -n "$IX_ONLY" ] && want="$IX_ONLY"
+# PSS_REAL_ONLY=1 and no phase named: only the REAL phases, on the real saves only (no synthetic run)
+cams=$FLAVOURS
+if [ -z "$want" ] && [ "$PSS_REAL_ONLY" = 1 ]; then
+	[ -n "$PSS_REAL_SAVES" ] || { echo "real-only needs PSS_REAL_SAVES"; exit 2; }
+	want=$REAL; cams=
+fi
 [ -z "$want" ] && want=$(echo $ALL)
 
 prime() {	# $1 components, $2 camelot flag, $3 seed -> a save after one login
@@ -96,7 +102,7 @@ run1() {	# $1 phase, $2 camelot, [$3 save in], [$4 save out]
 }
 
 for ph in $want; do
-	for cam in $FLAVOURS; do
+	for cam in $cams; do
 		label="$ph ($cam)"
 		case "$ph" in
 		psshot)
