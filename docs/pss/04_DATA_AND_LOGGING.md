@@ -29,7 +29,7 @@ That load is the moment waiting lines move into the log. **Lines move to the log
 - `M.PSS_LoadLogging()` order: PrepareSavedData -> UnpackSaved (rebuild from the grouped save) -> KeepToLog (one-time move back, flag `logAllV1`) -> ApplyPurge (the `purge` marks' lines go, the marks are cleared) -> outbox into the log -> CapKeep -> Trim -> Tidy.
 
 ## 4. The log and the keep
-- **blockLog:** every blocked line (`History.LOG_ALL = true`), the newest `History.Cap()` (2000 by default). Players, guild members, chat filters, world and guild chat.
+- **blockLog:** every blocked line (`History.LOG_ALL = true`), the newest `History.Cap()` (2000 by default). Players, guild members, chat filters, world and guild chat. A write trims it to the cap at once, so it never holds more (3.8.0.150; before, up to 5 % over).
 - **blockKeep:** when a listed player's or guild member's line is trimmed off the log, their newest 10 text lines (whisper, party, raid, raid warning, BG), 5 party invites and 5 guild invites move here. World and guild chat is let go. `KEEP_TOTAL = 2000` lines across everyone, oldest first, trimmed in 5% batches. A line is in exactly one place.
 - In play: the log is an array of entry tables; the keep is packed per person (`"<w|p|i|g><ts>\t<event>\t<channel>\t<message>"`; `KEPT_EVENTS` is append-only).
 
