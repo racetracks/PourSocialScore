@@ -48,7 +48,12 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - Rows: J1H: harness `jrn_phases.sh`, `check_jrn.lua`; J1F: fixture `jrn_day.lua`, 23 lines; J1T: two new libraries `PSS_JrnIx.lua`, `PSS_WhHist.lua`, Options rows, Schema; J1C: capabilities in `PSS_Flavour.lua`; J1D: `M.PSS_OptCapOn`, `M.PSS_OptSetBool`, refusal and hidden rows; J1I: journal index `PSS_JrnIx.lua`; J1W: warehouse history `PSS_WhHist.lua`, `PSS_WhStore.lua`, `PSS_Money.lua`, `PSS_Seg.lua`.
 - Tests: `jrn_phases.sh` PASS retail, forever, tbc for areas caps, opts, index, whh (real: Retail SKIP); mutants caps 6/6, opts 3/3, index 3/3, whh 3/3.
 - In-game (Client, Looks): CHK-00210 Forever, TBC, MCD; CHK-00211 Forever, TBC, any; CHK-00154 Forever, TBC, any; CHK-00250 Forever, TBC, any (confirmation only; Retail: load and version detection only); CHK-00251 dropped (DEC-00456).
-- Docs updated: `docs/pss/02_RULES.md` (section 3 Warehouse bullet, section 10.3 journal monitors bullet), `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md`, `history.txt`, `versions.json`, TOCs.
+- J1X1 (Q1, D19): the 4 Retail-only caps and options `jrnMonitorCrafting`, `jrnMonitorTradingPost`, `jrnMonitorTokens`, `jrnMonitorMissions` dropped (flv memory gate 2 KB).
+- J1X2 to J1X5 (Q2 to Q4, D22, D23): check expectations changed: components label `Journal`, ixlist 25, options count only cap-on rows, lazyWorld removes the real `jrn` and `whh` before planting (`tools/harness/check_ix.lua:2067`).
+- The whh trigger rows `whh.net`, `whh.logout` register once in `M.PSS_WhStartMore` with the Journal on (`PourSocialScore_Libraries/PSS_WhHist.lua`).
+- J1X6: `PSS_DataDictCheck` (PourSocialScore_Libraries/PSS_IxCatalog.lua:100-108) makes no per-field key string; PSS_IxCfg.lua 80.78 to 16.78 KB (string-table doubling, REPORT.md)
+- Known issue: the ix budgetfiles gate charges Lua's string-table doubling to whichever file crosses it (A10 REPORT, open issue).
+- Docs updated: `docs/pss/02_RULES.md` (section 3 Warehouse bullet, section 10.3 journal monitors bullet), `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md`, `history.txt`, `versions.json`, TOCs.; `history.txt`; scratch `16_02_Data_Dictionary.md`
 
 ### 3.8.0.152 (from 06 Now)
 
