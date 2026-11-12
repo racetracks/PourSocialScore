@@ -36,7 +36,6 @@ local NOT_INDEXED = {
 	["counts.filterPrivateTotal"] = "old counters read once by the upgrade",
 	["counts.filterBlockedLast"] = "the last block of each filter, shown on its row (filters index)",
 	["counts.guildRuleCountsV1"] = "a one-time move marker",
-	["wh.jrn"] = "reserved for the journal (phase C declares its index)",
 	["owned.bagProfileOf"] = "reserved for the bag manager (phase E declares its index)",
 }
 
@@ -87,7 +86,7 @@ for _, k in ipairs(list) do
 	end
 end
 -- shrink only: every NOT_INDEXED row names a key that is saved and not indexed
-local APPROVED_ROWS = 34
+local APPROVED_ROWS = 33
 local nrows = 0
 for k in pairs(NOT_INDEXED) do
 	nrows = nrows + 1
