@@ -41,6 +41,7 @@ return function(stub)
 		f.reagentBag = client ~= "era"
 		f.keyring = client == "era"
 		f.modernAH = client == "retail"
+		if client == "tbc" then f.tabs, f.warband, f.reagentBag, f.modernAH, f.void, f.keyring = false, false, false, false, false, true end
 		f.reagentBank = false
 		f.void = client == "retail"
 		return f
@@ -111,6 +112,7 @@ return function(stub)
 	function stub.SeedWorld(spec)
 		spec = spec or {}
 		local f = flags(spec.client or (camelotEnv and "camelot" or "retail"))
+		if spec.ah then f.modernAH = (spec.ah == "modern") end
 		W.flags = f
 		W.player = spec.player or { name = "Tester", realm = camelotEnv and "ClassicBetaPvP" or "Realm", faction = "Alliance", class = "MAGE", race = "Human", sex = 2 }
 		W.money, W.accountMoney = spec.money or 0, spec.accountMoney or 0

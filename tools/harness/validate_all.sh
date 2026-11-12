@@ -306,6 +306,7 @@ fi
 # every save when PSS_REAL_SAVES is set (ix_phases.sh)
 section "Spyglass engine (ix_phases.sh)"
 sh "$here/ix_phases.sh" || fail=1
+sh "$here/jrn_phases.sh" || fail=1
 
 section "Spyglass console (console_phases.sh)"
 sh "$here/console_phases.sh" || fail=1
