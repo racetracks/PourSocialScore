@@ -8,14 +8,12 @@ local on = false
 local realOn = M.PSS_On
 M.PSS_On = function(n) if n == "journal" then return on end return realOn(n) end
 PSS_WarehouseDB = PSS_WarehouseDB or {}
-local queued, calls = nil, 0
-local realTimer = C_Timer
-C_Timer = { After = function(_, f) calls = calls + 1; queued = f end }
 local function reset(gate)
 	PSS_WarehouseDB.whh = nil
 	if M.PSS_WhHistStore then M.PSS_WhHistStore:drop() end
 	M.PSS_IxHot("whh", true)
-	queued, calls, on = nil, 0, gate
+	on = gate
+	if gate then M.PSS_WatchStart() end
 	M.PSS_SetOpt("jrnMonths", "global", 13)
 end
 local function set(...)
@@ -44,8 +42,7 @@ if not M.PSS_Ix("whh") then return fail("index whh not declared") end
 reset(true)
 M.PSS_WhHistDelta(1, "a0", set(), set({ 1, "a0", 1, 100, 5, "" }))
 M.PSS_WhHistDelta(1, "a0", set({ 1, "a0", 1, 200, 5, "" }), set({ 1, "a0", 1, 200, 2, "" }))
-if not queued then return fail("whhdelta: no settle queued") end
-queued()
+H.Fire("BAG_UPDATE_DELAYED")
 local r = rows()
 if #r ~= 2 then return fail("whhdelta: expected 2 lines, got " .. #r) end
 local by = {}
@@ -57,8 +54,7 @@ if not by[200] or by[200].delta ~= -3 then return fail("whhdelta: item 200 delta
 reset(true)
 M.PSS_WhHistDelta(1, "a0", set({ 1, "a0", 1, 100, 5, "" }), set())
 M.PSS_WhHistDelta(1, "b0", set(), set({ 1, "b0", 1, 100, 5, "" }))
-if calls ~= 1 then return fail("whhmove: settles queued " .. calls) end
-queued()
+H.Fire("BAG_UPDATE_DELAYED")
 if #rows() ~= 0 then return fail("whhmove: a move wrote " .. #rows() .. " lines") end
 
 -- whhgold: the last value of an hour, one line per hour
@@ -116,7 +112,8 @@ reset(false)
 M.PSS_WhHistDelta(1, "a0", set(), set({ 1, "a0", 1, 100, 5, "" }))
 M.PSS_WhHistGold(1, 5)
 M.PSS_IxPut("whh", "whh.d", { ent = 1, item = 100, delta = 1, where = "a" })
-if queued or PSS_WarehouseDB.whh ~= nil or #M.PSS_IxHot("whh") ~= 0 then return fail("whhoff: something was written") end
+H.Fire("BAG_UPDATE_DELAYED")
+if PSS_WarehouseDB.whh ~= nil or #M.PSS_IxHot("whh") ~= 0 then return fail("whhoff: something was written") end
 
 -- whhreload: sealed lines read the same after the runtime store is dropped
 reset(true)
@@ -128,7 +125,6 @@ M.PSS_WhHistStore:drop()
 local after = rows()
 if #before ~= 1 or #after ~= 1 or after[1].delta ~= 4 or after[1].item ~= 100 then return fail("whhreload: " .. #before .. "/" .. #after) end
 
-C_Timer = realTimer
 reset(false)
 M.PSS_On = realOn
 print("PASS whh " .. M.PSS_FLV.flavour)

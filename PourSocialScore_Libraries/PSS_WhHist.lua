@@ -12,7 +12,7 @@ local addon = PourSocialScore_NS
 local M = addon.M
 
 local type, pairs, ipairs, tostring = type, pairs, ipairs, tostring
-local floor, date = math.floor, os.date
+local floor, date = math.floor, date
 local gmatch, sub = string.gmatch, string.sub
 local concat, sort = table.concat, table.sort
 
@@ -99,7 +99,7 @@ end
 ------------------------------------------------------------------------
 -- Items: nets per entity and settle window
 ------------------------------------------------------------------------
-local net, where, open = {}, {}, false
+local net, where = {}, {}
 
 local function add(n, w, set, sign, cont)
 	if type(set) ~= "table" then return end
@@ -113,7 +113,6 @@ local function add(n, w, set, sign, cont)
 end
 
 local function flushNets()
-	open = false
 	if not M.PSS_On("journal") then net, where = {}, {}; return end
 	for ent, n in pairs(net) do
 		for ref, d in pairs(n) do
@@ -128,10 +127,6 @@ function M.PSS_WhHistDelta(ent, cont, old, new)
 	local n, w = net[ent], where[ent]
 	if not n then n, w = {}, {}; net[ent] = n; where[ent] = w end
 	add(n, w, old, -1, cont); add(n, w, new, 1, cont)
-	if not open then
-		open = true
-		if C_Timer and C_Timer.After then C_Timer.After(0, flushNets) else flushNets() end
-	end
 end
 
 ------------------------------------------------------------------------
@@ -153,8 +148,13 @@ function M.PSS_WhHistGold(ent, copper)
 end
 
 if M.PSS_Provide and M.PSS_Trigger then
+	M.PSS_Provide("whh.flush", function()
+		flushNets()
+		return { cols = { "n" }, n = 0 }
+	end)
+	M.PSS_Trigger({ id = "whh.net", gate = "journal", on = { "BAG_UPDATE_DELAYED" }, settle = "now", run = "whh.flush" })
 	M.PSS_Provide("whh.logout", function()
-		if open then flushNets() end
+		flushNets()
 		if M.PSS_On("journal") then
 			for ent, p in pairs(pend) do putGold(ent, p) end
 			pend = {}
