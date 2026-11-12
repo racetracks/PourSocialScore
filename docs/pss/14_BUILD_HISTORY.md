@@ -44,7 +44,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.9.0.154 - Journal data
 
-- Branch: `claude/zealous-brown-c4kxdk`; PR: none yet.
+- Branch: `claude/zealous-brown-c4kxdk`; [PR #278](https://github.com/racetracks/PourSocialScore/pull/278).
 - Rows: J1H: harness `jrn_phases.sh`, `check_jrn.lua`; J1F: fixture `jrn_day.lua`, 23 lines; J1T: two new libraries `PSS_JrnIx.lua`, `PSS_WhHist.lua`, Options rows, Schema; J1C: capabilities in `PSS_Flavour.lua`; J1D: `M.PSS_OptCapOn`, `M.PSS_OptSetBool`, refusal and hidden rows; J1I: journal index `PSS_JrnIx.lua`; J1W: warehouse history `PSS_WhHist.lua`, `PSS_WhStore.lua`, `PSS_Money.lua`, `PSS_Seg.lua`.
 - Tests: `jrn_phases.sh` PASS retail, forever, tbc for areas caps, opts, index, whh (real: Retail SKIP); mutants caps 6/6, opts 3/3, index 3/3, whh 3/3.
 - In-game (Client, Looks): CHK-00210 Forever, TBC, MCD; CHK-00211 Forever, TBC, any; CHK-00154 Forever, TBC, any; CHK-00250 Forever, TBC, any (confirmation only; Retail: load and version detection only); CHK-00251 dropped (DEC-00456).
