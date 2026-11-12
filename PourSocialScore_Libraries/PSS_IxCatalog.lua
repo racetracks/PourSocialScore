@@ -118,17 +118,19 @@ end
 local ext = {}		-- rows added by M.PSS_DataDictExtend, [index.field] = row
 local built
 
+local function addIndex(rows, name)
+	local x = M.PSS_Ix(name)
+	local pd = asSet(x.pushdown)
+	for _, f in ipairs(x.fields) do
+		local key = name .. "." .. f[1]
+		rows[key] = { index = name, field = f[1], kind = f[2], doc = f[3] or "", values = valuesOf(VALUES[key]), unit = UNITS[key],
+			source = x.owner, pushdown = pd[f[1]] and true or nil, join = x.dicts and x.dicts[f[1]] or nil, v = M.PSS_DATADICT_V }
+	end
+end
+
 local function build()
 	local rows = {}
-	for _, name in ipairs(M.PSS_IxNames()) do
-		local x = M.PSS_Ix(name)
-		local pd = asSet(x.pushdown)
-		for _, f in ipairs(x.fields) do
-			local key = name .. "." .. f[1]
-			rows[key] = { index = name, field = f[1], kind = f[2], doc = f[3] or "", values = valuesOf(VALUES[key]), unit = UNITS[key],
-				source = x.owner, pushdown = pd[f[1]] and true or nil, join = x.dicts and x.dicts[f[1]] or nil, v = M.PSS_DATADICT_V }
-		end
-	end
+	for _, name in ipairs(M.PSS_IxNames()) do addIndex(rows, name) end
 	for k, r in pairs(ext) do rows[k] = r end
 	built = rows
 	return rows
@@ -136,7 +138,13 @@ end
 
 M.PSS_DataDict = setmetatable({}, { __index = function(_, k) return (built or build())[k] end })
 function M.PSS_DataDictRows() return built or build() end
-function M.PSS_DataDictDrop() built = nil end
+-- an index declared after the rows were built: its rows join them (nothing is rebuilt, nothing built before the first read)
+function M.PSS_DataDictDrop(name)
+	if not built then return end
+	if not name or not M.PSS_Ix(name) then built = nil return end
+	addIndex(built, name)
+	for k, r in pairs(ext) do if r.index == name then built[k] = r end end
+end
 
 -- the rows of some indexes as a { field = row } table (fieldsummary's closed lists)
 function M.PSS_DataDictFor(names)
@@ -152,8 +160,7 @@ local KNOWN = { index = true, st = true, field = true, kind = true, values = tru
 
 function M.PSS_DataDictExtend(owner, list)
 	if type(list) ~= "table" then return nil, "arg: a list of rows" end
-	local rows = M.PSS_DataDictRows()
-	local add = {}
+	local add = {}		-- (the dictionary is not built here: a row is checked against the index's own fields)
 	for i, r in ipairs(list) do
 		local why
 		local x = type(r) == "table" and M.PSS_Ix(r.index)
@@ -161,7 +168,11 @@ function M.PSS_DataDictExtend(owner, list)
 		elseif x.owner ~= owner then why = "arg: " .. tostring(owner) .. " does not own the index " .. r.index
 		elseif not M.PSS_IxKinds[r.kind] then why = "arg: row " .. i .. " has no known kind"
 		else
-			local old = rows[r.index .. "." .. r.field]
+			local old = built and built[r.index .. "." .. r.field]
+			if not old then
+				for _, f in ipairs(x.fields) do if f[1] == r.field then old = { kind = f[2] } break end end
+				old = old or ext[r.index .. "." .. r.field]
+			end
 			if old and old.kind ~= r.kind then why = "arg: " .. r.index .. "." .. r.field .. " exists with kind " .. old.kind end
 		end
 		if why then
@@ -177,7 +188,7 @@ function M.PSS_DataDictExtend(owner, list)
 		row.values = valuesOf(row.values)
 		row.v = row.v or M.PSS_DATADICT_V
 		ext[key] = row
-		rows[key] = row
+		if built then built[key] = row end
 	end
 	return true
 end

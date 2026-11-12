@@ -157,7 +157,6 @@ if M.PSS_Provide and M.PSS_Trigger then
 		flushNets()
 		return { cols = { "n" }, n = 0 }
 	end)
-	M.PSS_Trigger({ id = "whh.net", gate = "journal", on = { "BAG_UPDATE_DELAYED" }, settle = "now", run = "whh.flush" })
 	M.PSS_Provide("whh.logout", function()
 		flushNets()
 		if M.PSS_On("journal") then
@@ -167,6 +166,16 @@ if M.PSS_Provide and M.PSS_Trigger then
 		end
 		return { cols = { "n" }, n = 0 }
 	end)
+end
+
+-- the rows are made with the warehouse start chain (the pattern of PSS_Money.lua), only with the Journal on
+local prevStart = M.PSS_WhStartMore
+local started
+function M.PSS_WhStartMore(warehouse)
+	if prevStart then prevStart(warehouse) end
+	if not warehouse or started or not M.PSS_On("journal") or not M.PSS_Trigger then return end
+	started = true
+	M.PSS_Trigger({ id = "whh.net", gate = "journal", on = { "BAG_UPDATE_DELAYED" }, settle = "now", run = "whh.flush" })
 	M.PSS_Trigger({ id = "whh.logout", gate = "journal", on = { "PLAYER_LOGOUT" }, settle = "now", run = "whh.logout" })
 end
 

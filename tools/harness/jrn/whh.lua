@@ -13,7 +13,7 @@ local function reset(gate)
 	if M.PSS_WhHistStore then M.PSS_WhHistStore:drop() end
 	M.PSS_IxHot("whh", true)
 	on = gate
-	if gate then M.PSS_WatchStart() end
+	if gate then M.PSS_WhStartMore(true); M.PSS_WatchStart() end
 	M.PSS_SetOpt("jrnMonths", "global", 13)
 end
 local function set(...)
