@@ -6,12 +6,13 @@
 here=$(dirname "$0")
 src=$(cd "$here/../.." && pwd)
 tab=$(mktemp)
-lua5.1 -e 'local p = io.popen("ls \"" .. arg[1] .. "/jrn\" 2>/dev/null")
+JRN_HERE="$here" lua5.1 -e 'local base = os.getenv("JRN_HERE")
+	local p = io.popen("ls \"" .. base .. "/jrn\" 2>/dev/null")
 	for n in p:lines() do
 		if n:match("_mutants%.lua$") then
-			for _, m in ipairs(dofile(arg[1] .. "/jrn/" .. n)) do io.write(m[1], "\t", m[2], "\t", m[3], "\t", m[4], "\t", m[5], "\n") end
+			for _, m in ipairs(dofile(base .. "/jrn/" .. n)) do io.write(m[1], "\t", m[2], "\t", m[3], "\t", m[4], "\t", m[5], "\n") end
 		end
-	end' "$here" > "$tab"
+	end' > "$tab"
 want="$*"
 killed=0; survived=0; invalid=0
 while IFS="	" read -r id file from to phases; do

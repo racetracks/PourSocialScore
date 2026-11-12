@@ -61,6 +61,14 @@ local LEVELS = {
 	secretValues = "ssooo",
 	guildBank = "sssos",
 	friendsAnchor = "oosoo",
+	modernAH = "ssoos",
+	legacyAH = "oosso",
+	mailInvoice = "sssss",
+	ahMailSubjects = "sssss",
+	craftingOrders = "soooo",
+	tradingPost = "soooo",
+	wowToken = "sooos",
+	missions = "soooo",
 }
 local col = (flavour == "retail" and 1) or (flavour == "forever" and 2) or (flavour == "tbc" and 3)
 	or (flavour == "era" and 4) or (flavour == "mists" and 5)
@@ -74,6 +82,14 @@ local PROBES = {
 	cContainer = function() return C_Container end,
 	guildBank = function() return GetGuildBankItemInfo end,
 	friendsAnchor = function() return FriendsFrame and FriendsFrame.NineSlice end,
+	modernAH = function() return C_AuctionHouse and C_AuctionHouse.GetNumOwnedAuctions end,
+	legacyAH = function() return GetNumAuctionItems and GetAuctionItemInfo end,
+	mailInvoice = function() return GetInboxInvoiceInfo end,
+	ahMailSubjects = function() return AUCTION_EXPIRED_MAIL_SUBJECT and AUCTION_REMOVED_MAIL_SUBJECT end,
+	craftingOrders = function() return C_CraftingOrders end,
+	tradingPost = function() return C_PerksProgram end,
+	wowToken = function() return C_WowTokenPublic end,
+	missions = function() return C_Garrison end,
 }
 
 for cap, row in pairs(LEVELS) do

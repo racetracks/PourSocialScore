@@ -430,10 +430,10 @@ end
 CANCEL, OKAY, ACCEPT, YES, NO, UNKNOWN, CLOSE = "Cancel", "Okay", "Accept", "Yes", "No", "Unknown", "Close"
 -- one flavour table (tests#stub-per-flavour): PSS_FLAVOUR retail|forever|tbc|era; PSS_CAMELOT=1 is the alias of forever
 local FLAVOURS = {
-	retail = { pid = 1, ver = "12.0.7", iface = 120007, realm = "Realm", secret = true },
-	forever = { pid = 18, ver = "1.0.0", iface = 16001, realm = "ClassicBetaPvP", secret = true },
-	tbc = { pid = 5, ver = "2.5.5", iface = 20506, realm = "Realm" },
-	era = { pid = 2, ver = "1.15.8", iface = 11509, realm = "Realm" },
+	retail = { pid = 1, ver = "12.0.7", iface = 120007, realm = "Realm", secret = true, ah = "modern", retailOnly = true },
+	forever = { pid = 18, ver = "1.0.0", iface = 16001, realm = "ClassicBetaPvP", secret = true, ah = "modern" },
+	tbc = { pid = 5, ver = "2.5.5", iface = 20506, realm = "Realm", ah = "legacy" },
+	era = { pid = 2, ver = "1.15.8", iface = 11509, realm = "Realm", ah = "legacy" },
 }
 local envFlavour, envCamelot = os.getenv("PSS_FLAVOUR"), os.getenv("PSS_CAMELOT")
 if envFlavour == "" then envFlavour = nil end
@@ -442,6 +442,20 @@ if envCamelot == "1" and envFlavour and envFlavour ~= "forever" then error("PSS_
 local flavour = envFlavour or (envCamelot == "1" and "forever") or "retail"
 stub.flavour = flavour
 local FL = FLAVOURS[flavour]
+if os.getenv("PSS_JRN") == "1" then
+	if FL.ah == "modern" then
+		C_AuctionHouse = { GetNumOwnedAuctions = function() return 0 end, GetOwnedAuctionInfo = function() return nil end }
+	else
+		GetNumAuctionItems = function() return 0 end
+		GetAuctionItemInfo = function() return nil end
+	end
+	if FL.retailOnly then
+		C_CraftingOrders, C_PerksProgram, C_WowTokenPublic, C_Garrison = {}, {}, {}, {}
+	end
+	GetInboxInvoiceInfo = function() return nil end
+	AUCTION_EXPIRED_MAIL_SUBJECT = "Auction expired: %s"
+	AUCTION_REMOVED_MAIL_SUBJECT = "Auction cancelled: %s"
+end
 -- TBC's PanelTopTabButtonTemplate inherits TabButtonTemplate (selected art is *Disabled); Retail has no TabButtonTemplate
 FLAVOUR_PARTS = { tbc = { PanelTopTabButtonTemplate = TEMPLATE_PARTS.TabButtonTemplate } }
 ABSENT_TEMPLATES = { retail = { TabButtonTemplate = true } }
