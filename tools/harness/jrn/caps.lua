@@ -2,7 +2,6 @@
 local M = PourSocialScore_NS.M
 local LET = {
 	modernAH = "ssoos", legacyAH = "oosso", mailInvoice = "sssss", ahMailSubjects = "sssss",
-	craftingOrders = "soooo", tradingPost = "soooo", wowToken = "sooos", missions = "soooo",
 }
 local flv = M.PSS_FLV.flavour
 local col = ({ retail = 1, forever = 2, tbc = 3, era = 4, mists = 5 })[flv]
