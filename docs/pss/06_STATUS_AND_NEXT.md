@@ -1,11 +1,11 @@
-# Status and next step (release 3.7.0.114; built 3.8.0.116 to 3.8.0.120, 3.8.0.123 to 3.8.0.135, 3.8.0.139 to 3.8.0.144, 3.8.0.148 to 3.8.0.152)
+# Status and next step (release 3.7.0.114; built 3.8.0.116 to 3.8.0.120, 3.8.0.123 to 3.8.0.135, 3.8.0.139 to 3.8.0.144, 3.8.0.148 to 3.8.0.152, 3.9.0.154)
 
 Purpose: current status and next step of PSS · owner coordinator · status current, updated every PR · related docs/pss/14_BUILD_HISTORY.md, docs/pss/01_HANDOVER.md
 
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. What each build changed and why: `docs/pss/14_BUILD_HISTORY.md` (written at every build, not loaded at start). Earlier builds: `history.txt`, `versions.json` and the build records on scratch (`16_02_Build_Ledger.md` (`scratch:documents/features/addon-helper/16_Registries/16_02_Build_Ledger.md`)). History: `reference/06_status-history-3.6.0.69-to-3.8.0.118.md`, `reference/06_status-history-to-3.4.1.30.md` and `reference/combined-3.4.1.52/`.
 
 ## Now
-- **3.8.0.152, Harness: sharded real saves (branch `claude/festive-wozniak-3uoj74`, PR #276):** several saves per version, `shard_saves.sh` and `fail_summary.sh`; the CI `real-saves` check runs sharded by save (speed steps S02, D02); no addon code changed; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+- **3.9.0.154, Journal data (branch `claude/zealous-brown-c4kxdk`, PR: none yet):** Journal data: capabilities, Journal option, journal index and warehouse history (rows J1H to J1W); the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
 - **Harness fix, no build (from PR #267, merged into PR #269):** `tools/harness/build_saves.sh` puts a client folder's later saves under their client again (`docs/pss/07_HARNESS.md#changelog`); issue #268 (old saves fail real-saves) stays open.
 - **Last code build: 3.8.0.118, Spyglass phase A with its fixes 3.8.0.117 and 3.8.0.118 (PR #238, merged; the author's re-test passed 2026-10-18).** What each build did: the status history (`docs/pss/reference/06_status-history-3.6.0.69-to-3.8.0.118.md`), `history.txt` and `versions.json`.
 - **Next: the search speed fix waits on a reproduced freeze; the paused Spyglass builds follow, Journal after; the Forever re-run build goes first after 2026-11-04.** Plan: [spyglass-journal plan](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/10/22/14-41-37-Thu-stoic-gates-r93b6b/projects/spyglass-journal/specs/plan.md#3-build-plan).
@@ -14,6 +14,7 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
+- 3.9.0.154: in-game [`CHK-00210`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/10/22/14-41-37-Thu-stoic-gates-r93b6b/projects/spyglass-journal/specs/tests.md#4-in-game-checks-per-build), [`CHK-00211`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/10/22/14-41-37-Thu-stoic-gates-r93b6b/projects/spyglass-journal/specs/tests.md#4-in-game-checks-per-build), [`CHK-00154`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/journal-helper/15_Tests.md#chk-00154), [`CHK-00250`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/projects/journal/specs/tests.md#chk-00250) on Forever, TBC (Retail: load and version detection only); CHK-00250 is confirmation only.
 - 3.8.0.150: in-game [`CHK-00254`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00254) (step 3); then merge the PR.
 - 3.8.0.149: the global set's in-game checks (issue #160, PR #273) passed (the author, 2026-11-11); merge PR #273.
 - 3.8.0.148: in-game [`CHK-00245`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/08-14-00-Tue-epic-turing-wqqpmr/projects/managed-communities/specs/managed-communities.md#chk-00245); then merge PR #271.

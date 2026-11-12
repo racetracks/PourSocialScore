@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.9.0.154 - Journal data
+
+- Journal data (off by default): a new Journal option in Options, shown only on clients that support it and refused while the Warehouse is off.
+- A journal index and a warehouse history store, written only while Journal is on.
+- No other change in game.
+
 => 3.8.0.152 - Harness: sharded real saves
 
 - No change in game: the real-save test run is split across several runners, each taking a share of the saves, so it finishes sooner.

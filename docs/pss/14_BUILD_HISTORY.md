@@ -42,6 +42,18 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.9.0.154 - Journal data
+
+- Branch: `claude/zealous-brown-c4kxdk`; PR: none yet.
+- Rows: J1H: harness `jrn_phases.sh`, `check_jrn.lua`; J1F: fixture `jrn_day.lua`, 23 lines; J1T: two new libraries `PSS_JrnIx.lua`, `PSS_WhHist.lua`, Options rows, Schema; J1C: capabilities in `PSS_Flavour.lua`; J1D: `M.PSS_OptCapOn`, `M.PSS_OptSetBool`, refusal and hidden rows; J1I: journal index `PSS_JrnIx.lua`; J1W: warehouse history `PSS_WhHist.lua`, `PSS_WhStore.lua`, `PSS_Money.lua`, `PSS_Seg.lua`.
+- Tests: `jrn_phases.sh` PASS retail, forever, tbc for areas caps, opts, index, whh (real: Retail SKIP); mutants caps 6/6, opts 3/3, index 3/3, whh 3/3.
+- In-game (Client, Looks): CHK-00210 Forever, TBC, MCD; CHK-00211 Forever, TBC, any; CHK-00154 Forever, TBC, any; CHK-00250 Forever, TBC, any (confirmation only; Retail: load and version detection only); CHK-00251 dropped (DEC-00456).
+- Docs updated: `docs/pss/02_RULES.md` (section 3 Warehouse bullet, section 10.3 journal monitors bullet), `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md`, `history.txt`, `versions.json`, TOCs.
+
+### 3.8.0.152 (from 06 Now)
+
+**3.8.0.152, Harness: sharded real saves (branch `claude/festive-wozniak-3uoj74`, PR #276):** several saves per version, `shard_saves.sh` and `fail_summary.sh`; the CI `real-saves` check runs sharded by save (speed steps S02, D02); no addon code changed; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.152 - Harness: sharded real saves
 
 - Branch: `claude/festive-wozniak-3uoj74`; [PR #276](https://github.com/racetracks/PourSocialScore/pull/276).
