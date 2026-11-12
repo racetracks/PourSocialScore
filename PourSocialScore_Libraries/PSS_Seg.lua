@@ -249,6 +249,18 @@ function S:each(lo, hi, want, fn)
 	return read
 end
 
+-- the open part's lines replaced by fn(lines, base) (a list in the same encoding); closed segments stay as they are
+function S:rewriteOpen(fn)
+	local T = self:tbl()
+	if not T or newer(T) or type(T.open) ~= "table" then return nil end
+	local out = fn(T.open, T.openLo or 0)
+	if type(out) ~= "table" then return nil end
+	T.open = out
+	if #out == 0 then T.openLo = nil end
+	self.v = self.v + 1
+	return true
+end
+
 function S:pin(key, lines)
 	local T = self:tbl(true)
 	if not T or newer(T) then return nil, "newer" end
