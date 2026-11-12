@@ -7,15 +7,17 @@ here=$(dirname "$0")
 src=$(cd "$here/../.." && pwd)
 tab=$(mktemp)
 JRN_HERE="$here" lua5.1 -e 'local base = os.getenv("JRN_HERE")
+	local function enc(s) return (s:gsub("\\", "\\\\"):gsub("\n", "\\n"):gsub("\t", "\\t")) end
 	local p = io.popen("ls \"" .. base .. "/jrn\" 2>/dev/null")
 	for n in p:lines() do
 		if n:match("_mutants%.lua$") then
-			for _, m in ipairs(dofile(base .. "/jrn/" .. n)) do io.write(m[1], "\t", m[2], "\t", m[3], "\t", m[4], "\t", m[5], "\n") end
+			for _, m in ipairs(dofile(base .. "/jrn/" .. n)) do io.write(m[1], "\t", m[2], "\t", enc(m[3]), "\t", enc(m[4]), "\t", m[5], "\n") end
 		end
 	end' > "$tab"
 want="$*"
 killed=0; survived=0; invalid=0
 while IFS="	" read -r id file from to phases; do
+	from=$(printf '%b' "$from"); to=$(printf '%b' "$to")
 	if [ -n "$want" ] && ! echo " $want " | grep -q " $id "; then continue; fi
 	work=$(mktemp -d)
 	(cd "$src" && tar cf - PourSocialScore PourSocialScore_Libraries PourSocialScore_Options PourSocialScore_GUI PourSocialScore_Logging PourSocialScore_Communities tools) | (cd "$work" && tar xf -)
