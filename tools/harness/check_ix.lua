@@ -2076,11 +2076,13 @@ local function lazyWorld(journalOn)
 	local e = History.NewEntry("whisper", "CHAT_MSG_WHISPER", "hi from thrall", nil, nil)
 	e.o = History.PlayerKey("Thrall-" .. (GetRealmName and GetRealmName() or "Realm"))
 	log[#log + 1] = e
+	local _, IX = debug.getupvalue(M.PSS_Ix, 1)		-- the declared indexes (PSS_Ix.lua ix): the real jrn and whh make way for the planted ones
+	for _, n in ipairs({ "jrn", "whh" }) do if IX[n] then IX[n] = nil; local o = M.PSS_IxNames(); for i = #o, 1, -1 do if o[i] == n then table.remove(o, i) end end end end
 	-- planted journal and history indexes (built in phase C): the lazy search covers them by name
 	local now = GetServerTime()
 	local gate
 	if not journalOn then gate = "journal" end
-	if M.PSS_Ix("jrn") == nil then M.PSS_IxDeclare({ name = "jrn", kind = "event", owner = "journal-helper", gate = gate, residency = 0,
+	M.PSS_IxDeclare({ name = "jrn", kind = "event", owner = "journal-helper", gate = gate, residency = 0,
 		fields = { { "time", "t", "t" }, { "st", "k", "s" }, { "ent", "e", "e" }, { "item", "i", "i" }, { "count", "n", "n" }, { "party", "s", "p" } },
 		pushdown = { "time" }, doc = "planted journal",
 		summary = function(r) return "Sold " .. r.count .. " " .. tostring(r.item) .. " to " .. tostring(r.party) end,
@@ -2088,8 +2090,8 @@ local function lazyWorld(journalOn)
 			for i = 1, 6 do emit({ time = now - i * 100, st = "jrn.sold", ent = 1, item = 21877, count = 20, party = "Thrall" }) end
 			emit({ time = now - 50, st = "jrn.sold", ent = 1, item = 4306, count = 1, party = "Other" })
 			return 7
-		end }) end
-	if M.PSS_Ix("whh") == nil then M.PSS_IxDeclare({ name = "whh", kind = "event", owner = "journal-helper", gate = gate, residency = 0,
+		end })
+	M.PSS_IxDeclare({ name = "whh", kind = "event", owner = "journal-helper", gate = gate, residency = 0,
 		fields = { { "time", "t", "t" }, { "st", "k", "s" }, { "ent", "e", "e" }, { "item", "i", "i" }, { "delta", "n", "n" } },
 		pushdown = { "time" }, doc = "planted history",
 		summary = function(r) return "Stock " .. r.delta end,
@@ -2097,7 +2099,7 @@ local function lazyWorld(journalOn)
 			emit({ time = now - 10, st = "whh.d", ent = 1, item = 21877, delta = -20 })
 			emit({ time = now - 20, st = "whh.d", ent = 1, item = 21877, delta = 40 })
 			return 2
-		end }) end
+		end })
 end
 PH.lazyitem = function()
 	lazyWorld(true)
