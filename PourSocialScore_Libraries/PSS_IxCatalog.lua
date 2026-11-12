@@ -97,11 +97,15 @@ local function asSet(list)
 end
 
 -- a declared index: every closed list it names equals the code's (raises naming the value)
+-- (no "<index>.<field>" string is made per field: at load every new string grows the client's string table)
 function M.PSS_DataDictCheck(spec)
-	for _, f in ipairs(spec.fields) do
-		local key = spec.name .. "." .. f[1]
-		local p = CHECK[key]
-		if p then
+	local name = spec.name
+	local len = #name
+	for key, p in pairs(CHECK) do
+		local f = key:find(name, 1, true) == 1 and key:byte(len + 1) == 46 and key:sub(len + 2)
+		local has = false
+		if f then for _, x in ipairs(spec.fields) do if x[1] == f then has = true break end end end
+		if has then
 			local code = asSet(M.PSS_DataDictValues[p]())
 			local dict = asSet(words(VALUES[key]))
 			if p == "logCats" and key == "counts.type" then dict.total = nil end
