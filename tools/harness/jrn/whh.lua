@@ -94,6 +94,23 @@ if d ~= 1 then return fail("whhcompact: d lines left " .. d .. " (the new day's 
 if day[100] ~= 8 or day[200] ~= -2 then return fail("whhcompact: day nets " .. tostring(day[100]) .. " " .. tostring(day[200])) end
 if #g ~= 1 or g[1] ~= 20 then return fail("whhcompact: g lines " .. #g) end
 
+-- whhcompact order: an earlier day's folded line stays before the next day's folded lines
+reset(true)
+local dd = os.date("*t", base)
+local b2 = os.time({ year = dd.year, month = dd.month, day = 15, hour = 1 })
+put("whh.d", { time = b2 - DAY, ent = 1, item = 300, delta = 1, where = "a" })
+M.PSS_IxFlush("whh")
+put("whh.d", { time = b2, ent = 1, item = 100, delta = 5, where = "a" })
+put("whh.g", { time = b2 + 60, ent = 1, copper = 7 })
+M.PSS_IxFlush("whh")
+put("whh.d", { time = b2 + DAY, ent = 1, item = 100, delta = 1, where = "a" })
+M.PSS_IxFlush("whh")
+r = rows()		-- newest first
+for i = 1, #r - 1 do
+	if r[i].time < r[i + 1].time then return fail("whhcompact: lines out of time order at " .. i) end
+end
+if #r ~= 4 then return fail("whhcompact order: expected 4 lines, got " .. #r) end
+
 -- whhcap: months older than jrnMonths go
 reset(true)
 local now = GetServerTime()

@@ -44,7 +44,7 @@ local function dayOf(t) return date("%Y-%m-%d", t) end
 local function compact(prev)
 	store:rewriteOpen(function(lines, base)
 		local dict = store:dict()
-		local day, nets, order, lastG, other, firstT = {}, {}, {}, {}, {}, nil
+		local day, nets, order, lastG, other, otherT, firstT = {}, {}, {}, {}, {}, {}, nil
 		for i = 1, #lines do
 			local r = {}
 			L.decode(lines[i], base, r, dict)
@@ -58,9 +58,14 @@ local function compact(prev)
 				end
 			else
 				other[#other + 1] = lines[i]
+				otherT[#otherT + 1] = r.time
 			end
 		end
 		local out = {}
+		local later = {}
+		for i = 1, #other do
+			if firstT and otherT[i] and otherT[i] >= firstT then later[#later + 1] = other[i] else out[#out + 1] = other[i] end
+		end
 		for _, k in ipairs(order) do
 			out[#out + 1] = L.encode("whh.day", { time = firstT, ent = nets[k].ent, item = nets[k].item, net = nets[k].net }, base, dict)
 		end
@@ -68,7 +73,7 @@ local function compact(prev)
 		for _, r in pairs(lastG) do gl[#gl + 1] = r end
 		sort(gl, function(a, b) return a.time < b.time end)
 		for _, r in ipairs(gl) do out[#out + 1] = L.encode("whh.g", { time = r.time, ent = r.ent, copper = r.copper }, base, dict) end
-		for i = 1, #other do out[#out + 1] = other[i] end
+		for i = 1, #later do out[#out + 1] = later[i] end
 		return out
 	end)
 end
