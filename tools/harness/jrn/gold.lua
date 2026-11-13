@@ -157,6 +157,7 @@ P.whhday = { "AB", B = function(me)
 	H.Fire("PLAYER_LOGOUT")
 	local d, _ = Q("index=whh st=whh.d")
 	local day = Q("index=whh st=whh.day")
+	if d ~= 0 or day ~= 2 then say("whhday: d " .. d .. " day " .. day .. " (expected 0 and 2)") end
 	local old = 0
 	M.PSS_Ix("whh"):scan({}, function(r) if r.st == "whh.g" and r.copper == 10 then old = old + 1 end end, { load = true })
 	if old ~= 0 then say("whhday: the first g of the day was kept") end
