@@ -1,6 +1,15 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.9.0.154 - Journal data
+
+- Journal data (off by default): a new Journal option in Options, shown only on clients that support it and refused while the Warehouse is off.
+- A journal index and a warehouse history store, written only while Journal is on.
+- The Retail-only Journal options (crafting orders, trading post, tokens, missions) are not offered.
+- Warehouse history triggers are set up once, only while Journal is on.
+- Faster load: the data-dictionary check no longer builds a text key per field.
+- No other change in game.
+
 => 3.8.0.153 - Search: faster text search in the log
 
 - Searching the log for words is faster on large logs; the results are the same.

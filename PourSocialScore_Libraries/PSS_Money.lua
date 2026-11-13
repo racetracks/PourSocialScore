@@ -62,7 +62,10 @@ end
 M.PSS_Provide("money.write", function()
 	local out = { cols = { "ent", "copper" }, n = 0 }
 	local function one(ent, v)
-		if ent and put(ent, v) then out.n = out.n + 1; out[out.n] = { ent, v } end
+		if ent and put(ent, v) then
+			out.n = out.n + 1; out[out.n] = { ent, v }
+			if M.PSS_WhHistGold and M.PSS_On("journal") then M.PSS_WhHistGold(ent, v) end
+		end
 	end
 	if GetMoney then one(M.PSS_Me(true), GetMoney()) end
 	if C_Bank and C_Bank.FetchDepositedMoney and Enum and Enum.BankType then

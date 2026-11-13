@@ -101,6 +101,13 @@ local function sameRows(a, b)
 	return true
 end
 
+-- the Journal's warehouse history gets the rows before and after a changed write
+local function histDelta(ent, code, old, want)
+	local was = newSet()
+	if old then M.PSS_WhUnpack(old, was, ent, code) end
+	if not sameRows(was, want) then M.PSS_WhHistDelta(ent, code, was, want) end
+end
+
 ------------------------------------------------------------------------
 -- Entities: hidden flag, kind
 ------------------------------------------------------------------------
@@ -183,7 +190,10 @@ M.PSS_Provide("wh.write", function(input)
 				local kept = dropExpired(capped, t)
 				local old = ms.Get(ent, code)
 				if #kept == 0 then
-					if old then changes[ent] = changes[ent] or {}; changes[ent][code] = false; ops[ent] = ops[ent] or {}; ops[ent][code] = "drop" end
+					if old then
+						if M.PSS_WhHistDelta and M.PSS_On("journal") then histDelta(ent, code, old, newSet()) end
+						changes[ent] = changes[ent] or {}; changes[ent][code] = false; ops[ent] = ops[ent] or {}; ops[ent][code] = "drop"
+					end
 				else
 					local str, n, sum = M.PSS_WhPack(kept)
 					if not str then error(n, 0) end
@@ -197,6 +207,7 @@ M.PSS_Provide("wh.write", function(input)
 					for _, r in ipairs(kept) do want.n = want.n + 1; want[want.n] = { ent, code, r[1], r[2], r[3] or 1, r[4] or "" } end
 					if not sameRows(back, want) then error("integrity: " .. code .. " did not decode to the rows it came from", 0) end
 					if str ~= old then
+						if M.PSS_WhHistDelta and M.PSS_On("journal") then histDelta(ent, code, old, want) end
 						changes[ent] = changes[ent] or {}
 						changes[ent][code] = str
 						ops[ent] = ops[ent] or {}

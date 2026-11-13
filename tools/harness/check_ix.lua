@@ -126,7 +126,7 @@ PH.ixraise = function()
 end
 PH.ixlist = function()
 	local list = M.PSS_Call("ix.list")
-	check(list.n == 23, "23 phase A indexes, got " .. list.n)
+	check(list.n == 25, "25 phase A indexes, got " .. list.n)
 	for i = 1, list.n do
 		local x = M.PSS_Ix(list[i][1])
 		local f = M.PSS_Call("ix.fields", { name = list[i][1] })
@@ -2105,6 +2105,8 @@ local function lazyWorld(journalOn)
 	local e = History.NewEntry("whisper", "CHAT_MSG_WHISPER", "hi from thrall", nil, nil)
 	e.o = History.PlayerKey("Thrall-" .. (GetRealmName and GetRealmName() or "Realm"))
 	log[#log + 1] = e
+	local _, IX = debug.getupvalue(M.PSS_Ix, 1)		-- the declared indexes (PSS_Ix.lua ix): the real jrn and whh make way for the planted ones
+	for _, n in ipairs({ "jrn", "whh" }) do if IX[n] then IX[n] = nil; local o = M.PSS_IxNames(); for i = #o, 1, -1 do if o[i] == n then table.remove(o, i) end end end end
 	-- planted journal and history indexes (built in phase C): the lazy search covers them by name
 	local now = GetServerTime()
 	local gate

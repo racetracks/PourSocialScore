@@ -74,6 +74,7 @@ function M.PSS_IxDeclare(spec)
 	ix[name] = setmetatable(spec, IXMT)
 	order[#order + 1] = name
 	if M.PSS_DataDictCheck then M.PSS_DataDictCheck(spec) end
+	if M.PSS_DataDictDrop then M.PSS_DataDictDrop(name) end
 	return ix[name]
 end
 

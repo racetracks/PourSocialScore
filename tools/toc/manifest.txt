@@ -89,6 +89,8 @@ PSS_WhImport.lua
 PSS_Gw.lua
 PSS_GwSyndicator.lua
 PSS_WhTooltip.lua
+PSS_JrnIx.lua
+PSS_WhHist.lua
 PSS_WhView.lua
 PSS_WhRows.lua
 PSS_WhCommands.lua
