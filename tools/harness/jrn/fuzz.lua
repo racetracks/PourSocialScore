@@ -42,6 +42,8 @@ for seed = 1, 1000 do
 	for i = #order, 2, -1 do local j = math.random(i); order[i], order[j] = order[j], order[i] end
 	for i = #order, 1, -1 do if math.random(4) == 1 then table.insert(order, i, order[i]) end end
 	local u0 = M.PSS_JrnUnmatched or 0
+	H.Fire("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", Enum.PlayerInteractionType.Auctioneer)
+	H.Fire(M.PSS_JrnAhPick() == "Modern" and "OWNED_AUCTIONS_UPDATED" or "AUCTION_OWNED_LIST_UPDATE")
 	for _, e in ipairs(order) do
 		if e.kind == "hook" then
 			if _G[e.name] then _G[e.name](unpack(e.args)) end
