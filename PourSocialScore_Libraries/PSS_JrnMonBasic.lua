@@ -47,7 +47,7 @@ local function mailIn(i, a)
 	elseif a then
 		items = attach(i, a)
 	end
-	put("jrn.mailin", { party = party(m[1]), copper = (not a or a == true) and m[3] > 0 and m[3] or nil, cod = m[4] > 0 and m[4] or nil, items = items, subject = m[2] })
+	put("jrn.mailin", { party = party(m[1]), copper = (not a or a == true) and m[3] > 0 and m[3] or (m[4] > 0 and -m[4] or nil), cod = m[4] > 0 and m[4] or nil, items = items, subject = m[2] })
 end
 local function mailMoney(i) mailIn(i) end
 local function mailAll(i) mailIn(i, true) end

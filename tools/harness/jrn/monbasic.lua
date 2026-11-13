@@ -65,7 +65,7 @@ if not r or not tostring(r.party):find("^Bob") or r.copper ~= 1000 or r.items ~=
 reset(); inbox = { { sender = "Dee", subject = "Pay", money = 500 }, { sender = "Eve", subject = "COD", cod = 2500, item = 159, count = 2 } }
 H.Fire("MAIL_INBOX_UPDATE"); TakeInboxMoney(1); TakeInboxItem(2, 1)
 local a = rows("jrn.mailin"); table.sort(a, function(x, y) return (x.party or "") < (y.party or "") end)
-if #a ~= 2 or not tostring(a[1].party):find("^Dee") or a[1].copper ~= 500 or not tostring(a[2].party):find("^Eve") or a[2].cod ~= 2500 or a[2].items ~= "159:2" then return fail("mailcod: " .. #a .. " lines") end
+if #a ~= 2 or not tostring(a[1].party):find("^Dee") or a[1].copper ~= 500 or not tostring(a[2].party):find("^Eve") or a[2].cod ~= 2500 or a[2].copper ~= -2500 or a[2].items ~= "159:2" then return fail("mailcod: " .. #a .. " lines") end
 reset(); TakeInboxMoney(9)
 if #rows() ~= 0 or M.PSS_JrnUnmatched ~= 1 then return fail("mailunmatched: " .. #rows() .. " lines, unmatched " .. tostring(M.PSS_JrnUnmatched)) end
 -- trade: complete writes both sides, cancelled writes nothing, a secret partner is "?"
