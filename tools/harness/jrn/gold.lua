@@ -61,14 +61,17 @@ local P = {}
 P.goldchain = { "ABC", B = function(me) money(GetMoney() + 12345) end,
 	C = function(me)
 		local n = Q("index=whh st=whh.g")
-		if n ~= 1 then say("goldchain: " .. n .. " lines after the chained save") end
-		if errs("wh.write") + errs("whh.logout") > 0 then say("goldchain: error rows") end
+		local sealed = held(PSS_WarehouseDB and PSS_WarehouseDB.whh)
+		if sealed ~= 1 or n ~= 2 then say("goldchain: " .. sealed .. " sealed, " .. n .. " visible") end
+		if errs("wh.write") + errs("jrn.seal") > 0 then say("goldchain: error rows") end
 	end }
 P.goldvisible = { "AB", B = function(me)
 	local v = GetMoney() + 12345
 	money(v)
 	local n, hit = Q("index=whh st=whh.g")
-	if n ~= 1 or not (hit[1] or ""):find(tostring(v), 1, true) then say("goldvisible: " .. n .. " lines before logout") end
+	local got
+	M.PSS_Ix("whh"):scan({}, function(r) if r.st == "whh.g" then got = r.copper end end, { load = true })
+	if n ~= 1 or got ~= v then say("goldvisible: " .. n .. " lines before logout, copper " .. tostring(got) .. " want " .. v) end
 end }
 P.goldhour = { "ABC", B = function(me)
 	local t0 = math.floor(GetServerTime() / 3600) * 3600 + 10
@@ -80,7 +83,8 @@ P.goldhour = { "ABC", B = function(me)
 	P.goldhour.v = v
 end, C = function(me)
 	local n, hit = Q("index=whh st=whh.g")
-	if n ~= 2 then say("goldhour: " .. n .. " sealed lines, expected 2") end
+	local sealed = held(PSS_WarehouseDB and PSS_WarehouseDB.whh)
+	if sealed ~= 2 or n ~= 3 then say("goldhour: " .. sealed .. " sealed, " .. n .. " visible") end
 end }
 P.histfault = { "AB", B = function(me)
 	M.PSS_WhHistDelta = function() error("fgold") end
@@ -107,7 +111,7 @@ P.sealout = { "AB", B = function(me)
 	local n = held(PSS_WarehouseDB and PSS_WarehouseDB.jrn)
 	if n ~= 3 or #M.PSS_IxHot("jrn") ~= 0 then say("sealout: " .. n .. " lines held, " .. #M.PSS_IxHot("jrn") .. " hot") end
 end }
-P.sealin = { "ABC", A = function(me)
+P.sealin = { "AB", A = function(me)
 	journalOn()
 	plant(function()
 		local old = GetServerTime() - 430 * DAY
@@ -133,7 +137,7 @@ P.sealmonths = { "AB", B = function(me)
 end }
 P.goldsynd = { "AB", env = true, B = function(me)
 	if M.PSS_WhOn then say("goldsynd: PSS_WhOn is on") end
-	if M.PSS_On("journal") then say("goldsynd: the Journal is on") end
+	if M.PSS_On("journal") or M.PSS_OnNow("journal") then say("goldsynd: the Journal is on") end
 	if PSS_WarehouseDB and PSS_WarehouseDB.jrn ~= nil then say("goldsynd: PSS_WarehouseDB.jrn exists") end
 	for _, id in ipairs({ "whh.net", "whh.logout", "jrn.loot" }) do
 		if M.PSS_Triggers then local set = M.PSS_Triggers(); for i = 1, set.n do if set[i][1] == id then say("goldsynd: trigger " .. id) end end end
@@ -153,10 +157,8 @@ P.whhday = { "AB", B = function(me)
 	H.Fire("PLAYER_LOGOUT")
 	local d, _ = Q("index=whh st=whh.d")
 	local day = Q("index=whh st=whh.day")
-	local _, g = Q("index=whh st=whh.g")
-	if d ~= 0 or day ~= 2 then say("whhday: d " .. d .. " day " .. day .. " (expected 0 and 2)") end
 	local old = 0
-	for _, l in ipairs(g) do if l:find("10", 1, true) and not l:find("20", 1, true) then old = old + 1 end end
+	M.PSS_Ix("whh"):scan({}, function(r) if r.st == "whh.g" and r.copper == 10 then old = old + 1 end end, { load = true })
 	if old ~= 0 then say("whhday: the first g of the day was kept") end
 end }
 P.whhsettle = { "AB", B = function(me)

@@ -180,10 +180,6 @@ if M.PSS_Provide and M.PSS_Trigger then
 		M.PSS_JrnSeal("logout")
 		return { cols = { "n" }, n = 0 }
 	end)
-	M.PSS_Provide("whh.logout", function()		-- the old name, kept for the callers of J1W's checks
-		M.PSS_JrnSeal("logout")
-		return { cols = { "n" }, n = 0 }
-	end)
 end
 
 -- the rows are made with the warehouse start chain (the pattern of PSS_Money.lua), only with the Journal on

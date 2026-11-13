@@ -145,8 +145,8 @@ for _, sv in ipairs(saves) do
 		local g = tonumber(t3:match("GOLDQ (%d+)"))
 		if not sa or not sb then
 			bad = bad + 1; fail(rowKey .. " " .. sv .. ": unreadable save")
-		elseif g ~= 1 then
-			bad = bad + 1; fail(rowKey .. " " .. sv .. ": " .. tostring(g) .. " whh.g lines, expected 1")
+		elseif g ~= 2 then
+			bad = bad + 1; fail(rowKey .. " " .. sv .. ": " .. tostring(g) .. " whh.g lines, expected 2 (sealed plus the login pending line)")
 		elseif counters(sa) ~= counters(sb) then
 			bad = bad + 1; fail(rowKey .. " " .. sv .. ": a counter changed")
 		else

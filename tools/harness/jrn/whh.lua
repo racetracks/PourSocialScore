@@ -65,13 +65,16 @@ GetServerTime = function() return t0 end
 M.PSS_WhHistGold(1, 1000)
 GetServerTime = function() return t0 + 600 end
 M.PSS_WhHistGold(1, 2000)
-if #rows() ~= 0 then GetServerTime = clock return fail("whhgold: a line before the hour ended") end
+do
+	local x = rows()
+	if #x ~= 1 or x[1].copper ~= 2000 then GetServerTime = clock return fail("whhgold: expected the pending line of 2000 before the hour ended") end
+end
 GetServerTime = function() return t0 + 3700 end
 M.PSS_WhHistGold(1, 3000)
 GetServerTime = clock
 r = rows()
-if #r ~= 1 or r[1].st ~= "whh.g" or r[1].copper ~= 2000 then return fail("whhgold: expected one line of 2000, got " .. #r .. " " .. tostring(r[1] and r[1].copper)) end
-M.PSS_Call("whh.logout")
+if #r ~= 2 or r[1].st ~= "whh.g" or r[2].st ~= "whh.g" or r[1].copper + r[2].copper ~= 5000 or (r[1].copper ~= 2000 and r[1].copper ~= 3000) then return fail("whhgold: expected lines of 2000 and 3000, got " .. #r) end
+M.PSS_Call("jrn.seal")
 if count("whh.g") ~= 2 then return fail("whhgold: logout did not put the open hour") end
 
 -- whhcompact: a closed day's d lines fold to day lines; one g per character stays

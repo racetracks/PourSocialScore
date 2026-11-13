@@ -5,7 +5,7 @@ return {
 	{ "gold-put-every-change", "PourSocialScore_Libraries/PSS_WhHist.lua", "if p and p.hour ~= h then putGold(ent, p) end", "if p then putGold(ent, p) end", "gold" },
 	{ "compact-keeps-all-g", "PourSocialScore_Libraries/PSS_WhHist.lua", "if r.st == \"whh.g\" then lastG[r.ent] = r", "if r.st == \"whh.g\" then lastG[r.time] = r", "gold" },
 	{ "whh-flush-before-write", "PourSocialScore_Libraries/PSS_WhHist.lua", "if d ~= 0 then M.PSS_IxPut(\"whh\", \"whh.d\"", "if d == 0 then M.PSS_IxPut(\"whh\", \"whh.d\"", "gold" },
-	{ "gold-pend-hidden", "PourSocialScore_Libraries/PSS_WhHist.lua", "{ st = \"whh.g\", time = p.t, ent = ent, copper = p.copper }", "{ st = \"whh.x\", time = p.t, ent = ent, copper = p.copper }", "gold" },
+	{ "gold-pend-hidden", "PourSocialScore_Libraries/PSS_WhHist.lua", "r.st, r.time, r.ent, r.copper, r.item, r.delta = \"whh.g\", p.t, ent, p.copper, nil, nil", "r.st, r.time, r.ent, r.copper, r.item, r.delta = \"whh.x\", p.t, ent, p.copper, nil, nil", "gold" },
 	{ "hist-before-commit", "PourSocialScore_Libraries/PSS_WhStore.lua", "if not ok then M.PSS_ErrNote(\"fail\", \"wh.write\", \"whh: \" .. tostring(why)) end", "if not ok then error(why, 0) end", "gold" },
 	{ "seal-no-jrn", "PourSocialScore_Libraries/PSS_WhHist.lua", "M.PSS_IxFlush(\"jrn\")", "", "gold" },
 	{ "seal-no-login-trim", "PourSocialScore_Libraries/PSS_WhHist.lua", "M.PSS_JrnSeal(\"login\")", "", "gold" },
