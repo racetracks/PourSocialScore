@@ -14,18 +14,18 @@ local function unitOf(buyout, count)
 	if type(buyout) == "number" and readable(buyout) and buyout > 0 and (count or 0) > 0 then return floor(buyout / count) end
 end
 
-local Modern = { name = "Modern", events = { "OWNED_AUCTIONS_UPDATED", "AUCTION_HOUSE_AUCTION_CREATED", "AUCTION_CANCELED" } }
+local Modern = { name = "Modern", list = "OWNED_AUCTIONS_UPDATED", events = { "OWNED_AUCTIONS_UPDATED", "AUCTION_HOUSE_AUCTION_CREATED", "AUCTION_CANCELED" } }
 function Modern.owned()
 	local out = {}
 	for i = 1, C_AuctionHouse.GetNumOwnedAuctions() do
 		local a = C_AuctionHouse.GetOwnedAuctionInfo(i)
-		if a and a.quantity ~= 0 and readable(a.quantity) then
+		if a and a.quantity ~= 0 and readable(a.quantity) and (a.status == nil or a.status == 0) then
 			out[#out + 1] = { key = tostring(a.auctionID), item = a.itemKey and a.itemKey.itemID, link = a.itemLink, count = a.quantity, unit = unitOf(a.buyoutAmount, a.quantity), duration = a.timeLeftSeconds }
 		end
 	end
 	return out
 end
-local Legacy = { name = "Legacy", events = { "AUCTION_OWNED_LIST_UPDATE" } }
+local Legacy = { name = "Legacy", list = "AUCTION_OWNED_LIST_UPDATE", events = { "AUCTION_OWNED_LIST_UPDATE" } }
 function Legacy.owned()
 	local out = {}
 	for i = 1, GetNumAuctionItems("owner") do
@@ -48,7 +48,7 @@ local function put(st, rec) M.PSS_IxPut("jrn", st, rec) end
 
 -- posts: a multiset of keys at the open, the new keys of each adapter event wait for the money to drop
 local open, base, drop = false, 0, 0
-local snap, pend, cur = {}, {}, {}
+local snap, pend, cur = nil, {}, {}
 local function counts(list)
 	local c = {}
 	for i = 1, #list do c[list[i].key] = (c[list[i].key] or 0) + 1 end
@@ -66,7 +66,11 @@ local function settle()
 	snap, pend, drop, base = counts(cur), {}, 0, GetMoney()
 	told()
 end
-local function adapterEvent()
+local function adapterEvent(e)
+	if snap == nil then
+		if e == AH.list then cur = AH.owned(); snap, pend, drop, base = counts(cur), {}, 0, GetMoney() end
+		return
+	end
 	cur = AH.owned()
 	local seen, new = {}, {}
 	for i = 1, #cur do
@@ -87,9 +91,9 @@ M.PSS_Provide("jrn.ah", function(set)
 	for i = 1, set.n do
 		local e, arg = set[i][1]:match("^([^" .. SEP .. "]*)" .. SEP .. "?(.*)$")
 		if e == SHOW then
-			if auc and tostring(auc) == arg then open, pend, drop, base = true, {}, 0, GetMoney(); snap = counts(AH.owned()) end
+			if auc and tostring(auc) == arg then open, pend, drop, base = true, {}, 0, GetMoney(); snap = nil end
 		elseif e == HIDE then
-			if auc and tostring(auc) == arg then open, pend = false, {} end
+			if auc and tostring(auc) == arg then open, pend, snap = false, {}, nil end
 		elseif not open then
 			-- nothing to match outside the auction house
 		elseif e == "PLAYER_MONEY" then
@@ -101,7 +105,7 @@ M.PSS_Provide("jrn.ah", function(set)
 				settle()
 			end
 		elseif isAdapter[e] then
-			adapterEvent()
+			adapterEvent(e)
 		end
 	end
 	return done()
