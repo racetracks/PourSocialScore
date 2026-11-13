@@ -10,6 +10,10 @@ POUR SOCIAL SCORE - VERSION HISTORY
 - Faster load: the data-dictionary check no longer builds a text key per field.
 - No other change in game.
 
+=> 3.8.0.153 - Search: faster text search in the log
+
+- Searching the log for words is faster on large logs; the results are the same.
+
 => 3.8.0.152 - Harness: sharded real saves
 
 - No change in game: the real-save test run is split across several runners, each taking a share of the saves, so it finishes sooner.

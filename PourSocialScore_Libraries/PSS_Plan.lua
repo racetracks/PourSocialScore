@@ -181,13 +181,14 @@ function M.PSS_Search(textOrPlan, opts)
 				end
 			end
 			ctx.load = part == nil
+			local proven = x.textExact == true and pd.text ~= nil
 			local summary = lazy and x.summary
 			local n, err = x:scan(pd, function(row)
 				scanned = scanned + 1
 				if scanned > budget then stopped = true return false end
 				if vtime and row.time then row.weekday, row.hour = vtime.weekday(row.time), vtime.hour(row.time) end
 				for i = 1, #vn do row[vn[i]] = virt(vn[i], row, fmap) end
-				if test(row) then
+				if test(row, proven) then
 					local r = {}
 					if lazy then
 						r[1], r[2], r[3], r[4], r[5], r[6] = row.time, name, row.st, row.ent, row.item, row.owner

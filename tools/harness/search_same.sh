@@ -1,7 +1,7 @@
 #!/bin/sh
 # Search Everywhere: identical results and timing (TST-00988, TST-00989, specs/search.md#10-identical-results).
 # For each real save (<saves dir>/<client>/<version>/PourSocialScore.lua) and a seeded fresh save:
-#   search_results.lua on `git archive <ref>` and on this tree, diffed (a speed change must not change a row);
+#   search_results.lua (R lines) and log_results.lua (L lines) on `git archive <ref>` and on this tree, diffed (a speed change must not change a row);
 #   bench_search.lua on this tree: CASE and TERM lines, then the ADMIT lines (max over saves) and REPRO.
 # Last lines: `same: <n> saves, <d> differ`, nine ADMIT lines, REPRO yes|no (any tbc/forever TERM or TYPED max_ms >= 200).
 #   sh tools/harness/search_same.sh <ref> <saves dir>        (run from the repo root)
@@ -31,6 +31,11 @@ for sv in "$@"; do
 	n=$((n + 1))
 	if [ ! -s "$work/b-$i.txt" ]; then echo "FAIL search: $label printed no results"; d=$((d + 1)); continue; fi
 	cmp -s "$work/a-$i.txt" "$work/b-$i.txt" || { echo "DIFF search: $label"; diff "$work/a-$i.txt" "$work/b-$i.txt" | head -6; d=$((d + 1)); }
+	env PSS_COMPONENTS=logging,warehouse lua5.1 "$here/run.lua" "$work/ref" "$sv" - "$here/log_results.lua" 2>&1 | grep -E '^L ' > "$work/la-$i.txt"
+	env PSS_COMPONENTS=logging,warehouse lua5.1 "$here/run.lua" . "$sv" - "$here/log_results.lua" 2>&1 | grep -E '^L ' > "$work/lb-$i.txt"
+	if [ ! -s "$work/lb-$i.txt" ]; then echo "FAIL log: $label printed no results"; d=$((d + 1))
+	else cmp -s "$work/la-$i.txt" "$work/lb-$i.txt" || { echo "DIFF log: $label"; diff "$work/la-$i.txt" "$work/lb-$i.txt" | head -6; d=$((d + 1)); }
+	fi
 	env PSS_BENCH_LABEL="$label" lua5.1 "$here/run.lua" . "$sv" - "$here/bench_search.lua" 2>&1 | grep -E '^(CASE|TERM|TYPED|ADMIT) ' >> "$work/bench.txt"
 done
 grep -E '^(CASE|TERM|TYPED) ' "$work/bench.txt"

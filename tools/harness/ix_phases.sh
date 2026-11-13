@@ -36,7 +36,7 @@ statsfns statsby statscap timechartfill timechartby topn dedup calcdiv0 statsemp
 termsame termunknown termpending termreal
 parseexamples parsebad parselimits parseinject parsechart parsetime parsetokens parsenoload parsefuzz parsetokenkinds
 plantier planload planbudget plancache planmulti planoffmulti planpicker planreal planchaos
-logrows logorder logpush countsequal logsecret logoff logcost
+logrows logorder logpush countsequal logsecret logoff logcost textexact
 invst invrows invderive invpush invsum invval whoff invempty invorphan invnewrow invsecret
 socialrows socialfields membersneed socialoff money labels showlog cellshow names filterdesc nospace
 cfgrows cfgreadonly cfgnewer cfgsystem
