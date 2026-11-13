@@ -307,9 +307,9 @@ end
 function ns.ShowArt(frame, dark, keep)
 	for i = 1, select("#", frame:GetRegions()) do
 		local r = select(i, frame:GetRegions())
-		if r and r:GetObjectType() == "Texture" and not own[r] and not (keep and keep[r]) then
+		if r and r:GetObjectType() == "Texture" and not own[r] then
 			if alphaOf[r] == nil then alphaOf[r] = r:GetAlpha() end
-			r:SetAlpha(dark and 0 or alphaOf[r])
+			if keep and keep[r] then r:SetAlpha(alphaOf[r]) else r:SetAlpha(dark and 0 or alphaOf[r]) end
 		end
 	end
 end
