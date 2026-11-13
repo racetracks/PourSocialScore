@@ -147,5 +147,6 @@ else
 end
 M.PSS_On = realOn
 H.Fire("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", Enum.PlayerInteractionType.Auctioneer)
+reset()
 for _, u in ipairs(undo) do u() end
 print("PASS ah " .. M.PSS_FLV.flavour)
