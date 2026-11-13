@@ -42,6 +42,32 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.9.0.155 - Journal monitors
+
+- Branch: `claude/wonderful-cannon-zwshli`; [PR #279](https://github.com/racetracks/PourSocialScore/pull/279).
+- Rows: J2G3: seal rule and visible gold, 11 gold phases; J2D1a, J2D1b: Dark tick tests then fix in `PSS_Skin.lua`, `PSS_Kit.lua`; J2RB: real-save check `jrnoffbytes`; J2IL: warehouse auctions without item link (`whauc`); J2O2: string-table warm-up in `ix_measure.lua`; J2W: trigger rows, manifest order; J2S: stubs `wh_stub.lua`; J2X: fixture events `jrn_day.lua`; J2A: `PSS_JrnMon1.lua` vendor and repair; J2B: `PSS_JrnMonBasic.lua` basic monitors; J2C: `PSS_JrnAh.lua` auction houses; J2XF, J2CF: fuzz starts the rows and takes the baseline first; J2CR: auction house phases and mutants; J2BC: COD mail copper.
+- Hooks installed (post-hooks, `DEC-00411`): `C_Container.UseContainerItem`, `BuyMerchantItem`, `BuybackItem`, `C_Container.ContainerRefundItemPurchase`, `RepairAllItems`, `SendMail`, `TakeInboxMoney`, `TakeInboxItem`, `AutoLootMailItem`, `TakeTaxiNode`, `BuyTrainerService` and the auction post calls the client has. Adapters: Retail modern (version detection only); Forever modern; TBC legacy.
+- Tests: `jrn_phases.sh` all areas incl. `mon1`, `monbasic`, `ah`, `fuzz` PASS retail, forever, tbc; mutants 42/42 killed; `validate_all.sh` 1735 checks, 0 failed; real saves `jrnoffbytes` 21 PASS, 0 FAIL.
+- In-game (Client, Looks): CHK-00151, CHK-00153 Forever (once more with both restriction consoles), any; CHK-00152 Forever, any; CHK-00252 Forever, MCD; plus step 6: check `C_Container.GetContainerItemPurchase*` (unverified API); step 7: check `GetMerchantItemInfo` price and quantity (unverified API); step 8: check the loot money slot quantity read as copper (unverified API); step 9: check `GetTrainerServiceCost` (unverified API); step 10: check `QUEST_LOOT_RECEIVED` arriving before `QUEST_TURNED_IN` (unverified API).
+- Docs updated: `docs/pss/14_BUILD_HISTORY.md`, `docs/pss/06_STATUS_AND_NEXT.md`, `history.txt`, `versions.json`, TOCs.
+
+### 3.9.0.155 (from 06 Now)
+
+**3.9.0.155, Journal monitors (branch `claude/wonderful-cannon-zwshli`, [PR #279](https://github.com/racetracks/PourSocialScore/pull/279)):** what changed, in one line; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
+### 3.9.0.155 - Journal monitors
+
+- Branch: `claude/wonderful-cannon-zwshli`; [PR #279](https://github.com/racetracks/PourSocialScore/pull/279).
+- What changed and why: (written in the PR)
+- Docs updated: (written in the PR)
+- Tests run: (written in the PR)
+- Not shown by the simulation: (written in the PR)
+- In-game checks: (written in the PR)
+
+### 3.9.0.154 (from 06 Now)
+
+**3.9.0.154, Journal data (branch `claude/zealous-brown-c4kxdk`, PR #278):** Journal data: capabilities, Journal option, journal index and warehouse history (rows J1H to J1W); the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`); known issue: the ix budgetfiles gate charges Lua's string-table doubling to whichever file crosses it (A10 REPORT, open issue).
+
 ### 3.9.0.154 - Journal data
 
 - Branch: `claude/zealous-brown-c4kxdk`; [PR #278](https://github.com/racetracks/PourSocialScore/pull/278).

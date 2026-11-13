@@ -218,6 +218,8 @@ function W:SetValue(v) self._value = v end
 function W:GetMaxLetters() return 255 end
 function W:SetAlpha(a) self._alpha = a end
 function W:GetAlpha() return self._alpha or 1 end
+function W:SetDesaturated(d) self._desat = d and true or false end
+function W:IsDesaturated() return self._desat or false end
 function W:SetTextColor(r, g, b, a) self._tc = { r, g, b, a } end
 function W:GetTextColor()
 	local c = self._tc
@@ -238,7 +240,7 @@ end
 function W:SetJustifyH() justify(self, "SetJustifyH") end
 function W:SetJustifyV() justify(self, "SetJustifyV") end
 function W:GetChildren() return end
-function W:GetRegions() return end
+function W:GetRegions() return self._chk end
 function W:GetNumChildren() return 0 end
 function W:SetHyperlinksEnabled(on) self._links = on and true or false end
 function W:GetHyperlinksEnabled() return self._links or false end
@@ -265,7 +267,10 @@ function W:GetHighlightTexture() return self._hl or new("Texture", nil, self) en
 function W:GetNormalTexture() return new("Texture", nil, self) end
 function W:GetPushedTexture() return new("Texture", nil, self) end
 function W:GetDisabledTexture() return new("Texture", nil, self) end
-function W:GetCheckedTexture() return new("Texture", nil, self) end
+function W:GetCheckedTexture()
+	if not self._chk then self._chk = new("Texture", nil, self) end
+	return self._chk
+end
 function W:GetFontString()
 	if not self._fs then self._fs = new("FontString", nil, self) end
 	return self._fs

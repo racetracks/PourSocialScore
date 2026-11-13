@@ -144,9 +144,10 @@ local function want(k)
 	for _, t in ipairs(times) do if t >= edge(k) then n = n + 1 end end
 	return n
 end
+local c0 = count()
 M.PSS_SetOpt("jrnMonths", "global", 13)
 local d13 = M.PSS_JrnTrim()
-if count() ~= want(13) or d13 < 1 then return fail("jrnmonths: 13 keeps " .. count() .. " want " .. want(13)) end
+if count() ~= want(13) or c0 - count() < 1 or d13 ~= 0 then return fail("jrnmonths: 13 keeps " .. count() .. " want " .. want(13) .. ", option dropped " .. (c0 - count()) .. ", later trim " .. d13) end
 M.PSS_SetOpt("jrnMonths", "global", 1)
 M.PSS_JrnTrim()
 if count() ~= want(1) then return fail("jrnmonths: 1 keeps " .. count() .. " want " .. want(1)) end
