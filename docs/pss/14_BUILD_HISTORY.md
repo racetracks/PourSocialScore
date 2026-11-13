@@ -42,6 +42,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.8.0.153 - Search: faster text search in the log
+
+- Branch: `claude/peaceful-bell-q1s5gb`; [PR #277](https://github.com/racetracks/PourSocialScore/pull/277).
+- What changed and why: the log prefilter tests exactly the text fields the search shows, and words it proved are not tested again (D1, [architecture](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/11/10-07-10-Wed-peaceful-bell-q1s5gb/specs/architecture.md#4-chosen-design-d1-exact-prefilter-proven-text-terms)), `DEC-00434`.
+- Docs updated: `PourSocialScore_Libraries/PSS_IxLog.lua:116`, `PourSocialScore_Libraries/PSS_Pred.lua:12`, `docs/pss/reference/07_harness-search.md:10-16`, this entry, `docs/pss/06_STATUS_AND_NEXT.md:1`.
+- Tests run: phase `textexact`; `TST-00989` with the new `L` lines; the B05 speed table ([results](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/11/10-07-10-Wed-peaceful-bell-q1s5gb/results/b05/README.md)) and the B01 verdict ([results](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/11/10-07-10-Wed-peaceful-bell-q1s5gb/results/o1/README.md)) the F02 table ([results](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/11/10-07-10-Wed-peaceful-bell-q1s5gb/results/f02/README.md)) in the session temp root. K154 fix F01: the prefilter cost fix in `PourSocialScore_Libraries/PSS_IxLog.lua` ([spec 7.5](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/11/10-07-10-Wed-peaceful-bell-q1s5gb/specs/spec.md#75-prefilter-cost-k154)).
+- Not shown by the simulation: the speed on the author's live logs in game; the CI `real-saves` timing runs only on the PR.
+- In-game checks: the check of [plan section 3](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/11/10-07-10-Wed-peaceful-bell-q1s5gb/specs/plan.md#3-in-game-checks-380153) ([`CHK-00255`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00255)).
+
+### 3.8.0.152 (from 06 Now)
+
+**3.8.0.152, Harness: sharded real saves (branch `claude/festive-wozniak-3uoj74`, PR #276):** several saves per version, `shard_saves.sh` and `fail_summary.sh`; the CI `real-saves` check runs sharded by save (speed steps S02, D02); no addon code changed; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.8.0.152 - Harness: sharded real saves
 
 - Branch: `claude/festive-wozniak-3uoj74`; [PR #276](https://github.com/racetracks/PourSocialScore/pull/276).
