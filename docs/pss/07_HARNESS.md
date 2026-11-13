@@ -27,6 +27,7 @@ Other checks in `validate_all.sh`: `check_forget` (removals), `check_guildrule`,
 **Tests bundle** (not hosted unless the author asks; 11_PREFERENCES): `sh tools/host_tests.sh <scratch checkout> [--no-commit | --no-push] [--log <file>]` builds `PourSocialScore-<version>-tests-<YYYY-MM-DD-hh-mm>.zip` from HEAD (`tools/`, `versions.json`, `.github/workflows`, `README_TESTS.txt`, and the validation log with `--log`; never real saves) into scratch `releases/`, adding its name to the index's releases row only (not `latest/`; the addon zip never holds `tools/`).
 
 ## Changelog
+- 2026-11-13 A07 (J2RB): `jrnoffbytes` (`tools/harness/jrn/real.lua:128`): every real save written with the Journal off is byte-identical to the J2 base (3.9.0.154, 48ec087); the version and the `pss.upg` timings are masked.
 - 2026-11-10: `build_saves.sh` `build()` uses its own names (`bd bc bv`), so each `SavedVariables/<client>/<version>/` lands at `<out>/<client>/<version>/`.
 - 2026-11-09 A06: added `check_version.lua` (`TST-00995`, `/pss version`).
 - 2026-11-10 A01: version check covers six folders and the Save record differs line (`TST-00998`).

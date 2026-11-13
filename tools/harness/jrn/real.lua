@@ -125,6 +125,65 @@ for _, sv in ipairs(saves) do
 		end
 	end
 end
+-- jrnoffbytes: every real save byte-identical with the Journal off, against the J2 base (3.9.0.154, 48ec087)
+local function plain(s) return (s:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")) end
+local function slurp(path)
+	local f = io.open(path, "rb")
+	if not f then return "" end
+	local t = f:read("*a")
+	f:close()
+	return t
+end
+local function tocVersion(path) return slurp(path):match("## Version:%s*([^\r\n]+)") end
+local function replAll(t, from, to)
+	if not from or from == "" then return t end
+	return (t:gsub(plain(from), (to:gsub("%%", "%%%%"))))
+end
+local function maskTimes(t)
+	local o = {}
+	for l in (t .. "\n"):gmatch("([^\n]*)\n") do
+		if l:find("pss.upg", 1, true) then
+			l = l:gsub("ms=%-?%d+%.?%d*", "ms=N")
+			if l:find("\t", 1, true) then
+				l = l:gsub("\t%-?%d+%.?%d*([\"]?,?)$", "\tN%1")
+			end
+		end
+		o[#o + 1] = l
+	end
+	return table.concat(o, "\n")
+end
+local function firstDiff(x, y)
+	local xs, ys = {}, {}
+	for l in (x .. "\n"):gmatch("([^\n]*)\n") do xs[#xs + 1] = l end
+	for l in (y .. "\n"):gmatch("([^\n]*)\n") do ys[#ys + 1] = l end
+	for i = 1, math.max(#xs, #ys) do
+		if xs[i] ~= ys[i] then return i end
+	end
+	return 0
+end
+local base = os.tmpname() .. ".j2base"
+os.execute('mkdir -p "' .. base .. '" && git archive 48ec087 | tar -x -C "' .. base .. '"')
+local vNew = tocVersion("PourSocialScore/PourSocialScore.toc")
+local vOld = tocVersion(base .. "/PourSocialScore/PourSocialScore.toc")
+for _, sv in ipairs(saves) do
+	local fa, fb = os.tmpname(), os.tmpname()
+	for i, src in ipairs({ ".", base }) do
+		local cmd = ('env PSS_JRN_REAL_CHILD=off PSS_JRN=1 TZ=UTC PSS_FLAVOUR=%s PSS_COMPONENTS=logging,warehouse lua5.1 "%s/run.lua" "%s" "%s" "%s" "%s/check_jrn.lua" 2>&1'):format(flv, harness, src, sv, i == 1 and fa or fb, harness)
+		local h = io.popen('PSS_JRN_AREA=real ' .. cmd)
+		h:read("*a")
+		h:close()
+	end
+	local ta = replAll(slurp(fa), vNew, "VERSION")
+	local tb = replAll(slurp(fb), vOld, "VERSION")
+	ta, tb = maskTimes(ta), maskTimes(tb)
+	if ta == tb then
+		print("PASS jrnoffbytes " .. sv)
+	else
+		bad = bad + 1; fail("jrnoffbytes " .. sv .. ": save bytes differ with the Journal off at line " .. firstDiff(ta, tb))
+	end
+	os.remove(fa); os.remove(fb)
+end
+os.execute('rm -rf "' .. base .. '"')
 -- TST-01035 (Forever), TST-01036 (TBC): the gold chain on each save, Journal on (a login, a bag change and a money change, a login)
 local rowKey = flv == "forever" and "TST-01035" or "TST-01036"
 local function child(m, inn, outp)
