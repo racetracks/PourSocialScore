@@ -9,6 +9,7 @@ local VAL = { sold = 5, post = 5, vend = 5, repair = 3, mailout = 4, mailin = 4,
 local on = true
 local realOn = M.PSS_On
 M.PSS_On = function(n) if n == "journal" then return on end return realOn(n) end
+M.PSS_WhStartMore(true); M.PSS_WatchStart()
 local want, total, okVal = {}, 0, {}
 for st, list in pairs(fx.expect) do
 	if VAL[st] then
