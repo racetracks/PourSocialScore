@@ -2,12 +2,14 @@
 local M = PourSocialScore_NS.M
 local gold = 0
 function GetMoney() return gold end
+local realSet = H.SetMoney
 H.SetMoney = function(c) gold = c end
 Enum = Enum or {}; Enum.PlayerInteractionType = Enum.PlayerInteractionType or { Auctioneer = 21 }
 local function keep(t, names) local s = {}; for _, n in ipairs(names) do s[n] = t[n] end; return function() for _, n in ipairs(names) do t[n] = s[n] end end end
 local undo = { keep(_G, { "GetMoney", "GetInboxNumItems", "GetInboxHeaderInfo", "GetInboxInvoiceInfo", "GetInboxItem", "GetNumAuctionItems", "GetAuctionItemInfo", "GetAuctionItemLink", "GetAuctionItemTimeLeft", "Auctionator" }), keep(C_Item, { "GetItemInfoInstant" }), keep(C_AuctionHouse or {}, { "GetNumOwnedAuctions", "GetOwnedAuctionInfo" }) }
 local realG, realD = M.PSS_WhHistGold, M.PSS_WhHistDelta
 M.PSS_WhHistGold, M.PSS_WhHistDelta = function() end, function() end
+undo[#undo + 1] = function() H.SetMoney = realSet end
 undo[#undo + 1] = function() M.PSS_WhHistGold, M.PSS_WhHistDelta = realG, realD end
 local function fail(w) print("FAIL jrn: ah: " .. w) end
 local fx = dofile(((arg and arg[0] or ""):match("^(.*)/[^/]*$") or ".") .. "/fixtures/jrn_day.lua")
@@ -144,5 +146,6 @@ else
 	end
 end
 M.PSS_On = realOn
+H.Fire("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", Enum.PlayerInteractionType.Auctioneer)
 for _, u in ipairs(undo) do u() end
 print("PASS ah " .. M.PSS_FLV.flavour)
