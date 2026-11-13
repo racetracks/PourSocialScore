@@ -3,15 +3,15 @@
 local function E(t, name, ...) return { t = t, kind = "event", name = name, args = { ... } } end
 local function H(t, name, ...) return { t = t, kind = "hook", name = name, args = { ... } } end
 local events = {
-	vend = { E(1793487600, "MERCHANT_SHOW"), H(1793487600, "BuyMerchantItem", 1, 1), E(1793487600, "BAG_UPDATE_DELAYED"), E(1793487600, "PLAYER_MONEY"), E(1793489100, "MERCHANT_CLOSED") },
+	vend = { E(1793487600, "MERCHANT_SHOW"), H(1793487600, "BuyMerchantItem"), E(1793487600, "BAG_UPDATE_DELAYED"), E(1793487600, "PLAYER_MONEY"), E(1793489100, "MERCHANT_CLOSED") },
 	repair = { H(1793489400, "RepairAllItems"), E(1793489400, "PLAYER_MONEY") },
-	mailin = { E(1793490600, "MAIL_INBOX_UPDATE"), H(1793490600, "TakeInboxMoney", 1), H(1793490900, "TakeInboxItem", 2, 1) },
-	mailout = { H(1793490000, "SendMail", "Bob", "Hi", ""), E(1793490000, "PLAYER_MONEY") },
-	trade = { E(1793491200, "TRADE_SHOW"), E(1793491200, "TRADE_ACCEPT_UPDATE", 1, 1), E(1793491200, "UI_INFO_MESSAGE", 0, "Trade complete.") },
-	taxi = { E(1793491500, "TAXIMAP_OPENED"), H(1793491500, "TakeTaxiNode", 2), E(1793491500, "PLAYER_MONEY") },
-	train = { E(1793491800, "TRAINER_SHOW"), H(1793491800, "BuyTrainerService", 1), E(1793491800, "PLAYER_MONEY") },
-	quest = { E(1793492100, "QUEST_TURNED_IN", 1, 100, 5000), E(1793492100, "QUEST_LOOT_RECEIVED", 1, "item:2589") },
-	loot = { E(1793492400, "LOOT_OPENED"), E(1793492400, "LOOT_READY"), E(1793492400, "LOOT_CLOSED") },
+	mailin = { E(1793490600, "MAIL_INBOX_UPDATE"), H(1793490600, "TakeInboxMoney"), H(1793490900, "TakeInboxItem") },
+	mailout = { H(1793490000, "SendMail"), E(1793490000, "PLAYER_MONEY") },
+	trade = { E(1793491200, "TRADE_SHOW"), E(1793491200, "TRADE_ACCEPT_UPDATE", 1, 1), E(1793491200, "UI_INFO_MESSAGE", 0, ERR_TRADE_COMPLETE or "Trade complete.") },
+	taxi = { E(1793491500, "TAXIMAP_OPENED"), H(1793491500, "TakeTaxiNode"), E(1793491500, "PLAYER_MONEY") },
+	train = { E(1793491800, "TRAINER_SHOW"), H(1793491800, "BuyTrainerService"), E(1793491800, "PLAYER_MONEY") },
+	quest = { E(1793492100, "QUEST_TURNED_IN", 1001, 0, 5000), E(1793492100, "QUEST_LOOT_RECEIVED", 1001, "item:2589", 2) },
+	loot = { E(1793492400, "LOOT_OPENED", false, false), E(1793492400, "LOOT_READY", false), E(1793492400, "LOOT_CLOSED") },
 }
 -- the four auction activities (two posts, one sale invoice, one expiry mail) per adapter: stub calls of J2S
 local function ah(owner)
