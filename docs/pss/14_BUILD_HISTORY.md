@@ -44,7 +44,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.9.0.155 - Journal monitors
 
-- Branch: `claude/wonderful-cannon-zwshli`; PR: none yet.
+- Branch: `claude/wonderful-cannon-zwshli`; [PR #279](https://github.com/racetracks/PourSocialScore/pull/279).
 - Rows: J2G3: seal rule and visible gold, 11 gold phases; J2D1a, J2D1b: Dark tick tests then fix in `PSS_Skin.lua`, `PSS_Kit.lua`; J2RB: real-save check `jrnoffbytes`; J2IL: warehouse auctions without item link (`whauc`); J2O2: string-table warm-up in `ix_measure.lua`; J2W: trigger rows, manifest order; J2S: stubs `wh_stub.lua`; J2X: fixture events `jrn_day.lua`; J2A: `PSS_JrnMon1.lua` vendor and repair; J2B: `PSS_JrnMonBasic.lua` basic monitors; J2C: `PSS_JrnAh.lua` auction houses; J2XF, J2CF: fuzz starts the rows and takes the baseline first; J2CR: auction house phases and mutants; J2BC: COD mail copper.
 - Hooks installed (post-hooks, `DEC-00411`): `C_Container.UseContainerItem`, `BuyMerchantItem`, `BuybackItem`, `C_Container.ContainerRefundItemPurchase`, `RepairAllItems`, `SendMail`, `TakeInboxMoney`, `TakeInboxItem`, `AutoLootMailItem`, `TakeTaxiNode`, `BuyTrainerService` and the auction post calls the client has. Adapters: Retail modern (version detection only); Forever modern; TBC legacy.
 - Tests: `jrn_phases.sh` all areas incl. `mon1`, `monbasic`, `ah`, `fuzz` PASS retail, forever, tbc; mutants 42/42 killed; `validate_all.sh` 1735 checks, 0 failed; real saves `jrnoffbytes` 21 PASS, 0 FAIL.
@@ -53,11 +53,11 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.9.0.155 (from 06 Now)
 
-**3.9.0.155, Journal monitors (branch `claude/wonderful-cannon-zwshli`, PR: none yet):** what changed, in one line; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+**3.9.0.155, Journal monitors (branch `claude/wonderful-cannon-zwshli`, [PR #279](https://github.com/racetracks/PourSocialScore/pull/279)):** what changed, in one line; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
 
 ### 3.9.0.155 - Journal monitors
 
-- Branch: `claude/wonderful-cannon-zwshli`; PR: none yet.
+- Branch: `claude/wonderful-cannon-zwshli`; [PR #279](https://github.com/racetracks/PourSocialScore/pull/279).
 - What changed and why: (written in the PR)
 - Docs updated: (written in the PR)
 - Tests run: (written in the PR)
