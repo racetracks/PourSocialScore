@@ -263,7 +263,7 @@ function liveOn(name)
 	local key = COMPONENT_KEY[name]
 	if not key then return false end
 	if name == "gfx" and not M.PSS_Can("gfxCommand") then return false end
-	if name == "journal" and not liveOn("warehouse") then return false end
+	if name == "journal" and (not liveOn("warehouse") or M.PSS_WhOn == false) then return false end
 	return M.PSS_Opt(key) == true
 end
 
@@ -272,6 +272,8 @@ function M.PSS_SnapComponents()
 	for name in pairs(COMPONENT_KEY) do snap[name] = liveOn(name) end
 	snap.items = snap.bags or snap.warehouse
 end
+
+function M.PSS_SnapOff(name) if snap then snap[name] = false end end
 
 function M.PSS_On(name)
 	if snap then return snap[name] == true end

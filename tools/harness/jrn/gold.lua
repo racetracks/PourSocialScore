@@ -136,11 +136,8 @@ P.goldsynd = { "AB", env = true, B = function(me)
 	if M.PSS_On("journal") then say("goldsynd: the Journal is on") end
 	if PSS_WarehouseDB and PSS_WarehouseDB.jrn ~= nil then say("goldsynd: PSS_WarehouseDB.jrn exists") end
 	for _, id in ipairs({ "whh.net", "whh.logout", "jrn.loot" }) do
-		if M.PSS_Triggers and M.PSS_Triggers[id] then say("goldsynd: trigger " .. id) end
+		if M.PSS_Triggers then local set = M.PSS_Triggers(); for i = 1, set.n do if set[i][1] == id then say("goldsynd: trigger " .. id) end end end
 	end
-	local ok
-	for _, l in ipairs(H.chat or {}) do if tostring(l):find(" The Journal is off with it.$") then ok = true end end
-	if not ok then say("goldsynd: the login line does not end ' The Journal is off with it.'") end
 end }
 P.whhday = { "AB", B = function(me)
 	local base = math.floor(GetServerTime() / DAY) * DAY + 3600
@@ -199,6 +196,7 @@ for _, name in ipairs(ORDER) do
 		local txt = h:read("*a") or ""
 		h:close()
 		local f = txt:match("GOLDFAIL ([^\n]*)")
+		if not f and ph.env and ps == "B" and not txt:find(" The Journal is off with it.", 1, true) then f = "goldsynd: the login line does not end ' The Journal is off with it.'" end
 		if f then why = f elseif txt:find("FAIL", 1, true) or not txt:find("GOLDDONE", 1, true) then why = name .. ": pass " .. ps .. ": " .. (txt:match("[^\n]*FAIL[^\n]*") or txt:sub(1, 200)) end
 		if inn ~= "-" then os.remove(inn) end
 		inn = out
