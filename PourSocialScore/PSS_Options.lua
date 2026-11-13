@@ -323,6 +323,7 @@ function M.PSS_SetOpt(key, scope, value, target)
 	M.Events.Fire("OPTION_CHANGED", key)
 	-- a smaller history buffer frees the memory now, not only as lines arrive
 	if key == "historyTotal" and M.PSS_TrimAllHistory then M.PSS_TrimAllHistory() end
+	if key == "jrnMonths" and M.PSS_JrnSeal then M.PSS_JrnSeal("months") end
 end
 
 -- Saved values equal to their default are dropped (3.0: only changes are
