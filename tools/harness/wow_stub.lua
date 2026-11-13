@@ -218,6 +218,8 @@ function W:SetValue(v) self._value = v end
 function W:GetMaxLetters() return 255 end
 function W:SetAlpha(a) self._alpha = a end
 function W:GetAlpha() return self._alpha or 1 end
+function W:SetDesaturated(d) self._desat = d and true or false end
+function W:IsDesaturated() return self._desat or false end
 function W:SetTextColor(r, g, b, a) self._tc = { r, g, b, a } end
 function W:GetTextColor()
 	local c = self._tc
