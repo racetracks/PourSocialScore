@@ -28,9 +28,10 @@ name=$ADDON-$ver-$stamp.zip
 work=$(mktemp -d)
 git archive HEAD | tar -x -C "$work" || exit 1
 mkdir "$work/zip"
-for d in "$work/$ADDON" "$work/$ADDON"_*/; do
-	if [ -d "$d" ]; then cp -r "${d%/}" "$work/zip/"; fi
+for d in $(cd "$work" && python3 tools/packaging/folders.py all); do
+	cp -r "$work/$d" "$work/zip/"
 done
+(cd "$work" && python3 tools/packaging/folders.py --verify all zip) || exit 1
 cp "$work/readme.txt" "$work/history.txt" "$work/zip/$ADDON/"
 (cd "$work/zip" && zip -qr "../$name" .) || exit 1
 

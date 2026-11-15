@@ -32,6 +32,7 @@
 import json
 import os
 import re
+import subprocess
 import sys
 
 FILE = "versions.json"
@@ -275,8 +276,11 @@ def cmd_check(args):
 			bad += 1
 	if toc and newest(data) != toc:
 		fail("the TOCs say %s, the newest recorded version is %s" % (toc, newest(data)))
-	for d in os.listdir("."):
-		if os.path.isdir(d) and d.startswith(ADDON) and os.path.exists(os.path.join(d, FILE)):
+	r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "packaging", "folders.py"), "all"], capture_output=True, text=True)
+	if r.returncode != 0:
+		fail("cannot list the addon folders: " + r.stderr.strip())
+	for d in r.stdout.split():
+		if os.path.isdir(d) and os.path.exists(os.path.join(d, FILE)):
 			fail("%s/%s: the versions file must never ship" % (d, FILE))
 	if bad:
 		sys.exit(1)

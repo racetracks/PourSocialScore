@@ -3,12 +3,12 @@
 The pipeline is the baseline's (baseline 09). The live files are `.github/workflows/release.yml`, `.github/workflows/rules.yml` and `tools/`; they win over this file. Versions and build numbers: 02 section 8.
 
 ## Names and paths
-- Main TOC (version source): `PourSocialScore/PourSocialScore.toc`. Zip: `PourSocialScore-<version>.zip` holding every `PourSocialScore*` folder (six), with readme.txt and history.txt copied into the core folder; no `.github`, `tools/` or `versions.json`.
+- Main TOC (version source): `PourSocialScore/PourSocialScore.toc`. Zip: `PourSocialScore-<version>.zip` holding the folders of `tools/packaging/folders.py core` (`PourSocialScore`, `_Libraries`, `_GUI`, `_Options`, `_Logging`, `_Communities`), with readme.txt and history.txt copied into the core folder; no `.github`, `tools/` or `versions.json`.
 - Release title: `Pour Social Score <version>`. Tags `v<version>`.
 - history.txt opens with "POUR SOCIAL SCORE - VERSION HISTORY" and "(newest first)"; each section is `=> X.Y.Z.B - Title`, a blank line, then plain bullets (`tools/bump_version.sh` writes it).
 
 ## CI: rules.yml (every pull request and every push to main)
-- `check`: `sh tools/check_rules.sh`: Lua 5.1 (luac5.1 and `check_style.lua`), ASCII, tabs and trailing whitespace, no UI in core logic (`check_layers.lua`), every saved key in the schema map (`check_schema.lua`), a local `M` in every file (`check_locals.lua`), member fields only through accessors (`check_fields.lua`), `check_toc.sh` on every `PourSocialScore_*` folder (three TOCs agree, files exist, Version = core's), history.txt's top section is the TOC version and holds no placeholder bullet, `versions.py check` (in CI every entry has its PR; a pull request's newest entry is its own number, `PSS_PR`), and PSS names only (no EllesmereUI or EUI names) in the window and the Libraries view files.
+- `check`: `sh tools/check_rules.sh`: Lua 5.1 (luac5.1 and `check_style.lua`), ASCII, tabs and trailing whitespace, no UI in core logic (`check_layers.lua`), every saved key in the schema map (`check_schema.lua`), a local `M` in every file (`check_locals.lua`), member fields only through accessors (`check_fields.lua`), `check_toc.sh` on every folder of `folders.py all` (three TOCs agree, files exist, Version = core's), history.txt's top section is the TOC version and holds no placeholder bullet, `versions.py check` (in CI every entry has its PR; a pull request's newest entry is its own number, `PSS_PR`), and PSS names only (no EllesmereUI or EUI names) in the window and the Libraries view files.
 - `harness`: `check_tui`, `check_viewquery`, `check_players`, `check_menus`, `check_guilds`, `check_filters`, `check_events`, `check_options` and `check_secrets`, each through `run.lua` with no save.
 - `upgrades`: `sh tools/harness/validate_all.sh` on a full clone (`fetch-depth: 0`), without real saves: upgrades from every old layout, data, on demand, growth, the window checks. A check that cannot run prints `SKIPPED` and fails the run (`PSS_ALLOW_SKIP=1` accepts it). The repository variable `PSS_SPARSE_AS` (a git ref, unset by default) turns on the every-save comparison with another build (`sparse_saves.sh`, for a stage that changes the saved layout).
 - `window-compare`: informational, always passes: `tui_compare.sh` against the base branch in all three looks, the output in the job summary and a warning annotation when the window differs; frame numbers are not a difference.
@@ -29,6 +29,7 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 
 ## Packaging manifest
 - `tools/packaging/addons.json`: the packages, one line per addon folder (P6: new folders start `PSS_`; the six `PourSocialScore*` names are frozen).
+- Five readers take the folder list from `folders.py`: `tools/host_build.sh:31` (host_build), `tools/check_rules.sh:29` and `:67` (check_rules, with `tools/check_layers.lua:208` for check_layers), `tools/versions.py:279` (versions.py) and `.github/workflows/release.yml:80` (release.yml).
 - `tools/packaging/folders.py:7` (`USAGE`): `all`, `<id>`, `--field`, `--version`, `--verify` list a package's folders for the build tools.
 - `tools/packaging/check_manifest.py:29` (`check`): guards G1 to G6, G8 and G10, run by `tools/check_rules.sh:69`.
 - `tools/packaging/check_manifest.py:132` (`selftest`): `python3 tools/packaging/check_manifest.py --self` runs the `good` and `bad-g*` fixtures in `tools/packaging/fixtures/` (made by `make_fixtures.py`).

@@ -77,9 +77,10 @@ jobs:
         run: |
           ver=${{ steps.v.outputs.version }}
           mkdir -p build
-          for d in PourSocialScore PourSocialScore_*/; do
-            if [ -d "$d" ]; then cp -r "${d%/}" build/; fi
+          for d in $(python3 tools/packaging/folders.py core); do
+            if [ -d "$d" ]; then cp -r "$d" build/; fi
           done
+          python3 tools/packaging/folders.py --verify core build
           cp readme.txt history.txt build/PourSocialScore/
           (cd build && zip -qr "../PourSocialScore-$ver.zip" .)
           {
@@ -181,9 +182,10 @@ jobs:
         id: c
         if: steps.m.outputs.skip == 'false'
         run: |
+          core=$(python3 tools/packaging/folders.py core)
           cd mirror
-          for d in PourSocialScore PourSocialScore_*/; do
-            if [ -d "$d" ]; then git rm -rq "${d%/}"; fi
+          for d in $core; do
+            if [ -d "$d" ]; then git rm -rq "$d"; fi
           done
           unzip -q "../PourSocialScore-$VER.zip" -d .
           git add -A
