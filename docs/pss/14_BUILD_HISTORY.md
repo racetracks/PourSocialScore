@@ -42,6 +42,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.9.0.156 - Packaging manifest and guards
+
+- Branch: `claude/dreamy-cray-7yfryn`; [PR #282](https://github.com/racetracks/PourSocialScore/pull/282).
+- What changed and why: one manifest (`tools/packaging/addons.json`), a folder script (`folders.py`) and guards G1 to G6, G8, G10 (`check_manifest.py`) in the rules check; new folders start `PSS_` (P6). No player change.
+- Docs updated: `docs/pss/05_RELEASE.md` (Packaging manifest), `docs/pss/02_RULES.md` (P6 row), `docs/pss/06_STATUS_AND_NEXT.md`, scratch code map `06_Architecture.md` and `00_Changelog.md`.
+- Tests run: `check_rules.sh` and `validate_all.sh` (see the PR).
+- Not shown by the simulation: nothing; no game behaviour changes.
+- In-game checks: none.
+
+### 3.9.0.155 (from 06 Now)
+
+**3.9.0.155, Journal monitors (branch `claude/wonderful-cannon-zwshli`, PR #279):** Journal monitors: vendor and repair, basic monitors, auction houses (hooks and adapters in the build history), fuzz and gold fixes; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.9.0.155 - Journal monitors
 
 - Branch: `claude/wonderful-cannon-zwshli`; [PR #279](https://github.com/racetracks/PourSocialScore/pull/279).

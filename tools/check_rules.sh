@@ -14,6 +14,7 @@
 #   The member fields S3 stops saving are read only through their accessors
 #   (tools/check_fields.lua)
 #   Every PourSocialScore_* folder's three TOCs agree (tools/check_toc.sh)
+#   The packaging manifest is well formed and agrees with the repo (tools/packaging/check_manifest.py)
 #   history.txt starts with the section of the version every TOC carries
 #   versions.json (tools/versions.py check): well formed, build numbers never
 #   go back, the TOC version is its newest entry, never in an addon folder;
@@ -64,6 +65,8 @@ lua5.1 tools/check_fields.lua || fail=1
 for d in PourSocialScore_*/; do
 	sh tools/check_toc.sh "${d%/}" || fail=1
 done
+
+python3 tools/packaging/check_manifest.py || fail=1
 
 ver=$(sed -n 's/^## Version: *//p' PourSocialScore/PourSocialScore.toc | tr -d '\r')
 top=$(sed -n 's/^=> \([^ ]*\) .*/\1/p' history.txt | head -n 1)

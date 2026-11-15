@@ -22,6 +22,7 @@
 - Core Notes are the author's wording: "Sometimes you dont wanna know when a man gotta slur a little". Never change Title or Notes unless asked.
 - Every TOC: `## Category: PSS`, `## Group: PourSocialScore`, `## IconTexture: Interface\FriendsFrame\Battlenet-Portrait`.
 - TOCs are generated: change `tools/toc/manifest.txt` or a base TOC header, then run `lua5.1 tools/gen_toc.lua`; a suffixed TOC is never edited by hand. Built clients: Retail 120007, Forever 16001, TBC Anniversary 20506. Every TOC in the repo carries one version.
+- **Addon folders (P6, `DEC-00489` a, the author's OK 2026-11-15):** new addon folders start with `PSS_`; the six `PourSocialScore*` names are frozen; every addon folder has one manifest entry (`tools/packaging/addons.json`, guards G1 and G3 of `tools/packaging/check_manifest.py`).
 
 ## 3. Behaviour rules
 - **Counting:** counters are never derived from log lines; nothing counted twice; guild rule blocks count only as guild blocks (the Chat Filters row shows "n/a"); a rule turned off disables every guild in it (`M.PSS_GuildRuleActive`).
