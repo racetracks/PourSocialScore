@@ -44,7 +44,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.9.0.156 - Packaging manifest and guards
 
-- Branch: `claude/dreamy-cray-7yfryn`; PR: none yet.
+- Branch: `claude/dreamy-cray-7yfryn`; [PR #282](https://github.com/racetracks/PourSocialScore/pull/282).
 - What changed and why: one manifest (`tools/packaging/addons.json`), a folder script (`folders.py`) and guards G1 to G6, G8, G10 (`check_manifest.py`) in the rules check; new folders start `PSS_` (P6). No player change.
 - Docs updated: `docs/pss/05_RELEASE.md` (Packaging manifest), `docs/pss/02_RULES.md` (P6 row), `docs/pss/06_STATUS_AND_NEXT.md`, scratch code map `06_Architecture.md` and `00_Changelog.md`.
 - Tests run: `check_rules.sh` and `validate_all.sh` (see the PR).
