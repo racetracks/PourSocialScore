@@ -42,6 +42,20 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.9.0.158 - Reusable release workflow
+
+- Branch: `claude/ecstatic-davinci-xf8l4x`; PR: none yet.
+- What changed and why: releases are built by one shared workflow, `.github/workflows/package-release.yml:1` (jobs resolve, build, mirror), called by `.github/workflows/release.yml:21`; notes by `tools/packaging/notes.sh:1`; `dry_run` input; guard G7 in `tools/packaging/check_manifest.py:2`. Core dry run `push dry-run ok`, notes identical. No player change.
+- Docs updated: `docs/pss/05_RELEASE.md`, `docs/pss/06_STATUS_AND_NEXT.md`, scratch code map `06_Architecture.md` and `00_Changelog.md`.
+- Deferred: R158 fixes (session CONTEXT.md D11) go to 3.9.0.159.
+- Tests run: `check_rules.sh` and `validate_all.sh` (see the PR).
+- Not shown by the simulation: nothing; no game behaviour changes.
+- In-game checks: (written in the PR)
+
+### 3.9.0.157 (from 06 Now)
+
+**3.9.0.157, Glob migration (branch `claude/elegant-goodall-pd96ub`, PR #283):** glob migration: the build tools take the addon folder list from the manifest (`folders.py`); dry-run proof 0 differ; no player change; details in `docs/pss/14_BUILD_HISTORY.md`.
+
 ### 3.9.0.157 - Glob migration
 
 - Branch: `claude/elegant-goodall-pd96ub`; PR: [#283](https://github.com/racetracks/PourSocialScore/pull/283).

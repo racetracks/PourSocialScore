@@ -1,5 +1,7 @@
 # Release: what PSS does on top of the baseline pipeline
 
+Purpose: what PSS does on top of the baseline release pipeline · owner coordinator · status current · related .github/workflows/release.yml, .github/workflows/package-release.yml, docs/pss/02_RULES.md
+
 The pipeline is the baseline's (baseline 09). The live files are `.github/workflows/release.yml`, `.github/workflows/rules.yml` and `tools/`; they win over this file. Versions and build numbers: 02 section 8.
 
 ## Names and paths
@@ -21,6 +23,10 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 - A last step keeps every version `versions.json` calls a pre-release (and every `-dev` tag) marked as a pre-release on GitHub.
 - Job `mirror` keeps **`racetracks/Pour-Social-Score`** (`MIRROR_REPO`) on the latest full release: the release zip's contents committed as the repo's files (the addon folders at the root; the mirror's own readme.md stays), then the release, with the same zip and notes, on that commit; a release whose tag is not on its files is made again. It runs after every push and does nothing when the mirror is up to date. It needs the secret `MIRROR_TOKEN` (fine-grained, Contents: Read and write on that repo only) on the addon repo; the mirror repo needs an existing commit. Pre-releases are not mirrored. After fixing a secret, run Actions > Release > Run workflow on main.
 
+## package-release.yml (reusable, called by release.yml)
+- `.github/workflows/release.yml:21` is the core caller of `.github/workflows/package-release.yml:1` (jobs resolve, build, mirror), with `workflow_dispatch` input `dry_run` (mirror up to `git push --dry-run`, `push dry-run ok`, no release); notes by `tools/packaging/notes.sh:1`.
+- Guard G7: `tools/packaging/check_manifest.py:2` (run by `check_rules.sh`).
+
 ## Tools
 - `sh tools/bump_version.sh build "Title"`: every TOC to the next build, the build recorded in `versions.json`, a history section on top (fill in the bullets). `release "Title"` makes the next build the release (only when the author says it is one; the pre-releases move under it in `versions.json`); `line X.Y.Z "Title"` starts a line with the next build number. `pr <number>` records the PR that carries the new builds.
 - `python3 tools/versions.py prs [<version>]` lists the versions and PRs between the previous release and a version; `kind`, `latest`, `check` serve the workflows and the rules check.
@@ -29,7 +35,7 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 
 ## Packaging manifest
 - `tools/packaging/addons.json`: the packages, one line per addon folder (P6: new folders start `PSS_`; the six `PourSocialScore*` names are frozen).
-- Five readers take the folder list from `folders.py`: `tools/host_build.sh:31` (host_build), `tools/check_rules.sh:29` and `:67` (check_rules, with `tools/check_layers.lua:208` for check_layers), `tools/versions.py:279` (versions.py) and `.github/workflows/release.yml:80` (release.yml).
+- Five readers take the folder list from `folders.py`: `tools/host_build.sh:31` (host_build), `tools/check_rules.sh:29` and `:67` (check_rules, with `tools/check_layers.lua:208` for check_layers), `tools/versions.py:279` (versions.py) and `.github/workflows/package-release.yml:1` (package-release.yml).
 - `tools/packaging/folders.py:7` (`USAGE`): `all`, `<id>`, `--field`, `--version`, `--verify` list a package's folders for the build tools.
 - `tools/packaging/check_manifest.py:29` (`check`): guards G1 to G6, G8 and G10, run by `tools/check_rules.sh:69`.
 - `tools/packaging/check_manifest.py:132` (`selftest`): `python3 tools/packaging/check_manifest.py --self` runs the `good` and `bad-g*` fixtures in `tools/packaging/fixtures/` (made by `make_fixtures.py`).
