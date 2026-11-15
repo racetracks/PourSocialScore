@@ -169,9 +169,18 @@ def cmd_pr(args):
 	save(data)
 
 
+def pkg_arg(args):
+	return args[args.index("--package") + 1] if "--package" in args else None
+
+
 def cmd_kind(args):
 	data = load()
 	v = args[0]
+	pk = pkg_arg(args)
+	if pk:
+		vs = data.get("packages", {}).get(pk, {}).get("versions", [])
+		print("release" if any(isinstance(x, dict) and x.get("version") == v for x in vs) or v in vs else "unknown")
+		return
 	if v == data["latestRelease"] or any(r["version"] == v for r in data["releases"]):
 		print("release")
 	elif any(e["version"] == v for e in all_entries(data)):
@@ -181,6 +190,10 @@ def cmd_kind(args):
 
 
 def cmd_latest(args):
+	pk = pkg_arg(args)
+	if pk:
+		print(load().get("packages", {}).get(pk, {}).get("latest") or "")
+		return
 	print(load()["latestRelease"] or "")
 
 
@@ -216,6 +229,25 @@ def cmd_check(args):
 		data = load()
 	except (OSError, ValueError) as e:
 		fail("cannot read: %s" % e)
+	pk = pkg_arg(args)
+	if pk:
+		p = data.get("packages", {}).get(pk)
+		if p is None:
+			fail("no packages." + pk)
+		vs = [x["version"] if isinstance(x, dict) else x for x in p.get("versions", [])]
+		prev = 0
+		for v in vs:
+			if not re.match(r"^[A-Z]+\.[1-9][0-9]*$", v):
+				fail("%s: not a package version" % v)
+			n = int(v.split(".")[1])
+			if n <= prev:
+				fail("%s: number does not rise" % v)
+			prev = n
+		if not vs or p.get("latest") != vs[-1]:
+			fail("packages.%s.latest is not the last version" % pk)
+		if toc != vs[-1]:
+			fail("the TOCs say %s, the newest package version is %s" % (toc, vs[-1]))
+		return
 	for k in ("latestRelease", "preReleases", "releases"):
 		if k not in data:
 			fail("no " + k)
