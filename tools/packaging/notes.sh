@@ -34,4 +34,4 @@ awk -v v="$ver" '
 	on { print }
 ' "$hist"
 echo
-echo "Full changelog: history.txt"
+echo "Full changelog: $(basename "$hist")"

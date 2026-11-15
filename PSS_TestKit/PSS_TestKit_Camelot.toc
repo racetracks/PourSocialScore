@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: PSS TestKit
+## Notes: In-game test checklist for PourSocialScore builds (developer addon)
+## Category: PSS
+## Group: PourSocialScore
+## IconTexture: Interface\FriendsFrame\Battlenet-Portrait
+## Author: Boaties
+## Version: TK.1
+## X-PSS-Developer: 1
+## LoadOnDemand: 1
+## Dependencies: PourSocialScore, PourSocialScore_Libraries
+## SavedVariables: PSS_TestKitDB
+
+PSS_TK_Text.lua
+PSS_TK_Bus.lua
+PSS_TK_Window.lua
