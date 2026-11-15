@@ -113,7 +113,7 @@ local seen = {}
 local bases = { addonDir }
 if coreDir ~= addonDir then bases[2] = coreDir .. "/.." end
 for _, base in ipairs(bases) do
-	local ls = io.popen('ls -d "' .. base .. '"/' .. CORE .. '_*/ 2>/dev/null')
+	local ls = io.popen('ls -d "' .. base .. '"/' .. CORE .. '_*/ "' .. base .. '"/PSS_TestKit/ 2>/dev/null')
 	if ls then
 		for dir in ls:lines() do
 			dir = dir:gsub("/$", "")
