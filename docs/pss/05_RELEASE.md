@@ -27,6 +27,13 @@ The pipeline is the baseline's (baseline 09). The live files are `.github/workfl
 - `sh tools/host_build.sh <scratch checkout> [--no-commit | --no-push]`: builds the test zip from HEAD the way `release.yml` does, puts it in scratch `releases/` and `latest/` (replacing the old one), updates the index rows, commits and pushes, and prints the links. `--no-commit` stages only, so docs join the same commit.
 - `sh tools/host_tests.sh` builds a tests bundle; not hosted unless the author asks (11_PREFERENCES).
 
+## Packaging manifest
+- `tools/packaging/addons.json`: the packages, one line per addon folder (P6: new folders start `PSS_`; the six `PourSocialScore*` names are frozen).
+- `tools/packaging/folders.py:7` (`USAGE`): `all`, `<id>`, `--field`, `--version`, `--verify` list a package's folders for the build tools.
+- `tools/packaging/check_manifest.py:29` (`check`): guards G1 to G6, G8 and G10, run by `tools/check_rules.sh:69`.
+- `tools/packaging/check_manifest.py:132` (`selftest`): `python3 tools/packaging/check_manifest.py --self` runs the `good` and `bad-g*` fixtures in `tools/packaging/fixtures/` (made by `make_fixtures.py`).
+- `tools/versions.py:173`: `--package <id>` reads and checks one package's versions in `versions.json`.
+
 ## Full releases
 - The notes are the release's history section only: one player-facing summary of every change since the previous release, written by Claude at release time from the PRs `versions.json` lists between the two (`docs/pss/15_ROUTES.md`, Full releases). No API key in the pipeline. Pre-releases keep their own history section as notes.
 - **What a full release updates (the author, 2026-10-09), all in the release PR and one scratch delivery:**
