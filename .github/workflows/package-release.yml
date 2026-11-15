@@ -192,6 +192,8 @@ jobs:
             VER='${{ needs.resolve.outputs.version }}'
           fi
           echo "version=$VER" >> "$GITHUB_OUTPUT"
+          zip=$(python3 tools/packaging/folders.py --field "$pkg" zipName)
+          echo "zip=${zip//\{version\}/$VER}" >> "$GITHUB_OUTPUT"
           if [ -z "$VER" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "No release yet: nothing to mirror"; exit 0; fi
           if [ -z "$GH_TOKEN" ]; then
             echo "::error::Add a $secret secret with contents read and write on $repo (projects/test-kit/specs/token-guide.md)"
@@ -220,8 +222,9 @@ jobs:
         if: steps.m.outputs.skip == 'false'
         run: |
           pkg='${{ inputs.package }}'
-          if [ "$(python3 tools/packaging/folders.py --field "$pkg" sourceRelease)" = true ] && [ '${{ inputs.dry_run }}' != true ]; then
-            gh release download "v$VER" --repo "$GITHUB_REPOSITORY" --pattern '${{ needs.resolve.outputs.zip }}'
+          if [ "$(python3 tools/packaging/folders.py --field "$pkg" sourceRelease)" = true ]; then
+            zip='${{ steps.m.outputs.zip }}'
+            gh release download "v$VER" --repo "$GITHUB_REPOSITORY" --pattern "$zip"
             gh release view "v$VER" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
             echo "artifact=false" >> "$GITHUB_OUTPUT"
           else
@@ -242,7 +245,7 @@ jobs:
         if: steps.m.outputs.skip == 'false'
         run: |
           pkg='${{ inputs.package }}'
-          zip='${{ needs.resolve.outputs.zip }}'
+          zip='${{ steps.m.outputs.zip }}'
           title=$(python3 tools/packaging/folders.py --field "$pkg" title)
           repo=$(python3 tools/packaging/folders.py --field "$pkg" targetRepo)
           own=$(python3 tools/packaging/folders.py "$pkg")
@@ -292,7 +295,7 @@ jobs:
           repo=$(f targetRepo)
           main=$(f main)
           title=$(f title)
-          zip='${{ needs.resolve.outputs.zip }}'
+          zip='${{ steps.m.outputs.zip }}'
           # a release whose tag is not on the release's files (made before the
           # files were copied) is made again on them
           tagged=$(git -C mirror show "v$VER:$main/$main.toc" 2>/dev/null | sed -n 's/^## Version: *//p' | tr -d '\r' || true)
