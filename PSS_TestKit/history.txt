@@ -1,0 +1,5 @@
+PSS TESTKIT - VERSION HISTORY
+(newest first)
+
+=> TK.1 - PSS TestKit shell
+- PSS TestKit shell: /pss test opens the kit window
