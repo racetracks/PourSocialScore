@@ -44,7 +44,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.9.0.157 - Glob migration
 
-- Branch: `claude/elegant-goodall-pd96ub`; PR: none yet.
+- Branch: `claude/elegant-goodall-pd96ub`; PR: [#283](https://github.com/racetracks/PourSocialScore/pull/283).
 - What changed and why: the build tools (`host_build.sh`, `check_rules.sh`, `check_layers.lua`, `versions.py`, `release.yml`) take the addon folder list from `folders.py` instead of a `PourSocialScore*` glob; dry-run proof 0 differ. No player change.
 - Docs updated: `docs/pss/05_RELEASE.md`, `docs/pss/06_STATUS_AND_NEXT.md`, scratch code map `06_Architecture.md` and `00_Changelog.md`.
 - Tests run: `check_rules.sh` and `validate_all.sh` (see the PR).
