@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Manifest guards G1-G6, G8, G10 for tools/packaging/addons.json (G7, G9 later)."""
+"""Manifest guards G1-G8, G10 for tools/packaging/addons.json (G9 runs in CI: folders.py --verify)."""
 import json
 import os
 import re
@@ -26,7 +26,7 @@ def toc_dev(root, f):
 	return False
 
 
-def check(root):
+def check(root, warn=None):
 	out = []
 	path = os.path.join(root, "tools", "packaging", "addons.json")
 	try:
@@ -88,6 +88,16 @@ def check(root):
 		w = str(p.get("workflow"))
 		if not (w.startswith(".github/workflows/") and w.endswith(".yml")):
 			out.append(pre + "workflow: must be .github/workflows/<name>.yml")
+		else:
+			wp = os.path.join(root, w)
+			if not os.path.isfile(wp):
+				if isinstance(warn, list):
+					warn.append("addons.json: %s.workflow %s not written yet (package not published)" % (i, w))
+			else:
+				with open(wp, encoding="utf-8") as fh:
+					wt = fh.read()
+				if ("package: %s" % i) not in wt or ("secrets.%s" % p.get("secret")) not in wt:
+					out.append("%s: does not pass package %s with secrets.%s" % (w, i, p.get("secret")))
 	counts = {}
 	for f in folders:
 		n = f.get("folder")
@@ -152,7 +162,10 @@ def main(argv):
 		root = "."
 		if "--root" in argv:
 			root = argv[argv.index("--root") + 1]
-		res = check(root)
+		warn = []
+		res = check(root, warn)
+		for m in warn:
+			print(m)
 	for m in res:
 		print(m)
 	return 1 if res else 0
