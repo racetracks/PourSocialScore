@@ -1,0 +1,309 @@
+# Publishes one package (tools/packaging/addons.json) when its version changes:
+# tags v<version> and attaches the package zip (the package's addon folders from
+# tools/packaging/folders.py, plus its copyIn files; no .github / tools), with
+# that version's section of the package history file as the release notes.
+# Does nothing if the release exists. Every version is recorded in
+# versions.json (tools/versions.py, never shipped): the latest release, or a
+# pre-release recorded with its PR. A version it does not record is not
+# published. Job "build" makes the zip and notes after the rules check and the
+# full harness; job "mirror" keeps the package's target repo on its version:
+# the zip's contents committed as its files, and the release with the same zip
+# and notes on that commit (secret mirror_token: contents read and write on that
+# repo). With dry_run no release is made and the push is only tried.
+# Called with the package id; secrets are passed by name by each caller.
+name: Package release
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        type: string
+        required: true
+      dry_run:
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      mirror_token:
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      kind: ${{ steps.v.outputs.kind }}
+      zip: ${{ steps.v.outputs.zip }}
+      exists: ${{ steps.v.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: v
+        run: |
+          pkg='${{ inputs.package }}'
+          f() { python3 tools/packaging/folders.py --field "$pkg" "$1"; }
+          ver=$(python3 tools/packaging/folders.py --version "$pkg")
+          if [ "$(f version)" = suite ]; then
+            kind=$(python3 tools/versions.py kind "$ver")
+          else
+            kind=$(python3 tools/versions.py kind "$ver" --package "$pkg")
+          fi
+          if [ "$kind" = unknown ]; then
+            echo "::error::$ver of package $pkg is not in versions.json (sh tools/bump_version.sh records it)"
+            exit 1
+          fi
+          zip=$(f zipName)
+          zip=${zip//\{version\}/$ver}
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "kind=$kind" >> "$GITHUB_OUTPUT"
+          echo "zip=$zip" >> "$GITHUB_OUTPUT"
+          if [ "$(f sourceRelease)" = true ]; then
+            repo="$GITHUB_REPOSITORY"
+            export GH_TOKEN='${{ github.token }}'
+          else
+            repo=$(f targetRepo)
+            export GH_TOKEN='${{ secrets.mirror_token }}'
+          fi
+          if out=$(gh release view "v$ver" --repo "$repo" 2>&1); then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif echo "$out" | grep -qi "not found"; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::gh release view v$ver --repo $repo failed: $out"
+            exit 1
+          fi
+
+  build:
+    needs: resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Nothing is published from a red main: the rules check and the full
+      # harness (no real saves here) must pass first. A failed run is retried
+      # with the Run workflow button once main is fixed.
+      - name: Install Lua 5.1
+        if: needs.resolve.outputs.exists == 'false'
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+
+      - name: Rules check before publishing
+        if: needs.resolve.outputs.exists == 'false'
+        run: sh tools/check_rules.sh
+
+      - name: Full harness before publishing
+        if: needs.resolve.outputs.exists == 'false'
+        run: sh tools/harness/validate_all.sh
+
+      - name: Build zip and notes
+        if: needs.resolve.outputs.exists == 'false'
+        run: |
+          pkg='${{ inputs.package }}'
+          ver='${{ needs.resolve.outputs.version }}'
+          zip='${{ needs.resolve.outputs.zip }}'
+          mkdir -p build
+          for d in $(python3 tools/packaging/folders.py "$pkg"); do
+            if [ -d "$d" ]; then cp -r "$d" build/; fi
+          done
+          python3 tools/packaging/folders.py --field "$pkg" copyIn | while read -r src dest; do
+            [ -n "$src" ] && cp "$src" "build/$dest/"
+          done
+          python3 tools/packaging/folders.py --verify "$pkg" build
+          (cd build && zip -qr "../$zip" .)
+          sh tools/packaging/notes.sh "$pkg" "$ver" '${{ needs.resolve.outputs.kind }}' > notes.md
+          cat notes.md
+
+      - name: Upload zip and notes
+        if: needs.resolve.outputs.exists == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ inputs.package }}
+          path: |
+            ${{ needs.resolve.outputs.zip }}
+            notes.md
+
+      - name: Publish release
+        if: needs.resolve.outputs.exists == 'false' && !inputs.dry_run
+        run: |
+          pkg='${{ inputs.package }}'
+          if [ "$(python3 tools/packaging/folders.py --field "$pkg" sourceRelease)" = true ]; then
+            ver='${{ needs.resolve.outputs.version }}'
+            zip='${{ needs.resolve.outputs.zip }}'
+            title=$(python3 tools/packaging/folders.py --field "$pkg" title)
+            pre="--latest"
+            [ '${{ needs.resolve.outputs.kind }}' = release ] || pre="--prerelease"
+            gh release create "v$ver" "$zip" $pre \
+              --target "$GITHUB_SHA" --title "$title $ver" --notes-file notes.md
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Keep pre-releases marked as pre-releases
+        if: ${{ inputs.package != '' && !inputs.dry_run }}
+        run: |
+          pkg='${{ inputs.package }}'
+          if [ "$(python3 tools/packaging/folders.py --field "$pkg" sourceRelease)" = true ]; then
+            gh release list --limit 100 --json tagName,isPrerelease \
+              --jq '.[] | select(.isPrerelease | not) | .tagName' |
+            while read -r tag; do
+              v=${tag#v}
+              case "$v" in *-*) gh release edit "$tag" --prerelease; continue ;; esac
+              if [ "$(python3 tools/versions.py kind "$v")" = pre-release ]; then gh release edit "$tag" --prerelease; fi
+            done
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  mirror:
+    # Keeps the package's target repo on its version (mirrorOn latestRelease:
+    # versions.json latest; every: the built version): the zip's contents
+    # committed as the repo's files (files of the target's own, such as its
+    # readme.md, are kept), and the release, with the same zip and notes, on
+    # that commit. Runs after every push and does nothing when the target is
+    # already there.
+    needs: [resolve, build]
+    if: ${{ always() && needs.resolve.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the version and the mirror
+        id: m
+        run: |
+          pkg='${{ inputs.package }}'
+          f() { python3 tools/packaging/folders.py --field "$pkg" "$1"; }
+          repo=$(f targetRepo)
+          main=$(f main)
+          secret=$(f secret)
+          if [ "$(f mirrorOn)" = latestRelease ]; then
+            if [ "$(f version)" = suite ]; then
+              VER=$(python3 tools/versions.py latest)
+            else
+              VER=$(python3 tools/versions.py latest --package "$pkg")
+            fi
+          else
+            VER='${{ needs.resolve.outputs.version }}'
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          if [ -z "$VER" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "No release yet: nothing to mirror"; exit 0; fi
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Add a $secret secret with contents read and write on $repo (projects/test-kit/specs/token-guide.md)"
+            exit 1
+          fi
+          git clone -q "https://x-access-token:${GH_TOKEN}@github.com/${repo}.git" mirror
+          echo "token ok: read $repo"
+          toc() { sed -n 's/^## Version: *//p' | tr -d '\r'; }
+          files=$( { toc < "mirror/$main/$main.toc"; } 2>/dev/null || true)
+          tagged=$(git -C mirror show "v$VER:$main/$main.toc" 2>/dev/null | toc || true)
+          if [ '${{ inputs.dry_run }}' = true ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "Dry run: skip test not applied (files: ${files:-none}, tagged: ${tagged:-none})"
+          elif [ "$files" = "$VER" ] && [ "$tagged" = "$VER" ] && gh release view "v$VER" --repo "$repo" >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "The mirror is on $VER"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "The mirror needs $VER (files: ${files:-none}, tagged: ${tagged:-none})"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.mirror_token }}
+
+      - name: Fetch the zip and notes from the source release
+        id: src
+        if: steps.m.outputs.skip == 'false'
+        run: |
+          pkg='${{ inputs.package }}'
+          if [ "$(python3 tools/packaging/folders.py --field "$pkg" sourceRelease)" = true ] && [ '${{ inputs.dry_run }}' != true ]; then
+            gh release download "v$VER" --repo "$GITHUB_REPOSITORY" --pattern '${{ needs.resolve.outputs.zip }}'
+            gh release view "v$VER" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
+            echo "artifact=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "artifact=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          VER: ${{ steps.m.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Fetch the zip and notes from the build artifact
+        if: steps.m.outputs.skip == 'false' && steps.src.outputs.artifact == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: package-${{ inputs.package }}
+
+      - name: Commit the package files to the mirror
+        id: c
+        if: steps.m.outputs.skip == 'false'
+        run: |
+          pkg='${{ inputs.package }}'
+          zip='${{ needs.resolve.outputs.zip }}'
+          title=$(python3 tools/packaging/folders.py --field "$pkg" title)
+          repo=$(python3 tools/packaging/folders.py --field "$pkg" targetRepo)
+          own=$(python3 tools/packaging/folders.py "$pkg")
+          zip="${PWD}/$zip"
+          cd mirror
+          for d in $own; do
+            if [ -d "$d" ]; then git rm -rq "$d"; fi
+          done
+          unzip -q "$zip" -d .
+          git add -A
+          bad=0
+          for d in */; do
+            d=${d%/}
+            if ls "$d"/*.toc >/dev/null 2>&1 && ! echo "$own" | grep -qx "$d"; then
+              echo "::error::mirror $repo: $d is outside package $pkg"; bad=1
+            fi
+          done
+          for p in $(git diff --cached --name-only); do
+            ok=0
+            for d in $own; do case "$p" in "$d"/*) ok=1;; esac; done
+            if [ $ok = 0 ]; then echo "::error::mirror $repo: $p is outside package $pkg"; bad=1; fi
+          done
+          [ $bad = 0 ] || exit 1
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "$title $VER"
+            if [ '${{ inputs.dry_run }}' = true ]; then
+              git push --dry-run origin HEAD
+              echo "push dry-run ok"
+              exit 0
+            fi
+            git push -q origin HEAD
+          elif [ '${{ inputs.dry_run }}' = true ]; then
+            git push --dry-run origin HEAD
+            echo "push dry-run ok"
+            exit 0
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        env:
+          VER: ${{ steps.m.outputs.version }}
+
+      - name: Publish the release on the mirror
+        if: steps.m.outputs.skip == 'false' && !inputs.dry_run
+        run: |
+          pkg='${{ inputs.package }}'
+          f() { python3 tools/packaging/folders.py --field "$pkg" "$1"; }
+          repo=$(f targetRepo)
+          main=$(f main)
+          title=$(f title)
+          zip='${{ needs.resolve.outputs.zip }}'
+          # a release whose tag is not on the release's files (made before the
+          # files were copied) is made again on them
+          tagged=$(git -C mirror show "v$VER:$main/$main.toc" 2>/dev/null | sed -n 's/^## Version: *//p' | tr -d '\r' || true)
+          if [ "$tagged" != "$VER" ] && gh release view "v$VER" --repo "$repo" >/dev/null 2>&1; then
+            gh release delete "v$VER" --repo "$repo" --cleanup-tag --yes
+          fi
+          if ! gh release view "v$VER" --repo "$repo" >/dev/null 2>&1; then
+            gh release create "v$VER" "$zip" --repo "$repo" --target "$SHA" \
+              --title "$title $VER" --notes-file notes.md --latest
+          fi
+        env:
+          VER: ${{ steps.m.outputs.version }}
+          SHA: ${{ steps.c.outputs.sha }}
+          GH_TOKEN: ${{ secrets.mirror_token }}
