@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "packages": [
+    {"id": "core", "title": "Pour Social Score", "main": "PourSocialScore",
+     "targetRepo": "racetracks/Pour-Social-Score", "secret": "MIRROR_TOKEN",
+     "zipName": "PourSocialScore-{version}.zip", "version": "suite", "history": "history.txt",
+     "copyIn": [{"src": "readme.txt", "dest": "PourSocialScore"}, {"src": "history.txt", "dest": "PourSocialScore"}],
+     "sourceRelease": true, "mirrorOn": "latestRelease", "workflow": ".github/workflows/release.yml"}
+  ],
+  "folders": [
+    {"folder": "PourSocialScore", "package": "core", "developer": false},
+    {"folder": "PourSocialScore_Libraries", "package": "core", "developer": false},
+    {"folder": "PourSocialScore_GUI", "package": "core", "developer": false},
+    {"folder": "PourSocialScore_Options", "package": "core", "developer": false},
+    {"folder": "PourSocialScore_Logging", "package": "core", "developer": false},
+    {"folder": "PourSocialScore_Communities", "package": "core", "developer": false},
+    {"folder": "PourSocialScore_Test", "package": "core", "developer": false}
+  ]
+}

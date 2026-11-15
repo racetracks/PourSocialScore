@@ -1,0 +1,20 @@
+interface retail 120007
+interface forever 16001
+interface tbc 20506
+install retail _retail_
+install forever _retail_
+install tbc _anniversary_
+folder PourSocialScore
+PSS_Main.lua
+folder PourSocialScore_Libraries
+PSS_Main.lua
+folder PourSocialScore_GUI
+PSS_Main.lua
+folder PourSocialScore_Options
+PSS_Main.lua
+folder PourSocialScore_Logging
+PSS_Main.lua
+folder PourSocialScore_Communities
+PSS_Main.lua
+folder PSS_Extra
+PSS_Main.lua
