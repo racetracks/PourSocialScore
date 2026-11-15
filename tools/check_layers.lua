@@ -205,7 +205,7 @@ if os.getenv("PSS_LAYERS_ONLY") then
 	os.exit(deepScan(os.getenv("PSS_LAYERS_AS") or os.getenv("PSS_LAYERS_ONLY"), ls) > 0 and 1 or 0)
 end
 
-local find = io.popen('find PourSocialScore PourSocialScore_* -name "*.lua" 2>/dev/null | sort')
+local find = io.popen('find $(python3 tools/packaging/folders.py all) -name "*.lua" 2>/dev/null | sort')
 local seen, bad = 0, 0
 for path in find:lines() do
 	local ls = {}

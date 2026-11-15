@@ -13,7 +13,7 @@
 #   has no OnUpdate and one timer call (tools/check_timers.lua)
 #   The member fields S3 stops saving are read only through their accessors
 #   (tools/check_fields.lua)
-#   Every PourSocialScore_* folder's three TOCs agree (tools/check_toc.sh)
+#   Every core folder but PourSocialScore has three agreeing TOCs (tools/check_toc.sh)
 #   The packaging manifest is well formed and agrees with the repo (tools/packaging/check_manifest.py)
 #   history.txt starts with the section of the version every TOC carries
 #   versions.json (tools/versions.py check): well formed, build numbers never
@@ -26,8 +26,10 @@
 # Usage: sh tools/check_rules.sh   (from the repo root, needs luac5.1/lua5.1)
 
 fail=0
-# every addon folder (3.0 layout: PourSocialScore/, PourSocialScore_*/)
-files=$(ls PourSocialScore*/*.lua tools/*.lua tools/harness/*.lua 2>/dev/null)
+folders=$(python3 tools/packaging/folders.py all) || { echo "folders.py all failed: lint lists cannot be built"; exit 1; }
+# every addon folder, from the packaging manifest (tools/packaging/addons.json)
+lst() { for d in $folders; do ls "$d"/$1 2>/dev/null; done; }
+files=$(lst '*.lua'; ls tools/*.lua tools/harness/*.lua 2>/dev/null)
 
 for f in $files; do
 	luac5.1 -p "$f" || fail=1
@@ -35,12 +37,12 @@ done
 
 lua5.1 tools/check_style.lua $files || fail=1
 
-if LC_ALL=C grep -nP '[^\x00-\x7F]' $(ls PourSocialScore*/*.toc PourSocialScore*/*.xml 2>/dev/null) readme.txt history.txt; then
+if LC_ALL=C grep -nP '[^\x00-\x7F]' $(lst '*.toc'; lst '*.xml') readme.txt history.txt; then
 	echo "ASCII only: non-ASCII bytes found above"
 	fail=1
 fi
 
-if grep -nP '^\t* |[ \t]+$' $(ls PourSocialScore*/*.xml 2>/dev/null); then
+if grep -nP '^\t* |[ \t]+$' $(lst '*.xml'); then
 	echo "Tabs, not spaces: space indentation or trailing whitespace found above"
 	fail=1
 fi
@@ -58,12 +60,13 @@ lua5.1 tools/check_indexes.lua > /dev/null || { lua5.1 tools/check_indexes.lua; 
 
 # a chat, unit or hook value is checked with isSecret before any compare (3.7.0.111, baseline 02 J7; the lint proves itself first)
 lua5.1 tools/check_secretorder.lua --self || fail=1
-for f in PourSocialScore*/*.lua; do lua5.1 tools/check_secretorder.lua "$f" || fail=1; done
+for f in $(lst '*.lua'); do lua5.1 tools/check_secretorder.lua "$f" || fail=1; done
 
 lua5.1 tools/check_fields.lua || fail=1
 
-for d in PourSocialScore_*/; do
-	sh tools/check_toc.sh "${d%/}" || fail=1
+for d in $(python3 tools/packaging/folders.py core); do
+	[ "$d" = PourSocialScore ] && continue
+	sh tools/check_toc.sh "$d" || fail=1
 done
 
 python3 tools/packaging/check_manifest.py || fail=1
