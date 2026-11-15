@@ -42,7 +42,8 @@
 		{ "version": "3.9.0.155", "pr": 279 },
 		{ "version": "3.9.0.156", "pr": 282 },
 		{ "version": "3.9.0.157", "pr": 283 },
-		{ "version": "3.9.0.158", "pr": 284 }
+		{ "version": "3.9.0.158", "pr": 284 },
+		{ "version": "3.9.0.159", "pr": null }
 	],
 	"releases": [
 		{
@@ -346,5 +347,6 @@
 				{ "version": "2.0.16", "pr": null }
 			]
 		}
-	]
+	],
+	"packages": {"testkit": {"latest": "TK.1", "versions": [{"version": "TK.1", "pr": 0}]}}
 }
