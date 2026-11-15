@@ -42,6 +42,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.9.0.157 - Glob migration
+
+- Branch: `claude/elegant-goodall-pd96ub`; PR: none yet.
+- What changed and why: the build tools (`host_build.sh`, `check_rules.sh`, `check_layers.lua`, `versions.py`, `release.yml`) take the addon folder list from `folders.py` instead of a `PourSocialScore*` glob; dry-run proof 0 differ. No player change.
+- Docs updated: `docs/pss/05_RELEASE.md`, `docs/pss/06_STATUS_AND_NEXT.md`, scratch code map `06_Architecture.md` and `00_Changelog.md`.
+- Tests run: `check_rules.sh` and `validate_all.sh` (see the PR).
+- Not shown by the simulation: nothing; no game behaviour changes.
+- In-game checks: none.
+
+### 3.9.0.156 (from 06 Now)
+
+**3.9.0.156, Packaging manifest and guards (branch `claude/dreamy-cray-7yfryn`, PR #282):** addon folder manifest, folder script, guards; no player change; details in `docs/pss/14_BUILD_HISTORY.md`.
+
 ### 3.9.0.156 - Packaging manifest and guards
 
 - Branch: `claude/dreamy-cray-7yfryn`; [PR #282](https://github.com/racetracks/PourSocialScore/pull/282).

@@ -1,11 +1,11 @@
-# Status and next step (release 3.7.0.114; built 3.8.0.116 to 3.8.0.120, 3.8.0.123 to 3.8.0.135, 3.8.0.139 to 3.8.0.144, 3.8.0.148 to 3.8.0.153, 3.9.0.154, 3.9.0.155, 3.9.0.156)
+# Status and next step (release 3.7.0.114; built 3.8.0.116 to 3.8.0.120, 3.8.0.123 to 3.8.0.135, 3.8.0.139 to 3.8.0.144, 3.8.0.148 to 3.8.0.153, 3.9.0.154, 3.9.0.155, 3.9.0.156, 3.9.0.157)
 
 Purpose: current status and next step of PSS · owner coordinator · status current, updated every PR · related docs/pss/14_BUILD_HISTORY.md, docs/pss/01_HANDOVER.md
 
 Kept short and current: every PR updates it (baseline 02 E10). The addon as it works is in `01_HANDOVER.md`; the last plan, closed at 3.4.1.53, is `10_CORE_UPLIFT.md`. What each build changed and why: `docs/pss/14_BUILD_HISTORY.md` (written at every build, not loaded at start). Earlier builds: `history.txt`, `versions.json` and the build records on scratch (`16_02_Build_Ledger.md` (`scratch:documents/features/addon-helper/16_Registries/16_02_Build_Ledger.md`)). History: `reference/06_status-history-3.6.0.69-to-3.8.0.118.md`, `reference/06_status-history-to-3.4.1.30.md` and `reference/combined-3.4.1.52/`.
 
 ## Now
-- **3.9.0.156, Packaging manifest and guards (branch `claude/dreamy-cray-7yfryn`, PR #282):** addon folder manifest, folder script, guards; no player change; details in `docs/pss/14_BUILD_HISTORY.md`.
+- **3.9.0.157, Glob migration (branch `claude/elegant-goodall-pd96ub`, PR: none yet):** glob migration: the build tools take the addon folder list from the manifest (`folders.py`); dry-run proof 0 differ; no player change; details in `docs/pss/14_BUILD_HISTORY.md`.
 - **Harness fix, no build (from PR #267, merged into PR #269):** `tools/harness/build_saves.sh` puts a client folder's later saves under their client again (`docs/pss/07_HARNESS.md#changelog`); issue #268 (old saves fail real-saves) stays open.
 - **Last code build: 3.8.0.118, Spyglass phase A with its fixes 3.8.0.117 and 3.8.0.118 (PR #238, merged; the author's re-test passed 2026-10-18).** What each build did: the status history (`docs/pss/reference/06_status-history-3.6.0.69-to-3.8.0.118.md`), `history.txt` and `versions.json`.
 - **Next: the search speed fix is merged as 3.8.0.153 (PR #277; its CI text-search gate on `tbc/3.8.0.143` stays red, a follow-up build only if the author asks); the paused Spyglass builds follow, Journal after; the Forever re-run build goes first after 2026-11-04.** Plan: [spyglass-journal plan](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/10/22/14-41-37-Thu-stoic-gates-r93b6b/projects/spyglass-journal/specs/plan.md#3-build-plan).
@@ -14,7 +14,7 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
-- 3.9.0.156: no in-game checks; review and merge the PR (P6 row OK given, card 1).
+- 3.9.0.157: no in-game checks; review and merge the PR.
 - 3.9.0.155: accepted, PR #279 merged (the author, 2026-11-15); follow-up fix build in issue #281.
 - 3.7.0.113 to 3.9.0.154: every PR merged (checked 2026-11-15); all checks with no recorded result waived, superseded by the accepted 3.9.0.155 (the author, 2026-11-15, "waive old checks"); the list before this change is in git history of this file.
 - #231: the undo check skips the planted 3.4.1.50 save.
