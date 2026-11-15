@@ -284,6 +284,11 @@ return function(stub)
 			if not m then return end
 			return 1, 1, m.sender or "Someone", m.subject or "", m.money or 0, 0, m.daysLeft or 30, #(m.items or {}) > 0
 		end
+		function GetInboxInvoiceInfo(i)
+			local v = W.mail[i] and W.mail[i].invoice
+			if not v then return end
+			return v.kind, v.item, v.player, v.bid, v.buyout, v.deposit, v.consignment
+		end
 		function GetInboxItem(i, a)
 			local it = W.mail[i] and W.mail[i].items and W.mail[i].items[a]
 			if not it then return end
@@ -325,6 +330,10 @@ return function(stub)
 				return t <= 1800 and 1 or t <= 7200 and 2 or t <= 43200 and 3 or 4
 			end
 		end
+
+		local function ahFire() stub.Fire(f.modernAH and "OWNED_AUCTIONS_UPDATED" or "AUCTION_OWNED_LIST_UPDATE") end
+		function stub.Post(row) W.auctions[#W.auctions + 1] = row; ahFire() end
+		function stub.Unpost(i) table.remove(W.auctions, i); ahFire() end
 
 		-- void
 		if f.void then

@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.9.0.155 - Journal monitors
+
+- Journal monitors (off by default, Journal option on): vendor, repair, mail, taxi, trainer and auction house activity is read and written to the Journal.
+- Gold seal rule and visible gold, Dark look tick fixes, and warehouse auctions without an item link.
+
 => 3.9.0.154 - Journal data
 
 - Journal data (off by default): a new Journal option in Options, shown only on clients that support it and refused while the Warehouse is off.

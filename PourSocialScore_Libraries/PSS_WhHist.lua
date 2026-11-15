@@ -152,18 +152,32 @@ function M.PSS_WhHistGold(ent, copper)
 	pend[ent] = { hour = h, copper = copper, t = t }
 end
 
+function M.PSS_WhHistTrim()
+	if not M.PSS_On("journal") then return 0 end
+	return store:trim()
+end
+
+-- the one seal rule: every hot line into its store, the open hour's gold at logout, then the month cap on both stores
+function M.PSS_JrnSeal(reason)
+	if not M.PSS_On("journal") then return end
+	flushNets()
+	if reason == "logout" then
+		for ent, p in pairs(pend) do putGold(ent, p) end
+		pend = {}
+	end
+	M.PSS_IxFlush("jrn")
+	M.PSS_IxFlush("whh")
+	if M.PSS_JrnTrim then M.PSS_JrnTrim() end
+	M.PSS_WhHistTrim()
+end
+
 if M.PSS_Provide and M.PSS_Trigger then
 	M.PSS_Provide("whh.flush", function()
 		flushNets()
 		return { cols = { "n" }, n = 0 }
 	end)
-	M.PSS_Provide("whh.logout", function()
-		flushNets()
-		if M.PSS_On("journal") then
-			for ent, p in pairs(pend) do putGold(ent, p) end
-			pend = {}
-			M.PSS_IxFlush("whh")
-		end
+	M.PSS_Provide("jrn.seal", function()
+		M.PSS_JrnSeal("logout")
 		return { cols = { "n" }, n = 0 }
 	end)
 end
@@ -176,7 +190,8 @@ function M.PSS_WhStartMore(warehouse)
 	if not warehouse or started or not M.PSS_On("journal") or not M.PSS_Trigger then return end
 	started = true
 	M.PSS_Trigger({ id = "whh.net", gate = "journal", on = { "BAG_UPDATE_DELAYED" }, settle = "now", run = "whh.flush" })
-	M.PSS_Trigger({ id = "whh.logout", gate = "journal", on = { "PLAYER_LOGOUT" }, settle = "now", run = "whh.logout" })
+	M.PSS_Trigger({ id = "jrn.seal", gate = "journal", on = { "PLAYER_LOGOUT" }, settle = "now", run = "jrn.seal" })
+	M.PSS_JrnSeal("login")
 end
 
 ------------------------------------------------------------------------
@@ -221,6 +236,13 @@ M.PSS_IxDeclare({
 	summary = function(r) return tostring(r.st) .. " " .. tostring(r.item or r.copper or "") end,
 	scan = function(pd, emit)
 		local r, counter = {}, { n = 0 }
+		for ent, p in pairs(pend) do
+			r.st, r.time, r.ent, r.copper, r.item, r.delta = "whh.g", p.t, ent, p.copper, nil, nil
+			if wanted(pd, r.time, r.st) and keep(pd, r) then
+				counter.n = counter.n + 1
+				if emit(r) == false then return counter.n end
+			end
+		end
 		local hot = M.PSS_IxHot("whh")
 		for i = #hot, 1, -1 do
 			L.decodeHot(hot[i], r)

@@ -146,7 +146,7 @@ function ns.NewButton(parent, text, w, onClick, primary)
 end
 
 -- Dark: a near-black box inset 4 with a grey edge; Blizzard's tick kept
--- and tinted with the accent.
+-- desaturated and tinted with the accent.
 function ns.NewCheck(parent)
 	local c = CreateFrame("CheckButton", nil, parent, ns.M.PSS_CompatTemplate("check"))
 	c:SetSize(24, 24)
@@ -189,6 +189,7 @@ function ns.NewCheck(parent)
 		if modern then mbox:SetAtlas("checkbox-minimal") end
 		Tick()
 		if tick then
+			tick:SetDesaturated(dark)
 			if dark then tick:SetVertexColor(ns.Accent()) else tick:SetVertexColor(1, 1, 1) end
 		end
 	end)

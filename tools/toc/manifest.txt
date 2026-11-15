@@ -91,6 +91,9 @@ PSS_GwSyndicator.lua
 PSS_WhTooltip.lua
 PSS_JrnIx.lua
 PSS_WhHist.lua
+PSS_JrnMon1.lua
+PSS_JrnMonBasic.lua
+PSS_JrnAh.lua
 PSS_WhView.lua
 PSS_WhRows.lua
 PSS_WhCommands.lua

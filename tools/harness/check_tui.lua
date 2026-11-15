@@ -590,6 +590,26 @@ check(c2.pssParts.modernBox:IsShown() and not c2.pssParts.modernTick:IsShown(), 
 c2:SetChecked(true)
 check(c2.pssParts.modernTick:IsShown(), "Modern tick does not follow SetChecked")
 c2:SetChecked(false)
+-- the template tick: kept visible in Dark and Classic, hidden in Modern (J2-D1a)
+do
+	local t1, own = c1.pssParts.tick, 1
+	check(t1:GetAlpha() == 0, "tui T1: Modern does not hide the template tick")
+	M.PSS_SetOpt("uiSkin", "global", 1)
+	check(t1:GetAlpha() == own, "tui T2a: Dark tick alpha is not its own after Modern")
+	check(t1:IsDesaturated() == true, "tui T2b: Dark tick is not desaturated")
+	M.PSS_SetOpt("uiSkin", "global", 2)
+	M.PSS_SetOpt("uiSkin", "global", 0)
+	check(t1:GetAlpha() == own and not t1:IsDesaturated(), "tui T3: Classic tick not restored after Modern")
+	M.PSS_SetOpt("uiSkin", "global", 1)
+	M.PSS_SetOpt("uiSkin", "global", 2)
+	check(t1:GetAlpha() == 0, "tui T4: Modern does not hide the tick after Dark")
+	M.PSS_SetOpt("uiSkin", "global", 0)
+	c1:SetChecked(false)
+	M.PSS_SetOpt("uiSkin", "global", 1)
+	c1:SetChecked(true)
+	check(t1:GetAlpha() == own, "tui T5: Dark tick alpha stays 0 after Modern")
+	M.PSS_SetOpt("uiSkin", "global", 2)
+end
 check(e1.pssParts.modernBox:IsShown() and not e1.pssParts.fill:IsShown(), "Modern box art not shown")
 -- the window on black, pages under a divider, boxes as cards
 check(win.art.black and win.art.black:IsShown() and art.blizzard:IsShown(), "Modern window not the metal frame on black")
