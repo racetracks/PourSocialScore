@@ -1,25 +1,16 @@
-# Publishes a GitHub release whenever the version in PourSocialScore/PourSocialScore.toc
-# changes on main: tags v<version> and attaches PourSocialScore-<version>.zip
-# (every addon folder, PourSocialScore and PourSocialScore_*, with readme.txt and
-# history.txt in the core folder; no .github / tools), with that version's section
-# of history.txt as the release notes. Does nothing if the release exists.
-# Every version is X.Y.Z.B (B = the build number, which never resets; a
-# release is a build too, Dan, 2026-10-08). versions.json (tools/versions.py,
-# never shipped) says what each one is: the latest release, or a pre-release
-# recorded with its PR. A version it does not record is not published.
-# A full release's notes are its history.txt section only: one summary of
-# every change since the previous release, written at release time from the
-# PRs versions.json lists between the two (CLAUDE.md, Full releases). Job
-# "mirror" keeps $MIRROR_REPO on the latest full release: the zip's contents
-# committed as its files, and the release with the same zip and notes on that
-# commit (secret MIRROR_TOKEN: contents read and write on that repo).
-# Pre-releases are not mirrored.
+# Core caller of .github/workflows/package-release.yml:1, whose header holds the
+# behaviour (version, gates, zip, notes, release, mirror).
 name: Release
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Run the mirror up to git push --dry-run; no release
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -28,190 +19,10 @@ env:
   MIRROR_REPO: racetracks/Pour-Social-Score   # where full releases are mirrored
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.v.outputs.version }}
-      kind: ${{ steps.v.outputs.kind }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Read version
-        id: v
-        run: |
-          ver=$(sed -n 's/^## Version: *//p' PourSocialScore/PourSocialScore.toc | tr -d '\r')
-          kind=$(python3 tools/versions.py kind "$ver")
-          if [ "$kind" = unknown ]; then
-            echo "::error::$ver is not in versions.json (sh tools/bump_version.sh records it)"
-            exit 1
-          fi
-          echo "version=$ver" >> "$GITHUB_OUTPUT"
-          echo "kind=$kind" >> "$GITHUB_OUTPUT"
-          if gh release view "v$ver" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      # Nothing is published from a red main: the rules check and the full
-      # harness (no real saves here) must pass first. A failed run is retried
-      # with the Run workflow button once main is fixed.
-      - name: Install Lua 5.1
-        if: steps.v.outputs.exists == 'false'
-        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
-
-      - name: Rules check before publishing
-        if: steps.v.outputs.exists == 'false'
-        run: sh tools/check_rules.sh
-
-      - name: Full harness before publishing
-        if: steps.v.outputs.exists == 'false'
-        run: sh tools/harness/validate_all.sh
-
-      - name: Build zip and notes
-        if: steps.v.outputs.exists == 'false'
-        run: |
-          ver=${{ steps.v.outputs.version }}
-          mkdir -p build
-          for d in $(python3 tools/packaging/folders.py core); do
-            if [ -d "$d" ]; then cp -r "$d" build/; fi
-          done
-          python3 tools/packaging/folders.py --verify core build
-          cp readme.txt history.txt build/PourSocialScore/
-          (cd build && zip -qr "../PourSocialScore-$ver.zip" .)
-          {
-            echo "**Install:** extract the zip into your client's AddOns folder:"
-            lua5.1 tools/gen_toc.lua --install | while read -r fl folder; do
-              case $fl in retail) c=Retail;; forever) c=Forever;; tbc) c="TBC Anniversary";; *) c=$fl;; esac
-              echo "- $c: \`World of Warcraft/$folder/Interface/AddOns/\`"
-            done
-            echo
-            echo "so you get \`AddOns/PourSocialScore/PourSocialScore.toc\` and the \`AddOns/PourSocialScore_*\` folders next to it."
-            echo
-            if [ "${{ steps.v.outputs.kind }}" = release ]; then
-              prev=$(python3 -c 'import json; print(json.load(open("versions.json"))["releases"][0]["previous"])')
-              echo "### Changes since $prev"
-            else
-              echo "### Changes"
-            fi
-            awk -v v="$ver" '
-              index($0, "=> " v " ") == 1 { on = 1; next }
-              on && /^=> / { exit }
-              on { print }
-            ' history.txt
-            echo
-            echo "Full changelog: history.txt"
-          } > notes.md
-          cat notes.md
-
-      - name: Publish release
-        if: steps.v.outputs.exists == 'false'
-        run: |
-          ver=${{ steps.v.outputs.version }}
-          pre="--latest"
-          [ "${{ steps.v.outputs.kind }}" = release ] || pre="--prerelease"
-          gh release create "v$ver" "PourSocialScore-$ver.zip" $pre \
-            --target "$GITHUB_SHA" --title "Pour Social Score $ver" --notes-file notes.md
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Keep pre-releases marked as pre-releases
-        run: |
-          gh release list --limit 100 --json tagName,isPrerelease \
-            --jq '.[] | select(.isPrerelease | not) | .tagName' |
-          while read -r tag; do
-            v=${tag#v}
-            case "$v" in *-*) gh release edit "$tag" --prerelease; continue ;; esac
-            if [ "$(python3 tools/versions.py kind "$v")" = pre-release ]; then gh release edit "$tag" --prerelease; fi
-          done
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-  mirror:
-    # Keeps $MIRROR_REPO on the latest full release (versions.json
-    # latestRelease): the release zip's contents committed as the repo's files
-    # (every addon folder at the root; files of the mirror's own, such as its
-    # readme.md, are kept), and the release, with the same zip and notes, on
-    # that commit. Runs after every push and does nothing when the mirror is
-    # already there, so a release that went across without its files is
-    # repaired by the next push (or Actions > Release > Run workflow).
-    needs: release
-    if: ${{ always() && needs.release.result == 'success' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check the latest release and the mirror
-        id: m
-        run: |
-          VER=$(python3 tools/versions.py latest)
-          echo "version=$VER" >> "$GITHUB_OUTPUT"
-          if [ -z "$VER" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "No release yet: nothing to mirror"; exit 0; fi
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::Add a MIRROR_TOKEN secret with contents read and write on $MIRROR_REPO"
-            exit 1
-          fi
-          git clone -q "https://x-access-token:${GH_TOKEN}@github.com/${MIRROR_REPO}.git" mirror
-          toc() { sed -n 's/^## Version: *//p' | tr -d '\r'; }
-          files=$( { toc < mirror/PourSocialScore/PourSocialScore.toc; } 2>/dev/null || true)
-          tagged=$(git -C mirror show "v$VER:PourSocialScore/PourSocialScore.toc" 2>/dev/null | toc || true)
-          if [ "$files" = "$VER" ] && [ "$tagged" = "$VER" ] && gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "The mirror is on $VER"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-            echo "The mirror needs $VER (files: ${files:-none}, tagged: ${tagged:-none})"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
-
-      - name: Fetch the zip and notes
-        if: steps.m.outputs.skip == 'false'
-        run: |
-          gh release download "v$VER" --repo "$GITHUB_REPOSITORY" --pattern "PourSocialScore-$VER.zip"
-          gh release view "v$VER" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
-        env:
-          VER: ${{ steps.m.outputs.version }}
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Commit the release's files to the mirror
-        id: c
-        if: steps.m.outputs.skip == 'false'
-        run: |
-          core=$(python3 tools/packaging/folders.py core)
-          cd mirror
-          for d in $core; do
-            if [ -d "$d" ]; then git rm -rq "$d"; fi
-          done
-          unzip -q "../PourSocialScore-$VER.zip" -d .
-          git add -A
-          if ! git diff --cached --quiet; then
-            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-              commit -q -m "Pour Social Score $VER"
-            git push -q origin HEAD
-          fi
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-        env:
-          VER: ${{ steps.m.outputs.version }}
-
-      - name: Publish the release on the mirror
-        if: steps.m.outputs.skip == 'false'
-        run: |
-          # a release whose tag is not on the release's files (made before the
-          # files were copied) is made again on them
-          tagged=$(git -C mirror show "v$VER:PourSocialScore/PourSocialScore.toc" 2>/dev/null | sed -n 's/^## Version: *//p' | tr -d '\r' || true)
-          if [ "$tagged" != "$VER" ] && gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
-            gh release delete "v$VER" --repo "$MIRROR_REPO" --cleanup-tag --yes
-          fi
-          if ! gh release view "v$VER" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
-            gh release create "v$VER" "PourSocialScore-$VER.zip" --repo "$MIRROR_REPO" --target "$SHA" \
-              --title "Pour Social Score $VER" --notes-file notes.md --latest
-          fi
-        env:
-          VER: ${{ steps.m.outputs.version }}
-          SHA: ${{ steps.c.outputs.sha }}
-          GH_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+  core:
+    uses: ./.github/workflows/package-release.yml
+    with:
+      package: core
+      dry_run: ${{ inputs.dry_run == true }}
+    secrets:
+      mirror_token: ${{ secrets.MIRROR_TOKEN }}
