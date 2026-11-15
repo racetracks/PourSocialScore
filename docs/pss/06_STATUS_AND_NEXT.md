@@ -15,7 +15,7 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 
 ## Waiting on the author
 - 3.9.0.156: no in-game checks; the author's OK on the P6 rule row (DEC-00489) in the PR.
-- 3.9.0.155: in-game checks: [guide](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/13/06-18-30-Fri-wonderful-cannon-zwshli/checks/README.md).
+- 3.9.0.155: accepted, PR #279 merged (the author, 2026-11-15); follow-up fix build in issue #281.
 - 3.9.0.154: in-game [`CHK-00210`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/10/22/14-41-37-Thu-stoic-gates-r93b6b/projects/spyglass-journal/specs/tests.md#4-in-game-checks-per-build), [`CHK-00211`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/10/22/14-41-37-Thu-stoic-gates-r93b6b/projects/spyglass-journal/specs/tests.md#4-in-game-checks-per-build), [`CHK-00154`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/features/journal-helper/15_Tests.md#chk-00154), [`CHK-00250`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/projects/journal/specs/tests.md#chk-00250) on Forever, TBC (Retail: load and version detection only); CHK-00250 is confirmation only.
 - 3.8.0.153 (PR #277, merged 2026-11-13): `CHK-00255` waived (the author); CI text-search gate on `tbc/3.8.0.143` red (7.41 ms vs gate 4.9 ms); a fix build only if asked.
 - 3.8.0.150: in-game [`CHK-00254`](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00254) (step 3); then merge the PR.
