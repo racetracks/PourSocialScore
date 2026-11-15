@@ -44,7 +44,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.9.0.158 - Reusable release workflow
 
-- Branch: `claude/ecstatic-davinci-xf8l4x`; PR: none yet.
+- Branch: `claude/ecstatic-davinci-xf8l4x`; [PR #284](https://github.com/racetracks/PourSocialScore/pull/284).
 - What changed and why: releases are built by one shared workflow, `.github/workflows/package-release.yml:1` (jobs resolve, build, mirror), called by `.github/workflows/release.yml:21`; notes by `tools/packaging/notes.sh:1`; `dry_run` input; guard G7 in `tools/packaging/check_manifest.py:2`. Core dry run `push dry-run ok`, notes identical. No player change.
 - Docs updated: `docs/pss/05_RELEASE.md`, `docs/pss/06_STATUS_AND_NEXT.md`, scratch code map `06_Architecture.md` and `00_Changelog.md`.
 - Deferred: R158 fixes (session CONTEXT.md D11) go to 3.9.0.159.
