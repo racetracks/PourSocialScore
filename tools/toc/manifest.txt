@@ -142,5 +142,8 @@ folder PourSocialScore_Options
 PSS_OptionsData.lua
 folder PSS_TestKit
 PSS_TK_Text.lua
+PSS_TK_Codec.lua
+PSS_TK_Store.lua
 PSS_TK_Bus.lua
 PSS_TK_Window.lua
+PSS_TK_Detail.lua
