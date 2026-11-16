@@ -39,7 +39,14 @@ if rawget(_G, "H") and phase then
 		why = "msgs=" .. #msgs .. " first=" .. tostring(msgs[1])
 	elseif phase == "loadable" then
 		SlashCmdList["PSS"]("test")
-		ok = kitCalls() == 1 and calls[#calls] == "testkit.open" and #msgs == 0 and C_AddOns.IsAddOnLoaded("PSS_TestKit")
+		local opens, first, other = 0, nil, true
+		for _, c in ipairs(calls) do
+			if c:match("^testkit%.") then
+				first = first or c
+				if c == "testkit.open" then opens = opens + 1 elseif c ~= "testkit.runs" and c ~= "testkit.checks" then other = false end
+			end
+		end
+		ok = opens == 1 and first == "testkit.open" and other and #msgs == 0 and C_AddOns.IsAddOnLoaded("PSS_TestKit")
 		why = "kitCalls=" .. kitCalls() .. " msgs=" .. #msgs .. " first=" .. tostring(msgs[1])
 	elseif phase:match("^ut") then
 			C_AddOns.LoadAddOn("PSS_TestKit")

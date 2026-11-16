@@ -334,7 +334,7 @@ local function validate(env, N)
 	for i = 1, #env.checks do
 		local c, p = env.checks[i], "checks[" .. i .. "]"
 		if not isObj(c) then bad(p, "object") end
-		if not isStr(c.key, 1, 20) or not find(c.key, "^CHK%-%d%d%d%d%d$") then bad(p .. ".key", "CHK-NNNNN") end
+		if not isStr(c.key, 1, 20) or not find(c.key, "^CHK%-%d%d%d%d%d$") then bad(p .. ".key", "bad key") end
 		if not isStr(c.link, 9, 400) or sub(c.link, 1, 8) ~= "https://" then bad(p .. ".link", "starts with https://") end
 		needStr(c, "title", p, 1, 80)
 		if c.client ~= "any" and not (isStr(c.client, 1, 10) and fl[c.client]) then bad(p .. ".client", "a flavours value or any") end
