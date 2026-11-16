@@ -215,7 +215,7 @@ if rawget(_G, "H") and phase then
 			if phase == "ut01" then
 				local r = row(imp(exTxt))
 				local run = PSS_TestKitDB.runs["3.9.0.162-1"]
-				ok = r and r[1] == "3.9.0.162-1" and r[2] == "3.9.0.162" and r[3] == 3 and r[4] == "" and run ~= nil
+				ok = r and r[1] == "3.9.0.162-1" and r[2] == "3.9.0.162" and r[3] == 2 and r[4] == "" and run ~= nil
 					and run.src == exTxt and unb64(run.src:match("^!PSSTK1!(.-)!")) == exJson
 				why = "row=" .. tostring(r and r[1]) .. "," .. tostring(r and r[3]) .. " err=" .. tostring(r and r[4])
 			elseif phase == "ut02" then
@@ -231,23 +231,23 @@ if rawget(_G, "H") and phase then
 				ok = r and r[4] == "string needs kit TK.99 (this is TK.1)" and runCount() == 0
 				why = "err=" .. tostring(r and r[4])
 			elseif phase == "ut05" then
-				local r = row(imp(enc(plain('"key":"CHK-00226"', '"key":"CHK-1"'))))
+				local r = row(imp(enc(plain('"key":"CHK-00264"', '"key":"CHK-1"'))))
 				ok = r and r[4] == "field checks[1].key: bad key" and runCount() == 0
 				why = "err=" .. tostring(r and r[4])
 			elseif phase == "ut06" then
 				local parts = {}
 				for i = 1, #exTxt, 60 do parts[#parts + 1] = exTxt:sub(i, i + 59) end
 				local r = row(imp(" " .. table.concat(parts, "\n ")))
-				ok = r and r[1] == "3.9.0.162-1" and r[2] == "3.9.0.162" and r[3] == 3 and r[4] == ""
+				ok = r and r[1] == "3.9.0.162-1" and r[2] == "3.9.0.162" and r[3] == 2 and r[4] == ""
 					and PSS_TestKitDB.runs["3.9.0.162-1"].src == exTxt
 				why = "row=" .. tostring(r and r[1]) .. " err=" .. tostring(r and r[4])
 			elseif phase == "ut12" then
 				imp(exTxt)
 				local run = PSS_TestKitDB.runs["3.9.0.162-1"]
-				run.checks["CHK-00226@tbc"] = run.checks["CHK-00226@tbc"] or {}
-				run.checks["CHK-00226@tbc"].auto = { s = "complete", at = 1 }
-				M.PSS_Call("testkit.mark", { id = "3.9.0.162-1", key = "CHK-00226@tbc", status = "failed", reason = "x" })
-				local ck = run.checks["CHK-00226@tbc"]
+				run.checks["CHK-00265@forever"] = run.checks["CHK-00265@forever"] or {}
+				run.checks["CHK-00265@forever"].auto = { s = "complete", at = 1 }
+				M.PSS_Call("testkit.mark", { id = "3.9.0.162-1", key = "CHK-00265@forever", status = "failed", reason = "x" })
+				local ck = run.checks["CHK-00265@forever"]
 				ok = ck.s == "other" and ck.sub == "failed" and ck.why == "x" and ck.man and ck.man.s == "other" and ck.auto and ck.auto.s == "complete"
 				why = "s=" .. tostring(ck.s) .. " sub=" .. tostring(ck.sub) .. " auto=" .. tostring(ck.auto and ck.auto.s)
 			elseif phase == "ut13" then
@@ -256,8 +256,8 @@ if rawget(_G, "H") and phase then
 					local r = row(imp(enc(plain('"id":"3.9.0.162-1"', '"id":"3.9.0.162-' .. i .. '"'))))
 					if r and r[4] == "" then n = n + 1 end
 				end
-				M.PSS_Call("testkit.note", { id = "3.9.0.162-6", key = "CHK-00226", text = string.rep("n", 600) })
-				local ck = PSS_TestKitDB.runs["3.9.0.162-6"] and PSS_TestKitDB.runs["3.9.0.162-6"].checks["CHK-00226@tbc"]
+				M.PSS_Call("testkit.note", { id = "3.9.0.162-6", key = "CHK-00265", text = string.rep("n", 600) })
+				local ck = PSS_TestKitDB.runs["3.9.0.162-6"] and PSS_TestKitDB.runs["3.9.0.162-6"].checks["CHK-00265@forever"]
 				local note = ck and ck.notes and ck.notes[""] or ""
 				ok = n == 6 and runCount() == 5 and PSS_TestKitDB.runs["3.9.0.162-1"] == nil and #PSS_TestKitDB.order == 5 and #note == 500
 				why = "imported=" .. n .. " runs=" .. runCount() .. " note=" .. #note
@@ -298,7 +298,7 @@ if rawget(_G, "H") and phase then
 				M.PSS_FLV = M.PSS_FLV or {}
 				M.PSS_FLV.flavour = "forever"
 				local r2 = row(imp(sTxt))
-				local run = PSS_TestKitDB.runs["3.9.0.162-99"]
+				local run = PSS_TestKitDB.runs["3.9.0.161-99"]
 				local ck = run and run.checks["CHK-00263@forever"]
 				ok = r and r[1] == "3.9.0.162-1" and r[4] == "" and n1 == 2 and run ~= nil and ck ~= nil and ck.s == "complete"
 				why = "seed=" .. tostring(r0 and r0[4]) .. " row=" .. tostring(r and r[1]) .. " runs=" .. n1 .. " self=" .. tostring(r2 and r2[4]) .. " s=" .. tostring(ck and ck.s) .. " keys=" .. (function() local t = {} for k, v in pairs(run and run.checks or {}) do t[#t + 1] = k .. ":" .. tostring(v.s) end return table.concat(t, ",") end)()
