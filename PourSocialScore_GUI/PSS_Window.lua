@@ -160,6 +160,13 @@ local function ShownState()
 	return curTab, page.navState and page.navState() or nil
 end
 
+function M.PSS_WindowState()
+	if not win then return false, "", "" end
+	local page = win.pages[curTab]
+	local st = page and page.navState and page.navState()
+	return win:IsShown(), curTab or "", st ~= nil and tostring(st) or ""
+end
+
 local ResetTab
 
 -- a button over each part of the line but the last (the view shown),

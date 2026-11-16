@@ -31,7 +31,7 @@ local firstClear		= false
 local CLIENT_NAMES = { retail = "Retail", forever = "Forever", tbc = "TBC Anniversary", era = "Classic Era", mists = "Mists of Pandaria" }
 
 -- /pss version: the version this client loaded, any of the 5 other folders that differs (mixed install), the save's upgrade record, and a save record from another version
-local function versionReport ()
+local function versionData ()
 	local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
 	local function ver (name)
 		local ok, v = pcall(get, name, "Version")
@@ -40,20 +40,27 @@ local function versionReport ()
 	local flv = M.PSS_FLV or {}
 	local FOLDERS = { "PourSocialScore_Options", "PourSocialScore_Libraries", "PourSocialScore_GUI", "PourSocialScore_Logging", "PourSocialScore_Communities" }
 	local core = ver("PourSocialScore")
-	M.ShowMsg ("Pour Social Score " .. (core or "not installed") .. " on " .. (CLIENT_NAMES[flv.flavour] or tostring(flv.flavour)) .. " (interface " .. tostring(flv.interface or "?") .. ")")
 	local bad = {}
 	for i = 1, #FOLDERS do
 		local v = ver(FOLDERS[i])
 		if v ~= core then bad[#bad + 1] = FOLDERS[i] .. " " .. (v or "not installed") end
 	end
-	if #bad > 0 then
-		M.ShowMsg ("Mixed install: " .. table.concat(bad, ", ") .. ". Reinstall the 6 folders from one zip.")
-	end
 	local up = PourSocialScoreDB and PourSocialScoreDB.upgrade
 	if type(up) ~= "table" then up = {} end
-	M.ShowMsg ("Save upgrade record: " .. tostring(up.version or "none") .. ", step " .. tostring(tonumber(up.step) or 0))
-	if type(up.version) == "string" and core ~= nil and up.version ~= core then
-		M.ShowMsg ("Save record differs: this save was last upgraded by " .. up.version .. ", this client loaded " .. core .. ".")
+	local sv = type(up.version) == "string" and up.version or nil
+	return { core = core, flavour = flv.flavour, interface = flv.interface, bad = bad, saveVersion = sv, saveRaw = up.version, step = tonumber(up.step) or 0, differs = sv ~= nil and core ~= nil and sv ~= core }
+end
+M.PSS_VersionData = versionData
+
+local function versionReport ()
+	local d = versionData()
+	M.ShowMsg ("Pour Social Score " .. (d.core or "not installed") .. " on " .. (CLIENT_NAMES[d.flavour] or tostring(d.flavour)) .. " (interface " .. tostring(d.interface or "?") .. ")")
+	if #d.bad > 0 then
+		M.ShowMsg ("Mixed install: " .. table.concat(d.bad, ", ") .. ". Reinstall the 6 folders from one zip.")
+	end
+	M.ShowMsg ("Save upgrade record: " .. tostring(d.saveRaw or "none") .. ", step " .. d.step)
+	if d.differs then
+		M.ShowMsg ("Save record differs: this save was last upgraded by " .. d.saveVersion .. ", this client loaded " .. d.core .. ".")
 	end
 end
 
@@ -169,6 +176,36 @@ function M.PSS_TestKitOpen ()
 	local set, err = M.PSS_Call("testkit.open")
 	if err then M.ShowMsg(string.format(L["TEST_3"], tostring(err))) end
 end
+
+-- the PSS TestKit's core services (D15): read only, nothing here writes a SavedVariables table
+M.PSS_Provide("core.version", function()
+	local d = M.PSS_VersionData()
+	return { cols = { "version", "flavour", "interface", "mixed", "saveVersion", "differs" }, n = 1, { d.core or "", tostring(d.flavour or ""), d.interface or 0, table.concat(d.bad, ", "), d.saveVersion or "", d.differs } }
+end, { returns = { "version", "flavour", "interface", "mixed", "saveVersion", "differs" }, doc = "the loaded version, client and save record", cost = "O(1)", writes = false, onError = "empty" })
+
+M.PSS_Provide("core.upgradeReport", function()
+	local u = M.PSS_UPG_SHOWN
+	if type(u) ~= "table" then return { cols = { "shown", "from", "to" }, n = 1, { false, "", "" } } end
+	return { cols = { "shown", "from", "to" }, n = 1, { true, tostring(u.from or ""), tostring(u.to or "") } }
+end, { returns = { "shown", "from", "to" }, doc = "the upgrade report printed this session", cost = "O(1)", writes = false, onError = "empty" })
+
+M.PSS_Provide("core.messages", function()
+	local m = M.PSS_MSGS
+	local set = { cols = { "n", "text" }, n = 0 }
+	if type(m) == "table" then
+		for i = 1, #m do set[i] = { i, tostring(m[i]) } end
+		set.n = #m
+	end
+	return set
+end, { returns = { "n", "text" }, doc = "the last 20 lines the suite printed", cost = "O(20)", writes = false, onError = "empty" })
+
+M.PSS_Provide("ui.state", function()
+	local shown, tab, page = false, "", ""
+	if M.PSS_WindowState then shown, tab, page = M.PSS_WindowState() end
+	local skin = M.PSS_Opt and M.PSS_Opt("uiSkin")
+	local look = skin == 0 and "classic" or skin == 1 and "dark" or "modern"
+	return { cols = { "shown", "look", "tab", "page" }, n = 1, { shown and true or false, look, tab or "", page or "" } }
+end, { returns = { "shown", "look", "tab", "page" }, doc = "the PSS window's state", cost = "O(1)", writes = false, onError = "empty" })
 
 function M.PSS_SlashPSS (msg)
 

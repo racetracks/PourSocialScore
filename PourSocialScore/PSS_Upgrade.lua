@@ -853,6 +853,7 @@ local function countUnusable(c)
 end
 
 local function printReport(c)
+	M.PSS_UPG_SHOWN = { from = c.from or "", to = c.to }
 	M.ShowMsg(L["UPG_HEAD"]:format(c.from or L["UPG_OLD"], c.to))
 	printFeatures(c)
 	if c.gfxOff then M.ShowMsg("  Graphics Settings Exporter is now off by default: Options, Enabled components.") end

@@ -11,6 +11,9 @@ local type = type
 
 local MAXSTEPS = 20
 local MAXIN = 6
+local MAXACT = 6
+local RETRY = "[Retry]"
+local WAIT_COMBAT = "Waiting: leave combat."
 
 -- The selected run (win.run) resolves this row.
 local function findRun(win, rowId)
@@ -54,6 +57,13 @@ local function build(win)
 		b.nb:SetScript("OnClick", function() if p.target then p.target(i) end end)
 		b:Hide()
 		p.steps[i] = b
+	end
+	p.act = {}
+	for i = 1, MAXSTEPS do
+		local a = CreateFrame("Button", nil, p, "UIPanelButtonTemplate")
+		a:SetSize(120, 18)
+		a:Hide()
+		p.act[i] = a
 	end
 	p.inputs = {}
 	for i = 1, MAXIN do
@@ -117,7 +127,11 @@ function TK.ShowDetail(win, rowId)
 	if c.expect and c.expect ~= "" then info = info .. (info ~= "" and "\n" or "") .. T.EXPECT:format(c.expect) end
 	if notHere then info = T.RUN_ON:format(c.client) end
 	p.info:SetText(info)
-	for i = 1, MAXSTEPS do p.steps[i]:Hide() end
+	for i = 1, MAXSTEPS do p.steps[i]:Hide(); p.act[i]:Hide() end
+	if not notHere and TK.Select and p.selRow ~= row then
+		p.selRow = row
+		TK.Select(runId, row, c)
+	end
 	for i = 1, MAXIN do p.inputs[i]:Hide() end
 	local y = -(p.info:GetStringHeight() + 30)
 	local set = (not notHere) and M.PSS_Call("testkit.detail", { id = runId, key = row }) or nil
@@ -135,6 +149,27 @@ function TK.ShowDetail(win, rowId)
 		b:SetPoint("TOPLEFT", p, "TOPLEFT", 0, y)
 		b.text:SetText((r[5] and "[ok] " or "[..] ") .. r[2])
 		b:Show()
+		local op = c.steps[i] and c.steps[i].op
+		if op and op.op == "action" then
+			local a = p.act[i]
+			a:ClearAllPoints()
+			a:SetPoint("TOPLEFT", p, "TOPLEFT", 404, y + 2)
+			a:SetText(op.label or "")
+			a:SetScript("OnClick", function() M.PSS_Call("testkit.act", { id = runId, key = row, step = i }) end)
+			a:Show()
+		elseif op and op.op == "event" and not r[5] and not TK.Waiting(runId, row, i) then
+			local a = p.act[i]
+			a:ClearAllPoints()
+			a:SetPoint("TOPLEFT", p, "TOPLEFT", 404, y + 2)
+			a:SetText(RETRY)
+			a:SetScript("OnClick", function()
+				TK.Select(runId, row, c)
+				M.PSS_Call("testkit.rerun", { id = runId, key = row })
+			end)
+			a:Show()
+		elseif op and op.op == "measure" and not r[5] and TK.CombatWaiting() then
+			b.text:SetText(b.text:GetText() .. " " .. WAIT_COMBAT)
+		end
 		y = y - 15
 		if not openManual and r[4] == "manual" and not r[5] then openManual = r[1] end
 	end

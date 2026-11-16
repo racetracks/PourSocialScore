@@ -9,3 +9,5 @@ PSS TESTKIT - VERSION HISTORY
 - Checked by tools/harness/check_testkit.lua
 - String codec (PSS_TK_Codec), saved run store (PSS_TK_Store), seven services, run list and run detail pane (PSS_TK_Detail)
 - Checked by 14 tests in tools/harness/check_testkit.lua and tools/testkit/test_tools.py
+- Runner (PSS_TK_Run, PSS_TK_Allow): runs a string's steps and checks, refuses writing services and commands outside the allow list; developer mode is saved in PSS_TestKitDB
+- Checked by 17 tests in tools/harness/check_testkit.lua

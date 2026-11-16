@@ -1,4 +1,4 @@
-{"build": "3.9.0.156", "run": 1, "kitMin": 1, "title": "3.9.0.156 checks", "flavours": ["tbc"],
+{"build": "3.9.0.161", "run": 1, "kitMin": 1, "title": "3.9.0.161 checks", "flavours": ["tbc", "forever"],
  "checks": [
   {"key": "CHK-00226", "link": "https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00226",
    "title": "AddOns list shows no out-of-date mark", "client": "tbc", "look": "any",
@@ -14,5 +14,12 @@
    "steps": [{"n": 1, "text": "Open the window",
               "op": {"op": "action", "label": "Open PSS", "then": {"op": "cmd", "line": "/pss gui"}}},
              {"n": 2, "text": "Every tab looks right",
-              "op": {"op": "manual", "prompt": "Does every tab draw correctly in Classic?"}}]}
+              "op": {"op": "manual", "prompt": "Does every tab draw correctly in Classic?"}}]},
+  {"key": "CHK-00265", "link": "https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00265",
+   "title": "Note and rows kept after reload", "client": "forever", "look": "any",
+   "do": "Type a note on the first step, then /reload.", "expect": "The note and the rows value are kept.",
+   "steps": [{"n": 1, "text": "Type a note",
+              "op": {"op": "manual", "prompt": "Type a note on this step, then /reload: the note is kept"}},
+             {"n": 2, "text": "Rows shown",
+              "op": {"op": "input", "id": "rows", "kind": "number", "label": "Rows shown", "min": 0}}]}
  ]}
