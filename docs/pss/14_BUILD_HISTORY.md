@@ -44,7 +44,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.9.0.160 - PSS TestKit codec, store, list and detail
 
-- Branch: `claude/wizardly-meitner-i2lr2q`; PR: none yet.
+- Branch: `claude/wizardly-meitner-i2lr2q`; [PR #286](https://github.com/racetracks/PourSocialScore/pull/286).
 - What changed and why: kit files `PSS_TK_Codec.lua` (K160a), `PSS_TK_Store.lua` (K160b), `PSS_TK_Detail.lua` (K160d) and window and text changes (K160c); `tools/testkit/make_string.py`, `check_strings.py`, `test_tools.py` with fixtures (K160e); `check_testkit.lua` now 14 tests (K160f); K160g fixes the version record so a kit package line stays `TK.1` after a bump (`tools/versions.py:49-83`, `save`); three new lines in `tools/toc/manifest.txt:143` and the regenerated kit TOCs.
 - Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, `docs/pss/07_HARNESS.md`, scratch code map `06_Architecture.md` and `00_Changelog.md` (rows for K160d, K160e and K160g).
 - Tests run: `sh tools/check_rules.sh`, `sh tools/harness/validate_all.sh` with real saves, `lua5.1 tools/harness/check_testkit.lua` (14 passed), `python3 tools/testkit/test_tools.py`.
