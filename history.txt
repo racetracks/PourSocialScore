@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.9.0.162 - PSS TestKit objective tracker
+
+- PSS TestKit (developer only, no change for players): the objective tracker (PSS_TK_Track) ticks a test string's objectives as they happen, shown in the run detail and in a small pop-out window, and the first Forever example string.
+- Nothing else changes in game.
+
 => 3.9.0.161 - PSS TestKit runner
 
 - PSS TestKit (developer only, no change for players): the runner (PSS_TK_Run) that runs a test string's steps, with a read-only allow list for actions, a self-test string, and the developer-mode setting moved from the core save to the kit's own saved variable (PSS_TestKitDB).

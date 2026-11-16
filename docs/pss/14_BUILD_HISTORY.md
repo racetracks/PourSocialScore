@@ -42,6 +42,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.9.0.162 - PSS TestKit objective tracker
+
+- Branch: `claude/amazing-bardeen-uhjhue`; PR: see `versions.json`.
+- What changed and why: the objective tracker `PSS_TestKit/PSS_TK_Track.lua` (K162a), service `testkit.track`, the objective pop-out window (K162e), `T.DEV` moved to `PSS_TestKit/PSS_TK_Text.lua:45`, harness tests TK-UT-10 and TK-UT-11 (K162b), a Forever-only example string with the TBC string deferred and the reload proof ut14c and ut14d (K162c); `check_testkit.lua` now 20 tests. Pack spec correction: the D15 services (`core.version`, `core.upgradeReport`, `core.messages`, `ui.state`) live in `PourSocialScore_Libraries/PSS_Commands.lua:181` to `:202`, not in the bus core file (8 KB memory gate).
+- Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, scratch pack specs `api-core-integration.md` and `build-161.md` (commands file named, Changelog rows), scratch `documents/features/service-bus-helper/` `09_Current_Features.md`, `14_Code_Reference.md`, `00_Changelog.md` (`testkit.track` row).
+- Tests run: `sh tools/check_rules.sh`, `sh tools/harness/validate_all.sh` (FAIL set equal to origin/main's, issue #288), `lua5.1 tools/harness/check_testkit.lua`.
+- Not shown by the simulation: the tracker, the pop-out and the string import in the real client.
+- In-game checks: CHK-00264 on Forever only (TBC deferred, issue #287); UX item TK-UX-09; CHK-00265 note-and-number /reload step.
+
+### 3.9.0.161 (from 06 Now)
+
+**3.9.0.161, PSS TestKit runner (branch `claude/build-3-9-0-161-52m6y3`, PR #289):** PSS TestKit runner (K161a to K161h); no change for players; `devMode` moved to `PSS_TestKitDB`, the core save is never written by the kit; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.9.0.161 - PSS TestKit runner
 
 - Branch: `claude/build-3-9-0-161-52m6y3`; [PR #289](https://github.com/racetracks/PourSocialScore/pull/289).
