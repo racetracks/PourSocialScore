@@ -1,4 +1,4 @@
-{"build": "3.9.0.156", "run": 1, "kitMin": 1, "title": "3.9.0.156 checks", "flavours": ["tbc", "forever"],
+{"build": "3.9.0.161", "run": 1, "kitMin": 1, "title": "3.9.0.161 checks", "flavours": ["tbc", "forever"],
  "checks": [
   {"key": "CHK-00226", "link": "https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00226",
    "title": "AddOns list shows no out-of-date mark", "client": "tbc", "look": "any",
