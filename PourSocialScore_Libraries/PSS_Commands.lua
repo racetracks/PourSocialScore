@@ -148,6 +148,28 @@ end
 -- one /pss does not know (/pss help) lists them.
 local OPEN = { gui = true, ui = true, eui = true }
 
+M.PSS_TESTKIT = "PSS_TestKit"
+
+-- /pss test: load the PSS TestKit on demand, then ask it to open (never enables it)
+function M.PSS_TestKitOpen ()
+	local isLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+	if not (isLoaded and isLoaded(M.PSS_TESTKIT)) then
+		local ok, reason = (C_AddOns and C_AddOns.LoadAddOn or LoadAddOn)(M.PSS_TESTKIT)
+		if not ok then
+			if reason == "MISSING" then
+				M.ShowMsg(L["TEST_1"])
+			elseif reason == "DISABLED" then
+				M.ShowMsg(L["TEST_2"])
+			else
+				M.ShowMsg(string.format(L["TEST_3"], tostring(reason)))
+			end
+			return
+		end
+	end
+	local set, err = M.PSS_Call("testkit.open")
+	if err then M.ShowMsg(string.format(L["TEST_3"], tostring(err))) end
+end
+
 function M.PSS_SlashPSS (msg)
 
 	-- Keywords are matched in lower case; everything after the command word
@@ -164,6 +186,10 @@ function M.PSS_SlashPSS (msg)
 	if not args[1] or OPEN[args[1]] then
 
 		M.PSS_OpenUI()
+
+	elseif args[1] == "test" then
+
+		M.PSS_TestKitOpen()
 
 	elseif args[1] == "clear" then
 

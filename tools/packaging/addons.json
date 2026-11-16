@@ -5,7 +5,11 @@
      "targetRepo": "racetracks/Pour-Social-Score", "secret": "MIRROR_TOKEN",
      "zipName": "PourSocialScore-{version}.zip", "version": "suite", "history": "history.txt",
      "copyIn": [{"src": "readme.txt", "dest": "PourSocialScore"}, {"src": "history.txt", "dest": "PourSocialScore"}],
-     "sourceRelease": true, "mirrorOn": "latestRelease", "workflow": ".github/workflows/release.yml"}
+     "sourceRelease": true, "mirrorOn": "latestRelease", "workflow": ".github/workflows/release.yml"},
+    {"id": "testkit", "title": "PSS TestKit", "main": "PSS_TestKit",
+     "targetRepo": "racetracks/PSS-Testkit", "secret": "TESTKIT_MIRROR_TOKEN",
+     "zipName": "PSS_TestKit-{version}.zip", "version": "package", "history": "PSS_TestKit/history.txt",
+     "copyIn": [], "sourceRelease": false, "mirrorOn": "every", "workflow": ".github/workflows/release-testkit.yml"}
   ],
   "folders": [
     {"folder": "PourSocialScore", "package": "core", "developer": false},
@@ -13,6 +17,7 @@
     {"folder": "PourSocialScore_GUI", "package": "core", "developer": false},
     {"folder": "PourSocialScore_Options", "package": "core", "developer": false},
     {"folder": "PourSocialScore_Logging", "package": "core", "developer": false},
-    {"folder": "PourSocialScore_Communities", "package": "core", "developer": false}
+    {"folder": "PourSocialScore_Communities", "package": "core", "developer": false},
+    {"folder": "PSS_TestKit", "package": "testkit", "developer": true}
   ]
 }

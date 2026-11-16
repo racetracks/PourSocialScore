@@ -1,0 +1,9 @@
+PSS TESTKIT - VERSION HISTORY
+(newest first)
+
+=> TK.1 - PSS TestKit shell
+
+- PSS TestKit shell: /pss test opens the kit window
+- Kit bus, window and text helpers (PSS_TK_Bus, PSS_TK_Window, PSS_TK_Text); one TOC per client (Retail, Forever, TBC Anniversary, Camelot)
+- Developer-only: hidden from the AddOns list unless developer mode is on
+- Checked by tools/harness/check_testkit.lua

@@ -140,3 +140,7 @@ PSS_LoggingData.lua
 PSS_SavedLog.lua
 folder PourSocialScore_Options
 PSS_OptionsData.lua
+folder PSS_TestKit
+PSS_TK_Text.lua
+PSS_TK_Bus.lua
+PSS_TK_Window.lua

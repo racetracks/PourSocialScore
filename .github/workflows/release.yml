@@ -15,9 +15,6 @@ on:
 permissions:
   contents: write
 
-env:
-  MIRROR_REPO: racetracks/Pour-Social-Score   # where full releases are mirrored
-
 jobs:
   core:
     uses: ./.github/workflows/package-release.yml

@@ -1,6 +1,12 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.9.0.159 - PSS TestKit shell and R158 fixes
+
+- PSS TestKit shell (K159c to K159e): a new developer add-on folder, PSS_TestKit, opens with /pss test. It is built as its own package with its own version line (TK.1) and is not part of the player zip's behaviour.
+- Developer filter (K159a, K159b): developer-only folders are hidden from the AddOns list unless the new developer-mode option is on (off by default; asks the author, card DEC-00501).
+- Fixes deferred from the 3.9.0.158 review (K159r): small corrections to the release tooling. Nothing else changes in game.
+
 => 3.9.0.158 - Reusable release workflow
 
 - Behind the scenes: releases are built by one shared workflow that any package can use. Nothing changes in game.

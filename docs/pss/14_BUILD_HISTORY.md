@@ -42,6 +42,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.9.0.159 - PSS TestKit shell and R158 fixes
+
+- Branch: `claude/inspiring-brown-p46z1p`; [PR #285](https://github.com/racetracks/PourSocialScore/pull/285).
+- What changed and why: the developer filter (`/pss` developer folders hidden unless `devMode`, K159a and K159b); the new package folder `PSS_TestKit/` (TOCs, `PSS_TK_Bus.lua`, `PSS_TK_Window.lua`, `PSS_TK_Text.lua`, manifest entry, K159c and K159d) with version line TK.1 in `PSS_TestKit/history.txt` and `versions.json` `packages`; `tools/harness/check_testkit.lua` (K159e); R158 deferred fixes (K159r). Card DEC-00501 (new saved option `devMode`).
+- Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, `docs/pss/07_HARNESS.md`, scratch code map `06_Architecture.md` and `00_Changelog.md`, scratch `05_Detailed_Design.md` (addon-helper).
+- Tests run: `sh tools/check_rules.sh`, `sh tools/harness/validate_all.sh`, `lua5.1 tools/harness/check_testkit.lua` (see the PR).
+- Not shown by the simulation: the kit window's look and the AddOns list filter in the real client.
+- In-game checks: CHK-00260, CHK-00261, CHK-00262 (Forever and TBC; Retail CHK-00260 and CHK-00261); UX items TK-UX-01, TK-UX-15.
+
+### 3.9.0.158 (from 06 Now)
+
+**3.9.0.158, Reusable release workflow (branch `claude/ecstatic-davinci-xf8l4x`, PR #284):** reusable release workflow; core dry run `push dry-run ok`, notes identical; no player change; R158 deferred fixes (session CONTEXT.md D11) go to 3.9.0.159 (the author, yes); details in `docs/pss/14_BUILD_HISTORY.md`.
+
 ### 3.9.0.158 - Reusable release workflow
 
 - Branch: `claude/ecstatic-davinci-xf8l4x`; [PR #284](https://github.com/racetracks/PourSocialScore/pull/284).

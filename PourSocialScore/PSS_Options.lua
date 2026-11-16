@@ -55,6 +55,7 @@ local OPTIONS = {
 	{ key = "useLFGHacks",		kind = "bool",		default = true,		section = 4, label = L["OPT_17"] },
 	{ key = "showErrors",		kind = "bool",		default = false,		section = 4, label = "Show addon errors in chat (otherwise /pss status lists them)" },
 	{ key = "gcEnabled",		kind = "bool",		default = true,		section = 4, label = "Background memory cleanup (out of combat, never causes a hitch)" },
+	{ key = "devMode",			kind = "bool",		default = false,		section = 4, label = L["OPT_DEV"], tip = "Show developer addons in the Addons list." },
 	{ key = "frameStrata",		kind = "choice", default = 3,		section = 4, label = L["OPT_25"],
 		choices = { { 0, "LOW" }, { 1, "MEDIUM" }, { 2, "HIGH" }, { 3, "DIALOG" } } },
 	-- The window (PourSocialScore_GUI, /pss gui): its look
