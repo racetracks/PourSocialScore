@@ -1,6 +1,11 @@
 POUR SOCIAL SCORE - VERSION HISTORY
 (newest first)
 
+=> 3.9.0.161 - PSS TestKit runner
+
+- PSS TestKit (developer only, no change for players): the runner (PSS_TK_Run) that runs a test string's steps, with a read-only allow list for actions, a self-test string, and the developer-mode setting moved from the core save to the kit's own saved variable (PSS_TestKitDB).
+- The kit never writes the core save. Nothing else changes in game.
+
 => 3.9.0.160 - PSS TestKit codec, store, list and detail
 
 - PSS TestKit (developer only, no change for players): a string codec (K160a), the saved run store (K160b), the window's run list and test text (K160c), the run detail pane (K160d), the string tools with their fixtures (K160e), the kit checks (K160f) and the version-record fix for kit packages (K160g).

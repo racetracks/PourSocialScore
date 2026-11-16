@@ -42,6 +42,19 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
 
+### 3.9.0.161 - PSS TestKit runner
+
+- Branch: `claude/build-3-9-0-161-52m6y3`; PR: none yet.
+- What changed and why: the kit runner `PSS_TestKit/PSS_TK_Run.lua` and allow list `PSS_TK_Allow.lua` (K161a to K161d), the four D15 core services in `PourSocialScore_Libraries/PSS_Commands.lua`, `M.PSS_MSGS`, `M.PSS_WindowState`, `M.PSS_TK_DEV`; `devMode` moved from the core option row to `PSS_TestKitDB` (core save never written by the kit; an old saved `devMode` is left untouched); the `selftest` fixture and `check_testkit.lua` now 17 tests.
+- Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, scratch code map `06_Architecture.md` and `00_Changelog.md` (rows for the four D15 services, `M.PSS_MSGS`, `M.PSS_WindowState`, `M.PSS_TK_DEV`), scratch `documents/features/service-bus-helper/` (four services).
+- Tests run: `sh tools/check_rules.sh`, `sh tools/harness/validate_all.sh` (FAIL set equal to origin/main's, issue #288), `lua5.1 tools/harness/check_testkit.lua`.
+- Not shown by the simulation: the runner and the developer-mode checkbox in the real client; string import on Forever.
+- In-game checks: CHK-00263 and CHK-00265 on Forever only (TBC deferred, issue #287); UX items TK-UX-06, 07, 08, 10, 11, 12, 14.
+
+### 3.9.0.160 (from 06 Now)
+
+**3.9.0.160, PSS TestKit codec, store, list and detail (branch `claude/wizardly-meitner-i2lr2q`, PR #286):** PSS TestKit codec, saved run store, seven services, run list and detail pane, the `tools/testkit/` string tools and the kit-package version fix (K160a to K160g); no change for players; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
+
 ### 3.9.0.160 - PSS TestKit codec, store, list and detail
 
 - Branch: `claude/wizardly-meitner-i2lr2q`; [PR #286](https://github.com/racetracks/PourSocialScore/pull/286).
