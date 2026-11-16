@@ -1,4 +1,4 @@
--- check_testkit.lua: offline checks of the PSS TestKit: TK-UT-01 to 06, 12 to 15, 16, 18.
+-- check_testkit.lua: offline checks of the PSS TestKit: TK-UT-01 to 09, 12 to 15, 16, 18.
 -- Standalone: lua5.1 tools/harness/check_testkit.lua (from the repo root).
 -- Each case runs this file again through run.lua on the shared stub, with
 -- PSS_PHASE=<case>; the case code below runs after login (H and M exist).
@@ -92,6 +92,125 @@ if rawget(_G, "H") and phase then
 			local function imp(text) return M.PSS_Call("testkit.import", { text = text }) end
 			local function row(set) return set and set[1] end
 			local function runCount() local n = 0 for _ in pairs(PSS_TestKitDB and PSS_TestKitDB.runs or {}) do n = n + 1 end return n end
+			local function privTK()
+				local TK = { N = 1, CAP = { m = 20, got = 200 } }
+				for _, f in ipairs({ "PSS_TK_Allow", "PSS_TK_Run" }) do assert(loadfile("PSS_TestKit/" .. f .. ".lua"))("PSS_TestKit", TK) end
+				return TK
+			end
+			local function stubSvc()
+				local w = 0
+				M.PSS_Provide("tkt.rows", function() return { cols = { "a", "b" }, n = 2, { 1, "x" }, { 2, "y" } } end,
+					{ returns = { "a", "b" }, doc = "t", cost = "O(1)", writes = false, onError = "empty" })
+				M.PSS_Provide("tkt.w", function() w = w + 1 return { cols = { "a" }, n = 1, { 1 } } end,
+					{ returns = { "a" }, doc = "t", cost = "O(1)", writes = true, onError = "empty" })
+				return function() return w end
+			end
+			local function json(v)
+				local t = type(v)
+				if t == "table" then
+					local o = {}
+					if next(v) == nil or v[1] ~= nil then
+						for i = 1, #v do o[i] = json(v[i]) end
+						return "[" .. table.concat(o, ",") .. "]"
+					end
+					for k, x in pairs(v) do o[#o + 1] = json(k) .. ":" .. json(x) end
+					return "{" .. table.concat(o, ",") .. "}"
+				elseif t == "string" then return '"' .. v:gsub('[\\"]', "\\%0") .. '"'
+				end
+				return tostring(v)
+			end
+			local function snap(v, seen)
+				if type(v) ~= "table" then return type(v) .. ":" .. tostring(v) end
+				seen = seen or {}
+				if seen[v] then return "cycle" end
+				seen[v] = true
+				local ks = {}
+				for k in pairs(v) do ks[#ks + 1] = k end
+				table.sort(ks, function(a, b) return type(a) .. tostring(a) < type(b) .. tostring(b) end)
+				local o = {}
+				for _, k in ipairs(ks) do o[#o + 1] = type(k) .. tostring(k) .. "=" .. snap(v[k], seen) end
+				seen[v] = nil
+				return "{" .. table.concat(o, ";") .. "}"
+			end
+			local DBS = { "PourSocialScoreDB", "PSS_LoggingDB", "PSS_OptionsDB", "PSS_PlayersDB", "PSS_GuildsDB", "PSS_RulesDB", "PSS_CountsDB", "PSS_WarehouseDB", "PSS_CharDB" }
+			local function snapAll()
+				local o = {}
+				for i, n in ipairs(DBS) do o[i] = snap(rawget(_G, n)) end
+				return o
+			end
+			-- TK-UT-08: every op of string-format.md section 6; returns the names that failed
+			local function runOps(TK)
+				local bad = {}
+				local function chk(name, c) if not c then bad[#bad + 1] = name end end
+				local function ex(op, ctx) return TK.Exec(op, ctx or {}) end
+				local r = ex({ op = "call", service = "tkt.rows", col = "b", row = 2, cmp = "eq", want = "y" })
+				chk("call cell", r.ok and r.got == "y")
+				r = ex({ op = "call", service = "tkt.rows", col = "#", cmp = "eq", want = 2 })
+				chk("call count", r.ok)
+				r = ex({ op = "call", service = "tkt.w", col = "a" })
+				chk("call writer auto", r.status == "not_complete")
+				r = ex({ op = "call", service = "tkt.w", col = "a" }, { action = true })
+				chk("call writer action", r.status == "other" and r.sub == "blocked" and r.why == "writing service not allowed: tkt.w")
+				r = ex({ op = "api", fn = "GetBuildInfo", ret = 4, cmp = "eq", want = select(4, GetBuildInfo()) })
+				chk("api", r.ok)
+				r = ex({ op = "api", fn = "RunScript", args = { "x=1" } })
+				chk("api RunScript", r.status == "other" and r.sub == "blocked" and r.why == "api not allowed: RunScript")
+				_G.PSS_TKF = { a = { b = 7 } }
+				r = ex({ op = "field", path = "PSS_TKF.a.b", cmp = "eq", want = 7 })
+				chk("field", r.ok)
+				r = ex({ op = "field", path = "PSS_TKF.a.zz", cmp = "ne", want = 7 })
+				chk("field missing", r.ok)
+				local ev = { op = "event", name = "PSS_TK_EVT", within = 5 }
+				r = ex(ev, { id = "r", key = "k", n = 2 })
+				chk("event no wait", r.status == "not_complete")
+				TK.Select("r", "k", { steps = { { op = ev } } })
+				r = ex(ev, { id = "r", key = "k", n = 1 })
+				chk("event waiting", r.status == "not_complete")
+				H.Advance(10)
+				r = ex(ev, { id = "r", key = "k", n = 1 })
+				chk("event expired", r.ok == false and r.why == "not seen in 5 s")
+				r = ex({ op = "cmd", line = "/pss version" })
+				chk("cmd outside action", r.status == "not_complete")
+				r = ex({ op = "cmd", line = "/pss version" }, { action = true })
+				chk("cmd action", r.ok and #r.got > 0)
+				r = ex({ op = "cmd", line = "/pss prune 1" }, { action = true })
+				chk("cmd prune", r.status == "other" and r.sub == "blocked" and r.why == "command not allowed: prune")
+				_G.PSS_TKFR = { IsShown = function() return true end }
+				r = ex({ op = "frame", path = "PSS_TKFR", prop = "shown", cmp = "eq", want = true })
+				chk("frame", r.ok)
+				local m = {}
+				r = ex({ op = "measure", service = "tkt.rows", cols = { "a" }, runs = 3, cmp = "ge", want = 0 }, { m = m })
+				chk("measure", r.ok and #m == 1)
+				r = ex({ op = "load", addon = "PSS_TestKit" })
+				chk("load", r.ok)
+				r = ex({ op = "load", addon = "PSS_NoSuchAddon" })
+				chk("load missing", r.ok == false and r.why == "not loaded")
+				r = ex({ op = "unit", service = "tkt.rows", cols = { "a" }, want = { cols = { "a", "b" }, rows = { { 1, "x" }, { 2, "y" } } } })
+				chk("unit", r.ok)
+				r = ex({ op = "unit", service = "tkt.rows", cols = { "a" }, want = { cols = { "a" } } })
+				chk("unit differs", r.ok == false and r.why == "cols differ")
+				r = ex({ op = "manual", prompt = "p" })
+				chk("manual", r.status == "not_complete")
+				r = ex({ op = "input", id = "i", kind = "text", label = "l" })
+				chk("input none", r.status == "not_complete")
+				r = ex({ op = "input", id = "i", kind = "text", label = "l" }, { value = "v" })
+				chk("input value", r.ok and r.got == "v")
+				r = ex({ op = "input", id = "i", kind = "text", label = "l", required = false })
+				chk("input optional", r.ok)
+				r = ex({ op = "action", label = "a", ["then"] = { op = "cmd", line = "/pss version" } })
+				chk("action outside", r.status == "not_complete")
+				r = ex({ op = "action", label = "a", ["then"] = { op = "cmd", line = "/pss version" } }, { action = true })
+				chk("action cmd", r.ok)
+				r = ex({ op = "action", label = "a", ["then"] = { op = "print", text = "hello" } }, { action = true })
+				chk("action print", r.ok)
+				r = ex({ op = "action", label = "a", ["then"] = { op = "unit" } }, { action = true })
+				chk("action bad inner", r.status == "other" and r.why == "unknown op unit")
+				r = ex({ op = "print", text = "x" })
+				chk("print outside", r.status == "other" and r.why == "unknown op print")
+				r = ex({ op = "zzz" })
+				chk("unknown op", r.status == "other" and r.sub == "blocked" and r.why == "unknown op zzz")
+				return bad
+			end
 			PSS_TestKitDB = nil
 			if phase == "ut01" then
 				local r = row(imp(exTxt))
@@ -160,6 +279,72 @@ if rawget(_G, "H") and phase then
 				local r = row(imp(exTxt))
 				ok = runCount() == 1 and #PSS_TestKitDB.order == 1 and r and r[1] == "3.9.0.156-1" and msgs[before + 1] == "already imported: 3.9.0.156-1"
 				why = "runs=" .. runCount() .. " msg=" .. tostring(msgs[before + 1])
+			elseif phase == "ut07" then
+				local TK = privTK()
+				local C = {
+					{ "eq", 5, 5, true }, { "eq", 5, 6, false, "got 5" }, { "eq", { 1, { 2 } }, { 1, { 2 } }, true },
+					{ "ne", 5, 6, true }, { "ne", 5, 5, false, "got 5" },
+					{ "lt", 1, 2, true }, { "lt", 3, 2, false, "got 3" }, { "lt", "abc", 2, false, "not a number" },
+					{ "le", 2, 2, true }, { "le", 3, 2, false, "got 3" },
+					{ "gt", 3, 2, true }, { "gt", 1, 2, false, "got 1" },
+					{ "ge", 2, 2, true }, { "ge", 1, 2, false, "got 1" },
+					{ "match", "hello", "ell", true }, { "match", "hello", "zzz", false, "got hello" },
+					{ "type", "x", "string", true }, { "type", 5, "string", false, "got number" },
+					{ "len", "abc", 3, true }, { "len", { 1, 2 }, 2, true }, { "len", "abc", 4, false, "got 3" }, { "len", 5, 1, false, "no length" },
+					{ "has", { "a", "b" }, "b", true }, { "has", { "a" }, "b", false, "not found" },
+					{ "has", "hello", "ell", true }, { "has", "hello", "zz", false, "not found" }, { "has", 5, "x", false, "not a table or string" },
+				}
+				local bad = {}
+				for i, c in ipairs(C) do
+					_G.PSS_TKV = c[2]
+					local r = TK.Exec({ op = "field", path = "PSS_TKV", cmp = c[1], want = c[3] }, {})
+					if (r.ok == true) ~= c[4] or (not c[4] and r.why ~= c[5]) then bad[#bad + 1] = c[1] .. "#" .. i .. " " .. tostring(r.ok) .. " " .. tostring(r.why) end
+				end
+				local u = TK.Exec({ op = "field", path = "PSS_TKV", cmp = "zzz", want = 1 }, {})
+				if not (u.status == "other" and u.sub == "blocked" and u.why == "unknown cmp zzz") then bad[#bad + 1] = "unknown cmp" end
+				ok = #bad == 0
+				why = table.concat(bad, "; ")
+			elseif phase == "ut08" then
+				M.ShowMsg = showMsg
+				stubSvc()
+				local bad = runOps(privTK())
+				ok = #bad == 0
+				why = table.concat(bad, "; ")
+			elseif phase == "ut09" then
+				M.ShowMsg = showMsg
+				local wcalls = stubSvc()
+				local function chk(key, steps) return { client = "any", ["do"] = "d", expect = "e", key = key, link = "https://x", look = "any", steps = steps, title = "t" } end
+				local env = { build = "3.9.0.156", checks = {
+					chk("CHK-00001", { { n = 1, text = "c", op = { op = "cmd", line = "/pss version" } }, { n = 2, text = "w", op = { op = "call", service = "tkt.w" } } }),
+					chk("CHK-00002", { { n = 1, text = "a", op = { op = "action", label = "Version", ["then"] = { op = "cmd", line = "/pss version" } } } }),
+					chk("CHK-00003", { { n = 1, text = "a", op = { op = "action", label = "Call", ["then"] = { op = "call", service = "core.version" } } } }),
+					chk("CHK-00004", { { n = 1, text = "a", op = { op = "action", label = "Prune", ["then"] = { op = "cmd", line = "/pss prune 1" } } } }),
+				}, flavours = { "forever" }, fmt = 1, id = "3.9.0.156-9", kitMin = 1, title = "t" }
+				local r = row(imp(enc(json(env))))
+				local run = r and PSS_TestKitDB and PSS_TestKitDB.runs["3.9.0.156-9"]
+				local bad = {}
+				if not (run and r[4] == "") then
+					bad[1] = "import " .. tostring(r and r[4])
+				else
+					local c1 = run.checks["CHK-00001@any"] or {}
+					local st = c1.steps or {}
+					if st[1] ~= nil or st[2] ~= nil or c1.s ~= "not_complete" or wcalls() ~= 0 then bad[#bad + 1] = "outside action ran" end
+					local before = snapAll()
+					for _, b in ipairs(runOps(privTK())) do bad[#bad + 1] = "op " .. b end
+					M.PSS_Call("testkit.rerun", { id = "3.9.0.156-9" })
+					M.PSS_Call("testkit.act", { id = "3.9.0.156-9", key = "CHK-00002@any", step = 1 })
+					M.PSS_Call("testkit.act", { id = "3.9.0.156-9", key = "CHK-00003@any", step = 1 })
+					M.PSS_Call("testkit.act", { id = "3.9.0.156-9", key = "CHK-00004@any", step = 1 })
+					local after = snapAll()
+					for i, n in ipairs(DBS) do if before[i] ~= after[i] then bad[#bad + 1] = "changed " .. n end end
+					local a2 = run.checks["CHK-00002@any"].steps[1]
+					local a3 = run.checks["CHK-00003@any"].steps[1]
+					local a4 = run.checks["CHK-00004@any"]
+					if not (a2 and a2.ok and a3 and a3.ok) then bad[#bad + 1] = "act version/call" end
+					if not (a4.auto and a4.auto.s == "other" and a4.auto.sub == "blocked" and a4.auto.why == "command not allowed: prune") then bad[#bad + 1] = "act prune" end
+				end
+				ok = #bad == 0
+				why = table.concat(bad, "; ")
 			else
 				ok, why = false, "unknown case"
 			end
@@ -195,7 +380,8 @@ end
 -- TK-UT-01 to 06, 12 to 15: one report each, each phase a fresh stub client
 local UT = { { "TK-UT-01", { "ut01" } }, { "TK-UT-02", { "ut02" } }, { "TK-UT-03", { "ut03" } }, { "TK-UT-04", { "ut04" } },
 	{ "TK-UT-05", { "ut05" } }, { "TK-UT-06", { "ut06" } }, { "TK-UT-12", { "ut12" } }, { "TK-UT-13", { "ut13" } },
-	{ "TK-UT-14", { "ut14a", "ut14b" } }, { "TK-UT-15", { "ut15" } } }
+	{ "TK-UT-14", { "ut14a", "ut14b" } }, { "TK-UT-15", { "ut15" } },
+	{ "TK-UT-07", { "ut07" } }, { "TK-UT-08", { "ut08" } }, { "TK-UT-09", { "ut09" } } }
 for _, t in ipairs(UT) do
 	local good, detail = true, nil
 	for _, ph in ipairs(t[2]) do

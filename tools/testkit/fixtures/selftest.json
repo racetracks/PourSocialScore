@@ -1,0 +1,10 @@
+{"build": "3.9.0.156", "run": 99, "kitMin": 1, "title": "TestKit self-test", "flavours": ["forever"],
+ "checks": [
+  {"key": "CHK-00263", "link": "https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00263",
+   "title": "TK-UT-20 self-test completes by itself", "client": "forever", "look": "any",
+   "do": "Nothing: the kit checks its own run list.", "expect": "The check completes by itself after import.",
+   "steps": [
+    {"n": 1, "text": "The run list has the five columns",
+     "op": {"op": "unit", "service": "testkit.runs", "cols": ["id"], "want": {"cols": ["id", "build", "imported", "complete", "total"]}}},
+    {"n": 2, "text": "The run list has one row",
+     "op": {"op": "call", "service": "testkit.runs", "col": "#", "cmp": "eq", "want": 1}}]}]}
