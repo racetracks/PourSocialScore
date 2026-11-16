@@ -215,12 +215,8 @@ end
 
 local function hidden(name, i)
 	if sub(name, 1, 9) == "Blizzard_" then return true end
-	return i ~= nil and meta(i, "X-PSS-Developer") == "1" and M.PSS_Opt("devMode") ~= true
+	return i ~= nil and meta(i, "X-PSS-Developer") == "1" and M.PSS_TK_DEV ~= true
 end
-
-M.Events.Register("OPTION_CHANGED", function(key)
-	if key == "devMode" then M.Events.Fire("ADDONS_CHANGED") end
-end)
 
 ------------------------------------------------------------------------
 -- Saved data: protected addons and presets, per character (PSS_CharDB) and

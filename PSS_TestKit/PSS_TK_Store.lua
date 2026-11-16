@@ -35,6 +35,8 @@ function TK.DB()
 	if type(d.v) ~= "number" then d.v = 1 end
 	if type(d.order) ~= "table" then d.order = {} end
 	if type(d.runs) ~= "table" then d.runs = {} end
+	M.PSS_TK_DEV = d.devMode == true
+	if M.PSS_TK_DEV and M.Events and M.Events.Fire then M.Events.Fire("ADDONS_CHANGED") end
 	if d.v <= 1 then
 		local seen, o = {}, {}
 		for _, id in ipairs(d.order) do

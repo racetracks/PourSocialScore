@@ -96,7 +96,7 @@ if rawget(_G, "H") and phase then
 			if phase == "ut01" then
 				local r = row(imp(exTxt))
 				local run = PSS_TestKitDB.runs["3.9.0.156-1"]
-				ok = r and r[1] == "3.9.0.156-1" and r[2] == "3.9.0.156" and r[3] == 2 and r[4] == "" and run ~= nil
+				ok = r and r[1] == "3.9.0.156-1" and r[2] == "3.9.0.156" and r[3] == 3 and r[4] == "" and run ~= nil
 					and run.src == exTxt and unb64(run.src:match("^!PSSTK1!(.-)!")) == exJson
 				why = "row=" .. tostring(r and r[1]) .. "," .. tostring(r and r[3]) .. " err=" .. tostring(r and r[4])
 			elseif phase == "ut02" then
@@ -119,7 +119,7 @@ if rawget(_G, "H") and phase then
 				local parts = {}
 				for i = 1, #exTxt, 60 do parts[#parts + 1] = exTxt:sub(i, i + 59) end
 				local r = row(imp(" " .. table.concat(parts, "\n ")))
-				ok = r and r[1] == "3.9.0.156-1" and r[2] == "3.9.0.156" and r[3] == 2 and r[4] == ""
+				ok = r and r[1] == "3.9.0.156-1" and r[2] == "3.9.0.156" and r[3] == 3 and r[4] == ""
 					and PSS_TestKitDB.runs["3.9.0.156-1"].src == exTxt
 				why = "row=" .. tostring(r and r[1]) .. " err=" .. tostring(r and r[4])
 			elseif phase == "ut12" then

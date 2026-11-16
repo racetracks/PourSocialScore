@@ -223,6 +223,10 @@ function M.debugMsg (msg)
 end
 
 function M.ShowMsg (msg)
+	local ring = M.PSS_MSGS
+	if not ring then ring = {} M.PSS_MSGS = ring end
+	ring[#ring + 1] = msg or "Critical error"
+	if #ring > 20 then table.remove(ring, 1) end
 	print ("|cff33ff99Pour Social Score: |cffffffff" .. (msg or "Critical error"))
 end
 

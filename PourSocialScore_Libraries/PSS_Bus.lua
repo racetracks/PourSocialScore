@@ -332,3 +332,33 @@ M.PSS_Provide("upg.retry", function(set)
 	M.PSS_UpgradeRetry()
 	return set
 end, { accepts = { "key" }, returns = { "key" }, doc = "the one retry of a paused upgrade, out of combat", writes = true, onError = "empty" })
+
+-- the PSS TestKit's core services (D15): read only, nothing here writes a SavedVariables table
+M.PSS_Provide("core.version", function()
+	local d = M.PSS_VersionData()
+	return { cols = { "version", "flavour", "interface", "mixed", "saveVersion", "differs" }, n = 1, { d.core or "", tostring(d.flavour or ""), d.interface or 0, concat(d.bad, ", "), d.saveVersion or "", d.differs } }
+end, { returns = { "version", "flavour", "interface", "mixed", "saveVersion", "differs" }, doc = "the loaded version, client and save record", cost = "O(1)", writes = false, onError = "empty" })
+
+M.PSS_Provide("core.upgradeReport", function()
+	local u = M.PSS_UPG_SHOWN
+	if type(u) ~= "table" then return { cols = { "shown", "from", "to" }, n = 1, { false, "", "" } } end
+	return { cols = { "shown", "from", "to" }, n = 1, { true, tostring(u.from or ""), tostring(u.to or "") } }
+end, { returns = { "shown", "from", "to" }, doc = "the upgrade report printed this session", cost = "O(1)", writes = false, onError = "empty" })
+
+M.PSS_Provide("core.messages", function()
+	local m = M.PSS_MSGS
+	local set = { cols = { "n", "text" }, n = 0 }
+	if type(m) == "table" then
+		for i = 1, #m do set[i] = { i, tostring(m[i]) } end
+		set.n = #m
+	end
+	return set
+end, { returns = { "n", "text" }, doc = "the last 20 lines the suite printed", cost = "O(20)", writes = false, onError = "empty" })
+
+M.PSS_Provide("ui.state", function()
+	local shown, tab, page = false, "", ""
+	if M.PSS_WindowState then shown, tab, page = M.PSS_WindowState() end
+	local skin = M.PSS_Opt and M.PSS_Opt("uiSkin")
+	local look = skin == 0 and "classic" or skin == 1 and "dark" or "modern"
+	return { cols = { "shown", "look", "tab", "page" }, n = 1, { shown and true or false, look, tab or "", page or "" } }
+end, { returns = { "shown", "look", "tab", "page" }, doc = "the PSS window's state", cost = "O(1)", writes = false, onError = "empty" })

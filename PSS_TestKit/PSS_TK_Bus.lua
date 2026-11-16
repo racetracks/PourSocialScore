@@ -9,9 +9,16 @@ local EMPTY = { cols = { "shown" }, n = 0 }
 local SHOWN = { cols = { "shown" }, n = 1, { true } }
 local HIDDEN = { cols = { "shown" }, n = 1, { false } }
 
+local firstOpen = true
 local function open()
 	local win = TK.GetWindow()
-	if win then win:Show() end
+	if win then
+		win:Show()
+		if firstOpen then
+			firstOpen = false
+			if win.run then pcall(M.PSS_Call, "testkit.rerun", { id = win.run }) end
+		end
+	end
 	return SHOWN
 end
 
@@ -188,24 +195,9 @@ local function inputDef(c, field)
 end
 
 local function cmpOK(cmp, v, want)
-	if cmp == "eq" then return v == want end
-	if cmp == "ne" then return v ~= want end
-	if cmp == "lt" or cmp == "le" or cmp == "gt" or cmp == "ge" then
-		if type(v) ~= "number" or type(want) ~= "number" then return false end
-		if cmp == "lt" then return v < want elseif cmp == "le" then return v <= want elseif cmp == "gt" then return v > want end
-		return v >= want
-	end
-	if cmp == "match" then return find(tostring(v), want) ~= nil end
-	if cmp == "type" then return type(v) == want end
-	if cmp == "len" then return (type(v) == "string" or type(v) == "table") and #v == want end
-	if cmp == "has" then
-		if type(v) == "table" then
-			for _, x in pairs(v) do if x == want then return true end end
-			return false
-		end
-		return type(v) == "string" and find(v, tostring(want), 1, true) ~= nil
-	end
-	return false
+	local f = TK.Cmp[cmp]
+	if not f then return false end
+	return (f(v, want)) and true or false
 end
 
 M.PSS_Provide("testkit.input", function(set)
@@ -244,3 +236,36 @@ M.PSS_Provide("testkit.input", function(set)
 	TK.Fire(run.id, row)
 	return { cols = { "key", "value" }, n = 1, { row, value } }
 end, { accepts = { "id", "key", "field", "value" }, returns = { "key", "value" }, doc = "a value the author typed", cost = "O(1)", writes = true, onError = "empty" })
+
+M.PSS_Provide("testkit.rerun", function(set)
+	local run = TK.GetRun(reqId(set))
+	local key = arg(set, "key")
+	if key ~= nil and key ~= "" then TK.Resolve(run, key) end
+	TK.Writable()
+	local out = { cols = { "key", "status" }, n = 0 }
+	for _, r in ipairs(TK.RunAuto(run.id, key)) do M.PSS_SetAdd(out, r) end
+	return out
+end, { accepts = { "id", "key" }, returns = { "key", "status" }, doc = "re-runs the automatic steps", cost = "O(steps)", writes = true, onError = "empty" })
+
+M.PSS_Provide("testkit.act", function(set)
+	local run = TK.GetRun(reqId(set))
+	local c, row = TK.Resolve(run, arg(set, "key"))
+	local n = tonumber(arg(set, "step"))
+	local st = n and c.steps[n]
+	if not st or not st.op or st.op.op ~= "action" then error("arg: not an action step " .. tostring(arg(set, "step")), 0) end
+	TK.Writable()
+	local r = TK.Exec(st.op, { id = run.id, key = row, n = n, action = true })
+	local ck = TK.CheckRow(run, row)
+	if r.status == "other" then
+		TK.ApplyStep(ck, n, { ok = false, why = r.why })
+		TK.Recompute(ck, c)
+		ck.auto = { s = "other", sub = r.sub, why = r.why, at = time() }
+		TK.Settle(ck)
+	else
+		TK.ApplyStep(ck, n, r)
+		TK.Recompute(ck, c)
+	end
+	TK.Touch(run)
+	TK.Fire(run.id, row)
+	return { cols = { "key", "status" }, n = 1, { row, (TK.Shown(ck)) } }
+end, { accepts = { "id", "key", "step" }, returns = { "key", "status" }, doc = "runs an action step the author clicked", cost = "O(inner op)", writes = true, onError = "empty" })

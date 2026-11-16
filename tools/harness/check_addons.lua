@@ -133,9 +133,14 @@ local phases = {}
 function phases.list()
 	needLibraries()
 	local L = M.PSS_AddonList("me", "group")
-	-- 6 real folders + the default fakes; Blizzard_Test hidden, and PSS_TestKit (developer, devMode off)
+	-- 6 real folders + the default fakes; Blizzard_Test hidden, and PSS_TestKit (developer, M.PSS_TK_DEV unset)
 	local dev = idx("PSS_TestKit") and 1 or 0
 	check(L.n == M.PSS_AddonCount() - 1 - dev, "list has " .. L.n .. " of " .. M.PSS_AddonCount() .. " (Blizzard_ and developer hidden)")
+	if dev == 1 then
+		M.PSS_TK_DEV = true
+		check(M.PSS_AddonList("me", "group").n == L.n + 1, "developer addon shown when M.PSS_TK_DEV is true")
+		M.PSS_TK_DEV = nil
+	end
 	check(not posOf(L, "Blizzard_Test"), "a Blizzard_ addon is listed")
 	local r = row("DBM-Core")
 	check(r.enabled and r.loaded and r.status == "ok" and r.text == "Loaded", "DBM-Core: " .. tostring(r.status) .. " " .. tostring(r.text))

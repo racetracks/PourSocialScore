@@ -360,6 +360,19 @@ function TK.GetWindow()
 	rl:SetText(T.RELOAD)
 	rl:SetScript("OnClick", function() ReloadUI() end)
 
+	T.DEV = T.DEV or "Developer mode"
+	local dev = CreateFrame("CheckButton", nil, win, "UICheckButtonTemplate")
+	dev:SetPoint("RIGHT", rl, "LEFT", -100, 0)
+	dev.text = dev.text or dev.Text
+	if dev.text then dev.text:SetText(T.DEV) end
+	dev:SetScript("OnShow", function(self) self:SetChecked(TK.DB().devMode == true) end)
+	dev:SetScript("OnClick", function(self)
+		local on = self:GetChecked() and true or false
+		TK.DB().devMode = on or nil
+		M.PSS_TK_DEV = on
+		if M.Events and M.Events.Fire then M.Events.Fire("ADDONS_CHANGED") end
+	end)
+
 	win:Hide()
 	TK.window = win
 	return win

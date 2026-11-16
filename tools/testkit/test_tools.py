@@ -21,7 +21,7 @@ class Tools(unittest.TestCase):
             r = run(os.path.join(HERE, "make_string.py"), os.path.join(FIX, "example-build.json"),
                     "--out", d, "--check")
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-            self.assertRegex(r.stdout, r"^3\.9\.0\.156-1: 2 checks, \d+ chars\n$")
+            self.assertRegex(r.stdout, r"^3\.9\.0\.156-1: 3 checks, \d+ chars\n$")
             with open(os.path.join(d, "3.9.0.156-1.txt"), "rb") as a, \
                     open(os.path.join(FIX, "example.txt"), "rb") as b:
                 self.assertEqual(a.read(), b.read())
