@@ -14,8 +14,8 @@ Kept short and current: every PR updates it (baseline 02 E10). The addon as it w
 - The macros are drip-fed from umbrella issue #159 (one build per ask, the next free build).
 
 ## Waiting on the author
-- 3.9.0.159: in-game checks CHK-00260, CHK-00261, CHK-00262 (Forever and TBC; Retail CHK-00260 and CHK-00261); answer card DEC-00501 (new saved option `devMode`); review and merge the PR.
-- 3.9.0.158: no in-game checks; review and merge the PR.
+- 3.9.0.159: in-game checks CHK-00260, CHK-00261, CHK-00262 (Forever and TBC; Retail CHK-00260 and CHK-00261); card DEC-00501 (new saved option `devMode`) accepted (the author, 2026-11-16); review and merge the PR.
+- 3.9.0.158: PR #284 merged (the author's OK, 2026-11-15).
 - 3.9.0.155: accepted, PR #279 merged (the author, 2026-11-15); follow-up fix build in issue #281.
 - 3.7.0.113 to 3.9.0.154: every PR merged (checked 2026-11-15); all checks with no recorded result waived, superseded by the accepted 3.9.0.155 (the author, 2026-11-15, "waive old checks"); the list before this change is in git history of this file.
 - #231: the undo check skips the planted 3.4.1.50 save.
