@@ -7,3 +7,5 @@ PSS TESTKIT - VERSION HISTORY
 - Kit bus, window and text helpers (PSS_TK_Bus, PSS_TK_Window, PSS_TK_Text); one TOC per client (Retail, Forever, TBC Anniversary, Camelot)
 - Developer-only: hidden from the AddOns list unless developer mode is on
 - Checked by tools/harness/check_testkit.lua
+- String codec (PSS_TK_Codec), saved run store (PSS_TK_Store), seven services, run list and run detail pane (PSS_TK_Detail)
+- Checked by 14 tests in tools/harness/check_testkit.lua and tools/testkit/test_tools.py
