@@ -7,8 +7,10 @@ local CreateFrame = CreateFrame
 local UISpecialFrames = UISpecialFrames
 local ReloadUI = ReloadUI
 local math = math
+local string = string
 
 local FRAME = "PSS_TestKitFrame"
+local lower = string.lower
 
 -- Import dialog: one multi-line edit box, Import / Cancel, error line below.
 local function buildDialog(win)
@@ -52,7 +54,11 @@ local function buildDialog(win)
 		local msg = ""
 		if set and set[1] then
 			msg = set[1][4] or ""
-			if msg == "" and set[1][1] ~= "" then dlg:Hide(); box:SetText(""); err:SetText(""); return end
+			if msg == "" and set[1][1] ~= "" then
+				dlg:Hide(); box:SetText(""); err:SetText("")
+				if win.SelectRun then win.SelectRun(set[1][1]) end
+				return
+			end
 		end
 		if msg == "" then msg = (type(e) == "string" and e) or (type(e) == "table" and e[1] and e[1][1]) or T.ERR_FAILED end
 		err:SetText(msg)
@@ -102,6 +108,15 @@ function TK.GetWindow()
 
 	local summary = win:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 	summary:SetPoint("TOPLEFT", win, "TOPLEFT", 16, -60)
+	local nextText = win:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+	nextText:SetPoint("TOPLEFT", win, "TOPLEFT", 16, -76)
+	nextText:SetWidth(600)
+	nextText:SetJustifyH("LEFT")
+	local go = CreateFrame("Button", nil, win, "UIPanelButtonTemplate")
+	go:SetSize(50, 20)
+	go:SetPoint("TOPRIGHT", win, "TOPRIGHT", -14, -74)
+	go:SetText(T.GO)
+	go:Hide()
 
 	local runText = win:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 	local prev = CreateFrame("Button", nil, win, "UIPanelButtonTemplate")
@@ -132,7 +147,7 @@ function TK.GetWindow()
 	rerun:SetText(T.RERUN)
 
 	local scroll = CreateFrame("ScrollFrame", FRAME .. "List", win, "UIPanelScrollFrameTemplate")
-	scroll:SetPoint("TOPLEFT", win, "TOPLEFT", 14, -84)
+	scroll:SetPoint("TOPLEFT", win, "TOPLEFT", 14, -100)
 	scroll:SetPoint("BOTTOMLEFT", win, "BOTTOMLEFT", 14, 40)
 	scroll:SetWidth(300)
 	local content = CreateFrame("Frame", nil, scroll)
@@ -143,7 +158,25 @@ function TK.GetWindow()
 	empty:SetWidth(280)
 	empty:SetJustifyH("LEFT")
 
-	local selected
+	local selected, selStat, wantNext, nextKey
+	local function here()
+		return lower((M.PSS_FLV and M.PSS_FLV.flavour) or "any")
+	end
+	local function pick(key)
+		selected = key
+		win.selected = key
+		selStat = "not_complete"
+		if TK.ShowDetail then TK.ShowDetail(win, key) end
+	end
+	function win.SelectRun(id)
+		run = id
+		selected = nil
+		wantNext = true
+		win.Redraw()
+	end
+	go:SetScript("OnClick", function()
+		if nextKey then pick(nextKey); win.Redraw() end
+	end)
 	local function getRow(i)
 		local r = pool[i]
 		if r then return r end
@@ -160,9 +193,8 @@ function TK.GetWindow()
 		r.hl:Hide()
 		r:SetScript("OnClick", function(self)
 			if not self.key then return end
-			selected = self.key
-			win.selected = selected
-			if TK.ShowDetail then TK.ShowDetail(win, self.key) end
+			pick(self.key)
+			selStat = self.stat
 			win.Redraw()
 		end)
 		pool[i] = r
@@ -176,9 +208,12 @@ function TK.GetWindow()
 		for i = 1, n do if rs[i][1] == run then found = true end end
 		if not found then run = (n > 0 and rs[1][1]) or nil end
 		for i = 1, #pool do pool[i]:Hide() end
+		rerun:SetShown(M.PSS_ServiceInfo and M.PSS_ServiceInfo("testkit.rerun") ~= nil)
 		if not run then
 			runText:SetText("")
 			summary:SetText("")
+			nextText:SetText("")
+			go:Hide()
 			empty:SetText(T.NO_RUN)
 			empty:Show()
 			content:SetHeight(40)
@@ -190,9 +225,44 @@ function TK.GetWindow()
 			if rs[i][1] == run then build, c, tot = rs[i][2], rs[i][4], rs[i][5] end
 		end
 		runText:SetText(run)
-		summary:SetText(T.SUMMARY:format(c or 0, tot or 0))
 		local set = M.PSS_Call("testkit.checks", { id = run })
 		local m = (set and (set.n or #set)) or 0
+		local hc, hl = here(), T.HERE_LOOK
+		local other, todo, nk, nt, nextClient = 0, 0, nil, nil, nil
+		local stat = {}
+		for i = 1, m do
+			local row = set[i]
+			stat[row[1]] = row[4]
+			if row[4] ~= "complete" and row[4] ~= "not_complete" then other = other + 1 end
+			if row[4] == "not_complete" then
+				todo = todo + 1
+				local cl = row[3]:match("^(.-) / ")
+				if cl == "any" or lower(cl or "") == hc then
+					if not nk then nk, nt = row[1], row[2] end
+				elseif not nextClient then
+					nextClient = cl
+				end
+			end
+		end
+		summary:SetText(T.HEAD:format(c or 0, tot or 0, other, hc, hl))
+		if selected and not stat[selected] then selected = nil end
+		if selected and selStat == "not_complete" and stat[selected] ~= "not_complete" then wantNext = true end
+		if selected then selStat = stat[selected] end
+		if (wantNext or not selected) and nk then pick(nk); wantNext = false end
+		nextKey = nk
+		local allDone = m > 0 and todo == 0
+		if allDone then
+			nextText:SetText("")
+			go:Hide()
+			empty:SetText(T.ALL_DONE)
+			empty:Show()
+		elseif nk then
+			nextText:SetText(T.NEXTLINE:format(nk, nt))
+			go:Show()
+		else
+			nextText:SetText(T.DONE_ON:format(hc, nextClient or hc))
+			go:Hide()
+		end
 		-- group totals, rows keep the service order (client, look, auto first)
 		local order, tally = {}, {}
 		for i = 1, m do
@@ -202,7 +272,7 @@ function TK.GetWindow()
 			if set[i][4] == "complete" then tally[g][1] = tally[g][1] + 1 end
 		end
 		local showDone = done:GetChecked()
-		local k, last = 0, nil
+		local k, last = allDone and 3 or 0, nil
 		for i = 1, m do
 			local row = set[i]
 			local isDone = row[4] == "complete"
@@ -213,12 +283,19 @@ function TK.GetWindow()
 					local h = getRow(k)
 					h.key = nil
 					h.hl:Hide()
-					h.text:SetText(T.GROUP:format(last, tally[last][1], tally[last][2]))
+					local gc, gl = last:match("^(.-) / (.+)$")
+					gc, gl = gc or last, gl or hl
+					local tag = T.G_LOGIN
+					if gc == "any" or lower(gc) == hc then
+						tag = (gl == hl or hl == "any" or gl == "any") and T.G_HERE or T.G_SWITCH
+					end
+					h.text:SetText(T.GROUP:format(gc, gl, tag, tally[last][1], tally[last][2]))
 					h:Show()
 				end
 				k = k + 1
 				local r = getRow(k)
 				r.key = row[1]
+				r.stat = row[4]
 				local icon = isDone and T.ICON_OK or (row[4] == "not_complete" and T.ICON_TODO or T.ICON_OTHER)
 				local sub = (row[5] and row[5] ~= "") and (" - " .. row[5]) or ""
 				r.text:SetText(icon .. " " .. row[1] .. " " .. row[2] .. sub)
@@ -235,7 +312,7 @@ function TK.GetWindow()
 		for i = 1, n do
 			if rs[i][1] == run then
 				local j = i + d
-				if j >= 1 and j <= n then run = rs[j][1]; selected = nil; win.Redraw() end
+				if j >= 1 and j <= n then run = rs[j][1]; selected = nil; wantNext = true; win.Redraw() end
 				return
 			end
 		end
@@ -254,6 +331,7 @@ function TK.GetWindow()
 		if M.Events and M.Events.Register and not listenId then
 			listenId = M.Events.Register("TESTKIT_CHANGED", function() if win:IsShown() then win.Redraw() end end)
 		end
+		wantNext = true
 		win.Redraw()
 	end)
 	win:SetScript("OnHide", function()
