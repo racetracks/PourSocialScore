@@ -170,7 +170,9 @@ function TK.GetWindow()
 	end
 	function win.SelectRun(id)
 		run = id
+		win.run = id
 		selected = nil
+		if win.detail then win.detail:Hide() end
 		wantNext = true
 		win.Redraw()
 	end
@@ -207,6 +209,7 @@ function TK.GetWindow()
 		local found
 		for i = 1, n do if rs[i][1] == run then found = true end end
 		if not found then run = (n > 0 and rs[1][1]) or nil end
+		win.run = run
 		for i = 1, #pool do pool[i]:Hide() end
 		rerun:SetShown(M.PSS_ServiceInfo and M.PSS_ServiceInfo("testkit.rerun") ~= nil)
 		if not run then
@@ -312,7 +315,14 @@ function TK.GetWindow()
 		for i = 1, n do
 			if rs[i][1] == run then
 				local j = i + d
-				if j >= 1 and j <= n then run = rs[j][1]; selected = nil; wantNext = true; win.Redraw() end
+				if j >= 1 and j <= n then
+						run = rs[j][1]
+						win.run = run
+						selected = nil
+						if win.detail then win.detail:Hide() end
+						wantNext = true
+						win.Redraw()
+					end
 				return
 			end
 		end

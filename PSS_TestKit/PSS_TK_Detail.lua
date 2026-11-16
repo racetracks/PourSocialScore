@@ -12,18 +12,14 @@ local type = type
 local MAXSTEPS = 20
 local MAXIN = 6
 
--- Which run holds this row: the first run that resolves it.
-local function findRun(rowId)
-	local rs = M.PSS_Call("testkit.runs")
-	if not rs then return nil end
-	local d = TK.DB()
-	for i = 1, (rs.n or #rs) do
-		local id = rs[i][1]
-		local run = d.runs[id]
-		if run then
-			local ok, c, row = pcall(TK.Resolve, run, rowId)
-			if ok and c then return id, run, c, row end
-		end
+-- The selected run (win.run) resolves this row.
+local function findRun(win, rowId)
+	local id = win.run
+	if not id then return nil end
+	local run = TK.DB().runs[id]
+	if run then
+		local ok, c, row = pcall(TK.Resolve, run, rowId)
+		if ok and c then return id, run, c, row end
 	end
 end
 
@@ -108,8 +104,8 @@ function TK.ShowDetail(win, rowId)
 		p.sub = {}
 	end
 	p.rowId = rowId
-	if not rowId then p:Hide(); return end
-	local runId, run, c, row = findRun(rowId)
+	if not rowId or not win.run then p:Hide(); return end
+	local runId, run, c, row = findRun(win, rowId)
 	if not c then p:Hide(); return end
 	p:Show()
 	TK.Seen(runId, row)
