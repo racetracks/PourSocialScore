@@ -1,0 +1,75 @@
+{
+ "build": "3.9.0.156",
+ "checks": [
+  {
+   "client": "tbc",
+   "do": "Nothing: the kit reads the client's interface number.",
+   "expect": "20506",
+   "key": "CHK-00226",
+   "link": "http://example.com/x",
+   "look": "any",
+   "steps": [
+    {
+     "n": 1,
+     "op": {
+      "cmp": "eq",
+      "fn": "GetBuildInfo",
+      "op": "api",
+      "ret": 4,
+      "want": 20506
+     },
+     "text": "Client interface is 20506"
+    }
+   ],
+   "title": "AddOns list shows no out-of-date mark"
+  },
+  {
+   "client": "tbc",
+   "do": "Set the look to Classic, open the PSS window, visit each tab.",
+   "expect": "Every tab draws in the Classic look with no overlap.",
+   "key": "CHK-00219",
+   "link": "https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00219",
+   "look": "classic",
+   "objectives": [
+    {
+     "cmp": "eq",
+     "id": "shown",
+     "path": "PourSocialScoreFrame",
+     "prop": "shown",
+     "source": "poll",
+     "text": "Open the PSS window",
+     "want": true
+    }
+   ],
+   "steps": [
+    {
+     "n": 1,
+     "op": {
+      "label": "Open PSS",
+      "op": "action",
+      "then": {
+       "line": "/pss gui",
+       "op": "cmd"
+      }
+     },
+     "text": "Open the window"
+    },
+    {
+     "n": 2,
+     "op": {
+      "op": "manual",
+      "prompt": "Does every tab draw correctly in Classic?"
+     },
+     "text": "Every tab looks right"
+    }
+   ],
+   "title": "Window in the Classic look"
+  }
+ ],
+ "flavours": [
+  "tbc"
+ ],
+ "kitMin": 1,
+ "run": 1,
+ "title": "3.9.0.156 checks"
+}
