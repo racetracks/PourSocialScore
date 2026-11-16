@@ -77,7 +77,10 @@ def save(data):
 		rel.append(s)
 	if rel:
 		out.append(",\n".join(rel))
-	out.append("\t]")
+	extra = [k for k in data if k not in ("latestRelease", "preReleases", "releases")]
+	out.append("\t]," if extra else "\t]")
+	for i, k in enumerate(extra):
+		out.append("\t%s: %s%s" % (json.dumps(k), json.dumps(data[k]), "," if i < len(extra) - 1 else ""))
 	out.append("}")
 	with open(FILE, "w") as fh:
 		fh.write("\n".join(out) + "\n")
