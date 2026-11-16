@@ -44,7 +44,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 
 ### 3.9.0.161 - PSS TestKit runner
 
-- Branch: `claude/build-3-9-0-161-52m6y3`; PR: none yet.
+- Branch: `claude/build-3-9-0-161-52m6y3`; [PR #289](https://github.com/racetracks/PourSocialScore/pull/289).
 - What changed and why: the kit runner `PSS_TestKit/PSS_TK_Run.lua` and allow list `PSS_TK_Allow.lua` (K161a to K161d), the four D15 core services in `PourSocialScore_Libraries/PSS_Commands.lua`, `M.PSS_MSGS`, `M.PSS_WindowState`, `M.PSS_TK_DEV`; `devMode` moved from the core option row to `PSS_TestKitDB` (core save never written by the kit; an old saved `devMode` is left untouched); the `selftest` fixture and `check_testkit.lua` now 17 tests.
 - Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, scratch code map `06_Architecture.md` and `00_Changelog.md` (rows for the four D15 services, `M.PSS_MSGS`, `M.PSS_WindowState`, `M.PSS_TK_DEV`), scratch `documents/features/service-bus-helper/` (four services).
 - Tests run: `sh tools/check_rules.sh`, `sh tools/harness/validate_all.sh` (FAIL set equal to origin/main's, issue #288), `lua5.1 tools/harness/check_testkit.lua`.
