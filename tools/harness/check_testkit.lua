@@ -1,4 +1,4 @@
--- check_testkit.lua: offline checks of the PSS TestKit: TK-UT-01 to 09, 12 to 15, 16, 18, 30.
+-- check_testkit.lua: offline checks of the PSS TestKit: TK-UT-01 to 15, 16, 18, 30.
 -- Standalone: lua5.1 tools/harness/check_testkit.lua (from the repo root).
 -- Each case runs this file again through run.lua on the shared stub, with
 -- PSS_PHASE=<case>; the case code below runs after login (H and M exist).
@@ -358,6 +358,35 @@ if rawget(_G, "H") and phase then
 				end
 				ok = #bad == 0
 				why = table.concat(bad, "; ")
+			elseif phase == "ut10" or phase == "ut11" then
+				local ev = phase == "ut10"
+				local obj = ev and { id = "o1", need = 2, name = "PSS_TK_EVT", source = "event", text = "Event twice" }
+					or { cmp = "eq", id = "o1", path = "PSS_TKFR", prop = "shown", source = "poll", text = "Frame shown", want = true }
+				local env = { build = "3.9.0.162", checks = { { client = "any", ["do"] = "d", expect = "e", key = "CHK-00001", link = "https://x", look = "any",
+					objectives = { obj }, steps = { { n = 1, op = { cmp = "type", fn = "GetLocale", op = "api", want = "string" }, text = "locale" } }, title = "t" } }, flavours = { "forever" }, fmt = 1, id = "3.9.0.162-9", kitMin = 1, title = "t" }
+				local r = row(imp(enc(json(env))))
+				local wants = 0
+				M.PSS_Want = function() wants = wants + 1 return true end
+				local ck = function() local run = PSS_TestKitDB and PSS_TestKitDB.runs["3.9.0.162-9"] return run and run.checks["CHK-00001@any"] end
+				if not (r and r[4] == "") then
+					ok, why = false, "import " .. tostring(r and r[4])
+				elseif ev then
+					M.PSS_Call("testkit.open")
+					H.Fire("PSS_TK_EVT")
+					local c1 = ck()
+					local h1, s1 = c1 and c1.obj and c1.obj.o1, c1 and c1.auto and c1.auto.s
+					H.Fire("PSS_TK_EVT")
+					local c2 = ck()
+					local h2, s2 = c2 and c2.obj and c2.obj.o1, c2 and c2.s
+					ok = h1 == 1 and s1 ~= "complete" and h2 == 2 and s2 == "complete"
+					why = "have1=" .. tostring(h1) .. " auto1=" .. tostring(s1) .. " have2=" .. tostring(h2) .. " s2=" .. tostring(s2)
+				else
+					_G.PSS_TKFR = { IsShown = function() return false end }
+					local hidden = wants
+					M.PSS_Call("testkit.open")
+					ok = hidden == 0 and wants == 1
+					why = "hidden=" .. hidden .. " shown=" .. wants
+				end
 			else
 				ok, why = false, "unknown case"
 			end
@@ -394,7 +423,7 @@ end
 local UT = { { "TK-UT-01", { "ut01" } }, { "TK-UT-02", { "ut02" } }, { "TK-UT-03", { "ut03" } }, { "TK-UT-04", { "ut04" } },
 	{ "TK-UT-05", { "ut05" } }, { "TK-UT-06", { "ut06" } }, { "TK-UT-12", { "ut12" } }, { "TK-UT-13", { "ut13" } },
 	{ "TK-UT-14", { "ut14a", "ut14b" } }, { "TK-UT-15", { "ut15" } }, { "TK-UT-30", { "ut30" } },
-	{ "TK-UT-07", { "ut07" } }, { "TK-UT-08", { "ut08" } }, { "TK-UT-09", { "ut09" } } }
+	{ "TK-UT-07", { "ut07" } }, { "TK-UT-10", { "ut10" } }, { "TK-UT-11", { "ut11" } }, { "TK-UT-08", { "ut08" } }, { "TK-UT-09", { "ut09" } } }
 for _, t in ipairs(UT) do
 	local good, detail = true, nil
 	for _, ph in ipairs(t[2]) do
