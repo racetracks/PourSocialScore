@@ -73,6 +73,8 @@ python3 tools/packaging/check_manifest.py || fail=1
 
 lua5.1 tools/harness/check_testkit.lua || fail=1
 
+for m in nil empty; do PSS_REALM_LATE=$m lua5.1 tools/harness/run.lua . - - tools/harness/check_realm_late.lua || fail=1; done
+
 ver=$(sed -n 's/^## Version: *//p' PourSocialScore/PourSocialScore.toc | tr -d '\r')
 top=$(sed -n 's/^=> \([^ ]*\) .*/\1/p' history.txt | head -n 1)
 if [ "$top" != "$ver" ]; then

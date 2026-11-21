@@ -4,6 +4,7 @@ POUR SOCIAL SCORE - VERSION HISTORY
 => 3.9.0.162 - PSS TestKit objective tracker
 
 - PSS TestKit (developer only, no change for players): the objective tracker (PSS_TK_Track) ticks a test string's objectives as they happen, shown in the run detail and in a small pop-out window, and the first Forever example string.
+- Fixed: PSS failed to start after a Forever client patch (realm name late at load)
 - Nothing else changes in game.
 
 => 3.9.0.161 - PSS TestKit runner

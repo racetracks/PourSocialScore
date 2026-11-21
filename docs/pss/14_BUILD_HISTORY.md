@@ -38,6 +38,7 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 | E1 / E9 One step per PR and per session | The Macro Helper Priest set, 3.8.0.146, added to the Shaman set's PR #270 (3.8.0.145) as its own build and commit, each proven by its own `check_macro.lua` phase. The author, 2026-11-10, this session (scratch `temp/2026/11/10/09-04-54-Tue-tender-knuth-moxuz4/prompts/02.md`): "Same PR #270" |
 | E1 / E9 One step per PR and per session | The Shaman Stormstrike macro, 3.8.0.147, added to PR #270 (3.8.0.145, 3.8.0.146) as its own build and commit. The author, 2026-11-10, this session (scratch `temp/2026/11/10/09-04-54-Tue-tender-knuth-moxuz4/prompts/03.md`): "Same PR #270" |
 | E1 / E9 One step per PR and per session | The red real-saves job ([issue #268](https://github.com/racetracks/PourSocialScore/issues/268)) in one build, 3.8.0.150: cards 1, 2, 3 and 5, each proven by its own check. The author, 2026-11-10, approved the cards for one build (scratch [prompt 05](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/14-52-09-Tue-great-sagan-6nl0he/prompts/05.md)) |
+| E1 / E9 One step per PR and per session | The nil realm name at load fix (PSS failed to start after a Forever client patch) folded into build 3.9.0.162. The author, 2026-11-21: "can you merge the changes into that build" |
 
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
@@ -49,6 +50,8 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 - Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, scratch code map (addon-helper) `06_Architecture.md` and `00_Changelog.md` (rows for the tracker, `testkit.track`, the pop-out, `T.DEV`), scratch pack specs `api-core-integration.md` and `build-161.md` (commands file named, Changelog rows), scratch `documents/features/service-bus-helper/` `09_Current_Features.md`, `14_Code_Reference.md`, `00_Changelog.md` (`testkit.track` row).
 - Tests run: `sh tools/check_rules.sh`, `sh tools/harness/validate_all.sh` (FAIL set equal to origin/main's, issue #288), `lua5.1 tools/harness/check_testkit.lua`.
 - Not shown by the simulation: the tracker, the pop-out and the string import in the real client.
+- Also fixed: PSS failed to start after a Forever client patch (the realm name is nil or empty at file load): `M.PSS_ReadIdentity` (`PourSocialScore/PSS_Globals.lua`) reads it again at ADDON_LOADED and PLAYER_ENTERING_WORLD; harness `tools/harness/check_realm_late.lua`, stub `PSS_REALM_LATE`.
+- Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, `history.txt`, this file (combined builds row).
 - In-game checks: CHK-00264 on Forever only (TBC deferred, issue #287); UX item TK-UX-09; CHK-00265 note-and-number /reload step.
 
 ### 3.9.0.161 (from 06 Now)
