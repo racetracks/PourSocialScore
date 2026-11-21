@@ -1,6 +1,6 @@
-# PourSocialScore (PSS): the addon as it works (state at release 3.7.0.114)
+# PourSocialScore (PSS): the addon as it works (state at release 3.9.0.163)
 
-**The state document (baseline 02 E11, the author, 2026-10-08):** how the addon works at the last full release. It is re-summarized at every full release from the plan's done stages. 3.7.0.114 (Addon manager, Drop Cheapest Thing, Warehouse and money) added the Addon Manager tab, Enabled components, PSS Drop Cheapest Thing, the Warehouse with money and Search Everywhere, safer upgrades and the service bus underneath them; everything else is as it was at 3.5.0.62. Status is in 06; the author's preferences are in 11.
+**The state document (baseline 02 E11, the author, 2026-10-08):** how the addon works at the last full release. It is re-summarized at every full release from the plan's done stages. 3.9.0.163 (Forever patch fixes, Spyglass and TestKit) added Spyglass, Journal data, more macros, TBC Anniversary support, `/pss version`, the TestKit and the Forever realm-late fix (section 1); 3.7.0.114 (Addon manager, Drop Cheapest Thing, Warehouse and money) added the Addon Manager tab, Enabled components, PSS Drop Cheapest Thing, the Warehouse with money and Search Everywhere, safer upgrades and the service bus underneath them; everything else is as it was at 3.5.0.62. Status is in 06; the author's preferences are in 11.
 
 ## 1. Purpose
 PourSocialScore is the author's World of Warcraft chat moderation addon (GitHub `racetracks`, in-game author Boaties). Clients: Retail (Midnight, Interface **120007**) and Camelot (Interface **16001**).
@@ -24,6 +24,12 @@ What it does:
 - **Service bus and trigger engine (3.7.0.98 to .104; feature [`service-bus-helper`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/features/service-bus-helper)):** record sets and services (`M.PSS_Provide`, `M.PSS_Call`, `PSS_Bus.lua`), key/value stores and queries (`M.PSS_Store`, `M.PSS_Query`), entity ids and owned keys (`M.PSS_EntityId`, `M.PSS_Owned`), the event-driven engine (`PSS_Watch.lua` core, `PSS_Trig.lua`; `M.PSS_Want`; one one-shot timer), budgets as build gates (`bus_budgets.lua`).
 - **Warehouse and money (3.7.0.106 to .112; features [`warehouse-helper`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/features/warehouse-helper), [`money-helper`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/features/money-helper)):** behind `useWarehouse`: `PSS_WarehouseDB` (bags, bank, mail, void, auctions, equipped, guild banks, warband, currencies, gold, keyed by entity id), tooltip holder lines through one gated post-hook, Search Everywhere (`/pss wh`, `/syn`, keyword language), `/pss money`, `/pss wh import` from Syndicator and the thin `Syndicator` shim; `whRealms` this realm or all; orphaned data kept hidden until removed.
 - **Safer upgrades (3.7.0.106):** each step part guarded, one undo copy (`/pss upgrade undo`), `/pss status`; chat filter start-up steps guarded and `/pssguild chat` counters (`M.PSS_CoreStats`); secret-order lint `check_secretorder.lua`.
+- **Spyglass (3.8.0.116 to 3.8.0.153; feature [`search-helper`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/features/search-helper)):** one search language over every PSS store (`/pss q`, `/pss q status|export|alert`); the Spyglass tab replaces Events (search bar, time range, charts, saved searches and charts, Fields panel, Data dictionary, Event Details); a self log (`index=pss`); saved keys `pssHot`, `pss` segments, `sqSaved`, `sqCharts`, `conTime`, `conRows` (02 section 3). Rule 11A.8: every saved key is indexed or listed.
+- **Search speed (3.8.0.117, .144, .153):** a one-pass query reader, a search timing harness on real saves, and faster text search in the log.
+- **Journal data and monitors (3.9.0.154, .155; off by default):** the `useJournal` option (refused while the Warehouse is off), `jrn` and `whh` in `PSS_WarehouseDB`, gated post-hooks for vendor, repair, mail, taxi, trainer and auction activity (02 section 10.3).
+- **Clients and Macro Helper (3.8.0.136 to .149):** TBC Anniversary TOC set and compatibility layer; the addon calls Camelot "Forever"; `/pss version`; macro sets for Warrior, Shaman and Priest, Mark macros, ten global macros; Managed Communities code loads with the Communities addon.
+- **PSS TestKit (3.9.0.159 to .162; developer only):** the `PSS_TestKit` folder (`/pss test`), its own package and version line, hidden from the AddOns list unless `devMode` (saved in `PSS_TestKitDB`, the kit never writes the core save) is on; codec, run store, runner with a read-only allow list, objective tracker (`PSS_TK_Track.lua`, service `testkit.track`) and pop-out window.
+- **Forever realm-late fix (3.9.0.162):** the realm name can be nil at load after a Forever client patch; PSS now starts. Known: the realm stays unknown after login on Forever (type Name-Realm), and a startup crash can leave an empty player list that replaces the saved one (`PSS_SavedData.lua:229-234`).
 - **One window** (09) in three looks: Modern, Classic and Dark.
 
 Goal: "global" moderation through shared lists. Sharing happens through shipped lists and Import/Export.
@@ -98,3 +104,8 @@ Status history: `reference/06_status-history-to-3.4.1.30.md`; the 2026-10-07 mem
 
 ## 7. The author's preferences
 All in `11_PREFERENCES.md` (the one file, the author, 2026-10-08).
+
+## Changelog
+| Date | Reference | Change | Reason | Context |
+| --- | --- | --- | --- | --- |
+| 2026-11-21 | this file | re-summarized at release 3.9.0.163: Spyglass, search speed, Journal, TestKit, Forever realm-late fix, clients and macros | full release re-summary (baseline 02 E11) | `TASK.md`, release session |

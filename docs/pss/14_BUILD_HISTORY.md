@@ -39,9 +39,23 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 | E1 / E9 One step per PR and per session | The Shaman Stormstrike macro, 3.8.0.147, added to PR #270 (3.8.0.145, 3.8.0.146) as its own build and commit. The author, 2026-11-10, this session (scratch `temp/2026/11/10/09-04-54-Tue-tender-knuth-moxuz4/prompts/03.md`): "Same PR #270" |
 | E1 / E9 One step per PR and per session | The red real-saves job ([issue #268](https://github.com/racetracks/PourSocialScore/issues/268)) in one build, 3.8.0.150: cards 1, 2, 3 and 5, each proven by its own check. The author, 2026-11-10, approved the cards for one build (scratch [prompt 05](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/14-52-09-Tue-great-sagan-6nl0he/prompts/05.md)) |
 | E1 / E9 One step per PR and per session | The nil realm name at load fix (PSS failed to start after a Forever client patch) folded into build 3.9.0.162. The author, 2026-11-21: "can you merge the changes into that build" |
+| E1 / E9 One step per PR and per session | 3.9.0.163 released on PR #291 with 3.9.0.162, pre-release old-save test waived. The author, 2026-11-21: "pr this and call it a full release"; "I don't need to test because I have a radical direction change proposal coming. pr it call it a release" (`TASK.md:8-9`, release session) |
 
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
+
+### 3.9.0.163 - Forever patch fixes, Spyglass and TestKit
+
+- Branch: `claude/amazing-bardeen-uhjhue`; [PR #291](https://github.com/racetracks/PourSocialScore/pull/291).
+- What changed and why: full release of everything since 3.7.0.114 (summary in `history.txt`, top section), on PR #291 with 3.9.0.162; no code change, version, history and docs only.
+- Docs updated: `**/*.toc`; `versions.json`; `history.txt`; `docs/pss/14_BUILD_HISTORY.md`; `docs/pss/06_STATUS_AND_NEXT.md`; `docs/pss/15_ROUTES.md`; `docs/pss/13_CHANGES_IN_TRAIN.md`; `docs/pss/01_HANDOVER.md`; `docs/pss/05_RELEASE.md`.
+- Tests run: `sh tools/check_rules.sh`, `python3 tools/versions.py prs 3.9.0.163`; the pre-release old-save test is waived by the author.
+- Not shown by the simulation: nothing new (no code change).
+- In-game checks: none (waived by the author, 2026-11-21).
+
+### 3.9.0.162 (from 06 Now)
+
+**3.9.0.162, PSS TestKit objective tracker (branch `claude/amazing-bardeen-uhjhue`, PR #291):** PSS TestKit objective tracker (K162a to K162e): `PSS_TestKit/PSS_TK_Track.lua`, service `testkit.track`, the pop-out window; no change for players; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`). Also fixed: PSS failed to start after a Forever client patch (realm name late at load).
 
 ### 3.9.0.162 - PSS TestKit objective tracker
 
