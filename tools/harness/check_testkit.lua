@@ -1,4 +1,4 @@
--- check_testkit.lua: offline checks of the PSS TestKit: TK-UT-01 to 09, 12 to 15, 16, 18, 30.
+-- check_testkit.lua: offline checks of the PSS TestKit: TK-UT-01 to 15, 16, 18, 30.
 -- Standalone: lua5.1 tools/harness/check_testkit.lua (from the repo root).
 -- Each case runs this file again through run.lua on the shared stub, with
 -- PSS_PHASE=<case>; the case code below runs after login (H and M exist).
@@ -211,11 +211,11 @@ if rawget(_G, "H") and phase then
 				chk("unknown op", r.status == "other" and r.sub == "blocked" and r.why == "unknown op zzz")
 				return bad
 			end
-			PSS_TestKitDB = nil
+			if phase ~= "ut14d" then PSS_TestKitDB = nil end
 			if phase == "ut01" then
 				local r = row(imp(exTxt))
-				local run = PSS_TestKitDB.runs["3.9.0.161-1"]
-				ok = r and r[1] == "3.9.0.161-1" and r[2] == "3.9.0.161" and r[3] == 3 and r[4] == "" and run ~= nil
+				local run = PSS_TestKitDB.runs["3.9.0.162-1"]
+				ok = r and r[1] == "3.9.0.162-1" and r[2] == "3.9.0.162" and r[3] == 2 and r[4] == "" and run ~= nil
 					and run.src == exTxt and unb64(run.src:match("^!PSSTK1!(.-)!")) == exJson
 				why = "row=" .. tostring(r and r[1]) .. "," .. tostring(r and r[3]) .. " err=" .. tostring(r and r[4])
 			elseif phase == "ut02" then
@@ -231,57 +231,67 @@ if rawget(_G, "H") and phase then
 				ok = r and r[4] == "string needs kit TK.99 (this is TK.1)" and runCount() == 0
 				why = "err=" .. tostring(r and r[4])
 			elseif phase == "ut05" then
-				local r = row(imp(enc(plain('"key":"CHK-00226"', '"key":"CHK-1"'))))
+				local r = row(imp(enc(plain('"key":"CHK-00264"', '"key":"CHK-1"'))))
 				ok = r and r[4] == "field checks[1].key: bad key" and runCount() == 0
 				why = "err=" .. tostring(r and r[4])
 			elseif phase == "ut06" then
 				local parts = {}
 				for i = 1, #exTxt, 60 do parts[#parts + 1] = exTxt:sub(i, i + 59) end
 				local r = row(imp(" " .. table.concat(parts, "\n ")))
-				ok = r and r[1] == "3.9.0.161-1" and r[2] == "3.9.0.161" and r[3] == 3 and r[4] == ""
-					and PSS_TestKitDB.runs["3.9.0.161-1"].src == exTxt
+				ok = r and r[1] == "3.9.0.162-1" and r[2] == "3.9.0.162" and r[3] == 2 and r[4] == ""
+					and PSS_TestKitDB.runs["3.9.0.162-1"].src == exTxt
 				why = "row=" .. tostring(r and r[1]) .. " err=" .. tostring(r and r[4])
 			elseif phase == "ut12" then
 				imp(exTxt)
-				local run = PSS_TestKitDB.runs["3.9.0.161-1"]
-				run.checks["CHK-00226@tbc"] = run.checks["CHK-00226@tbc"] or {}
-				run.checks["CHK-00226@tbc"].auto = { s = "complete", at = 1 }
-				M.PSS_Call("testkit.mark", { id = "3.9.0.161-1", key = "CHK-00226@tbc", status = "failed", reason = "x" })
-				local ck = run.checks["CHK-00226@tbc"]
+				local run = PSS_TestKitDB.runs["3.9.0.162-1"]
+				run.checks["CHK-00265@forever"] = run.checks["CHK-00265@forever"] or {}
+				run.checks["CHK-00265@forever"].auto = { s = "complete", at = 1 }
+				M.PSS_Call("testkit.mark", { id = "3.9.0.162-1", key = "CHK-00265@forever", status = "failed", reason = "x" })
+				local ck = run.checks["CHK-00265@forever"]
 				ok = ck.s == "other" and ck.sub == "failed" and ck.why == "x" and ck.man and ck.man.s == "other" and ck.auto and ck.auto.s == "complete"
 				why = "s=" .. tostring(ck.s) .. " sub=" .. tostring(ck.sub) .. " auto=" .. tostring(ck.auto and ck.auto.s)
 			elseif phase == "ut13" then
 				local n = 0
 				for i = 1, 6 do
-					local r = row(imp(enc(plain('"id":"3.9.0.161-1"', '"id":"3.9.0.161-' .. i .. '"'))))
+					local r = row(imp(enc(plain('"id":"3.9.0.162-1"', '"id":"3.9.0.162-' .. i .. '"'))))
 					if r and r[4] == "" then n = n + 1 end
 				end
-				M.PSS_Call("testkit.note", { id = "3.9.0.161-6", key = "CHK-00226", text = string.rep("n", 600) })
-				local ck = PSS_TestKitDB.runs["3.9.0.161-6"] and PSS_TestKitDB.runs["3.9.0.161-6"].checks["CHK-00226@tbc"]
+				M.PSS_Call("testkit.note", { id = "3.9.0.162-6", key = "CHK-00265", text = string.rep("n", 600) })
+				local ck = PSS_TestKitDB.runs["3.9.0.162-6"] and PSS_TestKitDB.runs["3.9.0.162-6"].checks["CHK-00265@forever"]
 				local note = ck and ck.notes and ck.notes[""] or ""
-				ok = n == 6 and runCount() == 5 and PSS_TestKitDB.runs["3.9.0.161-1"] == nil and #PSS_TestKitDB.order == 5 and #note == 500
+				ok = n == 6 and runCount() == 5 and PSS_TestKitDB.runs["3.9.0.162-1"] == nil and #PSS_TestKitDB.order == 5 and #note == 500
 				why = "imported=" .. n .. " runs=" .. runCount() .. " note=" .. #note
 			elseif phase == "ut14a" then
 				PSS_TestKitDB = { v = 1, order = {}, runs = {}, zz = "keep" }
 				imp(exTxt)
-				ok = PSS_TestKitDB.zz == "keep" and PSS_TestKitDB.runs["3.9.0.161-1"] ~= nil
+				ok = PSS_TestKitDB.zz == "keep" and PSS_TestKitDB.runs["3.9.0.162-1"] ~= nil
 				why = "zz=" .. tostring(PSS_TestKitDB.zz)
+			elseif phase == "ut14c" then
+				local r = row(imp(exTxt))
+				local a = M.PSS_Call("testkit.input", { id = "3.9.0.162-1", key = "CHK-00265", field = "rows", value = 7 })
+				local b = M.PSS_Call("testkit.note", { id = "3.9.0.162-1", key = "CHK-00265.s2", text = "reload note" })
+				ok = r and r[4] == "" and a ~= nil and b ~= nil
+				why = "imp=" .. tostring(r and r[4]) .. " in=" .. tostring(a) .. " note=" .. tostring(b)
+			elseif phase == "ut14d" then
+				local ck = PSS_TestKitDB and PSS_TestKitDB.runs and PSS_TestKitDB.runs["3.9.0.162-1"] and PSS_TestKitDB.runs["3.9.0.162-1"].checks["CHK-00265@forever"]
+				ok = ck ~= nil and ck.inputs and ck.inputs.rows == 7 and ck.notes and ck.notes.s2 == "reload note"
+				why = "ck=" .. tostring(ck) .. " rows=" .. tostring(ck and ck.inputs and ck.inputs.rows) .. " note=" .. tostring(ck and ck.notes and ck.notes.s2)
 			elseif phase == "ut14b" then
 				PSS_TestKitDB = { v = 2, order = {}, runs = {} }
 				local r = row(imp(exTxt))
 				local told = false
 				for _, m in ipairs(msgs) do if m == "PSS_TestKitDB is from a newer kit; results are read-only." then told = true end end
-				ok = told and runCount() == 0 and PSS_TestKitDB.v == 2 and not (r and r[1] == "3.9.0.161-1")
+				ok = told and runCount() == 0 and PSS_TestKitDB.v == 2 and not (r and r[1] == "3.9.0.162-1")
 				why = "told=" .. tostring(told) .. " runs=" .. runCount()
 			elseif phase == "ut15" then
 				imp(exTxt)
 				local before = #msgs
 				local r = row(imp(exTxt))
-				ok = runCount() == 1 and #PSS_TestKitDB.order == 1 and r and r[1] == "3.9.0.161-1" and msgs[before + 1] == "already imported: 3.9.0.161-1"
+				ok = runCount() == 1 and #PSS_TestKitDB.order == 1 and r and r[1] == "3.9.0.162-1" and msgs[before + 1] == "already imported: 3.9.0.162-1"
 				why = "runs=" .. runCount() .. " msg=" .. tostring(msgs[before + 1])
 			elseif phase == "ut30" then
 				local sTxt = slurp("tools/testkit/fixtures/selftest.txt"):gsub("%s", "")
-				local other = enc((exJson:gsub('"build":"3.9.0.161"', '"build":"3.9.0.156"'):gsub('"id":"3.9.0.161%-1"', '"id":"3.9.0.156-1"')))
+				local other = enc((exJson:gsub('"build":"3.9.0.162"', '"build":"3.9.0.156"'):gsub('"id":"3.9.0.162%-1"', '"id":"3.9.0.156-1"')))
 				local r0 = row(imp(other))
 				local r = row(imp(exTxt))
 				local n1 = runCount()
@@ -290,7 +300,7 @@ if rawget(_G, "H") and phase then
 				local r2 = row(imp(sTxt))
 				local run = PSS_TestKitDB.runs["3.9.0.161-99"]
 				local ck = run and run.checks["CHK-00263@forever"]
-				ok = r and r[1] == "3.9.0.161-1" and r[4] == "" and n1 == 2 and run ~= nil and ck ~= nil and ck.s == "complete"
+				ok = r and r[1] == "3.9.0.162-1" and r[4] == "" and n1 == 2 and run ~= nil and ck ~= nil and ck.s == "complete"
 				why = "seed=" .. tostring(r0 and r0[4]) .. " row=" .. tostring(r and r[1]) .. " runs=" .. n1 .. " self=" .. tostring(r2 and r2[4]) .. " s=" .. tostring(ck and ck.s) .. " keys=" .. (function() local t = {} for k, v in pairs(run and run.checks or {}) do t[#t + 1] = k .. ":" .. tostring(v.s) end return table.concat(t, ",") end)()
 			elseif phase == "ut07" then
 				local TK = privTK()
@@ -358,6 +368,35 @@ if rawget(_G, "H") and phase then
 				end
 				ok = #bad == 0
 				why = table.concat(bad, "; ")
+			elseif phase == "ut10" or phase == "ut11" then
+				local ev = phase == "ut10"
+				local obj = ev and { id = "o1", need = 2, name = "PSS_TK_EVT", source = "event", text = "Event twice" }
+					or { cmp = "eq", id = "o1", path = "PSS_TKFR", prop = "shown", source = "poll", text = "Frame shown", want = true }
+				local env = { build = "3.9.0.162", checks = { { client = "any", ["do"] = "d", expect = "e", key = "CHK-00001", link = "https://x", look = "any",
+					objectives = { obj }, steps = { { n = 1, op = { cmp = "type", fn = "GetLocale", op = "api", want = "string" }, text = "locale" } }, title = "t" } }, flavours = { "forever" }, fmt = 1, id = "3.9.0.162-9", kitMin = 1, title = "t" }
+				local r = row(imp(enc(json(env))))
+				local wants = 0
+				M.PSS_Want = function() wants = wants + 1 return true end
+				local ck = function() local run = PSS_TestKitDB and PSS_TestKitDB.runs["3.9.0.162-9"] return run and run.checks["CHK-00001@any"] end
+				if not (r and r[4] == "") then
+					ok, why = false, "import " .. tostring(r and r[4])
+				elseif ev then
+					M.PSS_Call("testkit.open")
+					H.Fire("PSS_TK_EVT")
+					local c1 = ck()
+					local h1, s1 = c1 and c1.obj and c1.obj.o1, c1 and c1.auto and c1.auto.s
+					H.Fire("PSS_TK_EVT")
+					local c2 = ck()
+					local h2, s2 = c2 and c2.obj and c2.obj.o1, c2 and c2.s
+					ok = h1 == 1 and s1 ~= "complete" and h2 == 2 and s2 == "complete"
+					why = "have1=" .. tostring(h1) .. " auto1=" .. tostring(s1) .. " have2=" .. tostring(h2) .. " s2=" .. tostring(s2)
+				else
+					_G.PSS_TKFR = { IsShown = function() return false end }
+					local hidden = wants
+					M.PSS_Call("testkit.open")
+					ok = hidden == 0 and wants == 1
+					why = "hidden=" .. hidden .. " shown=" .. wants
+				end
 			else
 				ok, why = false, "unknown case"
 			end
@@ -371,6 +410,7 @@ end
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
 local self = arg[0]
 local pass, fail = 0, 0
+local UT14SV
 
 local function run(cmd)
 	local p = io.popen("(" .. cmd .. ") 2>&1; echo EXIT=$?")
@@ -393,12 +433,13 @@ end
 -- TK-UT-01 to 06, 12 to 15: one report each, each phase a fresh stub client
 local UT = { { "TK-UT-01", { "ut01" } }, { "TK-UT-02", { "ut02" } }, { "TK-UT-03", { "ut03" } }, { "TK-UT-04", { "ut04" } },
 	{ "TK-UT-05", { "ut05" } }, { "TK-UT-06", { "ut06" } }, { "TK-UT-12", { "ut12" } }, { "TK-UT-13", { "ut13" } },
-	{ "TK-UT-14", { "ut14a", "ut14b" } }, { "TK-UT-15", { "ut15" } }, { "TK-UT-30", { "ut30" } },
-	{ "TK-UT-07", { "ut07" } }, { "TK-UT-08", { "ut08" } }, { "TK-UT-09", { "ut09" } } }
+	{ "TK-UT-14", { "ut14a", "ut14b", "ut14c", "ut14d" } }, { "TK-UT-15", { "ut15" } }, { "TK-UT-30", { "ut30" } },
+	{ "TK-UT-07", { "ut07" } }, { "TK-UT-10", { "ut10" } }, { "TK-UT-11", { "ut11" } }, { "TK-UT-08", { "ut08" } }, { "TK-UT-09", { "ut09" } } }
 for _, t in ipairs(UT) do
 	local good, detail = true, nil
 	for _, ph in ipairs(t[2]) do
-		local out = run("PSS_PHASE=" .. ph .. " lua5.1 " .. here .. "/run.lua . - - " .. self)
+		local sv = os.tmpname()
+		local out = run("PSS_PHASE=" .. ph .. " lua5.1 " .. here .. "/run.lua . " .. (ph == "ut14d" and UT14SV or "-") .. " " .. (ph == "ut14c" and (function() UT14SV = sv return sv end)() or "-") .. " " .. self)
 		local line = out:match("(PASS testkit " .. ph .. ")") or out:match("(FAIL testkit [^\n]*)")
 		if not (line and line:sub(1, 4) == "PASS") then good = false detail = line or out:sub(1, 200) end
 	end

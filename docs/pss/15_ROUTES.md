@@ -53,7 +53,7 @@ Scratch links: `https://github.com/racetracks/Pour-Social-Score_Scratch/tree/mai
 - `docs/baseline/reference/wow-api/` (start with its README): any hook, Blizzard frame, combat or instance path, chat event, secret value, taint report, TOC or Interface change, or API that differs between clients. Baseline 02 J and B carry the rules.
 
 ## Current state and the window
-- **Current state and next steps: `docs/pss/06_STATUS_AND_NEXT.md`** (queue: scratch `docs/latest/next-steps/`). Last full release 3.7.0.114 (Addon manager, Drop Cheapest Thing, Warehouse and money; record scratch `docs/latest/release-notes/3.7.0.114.md`). Built: Spyglass phase A, 3.8.0.116, size and speed 3.8.0.117 and the pipe fix 3.8.0.118 (PR #238), phase B, the Spyglass console, 3.8.0.125 ([PR #242](https://github.com/racetracks/PourSocialScore/pull/242); [next steps](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/10/18/13-08-00-Sun-nice-noether-m6eqsa/next-steps/README.md)). Next: the Spyglass release 3.8.0.126 (a pre-release). Plans and the next build: scratch `Roadmaps/` (`scratch:documents/code-map/Roadmaps/Readme.md`) (Topic routes, above).
+- **Current state and next steps: `docs/pss/06_STATUS_AND_NEXT.md`** (queue: scratch `docs/latest/next-steps/`). Last full release 3.9.0.163 (Forever patch fixes, Spyglass and TestKit; PR #291; previous release 3.7.0.114; record scratch `docs/latest/release-notes/3.9.0.163.md`). Plans and the next build: scratch `Roadmaps/` (`scratch:documents/code-map/Roadmaps/Readme.md`) (Topic routes, above).
 - The window is drawn in `PourSocialScore_GUI` with logic in `PourSocialScore_Libraries`; `/pss` opens it (`gui`, `ui`, `eui` aliases). Its rules: **Interface** below.
 
 The window's rules: `docs/pss/16_INTERFACE.md`.

@@ -344,10 +344,99 @@ function TK.GetWindow()
 		wantNext = true
 		win.Redraw()
 	end)
+	-- Pop-out: unticked poll objectives of the active run, built on first use (TK-UX-09).
+	local pop, popListen
+	local function popLines()
+		local out = {}
+		local ok, r = pcall(TK.GetRun, win.run)
+		local env = ok and TK.Env(r)
+		if not env then return out end
+		local here = TK.Here()
+		for _, c in ipairs(env.checks) do
+			if (c.client == "any" or c.client == here) and c.objectives then
+				local ck = r.checks and r.checks[TK.RowId(c)]
+				for _, o in ipairs(c.objectives) do
+					local h = ck and ck.obj and ck.obj[o.id] or 0
+					local need = o.need or 1
+					if o.source == "poll" and h < need then out[#out + 1] = T.OBJ_ROW:format(o.text, h, need) end
+				end
+			end
+		end
+		return out
+	end
+	local function popDraw()
+		local lines = popLines()
+		if #lines == 0 then pop:Hide(); return end
+		for i = 1, #lines do
+			local f = pop.rows[i]
+			if not f then
+				f = pop:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+				f:SetPoint("TOPLEFT", pop, "TOPLEFT", 10, -26 - (i - 1) * 14)
+				f:SetJustifyH("LEFT")
+				pop.rows[i] = f
+			end
+			f:SetText(lines[i])
+			f:Show()
+		end
+		for i = #lines + 1, #pop.rows do pop.rows[i]:Hide() end
+		pop:SetHeight(34 + #lines * 14)
+	end
+	local function popShow()
+		if not pop then
+			pop = CreateFrame("Frame", FRAME .. "Pop", UIParent, "BackdropTemplate")
+			pop:SetSize(260, 48)
+			pop:SetFrameStrata("MEDIUM")
+			pop:SetMovable(true)
+			pop:EnableMouse(true)
+			pop:RegisterForDrag("LeftButton")
+			if pop.SetBackdrop then
+				pop:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } })
+			end
+			pop.rows = {}
+			local t = pop:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+			t:SetPoint("TOPLEFT", pop, "TOPLEFT", 10, -8)
+			t:SetText(T.POP_TITLE)
+			local x = CreateFrame("Button", nil, pop, "UIPanelButtonTemplate")
+			x:SetSize(20, 18)
+			x:SetPoint("TOPRIGHT", pop, "TOPRIGHT", -6, -6)
+			x:SetText(T.POP_CLOSE)
+			x:SetScript("OnClick", function() pop:Hide() end)
+			pop:SetScript("OnDragStart", function(self) self:StartMoving() end)
+			pop:SetScript("OnDragStop", function(self)
+				self:StopMovingOrSizing()
+				local d = TK.DB()
+				if d.v > 1 then return end
+				local l, tp = self:GetLeft(), self:GetTop()
+				if l and tp then d.ui = { x = l, y = tp } end
+			end)
+			pop:SetScript("OnShow", function()
+				if M.Events and M.Events.Register and not popListen then
+					popListen = M.Events.Register("TESTKIT_CHANGED", function() if pop:IsShown() then popDraw() end end)
+				end
+			end)
+			pop:SetScript("OnHide", function()
+				if popListen and M.Events.Unregister then M.Events.Unregister("TESTKIT_CHANGED", popListen) end
+				popListen = nil
+				if not win:IsShown() then TK.Unpoll() end
+			end)
+			pop:Hide()
+		end
+		local ui = TK.DB().ui
+		pop:ClearAllPoints()
+		if type(ui) == "table" and type(ui.x) == "number" and type(ui.y) == "number" then
+			pop:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", ui.x, ui.y)
+		else
+			pop:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -200, -200)
+		end
+		pop:Show()
+		popDraw()
+	end
 	win:SetScript("OnHide", function()
 		if listenId and M.Events.Unregister then M.Events.Unregister("TESTKIT_CHANGED", listenId) end
 		listenId = nil
+		if #popLines() > 0 then popShow() else TK.Unpoll() end
 	end)
+	win:HookScript("OnShow", function() if pop then pop:Hide() end end)
 
 	local foot = win:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 	foot:SetPoint("BOTTOMLEFT", win, "BOTTOMLEFT", 14, 12)
@@ -360,7 +449,6 @@ function TK.GetWindow()
 	rl:SetText(T.RELOAD)
 	rl:SetScript("OnClick", function() ReloadUI() end)
 
-	T.DEV = T.DEV or "Developer mode"
 	local dev = CreateFrame("CheckButton", nil, win, "UICheckButtonTemplate")
 	dev:SetPoint("RIGHT", rl, "LEFT", -100, 0)
 	dev.text = dev.text or dev.Text

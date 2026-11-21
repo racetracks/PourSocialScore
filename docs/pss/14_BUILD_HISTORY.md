@@ -38,9 +38,39 @@ The approvals behind the E1 / E9 Overrides row of `02_RULES.md` section 12, move
 | E1 / E9 One step per PR and per session | The Macro Helper Priest set, 3.8.0.146, added to the Shaman set's PR #270 (3.8.0.145) as its own build and commit, each proven by its own `check_macro.lua` phase. The author, 2026-11-10, this session (scratch `temp/2026/11/10/09-04-54-Tue-tender-knuth-moxuz4/prompts/02.md`): "Same PR #270" |
 | E1 / E9 One step per PR and per session | The Shaman Stormstrike macro, 3.8.0.147, added to PR #270 (3.8.0.145, 3.8.0.146) as its own build and commit. The author, 2026-11-10, this session (scratch `temp/2026/11/10/09-04-54-Tue-tender-knuth-moxuz4/prompts/03.md`): "Same PR #270" |
 | E1 / E9 One step per PR and per session | The red real-saves job ([issue #268](https://github.com/racetracks/PourSocialScore/issues/268)) in one build, 3.8.0.150: cards 1, 2, 3 and 5, each proven by its own check. The author, 2026-11-10, approved the cards for one build (scratch [prompt 05](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/temp/2026/11/10/14-52-09-Tue-great-sagan-6nl0he/prompts/05.md)) |
+| E1 / E9 One step per PR and per session | The nil realm name at load fix (PSS failed to start after a Forever client patch) folded into build 3.9.0.162. The author, 2026-11-21: "can you merge the changes into that build" |
+| E1 / E9 One step per PR and per session | 3.9.0.163 released on PR #291 with 3.9.0.162, pre-release old-save test waived. The author, 2026-11-21: "pr this and call it a full release"; "I don't need to test because I have a radical direction change proposal coming. pr it call it a release" (`TASK.md:8-9`, release session) |
 
 ## Builds
 <!-- builds: newest first; tools/build_history.py roll writes here -->
+
+### 3.9.0.163 - Forever patch fixes, Spyglass and TestKit
+
+- Branch: `claude/amazing-bardeen-uhjhue`; [PR #291](https://github.com/racetracks/PourSocialScore/pull/291).
+- What changed and why: full release of everything since 3.7.0.114 (summary in `history.txt`, top section), on PR #291 with 3.9.0.162; no code change, version, history and docs only.
+- Docs updated: `**/*.toc`; `versions.json`; `history.txt`; `docs/pss/14_BUILD_HISTORY.md`; `docs/pss/06_STATUS_AND_NEXT.md`; `docs/pss/15_ROUTES.md`; `docs/pss/13_CHANGES_IN_TRAIN.md`; `docs/pss/01_HANDOVER.md`; `docs/pss/05_RELEASE.md`.
+- Tests run: `sh tools/check_rules.sh`, `python3 tools/versions.py prs 3.9.0.163`; the pre-release old-save test is waived by the author.
+- Not shown by the simulation: nothing new (no code change).
+- In-game checks: none (waived by the author, 2026-11-21).
+
+### 3.9.0.162 (from 06 Now)
+
+**3.9.0.162, PSS TestKit objective tracker (branch `claude/amazing-bardeen-uhjhue`, PR #291):** PSS TestKit objective tracker (K162a to K162e): `PSS_TestKit/PSS_TK_Track.lua`, service `testkit.track`, the pop-out window; no change for players; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`). Also fixed: PSS failed to start after a Forever client patch (realm name late at load).
+
+### 3.9.0.162 - PSS TestKit objective tracker
+
+- Branch: `claude/amazing-bardeen-uhjhue`; [PR #291](https://github.com/racetracks/PourSocialScore/pull/291).
+- What changed and why: the objective tracker `PSS_TestKit/PSS_TK_Track.lua` (K162a), service `testkit.track`, the objective pop-out window (K162e), `T.DEV` moved to `PSS_TestKit/PSS_TK_Text.lua:45`, harness tests TK-UT-10 and TK-UT-11 (K162b), a Forever-only example string with the TBC string deferred and the reload proof ut14c and ut14d (K162c); `check_testkit.lua` now 20 tests. Pack spec correction: the D15 services (`core.version`, `core.upgradeReport`, `core.messages`, `ui.state`) live in `PourSocialScore_Libraries/PSS_Commands.lua:181` to `:202`, not in the bus core file (8 KB memory gate).
+- Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, scratch code map (addon-helper) `06_Architecture.md` and `00_Changelog.md` (rows for the tracker, `testkit.track`, the pop-out, `T.DEV`), scratch pack specs `api-core-integration.md` and `build-161.md` (commands file named, Changelog rows), scratch `documents/features/service-bus-helper/` `09_Current_Features.md`, `14_Code_Reference.md`, `00_Changelog.md` (`testkit.track` row).
+- Tests run: `sh tools/check_rules.sh`, `sh tools/harness/validate_all.sh` (FAIL set equal to origin/main's, issue #288), `lua5.1 tools/harness/check_testkit.lua`.
+- Not shown by the simulation: the tracker, the pop-out and the string import in the real client.
+- Also fixed: PSS failed to start after a Forever client patch (the realm name is nil or empty at file load): `M.PSS_ReadIdentity` (`PourSocialScore/PSS_Globals.lua`) reads it again at ADDON_LOADED and PLAYER_ENTERING_WORLD; harness `tools/harness/check_realm_late.lua`, stub `PSS_REALM_LATE`.
+- Docs updated: `docs/pss/06_STATUS_AND_NEXT.md`, `history.txt`, this file (combined builds row).
+- In-game checks: CHK-00264 on Forever only (TBC deferred, issue #287); UX item TK-UX-09; CHK-00265 note-and-number /reload step.
+
+### 3.9.0.161 (from 06 Now)
+
+**3.9.0.161, PSS TestKit runner (branch `claude/build-3-9-0-161-52m6y3`, PR #289):** PSS TestKit runner (K161a to K161h); no change for players; `devMode` moved to `PSS_TestKitDB`, the core save is never written by the kit; the details are in the build history (`docs/pss/14_BUILD_HISTORY.md`).
 
 ### 3.9.0.161 - PSS TestKit runner
 

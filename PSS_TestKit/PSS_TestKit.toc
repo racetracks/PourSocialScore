@@ -17,5 +17,6 @@ PSS_TK_Store.lua
 PSS_TK_Bus.lua
 PSS_TK_Allow.lua
 PSS_TK_Run.lua
+PSS_TK_Track.lua
 PSS_TK_Window.lua
 PSS_TK_Detail.lua

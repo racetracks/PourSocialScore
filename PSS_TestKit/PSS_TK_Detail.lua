@@ -11,6 +11,7 @@ local type = type
 
 local MAXSTEPS = 20
 local MAXIN = 6
+local MAXOBJ = 8
 local MAXACT = 6
 local RETRY = "[Retry]"
 local WAIT_COMBAT = "Waiting: leave combat."
@@ -86,6 +87,16 @@ local function build(win)
 		row:Hide()
 		p.inputs[i] = row
 	end
+	p.objLbl = p:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+	p.objLbl:SetText(T.OBJ)
+	p.obj = {}
+	for i = 1, MAXOBJ do
+		local f = p:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+		f:SetWidth(400)
+		f:SetJustifyH("LEFT")
+		f:Hide()
+		p.obj[i] = f
+	end
 	p.noteLbl = p:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
 	p.noteLbl:SetText(T.NOTE_LBL)
 	p.note = CreateFrame("EditBox", nil, p, "InputBoxTemplate")
@@ -119,6 +130,7 @@ function TK.ShowDetail(win, rowId)
 	if not c then p:Hide(); return end
 	p:Show()
 	TK.Seen(runId, row)
+	if TK.Arm then TK.Arm(runId) end
 	local ck = run.checks and run.checks[row] or {}
 	p.title:SetText(row .. " " .. (c.title or ""))
 	local here = TK.Here()
@@ -216,6 +228,28 @@ function TK.ShowDetail(win, rowId)
 			end
 			r:Show()
 			y = y - 26
+		end
+	end
+	local objs = (not notHere) and c.objectives or nil
+	local no = objs and #objs or 0
+	if no > MAXOBJ then no = MAXOBJ end
+	p.objLbl:SetShown(no > 0)
+	p.objLbl:ClearAllPoints()
+	p.objLbl:SetPoint("TOPLEFT", p, "TOPLEFT", 0, y - 4)
+	if no > 0 then y = y - 20 end
+	for i = 1, MAXOBJ do
+		local f = p.obj[i]
+		if i <= no then
+			local o = objs[i]
+			local h = ck.obj and ck.obj[o.id] or 0
+			local need = o.need or 1
+			f:ClearAllPoints()
+			f:SetPoint("TOPLEFT", p, "TOPLEFT", 0, y)
+			f:SetText((h >= need and "[ok] " or "[..] ") .. T.OBJ_ROW:format(o.text, h, need))
+			f:Show()
+			y = y - 15
+		else
+			f:Hide()
 		end
 	end
 	p.noteKey = row

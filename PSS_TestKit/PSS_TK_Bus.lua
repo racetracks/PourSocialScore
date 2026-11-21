@@ -18,6 +18,7 @@ local function open()
 			firstOpen = false
 			if win.run then pcall(M.PSS_Call, "testkit.rerun", { id = win.run }) end
 		end
+		if TK.Arm then TK.Arm(win.run) end
 	end
 	return SHOWN
 end
@@ -28,7 +29,7 @@ M.PSS_ProvideStub("testkit.open", { returns = { "shown" }, doc = "opens the Test
 M.PSS_Provide("testkit.close", function()
 	local win = TK.window
 	if win then win:Hide() end
-	if M.PSS_Unwant then M.PSS_Unwant("testkit.poll") end
+	if TK.Unpoll then TK.Unpoll() end
 	return HIDDEN
 end, { returns = { "shown" }, doc = "closes the TestKit window", cost = "O(1)", writes = false, onError = "empty", default = EMPTY })
 
@@ -184,6 +185,20 @@ M.PSS_Provide("testkit.note", function(set)
 	TK.Fire(run.id, row)
 	return { cols = { "key" }, n = 1, { key } }
 end, { accepts = { "id", "key", "text" }, returns = { "key" }, doc = "the author's note on a check or a step", cost = "O(1)", writes = true, onError = "empty" })
+
+M.PSS_Provide("testkit.track", function(set)
+	local run = TK.GetRun(arg(set, "id"))
+	local out = { cols = { "key", "objective", "have", "need" }, n = 0 }
+	local env = TK.Env(run)
+	if not env then return out end
+	for _, c in ipairs(env.checks) do
+		local ck = run.checks and run.checks[TK.RowId(c)]
+		for _, o in ipairs(c.objectives or {}) do
+			M.PSS_SetAdd(out, { c.key, o.id, ck and ck.obj and ck.obj[o.id] or 0, o.need or 1 })
+		end
+	end
+	return out
+end, { accepts = { "id" }, returns = { "key", "objective", "have", "need" }, doc = "objective progress of a run", cost = "O(objectives)", writes = false, onError = "empty" })
 
 local function inputDef(c, field)
 	for n, st in ipairs(c.steps) do
