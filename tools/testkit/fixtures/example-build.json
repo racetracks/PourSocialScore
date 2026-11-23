@@ -1,25 +1,87 @@
-{"build": "3.9.0.161", "run": 1, "kitMin": 1, "title": "3.9.0.161 checks", "flavours": ["tbc", "forever"],
+{
+ "build": "3.9.0.162",
+ "run": 1,
+ "kitMin": 1,
+ "title": "3.9.0.162 checks",
+ "flavours": [
+  "forever"
+ ],
  "checks": [
-  {"key": "CHK-00226", "link": "https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00226",
-   "title": "AddOns list shows no out-of-date mark", "client": "tbc", "look": "any",
-   "do": "Nothing: the kit reads the client's interface number.", "expect": "20506",
-   "steps": [{"n": 1, "text": "Client interface is 20506",
-              "op": {"op": "api", "fn": "GetBuildInfo", "ret": 4, "cmp": "eq", "want": 20506}}]},
-  {"key": "CHK-00219", "link": "https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00219",
-   "title": "Window in the Classic look", "client": "tbc", "look": "classic",
-   "do": "Set the look to Classic, open the PSS window, visit each tab.",
-   "expect": "Every tab draws in the Classic look with no overlap.",
-   "objectives": [{"id": "shown", "text": "Open the PSS window", "source": "poll",
-                   "path": "PourSocialScoreFrame", "prop": "shown", "cmp": "eq", "want": true}],
-   "steps": [{"n": 1, "text": "Open the window",
-              "op": {"op": "action", "label": "Open PSS", "then": {"op": "cmd", "line": "/pss gui"}}},
-             {"n": 2, "text": "Every tab looks right",
-              "op": {"op": "manual", "prompt": "Does every tab draw correctly in Classic?"}}]},
-  {"key": "CHK-00265", "link": "https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00265",
-   "title": "Note and rows kept after reload", "client": "forever", "look": "any",
-   "do": "Type a note on the first step, then /reload.", "expect": "The note and the rows value are kept.",
-   "steps": [{"n": 1, "text": "Type a note",
-              "op": {"op": "manual", "prompt": "Type a note on this step, then /reload: the note is kept"}},
-             {"n": 2, "text": "Rows shown",
-              "op": {"op": "input", "id": "rows", "kind": "number", "label": "Rows shown", "min": 0}}]}
- ]}
+  {
+   "key": "CHK-00264",
+   "link": "https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00264",
+   "title": "Open the Friends list: the objective ticks and the check completes",
+   "client": "forever",
+   "look": "any",
+   "do": "Change target twice, then open the Friends window.",
+   "expect": "Both objectives tick and the check completes.",
+   "objectives": [
+    {
+     "id": "tgt",
+     "text": "Change target twice",
+     "source": "event",
+     "name": "PLAYER_TARGET_CHANGED",
+     "need": 2
+    },
+    {
+     "id": "fr",
+     "text": "Open the Friends window",
+     "source": "poll",
+     "path": "FriendsFrame",
+     "prop": "shown",
+     "cmp": "eq",
+     "want": true,
+     "need": 1
+    }
+   ],
+   "steps": [
+    {
+     "n": 1,
+     "text": "Change target twice",
+     "op": {
+      "op": "manual",
+      "prompt": "Did both objectives tick?"
+     }
+    }
+   ]
+  },
+  {
+   "key": "CHK-00265",
+   "link": "https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/reference-framework/16_Registries/REGISTRY.md#chk-00265",
+   "title": "Note and rows kept after reload",
+   "client": "forever",
+   "look": "any",
+   "do": "Type a note on the first step, then /reload.",
+   "expect": "The note and the rows value are kept.",
+   "steps": [
+    {
+     "n": 1,
+     "text": "Type a note",
+     "op": {
+      "op": "manual",
+      "prompt": "Type a note on this step, then /reload: the note is kept"
+     }
+    },
+    {
+     "n": 2,
+     "text": "Rows shown",
+     "op": {
+      "op": "input",
+      "id": "rows",
+      "kind": "number",
+      "label": "Rows shown",
+      "min": 0
+     }
+    },
+    {
+     "n": 3,
+     "text": "Reload keeps both",
+     "op": {
+      "op": "manual",
+      "prompt": "Type a step note and a number above, /reload, reopen this check: both are still there"
+     }
+    }
+   ]
+  }
+ ]
+}

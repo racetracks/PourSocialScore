@@ -349,6 +349,7 @@ stub.blizzList = blizzList
 
 function stub.Fire(event, ...)
 	if event == "IGNORELIST_UPDATE" then blizzList.visible = true end
+	if event == "ADDON_LOADED" and (...) == "PourSocialScore" then stub.realmLate = false end
 	local list = {}
 	for f in pairs(eventFrames) do
 		if f._events[event] then list[#list + 1] = f end
@@ -514,8 +515,19 @@ end
 function UnitRace() return "Human", "Human" end
 -- the Forever client (PSS_FLAVOUR=forever or PSS_CAMELOT=1; interface 16001, realm ClassicBetaPvP)
 local camelot = flavour == "forever"
-function GetRealmName() return FL.realm end
-function GetNormalizedRealmName() return FL.realm end
+-- PSS_REALM_LATE=nil|empty: the realm name is nil or "" until the first ADDON_LOADED, as on a patched Forever client
+local realmLateMode = os.getenv("PSS_REALM_LATE")
+if realmLateMode then stub.realmLate = true end
+local function realmNow()
+	if stub.realmLate then
+		PSS_STUB_REALM_LATE_READS = (PSS_STUB_REALM_LATE_READS or 0) + 1
+		if realmLateMode == "empty" then return "" end
+		return nil
+	end
+	return FL.realm
+end
+function GetRealmName() return realmNow() end
+function GetNormalizedRealmName() return realmNow() end
 function GetLocale() return "enUS" end
 function GetBuildInfo()
 	local iface = envNum("PSS_STUB_IFACE", FL.iface)

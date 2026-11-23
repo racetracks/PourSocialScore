@@ -43,7 +43,12 @@ TK.T = {
 	NA = "N/A",
 	CLEAR = "Clear",
 	NO_NOTE = "no note",
+	DEV = "Developer mode",
+	OBJ = "Objectives:",
+	OBJ_ROW = "%s %d/%d",
 	SKIPPED = "skipped",
 	BAD_VALUE = "%s: bad value",
 	OK_LBL = "ok?",
+	POP_TITLE = "Objectives",
+	POP_CLOSE = "X",
 }

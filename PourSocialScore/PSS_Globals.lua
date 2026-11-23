@@ -181,7 +181,7 @@ function M.removeServer (name, strict)
 	if index ~= nil then
 		local server = M.Proper(string.sub(name, index + 1, string.len(name)));
 
-		if strict == true or server == M.Proper(V.serverName) then
+		if strict == true or (V.serverName ~= nil and server == M.Proper(V.serverName)) then
 			result = string.sub(name, 1, index - 1)
 		end
 	end
@@ -193,7 +193,7 @@ function M.addServer (name)
 
 	if not name then return nil end
 
-	if string.find(name, "-", 1, true) == nil then
+	if V.serverName ~= nil and string.find(name, "-", 1, true) == nil then
 		return name .. "-" .. V.serverName
 	end
 
@@ -204,8 +204,18 @@ end
 -- SHARED VARIABLES --
 ----------------------
 
-V.serverName		= M.Proper(GetRealmName())
-V.playerName		= M.addServer(GetUnitName("player"), true)
+-- the realm name can be nil or "" at file load (Forever client patch); set again from ADDON_LOADED
+function M.PSS_ReadIdentity()
+	local r = GetRealmName()
+	if r == nil or r == "" then return false end
+	V.serverName = M.Proper(r)
+	V.playerName = M.addServer(GetUnitName("player"))
+	return true
+end
+
+V.serverName		= nil
+V.playerName		= nil
+M.PSS_ReadIdentity()
 
 -- Color yellow: ffff0000
 -- Color white: ffffff00

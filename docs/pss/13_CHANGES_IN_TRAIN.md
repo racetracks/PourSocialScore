@@ -1,4 +1,4 @@
-# PourSocialScore: changes in train (state at release 3.7.0.114)
+# PourSocialScore: changes in train (state at release 3.9.0.163)
 
 **What this is.** What the core uplift changed and what is still open, so a later session (Claude or GPT) can tell shipped from open. Read it with the code map (scratch [`documents/code-map/`](https://github.com/racetracks/Pour-Social-Score_Scratch/tree/main/documents/code-map)). The design and decisions are in `10_CORE_UPLIFT.md` (scratch `docs/latest/core-uplift/`); per-stage notes of the combined build in `reference/combined-3.4.1.52/`. Where this file and the plan differ, the plan wins; where either differs from the code, the code wins. Refreshed at each full release.
 
@@ -6,7 +6,8 @@
 
 | Item | State |
 | --- | --- |
-| Release | **3.7.0.114**, Addon manager, Drop Cheapest Thing, Warehouse and money (2026-10-17; builds 3.5.1.63 to 3.7.0.113, history.txt and `versions.json`). Previous release 3.5.0.62, Graphics settings and Macro Helper (PR #158, 2026-10-09); the core uplift closed at 3.4.1.53 (PR #143). Previous release 3.4.2.54 |
+| In train | Empty: every build since 3.7.0.114 shipped in 3.9.0.163 (history.txt, `versions.json`). |
+| Release | **3.9.0.163**, Forever patch fixes, Spyglass and TestKit (2026-11-21, PR #291). Previous release 3.7.0.114, Addon manager, Drop Cheapest Thing, Warehouse and money (2026-10-17; builds 3.5.1.63 to 3.7.0.113). Previous release 3.5.0.62, Graphics settings and Macro Helper (PR #158, 2026-10-09); the core uplift closed at 3.4.1.53 (PR #143). Previous release 3.4.2.54 |
 | Line 3.5.0 | Graphics settings (`/pss gfx`, built 3.5.0.57, tested fine on Camelot 2026-10-09) and the Macro Helper framework (`/pss macro`, built 3.5.0.61) released in 3.5.0.62; designs on scratch `docs/latest/graphics-settings/` and `docs/latest/macro-helper/`. Next: the author's macros, drip-fed from issue #159 (one build per ask) |
 | Lines 3.6.0 to 3.7.0 | The addon manager and Enabled components (3.6.0), PSS Drop Cheapest Thing (3.6.1), the service bus, trigger engine and Warehouse (3.7.0); features on scratch `documents/features/` (addon-helper, money-helper, service-bus-helper, warehouse-helper). Next: [Spyglass, Journal and Bags](https://github.com/racetracks/Pour-Social-Score_Scratch/blob/main/documents/code-map/Roadmaps/In_Progress/Spyglass_Journal_Bags/Readme.md) |
 | Lines 3.4.2, 3.4.3 | Not used: their stages (P1 to P6, W1 to W4) shipped inside 3.4.1.52 (decision 28, a one-time override, 02 section 12) |
